@@ -237,14 +237,6 @@ NIR_DEFINE_CAST(nir_search_value_as_expression, nir_search_value,
                 nir_search_expression, value,
                 type, nir_search_value_expression)
 
-nir_ssa_def *
-nir_replace_instr(struct nir_builder *b, nir_alu_instr *instr,
-                  struct hash_table *range_ht,
-                  struct util_dynarray *states,
-                  const nir_algebraic_table *table,
-                  const nir_search_expression *search,
-                  const nir_search_value *replace,
-                  nir_instr_worklist *algebraic_worklist);
 bool
 nir_algebraic_impl(nir_function_impl *impl,
                    const bool *condition_flags,

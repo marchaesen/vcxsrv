@@ -34,16 +34,16 @@ entire keyboard description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server 
 .TP
-.I \- xkb
+.I xkb
 keyboard description from which names are to be taken. 
 .TP
-.I \- changes
+.I changes
 indicators to be updated on the server
 .TP
-.I \- state
+.I state
 new state of indicators listed in changes->state_changes
 .SH DESCRIPTION
 .LP

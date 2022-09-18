@@ -287,6 +287,28 @@ vc4_hw_2116_workaround(struct pipe_context *pctx, int vert_count)
         }
 }
 
+/* A HW bug fails to draw 2-vert line loops.  Just draw it as two GL_LINES. */
+static bool
+vc4_draw_workaround_line_loop_2(struct pipe_context *pctx, const struct pipe_draw_info *info,
+             unsigned drawid_offset,
+             const struct pipe_draw_indirect_info *indirect,
+             const struct pipe_draw_start_count_bias *draw)
+{
+        if (draw->count != 2 || info->mode != PIPE_PRIM_LINE_LOOP)
+                return false;
+
+        struct pipe_draw_info local_info = *info;
+        local_info.mode = PIPE_PRIM_LINES;
+
+        /* Draw twice.  The vertex order will be wrong on the second prim, but
+         * that's probably not worth rewriting an index buffer over.
+         */
+        for (int i = 0; i < 2; i++)
+                pctx->draw_vbo(pctx, &local_info, drawid_offset, indirect, draw, 1);
+
+        return true;
+}
+
 static void
 vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
              unsigned drawid_offset,
@@ -308,6 +330,9 @@ vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
 	    !info->primitive_restart &&
 	    !u_trim_pipe_prim(info->mode, (unsigned*)&draws[0].count))
 		return;
+
+        if (vc4_draw_workaround_line_loop_2(pctx, info, drawid_offset, indirect, draws))
+                return;
 
         /* Before setting up the draw, do any fixup blits necessary. */
         vc4_predraw_check_textures(pctx, &vc4->verttex);
@@ -500,7 +525,7 @@ vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
         if (job->bo_space > 128 * 1024 * 1024)
                 vc4_flush(pctx);
 
-        if (vc4_debug & VC4_DEBUG_ALWAYS_FLUSH)
+        if (VC4_DBG(ALWAYS_FLUSH))
                 vc4_flush(pctx);
 }
 

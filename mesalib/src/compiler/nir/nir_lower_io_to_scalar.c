@@ -32,6 +32,15 @@
  */
 
 static void
+set_io_semantics(nir_intrinsic_instr *scalar_intr,
+                 nir_intrinsic_instr *vec_intr, unsigned component)
+{
+   nir_io_semantics sem = nir_intrinsic_io_semantics(vec_intr);
+   sem.gs_streams = (sem.gs_streams >> (component * 2)) & 0x3;
+   nir_intrinsic_set_io_semantics(scalar_intr, sem);
+}
+
+static void
 lower_load_input_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
 {
    b->cursor = nir_before_instr(&intr->instr);
@@ -50,9 +59,10 @@ lower_load_input_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       nir_intrinsic_set_component(chan_intr, nir_intrinsic_component(intr) + i);
       nir_intrinsic_set_dest_type(chan_intr, nir_intrinsic_dest_type(intr));
-      nir_intrinsic_set_io_semantics(chan_intr, nir_intrinsic_io_semantics(intr));
-      /* offset */
-      nir_src_copy(&chan_intr->src[0], &intr->src[0]);
+      set_io_semantics(chan_intr, intr, i);
+      /* offset and vertex (if needed) */
+      for (unsigned j = 0; j < nir_intrinsic_infos[intr->intrinsic].num_srcs; ++j)
+         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
 
@@ -95,7 +105,7 @@ lower_load_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       if (nir_intrinsic_has_base(intr))
          nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       for (unsigned j = 0; j < nir_intrinsic_infos[intr->intrinsic].num_srcs - 1; j++)
-         nir_src_copy(&chan_intr->src[j], &intr->src[j]);
+         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
 
       /* increment offset per component */
       nir_ssa_def *offset = nir_iadd_imm(b, base_offset, i * (intr->dest.ssa.bit_size / 8));
@@ -130,12 +140,38 @@ lower_store_output_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       nir_intrinsic_set_write_mask(chan_intr, 0x1);
       nir_intrinsic_set_component(chan_intr, nir_intrinsic_component(intr) + i);
       nir_intrinsic_set_src_type(chan_intr, nir_intrinsic_src_type(intr));
-      nir_intrinsic_set_io_semantics(chan_intr, nir_intrinsic_io_semantics(intr));
+      set_io_semantics(chan_intr, intr, i);
+
+      if (nir_intrinsic_has_io_xfb(intr)) {
+         /* Scalarize transform feedback info. */
+         unsigned component = nir_intrinsic_component(chan_intr);
+
+         for (unsigned c = 0; c <= component; c++) {
+            nir_io_xfb xfb = c < 2 ? nir_intrinsic_io_xfb(intr) :
+                                     nir_intrinsic_io_xfb2(intr);
+
+            if (component < c + xfb.out[c % 2].num_components) {
+               nir_io_xfb scalar_xfb;
+
+               memset(&scalar_xfb, 0, sizeof(scalar_xfb));
+               scalar_xfb.out[component % 2].num_components = 1;
+               scalar_xfb.out[component % 2].buffer = xfb.out[c % 2].buffer;
+               scalar_xfb.out[component % 2].offset = xfb.out[c % 2].offset +
+                                                      component - c;
+               if (component < 2)
+                  nir_intrinsic_set_io_xfb(chan_intr, scalar_xfb);
+               else
+                  nir_intrinsic_set_io_xfb2(chan_intr, scalar_xfb);
+               break;
+            }
+         }
+      }
 
       /* value */
       chan_intr->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
-      /* offset */
-      nir_src_copy(&chan_intr->src[1], &intr->src[1]);
+      /* offset and vertex (if needed) */
+      for (unsigned j = 1; j < nir_intrinsic_infos[intr->intrinsic].num_srcs; ++j)
+         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
    }
@@ -171,7 +207,7 @@ lower_store_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       /* value */
       chan_intr->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
       for (unsigned j = 1; j < nir_intrinsic_infos[intr->intrinsic].num_srcs - 1; j++)
-         nir_src_copy(&chan_intr->src[j], &intr->src[j]);
+         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
 
       /* increment offset per component */
       nir_ssa_def *offset = nir_iadd_imm(b, base_offset, i * (value->bit_size / 8));
@@ -196,8 +232,15 @@ nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
    if (intr->num_components == 1)
       return false;
 
-   if (intr->intrinsic == nir_intrinsic_load_input &&
+   if ((intr->intrinsic == nir_intrinsic_load_input ||
+        intr->intrinsic == nir_intrinsic_load_per_vertex_input) &&
        (mask & nir_var_shader_in)) {
+      lower_load_input_to_scalar(b, intr);
+      return true;
+   }
+
+   if (intr->intrinsic == nir_intrinsic_load_per_vertex_output &&
+      (mask & nir_var_shader_out)) {
       lower_load_input_to_scalar(b, intr);
       return true;
    }
@@ -209,7 +252,8 @@ nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
       return true;
    }
 
-   if (intr->intrinsic == nir_intrinsic_store_output &&
+   if ((intr->intrinsic == nir_intrinsic_store_output ||
+        intr->intrinsic == nir_intrinsic_store_per_vertex_output) &&
        mask & nir_var_shader_out) {
       lower_store_output_to_scalar(b, intr);
       return true;
@@ -297,10 +341,6 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
          chan_var = nir_variable_clone(var, b->shader);
          chan_var->data.location_frac =  var->data.location_frac + i;
          chan_var->type = glsl_channel_type(chan_var->type);
-         if (var->data.explicit_offset) {
-            unsigned comp_size = glsl_get_bit_size(chan_var->type) / 8;
-            chan_var->data.offset = var->data.offset + i * comp_size;
-         }
 
          chan_vars[var->data.location_frac + i] = chan_var;
 
@@ -322,7 +362,7 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
       if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_sample ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_vertex)
-         nir_src_copy(&chan_intr->src[1], &intr->src[1]);
+         nir_src_copy(&chan_intr->src[1], &intr->src[1], &chan_intr->instr);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
 
@@ -355,10 +395,6 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
          chan_var = nir_variable_clone(var, b->shader);
          chan_var->data.location_frac =  var->data.location_frac + i;
          chan_var->type = glsl_channel_type(chan_var->type);
-         if (var->data.explicit_offset) {
-            unsigned comp_size = glsl_get_bit_size(chan_var->type) / 8;
-            chan_var->data.offset = var->data.offset + i * comp_size;
-         }
 
          chan_vars[var->data.location_frac + i] = chan_var;
 
@@ -436,6 +472,9 @@ nir_lower_io_to_scalar_early_instr(nir_builder *b, nir_instr *instr, void *data)
     * components.
     */
    if (var->data.always_active_io)
+      return false;
+
+   if (var->data.must_be_shader_input)
       return false;
 
    /* Skip types we cannot split */

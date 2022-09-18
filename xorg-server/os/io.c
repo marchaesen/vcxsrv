@@ -790,7 +790,7 @@ WriteToClient(ClientPtr who, int count, const void *__buf)
         }
     }
 #endif
-    if (oco->count == 0 || oco->count + count + padBytes > oco->size) {
+    if ((oco->count == 0 && who->local) || oco->count + count + padBytes > oco->size) {
         output_pending_clear(who);
         if (!any_output_pending()) {
             CriticalOutputPending = FALSE;

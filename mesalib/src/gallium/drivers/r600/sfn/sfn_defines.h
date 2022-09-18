@@ -303,6 +303,9 @@ enum EVFetchFlagShift {
    vtx_alt_const,
    vtx_use_tc,
    vtx_vpm,
+   vtx_is_mega_fetch,
+   vtx_uncached,
+   vtx_indexed,
    vtx_unknown
 };
 

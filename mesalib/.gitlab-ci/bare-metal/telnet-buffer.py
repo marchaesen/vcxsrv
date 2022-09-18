@@ -28,8 +28,8 @@
 import sys
 import telnetlib
 
-host=sys.argv[1]
-port=sys.argv[2]
+host = sys.argv[1]
+port = sys.argv[2]
 
 tn = telnetlib.Telnet(host, port, 1000000)
 

@@ -25,7 +25,7 @@
 
 #define DRI3_NAME			"DRI3"
 #define DRI3_MAJOR			1
-#define DRI3_MINOR			2
+#define DRI3_MINOR			3
 
 #define DRI3NumberErrors		0
 #define DRI3NumberEvents		0
@@ -42,7 +42,10 @@
 #define xDRI3PixmapFromBuffers          7
 #define xDRI3BuffersFromPixmap          8
 
-#define DRI3NumberRequests		9
+/* v1.3 */
+#define xDRI3SetDRMDeviceInUse  9
+
+#define DRI3NumberRequests		10
 
 typedef struct {
     CARD8   reqType;
@@ -245,5 +248,17 @@ typedef struct {
     CARD32  pad28;
 } xDRI3BuffersFromPixmapReply;
 #define sz_xDRI3BuffersFromPixmapReply   32
+
+/* v1.3 */
+
+typedef struct {
+    CARD8   reqType;
+    CARD8   dri3ReqType;
+    CARD16  length;
+    CARD32  window;
+    CARD32  drmMajor;
+    CARD32  drmMinor;
+} xDRI3SetDRMDeviceInUseReq;
+#define sz_xDRI3SetDRMDeviceInUseReq    16
 
 #endif

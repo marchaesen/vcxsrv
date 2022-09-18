@@ -116,7 +116,7 @@ type_t
 ir3_get_type_for_image_intrinsic(const nir_intrinsic_instr *instr)
 {
    const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
-   int bit_size = info->has_dest ? nir_dest_bit_size(instr->dest) : 32;
+   int bit_size = info->has_dest ? nir_dest_bit_size(instr->dest) : nir_src_bit_size(instr->src[3]);
 
    nir_alu_type type = nir_type_uint;
    switch (instr->intrinsic) {

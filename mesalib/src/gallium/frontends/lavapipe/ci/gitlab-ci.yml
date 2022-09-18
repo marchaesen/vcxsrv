@@ -3,28 +3,26 @@
   extends:
     - .test-vk
     - .lavapipe-rules
-    - .deqp-test-vk
   variables:
     GPU_VERSION: lvp
     VK_DRIVER: lvp
     DEQP_EXPECTED_RENDERER: llvmpipe
+    LVP_POISON_MEMORY: "1"
 
-lavapipe-vk:
+lavapipe:
+  tags:
+    - mesa-swrast
+  variables:
+    DEQP_SUITE: lvp
+    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
   stage: software-renderer
   extends:
+    - .deqp-test-vk
     - .lavapipe-test
-  variables:
-    DEQP_FRACTION: 10
-
-lavapipe-nir-stress:
-  extends:
-    - .lavapipe-test
-  variables:
-    DEQP_FRACTION: 100
-    NIR_DEBUG: "clone,serialize"
 
 lavapipe-vk-asan:
   extends:
+    - .deqp-test-vk
     - .lavapipe-test
   variables:
     GPU_VERSION: lvp-asan
@@ -35,3 +33,15 @@ lavapipe-vk-asan:
   needs:
     - debian/x86_test-vk
     - debian-testing-asan
+
+lavapipe-traces:
+  variables:
+    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-lavapipe.yml"
+    PIGLIT_REPLAY_DEVICE_NAME: "lvp"
+    PIGLIT_RESULTS: "${GPU_VERSION}-replay"
+  stage: software-renderer
+  extends:
+    - .piglit-traces-test
+    - .lavapipe-test
+    - .test-manual-mr

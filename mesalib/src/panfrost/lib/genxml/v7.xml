@@ -644,8 +644,8 @@
   </struct>
 
   <struct name="Draw" size="32" align="64">
-    <field name="Four Components Per Vertex" size="1" start="0:0" type="bool"/>
-    <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool"/>
+    <field name="Four Components Per Vertex" size="1" start="0:0" type="bool" default="true"/>
+    <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool" default="true"/>
     <field name="Occlusion query" size="2" start="0:3" type="Occlusion Mode" default="Disabled"/>
     <field name="Front face CCW" size="1" start="0:5" type="bool"/>
     <field name="Cull front face" size="1" start="0:6" type="bool"/>
@@ -854,7 +854,7 @@
 
   <struct name="VAR_TEX Preload" size="1" no-direct-packing="true">
     <field name="Varying Index" size="3" start="4" type="uint"/>
-    <field name="Sampler Index" size="2" start="7" type="uint"/>
+    <field name="Texture Index" size="2" start="7" type="uint"/>
     <field name="Register Format" size="2" start="9" type="Message Preload Register Format"/>
     <field name="Skip" size="1" start="14" type="bool"/>
     <field name="Zero LOD" size="1" start="15" type="bool"/>
@@ -881,8 +881,8 @@
     <field name="Thread Balancing" size="16" start="13:0" type="uint"/>
     <field name="Secondary preload" size="32" start="13:0" type="Preload"/>
     <field name="Secondary shader" size="64" start="14:0" type="address"/>
-    <field name="Message Preload 1" size="16" start="15:0" type="uint"/>
-    <field name="Message Preload 2" size="16" start="15:16" type="uint"/>
+    <field name="Message Preload 1" size="16" start="15:0" type="Message Preload"/>
+    <field name="Message Preload 2" size="16" start="15:16" type="Message Preload"/>
   </struct>
 
   <struct name="Uniform Buffer" align="8">

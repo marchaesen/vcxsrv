@@ -15,10 +15,9 @@ panfrost-t720-gles2:arm64:
     GPU_VERSION: panfrost-t720
     DEQP_SUITE: panfrost-t720
     FDO_CI_CONCURRENT: 6
-  tags:
-    - mesa-ci-x86-64-lava-sun50i-h6-pine-h64
+    RUNNER_TAG: mesa-ci-x86-64-lava-sun50i-h6-pine-h64
 
-panfrost-t760-gles2:armhf:
+.panfrost-t760-gles2:armhf:
   extends:
     - .lava-test:armhf
     - .panfrost-midgard-rules
@@ -31,10 +30,9 @@ panfrost-t760-gles2:armhf:
     KERNEL_IMAGE_TYPE: ""
     DEQP_SUITE: panfrost-t760
     FDO_CI_CONCURRENT: 6
-  tags:
-    - mesa-ci-x86-64-lava-rk3288-veyron-jaq
+    RUNNER_TAG: mesa-ci-x86-64-lava-rk3288-veyron-jaq
 
-panfrost-t760-traces:armhf:
+.panfrost-t760-traces:armhf:
   extends:
     - .lava-piglit-traces:armhf
     - .panfrost-midgard-rules
@@ -53,8 +51,7 @@ panfrost-t760-traces:armhf:
     EGL_PLATFORM: surfaceless
     PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-panfrost.yml"
     PIGLIT_REPLAY_EXTRA_ARGS: "--keep-image"
-  tags:
-    - mesa-ci-x86-64-lava-rk3288-veyron-jaq
+    RUNNER_TAG: mesa-ci-x86-64-lava-rk3288-veyron-jaq
 
 .lava-rk3399-gru-kevin:
   extends:
@@ -67,8 +64,7 @@ panfrost-t760-traces:armhf:
     DRIVER_NAME: panfrost
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
-  tags:
-    - mesa-ci-x86-64-lava-rk3399-gru-kevin
+    RUNNER_TAG: mesa-ci-x86-64-lava-rk3399-gru-kevin
 
 panfrost-t860-gl:arm64:
   parallel: 3
@@ -100,8 +96,7 @@ panfrost-t860-traces:arm64:
     DEVICE_TYPE: meson-g12b-a311d-khadas-vim3
     DTB: $DEVICE_TYPE
     GPU_VERSION: panfrost-g52
-  tags:
-    - mesa-ci-x86-64-lava-meson-g12b-a311d-khadas-vim3
+    RUNNER_TAG: mesa-ci-x86-64-lava-meson-g12b-a311d-khadas-vim3
 
 panfrost-g52-gl:arm64:
   parallel: 3
@@ -113,7 +108,7 @@ panfrost-g52-gl:arm64:
     DEQP_SUITE: panfrost-g52
     PAN_MESA_DEBUG: "deqp,sync,indirect"
 
-panfrost-g52-vk:arm64:
+.panfrost-g52-vk:arm64:
   extends:
     - .lava-test:arm64
     - .lava-meson-g12b-a311d-khadas-vim3
@@ -144,8 +139,7 @@ panfrost-g52-piglit-gl:arm64:
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
     GPU_VERSION: panfrost-g72
-  tags:
-    - mesa-ci-x86-64-lava-mt8183-kukui-jacuzzi-juniper-sku16
+    RUNNER_TAG: mesa-ci-x86-64-lava-mt8183-kukui-jacuzzi-juniper-sku16
 
 panfrost-g72-gl:arm64:
   parallel: 3
@@ -166,5 +160,4 @@ panfrost-g72-gl:arm64:
     GPU_VERSION: panfrost-t820
     FDO_CI_CONCURRENT: 6
     DEQP_SUITE: panfrost-t720
-  tags:
-    - mesa-ci-aarch64-lava-baylibre
+    RUNNER_TAG: mesa-ci-aarch64-lava-baylibre

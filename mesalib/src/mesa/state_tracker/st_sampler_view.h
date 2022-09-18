@@ -83,4 +83,9 @@ st_get_buffer_sampler_view_from_stobj(struct st_context *st,
                                       struct gl_texture_object *stObj,
                                       bool get_reference);
 
+enum pipe_format
+st_get_sampler_view_format(const struct st_context *st,
+                           const struct gl_texture_object *texObj,
+                           bool srgb_skip_decode);
+
 #endif /* ST_SAMPLER_VIEW_H */

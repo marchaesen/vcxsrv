@@ -239,10 +239,10 @@ check_elts24(struct lp_setup_context *setup, const void *vb, int stride)
     * commands for this triangle list directly.  Instead, introduce
     * some new vertices and feed to the rectangle setup code:
     */
-   PIPE_ALIGN_VAR(16) float vA[2][4];
-   PIPE_ALIGN_VAR(16) float vB[2][4];
-   PIPE_ALIGN_VAR(16) float vC[2][4];
-   PIPE_ALIGN_VAR(16) float vD[2][4];
+   alignas(16) float vA[2][4];
+   alignas(16) float vB[2][4];
+   alignas(16) float vC[2][4];
+   alignas(16) float vD[2][4];
 
    float as, bs;
    float at, bt;

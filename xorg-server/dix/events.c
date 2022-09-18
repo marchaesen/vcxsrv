@@ -1505,16 +1505,13 @@ UpdateTouchesForGrab(DeviceIntPtr mouse)
             CLIENT_BITS(listener->listener) == grab->resource) {
             if (grab->grabtype == CORE || grab->grabtype == XI ||
                 !xi2mask_isset(grab->xi2mask, mouse, XI_TouchBegin)) {
+                /*  Note that the grab will override any current listeners and if these listeners
+                    already received touch events then this is the place to send touch end event
+                    to complete the touch sequence.
 
-                if (listener->type == TOUCH_LISTENER_REGULAR &&
-                    listener->state != TOUCH_LISTENER_AWAITING_BEGIN &&
-                    listener->state != TOUCH_LISTENER_HAS_END) {
-                    /* if the listener already got any events relating to the touch, we must send
-                       a touch end because the grab overrides the previous listener and won't
-                       itself send any touch events.
-                    */
-                    TouchEmitTouchEnd(mouse, ti, 0, listener->listener);
-                }
+                    Unfortunately GTK3 menu widget implementation relies on not getting touch end
+                    event, so we can't fix the current behavior.
+                */
                 listener->type = TOUCH_LISTENER_POINTER_GRAB;
             } else {
                 listener->type = TOUCH_LISTENER_GRAB;

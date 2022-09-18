@@ -36,35 +36,6 @@
 
 
 /**
- * Translate TGSI shader into an svga shader variant.
- */
-static enum pipe_error
-compile_cs(struct svga_context *svga,
-           struct svga_compute_shader *cs,
-           const struct svga_compile_key *key,
-           struct svga_shader_variant **out_variant)
-{
-   struct svga_shader_variant *variant;
-   enum pipe_error ret = PIPE_ERROR;
-
-   variant = svga_tgsi_vgpu10_translate(svga, &cs->base, key,
-                                        PIPE_SHADER_COMPUTE);
-   if (!variant)
-      return PIPE_ERROR;
-
-   ret = svga_define_shader(svga, variant);
-   if (ret != PIPE_OK) {
-      svga_destroy_shader_variant(svga, variant);
-      return ret;
-   }
-
-   *out_variant = variant;
-
-   return PIPE_OK;
-}
-
-
-/**
  * Create compute shader compile key.
  */
 static void
@@ -90,8 +61,6 @@ make_cs_key(struct svga_context *svga,
       memcpy(key->cs.grid_size, map, 3 * sizeof(uint));
       pipe_buffer_unmap(&svga->pipe, transfer);
    }
-
-   key->image_size_used = cs->base.info.opcode_count[TGSI_OPCODE_RESQ] ? 1 : 0;
 }
 
 
@@ -130,14 +99,9 @@ emit_hw_cs(struct svga_context *svga, uint64_t dirty)
    variant = svga_search_shader_key(&cs->base, &key);
 
    if (!variant) {
-      ret = compile_cs(svga, cs, &key, &variant);
+      ret = svga_compile_shader(svga, &cs->base, &key, &variant);
       if (ret != PIPE_OK)
          goto done;
-
-      /* insert the new variant at head of linked list */
-      assert(variant);
-      variant->next = cs->base.variants;
-      cs->base.variants = variant;
    }
 
    if (variant != svga->state.hw_draw.cs) {

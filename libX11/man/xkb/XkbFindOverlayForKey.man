@@ -28,18 +28,18 @@ key that is part of an overlay
 .B char * XkbFindOverlayForKey
 .BI "(\^XkbGeometryPtr " "geom" "\^,"
 .BI "XkbSectionPtr " "section" "\^,"
-.BI "char *" "under" "\^);"
+.BI "_Xconst char *" "under" "\^);"
 .if n .ti +5n
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry that contains the section
 .TP
-.I \- section
+.I section
 section to be searched for matching keys
 .TP
-.I \- under
+.I under
 primary name of the key to be considered
 .SH DESCRIPTION
 .LP

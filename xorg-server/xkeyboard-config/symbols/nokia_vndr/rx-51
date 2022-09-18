@@ -346,10 +346,6 @@ xkb_symbols "cz_qwerty" {
 
     name[Group1] = "Czech - qwerty";
 
-    // Do not use the layout "cz_qwerty" directly if it is the only layout and compat rules enabled.
-    // There is one compat rule that converts "cz_qwerty" to "pc+cz(qwerty)" which is not correct for RX-51.
-    // Use either the layout "cz(qwerty)" or the general "cz" with variant "qwerty".
-
     // 1. row
     key <AD06>	{ [	y,		Y,		6,		6		] };
 

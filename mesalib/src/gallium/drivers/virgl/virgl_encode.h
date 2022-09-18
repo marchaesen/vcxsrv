@@ -36,6 +36,8 @@ struct virgl_resource;
 struct virgl_screen;
 struct virgl_transfer;
 struct virgl_sampler_view;
+struct virgl_video_codec;
+struct virgl_video_buffer;
 
 struct virgl_surface {
    struct pipe_surface base;
@@ -90,7 +92,7 @@ extern int virgl_encode_rasterizer_state(struct virgl_context *ctx,
 
 extern int virgl_encode_shader_state(struct virgl_context *ctx,
                                      uint32_t handle,
-                                     uint32_t type,
+                                     enum pipe_shader_type type,
                                      const struct pipe_stream_output_info *so_info,
                                      uint32_t cs_req_local_mem,
                                      const struct tgsi_token *tokens);
@@ -174,13 +176,13 @@ int virgl_encode_sampler_view(struct virgl_context *ctx,
                              const struct pipe_sampler_view *state);
 
 int virgl_encode_set_sampler_views(struct virgl_context *ctx,
-                                  uint32_t shader_type,
+                                  enum pipe_shader_type shader_type,
                                   uint32_t start_slot,
                                   uint32_t num_views,
                                   struct virgl_sampler_view **views);
 
 int virgl_encode_bind_sampler_states(struct virgl_context *ctx,
-                                    uint32_t shader_type,
+                                    enum pipe_shader_type shader_type,
                                     uint32_t start_slot,
                                     uint32_t num_handles,
                                     uint32_t *handles);
@@ -191,13 +193,13 @@ int virgl_encoder_set_index_buffer(struct virgl_context *ctx,
 uint32_t virgl_object_assign_handle(void);
 
 int virgl_encoder_write_constant_buffer(struct virgl_context *ctx,
-                                       uint32_t shader,
+                                       enum pipe_shader_type shader,
                                        uint32_t index,
                                        uint32_t size,
                                        const void *data);
 
 int virgl_encoder_set_uniform_buffer(struct virgl_context *ctx,
-                                     uint32_t shader,
+                                     enum pipe_shader_type shader,
                                      uint32_t index,
                                      uint32_t offset,
                                      uint32_t length,
@@ -267,7 +269,8 @@ int virgl_encoder_destroy_sub_ctx(struct virgl_context *ctx, uint32_t sub_ctx_id
 int virgl_encode_link_shader(struct virgl_context *ctx, uint32_t *handles);
 
 int virgl_encode_bind_shader(struct virgl_context *ctx,
-                             uint32_t handle, uint32_t type);
+                             uint32_t handle,
+                             enum pipe_shader_type type);
 
 int virgl_encode_set_tess_state(struct virgl_context *ctx,
                                 const float outer[4],
@@ -316,5 +319,31 @@ void virgl_encode_get_memory_info(struct virgl_context *ctx, struct virgl_resour
 void virgl_encode_emit_string_marker(struct virgl_context *ctx, const char *message,
                                        int len);
 
+void virgl_encode_create_video_codec(struct virgl_context *ctx,
+                                     struct virgl_video_codec *cdc);
+
+void virgl_encode_destroy_video_codec(struct virgl_context *ctx,
+                                      struct virgl_video_codec *cdc);
+
+void virgl_encode_create_video_buffer(struct virgl_context *ctx,
+                                      struct virgl_video_buffer *buf);
+
+void virgl_encode_destroy_video_buffer(struct virgl_context *ctx,
+                                       struct virgl_video_buffer *buf);
+
+void virgl_encode_begin_frame(struct virgl_context *ctx,
+                              struct virgl_video_codec *cdc,
+                              struct virgl_video_buffer *buf);
+
+void virgl_encode_decode_bitstream(struct virgl_context *ctx,
+                                   struct virgl_video_codec *cdc,
+                                   struct virgl_video_buffer *buf,
+                                   void *desc, uint32_t desc_size);
+
+void virgl_encode_end_frame(struct virgl_context *ctx,
+                            struct virgl_video_codec *cdc,
+                            struct virgl_video_buffer *buf);
+
 enum virgl_formats pipe_to_virgl_format(enum pipe_format format);
+enum pipe_format virgl_to_pipe_format(enum virgl_formats format);
 #endif

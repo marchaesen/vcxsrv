@@ -42,24 +42,24 @@
 static bool
 do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 {
-   if (!ac_query_gpu_info(fd, ws->dev, &ws->info, &ws->amdinfo))
+   if (!ac_query_gpu_info(fd, ws->dev, &ws->info))
       return false;
 
    if (ws->info.drm_minor < 23) {
-      fprintf(stderr, "radv: DRM 3.23+ is required (Linux kernel 4.15+)\n");
+      fprintf(stderr, "radv/amdgpu: DRM 3.23+ is required (Linux kernel 4.15+)\n");
       return false;
    }
 
    ws->addrlib = ac_addrlib_create(&ws->info, &ws->info.max_alignment);
    if (!ws->addrlib) {
-      fprintf(stderr, "amdgpu: Cannot create addrlib.\n");
+      fprintf(stderr, "radv/amdgpu: Cannot create addrlib.\n");
       return false;
    }
 
-   ws->info.num_rings[RING_DMA] = MIN2(ws->info.num_rings[RING_DMA], MAX_RINGS_PER_TYPE);
-   ws->info.num_rings[RING_COMPUTE] = MIN2(ws->info.num_rings[RING_COMPUTE], MAX_RINGS_PER_TYPE);
+   ws->info.ip[AMD_IP_SDMA].num_queues = MIN2(ws->info.ip[AMD_IP_SDMA].num_queues, MAX_RINGS_PER_TYPE);
+   ws->info.ip[AMD_IP_COMPUTE].num_queues = MIN2(ws->info.ip[AMD_IP_COMPUTE].num_queues, MAX_RINGS_PER_TYPE);
 
-   ws->use_ib_bos = ws->info.chip_class >= GFX7;
+   ws->use_ib_bos = ws->info.gfx_level >= GFX7;
    return true;
 }
 
@@ -198,15 +198,19 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags,
    struct radv_amdgpu_winsys *ws = NULL;
 
    r = amdgpu_device_initialize(fd, &drm_major, &drm_minor, &dev);
-   if (r)
+   if (r) {
+      fprintf(stderr, "radv/amdgpu: failed to initialize device.\n");
       return NULL;
+   }
 
    /* We have to keep this lock till insertion. */
    simple_mtx_lock(&winsys_creation_mutex);
    if (!winsyses)
       winsyses = _mesa_pointer_hash_table_create(NULL);
-   if (!winsyses)
+   if (!winsyses) {
+      fprintf(stderr, "radv/amdgpu: failed to alloc winsys hash table.\n");
       goto fail;
+   }
 
    struct hash_entry *entry = _mesa_hash_table_search(winsyses, dev);
    if (entry) {
@@ -217,6 +221,20 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags,
    if (ws) {
       simple_mtx_unlock(&winsys_creation_mutex);
       amdgpu_device_deinitialize(dev);
+
+      /* Check that options don't differ from the existing winsys. */
+      if (((debug_flags & RADV_DEBUG_ALL_BOS) && !ws->debug_all_bos) ||
+          ((debug_flags & RADV_DEBUG_HANG) && !ws->debug_log_bos) ||
+          ((debug_flags & RADV_DEBUG_NO_IBS) && ws->use_ib_bos) ||
+          (perftest_flags != ws->perftest)) {
+         fprintf(stderr, "radv/amdgpu: Found options that differ from the existing winsys.\n");
+         return NULL;
+      }
+
+      /* RADV_DEBUG_ZERO_VRAM is the only option that is allowed to be set again. */
+      if (debug_flags & RADV_DEBUG_ZERO_VRAM)
+         ws->zero_all_vram_allocs = true;
+
       return &ws->base;
    }
 
@@ -239,8 +257,10 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags,
    ws->reserve_vmid = reserve_vmid;
    if (ws->reserve_vmid) {
       r = amdgpu_vm_reserve_vmid(dev, 0);
-      if (r)
+      if (r) {
+         fprintf(stderr, "radv/amdgpu: failed to reserve vmid.\n");
          goto vmid_fail;
+      }
    }
    int num_sync_types = 0;
 

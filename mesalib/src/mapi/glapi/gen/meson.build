@@ -115,6 +115,7 @@ api_xml_files = files(
   'EXT_draw_buffers2.xml',
   'EXT_external_objects.xml',
   'EXT_external_objects_fd.xml',
+  'EXT_external_objects_win32.xml',
   'EXT_framebuffer_object.xml',
   'EXT_gpu_shader4.xml',
   'EXT_multisampled_render_to_texture.xml',
@@ -256,6 +257,15 @@ main_api_vtxfmt_init_h = custom_target(
   'api_vtxfmt_init.h',
   input : ['api_vtxfmt_init_h.py', 'gl_and_es_API.xml'],
   output : 'api_vtxfmt_init.h',
+  command : [prog_python, '@INPUT0@', '-f', '@INPUT1@'],
+  depend_files : files('apiexec.py') + glapi_gen_depends,
+  capture : true,
+)
+
+main_api_hw_select_init_h = custom_target(
+  'api_hw_select_init.h',
+  input : ['api_hw_select_init_h.py', 'gl_API.xml'],
+  output : 'api_hw_select_init.h',
   command : [prog_python, '@INPUT0@', '-f', '@INPUT1@'],
   depend_files : files('apiexec.py') + glapi_gen_depends,
   capture : true,

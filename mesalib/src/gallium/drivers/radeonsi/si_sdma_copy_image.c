@@ -74,7 +74,7 @@ static
 bool si_translate_format_to_hw(struct si_context *sctx, enum pipe_format format, unsigned *hw_fmt, unsigned *hw_type)
 {
    const struct util_format_description *desc = util_format_description(format);
-   *hw_fmt = si_translate_colorformat(sctx->chip_class, format);
+   *hw_fmt = si_translate_colorformat(sctx->gfx_level, format);
 
    int firstchan;
    for (firstchan = 0; firstchan < 4; firstchan++) {
@@ -258,7 +258,7 @@ bool cik_sdma_copy_texture(struct si_context *sctx, struct si_texture *sdst, str
        src_pitch <= (1 << 14) && dst_pitch <= (1 << 14) && src_slice_pitch <= (1 << 28) &&
        dst_slice_pitch <= (1 << 28) && copy_width <= (1 << 14) && copy_height <= (1 << 14) &&
        /* HW limitation - GFX7: */
-       (sctx->chip_class != GFX7 ||
+       (sctx->gfx_level != GFX7 ||
         (copy_width < (1 << 14) && copy_height < (1 << 14))) &&
        /* HW limitation - some GFX7 parts: */
        ((sctx->family != CHIP_BONAIRE && sctx->family != CHIP_KAVERI) ||
@@ -278,7 +278,7 @@ bool cik_sdma_copy_texture(struct si_context *sctx, struct si_texture *sdst, str
       radeon_emit(0);
       radeon_emit((dst_pitch - 1) << 16);
       radeon_emit(dst_slice_pitch - 1);
-      if (sctx->chip_class == GFX7) {
+      if (sctx->gfx_level == GFX7) {
          radeon_emit(copy_width | (copy_height << 16));
          radeon_emit(0);
       } else {
@@ -402,7 +402,7 @@ bool cik_sdma_copy_texture(struct si_context *sctx, struct si_texture *sdst, str
          radeon_emit(0);
          radeon_emit(((linear_pitch - 1) << 16));
          radeon_emit(linear_slice_pitch - 1);
-         if (sctx->chip_class == GFX7) {
+         if (sctx->gfx_level == GFX7) {
             radeon_emit(copy_width_aligned | (copy_height << 16));
             radeon_emit(1);
          } else {
@@ -422,11 +422,11 @@ bool si_sdma_copy_image(struct si_context *sctx, struct si_texture *dst, struct 
    struct radeon_winsys *ws = sctx->ws;
 
    if (!sctx->sdma_cs) {
-      if (sctx->screen->debug_flags & DBG(NO_DMA) || sctx->chip_class < GFX7)
+      if (sctx->screen->debug_flags & DBG(NO_DMA) || sctx->gfx_level < GFX7)
          return false;
 
       sctx->sdma_cs = CALLOC_STRUCT(radeon_cmdbuf);
-      if (ws->cs_create(sctx->sdma_cs, sctx->ctx, RING_DMA,
+      if (ws->cs_create(sctx->sdma_cs, sctx->ctx, AMD_IP_SDMA,
                         NULL, NULL, true))
          return false;
    }
@@ -435,7 +435,7 @@ bool si_sdma_copy_image(struct si_context *sctx, struct si_texture *dst, struct 
       return false;
 
    /* Decompress DCC on older chips */
-   if (vi_dcc_enabled(src, 0) && sctx->chip_class < GFX10)
+   if (vi_dcc_enabled(src, 0) && sctx->gfx_level < GFX10)
       si_decompress_dcc(sctx, src);
    /* TODO: DCC compression is possible on GFX10+. See si_set_mutable_tex_desc_fields for
     * additional constraints.
@@ -447,7 +447,7 @@ bool si_sdma_copy_image(struct si_context *sctx, struct si_texture *dst, struct 
    /* Always flush the gfx queue to get the winsys to handle the dependencies for us. */
    si_flush_gfx_cs(sctx, 0, NULL);
 
-   switch (sctx->chip_class) {
+   switch (sctx->gfx_level) {
       case GFX7:
       case GFX8:
          if (!cik_sdma_copy_texture(sctx, dst, src))
@@ -456,7 +456,7 @@ bool si_sdma_copy_image(struct si_context *sctx, struct si_texture *dst, struct 
       case GFX9:
       case GFX10:
       case GFX10_3:
-         if (!si_sdma_v4_v5_copy_texture(sctx, dst, src, sctx->chip_class >= GFX10))
+         if (!si_sdma_v4_v5_copy_texture(sctx, dst, src, sctx->gfx_level >= GFX10))
             return false;
          break;
       default:

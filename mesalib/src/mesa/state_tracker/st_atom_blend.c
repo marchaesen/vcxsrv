@@ -148,14 +148,14 @@ blend_per_rt(const struct st_context *st, unsigned num_cb)
       return GL_TRUE;
    }
 
-   if (st->needs_rgb_dst_alpha_override && ctx->DrawBuffer->_RGBBuffers) {
+   if (ctx->DrawBuffer->_BlendForceAlphaToOne) {
       /* Overriding requires independent blend functions (not just enables),
        * require drivers exposing PIPE_CAP_RGB_OVERRIDE_DST_ALPHA_BLEND to
        * also expose PIPE_CAP_INDEP_BLEND_FUNC.
        */
       assert(st->has_indep_blend_func);
 
-      /* If some of the buffers are RGB, we may need to override blend
+      /* If some of the buffers are RGB or emulated L/I, we may need to override blend
        * factors that reference destination-alpha to constants.  We may
        * need different blend factor overrides per buffer (say one uses
        * a DST_ALPHA factor and another uses INV_DST_ALPHA), so we flip
@@ -269,8 +269,7 @@ st_update_blend( struct st_context *st )
          const struct gl_renderbuffer *rb =
             ctx->DrawBuffer->_ColorDrawBuffers[i];
 
-         if (st->needs_rgb_dst_alpha_override && rb &&
-             (ctx->DrawBuffer->_RGBBuffers & (1 << i))) {
+         if (rb && (ctx->DrawBuffer->_BlendForceAlphaToOne & (1 << i))) {
             struct pipe_rt_blend_state *rt = &blend->rt[i];
             rt->rgb_src_factor = fix_xrgb_alpha(rt->rgb_src_factor);
             rt->rgb_dst_factor = fix_xrgb_alpha(rt->rgb_dst_factor);
@@ -283,7 +282,8 @@ st_update_blend( struct st_context *st )
       /* no blending / logicop */
    }
 
-   blend->dither = ctx->Color.DitherFlag;
+   if (st->can_dither)
+      blend->dither = ctx->Color.DitherFlag;
 
    if (_mesa_is_multisample_enabled(ctx) &&
        !(ctx->DrawBuffer->_IntegerBuffers & 0x1)) {

@@ -114,7 +114,7 @@ nir_lower_is_helper_invocation(nir_shader *shader)
                                           glsl_bool_type(),
                                           "gl_IsHelperInvocationEXT");
 
-   nir_ssa_def *started_as_helper = nir_load_helper_invocation(&b, 32);
+   nir_ssa_def *started_as_helper = nir_load_helper_invocation(&b, 1);
 
    nir_deref_instr *is_helper_deref = nir_build_deref_var(&b, is_helper);
    nir_store_deref(&b, is_helper_deref, started_as_helper, 1);

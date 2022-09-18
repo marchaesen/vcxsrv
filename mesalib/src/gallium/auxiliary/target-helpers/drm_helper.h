@@ -177,8 +177,7 @@ DRM_DRIVER_DESCRIPTOR_STUB(kmsro)
 #endif
 
 #ifdef GALLIUM_R300
-#include "radeon/radeon_winsys.h"
-#include "radeon/drm/radeon_drm_public.h"
+#include "winsys/radeon_winsys.h"
 #include "r300/r300_public.h"
 
 static struct pipe_screen *
@@ -196,8 +195,7 @@ DRM_DRIVER_DESCRIPTOR_STUB(r300)
 #endif
 
 #ifdef GALLIUM_R600
-#include "radeon/radeon_winsys.h"
-#include "radeon/drm/radeon_drm_public.h"
+#include "winsys/radeon_winsys.h"
 #include "r600/r600_public.h"
 
 static struct pipe_screen *
@@ -274,21 +272,31 @@ DRM_DRIVER_DESCRIPTOR_STUB(msm)
 #endif
 DRM_DRIVER_DESCRIPTOR_ALIAS(msm, kgsl, NULL, 0)
 
-#ifdef GALLIUM_VIRGL
+#if defined(GALLIUM_VIRGL) || (defined(GALLIUM_FREEDRENO) && !defined(PIPE_LOADER_DYNAMIC))
 #include "virgl/drm/virgl_drm_public.h"
 #include "virgl/virgl_public.h"
 
 static struct pipe_screen *
 pipe_virtio_gpu_create_screen(int fd, const struct pipe_screen_config *config)
 {
-   struct pipe_screen *screen;
+   struct pipe_screen *screen = NULL;
 
-   screen = virgl_drm_screen_create(fd, config);
+   /* Try native guest driver(s) first, and then fallback to virgl: */
+#ifdef GALLIUM_FREEDRENO
+   if (!screen)
+      screen = fd_drm_screen_create(fd, NULL, config);
+#endif
+#ifdef GALLIUM_VIRGL
+   if (!screen)
+      screen = virgl_drm_screen_create(fd, config);
+#endif
    return screen ? debug_screen_wrap(screen) : NULL;
 }
 
 const driOptionDescription virgl_driconf[] = {
+#ifdef GALLIUM_VIRGL
       #include "virgl/virgl_driinfo.h.in"
+#endif
 };
 DRM_DRIVER_DESCRIPTOR(virtio_gpu, virgl_driconf, ARRAY_SIZE(virgl_driconf))
 

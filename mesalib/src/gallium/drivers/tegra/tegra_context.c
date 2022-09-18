@@ -154,7 +154,7 @@ tegra_get_query_result(struct pipe_context *pcontext,
 static void
 tegra_get_query_result_resource(struct pipe_context *pcontext,
                                 struct pipe_query *query,
-                                bool wait,
+                                enum pipe_query_flags flags,
                                 enum pipe_query_value_type result_type,
                                 int index,
                                 struct pipe_resource *resource,
@@ -162,7 +162,7 @@ tegra_get_query_result_resource(struct pipe_context *pcontext,
 {
    struct tegra_context *context = to_tegra_context(pcontext);
 
-   context->gpu->get_query_result_resource(context->gpu, query, wait,
+   context->gpu->get_query_result_resource(context->gpu, query, flags,
                                            result_type, index, resource,
                                            offset);
 }
@@ -210,7 +210,7 @@ tegra_create_sampler_state(struct pipe_context *pcontext,
 }
 
 static void
-tegra_bind_sampler_states(struct pipe_context *pcontext, unsigned shader,
+tegra_bind_sampler_states(struct pipe_context *pcontext, enum pipe_shader_type shader,
                           unsigned start_slot, unsigned num_samplers,
                           void **samplers)
 {
@@ -475,7 +475,7 @@ tegra_set_clip_state(struct pipe_context *pcontext,
 }
 
 static void
-tegra_set_constant_buffer(struct pipe_context *pcontext, unsigned int shader,
+tegra_set_constant_buffer(struct pipe_context *pcontext, enum pipe_shader_type shader,
                           unsigned int index, bool take_ownership,
                           const struct pipe_constant_buffer *buf)
 {
@@ -559,7 +559,7 @@ tegra_set_viewport_states(struct pipe_context *pcontext, unsigned start_slot,
 }
 
 static void
-tegra_set_sampler_views(struct pipe_context *pcontext, unsigned shader,
+tegra_set_sampler_views(struct pipe_context *pcontext, enum pipe_shader_type shader,
                         unsigned start_slot, unsigned num_views,
                         unsigned unbind_num_trailing_slots,
                         bool take_ownership,
@@ -567,10 +567,22 @@ tegra_set_sampler_views(struct pipe_context *pcontext, unsigned shader,
 {
    struct pipe_sampler_view *views[PIPE_MAX_SHADER_SAMPLER_VIEWS];
    struct tegra_context *context = to_tegra_context(pcontext);
+   struct tegra_sampler_view *view;
    unsigned i;
 
-   for (i = 0; i < num_views; i++)
+   for (i = 0; i < num_views; i++) {
+      /* adjust private reference count */
+      view = to_tegra_sampler_view(pviews[i]);
+      if (view) {
+         view->refcount--;
+         if (!view->refcount) {
+            view->refcount = 100000000;
+            p_atomic_add(&view->gpu->reference.count, view->refcount);
+         }
+      }
+
       views[i] = tegra_sampler_view_unwrap(pviews[i]);
+   }
 
    context->gpu->set_sampler_views(context->gpu, shader, start_slot,
                                    num_views, unbind_num_trailing_slots,
@@ -590,7 +602,7 @@ tegra_set_tess_state(struct pipe_context *pcontext,
 
 static void
 tegra_set_debug_callback(struct pipe_context *pcontext,
-                         const struct pipe_debug_callback *callback)
+                         const struct util_debug_callback *callback)
 {
    struct tegra_context *context = to_tegra_context(pcontext);
 
@@ -598,7 +610,7 @@ tegra_set_debug_callback(struct pipe_context *pcontext,
 }
 
 static void
-tegra_set_shader_buffers(struct pipe_context *pcontext, unsigned int shader,
+tegra_set_shader_buffers(struct pipe_context *pcontext, enum pipe_shader_type shader,
                          unsigned start, unsigned count,
                          const struct pipe_shader_buffer *buffers,
                          unsigned writable_bitmask)
@@ -610,7 +622,7 @@ tegra_set_shader_buffers(struct pipe_context *pcontext, unsigned int shader,
 }
 
 static void
-tegra_set_shader_images(struct pipe_context *pcontext, unsigned int shader,
+tegra_set_shader_images(struct pipe_context *pcontext, enum pipe_shader_type shader,
                         unsigned start, unsigned count,
                         unsigned unbind_num_trailing_slots,
                         const struct pipe_image_view *images)
@@ -836,15 +848,19 @@ tegra_create_sampler_view(struct pipe_context *pcontext,
    if (!view)
       return NULL;
 
-   view->gpu = context->gpu->create_sampler_view(context->gpu, resource->gpu,
-                                                 template);
-   memcpy(&view->base, view->gpu, sizeof(*view->gpu));
+   view->base = *template;
+   view->base.context = pcontext;
    /* overwrite to prevent reference from being released */
    view->base.texture = NULL;
-
    pipe_reference_init(&view->base.reference, 1);
    pipe_resource_reference(&view->base.texture, presource);
-   view->base.context = pcontext;
+
+   view->gpu = context->gpu->create_sampler_view(context->gpu, resource->gpu,
+                                                 template);
+
+   /* use private reference count */
+   view->gpu->reference.count += 100000000;
+   view->refcount = 100000000;
 
    return &view->base;
 }
@@ -856,6 +872,8 @@ tegra_sampler_view_destroy(struct pipe_context *pcontext,
    struct tegra_sampler_view *view = to_tegra_sampler_view(pview);
 
    pipe_resource_reference(&view->base.texture, NULL);
+   /* adjust private reference count */
+   p_atomic_add(&view->gpu->reference.count, -view->refcount);
    pipe_sampler_view_reference(&view->gpu, NULL);
    free(view);
 }

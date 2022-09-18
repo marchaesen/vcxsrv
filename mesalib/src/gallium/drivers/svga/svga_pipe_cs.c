@@ -23,6 +23,7 @@
  *
  **********************************************************/
 
+#include "nir/nir_to_tgsi.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_bitmask.h"
@@ -35,7 +36,7 @@
 #include "svga_shader.h"
 #include "svga_streamout.h"
 #include "svga_resource_buffer.h"
-
+#include "svga_tgsi.h"
 
 /**
  * Create the compute program.
@@ -53,13 +54,21 @@ svga_create_compute_state(struct pipe_context *pipe,
 
    SVGA_STATS_TIME_PUSH(svga_sws(svga), SVGA_STATS_TIME_CREATECS);
 
+   if (templ->ir_type == PIPE_SHADER_IR_NIR) {
+      cs->base.tokens = nir_to_tgsi((void *)templ->prog, pipe->screen);
+   } else {
+      assert(templ->ir_type == PIPE_SHADER_IR_TGSI);
+      /* we need to keep a local copy of the tokens */
+      cs->base.tokens = tgsi_dup_tokens(templ->prog);
+   }
    assert(templ->ir_type == PIPE_SHADER_IR_TGSI);
-   cs->base.tokens = tgsi_dup_tokens(templ->prog);
+   struct svga_shader *shader = &cs->base;
+   shader->id = svga->debug.shader_id++;
+   shader->type = templ->ir_type;
+   shader->stage = PIPE_SHADER_COMPUTE;
 
    /* Collect shader basic info */
-   tgsi_scan_shader(cs->base.tokens, &cs->base.info);
-
-   cs->base.id = svga->debug.shader_id++;
+   svga_tgsi_scan_shader(&cs->base);
 
    cs->shared_mem_size = templ->req_local_mem;
 

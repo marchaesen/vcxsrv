@@ -100,11 +100,6 @@ util_format_is_float(enum pipe_format format)
    const struct util_format_description *desc = util_format_description(format);
    int i;
 
-   assert(desc);
-   if (!desc) {
-      return FALSE;
-   }
-
    i = util_format_get_first_non_void_channel(format);
    if (i < 0) {
       return FALSE;
@@ -178,6 +173,14 @@ util_format_is_pure_integer(enum pipe_format format)
 {
    const struct util_format_description *desc = util_format_description(format);
    int i;
+
+   if (desc->colorspace == UTIL_FORMAT_COLORSPACE_ZS) {
+      if (util_format_has_depth(desc))
+         return false;
+
+      assert(util_format_has_stencil(desc));
+      return true;
+   }
 
    /* Find the first non-void channel. */
    i = util_format_get_first_non_void_channel(format);
@@ -339,8 +342,6 @@ util_get_depth_format_mrd(const struct util_format_description *desc)
     */
    double mrd = 1.0 / ((1 << 24) - 1);
    unsigned depth_channel;
-
-   assert(desc);
 
    /*
     * Some depth formats do not store the depth component in the first
@@ -980,17 +981,47 @@ void util_format_unswizzle_4f(float *dst, const float *src,
 }
 
 enum pipe_format
-util_format_snorm8_to_sint8(enum pipe_format format)
+util_format_snorm_to_sint(enum pipe_format format)
 {
    switch (format) {
+   case PIPE_FORMAT_R32_SNORM:
+      return PIPE_FORMAT_R32_SINT;
+   case PIPE_FORMAT_R32G32_SNORM:
+      return PIPE_FORMAT_R32G32_SINT;
+   case PIPE_FORMAT_R32G32B32_SNORM:
+      return PIPE_FORMAT_R32G32B32_SINT;
+   case PIPE_FORMAT_R32G32B32A32_SNORM:
+      return PIPE_FORMAT_R32G32B32A32_SINT;
+
+   case PIPE_FORMAT_R16_SNORM:
+      return PIPE_FORMAT_R16_SINT;
+   case PIPE_FORMAT_R16G16_SNORM:
+      return PIPE_FORMAT_R16G16_SINT;
+   case PIPE_FORMAT_R16G16B16_SNORM:
+      return PIPE_FORMAT_R16G16B16_SINT;
+   case PIPE_FORMAT_R16G16B16A16_SNORM:
+      return PIPE_FORMAT_R16G16B16A16_SINT;
+
    case PIPE_FORMAT_R8_SNORM:
       return PIPE_FORMAT_R8_SINT;
    case PIPE_FORMAT_R8G8_SNORM:
       return PIPE_FORMAT_R8G8_SINT;
    case PIPE_FORMAT_R8G8B8_SNORM:
       return PIPE_FORMAT_R8G8B8_SINT;
+   case PIPE_FORMAT_B8G8R8_SNORM:
+      return PIPE_FORMAT_B8G8R8_SINT;
    case PIPE_FORMAT_R8G8B8A8_SNORM:
       return PIPE_FORMAT_R8G8B8A8_SINT;
+   case PIPE_FORMAT_B8G8R8A8_SNORM:
+      return PIPE_FORMAT_B8G8R8A8_SINT;
+
+   case PIPE_FORMAT_R10G10B10A2_SNORM:
+      return PIPE_FORMAT_R10G10B10A2_SINT;
+   case PIPE_FORMAT_B10G10R10A2_SNORM:
+      return PIPE_FORMAT_B10G10R10A2_SINT;
+
+   case PIPE_FORMAT_R10G10B10X2_SNORM:
+      return PIPE_FORMAT_R10G10B10X2_SINT;
 
    case PIPE_FORMAT_A8_SNORM:
       return PIPE_FORMAT_A8_SINT;
@@ -1001,30 +1032,43 @@ util_format_snorm8_to_sint8(enum pipe_format format)
    case PIPE_FORMAT_I8_SNORM:
       return PIPE_FORMAT_I8_SINT;
 
+   case PIPE_FORMAT_A16_SNORM:
+      return PIPE_FORMAT_A16_SINT;
+   case PIPE_FORMAT_L16_SNORM:
+      return PIPE_FORMAT_L16_SINT;
+   case PIPE_FORMAT_L16A16_SNORM:
+      return PIPE_FORMAT_L16A16_SINT;
+   case PIPE_FORMAT_I16_SNORM:
+      return PIPE_FORMAT_I16_SINT;
+
    case PIPE_FORMAT_R8G8B8X8_SNORM:
       return PIPE_FORMAT_R8G8B8X8_SINT;
-   case PIPE_FORMAT_B8G8R8X8_SNORM:
-      return PIPE_FORMAT_B8G8R8X8_SINT;
+   case PIPE_FORMAT_R16G16B16X16_SNORM:
+      return PIPE_FORMAT_R16G16B16X16_SINT;
 
    case PIPE_FORMAT_R8A8_SNORM:
       return PIPE_FORMAT_R8A8_SINT;
+   case PIPE_FORMAT_R16A16_SNORM:
+      return PIPE_FORMAT_R16A16_SINT;
+
    case PIPE_FORMAT_G8R8_SNORM:
       return PIPE_FORMAT_G8R8_SINT;
-
-   case PIPE_FORMAT_A8R8G8B8_SNORM:
-      return PIPE_FORMAT_A8R8G8B8_SINT;
-   case PIPE_FORMAT_X8R8G8B8_SNORM:
-      return PIPE_FORMAT_X8R8G8B8_SINT;
+   case PIPE_FORMAT_G16R16_SNORM:
+      return PIPE_FORMAT_G16R16_SINT;
 
    case PIPE_FORMAT_A8B8G8R8_SNORM:
       return PIPE_FORMAT_A8B8G8R8_SINT;
    case PIPE_FORMAT_X8B8G8R8_SNORM:
       return PIPE_FORMAT_X8B8G8R8_SINT;
 
-   case PIPE_FORMAT_R10G10B10A2_SNORM:
-      return PIPE_FORMAT_R10G10B10A2_SINT;
-   case PIPE_FORMAT_B10G10R10A2_SNORM:
-      return PIPE_FORMAT_B10G10R10A2_SINT;
+   case PIPE_FORMAT_B8G8R8X8_SNORM:
+      return PIPE_FORMAT_B8G8R8X8_SINT;
+   case PIPE_FORMAT_A8R8G8B8_SNORM:
+      return PIPE_FORMAT_A8R8G8B8_SINT;
+   case PIPE_FORMAT_X8R8G8B8_SNORM:
+      return PIPE_FORMAT_X8R8G8B8_SINT;
+   case PIPE_FORMAT_B10G10R10X2_SNORM:
+      return PIPE_FORMAT_B10G10R10X2_SINT;
 
    default:
       return format;
@@ -1120,10 +1164,12 @@ util_format_rgb_to_bgr(enum pipe_format format)
    REMAP_RGBA(10, 10, 10, 2, UINT);
    REMAP_ARGB(10, 10, 10, 2, UINT);
 
+   REMAP_RGBA(10, 10, 10, 2, SINT);
+   REMAP_RGBX(10, 10, 10, 2, SINT);
+
    /* Format sets having only RGBA/BGRA. */
    REMAP_RGBA(8, 8, 8, 8, USCALED);
    REMAP_RGBA(8, 8, 8, 8, SSCALED);
-   REMAP_RGBA(10, 10, 10, 2, SINT);
    REMAP_RGBA(10, 10, 10, 2, USCALED);
    REMAP_RGBA(10, 10, 10, 2, SSCALED);
 
@@ -1223,4 +1269,98 @@ util_format_snorm_to_unorm(enum pipe_format format)
    }
 
 #undef CASE
+}
+
+enum pipe_format
+util_format_rgbx_to_rgba(enum pipe_format format)
+{
+   switch (format) {
+   case PIPE_FORMAT_B8G8R8X8_UNORM:
+      return PIPE_FORMAT_B8G8R8A8_UNORM;
+   case PIPE_FORMAT_X8B8G8R8_UNORM:
+      return PIPE_FORMAT_A8B8G8R8_UNORM;
+   case PIPE_FORMAT_X8R8G8B8_UNORM:
+      return PIPE_FORMAT_A8R8G8B8_UNORM;
+   case PIPE_FORMAT_X8B8G8R8_SRGB:
+      return PIPE_FORMAT_A8B8G8R8_SRGB;
+   case PIPE_FORMAT_B8G8R8X8_SRGB:
+      return PIPE_FORMAT_B8G8R8A8_SRGB;
+   case PIPE_FORMAT_X8R8G8B8_SRGB:
+      return PIPE_FORMAT_A8R8G8B8_SRGB;
+   case PIPE_FORMAT_B5G5R5X1_UNORM:
+      return PIPE_FORMAT_B5G5R5A1_UNORM;
+   case PIPE_FORMAT_R10G10B10X2_USCALED:
+      return PIPE_FORMAT_R10G10B10A2_USCALED;
+   case PIPE_FORMAT_R10G10B10X2_SNORM:
+      return PIPE_FORMAT_R10G10B10A2_SNORM;
+   case PIPE_FORMAT_R8G8B8X8_UNORM:
+      return PIPE_FORMAT_R8G8B8A8_UNORM;
+   case PIPE_FORMAT_B4G4R4X4_UNORM:
+      return PIPE_FORMAT_B4G4R4A4_UNORM;
+   case PIPE_FORMAT_R8G8B8X8_SNORM:
+      return PIPE_FORMAT_R8G8B8A8_SNORM;
+   case PIPE_FORMAT_R8G8B8X8_SRGB:
+      return PIPE_FORMAT_R8G8B8A8_SRGB;
+   case PIPE_FORMAT_R8G8B8X8_UINT:
+      return PIPE_FORMAT_R8G8B8A8_UINT;
+   case PIPE_FORMAT_R8G8B8X8_SINT:
+      return PIPE_FORMAT_R8G8B8A8_SINT;
+   case PIPE_FORMAT_B10G10R10X2_UNORM:
+      return PIPE_FORMAT_B10G10R10A2_UNORM;
+   case PIPE_FORMAT_R16G16B16X16_UNORM:
+      return PIPE_FORMAT_R16G16B16A16_UNORM;
+   case PIPE_FORMAT_R16G16B16X16_SNORM:
+      return PIPE_FORMAT_R16G16B16A16_SNORM;
+   case PIPE_FORMAT_R16G16B16X16_FLOAT:
+      return PIPE_FORMAT_R16G16B16A16_FLOAT;
+   case PIPE_FORMAT_R16G16B16X16_UINT:
+      return PIPE_FORMAT_R16G16B16A16_UINT;
+   case PIPE_FORMAT_R16G16B16X16_SINT:
+      return PIPE_FORMAT_R16G16B16A16_SINT;
+   case PIPE_FORMAT_R32G32B32X32_FLOAT:
+      return PIPE_FORMAT_R32G32B32A32_FLOAT;
+   case PIPE_FORMAT_R32G32B32X32_UINT:
+      return PIPE_FORMAT_R32G32B32A32_UINT;
+   case PIPE_FORMAT_R32G32B32X32_SINT:
+      return PIPE_FORMAT_R32G32B32A32_SINT;
+   case PIPE_FORMAT_X8B8G8R8_SNORM:
+      return PIPE_FORMAT_A8B8G8R8_SNORM;
+   case PIPE_FORMAT_R10G10B10X2_UNORM:
+      return PIPE_FORMAT_R10G10B10A2_UNORM;
+   case PIPE_FORMAT_X1B5G5R5_UNORM:
+      return PIPE_FORMAT_A1B5G5R5_UNORM;
+   case PIPE_FORMAT_X8B8G8R8_SINT:
+      return PIPE_FORMAT_A8B8G8R8_SINT;
+   case PIPE_FORMAT_B8G8R8X8_SNORM:
+      return PIPE_FORMAT_B8G8R8A8_SNORM;
+   case PIPE_FORMAT_B8G8R8X8_UINT:
+      return PIPE_FORMAT_B8G8R8A8_UINT;
+   case PIPE_FORMAT_B8G8R8X8_SINT:
+      return PIPE_FORMAT_B8G8R8A8_SINT;
+   case PIPE_FORMAT_X8R8G8B8_SNORM:
+      return PIPE_FORMAT_A8R8G8B8_SNORM;
+   case PIPE_FORMAT_X8R8G8B8_SINT:
+      return PIPE_FORMAT_A8R8G8B8_SINT;
+   case PIPE_FORMAT_R5G5B5X1_UNORM:
+      return PIPE_FORMAT_R5G5B5A1_UNORM;
+   case PIPE_FORMAT_X1R5G5B5_UNORM:
+      return PIPE_FORMAT_A1R5G5B5_UNORM;
+   case PIPE_FORMAT_R4G4B4X4_UNORM:
+      return PIPE_FORMAT_R4G4B4A4_UNORM;
+   case PIPE_FORMAT_B10G10R10X2_SNORM:
+      return PIPE_FORMAT_B10G10R10A2_SNORM;
+   case PIPE_FORMAT_R10G10B10X2_SINT:
+      return PIPE_FORMAT_R10G10B10A2_SINT;
+   case PIPE_FORMAT_B10G10R10X2_SINT:
+      return PIPE_FORMAT_B10G10R10A2_SINT;
+   default: {
+      const struct util_format_description *desc = util_format_description(format);
+
+      /* Assert that the format doesn't contain X instead of A. */
+      assert(desc->colorspace != UTIL_FORMAT_COLORSPACE_ZS ||
+             (desc->channel[0].type != UTIL_FORMAT_TYPE_VOID &&
+              desc->channel[desc->nr_channels - 1].type != UTIL_FORMAT_TYPE_VOID));
+      return format;
+   }
+   }
 }

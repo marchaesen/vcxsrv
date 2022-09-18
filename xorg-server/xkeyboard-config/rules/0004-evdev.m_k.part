@@ -1,6 +1,5 @@
 ! model		=	keycodes
-  applealu_jis	=	evdev+macintosh(jisevdev)
- $jollamodels   =       evdev+jolla(jolla)
-  olpc          =       evdev+olpc(olpc)
-  olpcm         =       evdev+olpc(olpcm)
+ $jollamodels	=	evdev+jolla(jolla)
+  olpc		=	evdev+olpc(olpc)
+  olpcm		=	evdev+olpc(olpcm)
   *		=	evdev

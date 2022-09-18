@@ -194,7 +194,6 @@ default partial xkb_compatibility "mousekeys" {
 
     // Allow an indicator for MouseKeys.
     indicator "Mouse Keys" {
-        //!allowExplicit;
 	indicatorDrivesKeyboard;
 	controls= MouseKeys;
     };

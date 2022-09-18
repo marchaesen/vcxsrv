@@ -34,13 +34,13 @@ components from the server
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to server
 .TP
-.I \- which
+.I which
 mask of compatibility map components to fetch
 .TP
-.I \- xkb
+.I xkb
 keyboard description where results placed
 .SH DESCRIPTION
 .LP

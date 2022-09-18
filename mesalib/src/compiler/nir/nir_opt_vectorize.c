@@ -22,6 +22,16 @@
  *
  */
 
+/**
+ * nir_opt_vectorize() aims to vectorize ALU instructions.
+ *
+ * The default vectorization width is 4.
+ * If desired, a callback function which returns the max vectorization width
+ * per instruction can be provided.
+ *
+ * The max vectorization width must be a power of 2.
+ */
+
 #include "nir.h"
 #include "nir_vla.h"
 #include "nir_builder.h"
@@ -125,7 +135,7 @@ instrs_equal(const void *data1, const void *data2)
 }
 
 static bool
-instr_can_rewrite(nir_instr *instr, bool vectorize_16bit)
+instr_can_rewrite(nir_instr *instr)
 {
    switch (instr->type) {
    case nir_instr_type_alu: {
@@ -139,12 +149,7 @@ instr_can_rewrite(nir_instr *instr, bool vectorize_16bit)
          return false;
 
       /* no need to hash instructions which are already vectorized */
-      if (alu->dest.dest.ssa.num_components >= 4)
-         return false;
-
-      if (vectorize_16bit &&
-          (alu->dest.dest.ssa.num_components >= 2 ||
-           alu->dest.dest.ssa.bit_size != 16))
+      if (alu->dest.dest.ssa.num_components >= instr->pass_flags)
          return false;
 
       if (nir_op_infos[alu->op].output_size != 0)
@@ -156,8 +161,8 @@ instr_can_rewrite(nir_instr *instr, bool vectorize_16bit)
 
          /* don't hash instructions which are already swizzled
           * outside of max_components: these should better be scalarized */
-         uint32_t mask = vectorize_16bit ? ~1 : ~3;
-         for (unsigned j = 0; j < alu->dest.dest.ssa.num_components; j++) {
+         uint32_t mask = ~(instr->pass_flags - 1);
+         for (unsigned j = 1; j < alu->dest.dest.ssa.num_components; j++) {
             if ((alu->src[i].swizzle[0] & mask) != (alu->src[i].swizzle[j] & mask))
                return false;
          }
@@ -179,10 +184,8 @@ instr_can_rewrite(nir_instr *instr, bool vectorize_16bit)
  * the same instructions into one vectorized instruction. Note that instr1
  * should dominate instr2.
  */
-
 static nir_instr *
-instr_try_combine(struct nir_shader *nir, struct set *instr_set,
-                  nir_instr *instr1, nir_instr *instr2)
+instr_try_combine(struct set *instr_set, nir_instr *instr1, nir_instr *instr2)
 {
    assert(instr1->type == nir_instr_type_alu);
    assert(instr2->type == nir_instr_type_alu);
@@ -194,13 +197,9 @@ instr_try_combine(struct nir_shader *nir, struct set *instr_set,
    unsigned alu2_components = alu2->dest.dest.ssa.num_components;
    unsigned total_components = alu1_components + alu2_components;
 
-   if (total_components > 4)
+   assert(instr1->pass_flags == instr2->pass_flags);
+   if (total_components > instr1->pass_flags)
       return NULL;
-
-   if (nir->options->vectorize_vec2_16bit) {
-      assert(total_components == 2);
-      assert(alu1->dest.dest.ssa.bit_size == 16);
-   }
 
    nir_builder b;
    nir_builder_init(&b, nir_cf_node_get_function(&instr1->block->cf_node));
@@ -258,17 +257,7 @@ instr_try_combine(struct nir_shader *nir, struct set *instr_set,
 
    nir_builder_instr_insert(&b, &new_alu->instr);
 
-   unsigned swiz[NIR_MAX_VEC_COMPONENTS];
-   for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
-      swiz[i] = i;
-   nir_ssa_def *new_alu1 = nir_swizzle(&b, &new_alu->dest.dest.ssa, swiz,
-                                       alu1_components);
-
-   for (unsigned i = 0; i < alu2_components; i++)
-      swiz[i] += alu1_components;
-   nir_ssa_def *new_alu2 = nir_swizzle(&b, &new_alu->dest.dest.ssa, swiz,
-                                       alu2_components);
-
+   /* update all ALU uses */
    nir_foreach_use_safe(src, &alu1->dest.dest.ssa) {
       nir_instr *user_instr = src->parent_instr;
       if (user_instr->type == nir_instr_type_alu) {
@@ -284,54 +273,45 @@ instr_try_combine(struct nir_shader *nir, struct set *instr_set,
          /* Rehash user if it was found in the hashset */
          if (entry && entry->key == user_instr) {
             _mesa_set_remove(instr_set, entry);
-            _mesa_set_add(instr_set, src->parent_instr);
+            _mesa_set_add(instr_set, user_instr);
          }
-      } else {
-         nir_instr_rewrite_src(user_instr, src, nir_src_for_ssa(new_alu1));
       }
    }
-
-   nir_foreach_if_use_safe(src, &alu1->dest.dest.ssa) {
-      nir_if_rewrite_condition(src->parent_if, nir_src_for_ssa(new_alu1));
-   }
-
-   assert(nir_ssa_def_is_unused(&alu1->dest.dest.ssa));
 
    nir_foreach_use_safe(src, &alu2->dest.dest.ssa) {
       if (src->parent_instr->type == nir_instr_type_alu) {
          /* For ALU instructions, rewrite the source directly to avoid a
           * round-trip through copy propagation.
           */
-
-         nir_alu_instr *use = nir_instr_as_alu(src->parent_instr);
-
-         unsigned src_index = 5;
-         for (unsigned i = 0; i < nir_op_infos[use->op].num_inputs; i++) {
-            if (&use->src[i].src == src) {
-               src_index = i;
-               break;
-            }
-         }
-         assert(src_index != 5);
-
          nir_instr_rewrite_src(src->parent_instr, src,
                                nir_src_for_ssa(&new_alu->dest.dest.ssa));
 
-         for (unsigned i = 0;
-              i < nir_ssa_alu_instr_src_components(use, src_index); i++) {
-            use->src[src_index].swizzle[i] += alu1_components;
-         }
-      } else {
-         nir_instr_rewrite_src(src->parent_instr, src,
-                               nir_src_for_ssa(new_alu2));
+         nir_alu_src *alu_src = container_of(src, nir_alu_src, src);
+         nir_alu_instr *use = nir_instr_as_alu(src->parent_instr);
+         unsigned components = nir_ssa_alu_instr_src_components(use, alu_src - use->src);
+         for (unsigned i = 0; i < components; i++)
+            alu_src->swizzle[i] += alu1_components;
       }
    }
 
-   nir_foreach_if_use_safe(src, &alu2->dest.dest.ssa) {
-      nir_if_rewrite_condition(src->parent_if, nir_src_for_ssa(new_alu2));
+   /* update all other uses if there are any */
+   unsigned swiz[NIR_MAX_VEC_COMPONENTS];
+
+   if (!nir_ssa_def_is_unused(&alu1->dest.dest.ssa)) {
+      for (unsigned i = 0; i < alu1_components; i++)
+         swiz[i] = i;
+      nir_ssa_def *new_alu1 = nir_swizzle(&b, &new_alu->dest.dest.ssa, swiz,
+                                          alu1_components);
+      nir_ssa_def_rewrite_uses(&alu1->dest.dest.ssa, new_alu1);
    }
 
-   assert(nir_ssa_def_is_unused(&alu2->dest.dest.ssa));
+   if (!nir_ssa_def_is_unused(&alu2->dest.dest.ssa)) {
+      for (unsigned i = 0; i < alu2_components; i++)
+         swiz[i] = i + alu1_components;
+      nir_ssa_def *new_alu2 = nir_swizzle(&b, &new_alu->dest.dest.ssa, swiz,
+                                          alu2_components);
+      nir_ssa_def_rewrite_uses(&alu2->dest.dest.ssa, new_alu2);
+   }
 
    nir_instr_remove(instr1);
    nir_instr_remove(instr2);
@@ -352,28 +332,23 @@ vec_instr_set_destroy(struct set *instr_set)
 }
 
 static bool
-vec_instr_set_add_or_rewrite(struct nir_shader *nir, struct set *instr_set,
-                             nir_instr *instr,
-                             nir_opt_vectorize_cb filter, void *data)
+vec_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr,
+                             nir_vectorize_cb filter, void *data)
 {
-   if (!instr_can_rewrite(instr, nir->options->vectorize_vec2_16bit))
-      return false;
-
-   if (filter && !filter(instr, data))
-      return false;
-
    /* set max vector to instr pass flags: this is used to hash swizzles */
-   instr->pass_flags = nir->options->vectorize_vec2_16bit ? 2 : 4;
+   instr->pass_flags = filter ? filter(instr, data) : 4;
+   assert(util_is_power_of_two_or_zero(instr->pass_flags));
+
+   if (!instr_can_rewrite(instr))
+      return false;
 
    struct set_entry *entry = _mesa_set_search(instr_set, instr);
    if (entry) {
       nir_instr *old_instr = (nir_instr *) entry->key;
       _mesa_set_remove(instr_set, entry);
-      nir_instr *new_instr = instr_try_combine(nir, instr_set,
-                                               old_instr, instr);
+      nir_instr *new_instr = instr_try_combine(instr_set, old_instr, instr);
       if (new_instr) {
-         if (instr_can_rewrite(new_instr, nir->options->vectorize_vec2_16bit) &&
-             (!filter || filter(new_instr, data)))
+         if (instr_can_rewrite(new_instr))
             _mesa_set_add(instr_set, new_instr);
          return true;
       }
@@ -384,25 +359,23 @@ vec_instr_set_add_or_rewrite(struct nir_shader *nir, struct set *instr_set,
 }
 
 static bool
-vectorize_block(struct nir_shader *nir, nir_block *block,
-                struct set *instr_set,
-                nir_opt_vectorize_cb filter, void *data)
+vectorize_block(nir_block *block, struct set *instr_set,
+                nir_vectorize_cb filter, void *data)
 {
    bool progress = false;
 
    nir_foreach_instr_safe(instr, block) {
-      if (vec_instr_set_add_or_rewrite(nir, instr_set, instr, filter, data))
+      if (vec_instr_set_add_or_rewrite(instr_set, instr, filter, data))
          progress = true;
    }
 
    for (unsigned i = 0; i < block->num_dom_children; i++) {
       nir_block *child = block->dom_children[i];
-      progress |= vectorize_block(nir, child, instr_set, filter, data);
+      progress |= vectorize_block(child, instr_set, filter, data);
    }
 
    nir_foreach_instr_reverse(instr, block) {
-      if (instr_can_rewrite(instr, nir->options->vectorize_vec2_16bit) &&
-          (!filter || filter(instr, data)))
+      if (instr_can_rewrite(instr))
          _mesa_set_remove_key(instr_set, instr);
    }
 
@@ -410,14 +383,14 @@ vectorize_block(struct nir_shader *nir, nir_block *block,
 }
 
 static bool
-nir_opt_vectorize_impl(struct nir_shader *nir, nir_function_impl *impl,
-                       nir_opt_vectorize_cb filter, void *data)
+nir_opt_vectorize_impl(nir_function_impl *impl,
+                       nir_vectorize_cb filter, void *data)
 {
    struct set *instr_set = vec_instr_set_create();
 
    nir_metadata_require(impl, nir_metadata_dominance);
 
-   bool progress = vectorize_block(nir, nir_start_block(impl), instr_set,
+   bool progress = vectorize_block(nir_start_block(impl), instr_set,
                                    filter, data);
 
    if (progress) {
@@ -432,14 +405,14 @@ nir_opt_vectorize_impl(struct nir_shader *nir, nir_function_impl *impl,
 }
 
 bool
-nir_opt_vectorize(nir_shader *shader, nir_opt_vectorize_cb filter,
+nir_opt_vectorize(nir_shader *shader, nir_vectorize_cb filter,
                   void *data)
 {
    bool progress = false;
 
    nir_foreach_function(function, shader) {
       if (function->impl)
-         progress |= nir_opt_vectorize_impl(shader, function->impl, filter, data);
+         progress |= nir_opt_vectorize_impl(function->impl, filter, data);
    }
 
    return progress;

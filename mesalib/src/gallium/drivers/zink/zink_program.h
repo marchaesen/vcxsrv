@@ -24,107 +24,23 @@
 #ifndef ZINK_PROGRAM_H
 #define ZINK_PROGRAM_H
 
-#include <vulkan/vulkan.h>
-
-#include "compiler/shader_enums.h"
-#include "pipe/p_state.h"
-#include "util/u_inlines.h"
-
-#include "zink_context.h"
-#include "zink_compiler.h"
-#include "zink_shader_keys.h"
+#include "zink_types.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct zink_screen;
-struct zink_shader;
-struct zink_gfx_pipeline_state;
-struct zink_descriptor_set;
 
-struct hash_table;
-struct set;
-struct util_dynarray;
-
-struct zink_program;
-
-struct zink_gfx_push_constant {
-   unsigned draw_mode_is_indexed;
-   unsigned draw_id;
-   float default_inner_level[2];
-   float default_outer_level[4];
+struct gfx_pipeline_cache_entry {
+   struct zink_gfx_pipeline_state state;
+   VkPipeline pipeline;
 };
 
-struct zink_cs_push_constant {
-   unsigned work_dim;
-};
-
-/* a shader module is used for directly reusing a shader module between programs,
- * e.g., in the case where we're swapping out only one shader,
- * allowing us to skip going through shader keys
- */
-struct zink_shader_module {
-   struct list_head list;
-   VkShaderModule shader;
-   uint32_t hash;
-   bool default_variant;
-   uint8_t num_uniforms;
-   uint8_t key_size;
-   uint8_t key[0]; /* | key | uniforms | */
-};
-
-struct zink_program {
-   struct pipe_reference reference;
-   unsigned char sha1[20];
-   struct util_queue_fence cache_fence;
-   VkPipelineCache pipeline_cache;
-   size_t pipeline_cache_size;
-   struct zink_batch_usage *batch_uses;
-   bool is_compute;
-
-   struct zink_program_descriptor_data *dd;
-
-   uint32_t compat_id;
-   VkPipelineLayout layout;
-   VkDescriptorSetLayout dsl[ZINK_DESCRIPTOR_TYPES + 2]; // one for each type + push + bindless
-   unsigned num_dsl;
-
-   bool removed;
+struct compute_pipeline_cache_entry {
+   struct zink_compute_pipeline_state state;
+   VkPipeline pipeline;
 };
 
 #define ZINK_MAX_INLINED_VARIANTS 5
-
-struct zink_gfx_program {
-   struct zink_program base;
-
-   uint32_t stages_present; //mask of stages present in this program
-   struct nir_shader *nir[ZINK_SHADER_COUNT];
-
-   struct zink_shader_module *modules[ZINK_SHADER_COUNT]; // compute stage doesn't belong here
-
-   struct zink_shader *last_vertex_stage;
-
-   struct list_head shader_cache[ZINK_SHADER_COUNT][2]; //normal, inline uniforms
-   unsigned inlined_variant_count[ZINK_SHADER_COUNT];
-
-   struct zink_shader *shaders[ZINK_SHADER_COUNT];
-   struct hash_table pipelines[11]; // number of draw modes we support
-   uint32_t default_variant_hash;
-   uint32_t last_variant_hash;
-};
-
-struct zink_compute_program {
-   struct zink_program base;
-
-   struct zink_shader_module *curr;
-
-   struct zink_shader_module *module; //base
-   struct list_head shader_cache; //inline uniforms
-   unsigned inlined_variant_count;
-
-   struct zink_shader *shader;
-   struct hash_table *pipelines;
-};
 
 static inline enum zink_descriptor_type
 zink_desc_type_from_vktype(VkDescriptorType type)
@@ -200,31 +116,30 @@ unsigned
 zink_program_num_bindings(const struct zink_program *pg, bool is_compute);
 
 bool
-zink_program_descriptor_is_buffer(struct zink_context *ctx, enum pipe_shader_type stage, enum zink_descriptor_type type, unsigned i);
+zink_program_descriptor_is_buffer(struct zink_context *ctx, gl_shader_stage stage, enum zink_descriptor_type type, unsigned i);
 
 void
-zink_update_gfx_program(struct zink_context *ctx, struct zink_gfx_program *prog);
+zink_gfx_program_update(struct zink_context *ctx);
+
+
+uint32_t hash_gfx_output(const void *key);
+uint32_t hash_gfx_input(const void *key);
+uint32_t hash_gfx_input_dynamic(const void *key);
 
 struct zink_gfx_program *
 zink_create_gfx_program(struct zink_context *ctx,
-                        struct zink_shader *stages[ZINK_SHADER_COUNT],
+                        struct zink_shader **stages,
                         unsigned vertices_per_patch);
 
 void
 zink_destroy_gfx_program(struct zink_context *ctx,
                          struct zink_gfx_program *prog);
 
-VkPipeline
-zink_get_gfx_pipeline(struct zink_context *ctx,
-                      struct zink_gfx_program *prog,
-                      struct zink_gfx_pipeline_state *state,
-                      enum pipe_prim_type mode);
-
 void
 zink_program_init(struct zink_context *ctx);
 
 uint32_t
-zink_program_get_descriptor_usage(struct zink_context *ctx, enum pipe_shader_type stage, enum zink_descriptor_type type);
+zink_program_get_descriptor_usage(struct zink_context *ctx, gl_shader_stage stage, enum zink_descriptor_type type);
 
 void
 debug_describe_zink_gfx_program(char* buf, const struct zink_gfx_program *ptr);
@@ -246,8 +161,6 @@ zink_gfx_program_reference(struct zink_context *ctx,
    return ret;
 }
 
-struct zink_compute_program *
-zink_create_compute_program(struct zink_context *ctx, struct zink_shader *shader);
 void
 zink_destroy_compute_program(struct zink_context *ctx,
                              struct zink_compute_program *comp);
@@ -272,6 +185,23 @@ zink_compute_program_reference(struct zink_context *ctx,
    return ret;
 }
 
+static inline bool
+zink_program_reference(struct zink_context *ctx,
+                       struct zink_program **dst,
+                       struct zink_program *src)
+{
+   struct zink_program *pg = src ? src : dst ? *dst : NULL;
+   if (!pg)
+      return false;
+   if (pg->is_compute) {
+      struct zink_compute_program *comp = (struct zink_compute_program*)pg;
+      return zink_compute_program_reference(ctx, &comp, NULL);
+   } else {
+      struct zink_gfx_program *prog = (struct zink_gfx_program*)pg;
+      return zink_gfx_program_reference(ctx, &prog, NULL);
+   }
+}
+
 VkPipelineLayout
 zink_pipeline_layout_create(struct zink_screen *screen, struct zink_program *pg, uint32_t *compat);
 
@@ -293,14 +223,31 @@ zink_program_has_descriptors(const struct zink_program *pg)
 static inline struct zink_fs_key *
 zink_set_fs_key(struct zink_context *ctx)
 {
-   ctx->dirty_shader_stages |= BITFIELD_BIT(PIPE_SHADER_FRAGMENT);
-   return (struct zink_fs_key *)&ctx->gfx_pipeline_state.shader_keys.key[PIPE_SHADER_FRAGMENT];
+   ctx->dirty_shader_stages |= BITFIELD_BIT(MESA_SHADER_FRAGMENT);
+   return (struct zink_fs_key *)&ctx->gfx_pipeline_state.shader_keys.key[MESA_SHADER_FRAGMENT];
 }
 
 static inline const struct zink_fs_key *
 zink_get_fs_key(struct zink_context *ctx)
 {
-   return (const struct zink_fs_key *)&ctx->gfx_pipeline_state.shader_keys.key[PIPE_SHADER_FRAGMENT];
+   return (const struct zink_fs_key *)&ctx->gfx_pipeline_state.shader_keys.key[MESA_SHADER_FRAGMENT];
+}
+
+static inline bool
+zink_set_tcs_key_patches(struct zink_context *ctx, uint8_t patch_vertices)
+{
+   struct zink_tcs_key *tcs = (struct zink_tcs_key*)&ctx->gfx_pipeline_state.shader_keys.key[MESA_SHADER_TESS_CTRL];
+   if (tcs->patch_vertices == patch_vertices)
+      return false;
+   ctx->dirty_shader_stages |= BITFIELD_BIT(MESA_SHADER_TESS_CTRL);
+   tcs->patch_vertices = patch_vertices;
+   return true;
+}
+
+static inline const struct zink_tcs_key *
+zink_get_tcs_key(struct zink_context *ctx)
+{
+   return (const struct zink_tcs_key *)&ctx->gfx_pipeline_state.shader_keys.key[MESA_SHADER_TESS_CTRL];
 }
 
 void
@@ -309,14 +256,14 @@ zink_update_fs_key_samples(struct zink_context *ctx);
 static inline struct zink_vs_key *
 zink_set_vs_key(struct zink_context *ctx)
 {
-   ctx->dirty_shader_stages |= BITFIELD_BIT(PIPE_SHADER_VERTEX);
-   return (struct zink_vs_key *)&ctx->gfx_pipeline_state.shader_keys.key[PIPE_SHADER_VERTEX];
+   ctx->dirty_shader_stages |= BITFIELD_BIT(MESA_SHADER_VERTEX);
+   return (struct zink_vs_key *)&ctx->gfx_pipeline_state.shader_keys.key[MESA_SHADER_VERTEX];
 }
 
 static inline const struct zink_vs_key *
 zink_get_vs_key(struct zink_context *ctx)
 {
-   return (const struct zink_vs_key *)&ctx->gfx_pipeline_state.shader_keys.key[PIPE_SHADER_VERTEX];
+   return (const struct zink_vs_key *)&ctx->gfx_pipeline_state.shader_keys.key[MESA_SHADER_VERTEX];
 }
 
 static inline struct zink_vs_key_base *
@@ -345,6 +292,16 @@ zink_set_fs_point_coord_key(struct zink_context *ctx)
    }
 }
 
+bool
+zink_set_rasterizer_discard(struct zink_context *ctx, bool disable);
+void
+zink_driver_thread_add_job(struct pipe_screen *pscreen, void *data,
+                           struct util_queue_fence *fence,
+                           pipe_driver_thread_func execute,
+                           pipe_driver_thread_func cleanup,
+                           const size_t job_size);
+equals_gfx_pipeline_state_func
+zink_get_gfx_pipeline_eq_func(struct zink_screen *screen, struct zink_gfx_program *prog);
 #ifdef __cplusplus
 }
 #endif

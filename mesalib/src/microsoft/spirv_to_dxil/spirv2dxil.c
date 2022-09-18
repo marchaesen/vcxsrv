@@ -62,6 +62,12 @@ stage_to_enum(char *stage)
       return MESA_SHADER_NONE;
 }
 
+static void
+log_spirv_to_dxil_error(void *priv, const char *msg)
+{
+   fprintf(stderr, "spirv_to_dxil error: %s", msg);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -69,17 +75,18 @@ main(int argc, char **argv)
    char *entry_point = "main";
    char *output_file = "";
    int ch;
-   bool validate = false;
+   bool validate = false, debug = false;
    
    static struct option long_options[] = {
       {"stage", required_argument, 0, 's'},
       {"entry", required_argument, 0, 'e'},
       {"output", required_argument, 0, 'o'},
       {"validate", no_argument, 0, 'v'},
+      {"debug", no_argument, 0, 'd'},
       {0, 0, 0, 0}};
 
 
-   while ((ch = getopt_long(argc, argv, "s:e:o:v", long_options, NULL)) !=
+   while ((ch = getopt_long(argc, argv, "s:e:o:vd", long_options, NULL)) !=
           -1) {
       switch(ch)
       {
@@ -98,6 +105,9 @@ main(int argc, char **argv)
          break;
       case 'v':
          validate = true;
+         break;
+      case 'd':
+         debug = true;
          break;
       default:
          fprintf(stderr, "Unrecognized option.\n");
@@ -136,14 +146,18 @@ main(int argc, char **argv)
    conf.zero_based_vertex_instance_id = true;
 
    struct dxil_spirv_debug_options dbg_opts = {
-      .dump_nir = false,
+      .dump_nir = debug,
+   };
+   const struct dxil_spirv_logger logger = {
+      .priv = NULL,
+      .log = log_spirv_to_dxil_error
    };
 
    struct dxil_spirv_object obj;
    memset(&obj, 0, sizeof(obj));
    if (spirv_to_dxil((uint32_t *)file_contents, word_count, NULL, 0,
                      (dxil_spirv_shader_stage)shader_stage, entry_point,
-                     &dbg_opts, &conf, &obj)) {
+                     &dbg_opts, &conf, &logger, &obj)) {
 
       if (validate && !validate_dxil(&obj)) {
          fprintf(stderr, "Failed to validate DXIL\n");

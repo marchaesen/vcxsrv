@@ -33,16 +33,16 @@ XkbFreeGeomOverlayKeys \- Free keys in an overlay row
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- row
+.I row
 row in which keys should be freed 
 .TP
-.I \- first
+.I first
 first key to be freed
 .TP
-.I \- count
+.I count
 number of keys to be freed
 .TP
-.I \- free_all
+.I free_all
 True => all keys are freed
 .SH DESCRIPTION
 .LP

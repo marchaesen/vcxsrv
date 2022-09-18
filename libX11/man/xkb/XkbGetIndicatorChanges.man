@@ -34,16 +34,16 @@ the actual values of one or more calls to XkbNoteIndicatorChanges
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- xkb
+.I xkb
 keyboard description to hold the new values 
 .TP
-.I \- changes
+.I changes
 indicator maps/state to be obtained from the server
 .TP
-.I \- state
+.I state
 backfilled with the state of the indicators
 .SH DESCRIPTION
 .LP

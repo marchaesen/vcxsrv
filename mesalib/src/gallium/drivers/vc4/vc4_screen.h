@@ -37,6 +37,10 @@
 
 struct vc4_bo;
 
+extern uint32_t vc4_mesa_debug;
+
+#define VC4_DBG(flag) unlikely(vc4_mesa_debug & VC4_DEBUG_ ## flag)
+
 #define VC4_DEBUG_CL        0x0001
 #define VC4_DEBUG_QPU       0x0002
 #define VC4_DEBUG_QIR       0x0004
@@ -116,8 +120,6 @@ const void *
 vc4_screen_get_compiler_options(struct pipe_screen *pscreen,
                                 enum pipe_shader_ir ir,
                                 enum pipe_shader_type shader);
-
-extern uint32_t vc4_debug;
 
 void
 vc4_fence_screen_init(struct vc4_screen *screen);

@@ -1,23 +1,32 @@
-# Missing 16-bit storage access at vktAmberTestCase.cpp:422 (InternalError)
-# Possibly fixed by VK-GL-CTS 54c075fd1cdb ("Fix amber vs cts device feature requirements")
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat3,Fail
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat4,Fail
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat3,Fail
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat4,Fail
-
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3505
-dEQP-VK.subgroups.multiple_dispatches.uniform_subgroup_size,Fail
-
-# CTS 1.3.1.0 uprev:
-dEQP-VK.image.sample_texture.128_bit_compressed_format_cubemap,Fail
-dEQP-VK.image.sample_texture.64_bit_compressed_format_cubemap,Fail
-
-spill-dEQP-VK.graphicsfuzz.cov-function-two-loops-limit-using-arguments-array-element-copies,Fail
-
 # Fails when TU_DEBUG=forcebin is set
 gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
 gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
 
-# Looks like a segfault, not assertion failure
-spill-dEQP-VK.graphicsfuzz.cov-nested-loops-float-bits-to-int-increment-array,Crash
-spill-dEQP-VK.graphicsfuzz.cov-two-nested-loops-switch-case-matrix-array-increment,Crash
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3590
+dEQP-VK.api.info.get_physical_device_properties2.memory_properties,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3759
+# deqp-vk: ../src/freedreno/vulkan/tu_pipeline.c:3894: tu_pipeline_builder_init_graphics: Assertion `subpass->color_count == 0 || !create_info->pColorBlendState || subpass->color_count == create_info->pColorBlendState->attachmentCount' failed
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+
+spill-dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast_bool,Fail
+spill-dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast_bool_requiredsubgroupsize128,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7143
+bypass-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint.compatibility_depth_zero_stencil_zero_testing_depth,Fail
+bypass-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_depth,Fail

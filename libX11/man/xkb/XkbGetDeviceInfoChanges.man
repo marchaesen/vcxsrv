@@ -35,13 +35,13 @@ device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device_info
+.I device_info
 structure to update with results
 .TP
-.I \- changes
+.I changes
 contains notes of changes that have occurred
 .SH DESCRIPTION
 .LP

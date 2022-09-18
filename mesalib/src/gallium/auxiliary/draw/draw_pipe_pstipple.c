@@ -133,7 +133,7 @@ generate_pstip_fs(struct pstip_stage *pstip)
    struct pipe_shader_state pstip_fs;
    enum tgsi_file_type wincoord_file;
 
-   wincoord_file = screen->get_param(screen, PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL) ?
+   wincoord_file = screen->get_param(screen, PIPE_CAP_FS_POSITION_IS_SYSVAL) ?
                    TGSI_FILE_SYSTEM_VALUE : TGSI_FILE_INPUT;
 
    pstip_fs = *orig_fs; /* copy to init */

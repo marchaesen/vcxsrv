@@ -126,6 +126,10 @@ typedef enum {
    OPC_READ_COND_MACRO = _OPC(1, 54),
    OPC_READ_FIRST_MACRO = _OPC(1, 55),
    OPC_SWZ_SHARED_MACRO = _OPC(1, 56),
+   OPC_SHPS_MACRO       = _OPC(1, 57),
+
+   /* Macros that expand to a loop */
+   OPC_SCAN_MACRO      = _OPC(1, 58),
 
    /* category 2: */
    OPC_ADD_F           = _OPC(2, 0),
@@ -350,6 +354,8 @@ typedef enum {
 
    OPC_SPILL_MACRO     = _OPC(6, 79),
    OPC_RELOAD_MACRO    = _OPC(6, 80),
+
+   OPC_LDC_K           = _OPC(6, 81),
 
    /* category 7: */
    OPC_BAR             = _OPC(7, 0),

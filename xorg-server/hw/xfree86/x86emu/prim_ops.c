@@ -2622,8 +2622,8 @@ ins(int size)
                 store_data_long_abs(M.x86.R_ES, M.x86.R_DI,
                                     (*sys_inl) (M.x86.R_DX));
                 M.x86.R_DI += inc;
-                break;
             }
+            break;
         }
         M.x86.R_CX = 0;
         if (M.x86.mode & SYSMODE_PREFIX_DATA) {
@@ -2688,8 +2688,8 @@ outs(int size)
                 (*sys_outl) (M.x86.R_DX,
                              fetch_data_long_abs(M.x86.R_ES, M.x86.R_SI));
                 M.x86.R_SI += inc;
-                break;
             }
+            break;
         }
         M.x86.R_CX = 0;
         if (M.x86.mode & SYSMODE_PREFIX_DATA) {

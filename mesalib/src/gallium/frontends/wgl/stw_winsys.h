@@ -52,7 +52,8 @@ struct stw_winsys_framebuffer
               struct pipe_context *context);
 
    boolean
-   (*present)(struct stw_winsys_framebuffer *fb);
+   (*present)(struct stw_winsys_framebuffer *fb,
+              int interval);
 
    void
    (*resize)(struct stw_winsys_framebuffer *fb,

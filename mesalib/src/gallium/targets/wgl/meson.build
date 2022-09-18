@@ -20,18 +20,19 @@
 
 
 gallium_wgl_link_args = []
-if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
-  gallium_wgl_link_args += ['-Wl,--enable-stdcall-fixup']
-endif
 
-if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
-  wgl_def = 'gallium_wgl.mingw.def'
-else
-  wgl_def = 'gallium_wgl.def'
-endif
+wgl_def = custom_target(
+  'gallium_wgl.def',
+  input: 'gallium_wgl.def.in',
+  output : 'gallium_wgl.def',
+  command : [prog_python, gen_vs_module_defs_py,
+             '--in_file', '@INPUT@', '--out_file', '@OUTPUT@',
+             '--compiler_id', cc.get_argument_syntax(), '--cpu_family', host_machine.cpu_family()]
+)
 
+gallium_wgl_name = get_option('gallium-windows-dll-name')
 libgallium_wgl = shared_library(
-  'gallium_wgl',
+  gallium_wgl_name,
   ['wgl.c'],
   vs_module_defs : wgl_def,
   include_directories : [
@@ -39,14 +40,14 @@ libgallium_wgl = shared_library(
   ],
   link_whole : [libwgl],
   link_with : [
-    libgallium, libglsl, libmesa, libwsgdi, libglapi_static, libglapi
+    libgallium, libglsl, libmesa, libwsgdi, libglapi_static, libglapi, libgalliumvl
   ],
   dependencies : [
     dep_ws2_32, idep_nir, idep_mesautil, driver_swrast,
     driver_d3d12, driver_zink, winsys_d3d12_wgl
   ],
   link_args : gallium_wgl_link_args,
-  name_prefix : 'lib',
+  name_prefix : '',
   install : true,
 )
 libgallium_wgl_build_dir = meson.current_build_dir()

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Raspberry Pi
+ * Copyright © 2020 Raspberry Pi Ltd
  * based on intel anv code:
  * Copyright © 2015 Intel Corporation
 
@@ -127,7 +127,7 @@ v3dv_CreateSwapchainKHR(
 {
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
    struct v3dv_instance *instance = device->instance;
-   struct v3dv_physical_device *pdevice = &instance->physicalDevice;
+   struct v3dv_physical_device *pdevice = device->pdevice;
 
    ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, pCreateInfo->surface);
    VkResult result =
@@ -143,30 +143,4 @@ v3dv_wsi_get_image_from_swapchain(VkSwapchainKHR swapchain, uint32_t index)
 {
    VkImage image = wsi_common_get_image(swapchain, index);
    return v3dv_image_from_handle(image);
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-v3dv_AcquireNextImage2KHR(
-    VkDevice                                     _device,
-    const VkAcquireNextImageInfoKHR*             pAcquireInfo,
-    uint32_t*                                    pImageIndex)
-{
-   V3DV_FROM_HANDLE(v3dv_device, device, _device);
-   V3DV_FROM_HANDLE(v3dv_fence, fence, pAcquireInfo->fence);
-   V3DV_FROM_HANDLE(v3dv_semaphore, semaphore, pAcquireInfo->semaphore);
-
-   struct v3dv_physical_device *pdevice = &device->instance->physicalDevice;
-
-   VkResult result;
-   result = wsi_common_acquire_next_image2(&pdevice->wsi_device, _device,
-                                           pAcquireInfo, pImageIndex);
-
-   if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
-      if (fence)
-         drmSyncobjSignal(pdevice->render_fd, &fence->sync, 1);
-      if (semaphore)
-         drmSyncobjSignal(pdevice->render_fd, &semaphore->sync, 1);
-   }
-
-   return result;
 }

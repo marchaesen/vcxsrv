@@ -3,6 +3,7 @@
 #define INLINE_SW_HELPER_H
 
 #include "pipe/p_compiler.h"
+#include "pipe/p_screen.h"
 #include "util/u_debug.h"
 #include "util/debug.h"
 #include "frontend/sw_winsys.h"
@@ -58,7 +59,7 @@ sw_screen_create_named(struct sw_winsys *winsys, const char *driver)
 
 #if defined(GALLIUM_ZINK)
    if (screen == NULL && strcmp(driver, "zink") == 0)
-      screen = zink_create_screen(winsys);
+      screen = zink_create_screen(winsys, NULL);
 #endif
 
 #if defined(GALLIUM_D3D12)
@@ -93,9 +94,6 @@ sw_screen_create_vk(struct sw_winsys *winsys, bool sw_vk)
 #if defined(GALLIUM_SOFTPIPE)
       (sw_vk ? "" : "softpipe"),
 #endif
-#if defined(GALLIUM_ZINK)
-      (sw_vk || only_sw) ? "" : "zink",
-#endif
    };
 
    for (unsigned i = 0; i < ARRAY_SIZE(drivers); i++) {
@@ -107,6 +105,16 @@ sw_screen_create_vk(struct sw_winsys *winsys, bool sw_vk)
          return NULL;
    }
    return NULL;
+}
+
+static inline struct pipe_screen *
+sw_screen_create_zink(struct sw_winsys *winsys, const struct pipe_screen_config *config, bool whatever)
+{
+#if defined(GALLIUM_ZINK)
+   return zink_create_screen(winsys, config);
+#else
+   return NULL;
+#endif
 }
 
 static inline struct pipe_screen *

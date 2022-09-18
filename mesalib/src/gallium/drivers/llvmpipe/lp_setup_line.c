@@ -299,26 +299,10 @@ try_setup_line( struct lp_setup_context *setup,
    unsigned viewport_index = 0;
    unsigned layer = 0;
    float pixel_offset = setup->multisample ? 0.0 : setup->pixel_offset;
-   /* linewidth should be interpreted as integer */
-   int fixed_width = util_iround(width) * FIXED_ONE;
 
-   float x_offset=0;
-   float y_offset=0;
-   float x_offset_end=0;
-   float y_offset_end=0;
-      
-   float x1diff;
-   float y1diff;
-   float x2diff;
-   float y2diff;
    float dx, dy;
    float area;
    const float (*pv)[4];
-
-   boolean draw_start;
-   boolean draw_end;
-   boolean will_draw_start;
-   boolean will_draw_end;
 
    if (lp_context->active_statistics_queries) {
       lp_context->pipeline_statistics.c_primitives++;
@@ -371,207 +355,217 @@ try_setup_line( struct lp_setup_context *setup,
       y[1] = subpixel_snap(v2[0][1] - pixel_offset) - ty;
       y[2] = subpixel_snap(v2[0][1] - pixel_offset) + ty;
       y[3] = subpixel_snap(v1[0][1] - pixel_offset) + ty;
-   } else if (fabsf(dx) >= fabsf(dy)) {
-      float dydx = dy / dx;
+   } else {
+      float x_offset = 0, y_offset=0;
+      float x_offset_end = 0, y_offset_end = 0;
 
-      /* X-MAJOR LINE */
-      x1diff = v1[0][0] - floorf(v1[0][0]) - 0.5f;
-      y1diff = v1[0][1] - floorf(v1[0][1]) - 0.5f;
-      x2diff = v2[0][0] - floorf(v2[0][0]) - 0.5f;
-      y2diff = v2[0][1] - floorf(v2[0][1]) - 0.5f;
+      float x1diff = v1[0][0] - floorf(v1[0][0]) - 0.5f;
+      float y1diff = v1[0][1] - floorf(v1[0][1]) - 0.5f;
+      float x2diff = v2[0][0] - floorf(v2[0][0]) - 0.5f;
+      float y2diff = v2[0][1] - floorf(v2[0][1]) - 0.5f;
 
-      if (y2diff==-0.5 && dy<0){
-         y2diff = 0.5;
-      }
-      
-      /* 
-       * Diamond exit rule test for starting point 
-       */    
-      if (fabsf(x1diff) + fabsf(y1diff) < 0.5) {
-         draw_start = TRUE;
-      }
-      else if (sign(x1diff) == sign(-dx)) {
-         draw_start = FALSE;
-      }
-      else if (sign(-y1diff) != sign(dy)) {
-         draw_start = TRUE;
+      /* linewidth should be interpreted as integer */
+      int fixed_width = util_iround(width) * FIXED_ONE;
+
+      bool draw_start;
+      bool draw_end;
+
+      if (fabsf(dx) >= fabsf(dy)) {
+         float dydx = dy / dx;
+
+         /* X-MAJOR LINE */
+
+         if (y2diff == -0.5 && dy < 0) {
+            y2diff = 0.5;
+         }
+
+         /*
+         * Diamond exit rule test for starting point
+         */
+         if (fabsf(x1diff) + fabsf(y1diff) < 0.5) {
+            draw_start = true;
+         }
+         else if (sign(x1diff) == sign(-dx)) {
+            draw_start = false;
+         }
+         else if (sign(-y1diff) != sign(dy)) {
+            draw_start = true;
+         }
+         else {
+            /* do intersection test */
+            float yintersect = fracf(v1[0][1]) + x1diff * dydx;
+            draw_start = (yintersect < 1.0 && yintersect > 0.0);
+         }
+
+
+         /*
+         * Diamond exit rule test for ending point
+         */
+         if (fabsf(x2diff) + fabsf(y2diff) < 0.5) {
+            draw_end = false;
+         }
+         else if (sign(x2diff) != sign(-dx)) {
+            draw_end = false;
+         }
+         else if (sign(-y2diff) == sign(dy)) {
+            draw_end = true;
+         }
+         else {
+            /* do intersection test */
+            float yintersect = fracf(v2[0][1]) + x2diff * dydx;
+            draw_end = (yintersect < 1.0 && yintersect > 0.0);
+         }
+
+         /* Are we already drawing start/end?
+         */
+         bool will_draw_start = sign(-x1diff) != sign(dx);
+         bool will_draw_end = (sign(x2diff) == sign(-dx)) || x2diff==0;
+
+         /* interpolate using the preferred wide-lines formula */
+         info.dx *= 1 + dydx * dydx;
+         info.dy = 0;
+
+         if (dx < 0) {
+            /* if v2 is to the right of v1, swap pointers */
+            const float (*temp)[4] = v1;
+            v1 = v2;
+            v2 = temp;
+            dx = -dx;
+            dy = -dy;
+            /* Otherwise shift planes appropriately */
+            if (will_draw_start != draw_start) {
+               x_offset_end = -x1diff - 0.5;
+               y_offset_end = x_offset_end * dydx;
+
+            }
+            if (will_draw_end != draw_end) {
+               x_offset = -x2diff - 0.5;
+               y_offset = x_offset * dydx;
+            }
+
+         }
+         else {
+            /* Otherwise shift planes appropriately */
+            if (will_draw_start != draw_start) {
+               x_offset = -x1diff + 0.5;
+               y_offset = x_offset * dydx;
+            }
+            if (will_draw_end != draw_end) {
+               x_offset_end = -x2diff + 0.5;
+               y_offset_end = x_offset_end * dydx;
+            }
+         }
+
+         /* x/y positions in fixed point */
+         x[0] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset);
+         x[1] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset);
+         x[2] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset);
+         x[3] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset);
+
+         y[0] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset) - fixed_width/2;
+         y[1] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset) - fixed_width/2;
+         y[2] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset) + fixed_width/2;
+         y[3] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset) + fixed_width/2;
       }
       else {
-         /* do intersection test */
-         float yintersect = fracf(v1[0][1]) + x1diff * dydx;
-         draw_start = (yintersect < 1.0 && yintersect > 0.0);
-      }
+         const float dxdy = dx / dy;
 
+         /* Y-MAJOR LINE */
+         x1diff = v1[0][0] - floorf(v1[0][0]) - 0.5f;
+         y1diff = v1[0][1] - floorf(v1[0][1]) - 0.5f;
+         x2diff = v2[0][0] - floorf(v2[0][0]) - 0.5f;
+         y2diff = v2[0][1] - floorf(v2[0][1]) - 0.5f;
 
-      /* 
-       * Diamond exit rule test for ending point 
-       */    
-      if (fabsf(x2diff) + fabsf(y2diff) < 0.5) {
-         draw_end = FALSE;
-      }
-      else if (sign(x2diff) != sign(-dx)) {
-         draw_end = FALSE;
-      }
-      else if (sign(-y2diff) == sign(dy)) {
-         draw_end = TRUE;
-      }
-      else {
-         /* do intersection test */
-         float yintersect = fracf(v2[0][1]) + x2diff * dydx;
-         draw_end = (yintersect < 1.0 && yintersect > 0.0);
-      }
-
-      /* Are we already drawing start/end?
-       */
-      will_draw_start = sign(-x1diff) != sign(dx);
-      will_draw_end = (sign(x2diff) == sign(-dx)) || x2diff==0;
-
-      /* interpolate using the preferred wide-lines formula */
-      info.dx *= 1 + dydx * dydx;
-      info.dy = 0;
-
-      if (dx < 0) {
-         /* if v2 is to the right of v1, swap pointers */
-         const float (*temp)[4] = v1;
-         v1 = v2;
-         v2 = temp;
-         dx = -dx;
-         dy = -dy;
-         /* Otherwise shift planes appropriately */
-         if (will_draw_start != draw_start) {
-            x_offset_end = - x1diff - 0.5;
-            y_offset_end = x_offset_end * dydx;
-
-         }
-         if (will_draw_end != draw_end) {
-            x_offset = - x2diff - 0.5;
-            y_offset = x_offset * dydx;
+         if (x2diff == -0.5 && dx < 0) {
+            x2diff = 0.5;
          }
 
-      }
-      else{
-         /* Otherwise shift planes appropriately */
-         if (will_draw_start != draw_start) {
-            x_offset = - x1diff + 0.5;
-            y_offset = x_offset * dydx;
+         /*
+         * Diamond exit rule test for starting point
+         */
+         if (fabsf(x1diff) + fabsf(y1diff) < 0.5) {
+            draw_start = true;
          }
-         if (will_draw_end != draw_end) {
-            x_offset_end = - x2diff + 0.5;
-            y_offset_end = x_offset_end * dydx;
+         else if (sign(-y1diff) == sign(dy)) {
+            draw_start = false;
          }
-      }
-  
-      /* x/y positions in fixed point */
-      x[0] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset);
-      x[1] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset);
-      x[2] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset);
-      x[3] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset);
-      
-      y[0] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset) - fixed_width/2;
-      y[1] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset) - fixed_width/2;
-      y[2] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset) + fixed_width/2;
-      y[3] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset) + fixed_width/2;
-      
-   }
-   else {
-      const float dxdy = dx / dy;
-
-      /* Y-MAJOR LINE */      
-      x1diff = v1[0][0] - floorf(v1[0][0]) - 0.5f;
-      y1diff = v1[0][1] - floorf(v1[0][1]) - 0.5f;
-      x2diff = v2[0][0] - floorf(v2[0][0]) - 0.5f;
-      y2diff = v2[0][1] - floorf(v2[0][1]) - 0.5f;
-
-      if (x2diff==-0.5 && dx<0) {
-         x2diff = 0.5;
-      }
-
-      /* 
-       * Diamond exit rule test for starting point 
-       */    
-      if (fabsf(x1diff) + fabsf(y1diff) < 0.5) {
-         draw_start = TRUE;
-      }
-      else if (sign(-y1diff) == sign(dy)) {
-         draw_start = FALSE;
-      }
-      else if (sign(x1diff) != sign(-dx)) {
-         draw_start = TRUE;
-      }
-      else {
-         /* do intersection test */
-         float xintersect = fracf(v1[0][0]) + y1diff * dxdy;
-         draw_start = (xintersect < 1.0 && xintersect > 0.0);
-      }
-
-      /* 
-       * Diamond exit rule test for ending point 
-       */    
-      if (fabsf(x2diff) + fabsf(y2diff) < 0.5) {
-         draw_end = FALSE;
-      }
-      else if (sign(-y2diff) != sign(dy) ) {
-         draw_end = FALSE;
-      }
-      else if (sign(x2diff) == sign(-dx) ) {
-         draw_end = TRUE;
-      }
-      else {
-         /* do intersection test */
-         float xintersect = fracf(v2[0][0]) + y2diff * dxdy;
-         draw_end = (xintersect < 1.0 && xintersect >= 0.0);
-      }
-
-      /* Are we already drawing start/end?
-       */
-      will_draw_start = sign(y1diff) == sign(dy);
-      will_draw_end = (sign(-y2diff) == sign(dy)) || y2diff==0;
-
-      /* interpolate using the preferred wide-lines formula */
-      info.dx = 0;
-      info.dy *= 1 + dxdy * dxdy;
-
-      if (dy > 0) {
-         /* if v2 is on top of v1, swap pointers */
-         const float (*temp)[4] = v1;
-         v1 = v2;
-         v2 = temp; 
-         dx = -dx;
-         dy = -dy;
-
-         /* Otherwise shift planes appropriately */
-         if (will_draw_start != draw_start) {
-            y_offset_end = - y1diff + 0.5;
-            x_offset_end = y_offset_end * dxdy;
+         else if (sign(x1diff) != sign(-dx)) {
+            draw_start = true;
          }
-         if (will_draw_end != draw_end) {
-            y_offset = - y2diff + 0.5;
-            x_offset = y_offset * dxdy;
+         else {
+            /* do intersection test */
+            float xintersect = fracf(v1[0][0]) + y1diff * dxdy;
+            draw_start = (xintersect < 1.0 && xintersect > 0.0);
          }
-      }
-      else {
-         /* Otherwise shift planes appropriately */
-         if (will_draw_start != draw_start) {
-            y_offset = - y1diff - 0.5;
-            x_offset = y_offset * dxdy;
-                     
-         }
-         if (will_draw_end != draw_end) {
-            y_offset_end = - y2diff - 0.5;
-            x_offset_end = y_offset_end * dxdy;
-         }
-      }
 
-      /* x/y positions in fixed point */
-      x[0] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset) - fixed_width/2;
-      x[1] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset) - fixed_width/2;
-      x[2] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset) + fixed_width/2;
-      x[3] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset) + fixed_width/2;
-     
-      y[0] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset);
-      y[1] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset);
-      y[2] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset);
-      y[3] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset);
+         /*
+         * Diamond exit rule test for ending point
+         */
+         if (fabsf(x2diff) + fabsf(y2diff) < 0.5) {
+            draw_end = false;
+         }
+         else if (sign(-y2diff) != sign(dy) ) {
+            draw_end = false;
+         }
+         else if (sign(x2diff) == sign(-dx) ) {
+            draw_end = true;
+         }
+         else {
+            /* do intersection test */
+            float xintersect = fracf(v2[0][0]) + y2diff * dxdy;
+            draw_end = (xintersect < 1.0 && xintersect >= 0.0);
+         }
+
+         /* Are we already drawing start/end?
+         */
+         bool will_draw_start = sign(y1diff) == sign(dy);
+         bool will_draw_end = (sign(-y2diff) == sign(dy)) || y2diff==0;
+
+         /* interpolate using the preferred wide-lines formula */
+         info.dx = 0;
+         info.dy *= 1 + dxdy * dxdy;
+
+         if (dy > 0) {
+            /* if v2 is on top of v1, swap pointers */
+            const float (*temp)[4] = v1;
+            v1 = v2;
+            v2 = temp;
+            dx = -dx;
+            dy = -dy;
+
+            /* Otherwise shift planes appropriately */
+            if (will_draw_start != draw_start) {
+               y_offset_end = -y1diff + 0.5;
+               x_offset_end = y_offset_end * dxdy;
+            }
+            if (will_draw_end != draw_end) {
+               y_offset = -y2diff + 0.5;
+               x_offset = y_offset * dxdy;
+            }
+         }
+         else {
+            /* Otherwise shift planes appropriately */
+            if (will_draw_start != draw_start) {
+               y_offset = -y1diff - 0.5;
+               x_offset = y_offset * dxdy;
+            }
+            if (will_draw_end != draw_end) {
+               y_offset_end = -y2diff - 0.5;
+               x_offset_end = y_offset_end * dxdy;
+            }
+         }
+
+         /* x/y positions in fixed point */
+         x[0] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset) - fixed_width/2;
+         x[1] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset) - fixed_width/2;
+         x[2] = subpixel_snap(v2[0][0] + x_offset_end - pixel_offset) + fixed_width/2;
+         x[3] = subpixel_snap(v1[0][0] + x_offset     - pixel_offset) + fixed_width/2;
+
+         y[0] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset);
+         y[1] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset);
+         y[2] = subpixel_snap(v2[0][1] + y_offset_end - pixel_offset);
+         y[3] = subpixel_snap(v1[0][1] + y_offset     - pixel_offset);
+      }
    }
 
    /* Bounding rectangle (in pixels) */

@@ -106,6 +106,9 @@ lima_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
    case PIPE_CAP_TEXTURE_SWIZZLE:
    case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
+   case PIPE_CAP_TEXTURE_BARRIER:
+   case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
+   case PIPE_CAP_SURFACE_SAMPLE_COUNT:
       return 1;
 
    /* Unimplemented, but for exporting OpenGL 2.0 */
@@ -113,15 +116,15 @@ lima_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 1;
 
    /* not clear supported */
-   case PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_TGSI_FS_COORD_ORIGIN_LOWER_LEFT:
-   case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER:
-   case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
+   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
+   case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
+   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
+   case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
       return 1;
 
-   case PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL:
-   case PIPE_CAP_TGSI_FS_POINT_IS_SYSVAL:
-   case PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL:
+   case PIPE_CAP_FS_POSITION_IS_SYSVAL:
+   case PIPE_CAP_FS_POINT_IS_SYSVAL:
+   case PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL:
       return 1;
 
    case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
@@ -224,7 +227,7 @@ get_vertex_shader_param(struct lima_screen *screen,
 
    /* Mali-400 GP provides space for 304 vec4 uniforms, globals and
     * temporary variables. */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE:
+   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
       return 304 * 4 * sizeof(float);
 
    case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
@@ -235,9 +238,6 @@ get_vertex_shader_param(struct lima_screen *screen,
 
    case PIPE_SHADER_CAP_MAX_TEMPS:
       return 256; /* need investigate */
-
-   case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
-      return 32;
 
    default:
       return 0;
@@ -265,7 +265,7 @@ get_fragment_shader_param(struct lima_screen *screen,
     * However, indirect access to an uniform only supports indices up
     * to 8192 (a 2048 vec4 array). To prevent indices bigger than that,
     * limit max const buffer size to 8192 for now. */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE:
+   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
       return 2048 * 4 * sizeof(float);
 
    case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
@@ -288,9 +288,6 @@ get_fragment_shader_param(struct lima_screen *screen,
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
       return 0;
-
-   case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
-      return 32;
 
    default:
       return 0;
@@ -338,7 +335,7 @@ lima_screen_is_format_supported(struct pipe_screen *pscreen,
    if (MAX2(1, sample_count) != MAX2(1, storage_sample_count))
       return false;
 
-   /* be able to support 16, now limit to 4 */
+   /* Utgard supports 16x, but for now limit it to 4x */
    if (sample_count > 1 && sample_count != 4)
       return false;
 
@@ -602,6 +599,8 @@ static const struct debug_named_value lima_debug_options[] = {
           "Precompile shaders for shader-db" },
         { "diskcache", LIMA_DEBUG_DISK_CACHE,
           "print debug info for shader disk cache" },
+        { "noblit", LIMA_DEBUG_NO_BLIT,
+          "use generic u_blitter instead of lima-specific" },
         { NULL }
 };
 

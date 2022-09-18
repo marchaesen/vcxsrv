@@ -36,16 +36,16 @@ keycode
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 Xkb description of interest
 .TP
-.I \- keycode
+.I keycode
 keycode of interest
 .TP
-.I \- shift
+.I shift
 shift level within group
 .TP
-.I \- grp
+.I grp
 group index for group of interest
 .SH DESCRIPTION
 .LP

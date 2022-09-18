@@ -16,6 +16,7 @@ ForEachMacros:
   - list_for_each_entry
   - list_for_each_entry_safe
   - vk_outarray_append
+  - vk_outarray_append_typed
   - vk_foreach_struct
   - vk_foreach_struct_const
 IncludeBlocks: Regroup

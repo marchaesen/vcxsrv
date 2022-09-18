@@ -22,8 +22,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "si_shader.h"
+#include "si_pipe.h"
 #include "util/mesa-sha1.h"
+#include "util/u_prim.h"
+#include "sid.h"
 
 
 struct si_shader_profile {
@@ -41,7 +43,7 @@ static struct si_shader_profile profiles[] =
    {
       /* Viewperf/Energy isn't affected by the discard bug. */
       {0x17118671, 0xd0102e0c, 0x947f3592, 0xb2057e7b, 0x4da5d9b0},
-      SI_PROFILE_IGNORE_LLVM_DISCARD_BUG,
+      SI_PROFILE_IGNORE_LLVM13_DISCARD_BUG,
    },
    {
       /* Viewperf/Medical */
@@ -54,6 +56,11 @@ static struct si_shader_profile profiles[] =
        */
       {0x29f0f4a0, 0x0672258d, 0x47ccdcfd, 0x31e67dcc, 0xdcb1fda8},
       SI_PROFILE_WAVE64,
+   },
+   {
+      /* Viewperf/Creo */
+      {0x1f288a73, 0xba46cce5, 0xbf68e6c6, 0x58543651, 0xca3c8efd},
+      SI_PROFILE_CLAMP_DIV_BY_ZERO,
    },
 };
 
@@ -212,8 +219,8 @@ static const nir_src *get_texture_src(nir_tex_instr *instr, nir_tex_src_type typ
    return NULL;
 }
 
-static void scan_io_usage(struct si_shader_info *info, nir_intrinsic_instr *intr,
-                          bool is_input)
+static void scan_io_usage(const nir_shader *nir, struct si_shader_info *info,
+                          nir_intrinsic_instr *intr, bool is_input)
 {
    unsigned interp = INTERP_MODE_FLAT; /* load_input uses flat shading */
 
@@ -265,10 +272,10 @@ static void scan_io_usage(struct si_shader_info *info, nir_intrinsic_instr *intr
 
    unsigned semantic = 0;
    /* VS doesn't have semantics. */
-   if (info->stage != MESA_SHADER_VERTEX || !is_input)
+   if (nir->info.stage != MESA_SHADER_VERTEX || !is_input)
       semantic = nir_intrinsic_io_semantics(intr).location;
 
-   if (info->stage == MESA_SHADER_FRAGMENT && !is_input) {
+   if (nir->info.stage == MESA_SHADER_FRAGMENT && !is_input) {
       /* Never use FRAG_RESULT_COLOR directly. */
       if (semantic == FRAG_RESULT_COLOR)
          semantic = FRAG_RESULT_DATA0;
@@ -320,12 +327,23 @@ static void scan_io_usage(struct si_shader_info *info, nir_intrinsic_instr *intr
                                   (nir_intrinsic_component(intr) * 2);
             unsigned new_mask = mask & ~info->output_usagemask[loc];
 
+            /* Iterate over all components. */
             for (unsigned i = 0; i < 4; i++) {
                unsigned stream = (gs_streams >> (i * 2)) & 0x3;
 
                if (new_mask & (1 << i)) {
                   info->output_streams[loc] |= stream << (i * 2);
                   info->num_stream_output_components[stream]++;
+               }
+
+               if (nir_intrinsic_has_io_xfb(intr)) {
+                  nir_io_xfb xfb = i < 2 ? nir_intrinsic_io_xfb(intr) :
+                                           nir_intrinsic_io_xfb2(intr);
+                  if (xfb.out[i % 2].num_components) {
+                     unsigned stream = (gs_streams >> (i * 2)) & 0x3;
+                     info->enabled_streamout_buffer_mask |=
+                        BITFIELD_BIT(stream * 4 + xfb.out[i % 2].buffer);
+                  }
                }
             }
 
@@ -339,7 +357,7 @@ static void scan_io_usage(struct si_shader_info *info, nir_intrinsic_instr *intr
             info->output_usagemask[loc] |= mask;
             info->num_outputs = MAX2(info->num_outputs, loc + 1);
 
-            if (info->stage == MESA_SHADER_FRAGMENT &&
+            if (nir->info.stage == MESA_SHADER_FRAGMENT &&
                 semantic >= FRAG_RESULT_DATA0 && semantic <= FRAG_RESULT_DATA7) {
                unsigned index = semantic - FRAG_RESULT_DATA0;
 
@@ -369,6 +387,7 @@ static bool is_bindless_handle_indirect(nir_instr *src)
    return false;
 }
 
+/* TODO: convert to nir_shader_instructions_pass */
 static void scan_instruction(const struct nir_shader *nir, struct si_shader_info *info,
                              nir_instr *instr)
 {
@@ -416,15 +435,6 @@ static void scan_instruction(const struct nir_shader *nir, struct si_shader_info
             if (!nir_src_is_const(intr->src[1]))
                info->uses_vmem_load_other = true;
             break;
-         case nir_intrinsic_load_constant:
-            info->uses_vmem_load_other = true;
-            break;
-
-         case nir_intrinsic_load_barycentric_at_sample: /* This loads sample positions. */
-         case nir_intrinsic_load_tess_level_outer: /* TES input read from memory */
-         case nir_intrinsic_load_tess_level_inner: /* TES input read from memory */
-            info->uses_vmem_load_other = true;
-            break;
 
          case nir_intrinsic_load_input:
          case nir_intrinsic_load_input_vertex:
@@ -432,6 +442,12 @@ static void scan_instruction(const struct nir_shader *nir, struct si_shader_info
             if (nir->info.stage == MESA_SHADER_VERTEX ||
                 nir->info.stage == MESA_SHADER_TESS_EVAL)
                info->uses_vmem_load_other = true;
+            break;
+
+         case nir_intrinsic_load_constant:
+         case nir_intrinsic_load_barycentric_at_sample: /* This loads sample positions. */
+         case nir_intrinsic_load_buffer_amd:
+            info->uses_vmem_load_other = true;
             break;
 
          default:
@@ -540,13 +556,13 @@ static void scan_instruction(const struct nir_shader *nir, struct si_shader_info
       case nir_intrinsic_load_per_vertex_input:
       case nir_intrinsic_load_input_vertex:
       case nir_intrinsic_load_interpolated_input:
-         scan_io_usage(info, intr, true);
+         scan_io_usage(nir, info, intr, true);
          break;
       case nir_intrinsic_load_output:
       case nir_intrinsic_load_per_vertex_output:
       case nir_intrinsic_store_output:
       case nir_intrinsic_store_per_vertex_output:
-         scan_io_usage(info, intr, false);
+         scan_io_usage(nir, info, intr, false);
          break;
       case nir_intrinsic_load_deref:
       case nir_intrinsic_store_deref:
@@ -563,13 +579,11 @@ static void scan_instruction(const struct nir_shader *nir, struct si_shader_info
    }
 }
 
-void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *info)
+void si_nir_scan_shader(struct si_screen *sscreen, const struct nir_shader *nir,
+                        struct si_shader_info *info)
 {
-   nir_function *func;
-
    memset(info, 0, sizeof(*info));
    info->base = nir->info;
-   info->stage = nir->info.stage;
 
    /* Get options from shader profiles. */
    for (unsigned i = 0; i < ARRAY_SIZE(profiles); i++) {
@@ -608,6 +622,11 @@ void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *inf
       info->tessfactors_are_def_in_all_invocs = are_tessfactors_def_in_all_invocs(nir);
    }
 
+   /* tess factors are loaded as input instead of system value */
+   info->reads_tess_factors = nir->info.patch_inputs_read &
+      (BITFIELD64_BIT(VARYING_SLOT_TESS_LEVEL_INNER) |
+       BITFIELD64_BIT(VARYING_SLOT_TESS_LEVEL_OUTER));
+
    info->uses_frontface = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_FRONT_FACE);
    info->uses_instanceid = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_INSTANCE_ID);
    info->uses_base_vertex = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_BASE_VERTEX);
@@ -622,8 +641,6 @@ void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *inf
    info->uses_primid = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_PRIMITIVE_ID) ||
                        nir->info.inputs_read & VARYING_BIT_PRIMITIVE_ID;
    info->reads_samplemask = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_SAMPLE_MASK_IN);
-   info->reads_tess_factors = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_TESS_LEVEL_INNER) ||
-                              BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_TESS_LEVEL_OUTER);
    info->uses_linear_sample = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_BARYCENTRIC_LINEAR_SAMPLE);
    info->uses_linear_centroid = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID);
    info->uses_linear_center = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_BARYCENTRIC_LINEAR_PIXEL);
@@ -653,13 +670,13 @@ void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *inf
       info->writes_position = nir->info.outputs_written & VARYING_BIT_POS;
    }
 
-   func = (struct nir_function *)exec_list_get_head_const(&nir->functions);
-   nir_foreach_block (block, func->impl) {
+   nir_function_impl *impl = nir_shader_get_entrypoint((nir_shader*)nir);
+   nir_foreach_block (block, impl) {
       nir_foreach_instr (instr, block)
          scan_instruction(nir, info, instr);
    }
 
-   if (info->stage == MESA_SHADER_VERTEX || info->stage == MESA_SHADER_TESS_EVAL) {
+   if (nir->info.stage == MESA_SHADER_VERTEX || nir->info.stage == MESA_SHADER_TESS_EVAL) {
       /* Add the PrimitiveID output, but don't increment num_outputs.
        * The driver inserts PrimitiveID only when it's used by the pixel shader,
        * and si_emit_spi_map uses this unconditionally when such a pixel shader is used.
@@ -714,4 +731,105 @@ void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *inf
       info->output_readmask[i] &= info->output_usagemask[i];
 
    info->has_divergent_loop = nir_has_divergent_loop((nir_shader*)nir);
+
+   if (nir->info.stage == MESA_SHADER_VERTEX ||
+       nir->info.stage == MESA_SHADER_TESS_CTRL ||
+       nir->info.stage == MESA_SHADER_TESS_EVAL ||
+       nir->info.stage == MESA_SHADER_GEOMETRY) {
+      if (nir->info.stage == MESA_SHADER_TESS_CTRL) {
+         /* Always reserve space for these. */
+         info->patch_outputs_written |=
+            (1ull << si_shader_io_get_unique_index_patch(VARYING_SLOT_TESS_LEVEL_INNER)) |
+            (1ull << si_shader_io_get_unique_index_patch(VARYING_SLOT_TESS_LEVEL_OUTER));
+      }
+      for (unsigned i = 0; i < info->num_outputs; i++) {
+         unsigned semantic = info->output_semantic[i];
+
+         if (semantic == VARYING_SLOT_TESS_LEVEL_INNER ||
+             semantic == VARYING_SLOT_TESS_LEVEL_OUTER ||
+             (semantic >= VARYING_SLOT_PATCH0 && semantic < VARYING_SLOT_TESS_MAX)) {
+            info->patch_outputs_written |= 1ull << si_shader_io_get_unique_index_patch(semantic);
+         } else if ((semantic <= VARYING_SLOT_VAR31 || semantic >= VARYING_SLOT_VAR0_16BIT) &&
+                    semantic != VARYING_SLOT_EDGE) {
+            info->outputs_written |= 1ull << si_shader_io_get_unique_index(semantic, false);
+
+            /* Ignore outputs that are not passed from VS to PS. */
+            if (semantic != VARYING_SLOT_POS &&
+                semantic != VARYING_SLOT_PSIZ &&
+                semantic != VARYING_SLOT_CLIP_VERTEX) {
+               info->outputs_written_before_ps |= 1ull
+                                                  << si_shader_io_get_unique_index(semantic, true);
+            }
+         }
+      }
+   }
+
+   if (nir->info.stage == MESA_SHADER_VERTEX) {
+      info->num_vs_inputs =
+         nir->info.stage == MESA_SHADER_VERTEX && !info->base.vs.blit_sgprs_amd ? info->num_inputs : 0;
+      unsigned num_vbos_in_sgprs = si_num_vbos_in_user_sgprs_inline(sscreen->info.gfx_level);
+      info->num_vbos_in_user_sgprs = MIN2(info->num_vs_inputs, num_vbos_in_sgprs);
+
+      /* The prolog is a no-op if there are no inputs. */
+      info->vs_needs_prolog = info->num_inputs && !info->base.vs.blit_sgprs_amd;
+   }
+
+   if (nir->info.stage == MESA_SHADER_VERTEX ||
+       nir->info.stage == MESA_SHADER_TESS_CTRL ||
+       nir->info.stage == MESA_SHADER_TESS_EVAL) {
+      info->esgs_itemsize = util_last_bit64(info->outputs_written) * 16;
+      info->lshs_vertex_stride = info->esgs_itemsize;
+
+      /* Add 1 dword to reduce LDS bank conflicts, so that each vertex
+       * will start on a different bank. (except for the maximum 32*16).
+       */
+      if (info->lshs_vertex_stride < 32 * 16)
+         info->lshs_vertex_stride += 4;
+
+      /* For the ESGS ring in LDS, add 1 dword to reduce LDS bank
+       * conflicts, i.e. each vertex will start at a different bank.
+       */
+      if (sscreen->info.gfx_level >= GFX9)
+         info->esgs_itemsize += 4;
+
+      assert(((info->esgs_itemsize / 4) & C_028AAC_ITEMSIZE) == 0);
+
+      info->tcs_vgpr_only_inputs = ~info->base.tess.tcs_cross_invocation_inputs_read &
+                                   ~info->base.inputs_read_indirectly &
+                                   info->base.inputs_read;
+   }
+
+   if (nir->info.stage == MESA_SHADER_GEOMETRY) {
+      info->gsvs_vertex_size = info->num_outputs * 16;
+      info->max_gsvs_emit_size = info->gsvs_vertex_size * info->base.gs.vertices_out;
+      info->gs_input_verts_per_prim =
+         u_vertices_per_prim((enum pipe_prim_type)info->base.gs.input_primitive);
+   }
+
+   info->clipdist_mask = info->writes_clipvertex ? SI_USER_CLIP_PLANE_MASK :
+                         u_bit_consecutive(0, info->base.clip_distance_array_size);
+   info->culldist_mask = u_bit_consecutive(0, info->base.cull_distance_array_size) <<
+                         info->base.clip_distance_array_size;
+
+   if (nir->info.stage == MESA_SHADER_FRAGMENT) {
+      for (unsigned i = 0; i < info->num_inputs; i++) {
+         unsigned semantic = info->input[i].semantic;
+
+         if ((semantic <= VARYING_SLOT_VAR31 || semantic >= VARYING_SLOT_VAR0_16BIT) &&
+             semantic != VARYING_SLOT_PNTC) {
+            info->inputs_read |= 1ull << si_shader_io_get_unique_index(semantic, true);
+         }
+      }
+
+      for (unsigned i = 0; i < 8; i++)
+         if (info->colors_written & (1 << i))
+            info->colors_written_4bit |= 0xf << (4 * i);
+
+      for (unsigned i = 0; i < info->num_inputs; i++) {
+         if (info->input[i].semantic == VARYING_SLOT_COL0)
+            info->color_attr_index[0] = i;
+         else if (info->input[i].semantic == VARYING_SLOT_COL1)
+            info->color_attr_index[1] = i;
+      }
+   }
 }

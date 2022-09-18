@@ -51,11 +51,6 @@
 #include "rootlessCommon.h"
 #include "rootlessWindow.h"
 
-/* In milliseconds */
-#ifndef ROOTLESS_REDISPLAY_DELAY
-#define ROOTLESS_REDISPLAY_DELAY 10
-#endif
-
 extern int RootlessMiValidateTree(WindowPtr pRoot, WindowPtr pChild,
                                   VTKind kind);
 extern Bool RootlessCreateGC(GCPtr pGC);

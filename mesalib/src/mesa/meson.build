@@ -148,7 +148,6 @@ files_libmesa = files(
   'main/multisample.c',
   'main/multisample.h',
   'main/objectlabel.c',
-  'main/objectpurge.c',
   'main/pack.c',
   'main/pack.h',
   'main/pbo.c',
@@ -275,9 +274,6 @@ files_libmesa = files(
   'program/prog_cache.h',
   'program/prog_instruction.c',
   'program/prog_instruction.h',
-  'program/prog_opt_constant_fold.c',
-  'program/prog_optimize.c',
-  'program/prog_optimize.h',
   'program/prog_parameter.c',
   'program/prog_parameter.h',
   'program/prog_parameter_layout.c',
@@ -322,14 +318,12 @@ files_libmesa = files(
   'state_tracker/st_atom_viewport.c',
   'state_tracker/st_cb_bitmap.c',
   'state_tracker/st_cb_bitmap.h',
-  'state_tracker/st_cb_bitmap_shader.c',
   'state_tracker/st_cb_clear.c',
   'state_tracker/st_cb_clear.h',
   'state_tracker/st_cb_copyimage.c',
   'state_tracker/st_cb_copyimage.h',
   'state_tracker/st_cb_drawpixels.c',
   'state_tracker/st_cb_drawpixels.h',
-  'state_tracker/st_cb_drawpixels_shader.c',
   'state_tracker/st_cb_drawtex.c',
   'state_tracker/st_cb_drawtex.h',
   'state_tracker/st_cb_eglimage.c',
@@ -353,6 +347,7 @@ files_libmesa = files(
   'state_tracker/st_draw.c',
   'state_tracker/st_draw.h',
   'state_tracker/st_draw_feedback.c',
+  'state_tracker/st_draw_hw_select.c',
   'state_tracker/st_extensions.c',
   'state_tracker/st_extensions.h',
   'state_tracker/st_format.c',
@@ -363,14 +358,6 @@ files_libmesa = files(
   'state_tracker/st_glsl_to_ir.cpp',
   'state_tracker/st_glsl_to_ir.h',
   'state_tracker/st_glsl_to_nir.cpp',
-  'state_tracker/st_glsl_to_tgsi.cpp',
-  'state_tracker/st_glsl_to_tgsi.h',
-  'state_tracker/st_glsl_to_tgsi_array_merge.cpp',
-  'state_tracker/st_glsl_to_tgsi_array_merge.h',
-  'state_tracker/st_glsl_to_tgsi_private.cpp',
-  'state_tracker/st_glsl_to_tgsi_private.h',
-  'state_tracker/st_glsl_to_tgsi_temprename.cpp',
-  'state_tracker/st_glsl_to_tgsi_temprename.h',
   'state_tracker/st_manager.c',
   'state_tracker/st_manager.h',
   'state_tracker/st_nir.h',
@@ -390,8 +377,6 @@ files_libmesa = files(
   'state_tracker/st_shader_cache.h',
   'state_tracker/st_texture.c',
   'state_tracker/st_texture.h',
-  'state_tracker/st_tgsi_lower_yuv.c',
-  'state_tracker/st_tgsi_lower_yuv.h',
   'state_tracker/st_util.h',
   'state_tracker/st_vdpau.c',
   'state_tracker/st_vdpau.h',
@@ -463,6 +448,7 @@ files_libmesa += [
   main_api_save_h,
   main_api_save_init_h,
   main_api_vtxfmt_init_h,
+  main_api_hw_select_init_h,
   main_enums_c,
   format_fallback_c,
   get_hash_h,
@@ -476,7 +462,7 @@ files_libmesa += [
 if with_sse41
   libmesa_sse41 = static_library(
     'mesa_sse41',
-    files('main/streaming-load-memcpy.c', 'main/sse_minmax.c'),
+    files('main/sse_minmax.c'),
     c_args : [c_msvc_compat_args, sse41_args],
     include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
     gnu_symbol_visibility : 'hidden',
@@ -489,7 +475,6 @@ _mesa_windows_args = []
 if with_platform_windows
   _mesa_windows_args += [
     '-D_GDI32_',    # prevent gl* being declared __declspec(dllimport) in MS headers
-    '-DBUILD_GL32'  # declare gl* as __declspec(dllexport) in Mesa headers
   ]
   if not with_shared_glapi
     # prevent _glapi_* from being declared __declspec(dllimport)

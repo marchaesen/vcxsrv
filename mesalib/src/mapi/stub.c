@@ -121,7 +121,7 @@ stub_find_dynamic(const char *name, int generate)
    static mtx_t dynamic_mutex = _MTX_INITIALIZER_NP;
    struct mapi_stub *stub = NULL;
    int count, i;
-   
+
    mtx_lock(&dynamic_mutex);
 
    if (generate)

@@ -1091,7 +1091,7 @@ struct pipe_video_codec *ruvd_create_decoder(struct pipe_context *context,
 	dec->screen = context->screen;
 	dec->ws = ws;
 
-	if (!ws->cs_create(&dec->cs, rctx->ctx, RING_UVD, NULL, NULL, false)) {
+	if (!ws->cs_create(&dec->cs, rctx->ctx, AMD_IP_UVD, NULL, NULL, false)) {
 		RVID_ERR("Can't get command submission context.\n");
 		goto error;
 	}

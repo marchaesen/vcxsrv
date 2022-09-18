@@ -123,6 +123,7 @@ etna_emit_output(struct etna_compile *c, nir_variable *var, struct etna_inst_src
       c->variant->vs_pointsize_out_reg = src.reg;
       break;
    default:
+      assert(sf->num_reg < ETNA_NUM_INPUTS);
       sf->reg[sf->num_reg].reg = src.reg;
       sf->reg[sf->num_reg].slot = var->data.location;
       sf->reg[sf->num_reg].num_components = glsl_get_components(var->type);
@@ -146,7 +147,8 @@ etna_optimize_loop(nir_shader *s)
 
       NIR_PASS_V(s, nir_lower_vars_to_ssa);
       progress |= OPT(s, nir_opt_copy_prop_vars);
-      progress |= OPT(s, nir_opt_shrink_vectors, true);
+      progress |= OPT(s, nir_opt_shrink_stores, true);
+      progress |= OPT(s, nir_opt_shrink_vectors);
       progress |= OPT(s, nir_copy_prop);
       progress |= OPT(s, nir_opt_dce);
       progress |= OPT(s, nir_opt_cse);
@@ -165,7 +167,7 @@ etna_optimize_loop(nir_shader *s)
          OPT(s, nir_opt_dce);
       }
       progress |= OPT(s, nir_opt_loop_unroll);
-      progress |= OPT(s, nir_opt_if, false);
+      progress |= OPT(s, nir_opt_if, nir_opt_if_optimize_phi_true_false);
       progress |= OPT(s, nir_opt_remove_phis);
       progress |= OPT(s, nir_opt_undef);
    }
@@ -511,7 +513,7 @@ emit_tex(struct etna_compile *c, nir_tex_instr * tex)
 {
    unsigned dst_swiz;
    hw_dst dst = ra_dest(c, &tex->dest, &dst_swiz);
-   nir_src *coord = NULL, *lod_bias = NULL, *compare = NULL;
+   nir_src *coord = NULL, *src1 = NULL, *src2 = NULL;
 
    for (unsigned i = 0; i < tex->num_srcs; i++) {
       switch (tex->src[i].src_type) {
@@ -520,11 +522,13 @@ emit_tex(struct etna_compile *c, nir_tex_instr * tex)
          break;
       case nir_tex_src_bias:
       case nir_tex_src_lod:
-         assert(!lod_bias);
-         lod_bias = &tex->src[i].src;
+      case nir_tex_src_ddx:
+         assert(!src1);
+         src1 = &tex->src[i].src;
          break;
       case nir_tex_src_comparator:
-         compare = &tex->src[i].src;
+      case nir_tex_src_ddy:
+         src2 = &tex->src[i].src;
          break;
       default:
          compile_error(c, "Unhandled NIR tex src type: %d\n",
@@ -534,8 +538,8 @@ emit_tex(struct etna_compile *c, nir_tex_instr * tex)
    }
 
    etna_emit_tex(c, tex->op, tex->sampler_index, dst_swiz, dst, get_src(c, coord),
-                 lod_bias ? get_src(c, lod_bias) : SRC_DISABLE,
-                 compare ? get_src(c, compare) : SRC_DISABLE);
+                 src1 ? get_src(c, src1) : SRC_DISABLE,
+                 src2 ? get_src(c, src2) : SRC_DISABLE);
 }
 
 static void
@@ -687,7 +691,7 @@ insert_vec_mov(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
    unsigned write_mask = (1u << start_idx);
 
    nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_mov);
-   nir_alu_src_copy(&mov->src[0], &vec->src[start_idx]);
+   nir_alu_src_copy(&mov->src[0], &vec->src[start_idx], mov);
 
    mov->src[0].swizzle[0] = vec->src[start_idx].swizzle[0];
    mov->src[0].negate = vec->src[start_idx].negate;
@@ -731,7 +735,7 @@ insert_vec_mov(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
  * -insert movs (nir_lower_vec_to_movs equivalent)
  * for non-vecN instructions:
  * -try to merge constants as single constant
- * -insert movs for multiple constants (pre-HALTI5)
+ * -insert movs for multiple constants if required
  */
 static void
 lower_alu(struct etna_compile *c, nir_alu_instr *alu)
@@ -748,8 +752,7 @@ lower_alu(struct etna_compile *c, nir_alu_instr *alu)
    case nir_op_vec4:
       break;
    default:
-      /* pre-GC7000L can only have 1 uniform src per instruction */
-      if (c->specs->halti >= 5)
+      if (c->specs->has_no_oneconst_limit)
          return;
 
       nir_const_value value[4] = {};
@@ -1054,7 +1057,7 @@ fill_vs_mystery(struct etna_shader_variant *v)
 }
 
 bool
-etna_compile_shader_nir(struct etna_shader_variant *v)
+etna_compile_shader(struct etna_shader_variant *v)
 {
    if (unlikely(!v))
       return false;
@@ -1117,7 +1120,7 @@ etna_compile_shader_nir(struct etna_shader_variant *v)
    NIR_PASS_V(s, nir_lower_regs_to_ssa);
    NIR_PASS_V(s, nir_lower_vars_to_ssa);
    NIR_PASS_V(s, nir_lower_indirect_derefs, nir_var_all, UINT32_MAX);
-   NIR_PASS_V(s, nir_lower_tex, &(struct nir_lower_tex_options) { .lower_txp = ~0u });
+   NIR_PASS_V(s, nir_lower_tex, &(struct nir_lower_tex_options) { .lower_txp = ~0u, .lower_invalid_implicit_lod = true, });
 
    if (v->key.has_sample_tex_compare)
       NIR_PASS_V(s, nir_lower_tex_shadow, v->key.num_texture_states,
@@ -1194,7 +1197,7 @@ etna_compile_shader_nir(struct etna_shader_variant *v)
       if (inst->opcode == INST_OPCODE_BRANCH)
          inst->imm = block_ptr[inst->imm];
 
-      inst->halti5 = specs->halti >= 5;
+      inst->no_oneconst_limit = specs->has_no_oneconst_limit;
       etna_assemble(&code[i * 4], inst);
    }
 
@@ -1229,9 +1232,9 @@ etna_shader_vs_lookup(const struct etna_shader_variant *sobj,
 }
 
 bool
-etna_link_shader_nir(struct etna_shader_link_info *info,
-                     const struct etna_shader_variant *vs,
-                     const struct etna_shader_variant *fs)
+etna_link_shader(struct etna_shader_link_info *info,
+                 const struct etna_shader_variant *vs,
+                 const struct etna_shader_variant *fs)
 {
    int comp_ofs = 0;
    /* For each fragment input we need to find the associated vertex shader

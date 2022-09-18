@@ -1,0 +1,12 @@
+# We don't support independent front/back stencil tests yet, and the check
+# is currently done at pipeline creation time, thus causing a crash any time
+# both the front/back stencil test are active (i.e. not always or never) and
+# any of the compare mask, reference value or write mask is dynamic.
+dEQP-VK.api.command_buffers.record_many_draws*
+
+# Those tests timeout in CI, so let's skip for now.
+dEQP-VK.dynamic_state.ds_state.stencil_params*
+
+# Intermittent timeouts in CI.
+dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail
+dEQP-VK.memory.pipeline_barrier.host_write_vertex_buffer.1048576_vertex_buffer_stride_2

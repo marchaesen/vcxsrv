@@ -137,7 +137,7 @@ static unsigned stack_entry_size(enum radeon_family chip) {
 }
 
 void r600_bytecode_init(struct r600_bytecode *bc,
-			enum chip_class chip_class,
+			enum amd_gfx_level gfx_level,
 			enum radeon_family family,
 			bool has_compressed_msaa_texturing)
 {
@@ -145,9 +145,20 @@ void r600_bytecode_init(struct r600_bytecode *bc,
 
 	bc->debug_id = ++next_shader_id;
 
-	if ((chip_class == R600) &&
+	if ((gfx_level == R600) &&
 	    (family != CHIP_RV670 && family != CHIP_RS780 && family != CHIP_RS880)) {
 		bc->ar_handling = AR_HANDLE_RV6XX;
+
+		/* Insert a nop after a relative temp write so that a read in
+		 * the following instruction group gets the right value.  The
+		 * r600 and EG ISA specs both say that read-after-rel-write of a
+		 * register in the next instr group is illegal, but apparently
+		 * that's not true on all chips (see commit
+		 * c96b9834032952492efbd2d1f5511fe225704918).
+		 */
+		bc->r6xx_nop_after_rel_dst = 1;
+	} else if (family == CHIP_RV770) {
+		bc->ar_handling = AR_HANDLE_NORMAL;
 		bc->r6xx_nop_after_rel_dst = 1;
 	} else {
 		bc->ar_handling = AR_HANDLE_NORMAL;
@@ -155,7 +166,7 @@ void r600_bytecode_init(struct r600_bytecode *bc,
 	}
 
 	list_inithead(&bc->cf);
-	bc->chip_class = chip_class;
+	bc->gfx_level = gfx_level;
 	bc->family = family;
 	bc->has_compressed_msaa_texturing = has_compressed_msaa_texturing;
 	bc->stack.entry_size = stack_entry_size(family);
@@ -240,14 +251,48 @@ int r600_bytecode_add_pending_output(struct r600_bytecode *bc,
 	return 0;
 }
 
-void r600_bytecode_need_wait_ack(struct r600_bytecode *bc, boolean need_wait_ack)
+void
+r600_bytecode_add_ack(struct r600_bytecode *bc)
 {
-	bc->need_wait_ack = need_wait_ack;
+	bc->need_wait_ack = true;
 }
 
-boolean r600_bytecode_get_need_wait_ack(struct r600_bytecode *bc)
+int
+r600_bytecode_wait_acks(struct r600_bytecode *bc)
 {
-	return bc->need_wait_ack;
+	/* Store acks are an R700+ feature. */
+	if (bc->gfx_level < R700)
+		return 0;
+
+	if (!bc->need_wait_ack)
+		return 0;
+
+	int ret = r600_bytecode_add_cfinst(bc, CF_OP_WAIT_ACK);
+	if (ret != 0)
+		return ret;
+
+	struct r600_bytecode_cf *cf = bc->cf_last;
+	cf->barrier = 1;
+	/* Request a wait if the number of outstanding acks is > 0 */
+	cf->cf_addr = 0;
+
+	return 0;
+}
+
+uint32_t
+r600_bytecode_write_export_ack_type(struct r600_bytecode *bc, bool indirect)
+{
+	if (bc->gfx_level >= R700) {
+		if (indirect)
+			return V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_IND_ACK_EG;
+		else
+			return V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_ACK_EG;
+	} else {
+		if (indirect)
+			return V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_IND;
+		else
+			return V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE;
+	}
 }
 
 /* alu instructions that can ony exits once per group */
@@ -337,12 +382,12 @@ static int assign_alu_units(struct r600_bytecode *bc, struct r600_bytecode_alu *
 {
 	struct r600_bytecode_alu *alu;
 	unsigned i, chan, trans;
-	int max_slots = bc->chip_class == CAYMAN ? 4 : 5;
+	int max_slots = bc->gfx_level == CAYMAN ? 4 : 5;
 
 	for (i = 0; i < max_slots; i++)
 		assignment[i] = NULL;
 
-	for (alu = alu_first; alu; alu = LIST_ENTRY(struct r600_bytecode_alu, alu->list.next, list)) {
+	for (alu = alu_first; alu; alu = list_entry(alu->list.next, struct r600_bytecode_alu, list)) {
 		chan = alu->dst.chan;
 		if (max_slots == 4)
 			trans = 0;
@@ -362,8 +407,8 @@ static int assign_alu_units(struct r600_bytecode *bc, struct r600_bytecode_alu *
 			}
 			assignment[4] = alu;
 		} else {
-			if (assignment[chan]) {                           
-				assert(0); /* ALU.chan has already been allocated. */
+                        if (assignment[chan]) {
+			 	assert(0); /* ALU.chan has already been allocated. */
 				return -1;
 			}
 			assignment[chan] = alu;
@@ -425,7 +470,7 @@ static int reserve_cfile(const struct r600_bytecode *bc,
 			 struct alu_bank_swizzle *bs, unsigned sel, unsigned chan)
 {
 	int res, num_res = 4;
-	if (bc->chip_class >= R700) {
+	if (bc->gfx_level >= R700) {
 		num_res = 2;
 		chan /= 2;
 	}
@@ -450,16 +495,16 @@ static int is_gpr(unsigned sel)
 /* CB constants start at 512, and get translated to a kcache index when ALU
  * clauses are constructed. Note that we handle kcache constants the same way
  * as (the now gone) cfile constants, is that really required? */
-static int is_cfile(unsigned sel)
+static int is_kcache(unsigned sel)
 {
-	return (sel > 255 && sel < 512) ||
-		(sel > 511 && sel < 4607) || /* Kcache before translation. */
-		(sel > 127 && sel < 192); /* Kcache after translation. */
+   return (sel > 511 && sel < 4607) || /* Kcache before translation. */
+         (sel > 127 && sel < 192) || /* Kcache 0 & 1 after translation. */
+         (sel > 256  && sel < 320);  /* Kcache 2 & 3 after translation (EG). */
 }
 
 static int is_const(int sel)
 {
-	return is_cfile(sel) ||
+   return is_kcache(sel) ||
 		(sel >= V_SQ_ALU_SRC_0 &&
 		sel <= V_SQ_ALU_SRC_LITERAL);
 }
@@ -484,7 +529,7 @@ static int check_vector(const struct r600_bytecode *bc, const struct r600_byteco
 				if (r)
 					return r;
 			}
-		} else if (is_cfile(sel)) {
+      } else if (is_kcache(sel)) {
 			r = reserve_cfile(bc, bs, (alu->src[src].kc_bank<<16) + sel, elem);
 			if (r)
 				return r;
@@ -511,7 +556,7 @@ static int check_scalar(const struct r600_bytecode *bc, const struct r600_byteco
 			else
 				const_count++;
 		}
-		if (is_cfile(sel)) {
+      if (is_kcache(sel)) {
 			r = reserve_cfile(bc, bs, (alu->src[src].kc_bank<<16) + sel, elem);
 			if (r)
 				return r;
@@ -546,8 +591,9 @@ static int check_and_set_bank_swizzle(const struct r600_bytecode *bc,
 	struct alu_bank_swizzle bs;
 	int bank_swizzle[5];
 	int i, r = 0, forced = 1;
-	boolean scalar_only = bc->chip_class == CAYMAN ? false : true;
-	int max_slots = bc->chip_class == CAYMAN ? 4 : 5;
+	boolean scalar_only = bc->gfx_level == CAYMAN ? false : true;
+	int max_slots = bc->gfx_level == CAYMAN ? 4 : 5;
+	int max_checks = max_slots * 1000;
 
 	for (i = 0; i < max_slots; i++) {
 		if (slots[i]) {
@@ -567,14 +613,14 @@ static int check_and_set_bank_swizzle(const struct r600_bytecode *bc,
 	/* Just check every possible combination of bank swizzle.
 	 * Not very efficent, but works on the first try in most of the cases. */
 	for (i = 0; i < 4; i++)
-		if (!slots[i] || !slots[i]->bank_swizzle_force)
+		if (!slots[i] || !slots[i]->bank_swizzle_force || slots[i]->is_lds_idx_op)
 			bank_swizzle[i] = SQ_ALU_VEC_012;
 		else
 			bank_swizzle[i] = slots[i]->bank_swizzle;
 
 	bank_swizzle[4] = SQ_ALU_SCL_210;
-	while(bank_swizzle[4] <= SQ_ALU_SCL_221) {
 
+	while(bank_swizzle[4] <= SQ_ALU_SCL_221 && max_checks--) {
 		init_bank_swizzle(&bs);
 		if (scalar_only == false) {
 			for (i = 0; i < 4; i++) {
@@ -602,7 +648,7 @@ static int check_and_set_bank_swizzle(const struct r600_bytecode *bc,
 			bank_swizzle[4]++;
 		} else {
 			for (i = 0; i < max_slots; i++) {
-				if (!slots[i] || !slots[i]->bank_swizzle_force) {
+				if (!slots[i] || (!slots[i]->bank_swizzle_force && !slots[i]->is_lds_idx_op)) {
 					bank_swizzle[i]++;
 					if (bank_swizzle[i] <= SQ_ALU_VEC_210)
 						break;
@@ -625,7 +671,7 @@ static int replace_gpr_with_pv_ps(struct r600_bytecode *bc,
 	struct r600_bytecode_alu *prev[5];
 	int gpr[5], chan[5];
 	int i, j, r, src, num_src;
-	int max_slots = bc->chip_class == CAYMAN ? 4 : 5;
+	int max_slots = bc->gfx_level == CAYMAN ? 4 : 5;
 
 	r = assign_alu_units(bc, alu_prev, prev);
 	if (r)
@@ -661,7 +707,7 @@ static int replace_gpr_with_pv_ps(struct r600_bytecode *bc,
 			if (!is_gpr(alu->src[src].sel) || alu->src[src].rel)
 				continue;
 
-			if (bc->chip_class < CAYMAN) {
+			if (bc->gfx_level < CAYMAN) {
 				if (alu->src[src].sel == gpr[4] &&
 				    alu->src[src].chan == chan[4] &&
 				    alu_prev->pred_sel == alu->pred_sel) {
@@ -770,7 +816,7 @@ static int merge_inst_groups(struct r600_bytecode *bc, struct r600_bytecode_alu 
 	int i, j, r, src, num_src;
 	int num_once_inst = 0;
 	int have_mova = 0, have_rel = 0;
-	int max_slots = bc->chip_class == CAYMAN ? 4 : 5;
+	int max_slots = bc->gfx_level == CAYMAN ? 4 : 5;
 
 	r = assign_alu_units(bc, alu_prev, prev);
 	if (r)
@@ -783,6 +829,8 @@ static int merge_inst_groups(struct r600_bytecode *bc, struct r600_bytecode_alu 
 		      if (is_alu_once_inst(prev[i]))
 			      return 0;
 
+                      if (prev[i]->op == ALU_OP1_INTERP_LOAD_P0)
+                         interp_xz |= 3;
                       if (prev[i]->op == ALU_OP2_INTERP_X)
                          interp_xz |= 1;
                       if (prev[i]->op == ALU_OP2_INTERP_Z)
@@ -793,6 +841,8 @@ static int merge_inst_groups(struct r600_bytecode *bc, struct r600_bytecode_alu 
 				return 0;
 			if (is_alu_once_inst(slots[i]))
 				return 0;
+                        if (slots[i]->op == ALU_OP1_INTERP_LOAD_P0)
+                           interp_xz |= 3;
                         if (slots[i]->op == ALU_OP2_INTERP_X)
                            interp_xz |= 1;
                         if (slots[i]->op == ALU_OP2_INTERP_Z)
@@ -940,7 +990,7 @@ static int merge_inst_groups(struct r600_bytecode *bc, struct r600_bytecode_alu 
 	}
 
 	/* determine new last instruction */
-	LIST_ENTRY(struct r600_bytecode_alu, bc->cf_last->alu.prev, list)->last = 1;
+	list_entry(bc->cf_last->alu.prev, struct r600_bytecode_alu, list)->last = 1;
 
 	/* determine new first instruction */
 	for (i = 0; i < max_slots; ++i) {
@@ -961,7 +1011,7 @@ static int r600_bytecode_alloc_kcache_line(struct r600_bytecode *bc,
 		struct r600_bytecode_kcache *kcache,
 		unsigned bank, unsigned line, unsigned index_mode)
 {
-	int i, kcache_banks = bc->chip_class >= EVERGREEN ? 4 : 2;
+	int i, kcache_banks = bc->gfx_level >= EVERGREEN ? 4 : 2;
 
 	for (i = 0; i < kcache_banks; i++) {
 		if (kcache[i].mode) {
@@ -1091,6 +1141,15 @@ static int r600_bytecode_alloc_kcache_lines(struct r600_bytecode *bc,
 
 	if ((r = r600_bytecode_alloc_inst_kcache_lines(bc, kcache, alu))) {
 		/* can't alloc, need to start new clause */
+
+		/* Make sure the CF ends with an "last" instruction when
+		 * we split an ALU group because of a new CF */
+		if (!list_is_empty(&bc->cf_last->alu))  {
+			struct r600_bytecode_alu *last_submitted =
+				list_last_entry(&bc->cf_last->alu, struct r600_bytecode_alu, list);
+				last_submitted->last = 1;
+		}
+
 		if ((r = r600_bytecode_add_cf(bc))) {
 			return r;
 		}
@@ -1110,7 +1169,7 @@ static int r600_bytecode_alloc_kcache_lines(struct r600_bytecode *bc,
 	/* if we actually used more than 2 kcache sets, or have relative indexing - use ALU_EXTENDED on eg+ */
 	if (kcache[2].mode != V_SQ_CF_KCACHE_NOP ||
 		kcache[0].index_mode || kcache[1].index_mode || kcache[2].index_mode || kcache[3].index_mode) {
-		if (bc->chip_class < EVERGREEN)
+		if (bc->gfx_level < EVERGREEN)
 			return -ENOMEM;
 		bc->cf_last->eg_alu_extended = 1;
 	}
@@ -1118,17 +1177,17 @@ static int r600_bytecode_alloc_kcache_lines(struct r600_bytecode *bc,
 	return 0;
 }
 
-static int insert_nop_r6xx(struct r600_bytecode *bc)
+static int insert_nop_r6xx(struct r600_bytecode *bc, int max_slots)
 {
 	struct r600_bytecode_alu alu;
 	int r, i;
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < max_slots; i++) {
 		memset(&alu, 0, sizeof(alu));
 		alu.op = ALU_OP0_NOP;
-		alu.src[0].chan = i;
-		alu.dst.chan = i;
-		alu.last = (i == 3);
+		alu.src[0].chan = i & 3;
+		alu.dst.chan = i & 3;
+		alu.last = (i == max_slots - 1);
 		r = r600_bytecode_add_alu(bc, &alu);
 		if (r)
 			return r;
@@ -1137,7 +1196,7 @@ static int insert_nop_r6xx(struct r600_bytecode *bc)
 }
 
 /* load AR register from gpr (bc->ar_reg) with MOVA_INT */
-static int load_ar_r6xx(struct r600_bytecode *bc)
+static int load_ar_r6xx(struct r600_bytecode *bc, bool for_src)
 {
 	struct r600_bytecode_alu alu;
 	int r;
@@ -1148,6 +1207,10 @@ static int load_ar_r6xx(struct r600_bytecode *bc)
 	/* hack to avoid making MOVA the last instruction in the clause */
 	if ((bc->cf_last->ndw>>1) >= 110)
 		bc->force_add_cf = 1;
+   else if (for_src) {
+      insert_nop_r6xx(bc, 4);
+      bc->nalu_groups++;
+   }
 
 	memset(&alu, 0, sizeof(alu));
 	alu.op = ALU_OP1_MOVA_GPR_INT;
@@ -1165,13 +1228,13 @@ static int load_ar_r6xx(struct r600_bytecode *bc)
 }
 
 /* load AR register from gpr (bc->ar_reg) with MOVA_INT */
-static int load_ar(struct r600_bytecode *bc)
+int r600_load_ar(struct r600_bytecode *bc, bool for_src)
 {
 	struct r600_bytecode_alu alu;
 	int r;
 
 	if (bc->ar_handling)
-		return load_ar_r6xx(bc);
+		return load_ar_r6xx(bc, for_src);
 
 	if (bc->ar_loaded)
 		return 0;
@@ -1212,13 +1275,14 @@ int r600_bytecode_add_alu_type(struct r600_bytecode *bc,
 
 	if (bc->cf_last != NULL && bc->cf_last->op != type) {
 		/* check if we could add it anyway */
-		if (bc->cf_last->op == CF_OP_ALU &&
-			type == CF_OP_ALU_PUSH_BEFORE) {
-			LIST_FOR_EACH_ENTRY(lalu, &bc->cf_last->alu, list) {
-				if (lalu->execute_mask) {
+		if ((bc->cf_last->op == CF_OP_ALU && type == CF_OP_ALU_PUSH_BEFORE) ||
+		 	(bc->cf_last->op == CF_OP_ALU_PUSH_BEFORE && type == CF_OP_ALU)) {
+		 	LIST_FOR_EACH_ENTRY(lalu, &bc->cf_last->alu, list) {
+		 		if (lalu->execute_mask) {
 					bc->force_add_cf = 1;
 					break;
 				}
+		 		type = CF_OP_ALU_PUSH_BEFORE;
 			}
 		} else
 			bc->force_add_cf = 1;
@@ -1226,6 +1290,8 @@ int r600_bytecode_add_alu_type(struct r600_bytecode *bc,
 
 	/* cf can contains only alu or only vtx or only tex */
 	if (bc->cf_last == NULL || bc->force_add_cf) {
+               if (bc->cf_last && bc->cf_last->curr_bs_head)
+                  bc->cf_last->curr_bs_head->last = 1;
 		r = r600_bytecode_add_cf(bc);
 		if (r) {
 			free(nalu);
@@ -1235,7 +1301,7 @@ int r600_bytecode_add_alu_type(struct r600_bytecode *bc,
 	bc->cf_last->op = type;
 
 	/* Load index register if required */
-	if (bc->chip_class >= EVERGREEN) {
+	if (bc->gfx_level >= EVERGREEN) {
 		for (i = 0; i < 3; i++)
 			if (nalu->src[i].kc_bank &&  nalu->src[i].kc_rel)
 				egcm_load_index_reg(bc, 0, true);
@@ -1244,10 +1310,10 @@ int r600_bytecode_add_alu_type(struct r600_bytecode *bc,
 	/* Check AR usage and load it if required */
 	for (i = 0; i < 3; i++)
 		if (nalu->src[i].rel && !bc->ar_loaded)
-			load_ar(bc);
+			r600_load_ar(bc, true);
 
 	if (nalu->dst.rel && !bc->ar_loaded)
-		load_ar(bc);
+		r600_load_ar(bc, false);
 
 	/* Setup the kcache for this ALU instruction. This will start a new
 	 * ALU clause if needed. */
@@ -1268,7 +1334,7 @@ int r600_bytecode_add_alu_type(struct r600_bytecode *bc,
 			r600_bytecode_special_constants(nalu->src[i].value,
 				&nalu->src[i].sel);
 	}
-	if (nalu->dst.sel >= bc->ngpr) {
+	if (nalu->dst.write && nalu->dst.sel >= bc->ngpr) {
 		bc->ngpr = nalu->dst.sel + 1;
 	}
 	list_addtail(&nalu->list, &bc->cf_last->alu);
@@ -1281,15 +1347,18 @@ int r600_bytecode_add_alu_type(struct r600_bytecode *bc,
 		uint32_t literal[4];
 		unsigned nliteral;
 		struct r600_bytecode_alu *slots[5];
-		int max_slots = bc->chip_class == CAYMAN ? 4 : 5;
+		int max_slots = bc->gfx_level == CAYMAN ? 4 : 5;
 		r = assign_alu_units(bc, bc->cf_last->curr_bs_head, slots);
 		if (r)
 			return r;
 
 		if (bc->cf_last->prev_bs_head) {
-			r = merge_inst_groups(bc, slots, bc->cf_last->prev_bs_head);
+         struct r600_bytecode_alu *cur_prev_head = bc->cf_last->prev_bs_head;
+			r = merge_inst_groups(bc, slots, cur_prev_head);
 			if (r)
 				return r;
+         if (cur_prev_head != bc->cf_last->prev_bs_head)
+            bc->nalu_groups--;
 		}
 
 		if (bc->cf_last->prev_bs_head) {
@@ -1320,10 +1389,19 @@ int r600_bytecode_add_alu_type(struct r600_bytecode *bc,
 		bc->cf_last->prev2_bs_head = bc->cf_last->prev_bs_head;
 		bc->cf_last->prev_bs_head = bc->cf_last->curr_bs_head;
 		bc->cf_last->curr_bs_head = NULL;
-	}
 
-	if (nalu->dst.rel && bc->r6xx_nop_after_rel_dst)
-		insert_nop_r6xx(bc);
+		bc->nalu_groups++;
+
+		if (bc->r6xx_nop_after_rel_dst) {
+			for (int i = 0; i < max_slots; ++i) {
+				if (slots[i] && slots[i]->dst.rel) {
+					insert_nop_r6xx(bc, max_slots);
+					bc->nalu_groups++;
+					break;
+				}
+			}
+		}
+	}
 
 	/* Might need to insert spill write ops after current clause */
 	if (nalu->last && bc->n_pending_outputs) {
@@ -1344,7 +1422,7 @@ int r600_bytecode_add_alu(struct r600_bytecode *bc, const struct r600_bytecode_a
 
 static unsigned r600_bytecode_num_tex_and_vtx_instructions(const struct r600_bytecode *bc)
 {
-	switch (bc->chip_class) {
+	switch (bc->gfx_level) {
 	case R600:
 		return 8;
 
@@ -1354,7 +1432,7 @@ static unsigned r600_bytecode_num_tex_and_vtx_instructions(const struct r600_byt
 		return 16;
 
 	default:
-		R600_ERR("Unknown chip class %d.\n", bc->chip_class);
+		R600_ERR("Unknown gfx level %d.\n", bc->gfx_level);
 		return 8;
 	}
 }
@@ -1363,7 +1441,7 @@ static inline boolean last_inst_was_not_vtx_fetch(struct r600_bytecode *bc)
 {
 	return !((r600_isa_cf(bc->cf_last->op)->flags & CF_FETCH) &&
 		 bc->cf_last->op != CF_OP_GDS &&
-		 (bc->chip_class == CAYMAN ||
+		 (bc->gfx_level == CAYMAN ||
 		  bc->cf_last->op != CF_OP_TEX));
 }
 
@@ -1378,7 +1456,7 @@ static int r600_bytecode_add_vtx_internal(struct r600_bytecode *bc, const struct
 	memcpy(nvtx, vtx, sizeof(struct r600_bytecode_vtx));
 
 	/* Load index register if required */
-	if (bc->chip_class >= EVERGREEN) {
+	if (bc->gfx_level >= EVERGREEN) {
 		if (vtx->buffer_index_mode)
 			egcm_load_index_reg(bc, vtx->buffer_index_mode - 1, false);
 	}
@@ -1392,7 +1470,7 @@ static int r600_bytecode_add_vtx_internal(struct r600_bytecode *bc, const struct
 			free(nvtx);
 			return r;
 		}
-		switch (bc->chip_class) {
+		switch (bc->gfx_level) {
 		case R600:
 		case R700:
 			bc->cf_last->op = CF_OP_VTX;
@@ -1407,7 +1485,7 @@ static int r600_bytecode_add_vtx_internal(struct r600_bytecode *bc, const struct
 			bc->cf_last->op = CF_OP_TEX;
 			break;
 		default:
-			R600_ERR("Unknown chip class %d.\n", bc->chip_class);
+			R600_ERR("Unknown gfx level %d.\n", bc->gfx_level);
 			free(nvtx);
 			return -EINVAL;
 		}
@@ -1445,7 +1523,7 @@ int r600_bytecode_add_tex(struct r600_bytecode *bc, const struct r600_bytecode_t
 	memcpy(ntex, tex, sizeof(struct r600_bytecode_tex));
 
 	/* Load index register if required */
-	if (bc->chip_class >= EVERGREEN) {
+	if (bc->gfx_level >= EVERGREEN) {
 		if (tex->sampler_index_mode || tex->resource_index_mode)
 			egcm_load_index_reg(bc, 1, false);
 	}
@@ -1462,6 +1540,12 @@ int r600_bytecode_add_tex(struct r600_bytecode *bc, const struct r600_bytecode_t
 				break;
 			}
 		}
+		/* vtx instrs get inserted after tex, so make sure we aren't moving the tex
+		 * before (say) the instr fetching the texcoord.
+		 */
+		if (!list_is_empty(&bc->cf_last->vtx))
+			bc->force_add_cf = 1;
+
 		/* slight hack to make gradients always go into same cf */
 		if (ntex->op == FETCH_OP_SET_GRADIENTS_H)
 			bc->force_add_cf = 1;
@@ -1502,7 +1586,7 @@ int r600_bytecode_add_gds(struct r600_bytecode *bc, const struct r600_bytecode_g
 		return -ENOMEM;
 	memcpy(ngds, gds, sizeof(struct r600_bytecode_gds));
 
-	if (bc->chip_class >= EVERGREEN) {
+	if (bc->gfx_level >= EVERGREEN) {
 		if (gds->uav_index_mode)
 			egcm_load_index_reg(bc, gds->uav_index_mode - 1, false);
 	}
@@ -1530,10 +1614,8 @@ int r600_bytecode_add_cfinst(struct r600_bytecode *bc, unsigned op)
 	int r;
 
 	/* Emit WAIT_ACK before control flow to ensure pending writes are always acked. */
-	if (op != CF_OP_MEM_SCRATCH && bc->need_wait_ack) {
-		bc->need_wait_ack = false;
-		r = r600_bytecode_add_cfinst(bc, CF_OP_WAIT_ACK);
-	}
+	if (op != CF_OP_WAIT_ACK && op != CF_OP_MEM_SCRATCH)
+		r600_bytecode_wait_acks(bc);
 
 	r = r600_bytecode_add_cf(bc);
 	if (r)
@@ -1559,7 +1641,7 @@ static int r600_bytecode_vtx_build(struct r600_bytecode *bc, struct r600_bytecod
 			S_SQ_VTX_WORD0_FETCH_TYPE(vtx->fetch_type) |
 			S_SQ_VTX_WORD0_SRC_GPR(vtx->src_gpr) |
 			S_SQ_VTX_WORD0_SRC_SEL_X(vtx->src_sel_x);
-	if (bc->chip_class < CAYMAN)
+	if (bc->gfx_level < CAYMAN)
 		bc->bytecode[id] |= S_SQ_VTX_WORD0_MEGA_FETCH_COUNT(vtx->mega_fetch_count);
 	id++;
 	bc->bytecode[id++] = S_SQ_VTX_WORD1_DST_SEL_X(vtx->dst_sel_x) |
@@ -1574,9 +1656,9 @@ static int r600_bytecode_vtx_build(struct r600_bytecode *bc, struct r600_bytecod
 				S_SQ_VTX_WORD1_GPR_DST_GPR(vtx->dst_gpr);
 	bc->bytecode[id] = S_SQ_VTX_WORD2_OFFSET(vtx->offset)|
 				S_SQ_VTX_WORD2_ENDIAN_SWAP(vtx->endian);
-	if (bc->chip_class >= EVERGREEN)
+	if (bc->gfx_level >= EVERGREEN)
 		bc->bytecode[id] |= ((vtx->buffer_index_mode & 0x3) << 21); // S_SQ_VTX_WORD2_BIM(vtx->buffer_index_mode);
-	if (bc->chip_class < CAYMAN)
+	if (bc->gfx_level < CAYMAN)
 		bc->bytecode[id] |= S_SQ_VTX_WORD2_MEGA_FETCH(1);
 	id++;
 	bc->bytecode[id++] = 0;
@@ -1592,7 +1674,7 @@ static int r600_bytecode_tex_build(struct r600_bytecode *bc, struct r600_bytecod
 				S_SQ_TEX_WORD0_RESOURCE_ID(tex->resource_id) |
 				S_SQ_TEX_WORD0_SRC_GPR(tex->src_gpr) |
 				S_SQ_TEX_WORD0_SRC_REL(tex->src_rel);
-	if (bc->chip_class >= EVERGREEN)
+	if (bc->gfx_level >= EVERGREEN)
 		bc->bytecode[id] |= ((tex->sampler_index_mode & 0x3) << 27) | // S_SQ_TEX_WORD0_SIM(tex->sampler_index_mode);
 				((tex->resource_index_mode & 0x3) << 25); // S_SQ_TEX_WORD0_RIM(tex->resource_index_mode)
 	id++;
@@ -1697,10 +1779,10 @@ static int r600_bytecode_cf_build(struct r600_bytecode *bc, struct r600_bytecode
 			S_SQ_CF_ALU_WORD1_KCACHE_ADDR0(cf->kcache[0].addr) |
 			S_SQ_CF_ALU_WORD1_KCACHE_ADDR1(cf->kcache[1].addr) |
 					S_SQ_CF_ALU_WORD1_BARRIER(1) |
-					S_SQ_CF_ALU_WORD1_USES_WATERFALL(bc->chip_class == R600 ? cf->r6xx_uses_waterfall : 0) |
+					S_SQ_CF_ALU_WORD1_USES_WATERFALL(bc->gfx_level == R600 ? cf->r6xx_uses_waterfall : 0) |
 					S_SQ_CF_ALU_WORD1_COUNT((cf->ndw / 2) - 1);
 	} else if (cfop->flags & CF_FETCH) {
-		if (bc->chip_class == R700)
+		if (bc->gfx_level == R700)
 			r700_bytecode_cf_vtx_build(&bc->bytecode[id], cf);
 		else
 			r600_bytecode_cf_vtx_build(&bc->bytecode[id], cf);
@@ -1781,7 +1863,7 @@ int r600_bytecode_build(struct r600_bytecode *bc)
 	LIST_FOR_EACH_ENTRY(cf, &bc->cf, list) {
 		const struct cf_op_info *cfop = r600_isa_cf(cf->op);
 		addr = cf->addr;
-		if (bc->chip_class >= EVERGREEN)
+		if (bc->gfx_level >= EVERGREEN)
 			r = eg_bytecode_cf_build(bc, cf);
 		else
 			r = r600_bytecode_cf_build(bc, cf);
@@ -1797,7 +1879,7 @@ int r600_bytecode_build(struct r600_bytecode *bc)
 				r600_bytecode_alu_adjust_literals(alu, literal, nliteral);
 				r600_bytecode_assign_kcache_banks(alu, cf->kcache);
 
-				switch(bc->chip_class) {
+				switch(bc->gfx_level) {
 				case R600:
 					r = r600_bytecode_alu_build(bc, alu, addr);
 					break;
@@ -1809,7 +1891,7 @@ int r600_bytecode_build(struct r600_bytecode *bc)
 					r = eg_bytecode_alu_build(bc, alu, addr);
 					break;
 				default:
-					R600_ERR("unknown chip class %d.\n", bc->chip_class);
+					R600_ERR("unknown gfx level %d.\n", bc->gfx_level);
 					return -EINVAL;
 				}
 				if (r)
@@ -1831,7 +1913,7 @@ int r600_bytecode_build(struct r600_bytecode *bc)
 				addr += 4;
 			}
 		} else if (cf->op == CF_OP_GDS) {
-			assert(bc->chip_class >= EVERGREEN);
+			assert(bc->gfx_level >= EVERGREEN);
 			LIST_FOR_EACH_ENTRY(gds, &cf->gds, list) {
 				r = eg_bytecode_gds_build(bc, gds, addr);
 				if (r)
@@ -1840,7 +1922,7 @@ int r600_bytecode_build(struct r600_bytecode *bc)
 			}
 		} else if (cf->op == CF_OP_TEX) {
 			LIST_FOR_EACH_ENTRY(vtx, &cf->vtx, list) {
-				assert(bc->chip_class >= EVERGREEN);
+				assert(bc->gfx_level >= EVERGREEN);
 				r = r600_bytecode_vtx_build(bc, vtx, addr);
 				if (r)
 					return r;
@@ -2099,7 +2181,7 @@ void r600_bytecode_disasm(struct r600_bytecode *bc)
 	unsigned nliteral;
 	char chip = '6';
 
-	switch (bc->chip_class) {
+	switch (bc->gfx_level) {
 	case R700:
 		chip = '7';
 		break;
@@ -2192,8 +2274,14 @@ void r600_bytecode_disasm(struct r600_bytecode *bc)
 				fprintf(stderr, "\n");
 			} else if (r600_isa_cf(cf->op)->flags & CF_MEM) {
 				int o = 0;
-				const char *exp_type[] = {"WRITE", "WRITE_IND", "WRITE_ACK",
-						"WRITE_IND_ACK"};
+				const char *exp_type_r600[] = {"WRITE", "WRITE_IND", "READ",
+				                               "READ_IND"};
+				const char *exp_type_r700[] = {"WRITE", "WRITE_IND", "WRITE_ACK",
+				                               "WRITE_IND_ACK"};
+
+				const char **exp_type = bc->gfx_level >= R700 ?
+                                       exp_type_r700 : exp_type_r600;
+
 				o += fprintf(stderr, "%04d %08X %08X  %s ", id,
 						bc->bytecode[id], bc->bytecode[id + 1], cfop->name);
 				o += print_indent(o, 43);
@@ -2389,10 +2477,10 @@ void r600_bytecode_disasm(struct r600_bytecode *bc)
 
 			fprintf(stderr, "%s ", fetch_type[vtx->fetch_type]);
 
-			if (bc->chip_class < CAYMAN && vtx->mega_fetch_count)
+			if (bc->gfx_level < CAYMAN && vtx->mega_fetch_count)
 				fprintf(stderr, "MFC:%d ", vtx->mega_fetch_count);
 
-			if (bc->chip_class >= EVERGREEN && vtx->buffer_index_mode)
+			if (bc->gfx_level >= EVERGREEN && vtx->buffer_index_mode)
 				fprintf(stderr, "SQ_%s ", index_mode[vtx->buffer_index_mode]);
 
 			if (r600_isa_fetch(vtx->op)->flags & FF_MEM) {
@@ -2640,7 +2728,7 @@ void *r600_create_vertex_fetch_shader(struct pipe_context *ctx,
 	struct r600_bytecode bc;
 	struct r600_bytecode_vtx vtx;
 	const struct util_format_description *desc;
-	unsigned fetch_resource_start = rctx->b.chip_class >= EVERGREEN ? 0 : 160;
+	unsigned fetch_resource_start = rctx->b.gfx_level >= EVERGREEN ? 0 : 160;
 	unsigned format, num_format, format_comp, endian;
 	uint32_t *bytecode;
 	int i, j, r, fs_size;
@@ -2652,14 +2740,14 @@ void *r600_create_vertex_fetch_shader(struct pipe_context *ctx,
 	assert(count < 32);
 
 	memset(&bc, 0, sizeof(bc));
-	r600_bytecode_init(&bc, rctx->b.chip_class, rctx->b.family,
+	r600_bytecode_init(&bc, rctx->b.gfx_level, rctx->b.family,
 			   rctx->screen->has_compressed_msaa_texturing);
 
 	bc.isa = rctx->isa;
 
 	for (i = 0; i < count; i++) {
 		if (elements[i].instance_divisor > 1) {
-			if (rctx->b.chip_class == CAYMAN) {
+			if (rctx->b.gfx_level == CAYMAN) {
 				for (j = 0; j < 4; j++) {
 					struct r600_bytecode_alu alu;
 					memset(&alu, 0, sizeof(alu));
@@ -2702,11 +2790,6 @@ void *r600_create_vertex_fetch_shader(struct pipe_context *ctx,
 				      &format, &num_format, &format_comp, &endian);
 
 		desc = util_format_description(elements[i].src_format);
-		if (!desc) {
-			r600_bytecode_clear(&bc);
-			R600_ERR("unknown format %d\n", elements[i].src_format);
-			return NULL;
-		}
 
 		if (elements[i].src_offset > 65535) {
 			r600_bytecode_clear(&bc);

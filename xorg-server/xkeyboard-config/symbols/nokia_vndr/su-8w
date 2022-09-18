@@ -1,8 +1,9 @@
 partial alphanumeric_keys default
 xkb_symbols "no" {
-    name[Group1]= "Norwegian/Danish";
 
     include "nokia_vndr/su-8w(base)"
+
+    name[Group1]= "Norwegian/Danish";
 
     key <AE01> { [ 1,            exclam,         dead_circumflex                       ] };
     key <AE02> { [ 2,            quotedbl,       at                                    ] };
@@ -39,7 +40,7 @@ xkb_symbols "no" {
     key <AC07> { [ j,            J                                                     ] };
     key <AC08> { [ k,            K                                                     ] };
     key <AC09> { [ l,            L                                                     ] };
-    key <AC10> { [ oslash,       Ooblique                                              ] };
+    key <AC10> { [ oslash,       Oslash                                                ] };
     key <AC11> { [ ae,           AE                                                    ] };
 
     key <AB01> { [ z,            Z                                                     ] };
@@ -58,9 +59,10 @@ xkb_symbols "no" {
 
 partial alphanumeric_keys
 xkb_symbols "no_nodeadkeys" {
-    name[Group1] = "Norwegian/Danish (no dead keys)";
 
     include "nokia_vndr/su-8w(no)"
+
+    name[Group1] = "Norwegian/Danish (no dead keys)";
 
     key <AE01> { [ 1,            exclam,         asciicircum                           ] };
     key <AE12> { [ acute,        grave,          backslash                             ] };
@@ -81,8 +83,10 @@ xkb_symbols "dk_nodeadkeys" {
 
 partial alphanumeric_keys default
 xkb_symbols "de" {
-    name[Group1]= "German";
+
     include "nokia_vndr/su-8w(base)"
+
+    name[Group1]= "German";
 
     key <AE01> { [ 1,            exclam,         dead_circumflex                       ] };
     key <AE02> { [ 2,            quotedbl,       at                                    ] };
@@ -131,8 +135,7 @@ xkb_symbols "de" {
     key <AB07> { [ m,            M                                                     ] };
     key <AB08> { [ comma,        semicolon,      less                                  ] };
     key <AB09> { [ period,       colon,          greater                               ] };
-    // XXX Inexplicably, the diaeresis is dead on other layouts, but not
-    //     German.  Go figure.
+    // Inexplicably, the diaeresis is dead on other layouts, but not German.  Go figure.
     key <AB10> { [ minus,        underscore,     diaeresis                             ] };
 
     include "level3(ralt_switch)"
@@ -140,9 +143,10 @@ xkb_symbols "de" {
 
 partial alphanumeric_keys
 xkb_symbols "de_nodeadkeys" {
-    name[Group1] = "German (no dead keys)";
 
     include "nokia_vndr/su-8w(de)"
+
+    name[Group1] = "German (no dead keys)";
 
     key <AE01> { [ 1,            exclam,         asciicircum                           ] };
     key <AE12> { [ acute,        grave,          backslash                             ] };
@@ -153,9 +157,10 @@ xkb_symbols "de_nodeadkeys" {
 
 partial alphanumeric_keys default
 xkb_symbols "se" {
-    name[Group1]= "Finnish/Swedish";
 
     include "nokia_vndr/su-8w(base)"
+
+    name[Group1]= "Finnish/Swedish";
 
     key <AE01> { [ 1,            exclam,         dead_circumflex                       ] };
     key <AE02> { [ 2,            quotedbl,       at                                    ] };
@@ -211,9 +216,10 @@ xkb_symbols "se" {
 
 partial alphanumeric_keys
 xkb_symbols "se_nodeadkeys" {
-    name[Group1] = "Finnish/Swedish (no dead keys)";
 
     include "nokia_vndr/su-8w(se)"
+
+    name[Group1] = "Finnish/Swedish (no dead keys)";
 
     key <AE01> { [ 1,            exclam,         asciicircum                           ] };
     key <AE12> { [ acute,        grave,          backslash                             ] };
@@ -232,14 +238,15 @@ xkb_symbols "fi_nodeadkeys" {
 
 
 
-// Russian layout on first two levels, US layout on third and fourth.
 partial alphanumeric_keys default
 xkb_symbols "ru" {
-    name[Group1]= "Russian";
+
+    // Russian layout on first two levels, US layout on third and fourth.
 
     include "nokia_vndr/su-8w(base)"
 
-    // XXX Would be nice if this actually generated a tilde.
+    name[Group1]= "Russian";
+
     key <TLDE> { [ Cyrillic_io,          Cyrillic_IO,          grave                        ] };
     key <AE01> { [ 1,                    exclam,               exclam,        exclam        ] };
     key <AE02> { [ 2,                    at,                   quotedbl,      at            ] };
@@ -295,9 +302,10 @@ xkb_symbols "ru" {
 
 partial alphanumeric_keys
 xkb_symbols "ru_nodeadkeys" {
-    name[Group1] = "Russian - no dead keys";
 
     include "nokia_vndr/su-8w(ru)"
+
+    name[Group1] = "Russian (no dead keys)";
 
     key <AE06> { [ 6,                    asciicircum,          ampersand,     asciicircum   ] };
 };
@@ -306,11 +314,11 @@ xkb_symbols "ru_nodeadkeys" {
 
 partial alphanumeric_keys default
 xkb_symbols "us" {
-    name[Group1]= "U.S. English - International";
-    
+
     include "nokia_vndr/su-8w(base)"
 
-    // I can't believe it's not us(intl).
+    name[Group1]= "U.S. English (international)";
+
     key <AE01> { [ 1,            exclam,         exclamdown                            ] };
     key <AE02> { [ 2,            at,             twosuperior                           ] };
     key <AE03> { [ 3,            numbersign                                            ] };
@@ -345,10 +353,8 @@ xkb_symbols "us" {
     key <AC06> { [ h,            H                                                     ] };
     key <AC07> { [ j,            J                                                     ] };
     key <AC08> { [ k,            K                                                     ] };
-    key <AC09> { [ l,            L,              oslash,               Ooblique        ] };
+    key <AC09> { [ l,            L,              oslash,               Oslash          ] };
     key <AC10> { [ semicolon,    colon,          paragraph,            degree          ] };
-    // XXX Not entirely sure if fourth level is quotedbl or diaeresis.
-    //     The former makes a lot more sense.
     key <AC11> { [ dead_acute,   dead_diaeresis, apostrophe,           quotedbl        ] };
 
     key <AB01> { [ z,            Z,              ae,                   AE              ] };
@@ -367,36 +373,36 @@ xkb_symbols "us" {
 
 partial alphanumeric_keys
 xkb_symbols "us_nodeadkeys" {
-    name[Group1] = "U.S. English - no dead keys";
 
-    include "nokia_vndr/su-8w(us_intl)"
+    include "nokia_vndr/su-8w(us)"
 
-    // XXX Not entirely sure if second level is quotedbl or diaeresis.
-    //     The former makes a lot more sense.
-    key <AC10> { [ apostrophe,    quotedbl,       dead_acute,           dead_diaeresis ] };
+    name[Group1] = "U.S. English (international, no dead keys)";
+
+    key <AC11> { [ apostrophe,    quotedbl,       dead_acute,           dead_diaeresis ] };
 };
 
 
 
 default partial alphanumeric_keys
 xkb_symbols "base" {
-    // forked from from pc(pc105); madness.
+
+    // Forked from pc(pc105) -- madness.
+
     key <ESC>  {	[ Escape			]	};
 
-    // the extra key on most European keyboards
-    key <LSGT> {	[      less,    greater,          bar,    brokenbar ]	};
+    key <LSGT> {	[ less,  greater,	bar,  brokenbar ]	};
 
-    // these keys are common to all layouts
     key <BKSL> {	[ backslash,	bar		]	};
-    key <SPCE> {	[ 	 space			]	};
+    key <SPCE> {	[  space			]	};
 
     key <BKSP> { [ BackSpace ] };
 
     key  <TAB> {	[ Tab,	ISO_Left_Tab	]	};
     key <RTRN> {	[ Return	]	};
-    // we don't ever generate this key, but the VKB needs it always.
+
+    // We don't ever generate this key, but the VKB needs it always.
     key <KPEN> {        [ KP_Enter      ]       };
-    // generated from the headset, must always be in the map.
+    // This is generated from the headset, must always be in the map.
     key <I29>  {        [ XF86Phone     ]       };
 
     key <CAPS> {	[ Caps_Lock	]	};
@@ -428,7 +434,6 @@ xkb_symbols "base" {
     key <FK11> { [ F10 ] };
     key <FK12> { [ F12 ] };
 
-    // Begin modifier mappings
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };
@@ -436,8 +441,10 @@ xkb_symbols "base" {
 
     // Fake keys for virtual<->real modifiers mapping:
     key <LVL3> {	[ ISO_Level3_Shift	]	};
-    key <MDSW> {	[ Mode_switch 		]	};
-    modifier_map Mod5   { <LVL3>, <MDSW> };
+    modifier_map Mod5   { <LVL3> };
+
+    key <LVL5> {	[ ISO_Level5_Shift	]	};
+    modifier_map Mod3   { <LVL5> };
 
     key <ALT>  {	[ NoSymbol, Alt_L	]	};
     modifier_map Mod1   { <ALT>, <LALT> };
@@ -450,7 +457,6 @@ xkb_symbols "base" {
 
     key <HYPR> {	[ NoSymbol, Hyper_L	]	};
     modifier_map Mod4   { <HYPR> };
-    // End modifier mappings
 
     key  <INS> {        [  Insert               ]       };
     key <DELE> {        [  Delete               ]       };
@@ -469,8 +475,7 @@ xkb_symbols "base" {
     key <PGUP> {        [       none                ]       };
     key <PGDN> {        [       NoSymbol                ]       };
 
-    // The LWIN & RWIN keys correspond to the 'select left' and
-    // 'select right' keys.
+    // The Win keys correspond to the 'select left' and 'select right' keys.
     key <LWIN> {	[	Prior		]	};
     key <RWIN> {	[	Next		]	};
 

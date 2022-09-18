@@ -42,44 +42,11 @@ pack_header = """
 #define AGX_PACK_H
 
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <math.h>
 #include <inttypes.h>
-#include "util/macros.h"
-#include "util/u_math.h"
+
+#include "util/bitpack_helpers.h"
 
 #define __gen_unpack_float(x, y, z) uif(__gen_unpack_uint(x, y, z))
-
-static inline uint64_t
-__gen_uint(uint64_t v, uint32_t start, uint32_t end)
-{
-#ifndef NDEBUG
-   const int width = end - start + 1;
-   if (width < 64) {
-      const uint64_t max = (1ull << width) - 1;
-      assert(v <= max);
-   }
-#endif
-
-   return v << start;
-}
-
-static inline uint32_t
-__gen_sint(int32_t v, uint32_t start, uint32_t end)
-{
-#ifndef NDEBUG
-   const int width = end - start + 1;
-   if (width < 64) {
-      const int64_t max = (1ll << (width - 1)) - 1;
-      const int64_t min = -(1ll << (width - 1));
-      assert(min <= v && v <= max);
-   }
-#endif
-
-   return (((uint32_t) v) << start) & ((2ll << end) - 1);
-}
 
 static inline uint64_t
 __gen_unpack_uint(const uint8_t *restrict cl, uint32_t start, uint32_t end)
@@ -95,14 +62,30 @@ __gen_unpack_uint(const uint8_t *restrict cl, uint32_t start, uint32_t end)
    return (val >> (start % 8)) & mask;
 }
 
+/*
+ * LODs are 4:6 fixed point. We must clamp before converting to integers to
+ * avoid undefined behaviour for out-of-bounds inputs like +/- infinity.
+ */
+static inline uint32_t
+__gen_pack_lod(float f, uint32_t start, uint32_t end)
+{
+    uint32_t fixed = CLAMP(f * (1 << 6), 0 /* 0.0 */, 0x380 /* 14.0 */);
+    return util_bitpack_uint(fixed, start, end);
+}
+
+static inline float
+__gen_unpack_lod(const uint8_t *restrict cl, uint32_t start, uint32_t end)
+{
+    return ((float) __gen_unpack_uint(cl, start, end)) / (1 << 6);
+}
+
 static inline uint64_t
 __gen_unpack_sint(const uint8_t *restrict cl, uint32_t start, uint32_t end)
 {
    int size = end - start + 1;
    int64_t val = __gen_unpack_uint(cl, start, end);
 
-   /* Get the sign bit extended. */
-   return (val << (64 - size)) >> (64 - size);
+   return util_sign_extend(val, size);
 }
 
 #define agx_prepare(dst, T)                                 \\
@@ -257,7 +240,7 @@ class Field(object):
             type = 'uint64_t'
         elif self.type == 'bool':
             type = 'bool'
-        elif self.type == 'float':
+        elif self.type in ['float', 'lod']:
             type = 'float'
         elif self.type in ['uint', 'hex'] and self.end - self.start > 32:
             type = 'uint64_t'
@@ -420,20 +403,23 @@ class Group(object):
                         value = "util_logbase2({})".format(value)
 
                 if field.type in ["uint", "hex", "Pixel Format", "address"]:
-                    s = "__gen_uint(%s, %d, %d)" % \
+                    s = "util_bitpack_uint(%s, %d, %d)" % \
                         (value, start, end)
                 elif field.type in self.parser.enums:
-                    s = "__gen_uint(%s, %d, %d)" % \
+                    s = "util_bitpack_uint(%s, %d, %d)" % \
                         (value, start, end)
                 elif field.type == "int":
-                    s = "__gen_sint(%s, %d, %d)" % \
+                    s = "util_bitpack_sint(%s, %d, %d)" % \
                         (value, start, end)
                 elif field.type == "bool":
-                    s = "__gen_uint(%s, %d, %d)" % \
+                    s = "util_bitpack_uint(%s, %d, %d)" % \
                         (value, start, end)
                 elif field.type == "float":
                     assert(start == 0 and end == 31)
-                    s = "__gen_uint(fui({}), 0, 32)".format(value)
+                    s = "util_bitpack_float({})".format(value)
+                elif field.type == "lod":
+                    assert(end - start + 1 == 10)
+                    s = "__gen_pack_lod(%s, %d, %d)" % (value, start, end)
                 else:
                     s = "#error unhandled field {}, type {}".format(contributor.path, field.type)
 
@@ -498,6 +484,8 @@ class Group(object):
                 convert = "__gen_unpack_uint"
             elif field.type == "float":
                 convert = "__gen_unpack_float"
+            elif field.type == "lod":
+                convert = "__gen_unpack_lod"
             else:
                 s = "/* unhandled field %s, type %s */\n" % (field.name, field.type)
 
@@ -510,6 +498,9 @@ class Group(object):
                     suffix = " << {}".format(field.modifier[1])
                 if field.modifier[0] == "log2":
                     prefix = "1 << "
+
+            if field.type in self.parser.enums:
+                prefix = f"(enum {enum_name(field.type)}) {prefix}"
 
             decoded = '{}{}({}){}'.format(prefix, convert, ', '.join(args), suffix)
 
@@ -539,7 +530,7 @@ class Group(object):
                 print('   fprintf(fp, "%*s{}: %d\\n", indent, "", {});'.format(name, val))
             elif field.type == "bool":
                 print('   fprintf(fp, "%*s{}: %s\\n", indent, "", {} ? "true" : "false");'.format(name, val))
-            elif field.type == "float":
+            elif field.type in ["float", "lod"]:
                 print('   fprintf(fp, "%*s{}: %f\\n", indent, "", {});'.format(name, val))
             elif field.type in ["uint", "hex"] and (field.end - field.start) >= 32:
                 print('   fprintf(fp, "%*s{}: 0x%" PRIx64 "\\n", indent, "", {});'.format(name, val))

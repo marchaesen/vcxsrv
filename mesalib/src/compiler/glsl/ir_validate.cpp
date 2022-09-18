@@ -942,8 +942,14 @@ ir_validate::visit_leave(ir_expression *ir)
        *  - Number of operands must matche the size of the resulting vector.
        *  - Base type of the operands must match the base type of the result.
        */
-      assert(ir->type->is_vector());
       switch (ir->type->vector_elements) {
+      case 1:
+         assert(ir->operands[0]->type->is_scalar());
+         assert(ir->operands[0]->type->base_type == ir->type->base_type);
+         assert(ir->operands[1] == NULL);
+         assert(ir->operands[2] == NULL);
+         assert(ir->operands[3] == NULL);
+         break;
       case 2:
 	 assert(ir->operands[0]->type->is_scalar());
 	 assert(ir->operands[0]->type->base_type == ir->type->base_type);

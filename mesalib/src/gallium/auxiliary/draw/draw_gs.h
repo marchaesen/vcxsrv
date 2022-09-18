@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2009 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 #ifndef DRAW_GS_H
@@ -119,7 +119,7 @@ struct draw_geometry_shader {
                          float (**p_output)[4]);
 
    void     (*prepare)(struct draw_geometry_shader *shader,
-                       const void *constants[PIPE_MAX_CONSTANT_BUFFERS], 
+                       const void *constants[PIPE_MAX_CONSTANT_BUFFERS],
                        const unsigned constants_size[PIPE_MAX_CONSTANT_BUFFERS]);
    void (*run)(struct draw_geometry_shader *shader,
                unsigned input_primitives, unsigned *out_prims);
@@ -133,8 +133,8 @@ void draw_geometry_shader_new_instance(struct draw_geometry_shader *gs);
  * smaller than the GS_MAX_OUTPUT_VERTICES shader property.
  */
 int draw_geometry_shader_run(struct draw_geometry_shader *shader,
-                             const void *constants[PIPE_MAX_CONSTANT_BUFFERS], 
-                             const unsigned constants_size[PIPE_MAX_CONSTANT_BUFFERS], 
+                             const void *constants[PIPE_MAX_CONSTANT_BUFFERS],
+                             const unsigned constants_size[PIPE_MAX_CONSTANT_BUFFERS],
                              const struct draw_vertex_info *input_verts,
                              const struct draw_prim_info *input_prim,
                              const struct tgsi_shader_info *input_info,

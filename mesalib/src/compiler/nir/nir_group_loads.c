@@ -83,6 +83,9 @@ get_intrinsic_resource(nir_intrinsic_instr *intr)
    case nir_intrinsic_image_sparse_load:
    case nir_intrinsic_image_deref_sparse_load:
    /* Group image_size too because it has the same latency as cache hits. */
+   case nir_intrinsic_image_samples_identical:
+   case nir_intrinsic_image_deref_samples_identical:
+   case nir_intrinsic_bindless_image_samples_identical:
    case nir_intrinsic_image_size:
    case nir_intrinsic_image_deref_size:
    case nir_intrinsic_bindless_image_load:
@@ -428,7 +431,7 @@ process_block(nir_block *block, nir_load_grouping grouping,
          }
 
          /* Only group load instructions with the same indirection level. */
-         if (current->pass_flags == level && is_grouped_load(current)) {
+         if (is_grouped_load(current) && current->pass_flags == level) {
             nir_instr *current_resource;
 
             switch (grouping) {

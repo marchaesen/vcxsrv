@@ -265,7 +265,7 @@ class BitSet(object):
             self.encode = BitSetEncode(xml.find('encode'))
 
         self.gen_min = 0
-        self.gen_max = 1 << 32 - 1
+        self.gen_max = (1 << 32) - 1
 
         for gen in xml.findall('gen'):
             if 'min' in gen.attrib:
@@ -351,10 +351,13 @@ class BitSet(object):
         if self.extends is not None:
             parent = self.isa.bitsets[self.extends]
 
-            assert (self.gen_max == (1 << 32 - 1)) or (self.gen_max <= parent.get_gen_max()), "bitset {} should not have max gen higher than the parent's one".format(self.name)
+            assert (self.gen_max == (1 << 32) - 1) or (self.gen_max <= parent.get_gen_max()), "bitset {} should not have max gen higher than the parent's one".format(self.name)
 
             return min(self.gen_max, parent.get_gen_max())
         return self.gen_max
+
+    def has_gen_restriction(self):
+        return self.gen_min != 0 or self.gen_max != (1 << 32) - 1
 
     def get_c_name(self):
         return get_c_name(self.name)
@@ -417,9 +420,11 @@ class ISA(object):
         self.roots = {}
 
         # Table of leaf nodes of bitset hierarchies:
+        # Note that there may be multiple leaves for a particular name
+        # (distinguished by gen), so the values here are lists.
         self.leafs = {}
 
-        # Table of all bitsets:
+        # Table of all non-ambiguous bitsets (i.e. no per-gen ambiguity):
         self.bitsets = {}
 
         # Max needed bitsize for one instruction
@@ -464,15 +469,23 @@ class ISA(object):
             else:
                 dbg("derived: " + b.name)
             self.bitsets[b.name] = b
-            self.leafs[b.name]  = b
+            self.leafs.setdefault(b.name, []).append(b)
 
+    def validate_isa(self):
+        # Do one-time fixups
         # Remove non-leaf nodes from the leafs table:
-        for name, bitset in self.bitsets.items():
-            if bitset.extends is not None:
+        for name, bitsets in list(self.leafs.items()):
+            for bitset in bitsets:
                 if bitset.extends in self.leafs:
                     del self.leafs[bitset.extends]
 
-    def validate_isa(self):
+        # Fix multi-gen leaves in bitsets
+        for name, bitsets in self.leafs.items():
+            if len(bitsets) == 1:
+                continue
+
+            del self.bitsets[name]
+
         # Validate that all bitset fields have valid types, and in
         # the case of bitset type, the sizes match:
         builtin_types = ['branch', 'int', 'uint', 'hex', 'offset', 'uoffset', 'float', 'bool', 'enum']
@@ -502,11 +515,12 @@ class ISA(object):
 
         # Validate that all the leaf node bitsets have no remaining
         # undefined bits
-        for name, bitset in self.leafs.items():
-            pat = bitset.get_pattern()
-            sz  = bitset.get_size()
-            assert ((pat.mask | pat.field_mask) == (1 << sz) - 1), "leaf bitset {} has undefined bits: {:x}".format(
-                bitset.name, ~(pat.mask | pat.field_mask) & ((1 << sz) - 1))
+        for name, bitsets in self.leafs.items():
+            for bitset in bitsets:
+                pat = bitset.get_pattern()
+                sz  = bitset.get_size()
+                assert ((pat.mask | pat.field_mask) == (1 << sz) - 1), "leaf bitset {} has undefined bits: {:x}".format(
+                    bitset.name, ~(pat.mask | pat.field_mask) & ((1 << sz) - 1))
 
         # TODO somehow validating that only one bitset in a hierarchy
         # matches any given bit pattern would be useful.
@@ -537,17 +551,28 @@ class ISA(object):
 
         return ', '.join(parts)
 
-    def split_bits(self, value):
-        ''' Split `value` into a list of 32-bit integers '''
-        mask, parts = (1 << 32) - 1, []
-        words = self.bitsize / 32
+    def split_bits(self, value, bitsize):
+        ''' Split `value` into a list of bitsize-bit integers '''
+        mask, parts = (1 << bitsize) - 1, []
+        words = self.bitsize / bitsize
 
         while value:
             parts.append(hex(value & mask))
-            value >>= 32
+            value >>= bitsize
 
         # Add 'missing' words
         while len(parts) < words:
             parts.append('0x0')
 
         return parts
+
+    # Returns all bitsets in the ISA, including all per-gen variants, in
+    # (name, bitset) pairs.
+    def all_bitsets(self):
+        for name, bitset in self.bitsets.items():
+            yield name, bitset
+        for name, bitsets in self.leafs.items():
+            if len(bitsets) == 1:
+                continue
+            for bitset in bitsets:
+                yield name, bitset

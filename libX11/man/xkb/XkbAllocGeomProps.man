@@ -31,11 +31,11 @@ XkbAllocGeomProps \- Allocate geometry properties
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
-_summary_
+.I geom
+geometry for which properties should be allocated
 .TP
-.I \- num_needed
-_summary_
+.I num_needed
+number of new properties required
 .SH DESCRIPTION
 .LP
 Xkb provides a number of functions to allocate and free subcomponents of a 

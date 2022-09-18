@@ -31,7 +31,7 @@ XkbGetXlibControls \- Determines the current state of the Library Controls
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .SH DESCRIPTION
 .LP

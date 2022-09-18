@@ -390,7 +390,7 @@ util_font_create_fixed_8x13(struct pipe_context *pipe,
 
    for (i = 0; i < ARRAY_SIZE(formats); i++) {
       if (screen->is_format_supported(screen, formats[i],
-                                   PIPE_TEXTURE_RECT, 0, 0,
+                                   PIPE_TEXTURE_2D, 0, 0,
                                    PIPE_BIND_SAMPLER_VIEW)) {
          tex_format = formats[i];
          break;
@@ -403,7 +403,7 @@ util_font_create_fixed_8x13(struct pipe_context *pipe,
    }
 
    memset(&tex_templ, 0, sizeof(tex_templ));
-   tex_templ.target = PIPE_TEXTURE_RECT;
+   tex_templ.target = PIPE_TEXTURE_2D;
    tex_templ.format = tex_format;
    tex_templ.width0 = 128;
    tex_templ.height0 = 256;

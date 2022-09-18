@@ -856,39 +856,48 @@ read_input_from_connection(InputInfoPtr pInfo)
         driver_data->buffer.valid_length += read_size;
 
         while (1) {
-            xf86ITEventHeader *event_header;
+            xf86ITEventHeader event_header;
             char *event_begin = driver_data->buffer.data + processed_size;
 
             if (driver_data->buffer.valid_length - processed_size < sizeof(xf86ITEventHeader))
                 break;
 
-            event_header = (xf86ITEventHeader*) event_begin;
+            /* Note that event_begin pointer is not aligned, accessing it directly is
+               undefined behavior. We must use memcpy to copy the data to aligned data
+               area. Most compilers will optimize out this call out and use whatever
+               is most efficient to access unaligned data on a particular platform */
+            memcpy(&event_header, event_begin, sizeof(xf86ITEventHeader));
 
-            if (event_header->length >= EVENT_BUFFER_SIZE) {
+            if (event_header.length >= EVENT_BUFFER_SIZE) {
                 xf86IDrvMsg(pInfo, X_ERROR, "Received event with too long length: %d\n",
-                            event_header->length);
+                            event_header.length);
                 teardown_client_connection(pInfo);
                 return;
             }
 
-            if (driver_data->buffer.valid_length - processed_size < event_header->length)
+            if (driver_data->buffer.valid_length - processed_size < event_header.length)
                 break;
 
-            if (is_supported_event(event_header->type)) {
-                int expected_event_size = get_event_size(event_header->type);
+            if (is_supported_event(event_header.type)) {
+                int expected_event_size = get_event_size(event_header.type);
 
-                if (event_header->length != expected_event_size) {
+                if (event_header.length != expected_event_size) {
                     xf86IDrvMsg(pInfo, X_ERROR, "Unexpected event length: was %d bytes, "
                                 "expected %d (event type: %d)\n",
-                                event_header->length, expected_event_size,
-                                (int) event_header->type);
+                                event_header.length, expected_event_size,
+                                (int) event_header.type);
                     teardown_client_connection(pInfo);
                     return;
                 }
 
-                handle_event(pInfo, (xf86ITEventAny*) event_begin);
+                /* We could use event_begin pointer directly, but we want to ensure correct
+                   data alignment (if only so that address sanitizer does not complain) */
+                xf86ITEventAny event_data;
+                memset(&event_data, 0, sizeof(event_data));
+                memcpy(&event_data, event_begin, event_header.length);
+                handle_event(pInfo, &event_data);
             }
-            processed_size += event_header->length;
+            processed_size += event_header.length;
         }
 
         if (processed_size > 0) {
@@ -1005,7 +1014,19 @@ pre_init(InputDriverPtr drv, InputInfoPtr pInfo, int flags)
 
     unlink(driver_data->socket_path);
 
+#ifdef SOCK_NONBLOCK
     driver_data->socket_fd = socket(PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+#else
+    int fd = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (fd >= 0) {
+        flags = fcntl(fd, F_GETFL, 0);
+        if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+            fd = -1;
+        }
+    }
+    driver_data->socket_fd = fd;
+#endif
+
     if (driver_data->socket_fd < 0) {
         xf86IDrvMsg(pInfo, X_ERROR, "Failed to create a socket for communication: %s\n",
                     strerror(errno));

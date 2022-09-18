@@ -40,8 +40,8 @@ namespace pipe_tessellator_wrap
    private:
       typedef CHWTessellator SUPER;
       enum pipe_prim_type    prim_mode;
-      PIPE_ALIGN_VAR(32) float     domain_points_u[MAX_POINT_COUNT];
-      PIPE_ALIGN_VAR(32) float     domain_points_v[MAX_POINT_COUNT];
+      alignas(32) float      domain_points_u[MAX_POINT_COUNT];
+      alignas(32) float      domain_points_v[MAX_POINT_COUNT];
       uint32_t               num_domain_points;
 
    public:

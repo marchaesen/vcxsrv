@@ -45,6 +45,7 @@
 #define LIMA_DEBUG_SINGLE_JOB     (1 << 8)
 #define LIMA_DEBUG_PRECOMPILE     (1 << 9)
 #define LIMA_DEBUG_DISK_CACHE     (1 << 10)
+#define LIMA_DEBUG_NO_BLIT        (1 << 11)
 
 extern uint32_t lima_debug;
 extern int lima_ctx_num_plb;

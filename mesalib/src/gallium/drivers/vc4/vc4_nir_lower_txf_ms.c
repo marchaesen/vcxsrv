@@ -47,6 +47,7 @@ vc4_nir_lower_txf_ms_instr(nir_builder *b, nir_instr *instr, void *data)
         txf->coord_components = txf_ms->coord_components;
         txf->is_shadow = txf_ms->is_shadow;
         txf->is_new_style_shadow = txf_ms->is_new_style_shadow;
+        txf->dest_type = txf_ms->dest_type;
 
         nir_ssa_def *coord = NULL, *sample_index = NULL;
         for (int i = 0; i < txf_ms->num_srcs; i++) {

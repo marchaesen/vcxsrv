@@ -51,6 +51,8 @@
 #include "vl/vl_video_buffer.h"
 #include "util/vl_vlc.h"
 
+#include "vl/vl_codec.h"
+
 #include "entrypoint.h"
 #include "vid_dec.h"
 #include "vid_omx_common.h"
@@ -198,6 +200,10 @@ static OMX_ERRORTYPE vid_dec_Constructor(OMX_COMPONENTTYPE *comp, OMX_STRING nam
       return OMX_ErrorInsufficientResources;
 
    screen = priv->screen->pscreen;
+
+   if (!vl_codec_supported(screen, priv->profile, false))
+      return OMX_ErrorInsufficientResources;
+
    priv->pipe = pipe_create_multimedia_context(screen);
    if (!priv->pipe)
       return OMX_ErrorInsufficientResources;

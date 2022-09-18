@@ -35,7 +35,7 @@
 
 struct crocus_batch;
 struct intel_device_info;
-struct pipe_debug_callback;
+struct util_debug_callback;
 
 #define CROCUS_BINDER_SIZE (64 * 1024)
 #define CROCUS_MAX_BINDERS 100
@@ -141,12 +141,18 @@ struct crocus_bo {
     */
    bool userptr;
 
+   /**
+    * Boolean of if this is used for scanout.
+    */
+   bool scanout;
+
    /** Pre-computed hash using _mesa_hash_pointer for cache tracking sets */
    uint32_t hash;
 };
 
 #define BO_ALLOC_ZEROED   (1 << 0)
 #define BO_ALLOC_COHERENT (1 << 1)
+#define BO_ALLOC_SCANOUT  (1 << 2)
 
 /**
  * Allocate a buffer object.
@@ -232,7 +238,7 @@ static inline void crocus_bo_unreference(struct crocus_bo *bo)
  * This function will block waiting for any existing execution on the
  * buffer to complete, first.  The resulting mapping is returned.
  */
-MUST_CHECK void *crocus_bo_map(struct pipe_debug_callback *dbg,
+MUST_CHECK void *crocus_bo_map(struct util_debug_callback *dbg,
                              struct crocus_bo *bo, unsigned flags);
 
 /**

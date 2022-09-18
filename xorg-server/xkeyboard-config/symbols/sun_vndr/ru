@@ -203,3 +203,8 @@ partial alphanumeric_keys
 	xkb_symbols "ruu" {
 	include "ru(ruu)"
 };
+
+partial alphanumeric_keys
+	xkb_symbols "winkeys-p" {
+	include "ru(winkeys-p)"
+};

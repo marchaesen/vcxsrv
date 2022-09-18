@@ -24,8 +24,8 @@
 
 #include "nir.h"
 #include "nir_builder.h"
-#include "c99_math.h"
 
+#include <math.h>
 #include <float.h>
 
 /*

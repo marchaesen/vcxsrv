@@ -1,94 +1,80 @@
-//
-// XKB symbol :: National Bangla/Bengali Standard Keyboard Layout for Bangladesh
+// National Bangla/Bengali Standard keyboard layout for Bangladesh,
+// developed by the Bangladesh Computer Council (BCC).
 // Ref: http://www.bcc.net.bd/keyboard/bsti_kb_specification.pdf
 //
 // Author: Jamil Ahmed <jamil at bengalinux.org>
-// Created: 18-12-2005
 // Last Updated: 08-01-2006
 // Version: 6.01.3
 //
 // Issues:
-// <AC08> Khanda-Ta is given U-09CE; But BCC had U-09BA
-// <AC07> U-09BB is added though it is not allocated in Original Unicode
-// <AE06> U-09B3 is added though it is not allocated in Original Unicode
-// 3 Conjunct characters are not included
+// <AE06> has U+09B3 even though it is not allocated in Unicode;
+// <AC07> has U+09BB even though it is not allocated in Unicode;
+// <AC08> has U+09CE (Khanda-Ta), but BCC had the unallocated U+09BA there.
 //
+// Three double characters (conjuncts), on the third level of <AD02> and the
+// third and fourth levels of <AB04>, are not included as XKB cannot do this.
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {
-   name[Group1]= "Bangla";
-   key <ESC>  { [ Escape ] };
 
-// numbers
-   key <TLDE> { [ grave,	asciitilde,	voidsymbol,	voidsymbol ] };
-   key <AE01> { [ 0x10009E7,	exclam,		0x10009F4,	voidsymbol ] };
-   key <AE02> { [ 0x10009E8,	at,		0x10009F5,	voidsymbol ] };
-   key <AE03> { [ 0x10009E9,	numbersign,	0x10009F6,	voidsymbol ] };
-   key <AE04> { [ 0x10009EA,	dollar,		0x10009F3,	0x10009F2  ] };
-   key <AE05> { [ 0x10009EB,	percent,	0x10009F7,	voidsymbol ] };
-   key <AE06> { [ 0x10009EC,	asciicircum,	0x10009F8,	0x10009B3  ] };
-   key <AE07> { [ 0x10009ED,	ampersand,	0x1000902,	voidsymbol ] };
-   key <AE08> { [ 0x10009EE,	asterisk,	voidsymbol,	voidsymbol ] };
-   key <AE09> { [ 0x10009EF,	parenleft,	voidsymbol,	voidsymbol ] };
-   key <AE10> { [ 0x10009E6,	parenright,	0x10009F9,	voidsymbol ] };
-   key <AE11> { [ minus,	underscore,	0x100200C,	voidsymbol ] };
-   key <AE12> { [ equal,	plus,		0x100200D,	voidsymbol ] };
-   key <BKSP> { [ BackSpace ] };
+    name[Group1]= "Bangla";
 
-// tab, q to ] 
-   key <TAB>  { [ Tab,  ISO_Left_Tab ] };
-   key <AD01> { [ 0x1000999,	0x1000982,	0x10009E2,	0x10009E3  ] };
-   key <AD02> { [ 0x10009AF,	0x10009DF,	voidsymbol,	voidsymbol ] };
-   key <AD03> { [ 0x10009A1,	0x10009A2,	0x10009C4,	voidsymbol ] };
-   key <AD04> { [ 0x10009AA,	0x10009AB,	voidsymbol,	voidsymbol ] };
-   key <AD05> { [ 0x100099F,	0x10009A0,	voidsymbol,	voidsymbol ] };
-   key <AD06> { [ 0x100099A,	0x100099B,	voidsymbol,	voidsymbol ] };
-   key <AD07> { [ 0x100099C,	0x100099D,	voidsymbol,	voidsymbol ] };
-   key <AD08> { [ 0x10009B9,	0x100099E,	0x10009BD,	voidsymbol ] };
-   key <AD09> { [ 0x1000997,	0x1000998,	voidsymbol,	voidsymbol ] };
-   key <AD10> { [ 0x10009DC,	0x10009DD,	voidsymbol,	voidsymbol ] };
-   key <AD11> { [ bracketleft,	braceleft,	voidsymbol,	voidsymbol ] };
-   key <AD12> { [ bracketright,	braceright,	voidsymbol,	voidsymbol ] };
-   key <RTRN> { [ Return ] };
+    key <TLDE> {[  grave,	asciitilde,	none,	none	]};
+    key <AE01> {[  U09E7,	exclam,		U09F4,	none	]};
+    key <AE02> {[  U09E8,	at,		U09F5,	none	]};
+    key <AE03> {[  U09E9,	numbersign,	U09F6,	none	]};
+    key <AE04> {[  U09EA,	dollar,		U09F3,	U09F2	]};
+    key <AE05> {[  U09EB,	percent,	U09F7,	none	]};
+    key <AE06> {[  U09EC,	asciicircum,	U09F8,	U09B3	]};
+    key <AE07> {[  U09ED,	ampersand,	U0902,	none	]};
+    key <AE08> {[  U09EE,	asterisk,	none,	none	]};
+    key <AE09> {[  U09EF,	parenleft,	none,	none	]};
+    key <AE10> {[  U09E6,	parenright,	U09F9,	none	]};
+    key <AE11> {[  minus,	underscore,	U200C,	none	]};
+    key <AE12> {[  equal,	plus,		U200D,	none	]};
 
-// caps, a to ' 
-// key <CAPS> { [ Caps_Lock ] };
-   key <AC01> { [ 0x10009C3,	0x10009D7,	0x100098B,	0x10009E0  ] };
-   key <AC02> { [ 0x10009C1,	0x10009C2,	0x1000989,	0x100098A  ] };
-   key <AC03> { [ 0x10009BF,	0x10009C0,	0x1000987,	0x1000988  ] };
-   key <AC04> { [ 0x10009AC,	0x10009AD,	0x10009F0,	0x10009F1  ] };
-   key <AC05> { [ 0x10009CD,	0x1000964,	0x1000965,	voidsymbol ] };
-   key <AC06> { [ 0x10009BE,	0x1000985,	0x1000986,	voidsymbol ] };
-   key <AC07> { [ 0x1000995,	0x1000996,	0x10009BB,	voidsymbol ] };
-   key <AC08> { [ 0x10009A4,	0x10009A5,	0x10009CE,	voidsymbol ] };
-   key <AC09> { [ 0x10009A6,	0x10009A7,	0x100098C,	0x10009E1  ] };
-   key <AC10> { [ semicolon,	colon,		voidsymbol,	voidsymbol ] };
-   key <AC11> { [ apostrophe,	quotedbl,	voidsymbol,	voidsymbol ] };
+    key <AD01> {[  U0999,	U0982,		U09E2,	U09E3	]};
+    key <AD02> {[  U09AF,	U09DF,		none,	none	]};
+    key <AD03> {[  U09A1,	U09A2,		U09C4,	none	]};
+    key <AD04> {[  U09AA,	U09AB,		none,	none	]};
+    key <AD05> {[  U099F,	U09A0,		none,	none	]};
+    key <AD06> {[  U099A,	U099B,		none,	none	]};
+    key <AD07> {[  U099C,	U099D,		none,	none	]};
+    key <AD08> {[  U09B9,	U099E,		U09BD,	none	]};
+    key <AD09> {[  U0997,	U0998,		none,	none	]};
+    key <AD10> {[  U09DC,	U09DD,		none,	none	]};
+    key <AD11> {[  bracketleft,	braceleft,	none,	none	]};
+    key <AD12> {[ bracketright,	braceright,	none,	none	]};
 
-// shift, z to /
-// key <LFSH> { [ Shift_L ] };
-   key <AB01> { [ 0x1000981,	0x1000983,	0x10009FA,	voidsymbol ] };
-   key <AB02> { [ 0x10009CB,	0x10009CC,	0x1000993,	0x1000994  ] };
-   key <AB03> { [ 0x10009C7,	0x10009C8,	0x100098F,	0x1000990  ] };
-   key <AB04> { [ 0x10009B0,	0x10009B2,	voidsymbol,	voidsymbol ] };
-   key <AB05> { [ 0x10009A8,	0x10009A3,	voidsymbol,	voidsymbol ] };
-   key <AB06> { [ 0x10009B8,	0x10009B7,	voidsymbol,	voidsymbol ] };
-   key <AB07> { [ 0x10009AE,	0x10009B6,	voidsymbol,	voidsymbol ] };
-   key <AB08> { [ comma,	less,		voidsymbol,	voidsymbol ] };
-   key <AB09> { [ period,	greater,	0x10009BC,	voidsymbol ] };
-   key <AB10> { [ slash,	question,	voidsymbol,	voidsymbol ] };
-   key <BKSL> { [ backslash,	bar,		voidsymbol,	voidsymbol ] };
+    key <AC01> {[  U09C3,	U09D7,		U098B,	U09E0	]};
+    key <AC02> {[  U09C1,	U09C2,		U0989,	U098A	]};
+    key <AC03> {[  U09BF,	U09C0,		U0987,	U0988	]};
+    key <AC04> {[  U09AC,	U09AD,		U09F0,	U09F1	]};
+    key <AC05> {[  U09CD,	U0964,		U0965,	none	]};
+    key <AC06> {[  U09BE,	U0985,		U0986,	none	]};
+    key <AC07> {[  U0995,	U0996,		U09BB,	none	]};
+    key <AC08> {[  U09A4,	U09A5,		U09CE,	none	]};
+    key <AC09> {[  U09A6,	U09A7,		U098C,	U09E1	]};
+    key <AC10> {[  semicolon,	colon,		none,	none	]};
+    key <AC11> {[  apostrophe,	quotedbl,	none,	none	]};
+    key <BKSL> {[  backslash,	bar,		none,	none	]};
 
-// third level with right-Alt
+    key <AB01> {[  U0981,	U0983,		U09FA,	none	]};
+    key <AB02> {[  U09CB,	U09CC,		U0993,	U0994	]};
+    key <AB03> {[  U09C7,	U09C8,		U098F,	U0990	]};
+    key <AB04> {[  U09B0,	U09B2,		none,	none	]};
+    key <AB05> {[  U09A8,	U09A3,		none,	none	]};
+    key <AB06> {[  U09B8,	U09B7,		none,	none	]};
+    key <AB07> {[  U09AE,	U09B6,		none,	none	]};
+    key <AB08> {[  comma,	less,		none,	none	]};
+    key <AB09> {[  period,	greater,	U09BC,	none	]};
+    key <AB10> {[  slash,	question,	none,	none	]};
+
     include "level3(ralt_switch)"
 };
 
 
-//
-// XKB symbol :: Probhat Bangla/Bengali Keyboard Layout
-// Ref: www.ankurbangla.org/images/probhat_layout.png
-//
-
+// Probhat keyboard layout for Bangla/Bengali.
 xkb_symbols "probhat" {
     include "in(ben_probhat)"
     name[Group1]= "Bangla (Probhat)";

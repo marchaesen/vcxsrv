@@ -52,7 +52,6 @@ struct virgl_resource_metadata
 
 struct virgl_resource {
    struct pipe_resource b;
-   uint16_t clean_mask;
    struct virgl_hw_res *hw_res;
    struct virgl_resource_metadata metadata;
 
@@ -68,6 +67,10 @@ struct virgl_resource {
     */
    unsigned bind_history;
    uint32_t blob_mem;
+
+   uint16_t clean_mask;
+   uint16_t use_staging : 1;
+   uint16_t reserved : 15;
 };
 
 struct virgl_transfer {

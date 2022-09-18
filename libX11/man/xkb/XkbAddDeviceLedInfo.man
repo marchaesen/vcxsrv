@@ -33,13 +33,13 @@ XkbAddDeviceLedInfo \- Initialize an XkbDeviceLedInfoRec structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- device_info
+.I device_info
 structure in which to add LED info
 .TP
-.I \- led_class
+.I led_class
 input extension class for LED device of interest
 .TP
-.I \- led_id
+.I led_id
 input extension ID for LED device of interest
 .SH DESCRIPTION
 .LP

@@ -40,7 +40,7 @@ struct vsplit_frontend {
    struct draw_pt_front_end base;
    struct draw_context *draw;
 
-   unsigned prim;
+   enum pipe_prim_type prim;
 
    struct draw_pt_middle_end *middle;
 
@@ -73,6 +73,7 @@ vsplit_clear_cache(struct vsplit_frontend *vsplit)
    vsplit->cache.num_draw_elts = 0;
 }
 
+
 static void
 vsplit_flush_cache(struct vsplit_frontend *vsplit, unsigned flags)
 {
@@ -80,6 +81,7 @@ vsplit_flush_cache(struct vsplit_frontend *vsplit, unsigned flags)
          vsplit->fetch_elts, vsplit->cache.num_fetch_elts,
          vsplit->draw_elts, vsplit->cache.num_draw_elts, flags);
 }
+
 
 /**
  * Add a fetch element and add it to the draw elements.
@@ -105,6 +107,7 @@ vsplit_add_cache(struct vsplit_frontend *vsplit, unsigned fetch)
 
    vsplit->draw_elts[vsplit->cache.num_draw_elts++] = vsplit->cache.draws[hash];
 }
+
 
 /**
  * Returns the base index to the elements array.
@@ -133,6 +136,7 @@ vsplit_add_cache_ubyte(struct vsplit_frontend *vsplit, const ubyte *elts,
    }
    vsplit_add_cache(vsplit, elt_idx);
 }
+
 
 static inline void
 vsplit_add_cache_ushort(struct vsplit_frontend *vsplit, const ushort *elts,
@@ -197,10 +201,11 @@ vsplit_add_cache_uint(struct vsplit_frontend *vsplit, const uint *elts,
 #include "draw_pt_vsplit_tmp.h"
 
 
-static void vsplit_prepare(struct draw_pt_front_end *frontend,
-                           unsigned in_prim,
-                           struct draw_pt_middle_end *middle,
-                           unsigned opt)
+static void
+vsplit_prepare(struct draw_pt_front_end *frontend,
+               enum pipe_prim_type in_prim,
+               struct draw_pt_middle_end *middle,
+               unsigned opt)
 {
    struct vsplit_frontend *vsplit = (struct vsplit_frontend *) frontend;
 
@@ -232,7 +237,8 @@ static void vsplit_prepare(struct draw_pt_front_end *frontend,
 }
 
 
-static void vsplit_flush(struct draw_pt_front_end *frontend, unsigned flags)
+static void
+vsplit_flush(struct draw_pt_front_end *frontend, unsigned flags)
 {
    struct vsplit_frontend *vsplit = (struct vsplit_frontend *) frontend;
 
@@ -243,16 +249,17 @@ static void vsplit_flush(struct draw_pt_front_end *frontend, unsigned flags)
 }
 
 
-static void vsplit_destroy(struct draw_pt_front_end *frontend)
+static void
+vsplit_destroy(struct draw_pt_front_end *frontend)
 {
    FREE(frontend);
 }
 
 
-struct draw_pt_front_end *draw_pt_vsplit(struct draw_context *draw)
+struct draw_pt_front_end *
+draw_pt_vsplit(struct draw_context *draw)
 {
    struct vsplit_frontend *vsplit = CALLOC_STRUCT(vsplit_frontend);
-   ushort i;
 
    if (!vsplit)
       return NULL;
@@ -263,7 +270,7 @@ struct draw_pt_front_end *draw_pt_vsplit(struct draw_context *draw)
    vsplit->base.destroy = vsplit_destroy;
    vsplit->draw = draw;
 
-   for (i = 0; i < SEGMENT_SIZE; i++)
+   for (unsigned i = 0; i < SEGMENT_SIZE; i++)
       vsplit->identity_draw_elts[i] = i;
 
    return &vsplit->base;

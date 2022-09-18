@@ -169,7 +169,8 @@ _mesa_get_current_tex_object(struct gl_context *ctx, GLenum target)
       case GL_TEXTURE_3D:
          return texUnit->CurrentTex[TEXTURE_3D_INDEX];
       case GL_PROXY_TEXTURE_3D:
-         return ctx->Texture.ProxyTex[TEXTURE_3D_INDEX];
+         return !(ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D)
+             ? ctx->Texture.ProxyTex[TEXTURE_3D_INDEX] : NULL;
       case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
       case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
@@ -261,6 +262,57 @@ _mesa_get_texobj_by_target_and_texunit(struct gl_context *ctx, GLenum target,
    return texUnit->CurrentTex[targetIndex];
 }
 
+/**
+ * Return swizzle1(swizzle2)
+ */
+static unsigned
+swizzle_swizzle(unsigned swizzle1, unsigned swizzle2)
+{
+   unsigned i, swz[4];
+
+   if (swizzle1 == SWIZZLE_XYZW) {
+      /* identity swizzle, no change to swizzle2 */
+      return swizzle2;
+   }
+
+   for (i = 0; i < 4; i++) {
+      unsigned s = GET_SWZ(swizzle1, i);
+      switch (s) {
+      case SWIZZLE_X:
+      case SWIZZLE_Y:
+      case SWIZZLE_Z:
+      case SWIZZLE_W:
+         swz[i] = GET_SWZ(swizzle2, s);
+         break;
+      case SWIZZLE_ZERO:
+         swz[i] = SWIZZLE_ZERO;
+         break;
+      case SWIZZLE_ONE:
+         swz[i] = SWIZZLE_ONE;
+         break;
+      default:
+         assert(!"Bad swizzle term");
+         swz[i] = SWIZZLE_X;
+      }
+   }
+
+   return MAKE_SWIZZLE4(swz[0], swz[1], swz[2], swz[3]);
+}
+
+void
+_mesa_update_texture_object_swizzle(struct gl_context *ctx,
+                                    struct gl_texture_object *texObj)
+{
+   if (texObj->Attrib.BaseLevel >= MAX_TEXTURE_LEVELS)
+      return;
+   const struct gl_texture_image *img = texObj->Image[0][texObj->Attrib.BaseLevel];
+   if (!img)
+      return;
+
+   /* Combine the texture format swizzle with user's swizzle */
+   texObj->Swizzle = swizzle_swizzle(texObj->Attrib._Swizzle, img->FormatSwizzle);
+   texObj->SwizzleGLSL130 = swizzle_swizzle(texObj->Attrib._Swizzle, img->FormatSwizzleGLSL130);
+}
 
 /**
  * Initialize a new texture object to default values.
@@ -1033,7 +1085,7 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
                                     (dims > 2) ? depth : 1,
                                     0, /* border */
                                     GL_RGBA, texFormat);
-
+         _mesa_update_texture_object_swizzle(ctx, texObj);
          st_TexImage(ctx, dims, texImage,
                      GL_RGBA, GL_UNSIGNED_BYTE, texel,
                      &ctx->DefaultPacking);
@@ -1537,7 +1589,9 @@ _mesa_tex_target_to_index(const struct gl_context *ctx, GLenum target)
    case GL_TEXTURE_2D:
       return TEXTURE_2D_INDEX;
    case GL_TEXTURE_3D:
-      return ctx->API != API_OPENGLES ? TEXTURE_3D_INDEX : -1;
+      return (ctx->API != API_OPENGLES &&
+              !(ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D))
+         ? TEXTURE_3D_INDEX : -1;
    case GL_TEXTURE_CUBE_MAP:
       return TEXTURE_CUBE_INDEX;
    case GL_TEXTURE_RECTANGLE:
@@ -1615,6 +1669,14 @@ bind_texture_object(struct gl_context *ctx, unsigned unit,
     *       to simplify the code. This has no effect on behavior.
     */
    FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
+
+   /* if the previously bound texture uses GL_CLAMP, flag the driver here
+    * to ensure any emulation is disabled
+    */
+   if (texUnit->CurrentTex[targetIndex] &&
+       texUnit->CurrentTex[targetIndex]->Sampler.glclamp_mask !=
+       texObj->Sampler.glclamp_mask)
+      ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
 
    /* If the refcount on the previously bound texture is decremented to
     * zero, it'll be deleted here.

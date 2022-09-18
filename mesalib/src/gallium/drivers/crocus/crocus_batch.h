@@ -83,7 +83,7 @@ struct crocus_growing_bo {
 struct crocus_batch {
    struct crocus_context *ice;
    struct crocus_screen *screen;
-   struct pipe_debug_callback *dbg;
+   struct util_debug_callback *dbg;
    struct pipe_device_reset_callback *reset;
 
    /** What batch is this? (e.g. CROCUS_BATCH_RENDER/COMPUTE) */

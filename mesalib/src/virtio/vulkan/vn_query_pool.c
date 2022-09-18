@@ -22,6 +22,7 @@ vn_CreateQueryPool(VkDevice device,
                    const VkAllocationCallbacks *pAllocator,
                    VkQueryPool *pQueryPool)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
@@ -69,6 +70,7 @@ vn_DestroyQueryPool(VkDevice device,
                     VkQueryPool queryPool,
                     const VkAllocationCallbacks *pAllocator)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_query_pool *pool = vn_query_pool_from_handle(queryPool);
    const VkAllocationCallbacks *alloc;
@@ -90,6 +92,7 @@ vn_ResetQueryPool(VkDevice device,
                   uint32_t firstQuery,
                   uint32_t queryCount)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
 
    vn_async_vkResetQueryPool(dev->instance, device, queryPool, firstQuery,
@@ -106,6 +109,7 @@ vn_GetQueryPoolResults(VkDevice device,
                        VkDeviceSize stride,
                        VkQueryResultFlags flags)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_query_pool *pool = vn_query_pool_from_handle(queryPool);
    const VkAllocationCallbacks *alloc = &pool->allocator;

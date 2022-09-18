@@ -381,11 +381,6 @@ util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
    const uint newLen = tgsi_num_tokens(tokens) + NUM_NEW_TOKENS;
    struct tgsi_token *new_tokens;
 
-   new_tokens = tgsi_alloc_tokens(newLen);
-   if (!new_tokens) {
-      return NULL;
-   }
-
    /* Setup shader transformation info/context.
     */
    memset(&transform, 0, sizeof(transform));
@@ -404,7 +399,9 @@ util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
    transform.coordOrigin =
       transform.info.properties[TGSI_PROPERTY_FS_COORD_ORIGIN];
 
-   tgsi_transform_shader(tokens, new_tokens, newLen, &transform.base);
+   new_tokens = tgsi_transform_shader(tokens, newLen, &transform.base);
+   if (!new_tokens)
+      return NULL;
 
 #if 0 /* DEBUG */
    tgsi_dump(fs->tokens, 0);

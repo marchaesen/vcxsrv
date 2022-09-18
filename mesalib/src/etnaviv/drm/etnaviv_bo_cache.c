@@ -76,7 +76,7 @@ void etna_bo_cache_cleanup(struct etna_bo_cache *cache, time_t time)
 		struct etna_bo *bo;
 
 		while (!list_is_empty(&bucket->list)) {
-			bo = LIST_ENTRY(struct etna_bo, bucket->list.next, list);
+			bo = list_entry(bucket->list.next, struct etna_bo, list);
 
 			/* keep things in cache for at least 1 second: */
 			if (time && ((time - bo->free_time) <= 1))
@@ -112,7 +112,7 @@ static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t fl
 {
 	struct etna_bo *bo = NULL, *tmp;
 
-	simple_mtx_lock(&etna_drm_table_lock);
+	simple_mtx_lock(&etna_device_lock);
 
 	if (list_is_empty(&bucket->list))
 		goto out_unlock;
@@ -136,7 +136,7 @@ static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t fl
 	bo = NULL;
 
 out_unlock:
-	simple_mtx_unlock(&etna_drm_table_lock);
+	simple_mtx_unlock(&etna_device_lock);
 
 	return bo;
 }
@@ -173,7 +173,7 @@ int etna_bo_cache_free(struct etna_bo_cache *cache, struct etna_bo *bo)
 {
 	struct etna_bo_bucket *bucket;
 
-	simple_mtx_assert_locked(&etna_drm_table_lock);
+	simple_mtx_assert_locked(&etna_device_lock);
 
 	bucket = get_bucket(cache, bo->size);
 

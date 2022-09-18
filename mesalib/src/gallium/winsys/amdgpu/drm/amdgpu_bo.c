@@ -239,11 +239,8 @@ static void amdgpu_bo_destroy_or_cache(struct radeon_winsys *rws, struct pb_buff
 
 static void amdgpu_clean_up_buffer_managers(struct amdgpu_winsys *ws)
 {
-   for (unsigned i = 0; i < NUM_SLAB_ALLOCATORS; i++) {
+   for (unsigned i = 0; i < NUM_SLAB_ALLOCATORS; i++)
       pb_slabs_reclaim(&ws->bo_slabs[i]);
-      if (ws->info.has_tmz_support)
-         pb_slabs_reclaim(&ws->bo_slabs_encrypted[i]);
-   }
 
    pb_cache_release_all_buffers(&ws->bo_cache);
 }
@@ -530,9 +527,15 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
       request.flags |= AMDGPU_GEM_CREATE_NO_CPU_ACCESS;
    if (flags & RADEON_FLAG_GTT_WC)
       request.flags |= AMDGPU_GEM_CREATE_CPU_GTT_USWC;
+
+   if (flags & RADEON_FLAG_DISCARDABLE &&
+       ws->info.drm_minor >= 47)
+      request.flags |= AMDGPU_GEM_CREATE_DISCARDABLE;
+
    if (ws->zero_all_vram_allocs &&
        (request.preferred_heap & AMDGPU_GEM_DOMAIN_VRAM))
       request.flags |= AMDGPU_GEM_CREATE_VRAM_CLEARED;
+
    if ((flags & RADEON_FLAG_ENCRYPTED) &&
        ws->info.has_tmz_support) {
       request.flags |= AMDGPU_GEM_CREATE_ENCRYPTED;
@@ -574,8 +577,12 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
       if (!(flags & RADEON_FLAG_READ_ONLY))
          vm_flags |= AMDGPU_VM_PAGE_WRITEABLE;
 
-      if (flags & RADEON_FLAG_UNCACHED)
+      if (flags & RADEON_FLAG_GL2_BYPASS)
          vm_flags |= AMDGPU_VM_MTYPE_UC;
+
+      if (flags & RADEON_FLAG_MALL_NOALLOC &&
+          ws->info.drm_minor >= 47)
+         vm_flags |= AMDGPU_VM_PAGE_NOALLOC;
 
       r = amdgpu_bo_va_op_raw(ws->dev, buf_handle, 0, size, va, vm_flags,
 			   AMDGPU_VA_OP_MAP);
@@ -629,14 +636,11 @@ bool amdgpu_bo_can_reclaim_slab(void *priv, struct pb_slab_entry *entry)
    return amdgpu_bo_can_reclaim(priv, &bo->base);
 }
 
-static struct pb_slabs *get_slabs(struct amdgpu_winsys *ws, uint64_t size,
-                                  enum radeon_bo_flag flags)
+static struct pb_slabs *get_slabs(struct amdgpu_winsys *ws, uint64_t size)
 {
-   struct pb_slabs *bo_slabs = ((flags & RADEON_FLAG_ENCRYPTED) && ws->info.has_tmz_support) ?
-      ws->bo_slabs_encrypted : ws->bo_slabs;
    /* Find the correct slab allocator for the given size. */
    for (unsigned i = 0; i < NUM_SLAB_ALLOCATORS; i++) {
-      struct pb_slabs *slabs = &bo_slabs[i];
+      struct pb_slabs *slabs = &ws->bo_slabs[i];
 
       if (size <= 1 << (slabs->min_order + slabs->num_orders - 1))
          return slabs;
@@ -663,7 +667,7 @@ static void amdgpu_bo_slab_destroy(struct radeon_winsys *rws, struct pb_buffer *
 
    assert(!bo->bo);
 
-   slabs = get_slabs(ws, bo->base.size, bo->base.usage & RADEON_FLAG_ENCRYPTED);
+   slabs = get_slabs(ws, bo->base.size);
 
    if (bo->base.placement & RADEON_DOMAIN_VRAM)
       ws->slab_wasted_vram -= get_slab_wasted_size(ws, bo);
@@ -699,10 +703,8 @@ static unsigned get_slab_entry_alignment(struct amdgpu_winsys *ws, unsigned size
    return entry_size;
 }
 
-static struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap,
-                                            unsigned entry_size,
-                                            unsigned group_index,
-                                            bool encrypted)
+struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap, unsigned entry_size,
+                                     unsigned group_index)
 {
    struct amdgpu_winsys *ws = priv;
    struct amdgpu_slab *slab = CALLOC_STRUCT(amdgpu_slab);
@@ -714,15 +716,9 @@ static struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap,
    if (!slab)
       return NULL;
 
-   if (encrypted)
-      flags |= RADEON_FLAG_ENCRYPTED;
-
-   struct pb_slabs *slabs = ((flags & RADEON_FLAG_ENCRYPTED) && ws->info.has_tmz_support) ?
-      ws->bo_slabs_encrypted : ws->bo_slabs;
-
    /* Determine the slab buffer size. */
    for (unsigned i = 0; i < NUM_SLAB_ALLOCATORS; i++) {
-      unsigned max_entry_size = 1 << (slabs[i].min_order + slabs[i].num_orders - 1);
+      unsigned max_entry_size = 1 << (ws->bo_slabs[i].min_order + ws->bo_slabs[i].num_orders - 1);
 
       if (entry_size <= max_entry_size) {
          /* The slab size is twice the size of the largest possible entry. */
@@ -813,20 +809,6 @@ fail_buffer:
 fail:
    FREE(slab);
    return NULL;
-}
-
-struct pb_slab *amdgpu_bo_slab_alloc_encrypted(void *priv, unsigned heap,
-                                               unsigned entry_size,
-                                               unsigned group_index)
-{
-   return amdgpu_bo_slab_alloc(priv, heap, entry_size, group_index, true);
-}
-
-struct pb_slab *amdgpu_bo_slab_alloc_normal(void *priv, unsigned heap,
-                                            unsigned entry_size,
-                                            unsigned group_index)
-{
-   return amdgpu_bo_slab_alloc(priv, heap, entry_size, group_index, false);
 }
 
 void amdgpu_bo_slab_free(struct amdgpu_winsys *ws, struct pb_slab *pslab)
@@ -1163,7 +1145,7 @@ amdgpu_bo_sparse_create(struct amdgpu_winsys *ws, uint64_t size,
    if (r)
       goto error_va_alloc;
 
-   r = amdgpu_bo_va_op_raw(ws->dev, NULL, 0, size, bo->va,
+   r = amdgpu_bo_va_op_raw(ws->dev, NULL, 0, map_size, bo->va,
                            AMDGPU_VM_PAGE_PRT, AMDGPU_VA_OP_MAP);
    if (r)
       goto error_va_map;
@@ -1360,34 +1342,23 @@ amdgpu_bo_create(struct amdgpu_winsys *ws,
                  enum radeon_bo_flag flags)
 {
    struct amdgpu_winsys_bo *bo;
-   int heap = -1;
 
-   if (domain & (RADEON_DOMAIN_GDS | RADEON_DOMAIN_OA))
-      flags |= RADEON_FLAG_NO_CPU_ACCESS | RADEON_FLAG_NO_SUBALLOC;
+   radeon_canonicalize_bo_flags(&domain, &flags);
 
-   /* VRAM implies WC. This is not optional. */
-   assert(!(domain & RADEON_DOMAIN_VRAM) || flags & RADEON_FLAG_GTT_WC);
+   /* Handle sparse buffers first. */
+   if (flags & RADEON_FLAG_SPARSE) {
+      assert(RADEON_SPARSE_PAGE_SIZE % alignment == 0);
 
-   /* NO_CPU_ACCESS is not valid with GTT. */
-   assert(!(domain & RADEON_DOMAIN_GTT) || !(flags & RADEON_FLAG_NO_CPU_ACCESS));
+      return amdgpu_bo_sparse_create(ws, size, domain, flags);
+   }
 
-   /* Sparse buffers must have NO_CPU_ACCESS set. */
-   assert(!(flags & RADEON_FLAG_SPARSE) || flags & RADEON_FLAG_NO_CPU_ACCESS);
-
-   struct pb_slabs *slabs = ((flags & RADEON_FLAG_ENCRYPTED) && ws->info.has_tmz_support) ?
-      ws->bo_slabs_encrypted : ws->bo_slabs;
-   struct pb_slabs *last_slab = &slabs[NUM_SLAB_ALLOCATORS - 1];
+   struct pb_slabs *last_slab = &ws->bo_slabs[NUM_SLAB_ALLOCATORS - 1];
    unsigned max_slab_entry_size = 1 << (last_slab->min_order + last_slab->num_orders - 1);
+   int heap = radeon_get_heap_index(domain, flags);
 
    /* Sub-allocate small buffers from slabs. */
-   if (!(flags & (RADEON_FLAG_NO_SUBALLOC | RADEON_FLAG_SPARSE)) &&
-       size <= max_slab_entry_size) {
+   if (heap >= 0 && size <= max_slab_entry_size) {
       struct pb_slab_entry *entry;
-      int heap = radeon_get_heap_index(domain, flags);
-
-      if (heap < 0 || heap >= RADEON_MAX_SLAB_HEAPS)
-         goto no_slab;
-
       unsigned alloc_size = size;
 
       /* Always use slabs for sizes less than 4 KB because the kernel aligns
@@ -1410,7 +1381,7 @@ amdgpu_bo_create(struct amdgpu_winsys *ws,
          }
       }
 
-      struct pb_slabs *slabs = get_slabs(ws, alloc_size, flags);
+      struct pb_slabs *slabs = get_slabs(ws, alloc_size);
       entry = pb_slab_alloc(slabs, alloc_size, heap);
       if (!entry) {
          /* Clean up buffer managers and try again. */
@@ -1435,15 +1406,6 @@ amdgpu_bo_create(struct amdgpu_winsys *ws,
    }
 no_slab:
 
-   if (flags & RADEON_FLAG_SPARSE) {
-      assert(RADEON_SPARSE_PAGE_SIZE % alignment == 0);
-
-      return amdgpu_bo_sparse_create(ws, size, domain, flags);
-   }
-
-   /* This flag is irrelevant for the cache. */
-   flags &= ~RADEON_FLAG_NO_SUBALLOC;
-
    /* Align size to page size. This is the minimum alignment for normal
     * BOs. Aligning this here helps the cached bufmgr. Especially small BOs,
     * like constant/uniform buffers, can benefit from better and more reuse.
@@ -1453,11 +1415,13 @@ no_slab:
       alignment = align(alignment, ws->info.gart_page_size);
    }
 
-   bool use_reusable_pool = flags & RADEON_FLAG_NO_INTERPROCESS_SHARING;
+   bool use_reusable_pool = flags & RADEON_FLAG_NO_INTERPROCESS_SHARING &&
+                            !(flags & RADEON_FLAG_DISCARDABLE);
 
    if (use_reusable_pool) {
-       heap = radeon_get_heap_index(domain, flags & ~RADEON_FLAG_ENCRYPTED);
-       assert(heap >= 0 && heap < RADEON_MAX_CACHED_HEAPS);
+       /* RADEON_FLAG_NO_SUBALLOC is irrelevant for the cache. */
+       heap = radeon_get_heap_index(domain, flags & ~RADEON_FLAG_NO_SUBALLOC);
+       assert(heap >= 0 && heap < RADEON_NUM_HEAPS);
 
        /* Get a buffer from the cache. */
        bo = (struct amdgpu_winsys_bo*)
@@ -1580,6 +1544,7 @@ static struct pb_buffer *amdgpu_bo_from_handle(struct radeon_winsys *rws,
        * if it can be used for scanout.
        */
       flags |= RADEON_FLAG_ENCRYPTED;
+      *((bool*)&rws->uses_secure_bos) = true;
    }
 
    /* Initialize the structure. */
@@ -1696,7 +1661,8 @@ static bool amdgpu_bo_get_handle(struct radeon_winsys *rws,
 }
 
 static struct pb_buffer *amdgpu_bo_from_ptr(struct radeon_winsys *rws,
-					    void *pointer, uint64_t size)
+					    void *pointer, uint64_t size,
+					    enum radeon_bo_flag flags)
 {
     struct amdgpu_winsys *ws = amdgpu_winsys(rws);
     amdgpu_bo_handle buf_handle;

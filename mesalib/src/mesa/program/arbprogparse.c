@@ -38,7 +38,6 @@ The instructions we emit will use six kinds of source registers:
   PROGRAM_INPUT      - input registers
   PROGRAM_TEMPORARY  - temp registers
   PROGRAM_ADDRESS    - address/indirect register
-  PROGRAM_SAMPLER    - texture sampler
   PROGRAM_CONSTANT   - indexes into program->Parameters, a known constant/literal
   PROGRAM_STATE_VAR  - indexes into program->Parameters, and may actually be:
                        + a state variable, like "state.fog.color", or
@@ -59,7 +58,6 @@ having three separate program parameter arrays.
 #include "prog_parameter.h"
 #include "prog_statevars.h"
 #include "prog_instruction.h"
-#include "prog_optimize.h"
 #include "program_parser.h"
 
 
@@ -177,8 +175,6 @@ _mesa_parse_arb_vertex_program(struct gl_context *ctx, GLenum target,
       _mesa_error(ctx, GL_INVALID_OPERATION, "glProgramString(bad program)");
       return;
    }
-
-   _mesa_optimize_program(&prog, program);
 
    ralloc_free(program->String);
 

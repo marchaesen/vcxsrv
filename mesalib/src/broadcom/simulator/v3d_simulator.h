@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Raspberry Pi
+ * Copyright © 2019 Raspberry Pi Ltd
  * Copyright © 2014-2017 Broadcom
  * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
  *
@@ -40,6 +40,7 @@ uint32_t v3d_simulator_get_spill(uint32_t spill_size);
 int v3d_simulator_ioctl(int fd, unsigned long request, void *arg);
 void v3d_simulator_open_from_handle(int fd, int handle, uint32_t size);
 uint32_t v3d_simulator_get_mem_size(void);
+uint32_t v3d_simulator_get_mem_free(void);
 
 #ifdef v3dX
 #  include "v3dx_simulator.h"

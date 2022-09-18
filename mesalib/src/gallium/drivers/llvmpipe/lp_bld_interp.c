@@ -1,9 +1,9 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2009 VMware, Inc.
  * Copyright 2007-2008 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -11,11 +11,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -23,7 +23,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -191,6 +191,20 @@ calc_centroid_offsets(struct lp_build_interp_soa_context *bld,
    *centroid_y = lp_build_select(coeff_bld, s_mask_and, pix_center_offset, centroid_y_offset);
 }
 
+/* Note: this assumes the pointer to elem_type is in address space 0 */
+static LLVMValueRef
+load_casted(LLVMBuilderRef builder, LLVMTypeRef elem_type, LLVMValueRef ptr, const char *name) {
+   ptr = LLVMBuildBitCast(builder, ptr, LLVMPointerType(elem_type, 0), name);
+   return LLVMBuildLoad2(builder, elem_type, ptr, name);
+}
+
+static LLVMValueRef
+indexed_load(LLVMBuilderRef builder, LLVMTypeRef gep_type,
+                  LLVMTypeRef elem_type, LLVMValueRef ptr, LLVMValueRef index, const char *name) {
+   ptr = LLVMBuildGEP2(builder, gep_type, ptr, &index, 1, name);
+   return load_casted(builder, elem_type, ptr, name);
+}
+
 /* Much easier, and significantly less instructions in the per-stamp
  * part (less than half) but overall more instructions so a loss if
  * most quads are active. Might be a win though with larger vectors.
@@ -221,39 +235,30 @@ coeffs_init_simple(struct lp_build_interp_soa_context *bld,
        * would help.
        * Might want to investigate this again later.
        */
-      const unsigned interp = bld->interp[attrib];
+      const enum lp_interp interp = bld->interp[attrib];
       LLVMValueRef index = lp_build_const_int32(gallivm,
                                 attrib * TGSI_NUM_CHANNELS);
-      LLVMValueRef ptr;
       LLVMValueRef dadxaos = setup_bld->zero;
       LLVMValueRef dadyaos = setup_bld->zero;
       LLVMValueRef a0aos = setup_bld->zero;
+
+      /* See: lp_state_fs.c / generate_fragment() / fs_elem_type */
+      LLVMTypeRef fs_elem_type = LLVMFloatTypeInContext(gallivm->context);
 
       switch (interp) {
       case LP_INTERP_PERSPECTIVE:
          FALLTHROUGH;
 
       case LP_INTERP_LINEAR:
-         ptr = LLVMBuildGEP(builder, dadx_ptr, &index, 1, "");
-         ptr = LLVMBuildBitCast(builder, ptr,
-               LLVMPointerType(setup_bld->vec_type, 0), "");
-         dadxaos = LLVMBuildLoad(builder, ptr, "");
-
-         ptr = LLVMBuildGEP(builder, dady_ptr, &index, 1, "");
-         ptr = LLVMBuildBitCast(builder, ptr,
-               LLVMPointerType(setup_bld->vec_type, 0), "");
-         dadyaos = LLVMBuildLoad(builder, ptr, "");
-
+         dadxaos = indexed_load(builder, fs_elem_type, setup_bld->vec_type, dadx_ptr, index, "");
+         dadyaos = indexed_load(builder, fs_elem_type, setup_bld->vec_type, dady_ptr, index, "");
          attrib_name(dadxaos, attrib, 0, ".dadxaos");
          attrib_name(dadyaos, attrib, 0, ".dadyaos");
          FALLTHROUGH;
 
       case LP_INTERP_CONSTANT:
       case LP_INTERP_FACING:
-         ptr = LLVMBuildGEP(builder, a0_ptr, &index, 1, "");
-         ptr = LLVMBuildBitCast(builder, ptr,
-               LLVMPointerType(setup_bld->vec_type, 0), "");
-         a0aos = LLVMBuildLoad(builder, ptr, "");
+         a0aos = indexed_load(builder, fs_elem_type, setup_bld->vec_type, a0_ptr, index, "");
          attrib_name(a0aos, attrib, 0, ".a0aos");
          break;
 
@@ -297,10 +302,10 @@ attribs_update_simple(struct lp_build_interp_soa_context *bld,
    /* could do this with code-generated passed in pixel offsets too */
 
    assert(loop_iter);
-   ptr = LLVMBuildGEP(builder, bld->xoffset_store, &loop_iter, 1, "");
-   pixoffx = LLVMBuildLoad(builder, ptr, "");
-   ptr = LLVMBuildGEP(builder, bld->yoffset_store, &loop_iter, 1, "");
-   pixoffy = LLVMBuildLoad(builder, ptr, "");
+   ptr = LLVMBuildGEP2(builder, bld->store_elem_type, bld->xoffset_store, &loop_iter, 1, "");
+   pixoffx = LLVMBuildLoad2(builder, bld->store_elem_type, ptr, "");
+   ptr = LLVMBuildGEP2(builder, bld->store_elem_type, bld->yoffset_store, &loop_iter, 1, "");
+   pixoffy = LLVMBuildLoad2(builder, bld->store_elem_type, ptr, "");
 
    pixoffx = LLVMBuildFAdd(builder, pixoffx,
                            lp_build_broadcast_scalar(coeff_bld, bld->x), "");
@@ -309,8 +314,8 @@ attribs_update_simple(struct lp_build_interp_soa_context *bld,
 
    for (attrib = start; attrib < end; attrib++) {
       const unsigned mask = bld->mask[attrib];
-      const unsigned interp = bld->interp[attrib];
-      const unsigned loc = bld->interp_loc[attrib];
+      const enum lp_interp interp = bld->interp[attrib];
+      const enum tgsi_interpolate_loc loc = bld->interp_loc[attrib];
       unsigned chan;
 
       for (chan = 0; chan < TGSI_NUM_CHANNELS; chan++) {
@@ -420,16 +425,6 @@ attribs_update_simple(struct lp_build_interp_soa_context *bld,
                                              coeff_bld->type, bld->a0aos[0],
                                              lp_build_const_int32(gallivm, 0));
                a = LLVMBuildFAdd(builder, a, offset, "");
-
-               if (!bld->depth_clamp){
-                  /* OpenGL requires clamping z to 0..1 range after polgon offset
-                  * is applied if depth-clamping isn't enabled.
-                  *
-                  * This also fixes the problem that depth values can exceed 1.0,
-                  * due to imprecision in the calculations.
-                  */
-                  a = lp_build_clamp(coeff_bld, a, coeff_bld->zero, coeff_bld->one);
-               }
             }
 
             bld->attribs[attrib][chan] = a;
@@ -448,7 +443,7 @@ lp_build_interp_soa_indirect(struct lp_build_interp_soa_context *bld,
 {
    LLVMBuilderRef builder = gallivm->builder;
    struct lp_build_context *coeff_bld = &bld->coeff_bld;
-   const unsigned interp = bld->interp[attrib];
+   const enum lp_interp interp = bld->interp[attrib];
    LLVMValueRef dadx = coeff_bld->zero;
    LLVMValueRef dady = coeff_bld->zero;
    LLVMValueRef a = coeff_bld->zero;
@@ -515,7 +510,7 @@ lp_build_interp_soa(struct lp_build_interp_soa_context *bld,
                     LLVMValueRef loop_iter,
                     LLVMValueRef mask_store,
                     unsigned attrib, unsigned chan,
-                    unsigned loc,
+                    enum tgsi_interpolate_loc loc,
                     LLVMValueRef indir_index,
                     LLVMValueRef offsets[2])
 {
@@ -529,10 +524,10 @@ lp_build_interp_soa(struct lp_build_interp_soa_context *bld,
    /* could do this with code-generated passed in pixel offsets too */
 
    assert(loop_iter);
-   ptr = LLVMBuildGEP(builder, bld->xoffset_store, &loop_iter, 1, "");
-   pixoffx = LLVMBuildLoad(builder, ptr, "");
-   ptr = LLVMBuildGEP(builder, bld->yoffset_store, &loop_iter, 1, "");
-   pixoffy = LLVMBuildLoad(builder, ptr, "");
+   ptr = LLVMBuildGEP2(builder, bld->store_elem_type, bld->xoffset_store, &loop_iter, 1, "");
+   pixoffx = LLVMBuildLoad2(builder, bld->store_elem_type, ptr, "");
+   ptr = LLVMBuildGEP2(builder, bld->store_elem_type, bld->yoffset_store, &loop_iter, 1, "");
+   pixoffy = LLVMBuildLoad2(builder, bld->store_elem_type, ptr, "");
 
    pixoffx = LLVMBuildFAdd(builder, pixoffx,
                            lp_build_broadcast_scalar(coeff_bld, bld->x), "");
@@ -572,7 +567,7 @@ lp_build_interp_soa(struct lp_build_interp_soa_context *bld,
                                              lp_elem_type(bld->coeff_bld.type),
                                              false,
                                              base_ptr,
-                                             y_val_idx, true);      
+                                             y_val_idx, true);
 
       if (bld->coverage_samples > 1) {
          pixoffx = LLVMBuildFAdd(builder, pixoffx, xoffset, "");
@@ -585,7 +580,8 @@ lp_build_interp_soa(struct lp_build_interp_soa_context *bld,
       /* if all samples are covered use pixel centers */
       if (bld->coverage_samples > 1) {
          calc_centroid_offsets(bld, gallivm, loop_iter, mask_store,
-			       pix_center_offset, &centroid_x_offset, &centroid_y_offset);
+                               pix_center_offset, &centroid_x_offset,
+                               &centroid_y_offset);
 
          pixoffx = LLVMBuildFAdd(builder, pixoffx, centroid_x_offset, "");
          pixoffy = LLVMBuildFAdd(builder, pixoffy, centroid_y_offset, "");
@@ -597,10 +593,10 @@ lp_build_interp_soa(struct lp_build_interp_soa_context *bld,
 
    if (indir_index)
      return lp_build_interp_soa_indirect(bld, gallivm, attrib, chan,
-					 indir_index, pixoffx, pixoffy);
+                                         indir_index, pixoffx, pixoffy);
 
 
-   const unsigned interp = bld->interp[attrib];
+   const enum lp_interp interp = bld->interp[attrib];
    LLVMValueRef dadx = coeff_bld->zero;
    LLVMValueRef dady = coeff_bld->zero;
    LLVMValueRef a = coeff_bld->zero;
@@ -681,7 +677,6 @@ lp_build_interp_soa_init(struct lp_build_interp_soa_context *bld,
                          unsigned coverage_samples,
                          LLVMValueRef sample_pos_array,
                          LLVMValueRef num_loop,
-                         boolean depth_clamp,
                          LLVMBuilderRef builder,
                          struct lp_type type,
                          LLVMValueRef a0_ptr,
@@ -750,7 +745,6 @@ lp_build_interp_soa_init(struct lp_build_interp_soa_context *bld,
    } else {
       bld->pos_offset = 0.5;
    }
-   bld->depth_clamp = depth_clamp;
    bld->coverage_samples = coverage_samples;
    bld->num_loop = num_loop;
    bld->sample_pos_array = sample_pos_array;
@@ -769,20 +763,21 @@ lp_build_interp_soa_init(struct lp_build_interp_soa_context *bld,
       LLVMValueRef pixoffx, pixoffy, index;
       LLVMValueRef ptr;
 
+      bld->store_elem_type = lp_build_vec_type(gallivm, type);
       bld->xoffset_store = lp_build_array_alloca(gallivm,
-                                                 lp_build_vec_type(gallivm, type),
+                                                 bld->store_elem_type,
                                                  lp_build_const_int32(gallivm, num_loops),
                                                  "");
       bld->yoffset_store = lp_build_array_alloca(gallivm,
-                                                 lp_build_vec_type(gallivm, type),
+                                                 bld->store_elem_type,
                                                  lp_build_const_int32(gallivm, num_loops),
                                                  "");
       for (i = 0; i < num_loops; i++) {
          index = lp_build_const_int32(gallivm, i);
          calc_offsets(&bld->coeff_bld, i*type.length/4, &pixoffx, &pixoffy);
-         ptr = LLVMBuildGEP(builder, bld->xoffset_store, &index, 1, "");
+         ptr = LLVMBuildGEP2(builder, bld->store_elem_type, bld->xoffset_store, &index, 1, "");
          LLVMBuildStore(builder, pixoffx, ptr);
-         ptr = LLVMBuildGEP(builder, bld->yoffset_store, &index, 1, "");
+         ptr = LLVMBuildGEP2(builder, bld->store_elem_type, bld->yoffset_store, &index, 1, "");
          LLVMBuildStore(builder, pixoffy, ptr);
       }
    }

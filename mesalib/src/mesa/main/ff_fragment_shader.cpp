@@ -1093,16 +1093,6 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    validate_ir_tree(p.shader->ir);
 
-   const struct gl_shader_compiler_options *options =
-      &ctx->Const.ShaderCompilerOptions[MESA_SHADER_FRAGMENT];
-
-   /* Conservative approach: Don't optimize here, the linker does it too. */
-   if (!ctx->Const.GLSLOptimizeConservatively) {
-      while (do_common_optimization(p.shader->ir, false, false, options,
-                                    ctx->Const.NativeIntegers))
-         ;
-   }
-
    reparent_ir(p.shader->ir, p.shader->ir);
 
    p.shader->CompileStatus = COMPILE_SUCCESS;

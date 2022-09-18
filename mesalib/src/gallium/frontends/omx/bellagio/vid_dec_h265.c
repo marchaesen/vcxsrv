@@ -795,7 +795,7 @@ static void slice_header(vid_dec_PrivateType *priv, struct vl_rbsp *rbsp,
    if (priv->picture.h265.RAPPicFlag != is_rap_picture(nal_unit_type))
       vid_dec_h265_EndFrame(priv);
    priv->picture.h265.RAPPicFlag = is_rap_picture(nal_unit_type);
-
+   priv->picture.h265.IntraPicFlag = is_rap_picture(nal_unit_type);
    num_st_rps = sps->num_short_term_ref_pic_sets;
 
    if (priv->picture.h265.CurrRpsIdx != num_st_rps)

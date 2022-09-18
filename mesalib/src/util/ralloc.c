@@ -22,12 +22,13 @@
  */
 
 #include <assert.h>
-#include <stdlib.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "util/list.h"
 #include "util/macros.h"
 #include "util/u_math.h"
 #include "util/u_printf.h"
@@ -36,25 +37,21 @@
 
 #define CANARY 0x5A1106
 
+#if defined(__LP64__) || defined(_WIN64)
+#define HEADER_ALIGN alignas(16)
+#else
+#define HEADER_ALIGN alignas(8)
+#endif
+
 /* Align the header's size so that ralloc() allocations will return with the
  * same alignment as a libc malloc would have (8 on 32-bit GLIBC, 16 on
  * 64-bit), avoiding performance penalities on x86 and alignment faults on
  * ARM.
  */
-struct
-#ifdef _MSC_VER
-#if _WIN64
-__declspec(align(16))
-#else
- __declspec(align(8))
-#endif
-#elif defined(__LP64__)
- __attribute__((aligned(16)))
-#else
- __attribute__((aligned(8)))
-#endif
-   ralloc_header
+struct ralloc_header
 {
+   HEADER_ALIGN
+
 #ifndef NDEBUG
    /* A canary value used to determine whether a pointer is ralloc'd. */
    unsigned canary;
@@ -533,6 +530,382 @@ ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
 }
 
 /***************************************************************************
+ * GC context.
+ ***************************************************************************
+ */
+
+/* The maximum size of an object that will be allocated specially.
+ */
+#define MAX_FREELIST_SIZE 512
+
+/* Allocations small enough to be allocated from a freelist will be aligned up
+ * to this size.
+ */
+#define FREELIST_ALIGNMENT 32
+
+#define NUM_FREELIST_BUCKETS (MAX_FREELIST_SIZE / FREELIST_ALIGNMENT)
+
+/* The size of a slab. */
+#define SLAB_SIZE (32 * 1024)
+
+#define GC_CANARY 0xAF6B5B72
+
+enum gc_flags {
+   IS_USED = (1 << 0),
+   CURRENT_GENERATION = (1 << 1),
+};
+
+typedef struct
+{
+#ifndef NDEBUG
+   /* A canary value used to determine whether a pointer is allocated using gc_alloc. */
+   unsigned canary;
+#endif
+
+   uint16_t slab_offset;
+   uint8_t bucket;
+   uint8_t flags;
+} gc_block_header;
+
+/* This structure is at the start of the slab. Objects inside a slab are
+ * allocated using a freelist backed by a simple linear allocator.
+ */
+typedef struct gc_slab {
+   HEADER_ALIGN
+
+   gc_ctx *ctx;
+
+   /* Objects are allocated using either linear or freelist allocation. "next_available" is the
+    * pointer used for linear allocation, while "freelist" is the next free object for freelist
+    * allocation.
+    */
+   char *next_available;
+   gc_block_header *freelist;
+
+   /* Slabs that handle the same-sized objects. */
+   struct list_head link;
+
+   /* Free slabs that handle the same-sized objects. */
+   struct list_head free_link;
+
+   /* Number of allocated and free objects, recorded so that we can free the slab if it
+    * becomes empty or add one to the freelist if it's no longer full.
+    */
+   unsigned num_allocated;
+   unsigned num_free;
+} gc_slab;
+
+struct gc_ctx {
+   /* Array of slabs for fixed-size allocations. Each slab tracks allocations
+    * of specific sized blocks. User allocations are rounded up to the nearest
+    * fixed size. slabs[N] contains allocations of size
+    * FREELIST_ALIGNMENT * (N + 1).
+    */
+   struct {
+      /* List of slabs in this bucket. */
+      struct list_head slabs;
+
+      /* List of slabs with free space in this bucket, so we can quickly choose one when
+       * allocating.
+       */
+      struct list_head free_slabs;
+   } slabs[NUM_FREELIST_BUCKETS];
+
+   uint8_t current_gen;
+   void *rubbish;
+};
+
+static gc_block_header *
+get_gc_header(const void *ptr)
+{
+   gc_block_header *info = (gc_block_header *) (((char *) ptr) -
+					    sizeof(gc_block_header));
+   assert(info->canary == GC_CANARY);
+   return info;
+}
+
+static gc_block_header *
+get_gc_freelist_next(gc_block_header *ptr)
+{
+   gc_block_header *next;
+   /* work around possible strict aliasing bug using memcpy */
+   memcpy(&next, (void*)(ptr + 1), sizeof(next));
+   return next;
+}
+
+static void
+set_gc_freelist_next(gc_block_header *ptr, gc_block_header *next)
+{
+   memcpy((void*)(ptr + 1), &next, sizeof(next));
+}
+
+static gc_slab *
+get_gc_slab(gc_block_header *header)
+{
+   return (gc_slab *)((char *)header - header->slab_offset);
+}
+
+gc_ctx *
+gc_context(const void *parent)
+{
+   gc_ctx *ctx = rzalloc(parent, gc_ctx);
+   for (unsigned i = 0; i < NUM_FREELIST_BUCKETS; i++) {
+      list_inithead(&ctx->slabs[i].slabs);
+      list_inithead(&ctx->slabs[i].free_slabs);
+   }
+   return ctx;
+}
+
+static size_t
+gc_bucket_obj_size(unsigned bucket)
+{
+   return (bucket + 1) * FREELIST_ALIGNMENT;
+}
+
+static unsigned
+gc_bucket_for_size(size_t size)
+{
+   return (size - 1) / FREELIST_ALIGNMENT;
+}
+
+static unsigned
+gc_bucket_num_objs(unsigned bucket)
+{
+   return (SLAB_SIZE - sizeof(gc_slab)) / gc_bucket_obj_size(bucket);
+}
+
+static gc_block_header *
+alloc_from_slab(gc_slab *slab, unsigned bucket)
+{
+   size_t size = gc_bucket_obj_size(bucket);
+   gc_block_header *header;
+   if (slab->freelist) {
+      /* Prioritize already-allocated chunks, since they probably have a page
+       * backing them.
+       */
+      header = slab->freelist;
+      slab->freelist = get_gc_freelist_next(slab->freelist);
+   } else if (slab->next_available + size <= ((char *) slab) + SLAB_SIZE) {
+      header = (gc_block_header *) slab->next_available;
+      header->slab_offset = (char *) header - (char *) slab;
+      header->bucket = bucket;
+      slab->next_available += size;
+   } else {
+      return NULL;
+   }
+
+   slab->num_allocated++;
+   slab->num_free--;
+   if (!slab->num_free)
+      list_del(&slab->free_link);
+   return header;
+}
+
+static void
+free_slab(gc_slab *slab)
+{
+   if (list_is_linked(&slab->free_link))
+      list_del(&slab->free_link);
+   list_del(&slab->link);
+   ralloc_free(slab);
+}
+
+static void
+free_from_slab(gc_block_header *header, bool keep_empty_slabs)
+{
+   gc_slab *slab = get_gc_slab(header);
+
+   if (slab->num_allocated == 1 && !(keep_empty_slabs && list_is_singular(&slab->free_link))) {
+      /* Free the slab if this is the last object. */
+      free_slab(slab);
+      return;
+   } else if (slab->num_free == 0) {
+      list_add(&slab->free_link, &slab->ctx->slabs[header->bucket].free_slabs);
+   } else {
+      /* Keep the free list sorted by the number of free objects in ascending order. By prefering to
+       * allocate from the slab with the fewest free objects, we help free the slabs with many free
+       * objects.
+       */
+      while (slab->free_link.next != &slab->ctx->slabs[header->bucket].free_slabs &&
+             slab->num_free > list_entry(slab->free_link.next, gc_slab, free_link)->num_free) {
+         gc_slab *next = list_entry(slab->free_link.next, gc_slab, free_link);
+
+         /* Move "slab" to after "next". */
+         list_move_to(&slab->free_link, &next->free_link);
+      }
+   }
+
+   set_gc_freelist_next(header, slab->freelist);
+   slab->freelist = header;
+
+   slab->num_allocated--;
+   slab->num_free++;
+}
+
+static unsigned
+get_slab_size(unsigned bucket)
+{
+   /* SLAB_SIZE rounded down to a multiple of the object size so that it's not larger than what can
+    * be used.
+    */
+   unsigned obj_size = gc_bucket_obj_size(bucket);
+   unsigned num_objs = gc_bucket_num_objs(bucket);
+   return align64(sizeof(gc_slab) + num_objs * obj_size, alignof(gc_slab));
+}
+
+static gc_slab *
+create_slab(gc_ctx *ctx, unsigned bucket)
+{
+   gc_slab *slab = ralloc_size(ctx, get_slab_size(bucket));
+   if (unlikely(!slab))
+      return NULL;
+
+   slab->ctx = ctx;
+   slab->freelist = NULL;
+   slab->next_available = (char*)(slab + 1);
+   slab->num_allocated = 0;
+   slab->num_free = gc_bucket_num_objs(bucket);
+
+   list_addtail(&slab->link, &ctx->slabs[bucket].slabs);
+   list_addtail(&slab->free_link, &ctx->slabs[bucket].free_slabs);
+
+   return slab;
+}
+
+void *
+gc_alloc_size(gc_ctx *ctx, size_t size, size_t align)
+{
+   assert(ctx);
+   assert(util_is_power_of_two_nonzero(align));
+
+   align = MAX2(align, alignof(gc_block_header));
+
+   size = align64(size, align);
+   size += align64(sizeof(gc_block_header), align);
+
+   gc_block_header *header = NULL;
+   if (size <= MAX_FREELIST_SIZE) {
+      unsigned bucket = gc_bucket_for_size(size);
+      if (list_is_empty(&ctx->slabs[bucket].free_slabs) && !create_slab(ctx, bucket))
+         return NULL;
+      gc_slab *slab = list_first_entry(&ctx->slabs[bucket].free_slabs, gc_slab, free_link);
+      header = alloc_from_slab(slab, bucket);
+   } else {
+      header = ralloc_size(ctx, size);
+      if (unlikely(!header))
+         return NULL;
+      /* Mark the header as allocated directly, so we know to actually free it. */
+      header->bucket = NUM_FREELIST_BUCKETS;
+   }
+
+   header->flags = ctx->current_gen | IS_USED;
+#ifndef NDEBUG
+   header->canary = GC_CANARY;
+#endif
+
+   void *ptr = (char *)header + sizeof(gc_block_header);
+   assert(((uintptr_t)ptr & (align - 1)) == 0);
+   return ptr;
+}
+
+void *
+gc_zalloc_size(gc_ctx *ctx, size_t size, size_t align)
+{
+   void *ptr = gc_alloc_size(ctx, size, align);
+
+   if (likely(ptr))
+      memset(ptr, 0, size);
+
+   return ptr;
+}
+
+void
+gc_free(void *ptr)
+{
+   if (!ptr)
+      return;
+
+   gc_block_header *header = get_gc_header(ptr);
+   header->flags &= ~IS_USED;
+
+   if (header->bucket < NUM_FREELIST_BUCKETS)
+      free_from_slab(header, true);
+   else
+      ralloc_free(header);
+}
+
+gc_ctx *gc_get_context(void *ptr)
+{
+   gc_block_header *header = get_gc_header(ptr);
+
+   if (header->bucket < NUM_FREELIST_BUCKETS)
+      return get_gc_slab(header)->ctx;
+   else
+      return ralloc_parent(header);
+}
+
+void
+gc_sweep_start(gc_ctx *ctx)
+{
+   ctx->current_gen ^= CURRENT_GENERATION;
+
+   ctx->rubbish = ralloc_context(NULL);
+   ralloc_adopt(ctx->rubbish, ctx);
+}
+
+void
+gc_mark_live(gc_ctx *ctx, const void *mem)
+{
+   gc_block_header *header = get_gc_header(mem);
+   if (header->bucket < NUM_FREELIST_BUCKETS)
+      header->flags ^= CURRENT_GENERATION;
+   else
+      ralloc_steal(ctx, header);
+}
+
+void
+gc_sweep_end(gc_ctx *ctx)
+{
+   assert(ctx->rubbish);
+
+   for (unsigned i = 0; i < NUM_FREELIST_BUCKETS; i++) {
+      unsigned obj_size = gc_bucket_obj_size(i);
+      list_for_each_entry_safe(gc_slab, slab, &ctx->slabs[i].slabs, link) {
+         if (!slab->num_allocated) {
+            free_slab(slab);
+            continue;
+         }
+
+         for (char *ptr = (char*)(slab + 1); ptr != slab->next_available; ptr += obj_size) {
+            gc_block_header *header = (gc_block_header *)ptr;
+            if (!(header->flags & IS_USED))
+               continue;
+            if ((header->flags & CURRENT_GENERATION) == ctx->current_gen)
+               continue;
+
+            bool last = slab->num_allocated == 1;
+
+            header->flags &= ~IS_USED;
+            free_from_slab(header, false);
+
+            if (last)
+               break;
+         }
+      }
+   }
+
+   for (unsigned i = 0; i < NUM_FREELIST_BUCKETS; i++) {
+      list_for_each_entry(gc_slab, slab, &ctx->slabs[i].slabs, link) {
+         assert(slab->num_allocated > 0); /* free_from_slab() should free it otherwise */
+         ralloc_steal(ctx, slab);
+      }
+   }
+
+   ralloc_free(ctx->rubbish);
+   ctx->rubbish = NULL;
+}
+
+/***************************************************************************
  * Linear allocator for short-lived allocations.
  ***************************************************************************
  *
@@ -554,15 +927,10 @@ ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
 #define SUBALLOC_ALIGNMENT 8
 #define LMAGIC 0x87b9c7d3
 
-struct
-#ifdef _MSC_VER
- __declspec(align(8))
-#elif defined(__LP64__)
- __attribute__((aligned(16)))
-#else
- __attribute__((aligned(8)))
-#endif
-   linear_header {
+struct linear_header {
+
+   HEADER_ALIGN
+
 #ifndef NDEBUG
    unsigned magic;   /* for debugging */
 #endif

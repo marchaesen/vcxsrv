@@ -31,10 +31,10 @@ XkbAllocGeomKeys \- Allocate space for an arbitrary number of keys to a row
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- row
+.I row
 row to which keys should be allocated
 .TP
-.I \- num_needed
+.I num_needed
 number of new keys required 
 .SH DESCRIPTION
 .LP

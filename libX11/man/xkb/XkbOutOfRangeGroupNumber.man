@@ -32,7 +32,7 @@ as a group index, from the group_info field of an XkbSymMapRec structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- grp_inf
+.I grp_inf
 Xkb description of interest
 .SH DESCRIPTION
 .LP

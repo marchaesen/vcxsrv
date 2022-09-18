@@ -6,3 +6,9 @@ maxuniformblocksize
 robustness.*infinite_loop
 ext_external_obj
 deqp-gles31.functional.ssbo.layout.random.all_shared_buffer.48
+
+# These are not built on Linux
+spec@!opengl 1.1@windowoverlap
+wgl@wgl-multi-context-single-window
+wgl@wgl-multi-window-single-context
+wgl@wgl-sanity

@@ -31,13 +31,6 @@
 #include "pbproxy.h"
 #import "x-selection.h"
 
-#include <pthread.h>
-#include <unistd.h> /*for getpid*/
-#include <Cocoa/Cocoa.h>
-
-static const char *app_prefs_domain = BUNDLE_ID_PREFIX ".xpbproxy";
-CFStringRef app_prefs_domain_cfstr;
-
 /* Stubs */
 char *display = NULL;
 
@@ -82,40 +75,7 @@ xq_asl_log(int level, const char *subsystem, const char *file,
 int
 main(int argc, const char *argv[])
 {
-    const char *s;
-    int i;
-
-#ifdef DEBUG
-    ErrorF("pid: %u\n", getpid());
-#endif
-
     xpbproxy_is_standalone = YES;
-
-    if ((s = getenv("X11_PREFS_DOMAIN")))
-        app_prefs_domain = s;
-
-    for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--prefs-domain") == 0 && i + 1 < argc) {
-            app_prefs_domain = argv[++i];
-        }
-        else if (strcmp(argv[i], "--help") == 0) {
-            ErrorF(
-                "usage: xpbproxy OPTIONS\n"
-                "Pasteboard proxying for X11.\n\n"
-                "--prefs-domain <domain>   Change the domain used for reading preferences\n"
-                "                          (default: %s)\n",
-                app_prefs_domain);
-            return 0;
-        }
-        else {
-            ErrorF("usage: xpbproxy OPTIONS...\n"
-                   "Try 'xpbproxy --help' for more information.\n");
-            return 1;
-        }
-    }
-
-    app_prefs_domain_cfstr = CFStringCreateWithCString(NULL, app_prefs_domain,
-                                                       kCFStringEncodingUTF8);
 
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);

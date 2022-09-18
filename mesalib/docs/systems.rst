@@ -15,7 +15,7 @@ Hardware drivers include:
    Website <https://01.org/linuxgraphics>`__
 -  AMD Radeon series. See
    `RadeonFeature <https://www.x.org/wiki/RadeonFeature>`__
--  NVIDIA GPUs (Riva TNT and later). See `Nouveau
+-  NVIDIA GPUs (GeForce 5 / FX and later). See `Nouveau
    Wiki <https://nouveau.freedesktop.org>`__
 -  Qualcomm Adreno A2xx-A6xx. See :doc:`Freedreno
    <drivers/freedreno>`
@@ -32,14 +32,14 @@ Layered driver include:
 -  :doc:`D3D12 <drivers/d3d12>` - driver providing OpenGL on top of
    Microsoft's Direct3D 12 API.
 -  :doc:`SVGA3D <drivers/svga3d>` - driver for VMware virtual GPU
--  `VirGL <https://virgil3d.github.io/>`__ - research project for
-   accelerated graphics for qemu guests
+-  :doc:`VirGL <drivers/virgl>` - project for accelerated graphics for
+   QEMU guests
 -  :doc:`Zink <drivers/zink>` - driver providing OpenGL on top of
    Khoronos' Vulkan API.
 
 Software drivers include:
 
--  :doc:`LLVMpipe <drivers/llvmpipe>` - uses LLVM for x86 JIT code generation
+-  :doc:`LLVMpipe <drivers/llvmpipe>` - uses LLVM for JIT code generation
    and is multi-threaded
 -  Softpipe - a reference Gallium driver
 
@@ -62,11 +62,14 @@ the Git repo. The list includes:
 -  3DLABS Gamma
 -  ATI Mach 64
 -  ATI Rage 128
+-  ATI Radeon 7000 - 9250
 -  DEC OpenVMS
 -  Intel i810
+-  Intel i830 - i865
 -  Linux fbdev
 -  Matrox
 -  MS-DOS
+-  NVIDIA Riva TNT - GeForce 4
 -  S3 Savage
 -  Silicon Integrated Systems
 -  swrast

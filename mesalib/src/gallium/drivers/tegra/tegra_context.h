@@ -47,6 +47,7 @@ tegra_screen_context_create(struct pipe_screen *pscreen, void *priv,
 struct tegra_sampler_view {
    struct pipe_sampler_view base;
    struct pipe_sampler_view *gpu;
+   unsigned int refcount;
 };
 
 static inline struct tegra_sampler_view *

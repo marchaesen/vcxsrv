@@ -9,6 +9,7 @@ cd /
 
 mount -t proc none /proc
 mount -t sysfs none /sys
+mount -t debugfs none /sys/kernel/debug
 mount -t devtmpfs none /dev || echo possibly already mounted
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts

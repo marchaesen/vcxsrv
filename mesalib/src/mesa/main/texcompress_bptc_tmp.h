@@ -652,7 +652,6 @@ fetch_rgba_unorm_from_block(const uint8_t *block,
    apply_rotation(rotation, result);
 }
 
-#ifdef BPTC_BLOCK_DECODE
 static void
 decompress_rgba_unorm_block(int src_width, int src_height,
                             const uint8_t *block,
@@ -816,17 +815,6 @@ decompress_rgba_unorm(int width, int height,
       src += src_row_diff;
    }
 }
-#endif // BPTC_BLOCK_DECODE
-
-static int32_t
-sign_extend(int32_t value,
-            int n_bits)
-{
-   assert(n_bits > 0 && n_bits < 32);
-
-   const unsigned n = 32 - n_bits;
-   return (int32_t)((uint32_t)value << n) >> n;
-}
 
 static int
 signed_unquantize(int value, int n_endpoint_bits)
@@ -912,8 +900,8 @@ extract_float_endpoints(const struct bptc_float_mode *mode,
       /* The endpoints are specified as signed offsets from e0 */
       for (endpoint = 1; endpoint < n_endpoints; endpoint++) {
          for (component = 0; component < 3; component++) {
-            value = sign_extend(endpoints[endpoint][component],
-                                mode->n_delta_bits[component]);
+            value = util_sign_extend(endpoints[endpoint][component],
+                                     mode->n_delta_bits[component]);
             endpoints[endpoint][component] =
                ((endpoints[0][component] + value) &
                 ((1 << mode->n_endpoint_bits) - 1));
@@ -924,8 +912,8 @@ extract_float_endpoints(const struct bptc_float_mode *mode,
    if (is_signed) {
       for (endpoint = 0; endpoint < n_endpoints; endpoint++) {
          for (component = 0; component < 3; component++) {
-            value = sign_extend(endpoints[endpoint][component],
-                                mode->n_endpoint_bits);
+            value = util_sign_extend(endpoints[endpoint][component],
+                                     mode->n_endpoint_bits);
             endpoints[endpoint][component] =
                signed_unquantize(value, mode->n_endpoint_bits);
          }
@@ -1039,7 +1027,6 @@ fetch_rgb_float_from_block(const uint8_t *block,
    result[3] = 1.0f;
 }
 
-#ifdef BPTC_BLOCK_DECODE
 static void
 decompress_rgb_float_block(unsigned src_width, unsigned src_height,
                            const uint8_t *block,
@@ -1168,7 +1155,135 @@ decompress_rgb_float(int width, int height,
       src += src_row_diff;
    }
 }
-#endif // BPTC_BLOCK_DECODE
+
+static void
+decompress_rgb_fp16_block(unsigned src_width, unsigned src_height,
+                          const uint8_t *block,
+                          uint16_t *dst_row, unsigned dst_rowstride,
+                          bool is_signed)
+{
+   int mode_num;
+   const struct bptc_float_mode *mode;
+   int bit_offset_head, bit_offset;
+   int partition_num;
+   int subset_num;
+   int index_bits;
+   int index;
+   int anchors_before_texel;
+   int32_t endpoints[2 * 2][3];
+   uint32_t subsets;
+   int n_subsets;
+   int component;
+   int32_t value;
+   unsigned x, y;
+
+   if (block[0] & 0x2) {
+      mode_num = (((block[0] >> 1) & 0xe) | (block[0] & 1)) + 2;
+      bit_offset_head = 5;
+   } else {
+      mode_num = block[0] & 3;
+      bit_offset_head = 2;
+   }
+
+   mode = bptc_float_modes + mode_num;
+
+   if (mode->reserved) {
+      for(y = 0; y < src_height; y += 1) {
+         uint16_t *result = dst_row;
+         memset(result, 0, sizeof result[0] * 4 * src_width);
+         for(x = 0; x < src_width; x += 1) {
+            result[3] = 1.0f;
+            result += 4;
+         }
+         dst_row += dst_rowstride / sizeof dst_row[0];
+      }
+      return;
+   }
+
+   bit_offset_head = extract_float_endpoints(mode, block, bit_offset_head,
+                                        endpoints, is_signed);
+
+   if (mode->n_partition_bits) {
+      partition_num = extract_bits(block, bit_offset_head, mode->n_partition_bits);
+      bit_offset_head += mode->n_partition_bits;
+
+      subsets = partition_table1[partition_num];
+      n_subsets = 2;
+   } else {
+      partition_num = 0;
+      subsets = 0;
+      n_subsets = 1;
+   }
+
+   for(y = 0; y < src_height; y += 1) {
+      uint16_t *result = dst_row;
+      for(x = 0; x < src_width; x += 1) {
+         int texel;
+
+         bit_offset = bit_offset_head;
+
+         texel = x + y * 4;
+
+         anchors_before_texel =
+            count_anchors_before_texel(n_subsets, partition_num, texel);
+
+         /* Calculate the offset to the primary index for this texel */
+         bit_offset += mode->n_index_bits * texel - anchors_before_texel;
+
+         subset_num = (subsets >> (texel * 2)) & 3;
+
+         index_bits = mode->n_index_bits;
+         if (is_anchor(n_subsets, partition_num, texel))
+            index_bits--;
+         index = extract_bits(block, bit_offset, index_bits);
+
+         for (component = 0; component < 3; component++) {
+            value = interpolate(endpoints[subset_num * 2][component],
+                                endpoints[subset_num * 2 + 1][component],
+                                index,
+                                mode->n_index_bits);
+
+            if (is_signed)
+               value = finish_signed_unquantize(value);
+            else
+               value = finish_unsigned_unquantize(value);
+
+            result[component] = (uint16_t)value;
+         }
+
+         result[3] = FP16_ONE;
+         result += 4;
+      }
+      dst_row += dst_rowstride / sizeof dst_row[0];
+   }
+}
+
+static void
+decompress_rgb_fp16(int width, int height,
+                    const uint8_t *src, int src_rowstride,
+                    uint16_t *dst, int dst_rowstride, bool is_signed)
+{
+   int src_row_diff;
+   int y, x;
+
+   if (src_rowstride >= width * 4)
+      src_row_diff = src_rowstride - ((width + 3) & ~3) * 4;
+   else
+      src_row_diff = 0;
+
+   for (y = 0; y < height; y += BLOCK_SIZE) {
+      for (x = 0; x < width; x += BLOCK_SIZE) {
+         decompress_rgb_fp16_block(MIN2(width - x, BLOCK_SIZE),
+                                   MIN2(height - y, BLOCK_SIZE),
+                                   src,
+                                   (dst + x * 4 +
+                                    (y * dst_rowstride / sizeof dst[0])),
+                                   dst_rowstride, is_signed);
+         src += BLOCK_BYTES;
+      }
+      src += src_row_diff;
+   }
+}
 
 static void
 write_bits(struct bit_writer *writer, int n_bits, int value)

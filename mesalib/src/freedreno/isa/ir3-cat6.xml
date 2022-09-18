@@ -325,21 +325,55 @@ SOFTWARE.
 	<pattern low="54" high="58">01011</pattern>  <!-- OPC -->
 </bitset>
 
+<bitset name="#stc-dst-imm" extends="#stc-dst">
+	<display>
+		{OFFSET}
+	</display>
+	<field name="OFFSET" low="0" high="7" type="uint"/>
+	<pattern pos="8">0</pattern>
+</bitset>
+
+<bitset name="#stc-dst-a1" extends="#stc-dst">
+	<display>
+		a1.x{OFFSET}
+	</display>
+	<field name="OFFSET" low="0" high="7" type="uoffset"/>
+	<pattern pos="8">1</pattern>
+</bitset>
+
+<bitset name="#stc-dst" size="9">
+	<doc>
+		Encoding for stc destination which can be constant or have an
+		offset of a1.x.
+	</doc>
+	<encode type="struct ir3_instruction *" case-prefix="">
+		<map name="OFFSET">extract_reg_uim(src->srcs[0])</map>
+	</encode>
+</bitset>
+
 <bitset name="stc" extends="#instruction-cat6-a3xx">
 	<doc>
 		STore Const - used for shader prolog (between shps and shpe)
 		to store "uniform folded" values into CONST file
 
 		NOTE: TYPE field actually seems to be set to different
-		values (ie f32 vs u32), but I *think* it does not matter.
-		(There is SP_MODE_CONTROL.CONSTANT_DEMOTION_ENABLE, but
-		I think float results are already converted to 32b)
+		values (ie f32 vs u32), but it seems that only the size (16b vs
+		32b) matters. Setting a 16-bit type (f16, u16, or s16) doesn't
+		cause any promotion to 32-bit, it causes the 16-bit sources to
+		be stored one after the other starting with the low half of the
+		constant. So e.g. "stc.f16 c[1], hr0.x, 1" copies hr0.x to the
+		bottom half of c0.y. There seems to be no way to set just the
+		upper half. In any case, the blob seems to only use the 32-bit
+		versions.
 
-		NOTE: this could be the "old" encoding, although it
-		would conflict with stgb from earlier gens
+		The blob disassembly doesn't include the type, but we still
+		display it so that we can preserve the different values the blob
+		sets when round-tripping.
+
+		NOTE: this conflicts with stgb from earlier gens
 	</doc>
 	<display>
-		{SY}{JP}{NAME} c[{DST}], {SRC}, {SIZE}
+		{SY}{JP}{NAME}.{TYPE} c[{DST}], {SRC}, {SIZE}
 	</display>
 	<gen min="600"/>
 	<pattern pos="0"           >x</pattern>
@@ -348,13 +382,14 @@ SOFTWARE.
 	<pattern pos="23"          >1</pattern>
 	<field   low="24" high="26" name="SIZE" type="uint"/>
 	<pattern low="27" high="31">xxxxx</pattern>
-	<field   low="32" high="39" name="DST" type="uint"/>
-	<pattern low="40" high="48">xxxxxxxxx</pattern>
+	<field   low="32" high="40" name="DST" type="#stc-dst"/>
+	<pattern low="41" high="48">xxxxxxxx</pattern>
 	<pattern low="52" high="53">xx</pattern>
 	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
 	<encode>
-		<map name="DST">extract_reg_uim(src->srcs[0])</map>
+		<map name="DST">src</map>
 		<map name="SRC">src->srcs[1]</map>
+		<map name="SIZE">src->cat6.iim_val</map>
 	</encode>
 </bitset>
 
@@ -436,6 +471,13 @@ SOFTWARE.
 </bitset>
 
 <bitset name="ldgb" extends="#instruction-cat6-a3xx-ibo-load">
+	<gen max="499"/>
+	<pattern low="54" high="58">11011</pattern>  <!-- OPC -->
+        <pattern pos="0"           >1</pattern> <!-- .a -->
+</bitset>
+
+<bitset name="ldgb" extends="#instruction-cat6-a3xx-ibo-load">
+	<gen min="500"/>
 	<pattern low="54" high="58">11011</pattern>  <!-- OPC -->
         <pattern pos="0"           >x</pattern> <!-- .a -->
 </bitset>
@@ -451,7 +493,6 @@ SOFTWARE.
 	</display>
 	<gen max="599"/>
 
-        <pattern pos="0"           >1</pattern> <!-- .a -->
 	<field   low="1"  high="8"  name="SRC1" type="#reg-gpr"/>
 	<pattern low="14" high="22">xxxxxxxxx</pattern>
 	<field   pos="23"           name="SRC2_IM" type="bool"/>
@@ -472,11 +513,31 @@ SOFTWARE.
 	</encode>
 </bitset>
 
-<bitset name="stgb" extends="#instruction-cat6-a3xx-ibo-store">
+<bitset name="#instruction-cat6-a3xx-ibo-store-a4xx" extends="#instruction-cat6-a3xx-ibo-store">
+        <pattern pos="0"           >0</pattern> <!-- .a -->
+</bitset>
+
+<bitset name="#instruction-cat6-a3xx-ibo-store-a5xx" extends="#instruction-cat6-a3xx-ibo-store">
+        <pattern pos="0"           >1</pattern> <!-- .a -->
+</bitset>
+
+<bitset name="stgb" extends="#instruction-cat6-a3xx-ibo-store-a5xx">
+	<gen min="500"/>
 	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="stib" extends="#instruction-cat6-a3xx-ibo-store">
+<bitset name="stib" extends="#instruction-cat6-a3xx-ibo-store-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">11101</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="stgb" extends="#instruction-cat6-a3xx-ibo-store-a4xx">
+	<gen max="499"/>
+	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="stib" extends="#instruction-cat6-a3xx-ibo-store-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">11101</pattern>  <!-- OPC -->
 </bitset>
 
@@ -497,7 +558,6 @@ SOFTWARE.
 	<derived name="D" expr="#cat6-d" type="uint"/>
 	<derived name="TYPE_SIZE" expr="#cat6-type-size" type="uint"/>
 
-	<pattern pos="0"           >1</pattern>
 	<field   low="9"  high="10" name="D_MINUS_ONE" type="uint"/>
 	<field   pos="11"           name="TYPED" type="#cat6-typed"/>
 	<field   low="12" high="13" name="TYPE_SIZE_MINUS_ONE" type="uint"/>
@@ -523,6 +583,7 @@ SOFTWARE.
 </bitset>
 
 <bitset name="#instruction-cat6-a3xx-atomic-local" extends="#instruction-cat6-a3xx-atomic">
+	<pattern pos="0"            >1</pattern>
 	<pattern low="1"  high="8"  >00000000</pattern> <!-- SRC3 -->
 	<pattern low="41" high="48" >00000000</pattern> <!-- SSBO/image binding point -->
 	<pattern pos="52"           >0</pattern> <!-- "G" -->
@@ -607,47 +668,121 @@ SOFTWARE.
 	</encode>
 </bitset>
 
-<bitset name="atomic.s.add" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="#instruction-cat6-a3xx-atomic-global-a4xx" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern pos="0"            >0</pattern>
+</bitset>
+
+<bitset name="atomic.s.add" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10000</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.sub" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.sub" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10001</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.xchg" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.xchg" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10010</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.inc" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.inc" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10011</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.dec" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.dec" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10100</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.cmpxchg" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.cmpxchg" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10101</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.min" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.min" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10110</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.max" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.max" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">10111</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.and" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.and" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">11000</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.or" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.or" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
 	<pattern low="54" high="58">11001</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="atomic.s.xor" extends="#instruction-cat6-a3xx-atomic-global">
+<bitset name="atomic.s.xor" extends="#instruction-cat6-a3xx-atomic-global-a4xx">
+	<gen max="499"/>
+	<pattern low="54" high="58">11010</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="#instruction-cat6-a3xx-atomic-global-a5xx" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern pos="0"            >1</pattern>
+</bitset>
+
+<bitset name="atomic.s.add" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10000</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.sub" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10001</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.xchg" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10010</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.inc" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10011</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.dec" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10100</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.cmpxchg" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10101</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.min" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10110</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.max" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">10111</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.and" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">11000</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.or" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
+	<pattern low="54" high="58">11001</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.xor" extends="#instruction-cat6-a3xx-atomic-global-a5xx">
+	<gen min="500"/>
 	<pattern low="54" high="58">11010</pattern>  <!-- OPC -->
 </bitset>
 
@@ -662,6 +797,7 @@ SOFTWARE.
 		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE}.g {DST}, {SRC1}, {SRC2}
 	</display>
 
+	<pattern pos="0"            >1</pattern>
 	<pattern low="1"  high="8"  >00000000</pattern> <!-- SRC3 -->
 	<pattern low="41" high="48" >00000000</pattern> <!-- SSBO/image binding point -->
 	<pattern pos="52"           >1</pattern> <!-- "G" -->
@@ -742,27 +878,8 @@ SOFTWARE.
 	</encode>
 </bitset>
 
-<bitset name="ldc" extends="#instruction-cat6-a6xx">
-	<doc>
-		LoaD Constant - UBO load
-	</doc>
-	<override>
-		<!-- TODO.. wtf? -->
-		<expr>{K}</expr>
-		<display>
-			{SY}{JP}{NAME}.{TYPE_SIZE}.k.{MODE}{BASE} c[a1.x], {SRC1}, {SRC2}
-		</display>
-		<field   low="32" high="39" name="TYPE_SIZE_MINUS_ONE" type="uint"/>
-	</override>
-	<!--
-	TODO are these *really* all bindless?  Or does that bit have a different
-	meaning?  Maybe I don't have enough ldc examples from deqp-glesN
-	 -->
-	<display>
-		{SY}{JP}{NAME}.offset{OFFSET}.{TYPE_SIZE}.{MODE}{BASE} {DST}, {SRC1}, {SRC2}
-	</display>
+<bitset name="#cat6-ldc-common" extends="#instruction-cat6-a6xx">
 	<pattern pos="0"           >x</pattern>
-	<field   low="9"  high="10" name="OFFSET" type="uint"/>   <!-- D_MINUS_ONE -->
 	<pattern pos="11"          >x</pattern>        <!-- TYPED -->
 	<pattern low="14" high="19">011110</pattern>   <!-- OPC -->
 	<pattern low="20" high="22">1xx</pattern>
@@ -774,16 +891,59 @@ SOFTWARE.
 	<field   low="24" high="31" name="SRC1" type="#cat6-src">
 		<param name="SRC1_IM" as="SRC_IM"/>
 	</field>
-	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
 	<pattern low="49" high="51">x11</pattern>      <!-- TYPE -->
-	<field   pos="52"           name="K" type="bool"/>
-	<pattern pos="53"          >1</pattern>
 	<encode>
-		<map name="K">0</map>  <!-- TODO.. once we figure out what this is -->
 		<map name="SRC1_IM">!!(src->srcs[1]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="OFFSET">src->cat6.d</map>
 		<map name="SRC1">src->srcs[1]</map>
 		<map name="SRC2">src->srcs[0]</map>
+	</encode>
+</bitset>
+
+<bitset name="ldc.k" extends="#cat6-ldc-common">
+	<doc>
+		ldc.k copies a series of UBO values to constants. In other
+		words, it acts the same as a series of ldc followed by stc. It's
+		also similar to a CP_LOAD_STATE with a UBO source but executed
+		in the shader.
+
+		Like CP_LOAD_STATE, the UBO offset and const file offset must be
+		a multiple of 4 vec4's but it can load any number of vec4's. The
+		UBO descriptor and offset are the same as a normal ldc. The
+		const file offset is specified in a1.x and is in units of
+		components, and the number of vec4's to copy is specified in
+		LOAD_SIZE.
+	</doc>
+	<display>
+		{SY}{JP}ldc.{LOAD_SIZE}.k.{MODE}{BASE} c[a1.x], {SRC1}, {SRC2}
+	</display>
+
+	<derived name="LOAD_SIZE" expr="#cat6-load-size" type="uint"/>
+
+	<field   low="32" high="39" name="LOAD_SIZE_MINUS_ONE" type="uint"/>
+	<pattern low="9"  high="10">xx</pattern>   <!-- D_MINUS_ONE -->
+	<pattern low="52" high="53">11</pattern>
+
+	<encode>
+		<map name="LOAD_SIZE_MINUS_ONE">src->cat6.iim_val - 1</map>
+	</encode>
+</bitset>
+
+<bitset name="ldc" extends="#cat6-ldc-common">
+	<doc>
+		LoaD Constant - UBO load
+	</doc>
+	<!--
+	TODO are these *really* all bindless?  Or does that bit have a different
+	meaning?  Maybe I don't have enough ldc examples from deqp-glesN
+	 -->
+	<display>
+		{SY}{JP}{NAME}.offset{OFFSET}.{TYPE_SIZE}.{MODE}{BASE} {DST}, {SRC1}, {SRC2}
+	</display>
+	<field   low="9"  high="10" name="OFFSET" type="uint"/>   <!-- D_MINUS_ONE -->
+	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
+	<pattern low="52" high="53">10</pattern>
+	<encode>
+		<map name="OFFSET">src->cat6.d</map>
 	</encode>
 </bitset>
 
@@ -997,6 +1157,10 @@ SOFTWARE.
 
 <expr name="#cat6-type-size">
 	{TYPE_SIZE_MINUS_ONE} + 1
+</expr>
+
+<expr name="#cat6-load-size">
+	{LOAD_SIZE_MINUS_ONE} + 1
 </expr>
 
 <bitset name="#cat6-typed" size="1">

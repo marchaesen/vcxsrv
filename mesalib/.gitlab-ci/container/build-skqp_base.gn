@@ -1,8 +1,30 @@
-cc = "gcc"
-cxx = "g++"
+cc = "clang"
+cxx = "clang++"
 
 extra_cflags = [ "-DSK_ENABLE_DUMP_GPU", "-DSK_BUILD_FOR_SKQP" ]
-extra_cflags_cc = [ "-static", "-Wno-error", "-Wno-macro-redefined", "-Wno-suggest-destructor-override", "-Wno-suggest-override" ]
+extra_cflags_cc = [
+        "-Wno-error",
+
+        # skqp build process produces a lot of compilation warnings, silencing
+        # most of them to remove clutter and avoid the CI job log to exceed the
+        # maximum size
+
+        # GCC flags
+        "-Wno-redundant-move",
+        "-Wno-suggest-override",
+        "-Wno-class-memaccess",
+        "-Wno-deprecated-copy",
+        "-Wno-uninitialized",
+
+        # Clang flags
+        "-Wno-macro-redefined",
+        "-Wno-anon-enum-enum-conversion",
+        "-Wno-suggest-destructor-override",
+        "-Wno-return-std-move-in-c++11",
+        "-Wno-extra-semi-stmt",
+    ]
+
+cc_wrapper = "ccache"
 
 is_debug = false
 

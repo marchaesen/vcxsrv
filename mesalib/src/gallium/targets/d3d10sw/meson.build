@@ -19,20 +19,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-d3d10sw_def = files('../../frontends/d3d10umd/d3d10_sw.def')[0]
-_link_args_d3d10sw = []
-if cc.get_id() == 'gcc'
-  _link_args_d3d10sw += '-Wl,--enable-stdcall-fixup'
-endif
+d3d10_sw_def = custom_target(
+  'd3d10_sw.def',
+  input: 'd3d10_sw.def.in',
+  output : 'd3d10_sw.def',
+  command : [prog_python, gen_vs_module_defs_py,
+             '--in_file', '@INPUT@', '--out_file', '@OUTPUT@',
+             '--compiler_id', cc.get_argument_syntax(), '--cpu_family', host_machine.cpu_family()]
+)
 
 libd3d10sw = shared_library(
   'd3d10sw',
   ['d3d10_gdi.c'],
-  vs_module_defs : d3d10sw_def,
+  vs_module_defs : d3d10_sw_def,
   include_directories : [
     inc_include, inc_src, inc_gallium, inc_gallium_aux, inc_d3d10umd, inc_gallium_winsys, inc_gallium_winsys_sw, inc_gallium_drivers,
   ],
-  link_args : _link_args_d3d10sw,
   link_whole : [libd3d10umd],
   link_with : [
     libgallium, libwsgdi

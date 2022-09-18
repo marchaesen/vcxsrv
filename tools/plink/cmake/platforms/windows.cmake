@@ -7,6 +7,15 @@ set(PUTTY_LINK_MAPS OFF
 set(PUTTY_EMBEDDED_CHM_FILE ""
   CACHE FILEPATH "Path to a .chm help file to embed in the binaries")
 
+if(PUTTY_SUBSYSTEM_VERSION)
+  string(REPLACE
+    "subsystem:windows" "subsystem:windows,${PUTTY_SUBSYSTEM_VERSION}"
+    CMAKE_C_CREATE_WIN32_EXE ${CMAKE_C_CREATE_WIN32_EXE})
+  string(REPLACE
+    "subsystem:console" "subsystem:console,${PUTTY_SUBSYSTEM_VERSION}"
+    CMAKE_C_CREATE_CONSOLE_EXE ${CMAKE_C_CREATE_CONSOLE_EXE})
+endif()
+
 function(define_negation newvar oldvar)
   if(${oldvar})
     set(${newvar} OFF PARENT_SCOPE)
@@ -57,6 +66,21 @@ GCP_RESULTSW gcpw;
 int main(void) { return 0; }
 " HAVE_GCP_RESULTSW)
 
+function(dwmapi_test_wrapper)
+  set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} dwmapi.lib)
+  check_c_source_compiles("
+#include <windows.h>
+#include <dwmapi.h>
+volatile HWND hwnd;
+int main(void) {
+  RECT r;
+  DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &r, sizeof(r));
+}
+" HAVE_DWMAPI_H)
+  set(HAVE_DWMAPI_H ${HAVE_DWMAPI_H} PARENT_SCOPE)
+endfunction()
+dwmapi_test_wrapper()
+
 set(NO_SECURITY ${PUTTY_NO_SECURITY})
 
 add_compile_definitions(
@@ -87,9 +111,22 @@ else()
   set(LFLAG_MANIFEST_NO "")
 endif()
 
-if(STRICT AND (CMAKE_C_COMPILER_ID MATCHES "GNU" OR
-               CMAKE_C_COMPILER_ID MATCHES "Clang"))
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wpointer-arith -Wvla")
+if(STRICT)
+  if(CMAKE_C_COMPILER_ID MATCHES "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wpointer-arith -Wvla")
+  elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wpointer-arith -Wvla")
+  endif()
+endif()
+
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  # Switch back from MSVC-style error message format
+  # "file.c(line,col)" to clang's native style "file.c:line:col:". I
+  # find the latter more convenient because it matches other Unixy
+  # tools like grep, and I have tooling to parse that format and jump
+  # to the sites of error messages.
+  set(CMAKE_C_FLAGS
+    "${CMAKE_C_FLAGS} -Xclang -fdiagnostics-format -Xclang clang")
 endif()
 
 if(CMAKE_C_COMPILER_ID MATCHES "MSVC")

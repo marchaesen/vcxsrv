@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2009 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,13 +22,13 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
  * @file
  * Symbol lookup.
- * 
+ *
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
 
@@ -42,7 +42,7 @@
 
 
 #if defined(PIPE_OS_WINDOWS)
-   
+
 #include <windows.h>
 #include <stddef.h>
 
@@ -142,6 +142,8 @@ DBGHELP_DISPATCH(SymGetLineFromAddr64,
                  (HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, PIMAGEHLP_LINE64 Line),
                  (hProcess, dwAddr, pdwDisplacement, Line))
 
+DBGHELP_DISPATCH(SymCleanup, BOOL, FALSE, (HANDLE hProcess), (hProcess))
+
 
 #undef DBGHELP_DISPATCH
 
@@ -163,10 +165,18 @@ debug_symbol_name_dbghelp(const void *addr, char* buf, unsigned size)
    IMAGEHLP_LINE64 Line;
 
    memset(pSymbol, 0, sizeof *pSymbol);
-   pSymbol->SizeOfStruct = sizeof buffer;
+   pSymbol->SizeOfStruct = sizeof *pSymbol;
    pSymbol->MaxNameLen = sizeof buffer - offsetof(SYMBOL_INFO, Name);
 
    if (!g_bSymInitialized) {
+      /* Some components (e.g. Java) will init dbghelp before we're loaded, causing the "invade process"
+       * option to be invalid when attempting to re-init. But without it, we'd have to manually
+       * load symbols for all modules in the stack. For simplicity, we can just uninit and then
+       * re-"invade".
+       */
+      if (debug_get_bool_option("GALLIUM_SYMBOL_FORCE_REINIT", false))
+         j_SymCleanup(hProcess);
+
       j_SymSetOptions(/* SYMOPT_UNDNAME | */ SYMOPT_LOAD_LINES);
       if (j_SymInitialize(hProcess, NULL, TRUE)) {
          g_bSymInitialized = TRUE;

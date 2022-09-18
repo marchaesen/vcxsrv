@@ -377,7 +377,7 @@ This instruction replicates its result.
 
 .. opcode:: DDX, DDX_FINE - Derivative Relative To X
 
-The fine variant is only used when ``PIPE_CAP_TGSI_FS_FINE_DERIVATIVE`` is
+The fine variant is only used when ``PIPE_CAP_FS_FINE_DERIVATIVE`` is
 advertised. When it is, the fine version guarantees one derivative per row
 while DDX is allowed to be the same for the entire 2x2 quad.
 
@@ -394,7 +394,7 @@ while DDX is allowed to be the same for the entire 2x2 quad.
 
 .. opcode:: DDY, DDY_FINE - Derivative Relative To Y
 
-The fine variant is only used when ``PIPE_CAP_TGSI_FS_FINE_DERIVATIVE`` is
+The fine variant is only used when ``PIPE_CAP_FS_FINE_DERIVATIVE`` is
 advertised. When it is, the fine version guarantees one derivative per column
 while DDY is allowed to be the same for the entire 2x2 quad.
 
@@ -3249,7 +3249,7 @@ For geometry shaders, this semantic label indicates that an output
 contains the index of the viewport (and scissor) to use.
 This is an integer value, and only the X component is used.
 
-If PIPE_CAP_TGSI_VS_LAYER_VIEWPORT or PIPE_CAP_TGSI_TES_LAYER_VIEWPORT is
+If PIPE_CAP_VS_LAYER_VIEWPORT or PIPE_CAP_TES_LAYER_VIEWPORT is
 supported, then this semantic label can also be used in vertex or
 tessellation evaluation shaders, respectively. Only the value written in the
 last vertex processing stage is used.
@@ -3263,7 +3263,7 @@ contains the layer value to use for the color and depth/stencil surfaces.
 This is an integer value, and only the X component is used.
 (Also known as rendertarget array index.)
 
-If PIPE_CAP_TGSI_VS_LAYER_VIEWPORT or PIPE_CAP_TGSI_TES_LAYER_VIEWPORT is
+If PIPE_CAP_VS_LAYER_VIEWPORT or PIPE_CAP_TES_LAYER_VIEWPORT is
 supported, then this semantic label can also be used in vertex or
 tessellation evaluation shaders, respectively. Only the value written in the
 last vertex processing stage is used.
@@ -3783,8 +3783,8 @@ Threads per block in each dimension, if known at compile time. If the block size
 is known all three should be at least 1. If it is unknown they should all be set
 to 0 or not set.
 
-MUL_ZERO_WINS
-"""""""""""""
+LEGACY_MATH_RULES
+"""""""""""""""""
 
 The MUL TGSI operation (FP32 multiplication) will return 0 if either
 of the operands are equal to 0. That means that 0 * Inf = 0. This

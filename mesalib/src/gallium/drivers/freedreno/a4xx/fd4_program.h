@@ -48,6 +48,9 @@ fd4_program_state(struct ir3_program_state *state)
    return (struct fd4_program_state *)state;
 }
 
+void fd4_emit_shader(struct fd_ringbuffer *ring,
+                     const struct ir3_shader_variant *so);
+
 void fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
                       struct pipe_surface **bufs);
 

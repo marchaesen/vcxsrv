@@ -51,7 +51,7 @@ __asm__(".text\n"
 
 #define STUB_ASM_CODE(slot)                              \
    ENDBR                                                 \
-   "movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%rip), %rax\n\t"  \
+   "movq _glapi_tls_Dispatch@GOTTPOFF(%rip), %rax\n\t"  \
    "movq %fs:(%rax), %r11\n\t"                           \
    "jmp *(8 * " slot ")(%r11)"
 
@@ -59,7 +59,7 @@ __asm__(".text\n"
 
 #define STUB_ASM_CODE(slot)                              \
    ENDBR                                                 \
-   "movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%rip), %rax\n\t"  \
+   "movq _glapi_tls_Dispatch@GOTTPOFF(%rip), %rax\n\t"  \
    "movl %fs:(%rax), %r11d\n\t"                          \
    "movl 4*" slot "(%r11d), %r11d\n\t"                   \
    "jmp *%r11"
@@ -121,7 +121,7 @@ entry_generate(int slot)
    char *code;
    mapi_func entry;
 
-   __asm__("movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%%rip), %0"
+   __asm__("movq _glapi_tls_Dispatch@GOTTPOFF(%%rip), %0"
            : "=r" (addr));
    if ((addr >> 32) != 0xffffffff)
       return NULL;

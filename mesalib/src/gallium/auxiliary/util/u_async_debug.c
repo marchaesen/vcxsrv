@@ -32,7 +32,7 @@
 #include "util/u_string.h"
 
 static void
-u_async_debug_message(void *data, unsigned *id, enum pipe_debug_type type,
+u_async_debug_message(void *data, unsigned *id, enum util_debug_type type,
                       const char *fmt, va_list args)
 {
    struct util_async_debug_callback *adbg = data;
@@ -97,13 +97,13 @@ u_async_debug_cleanup(struct util_async_debug_callback *adbg)
 
 void
 _u_async_debug_drain(struct util_async_debug_callback *adbg,
-                     struct pipe_debug_callback *dst)
+                     struct util_debug_callback *dst)
 {
    simple_mtx_lock(&adbg->lock);
    for (unsigned i = 0; i < adbg->count; ++i) {
       const struct util_debug_message *msg = &adbg->messages[i];
 
-      _pipe_debug_message(dst, msg->id, msg->type, "%s", msg->msg);
+      _util_debug_message(dst, msg->id, msg->type, "%s", msg->msg);
 
       free(msg->msg);
    }

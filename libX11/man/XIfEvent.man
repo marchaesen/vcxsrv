@@ -147,6 +147,10 @@ After finding a match, the predicate procedure must return
 .BR True .
 If it did not find a match, it must return
 .BR False .
+.LP
+Note that the predicate procedure is called with the
+display locked, and thus is not allowed to call any function
+that would take the display lock again.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XNextEvent(__libmansuffix__),

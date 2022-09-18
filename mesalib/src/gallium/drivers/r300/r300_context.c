@@ -24,8 +24,8 @@
 
 #include "util/u_memory.h"
 #include "util/u_sampler.h"
-#include "util/simple_list.h"
 #include "util/u_upload_mgr.h"
+#include "util/u_debug_cb.h"
 #include "util/os_time.h"
 #include "vl/vl_decoder.h"
 #include "vl/vl_video_buffer.h"
@@ -368,18 +368,6 @@ static void r300_init_states(struct pipe_context *pipe)
     }
 }
 
-static void
-r300_set_debug_callback(struct pipe_context *context,
-                        const struct pipe_debug_callback *cb)
-{
-    struct r300_context *r300 = r300_context(context);
-
-    if (cb)
-        r300->debug = *cb;
-    else
-        memset(&r300->debug, 0, sizeof(r300->debug));
-}
-
 struct pipe_context* r300_create_context(struct pipe_screen* screen,
                                          void *priv, unsigned flags)
 {
@@ -395,18 +383,18 @@ struct pipe_context* r300_create_context(struct pipe_screen* screen,
 
     r300->context.screen = screen;
     r300->context.priv = priv;
-    r300->context.set_debug_callback = r300_set_debug_callback;
+    r300->context.set_debug_callback = u_default_set_debug_callback;
 
     r300->context.destroy = r300_destroy_context;
 
     slab_create_child(&r300->pool_transfers, &r300screen->pool_transfers);
 
-    r300->ctx = rws->ctx_create(rws);
+    r300->ctx = rws->ctx_create(rws, RADEON_CTX_PRIORITY_MEDIUM);
     if (!r300->ctx)
         goto fail;
 
 
-    if (!rws->cs_create(&r300->cs, r300->ctx, RING_GFX, r300_flush_callback, r300, false))
+    if (!rws->cs_create(&r300->cs, r300->ctx, AMD_IP_GFX, r300_flush_callback, r300, false))
         goto fail;
 
     if (!r300screen->caps.has_tcl) {
@@ -442,7 +430,9 @@ struct pipe_context* r300_create_context(struct pipe_screen* screen,
                                      PIPE_BIND_CUSTOM, PIPE_USAGE_STREAM, 0);
     r300->context.stream_uploader = u_upload_create(&r300->context, 1024 * 1024,
                                                     0, PIPE_USAGE_STREAM, 0);
-    r300->context.const_uploader = r300->context.stream_uploader;
+    r300->context.const_uploader = u_upload_create(&r300->context, 1024 * 1024,
+                                                   PIPE_BIND_CONSTANT_BUFFER,
+                                                   PIPE_USAGE_STREAM, 0);
 
     r300->blitter = util_blitter_create(&r300->context);
     if (r300->blitter == NULL)
@@ -510,7 +500,7 @@ struct pipe_context* r300_create_context(struct pipe_screen* screen,
 #endif
         fprintf(stderr,
                 "r300: DRM version: %d.%d.%d, Name: %s, ID: 0x%04x, GB: %d, Z: %d\n"
-                "r300: GART size: %"PRIu64" MB, VRAM size: %"PRIu64" MB\n"
+                "r300: GART size: %u MB, VRAM size: %u MB\n"
                 "r300: AA compression RAM: %s, Z compression RAM: %s, HiZ RAM: %s\n",
                 r300->screen->info.drm_major,
                 r300->screen->info.drm_minor,
@@ -519,8 +509,8 @@ struct pipe_context* r300_create_context(struct pipe_screen* screen,
                 r300->screen->info.pci_id,
                 r300->screen->info.r300_num_gb_pipes,
                 r300->screen->info.r300_num_z_pipes,
-                r300->screen->info.gart_size >> 20,
-                r300->screen->info.vram_size >> 20,
+                r300->screen->info.gart_size_kb >> 10,
+                r300->screen->info.vram_size_kb >> 10,
                 "YES", /* XXX really? */
                 r300->screen->caps.zmask_ram ? "YES" : "NO",
                 r300->screen->caps.hiz_ram ? "YES" : "NO");

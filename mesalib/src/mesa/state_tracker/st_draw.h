@@ -99,4 +99,13 @@ st_indirect_draw_vbo(struct gl_context *ctx,
                      const struct _mesa_index_buffer *ib,
                      bool primitive_restart,
                      unsigned restart_index);
+
+bool
+st_draw_hw_select_prepare_common(struct gl_context *ctx);
+bool
+st_draw_hw_select_prepare_mode(struct gl_context *ctx, struct pipe_draw_info *info);
+void
+st_init_hw_select_draw_functions(struct pipe_screen *screen,
+                                 struct dd_function_table *functions);
+
 #endif

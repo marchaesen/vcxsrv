@@ -24,8 +24,8 @@
 // "bas_phonetic" - the phonetic keyboard layout compliant with the
 //                  proposed Bulgarian state standard BDS 5237:2006
 
-// "bekl" - the enhanced variant of the Bulgarian BDS keyboard, proposed
-//                  in May 2020.
+// "bekl" - the enhanced variant of the Bulgarian BDS keyboard,
+//          proposed in May 2020.
 
 // "latin" - an extended variant of the QWERTY layout with symbols that
 //           Bulgarian users will type while the keyboard is in Latin mode
@@ -200,7 +200,7 @@ xkb_symbols "bekl" {
 
   key <TLDE> {[ parenleft,         parenright,        bracketleft,       bracketright        ]};
   key <AE01> {[ 1,                 exclam                                                    ]};
-  key <AE02> {[ 2,                 question,          U0040,             U0040               ]};
+  key <AE02> {[ 2,                 question,          at,                at                  ]};
   key <AE03> {[ 3,                 plus,              dagger,            dagger              ]};
   key <AE04> {[ 4,                 quotedbl                                                  ]};
   key <AE05> {[ 5,                 percent,           U2329,             U232A               ]};
@@ -241,8 +241,8 @@ xkb_symbols "bekl" {
   key <LSGT> {[ U045D,             U040D                                                     ]};
   key <AB01> {[ Cyrillic_yu,       Cyrillic_YU                                               ]};
   key <AB02> {[ Cyrillic_shorti,   Cyrillic_SHORTI,   U046D,             U046C               ]};
-  key <AB03> {[ Cyrillic_hardsign, Cyrillic_HARDSIGN, U046B,             U046A	             ]};
-  key <AB04> {[ U0463,             U0462	                                                 ]};
+  key <AB03> {[ Cyrillic_hardsign, Cyrillic_HARDSIGN, U046B,             U046A               ]};
+  key <AB04> {[ U0463,             U0462                                                     ]};
   key <AB05> {[ Cyrillic_ef,       Cyrillic_EF                                               ]};
   key <AB06> {[ Cyrillic_ha,       Cyrillic_HA                                               ]};
   key <AB07> {[ Cyrillic_pe,       Cyrillic_PE                                               ]};

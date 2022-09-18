@@ -40,8 +40,12 @@ files_addrlib = files(
   'src/gfx10/gfx10addrlib.cpp',
   'src/gfx10/gfx10addrlib.h',
   'src/gfx10/gfx10SwizzlePattern.h',
+  'src/gfx11/gfx11addrlib.cpp',
+  'src/gfx11/gfx11addrlib.h',
+  'src/gfx11/gfx11SwizzlePattern.h',
   'src/amdgpu_asic_addr.h',
   'src/chip/gfx10/gfx10_gb_reg.h',
+  'src/chip/gfx11/gfx11_gb_reg.h',
   'src/chip/gfx9/gfx9_gb_reg.h',
   'src/chip/r800/si_gb_reg.h',
   'src/r800/ciaddrlib.cpp',
@@ -73,7 +77,7 @@ libamdgpu_addrlib = static_library(
   include_directories : [
     include_directories(
       'inc', 'src', 'src/core', 'src/chip/gfx9', 'src/chip/r800',
-      'src/chip/gfx10',
+      'src/chip/gfx10', 'src/chip/gfx11',
     ),
     inc_amd_common, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux,
   ],

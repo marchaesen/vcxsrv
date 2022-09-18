@@ -32,6 +32,8 @@
 
 #include "pipe/p_compiler.h"
 
+#include "c99_compat.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

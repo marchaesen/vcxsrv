@@ -16,7 +16,7 @@ pps_panfrost_lib = static_library(
   sources: pps_panfrost_sources,
   include_directories: pps_panfrost_includes,
   dependencies: [dep_libdrm, dep_perfetto, libpanfrost_dep, dep_panfrost_perf],
-  cpp_args: '-std=c++17'
+  override_options: ['cpp_std=c++17']
 )
 
 compile_args_pps_panfrost = ['-DPPS_PANFROST']

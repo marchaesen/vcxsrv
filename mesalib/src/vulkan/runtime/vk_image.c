@@ -33,6 +33,7 @@
 #include "vk_common_entrypoints.h"
 #include "vk_device.h"
 #include "vk_format.h"
+#include "vk_render_pass.h"
 #include "vk_util.h"
 #include "vulkan/wsi/wsi_common.h"
 
@@ -84,9 +85,9 @@ vk_image_init(struct vk_device *device,
    image->usage = pCreateInfo->usage;
 
    if (image->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
-      const VkImageStencilUsageCreateInfoEXT *stencil_usage_info =
+      const VkImageStencilUsageCreateInfo *stencil_usage_info =
          vk_find_struct_const(pCreateInfo->pNext,
-                              IMAGE_STENCIL_USAGE_CREATE_INFO_EXT);
+                              IMAGE_STENCIL_USAGE_CREATE_INFO);
       image->stencil_usage =
          stencil_usage_info ? stencil_usage_info->stencilUsage :
                               pCreateInfo->usage;
@@ -250,6 +251,71 @@ vk_image_expand_aspect_mask(const struct vk_image *image,
    }
 }
 
+VkExtent3D
+vk_image_extent_to_elements(const struct vk_image *image, VkExtent3D extent)
+{
+   const struct util_format_description *fmt =
+      vk_format_description(image->format);
+
+   extent = vk_image_sanitize_extent(image, extent);
+   extent.width = DIV_ROUND_UP(extent.width, fmt->block.width);
+   extent.height = DIV_ROUND_UP(extent.height, fmt->block.height);
+   extent.depth = DIV_ROUND_UP(extent.depth, fmt->block.depth);
+
+   return extent;
+}
+
+VkOffset3D
+vk_image_offset_to_elements(const struct vk_image *image, VkOffset3D offset)
+{
+   const struct util_format_description *fmt =
+      vk_format_description(image->format);
+
+   offset = vk_image_sanitize_offset(image, offset);
+
+   assert(offset.x % fmt->block.width == 0);
+   assert(offset.y % fmt->block.height == 0);
+   assert(offset.z % fmt->block.depth == 0);
+
+   offset.x /= fmt->block.width;
+   offset.y /= fmt->block.height;
+   offset.z /= fmt->block.depth;
+
+   return offset;
+}
+
+struct vk_image_buffer_layout
+vk_image_buffer_copy_layout(const struct vk_image *image,
+                            const VkBufferImageCopy2* region)
+{
+   VkExtent3D extent = vk_image_sanitize_extent(image, region->imageExtent);
+
+   const uint32_t row_length = region->bufferRowLength ?
+                               region->bufferRowLength : extent.width;
+   const uint32_t image_height = region->bufferImageHeight ?
+                                 region->bufferImageHeight : extent.height;
+
+   const VkImageAspectFlags aspect = region->imageSubresource.aspectMask;
+   VkFormat format = vk_format_get_aspect_format(image->format, aspect);
+   const struct util_format_description *fmt = vk_format_description(format);
+
+   assert(fmt->block.bits % 8 == 0);
+   const uint32_t element_size_B = fmt->block.bits / 8;
+
+   const uint32_t row_stride_B =
+      DIV_ROUND_UP(row_length, fmt->block.width) * element_size_B;
+   const uint64_t image_stride_B =
+      DIV_ROUND_UP(image_height, fmt->block.height) * (uint64_t)row_stride_B;
+
+   return (struct vk_image_buffer_layout) {
+      .row_length = row_length,
+      .image_height = image_height,
+      .element_size_B = element_size_B,
+      .row_stride_B = row_stride_B,
+      .image_stride_B = image_stride_B,
+   };
+}
+
 static VkComponentSwizzle
 remap_swizzle(VkComponentSwizzle swizzle, VkComponentSwizzle component)
 {
@@ -259,6 +325,7 @@ remap_swizzle(VkComponentSwizzle swizzle, VkComponentSwizzle component)
 void
 vk_image_view_init(struct vk_device *device,
                    struct vk_image_view *image_view,
+                   bool driver_internal,
                    const VkImageViewCreateInfo *pCreateInfo)
 {
    vk_object_base_init(device, &image_view->base, VK_OBJECT_TYPE_IMAGE_VIEW);
@@ -269,45 +336,51 @@ vk_image_view_init(struct vk_device *device,
    image_view->create_flags = pCreateInfo->flags;
    image_view->image = image;
    image_view->view_type = pCreateInfo->viewType;
+   image_view->format = pCreateInfo->format;
 
-   switch (image_view->view_type) {
-   case VK_IMAGE_VIEW_TYPE_1D:
-   case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
-      assert(image->image_type == VK_IMAGE_TYPE_1D);
-      break;
-   case VK_IMAGE_VIEW_TYPE_2D:
-   case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-      if (image->create_flags & VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT)
+   if (!driver_internal) {
+      switch (image_view->view_type) {
+      case VK_IMAGE_VIEW_TYPE_1D:
+      case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
+         assert(image->image_type == VK_IMAGE_TYPE_1D);
+         break;
+      case VK_IMAGE_VIEW_TYPE_2D:
+      case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
+         if (image->create_flags & (VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT |
+                                    VK_IMAGE_CREATE_2D_VIEW_COMPATIBLE_BIT_EXT))
+            assert(image->image_type == VK_IMAGE_TYPE_3D);
+         else
+            assert(image->image_type == VK_IMAGE_TYPE_2D);
+         break;
+      case VK_IMAGE_VIEW_TYPE_3D:
          assert(image->image_type == VK_IMAGE_TYPE_3D);
-      else
+         break;
+      case VK_IMAGE_VIEW_TYPE_CUBE:
+      case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
          assert(image->image_type == VK_IMAGE_TYPE_2D);
-      break;
-   case VK_IMAGE_VIEW_TYPE_3D:
-      assert(image->image_type == VK_IMAGE_TYPE_3D);
-      break;
-   case VK_IMAGE_VIEW_TYPE_CUBE:
-   case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
-      assert(image->image_type == VK_IMAGE_TYPE_2D);
-      assert(image->create_flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
-      break;
-   default:
-      unreachable("Invalid image view type");
+         assert(image->create_flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
+         break;
+      default:
+         unreachable("Invalid image view type");
+      }
    }
 
    const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
 
-   /* Some drivers may want to create color views of depth/stencil images
-    * to implement certain operations, which is not strictly allowed by the
-    * Vulkan spec, so handle this case separately.
-    */
-   bool is_color_view_of_depth_stencil =
-      vk_format_is_depth_or_stencil(image->format) &&
-      vk_format_is_color(pCreateInfo->format);
-   if (is_color_view_of_depth_stencil) {
-      assert(range->aspectMask == VK_IMAGE_ASPECT_COLOR_BIT);
-      assert(util_format_get_blocksize(vk_format_to_pipe_format(image->format)) ==
-             util_format_get_blocksize(vk_format_to_pipe_format(pCreateInfo->format)));
+   if (driver_internal) {
+      /* For driver internal images, all we require is that the block sizes
+       * match.  Otherwise, we trust the driver to use a format it knows what
+       * to do with.  Combined depth/stencil images might not match if the
+       * driver only cares about one of the two aspects.
+       */
+      if (image->aspects == VK_IMAGE_ASPECT_COLOR_BIT ||
+          image->aspects == VK_IMAGE_ASPECT_DEPTH_BIT ||
+          image->aspects == VK_IMAGE_ASPECT_STENCIL_BIT) {
+         assert(vk_format_get_blocksize(image->format) ==
+                vk_format_get_blocksize(image_view->format));
+      }
       image_view->aspects = range->aspectMask;
+      image_view->view_format = pCreateInfo->format;
    } else {
       image_view->aspects =
          vk_image_expand_aspect_mask(image, range->aspectMask);
@@ -343,34 +416,34 @@ vk_image_view_init(struct vk_device *device,
 
       if (!(image->create_flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT))
          assert(pCreateInfo->format == image->format);
-   }
 
-   /* Restrict the format to only the planes chosen.
-    *
-    * For combined depth and stencil images, this means the depth-only or
-    * stencil-only format if only one aspect is chosen and the full combined
-    * format if both aspects are chosen.
-    *
-    * For single-plane color images, we just take the format as-is.  For
-    * multi-plane views of multi-plane images, this means we want the full
-    * multi-plane format.  For single-plane views of multi-plane images, we
-    * want a format compatible with the one plane.  Fortunately, this is
-    * already what the client gives us.  The Vulkan 1.2.184 spec says:
-    *
-    *    "If image was created with the VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT and
-    *    the image has a multi-planar format, and if
-    *    subresourceRange.aspectMask is VK_IMAGE_ASPECT_PLANE_0_BIT,
-    *    VK_IMAGE_ASPECT_PLANE_1_BIT, or VK_IMAGE_ASPECT_PLANE_2_BIT, format
-    *    must be compatible with the corresponding plane of the image, and the
-    *    sampler to be used with the image view must not enable sampler Y′CBCR
-    *    conversion."
-    */
-   if (image_view->aspects == VK_IMAGE_ASPECT_STENCIL_BIT) {
-      image_view->format = vk_format_stencil_only(pCreateInfo->format);
-   } else if (image_view->aspects == VK_IMAGE_ASPECT_DEPTH_BIT) {
-      image_view->format = vk_format_depth_only(pCreateInfo->format);
-   } else {
-      image_view->format = pCreateInfo->format;
+      /* Restrict the format to only the planes chosen.
+       *
+       * For combined depth and stencil images, this means the depth-only or
+       * stencil-only format if only one aspect is chosen and the full
+       * combined format if both aspects are chosen.
+       *
+       * For single-plane color images, we just take the format as-is.  For
+       * multi-plane views of multi-plane images, this means we want the full
+       * multi-plane format.  For single-plane views of multi-plane images, we
+       * want a format compatible with the one plane.  Fortunately, this is
+       * already what the client gives us.  The Vulkan 1.2.184 spec says:
+       *
+       *    "If image was created with the VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT
+       *    and the image has a multi-planar format, and if
+       *    subresourceRange.aspectMask is VK_IMAGE_ASPECT_PLANE_0_BIT,
+       *    VK_IMAGE_ASPECT_PLANE_1_BIT, or VK_IMAGE_ASPECT_PLANE_2_BIT,
+       *    format must be compatible with the corresponding plane of the
+       *    image, and the sampler to be used with the image view must not
+       *    enable sampler Y′CBCR conversion."
+       */
+      if (image_view->aspects == VK_IMAGE_ASPECT_STENCIL_BIT) {
+         image_view->view_format = vk_format_stencil_only(pCreateInfo->format);
+      } else if (image_view->aspects == VK_IMAGE_ASPECT_DEPTH_BIT) {
+         image_view->view_format = vk_format_depth_only(pCreateInfo->format);
+      } else {
+         image_view->view_format = pCreateInfo->format;
+      }
    }
 
    image_view->swizzle = (VkComponentMapping) {
@@ -387,6 +460,20 @@ vk_image_view_init(struct vk_device *device,
    image_view->level_count = vk_image_subresource_level_count(image, range);
    image_view->base_array_layer = range->baseArrayLayer;
    image_view->layer_count = vk_image_subresource_layer_count(image, range);
+
+   const VkImageViewMinLodCreateInfoEXT *min_lod_info =
+      vk_find_struct_const(pCreateInfo, IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT);
+   image_view->min_lod = min_lod_info ? min_lod_info->minLod : 0.0f;
+
+   /* From the Vulkan 1.3.215 spec:
+    *
+    *    VUID-VkImageViewMinLodCreateInfoEXT-minLod-06456
+    *
+    *    "minLod must be less or equal to the index of the last mipmap level
+    *    accessible to the view."
+    */
+   assert(image_view->min_lod <= image_view->base_mip_level +
+                                 image_view->level_count - 1);
 
    image_view->extent =
       vk_image_mip_level_extent(image, image_view->base_mip_level);
@@ -410,13 +497,12 @@ vk_image_view_init(struct vk_device *device,
    /* If we are creating a color view from a depth/stencil image we compute
     * usage from the underlying depth/stencil aspects.
     */
-   const VkImageUsageFlags image_usage = is_color_view_of_depth_stencil ?
-      vk_image_usage(image, image->aspects) :
+   const VkImageUsageFlags image_usage =
       vk_image_usage(image, image_view->aspects);
    const VkImageViewUsageCreateInfo *usage_info =
       vk_find_struct_const(pCreateInfo, IMAGE_VIEW_USAGE_CREATE_INFO);
    image_view->usage = usage_info ? usage_info->usage : image_usage;
-   assert(!(image_view->usage & ~image_usage));
+   assert(driver_internal || !(image_view->usage & ~image_usage));
 }
 
 void
@@ -427,6 +513,7 @@ vk_image_view_finish(struct vk_image_view *image_view)
 
 void *
 vk_image_view_create(struct vk_device *device,
+                     bool driver_internal,
                      const VkImageViewCreateInfo *pCreateInfo,
                      const VkAllocationCallbacks *alloc,
                      size_t size)
@@ -437,7 +524,7 @@ vk_image_view_create(struct vk_device *device,
    if (image_view == NULL)
       return NULL;
 
-   vk_image_view_init(device, image_view, pCreateInfo);
+   vk_image_view_init(device, image_view, driver_internal, pCreateInfo);
 
    return image_view;
 }
@@ -468,18 +555,19 @@ vk_image_layout_is_read_only(VkImageLayout layout,
    case VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR:
    case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
    case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
-   case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR:
+   case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
+   case VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT:
       return false;
 
    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-   case VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV:
+   case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
    case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
    case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
    case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
-   case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR:
+   case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
       return true;
 
    case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
@@ -525,7 +613,7 @@ vk_image_layout_is_depth_only(VkImageLayout layout)
  *    all relevant image aspects."
  */
 VkImageLayout
-vk_att_ref_stencil_layout(const VkAttachmentReference2KHR *att_ref,
+vk_att_ref_stencil_layout(const VkAttachmentReference2 *att_ref,
                           const VkAttachmentDescription2 *attachments)
 {
    /* From VUID-VkAttachmentReference2-attachment-04755:
@@ -537,8 +625,8 @@ vk_att_ref_stencil_layout(const VkAttachmentReference2KHR *att_ref,
        !vk_format_has_stencil(attachments[att_ref->attachment].format))
       return VK_IMAGE_LAYOUT_UNDEFINED;
 
-   const VkAttachmentReferenceStencilLayoutKHR *stencil_ref =
-      vk_find_struct_const(att_ref->pNext, ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+   const VkAttachmentReferenceStencilLayout *stencil_ref =
+      vk_find_struct_const(att_ref->pNext, ATTACHMENT_REFERENCE_STENCIL_LAYOUT);
 
    if (stencil_ref)
       return stencil_ref->stencilLayout;
@@ -575,14 +663,13 @@ vk_att_ref_stencil_layout(const VkAttachmentReference2KHR *att_ref,
  *    the pNext chain."
  */
 VkImageLayout
-vk_att_desc_stencil_layout(const VkAttachmentDescription2KHR *att_desc,
-                             bool final)
+vk_att_desc_stencil_layout(const VkAttachmentDescription2 *att_desc, bool final)
 {
    if (!vk_format_has_stencil(att_desc->format))
       return VK_IMAGE_LAYOUT_UNDEFINED;
 
-   const VkAttachmentDescriptionStencilLayoutKHR *stencil_desc =
-      vk_find_struct_const(att_desc->pNext, ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+   const VkAttachmentDescriptionStencilLayout *stencil_desc =
+      vk_find_struct_const(att_desc->pNext, ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT);
 
    if (stencil_desc) {
       return final ?
@@ -698,15 +785,15 @@ vk_image_layout_to_usage_flags(VkImageLayout layout,
       assert(aspect == VK_IMAGE_ASPECT_COLOR_BIT);
       return vk_image_layout_to_usage_flags(VK_IMAGE_LAYOUT_GENERAL, aspect);
 
-   case VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV:
+   case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
       assert(aspect == VK_IMAGE_ASPECT_COLOR_BIT);
-      return VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV;
+      return VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
 
    case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
       assert(aspect == VK_IMAGE_ASPECT_COLOR_BIT);
       return VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;
 
-   case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR:
+   case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
       if (aspect == VK_IMAGE_ASPECT_DEPTH_BIT ||
           aspect == VK_IMAGE_ASPECT_STENCIL_BIT) {
          return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -715,9 +802,24 @@ vk_image_layout_to_usage_flags(VkImageLayout layout,
          return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
       }
 
-   case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR:
+   case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
       return VK_IMAGE_USAGE_SAMPLED_BIT |
              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+
+   case VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT:
+      if (aspect == VK_IMAGE_ASPECT_DEPTH_BIT ||
+          aspect == VK_IMAGE_ASPECT_STENCIL_BIT) {
+         return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT |
+                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+      } else {
+         assert(aspect == VK_IMAGE_ASPECT_COLOR_BIT);
+         return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT |
+                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
+      }
 
    case VK_IMAGE_LAYOUT_MAX_ENUM:
 #ifdef VK_ENABLE_BETA_EXTENSIONS

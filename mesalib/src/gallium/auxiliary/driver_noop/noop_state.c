@@ -303,7 +303,7 @@ static void noop_render_condition( struct pipe_context *pipe,
 
 static void noop_get_query_result_resource(struct pipe_context *pipe,
                                            struct pipe_query *q,
-                                           bool wait,
+                                           enum pipe_query_flags flags,
                                            enum pipe_query_value_type result_type,
                                            int index,
                                            struct pipe_resource *resource,

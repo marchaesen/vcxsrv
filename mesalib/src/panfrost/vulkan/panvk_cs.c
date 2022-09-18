@@ -30,20 +30,38 @@
 #include "panvk_cs.h"
 #include "panvk_private.h"
 
+/*
+ * Upload the viewport scale. Defined as (px/2, py/2, pz) at the start of section
+ * 24.5 ("Controlling the Viewport") of the Vulkan spec. At the end of the
+ * section, the spec defines:
+ *
+ * px = width
+ * py = height
+ * pz = maxDepth - minDepth
+ */
 void
 panvk_sysval_upload_viewport_scale(const VkViewport *viewport,
-                                   union panvk_sysval_data *data)
+                                   union panvk_sysval_vec4 *data)
 {
    data->f32[0] = 0.5f * viewport->width;
    data->f32[1] = 0.5f * viewport->height;
-   data->f32[2] = 0.5f * (viewport->maxDepth - viewport->minDepth);
+   data->f32[2] = (viewport->maxDepth - viewport->minDepth);
 }
 
+/*
+ * Upload the viewport offset. Defined as (ox, oy, oz) at the start of section
+ * 24.5 ("Controlling the Viewport") of the Vulkan spec. At the end of the
+ * section, the spec defines:
+ *
+ * ox = x + width/2
+ * oy = y + height/2
+ * oz = minDepth
+ */
 void
 panvk_sysval_upload_viewport_offset(const VkViewport *viewport,
-                                    union panvk_sysval_data *data)
+                                    union panvk_sysval_vec4 *data)
 {
    data->f32[0] = (0.5f * viewport->width) + viewport->x;
    data->f32[1] = (0.5f * viewport->height) + viewport->y;
-   data->f32[2] = (0.5f * (viewport->maxDepth - viewport->minDepth)) + viewport->minDepth;
+   data->f32[2] = viewport->minDepth;
 }

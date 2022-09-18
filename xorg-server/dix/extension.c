@@ -293,7 +293,7 @@ ProcListExtensions(ClientPtr client)
                 continue;
 
             *bufptr++ = len = strlen(extensions[i]->name);
-            memmove(bufptr, extensions[i]->name, len);
+            memcpy(bufptr, extensions[i]->name, len);
             bufptr += len;
         }
     }

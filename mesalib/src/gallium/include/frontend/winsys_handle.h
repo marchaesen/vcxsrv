@@ -17,32 +17,33 @@ extern "C" {
 #define WINSYS_HANDLE_TYPE_WIN32_HANDLE WINSYS_HANDLE_TYPE_FD
 #define WINSYS_HANDLE_TYPE_SHMID   3
 #define WINSYS_HANDLE_TYPE_D3D12_RES 4
+#define WINSYS_HANDLE_TYPE_WIN32_NAME 5
 
 /**
- * For use with pipe_screen::{texture_from_handle|texture_get_handle}.
+ * For use with pipe_screen::{resource_from_handle|resource_get_handle}.
  */
 struct winsys_handle
 {
    /**
-    * Input for texture_from_handle, valid values are
+    * Input for resource_from_handle, valid values are
     * WINSYS_HANDLE_TYPE_SHARED or WINSYS_HANDLE_TYPE_FD.
-    * Input to texture_get_handle,
+    * Input to resource_get_handle,
     * to select handle for kms, flink, or prime.
     */
    unsigned type;
    /**
-    * Input for texture_get_handle, allows to export the offset
+    * Input for resource_get_handle, allows to export the offset
     * of a specific layer of an array texture.
     */
    unsigned layer;
    /**
-    * Input for texture_get_handle, allows to export of a specific plane of a
+    * Input for resource_get_handle, allows to export of a specific plane of a
     * texture.
     */
    unsigned plane;
    /**
-    * Input to texture_from_handle.
-    * Output for texture_get_handle.
+    * Input to resource_from_handle.
+    * Output for resource_get_handle.
     */
 #ifdef _WIN32
    HANDLE handle;
@@ -50,13 +51,13 @@ struct winsys_handle
    unsigned handle;
 #endif
    /**
-    * Input to texture_from_handle.
-    * Output for texture_get_handle.
+    * Input to resource_from_handle.
+    * Output for resource_get_handle.
     */
    unsigned stride;
    /**
-    * Input to texture_from_handle.
-    * Output for texture_get_handle.
+    * Input to resource_from_handle.
+    * Output for resource_get_handle.
     */
    unsigned offset;
 
@@ -72,11 +73,26 @@ struct winsys_handle
     */
    uint64_t modifier;
 
+   union
+   {
+      /**
+       * Input to resource_from_handle.
+       * Output for resource_get_handle.
+       */
+      void *com_obj;
+
+      /**
+       * String name for an object.
+       * Input to resource_from_handle.
+       */
+      const void *name;
+   };
+
    /**
-    * Input to resource_from_handle.
+    * Total size of the object.
     * Output for resource_get_handle.
     */
-   void *com_obj;
+   uint64_t size;
 };
 
 #ifdef __cplusplus

@@ -65,8 +65,14 @@ Filename *platform_default_filename(const char *name)
 
 SeatPromptResult filexfer_get_userpass_input(Seat *seat, prompts_t *p)
 {
+    /* The file transfer tools don't support Restart Session, so we
+     * can just have a single static cmdline_get_passwd_input_state
+     * that's never reset */
+    static cmdline_get_passwd_input_state cmdline_state =
+        CMDLINE_GET_PASSWD_INPUT_STATE_INIT;
+
     SeatPromptResult spr;
-    spr = cmdline_get_passwd_input(p);
+    spr = cmdline_get_passwd_input(p, &cmdline_state, false);
     if (spr.kind == SPRK_INCOMPLETE)
         spr = console_get_userpass_input(p);
     return spr;
@@ -119,14 +125,14 @@ RFile *open_existing_file(const char *name, uint64_t *size,
                           long *perms)
 {
     int fd;
-    RFile *ret;
+    RFile *f;
 
     fd = open(name, O_RDONLY);
     if (fd < 0)
         return NULL;
 
-    ret = snew(RFile);
-    ret->fd = fd;
+    f = snew(RFile);
+    f->fd = fd;
 
     if (size || mtime || atime || perms) {
         struct stat statbuf;
@@ -148,7 +154,7 @@ RFile *open_existing_file(const char *name, uint64_t *size,
             *perms = statbuf.st_mode;
     }
 
-    return ret;
+    return f;
 }
 
 int read_from_file(RFile *f, void *buffer, int length)
@@ -170,33 +176,33 @@ struct WFile {
 WFile *open_new_file(const char *name, long perms)
 {
     int fd;
-    WFile *ret;
+    WFile *f;
 
     fd = open(name, O_CREAT | O_TRUNC | O_WRONLY,
               (mode_t)(perms ? perms : 0666));
     if (fd < 0)
         return NULL;
 
-    ret = snew(WFile);
-    ret->fd = fd;
-    ret->name = dupstr(name);
+    f = snew(WFile);
+    f->fd = fd;
+    f->name = dupstr(name);
 
-    return ret;
+    return f;
 }
 
 
 WFile *open_existing_wfile(const char *name, uint64_t *size)
 {
     int fd;
-    WFile *ret;
+    WFile *f;
 
     fd = open(name, O_APPEND | O_WRONLY);
     if (fd < 0)
         return NULL;
 
-    ret = snew(WFile);
-    ret->fd = fd;
-    ret->name = dupstr(name);
+    f = snew(WFile);
+    f->fd = fd;
+    f->name = dupstr(name);
 
     if (size) {
         struct stat statbuf;
@@ -208,7 +214,7 @@ WFile *open_existing_wfile(const char *name, uint64_t *size)
         *size = statbuf.st_size;
     }
 
-    return ret;
+    return f;
 }
 
 int write_to_file(WFile *f, void *buffer, int length)
@@ -259,16 +265,16 @@ int seek_file(WFile *f, uint64_t offset, int whence)
     int lseek_whence;
 
     switch (whence) {
-    case FROM_START:
+      case FROM_START:
         lseek_whence = SEEK_SET;
         break;
-    case FROM_CURRENT:
+      case FROM_CURRENT:
         lseek_whence = SEEK_CUR;
         break;
-    case FROM_END:
+      case FROM_END:
         lseek_whence = SEEK_END;
         break;
-    default:
+      default:
         return -1;
     }
 
@@ -305,18 +311,15 @@ struct DirHandle {
 
 DirHandle *open_directory(const char *name, const char **errmsg)
 {
-    DIR *dir;
-    DirHandle *ret;
-
-    dir = opendir(name);
-    if (!dir) {
+    DIR *dp = opendir(name);
+    if (!dp) {
         *errmsg = strerror(errno);
         return NULL;
     }
 
-    ret = snew(DirHandle);
-    ret->dir = dir;
-    return ret;
+    DirHandle *dir = snew(DirHandle);
+    dir->dir = dp;
+    return dir;
 }
 
 char *read_filename(DirHandle *dir)
@@ -382,16 +385,16 @@ struct WildcardMatcher {
     int i;
 };
 WildcardMatcher *begin_wildcard_matching(const char *name) {
-    WildcardMatcher *ret = snew(WildcardMatcher);
+    WildcardMatcher *dir = snew(WildcardMatcher);
 
-    if (glob(name, 0, NULL, &ret->globbed) < 0) {
-        sfree(ret);
+    if (glob(name, 0, NULL, &dir->globbed) < 0) {
+        sfree(dir);
         return NULL;
     }
 
-    ret->i = 0;
+    dir->i = 0;
 
-    return ret;
+    return dir;
 }
 char *wildcard_get_filename(WildcardMatcher *dir) {
     if (dir->i < dir->globbed.gl_pathc) {

@@ -369,7 +369,7 @@ KdUseMsg(void)
     ErrorF("-softCursor      Force software cursor\n");
     ErrorF("-videoTest       Start the server, pause momentarily and exit\n");
     ErrorF
-        ("-origin X,Y      Locates the next screen in the the virtual screen (Xinerama)\n");
+        ("-origin X,Y      Locates the next screen in the virtual screen (Xinerama)\n");
     ErrorF("-switchCmd       Command to execute on vt switch\n");
     ErrorF
         ("vtxx             Use virtual terminal xx instead of the next available\n");

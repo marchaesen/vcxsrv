@@ -23,7 +23,7 @@ with HiZ.
 As stated in the PRM, this means we need a separate HiZ or stencil buffer for
 each LOD.  However, it's not quite as simple as that.  If you ignore layered
 rendering, things are pretty straightforward: you need one HiZ surface for each
-main surface slice With layered, rendering, however, we have to be a bit more
+main surface slice. With layered rendering, however, we have to be a bit more
 clever because we need a "real" array surface at each LOD.  ISL solves this
 with a special miptree layout for layered rendering
 :cpp:enumerator:`isl_dim_layout::ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ` which lays

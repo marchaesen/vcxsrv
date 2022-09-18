@@ -81,33 +81,6 @@ void *si_get_blitter_vs(struct si_context *sctx, enum blitter_attrib_type type, 
    return *vs;
 }
 
-/**
- * This is used when TCS is NULL in the VS->TCS->TES chain. In this case,
- * VS passes its outputs to TES directly, so the fixed-function shader only
- * has to write TESSOUTER and TESSINNER.
- */
-void *si_create_fixed_func_tcs(struct si_context *sctx)
-{
-   struct ureg_src outer, inner;
-   struct ureg_dst tessouter, tessinner;
-   struct ureg_program *ureg = ureg_create(PIPE_SHADER_TESS_CTRL);
-
-   if (!ureg)
-      return NULL;
-
-   outer = ureg_DECL_system_value(ureg, TGSI_SEMANTIC_TESS_DEFAULT_OUTER_LEVEL, 0);
-   inner = ureg_DECL_system_value(ureg, TGSI_SEMANTIC_TESS_DEFAULT_INNER_LEVEL, 0);
-
-   tessouter = ureg_DECL_output(ureg, TGSI_SEMANTIC_TESSOUTER, 0);
-   tessinner = ureg_DECL_output(ureg, TGSI_SEMANTIC_TESSINNER, 0);
-
-   ureg_MOV(ureg, tessouter, outer);
-   ureg_MOV(ureg, tessinner, inner);
-   ureg_END(ureg);
-
-   return ureg_create_shader_and_destroy(ureg, &sctx->b);
-}
-
 /* Create a compute shader implementing clear_buffer or copy_buffer. */
 void *si_create_dma_compute_shader(struct pipe_context *ctx, unsigned num_dwords_per_thread,
                                    bool dst_stream_cache_policy, bool is_copy)
@@ -212,49 +185,6 @@ void *si_create_dma_compute_shader(struct pipe_context *ctx, unsigned num_dwords
 
    free(values);
    return cs;
-}
-
-/* Create a compute shader implementing clear_buffer or copy_buffer. */
-void *si_create_clear_buffer_rmw_cs(struct pipe_context *ctx)
-{
-   const char *text = "COMP\n"
-                      "PROPERTY CS_FIXED_BLOCK_WIDTH 64\n"
-                      "PROPERTY CS_FIXED_BLOCK_HEIGHT 1\n"
-                      "PROPERTY CS_FIXED_BLOCK_DEPTH 1\n"
-                      "PROPERTY CS_USER_DATA_COMPONENTS_AMD 2\n"
-                      "DCL SV[0], THREAD_ID\n"
-                      "DCL SV[1], BLOCK_ID\n"
-                      "DCL SV[2], CS_USER_DATA_AMD\n"
-                      "DCL BUFFER[0]\n"
-                      "DCL TEMP[0..1]\n"
-                      "IMM[0] UINT32 {64, 16, 0, 0}\n"
-                      /* ADDRESS = BLOCK_ID * 64 + THREAD_ID; */
-                      "UMAD TEMP[0].x, SV[1].xxxx, IMM[0].xxxx, SV[0].xxxx\n"
-                      /* ADDRESS = ADDRESS * 16; (byte offset, loading one vec4 per thread) */
-                      "UMUL TEMP[0].x, TEMP[0].xxxx, IMM[0].yyyy\n"
-                      "LOAD TEMP[1], BUFFER[0], TEMP[0].xxxx\n"
-                      /* DATA &= inverted_writemask; */
-                      "AND TEMP[1], TEMP[1], SV[2].yyyy\n"
-                      /* DATA |= clear_value_masked; */
-                      "OR TEMP[1], TEMP[1], SV[2].xxxx\n"
-                      "STORE BUFFER[0].xyzw, TEMP[0], TEMP[1]%s\n"
-                      "END\n";
-   char final_text[2048];
-   struct tgsi_token tokens[1024];
-   struct pipe_compute_state state = {0};
-
-   snprintf(final_text, sizeof(final_text), text,
-            SI_COMPUTE_DST_CACHE_POLICY != L2_LRU ? ", STREAM_CACHE_POLICY" : "");
-
-   if (!tgsi_text_translate(final_text, tokens, ARRAY_SIZE(tokens))) {
-      assert(false);
-      return NULL;
-   }
-
-   state.ir_type = PIPE_SHADER_IR_TGSI;
-   state.prog = tokens;
-
-   return ctx->create_compute_state(ctx, &state);
 }
 
 /* Create the compute shader that is used to collect the results.
@@ -470,124 +400,6 @@ void *si_create_query_result_cs(struct si_context *sctx)
    state.prog = tokens;
 
    return sctx->b.create_compute_state(&sctx->b, &state);
-}
-
-/* Create a compute shader implementing copy_image.
- * Luckily, this works with all texture targets except 1D_ARRAY.
- */
-void *si_create_copy_image_compute_shader(struct pipe_context *ctx)
-{
-   static const char text[] =
-      "COMP\n"
-      "PROPERTY CS_USER_DATA_COMPONENTS_AMD 3\n"
-      "DCL SV[0], THREAD_ID\n"
-      "DCL SV[1], BLOCK_ID\n"
-      "DCL SV[2], BLOCK_SIZE\n"
-      "DCL SV[3], CS_USER_DATA_AMD\n"
-      "DCL IMAGE[0], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT, WR\n"
-      "DCL IMAGE[1], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT, WR\n"
-      "DCL TEMP[0..3], LOCAL\n"
-      "IMM[0] UINT32 {65535, 16, 0, 0}\n"
-
-      "UMAD TEMP[0].xyz, SV[1], SV[2], SV[0]\n" /* threadID.xyz */
-      "AND TEMP[1].xyz, SV[3], IMM[0].xxxx\n"    /* src.xyz */
-      "UADD TEMP[1].xyz, TEMP[1], TEMP[0]\n" /* src.xyz + threadID.xyz */
-      "LOAD TEMP[3], IMAGE[0], TEMP[1], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT\n"
-      "USHR TEMP[2].xyz, SV[3], IMM[0].yyyy\n"   /* dst.xyz */
-      "UADD TEMP[2].xyz, TEMP[2], TEMP[0]\n" /* dst.xyz + threadID.xyz */
-      "STORE IMAGE[1], TEMP[2], TEMP[3], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT\n"
-      "END\n";
-
-   struct tgsi_token tokens[1024];
-   struct pipe_compute_state state = {0};
-
-   if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
-      assert(false);
-      return NULL;
-   }
-
-   state.ir_type = PIPE_SHADER_IR_TGSI;
-   state.prog = tokens;
-
-   return ctx->create_compute_state(ctx, &state);
-}
-
-void *si_create_copy_image_compute_shader_1d_array(struct pipe_context *ctx)
-{
-   static const char text[] =
-      "COMP\n"
-      "PROPERTY CS_FIXED_BLOCK_WIDTH 64\n"
-      "PROPERTY CS_FIXED_BLOCK_HEIGHT 1\n"
-      "PROPERTY CS_FIXED_BLOCK_DEPTH 1\n"
-      "PROPERTY CS_USER_DATA_COMPONENTS_AMD 3\n"
-      "DCL SV[0], THREAD_ID\n"
-      "DCL SV[1], BLOCK_ID\n"
-      "DCL SV[2], CS_USER_DATA_AMD\n"
-      "DCL IMAGE[0], 1D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT, WR\n"
-      "DCL IMAGE[1], 1D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT, WR\n"
-      "DCL TEMP[0..4], LOCAL\n"
-      "IMM[0] UINT32 {64, 1, 65535, 16}\n"
-
-      "UMAD TEMP[0].xz, SV[1].xyyy, IMM[0].xyyy, SV[0].xyyy\n" /* threadID.xz */
-      "AND TEMP[1].xz, SV[2], IMM[0].zzzz\n"    /* src.xz */
-      "UADD TEMP[1].xz, TEMP[1], TEMP[0]\n"     /* src.xz + threadID.xz */
-      "LOAD TEMP[3], IMAGE[0], TEMP[1].xzzz, 1D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT\n"
-      "USHR TEMP[2].xz, SV[2], IMM[0].wwww\n"   /* dst.xz */
-      "UADD TEMP[2].xz, TEMP[2], TEMP[0]\n" /* dst.xz + threadID.xz */
-      "STORE IMAGE[1], TEMP[2].xzzz, TEMP[3], 1D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT\n"
-      "END\n";
-
-   struct tgsi_token tokens[1024];
-   struct pipe_compute_state state = {0};
-
-   if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
-      assert(false);
-      return NULL;
-   }
-
-   state.ir_type = PIPE_SHADER_IR_TGSI;
-   state.prog = tokens;
-
-   return ctx->create_compute_state(ctx, &state);
-}
-
-/* Create a compute shader implementing DCC decompression via a blit.
- * This is a trivial copy_image shader except that it has a variable block
- * size and a barrier.
- */
-void *si_create_dcc_decompress_cs(struct pipe_context *ctx)
-{
-   static const char text[] =
-      "COMP\n"
-      "DCL SV[0], THREAD_ID\n"
-      "DCL SV[1], BLOCK_ID\n"
-      "DCL SV[2], BLOCK_SIZE\n"
-      "DCL IMAGE[0], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT, WR\n"
-      "DCL IMAGE[1], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT, WR\n"
-      "DCL TEMP[0..1]\n"
-
-      "UMAD TEMP[0].xyz, SV[1].xyzz, SV[2].xyzz, SV[0].xyzz\n"
-      "LOAD TEMP[1], IMAGE[0], TEMP[0].xyzz, 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT\n"
-      /* Wait for the whole threadgroup (= DCC block) to load texels before
-       * overwriting them, because overwriting any pixel within a DCC block
-       * can break compression for the whole block.
-       */
-      "BARRIER\n"
-      "STORE IMAGE[1], TEMP[0].xyzz, TEMP[1], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT\n"
-      "END\n";
-
-   struct tgsi_token tokens[1024];
-   struct pipe_compute_state state = {0};
-
-   if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
-      assert(false);
-      return NULL;
-   }
-
-   state.ir_type = PIPE_SHADER_IR_TGSI;
-   state.prog = tokens;
-
-   return ctx->create_compute_state(ctx, &state);
 }
 
 void *si_clear_render_target_shader(struct pipe_context *ctx)

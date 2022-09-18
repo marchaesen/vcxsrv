@@ -47,7 +47,7 @@ determines events to be selected / deselected
 1=>select, 0->deselect; for events in bits_to_change
 .SH DESCRIPTION
 .LP
-.I XkbGetKeyboard 
+.B XkbGetKeyboard
 allocates and returns a pointer to a keyboard description. It queries the server for those 
 components specified in the 
 .I which 
@@ -76,17 +76,32 @@ XkbGeometryMask	geom	(1L<<6)
 XkbAllComponentsMask	All Fields	(1L<<7)
 .TE
 
-.I XkbGetKeyboard 
+.B XkbGetKeyboard
 is used to read the current description for one or more components of a keyboard device. It calls
-.I XkbGetKeyboardByName 
+.BR XkbGetKeyboardByName (__libmansuffix__)
 as follows:
 
 .I XkbGetKeyboardByName(dpy, device_spec, 
 NULL, 
 .I which, which, 
 False).
+.LP
+If successful,
+.B XkbGetKeyboard
+returns a pointer to a newly allocated
+.B XkbDescRec
+structure,
+which is described in
+.BR XkbGetKeyboardByName (__libmansuffix__),
+and which should be freed with
+.BR XkbFreeKeyboard (__libmansuffix__).
+If
+.B XkbGetKeyboard
+does not succeed, it returns
+.BR NULL .
 .SH DIAGNOSTICS
 .TP 15
 .SM BadAlloc
 Unable to allocate storage
-
+.SH "SEE ALSO"
+.BR XkbGetKeyboardByName (__libmansuffix__)

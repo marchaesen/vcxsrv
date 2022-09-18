@@ -32,9 +32,6 @@ am:						am_ET.UTF-8
 am_ET:						am_ET.UTF-8
 ar:						ar_AA.ISO8859-6
 ar_AA:						ar_AA.ISO8859-6
-AR_AA:						ar_AA.ISO8859-6
-Ar_AA:						ar_AA.ISO8859-6
-AR_AA.UTF-8:					ar_AA.UTF-8
 ar_AA.iso88596:					ar_AA.ISO8859-6
 ar_AA.ISO-8859-6:				ar_AA.ISO8859-6
 ar_AE:						ar_AE.ISO8859-6
@@ -210,7 +207,6 @@ cy_GB.ISO-8859-15:				cy_GB.ISO8859-15
 da:						da_DK.ISO8859-1
 da.ISO8859-15:					da_DK.ISO8859-15
 da_DK:						da_DK.ISO8859-1
-DA_DK:						da_DK.ISO8859-1
 da_DK.88591:					da_DK.ISO8859-1
 da_DK.88591.en:					da_DK.ISO8859-1
 da_DK.iso88591:					da_DK.ISO8859-1
@@ -220,7 +216,6 @@ da_DK.iso885915:				da_DK.ISO8859-15
 da_DK.ISO-8859-15:				da_DK.ISO8859-15
 da_DK.8859-15:					da_DK.ISO8859-15
 da_DK.utf8:					da_DK.UTF-8
-DA_DK.UTF-8:					da_DK.UTF-8
 de:						de_DE.ISO8859-1
 de.ISO8859-15:					de_DE.ISO8859-15
 de_AT:						de_AT.ISO8859-1
@@ -287,8 +282,6 @@ de_LU.ISO-8859-15:				de_LU.ISO8859-15
 de_LU.ISO-8859-15@euro:				de_LU.ISO8859-15
 de_LU.UTF-8@euro:				de_LU.UTF-8
 de_LU.utf8:					de_LU.UTF-8
-GER_DE.8859:					de_DE.ISO8859-1
-GER_DE.8859.in:					de_DE.ISO8859-1
 ee:						ee_EE.ISO8859-4
 ee_EE:						ee_EE.ISO8859-4
 ee_EE.iso88594:					ee_EE.ISO8859-4
@@ -328,8 +321,6 @@ en_GB.iso885915:				en_GB.ISO8859-15
 en_GB.ISO-8859-15:				en_GB.ISO8859-15
 en_GB.utf8:					en_GB.UTF-8
 en_UK:						en_GB.ISO8859-1
-ENG_GB.8859:					en_GB.ISO8859-1
-ENG_GB.8859.in:					en_GB.ISO8859-1
 en_HK:						en_HK.ISO8859-1
 en_HK.iso88591:					en_HK.ISO8859-1
 en_HK.ISO-8859-1:				en_HK.ISO8859-1
@@ -360,7 +351,6 @@ en_SG.utf8:					en_SG.UTF-8
 en_SG.iso88591:					en_SG.ISO8859-1
 en_SG.ISO-8859-1:				en_SG.ISO8859-1
 en_US:						en_US.ISO8859-1
-EN_US:						en_US.ISO8859-1
 en_US.88591:					en_US.ISO8859-1
 en_US.88591.en:					en_US.ISO8859-1
 en_US.iso88591:					en_US.ISO8859-1
@@ -371,7 +361,6 @@ en_US.ISO-8859-15:				en_US.ISO8859-15
 en_US.8859-15:					en_US.ISO8859-15
 en_US.ISO8859-15@euro:				en_US.ISO8859-15
 en_US.utf8:					en_US.UTF-8
-EN_US.UTF-8:					en_US.UTF-8
 en_ZA:						en_ZA.ISO8859-1
 en_ZA.88591:					en_ZA.ISO8859-1
 en_ZA.88591.en:					en_ZA.ISO8859-1
@@ -386,7 +375,6 @@ en_ZW.utf8:					en_ZS.UTF-8
 en_ZW.iso88591:					en_ZW.ISO8859-1
 en_ZW.ISO-8859-1:				en_ZW.ISO8859-1
 eo:						eo_XX.ISO8859-3
-eo_EO:						eo_EO.ISO8859-3
 eo_XX:						eo_XX.ISO8859-3
 es:						es_ES.ISO8859-1
 es.UTF-8:					es_ES.UTF-8
@@ -593,8 +581,6 @@ fr_LU.ISO-8859-15@euro:				fr_LU.ISO8859-15
 fr_LU@euro:					fr_LU.ISO8859-15
 fr_LU.UTF-8@euro:				fr_LU.UTF-8
 fr_LU.utf8:					fr_LU.UTF-8
-FRE_FR.8859:					fr_FR.ISO8859-1
-FRE_FR.8859.in:					fr_FR.ISO8859-1
 ga:						ga_IE.ISO8859-1
 ga_IE:						ga_IE.ISO8859-1
 ga_IE.iso88591:					ga_IE.ISO8859-1
@@ -637,7 +623,6 @@ gv_GB.iso885915:				gv_GB.ISO8859-15
 gv_GB.ISO-8859-15:				gv_GB.ISO8859-15
 he:						he_IL.ISO8859-8
 he_IL:						he_IL.ISO8859-8
-HE_IL:						he_IL.ISO8859-8
 he_IL.iso88598:					he_IL.ISO8859-8
 he_IL.ISO-8859-8:				he_IL.ISO8859-8
 he_IL.cp1255:					he_IL.CP1255
@@ -645,13 +630,10 @@ he_IL.microsoftcp1255:				he_IL.CP1255
 he_IL.microsoft-cp1255:				he_IL.CP1255
 he_IL.MICROSOFT-CP1255:				he_IL.CP1255
 he_IL.utf8:					he_IL.UTF-8
-HE_IL.UTF-8:					he_IL.UTF-8
 hi:						hi_IN.ISCII-DEV
 hi_IN:						hi_IN.ISCII-DEV
-HI_IN:						hi_IN.ISCII-DEV
 hi_IN.isciidev:					hi_IN.ISCII-DEV
 hi_IN.utf8:					hi_IN.UTF-8
-HI_IN.UTF-8:					hi_IN.UTF-8
 hne:						hne_IN.UTF-8
 hne_IN:						hne_IN.UTF-8
 hne_IN.utf8:					hne_IN.UTF-8
@@ -709,7 +691,6 @@ ja:						ja_JP.eucJP
 ja.JIS:						ja_JP.JIS7
 ja.SJIS:					ja_JP.SJIS
 ja_JP.ujis:					ja_JP.eucJP
-Jp_JP:						ja_JP.eucJP
 ja_JP.AJEC:					ja_JP.eucJP
 ja_JP.EUC:					ja_JP.eucJP
 ja_JP.EUC-JP:					ja_JP.eucJP
@@ -722,7 +703,6 @@ ja_JP.mscode:					ja_JP.SJIS
 ja_JP.PCK:					ja_JP.SJIS
 ja_JP.sjis:					ja_JP.SJIS
 ja_JP.utf8:					ja_JP.UTF-8
-JA_JP.utf8:					ja_JP.UTF-8
 ka:						ka_GE.GEORGIAN-ACADEMY
 ka_GE:						ka_GE.GEORGIAN-ACADEMY
 ka_GE.georgianacademy:				ka_GE.GEORGIAN-ACADEMY
@@ -742,13 +722,11 @@ kn_IN.utf8:					kn_IN.UTF-8
 ko:						ko_KR.eucKR
 ko.UTF-8:					ko_KR.UTF-8
 ko_KR:						ko_KR.eucKR
-KO_KR:						ko_KR.eucKR
 ko_KR.EUC:					ko_KR.eucKR
 ko_KR.EUC-KR:					ko_KR.eucKR
 ko_KR.euc:					ko_KR.eucKR
 ko_KR.euckr:					ko_KR.eucKR
 ko_KR.utf8:					ko_KR.UTF-8
-KO_KR.UTF-8:					ko_KR.UTF-8
 ks:						ks_IN.UTF-8
 ks_IN:						ks_IN.UTF-8
 ks_IN.utf8:					ks_IN.UTF-8
@@ -1057,11 +1035,9 @@ tn_ZA.iso8859-15:				tn_ZA.ISO8859-15
 tn_ZA.utf8:					tn_ZA.UTF-8
 tr:						tr_TR.ISO8859-9
 tr_TR:						tr_TR.ISO8859-9
-TR_TR:						tr_TR.ISO8859-9
 tr_TR.iso88599:					tr_TR.ISO8859-9
 tr_TR.ISO-8859-9:				tr_TR.ISO8859-9
 tr_TR.utf8:					tr_TR.UTF-8
-TR_TR.utf8:					tr_TR.UTF-8
 ts:						ts_ZA.ISO8859-1
 ts_ZA:						ts_ZA.ISO8859-1
 ts_ZA.iso88591:					ts_ZA.ISO8859-1
@@ -1098,14 +1074,11 @@ ve_ZA:						ve_ZA.UTF-8
 ve_ZA.utf8:					ve_ZA.UTF-8
 vi:						vi_VN.TCVN
 vi_VN:						vi_VN.TCVN
-Vi_VN:						vi_VN.TCVN
-VI_VN:						vi_VN.TCVN
 vi_VN.tcvn:					vi_VN.TCVN
 vi_VN.tcvn5712:					vi_VN.TCVN
 vi_VN.viscii:					vi_VN.VISCII
 vi_VN.viscii111:				vi_VN.VISCII
 vi_VN.utf8:					vi_VN.UTF-8
-VI_VN.UTF-8:					vi_VN.UTF-8
 wa:						wa_BE.ISO8859-1
 wa_BE:						wa_BE.ISO8859-1
 wa_BE.iso88591:					wa_BE.ISO8859-1
@@ -1133,7 +1106,6 @@ zh_CN.GB18030:					zh_CN.gb18030
 zh_CN.big5:					zh_TW.big5
 zh_CN.euc:					zh_CN.eucCN
 zh_CN.utf8:					zh_CN.UTF-8
-ZH_CN.UTF-8:					zh_CN.UTF-8
 zh_HK:						zh_HK.big5hkscs
 zh_HK.BIG5HK:					zh_HK.big5hkscs
 zh_HK.Big5hkscs:				zh_HK.big5hkscs
@@ -1148,16 +1120,12 @@ zh_HK.Big5-HKSCS:				zh_HK.big5hkscs
 zh_HK.Big5HKSCS:				zh_HK.big5hkscs
 zh_HK.Big5:					zh_HK.big5
 zh_HK.utf8:					zh_HK.UTF-8
-ZH_HK.UTF-8:					zh_HK.UTF-8
-ZH_SG.UTF-8:					zh_SG.UTF-8
 zh_TW:						zh_TW.big5
 zh_TW.Big5:					zh_TW.big5
 zh_TW.BIG5:					zh_TW.big5
-Zh_TW.big5:					zh_TW.big5
 zh_TW.EUC:					zh_TW.eucTW
 zh_TW.EUC-TW:					zh_TW.eucTW
 zh_TW.utf8:					zh_TW.UTF-8
-ZH_TW.UTF-8:					zh_TW.UTF-8
 zu:						zu_ZA.ISO8859-1
 zu_ZA:						zu_ZA.ISO8859-1
 zu_ZA.iso88591:					zu_ZA.ISO8859-1

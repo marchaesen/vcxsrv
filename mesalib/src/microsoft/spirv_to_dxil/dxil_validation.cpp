@@ -27,98 +27,20 @@
 
 #if DETECT_OS_WINDOWS
 
-#include <windows.h>
-#include <wrl/client.h>
-
-#include "dxcapi.h"
-
-using Microsoft::WRL::ComPtr;
-
-class DxilBlob : public IDxcBlob {
- public:
-   DxilBlob(dxil_spirv_object *data) : m_data(data) {}
-
-   LPVOID STDMETHODCALLTYPE
-   GetBufferPointer() override
-   {
-      return m_data->binary.buffer;
-   }
-
-   SIZE_T STDMETHODCALLTYPE
-   GetBufferSize() override
-   {
-      return m_data->binary.size;
-   }
-
-   HRESULT STDMETHODCALLTYPE
-   QueryInterface(REFIID, void **) override
-   {
-      return E_NOINTERFACE;
-   }
-
-   ULONG STDMETHODCALLTYPE
-   AddRef() override
-   {
-      return 1;
-   }
-
-   ULONG STDMETHODCALLTYPE
-   Release() override
-   {
-      return 0;
-   }
-
-   dxil_spirv_object *m_data;
-};
+#include "dxil_validator.h"
 
 bool
 validate_dxil(dxil_spirv_object *dxil_obj)
 {
-   HMODULE dxil_dll = LoadLibraryA("dxil.dll");
-   if (!dxil_dll) {
-      fprintf(stderr, "Unable to load dxil.dll\n");
-      return false;
-   }
-   DxcCreateInstanceProc dxc_create_instance =
-      reinterpret_cast<DxcCreateInstanceProc>(
-         GetProcAddress(dxil_dll, "DxcCreateInstance"));
+   struct dxil_validator *val = dxil_create_validator(NULL);
 
-   bool res = false;
-   DxilBlob blob(dxil_obj);
-   // Creating a block so that ComPtrs free before we call FreeLibrary
-   {
-      ComPtr<IDxcValidator> validator;
-      if (FAILED(dxc_create_instance(CLSID_DxcValidator,
-                                     IID_PPV_ARGS(&validator)))) {
-         fprintf(stderr, "Failed to create DxcValidator instance \n");
-         FreeLibrary(dxil_dll);
-         return false;
-      }
+   char *err;
+   bool res = dxil_validate_module(val, dxil_obj->binary.buffer,
+                                   dxil_obj->binary.size, &err);
+   if (!res && err)
+      fprintf(stderr, "DXIL: %s\n\n", err);
 
-      ComPtr<IDxcOperationResult> result;
-      validator->Validate(&blob, DxcValidatorFlags_InPlaceEdit, &result);
-      HRESULT status;
-      result->GetStatus(&status);
-      if (FAILED(status)) {
-         ComPtr<IDxcBlobEncoding> error;
-         result->GetErrorBuffer(&error);
-         BOOL known = false;
-         uint32_t cp = 0;
-         error->GetEncoding(&known, &cp);
-         fprintf(stderr, "DXIL: ");
-         if (cp == CP_UTF8 || cp == CP_ACP) {
-            fprintf(stderr, "%s\n",
-                    static_cast<char *>(error->GetBufferPointer()));
-         } else {
-            fwprintf(stderr, L"%ls\n",
-                     static_cast<wchar_t *>(error->GetBufferPointer()));
-         }
-      } else {
-         res = true;
-      }
-   }
-
-   FreeLibrary(dxil_dll);
+   dxil_destroy_validator(val);
    return res;
 }
 

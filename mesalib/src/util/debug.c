@@ -53,6 +53,48 @@ parse_debug_string(const char *debug,
    return flag;
 }
 
+uint64_t
+parse_enable_string(const char *debug,
+                    uint64_t default_value,
+                    const struct debug_control *control)
+{
+   uint64_t flag = default_value;
+
+   if (debug != NULL) {
+      for (; control->string != NULL; control++) {
+         if (!strcmp(debug, "all")) {
+            flag |= control->flag;
+
+         } else {
+            const char *s = debug;
+            unsigned n;
+
+            for (; n = strcspn(s, ", "), *s; s += MAX2(1, n)) {
+               bool enable;
+               if (s[0] == '+') {
+                  enable = true;
+                  s++; n--;
+               } else if (s[0] == '-') {
+                  enable = false;
+                  s++; n--;
+               } else {
+                  enable = true;
+               }
+               if (strlen(control->string) == n &&
+                   !strncmp(control->string, s, n)) {
+                  if (enable)
+                     flag |= control->flag;
+                  else
+                     flag &= ~control->flag;
+               }
+            }
+         }
+      }
+   }
+
+   return flag;
+}
+
 bool
 comma_separated_list_contains(const char *list, const char *s)
 {

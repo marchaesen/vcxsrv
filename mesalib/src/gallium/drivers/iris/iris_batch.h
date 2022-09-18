@@ -63,7 +63,7 @@ enum iris_batch_name {
 struct iris_batch {
    struct iris_context *ice;
    struct iris_screen *screen;
-   struct pipe_debug_callback *dbg;
+   struct util_debug_callback *dbg;
    struct pipe_device_reset_callback *reset;
 
    /** What batch is this? (e.g. IRIS_BATCH_RENDER/COMPUTE) */
@@ -80,8 +80,8 @@ struct iris_batch {
    /** Total size of all chained batches (in bytes). */
    unsigned total_chained_batch_size;
 
-   /** Last Surface State Base Address set in this hardware context. */
-   uint64_t last_surface_base_address;
+   /** Last binder address set in this hardware context. */
+   uint64_t last_binder_address;
 
    uint32_t ctx_id;
    uint32_t exec_flags;
@@ -161,6 +161,13 @@ struct iris_batch {
     * accessed from another cache domain j.
     */
    uint64_t coherent_seqnos[NUM_IRIS_DOMAINS][NUM_IRIS_DOMAINS];
+
+   /**
+    * A vector representing the cache coherency status of the L3.  For each
+    * cache domain i, l3_coherent_seqnos[i] denotes the seqno of the most
+    * recent flush of that domain which is visible to L3 clients.
+    */
+   uint64_t l3_coherent_seqnos[NUM_IRIS_DOMAINS];
 
    /**
     * Sequence number used to track the completion of any subsequent memory
@@ -246,7 +253,7 @@ iris_get_command_space(struct iris_batch *batch, unsigned bytes)
 {
    if (!batch->begin_trace_recorded) {
       batch->begin_trace_recorded = true;
-      trace_intel_begin_batch(&batch->trace, batch);
+      trace_intel_begin_batch(&batch->trace);
    }
    iris_require_command_space(batch, bytes);
    void *map = batch->map_next;
@@ -351,7 +358,12 @@ static inline void
 iris_batch_mark_flush_sync(struct iris_batch *batch,
                            enum iris_domain access)
 {
-   batch->coherent_seqnos[access][access] = batch->next_seqno - 1;
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
+
+   if (iris_domain_is_l3_coherent(devinfo, access))
+      batch->l3_coherent_seqnos[access] = batch->next_seqno - 1;
+   else
+      batch->coherent_seqnos[access][access] = batch->next_seqno - 1;
 }
 
 /**
@@ -363,8 +375,38 @@ static inline void
 iris_batch_mark_invalidate_sync(struct iris_batch *batch,
                                 enum iris_domain access)
 {
-   for (unsigned i = 0; i < NUM_IRIS_DOMAINS; i++)
-      batch->coherent_seqnos[access][i] = batch->coherent_seqnos[i][i];
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
+
+   for (unsigned i = 0; i < NUM_IRIS_DOMAINS; i++) {
+      if (i == access)
+         continue;
+
+      if (iris_domain_is_l3_coherent(devinfo, access)) {
+         if (iris_domain_is_read_only(access)) {
+            /* Invalidating a L3-coherent read-only domain "access" also
+             * triggers an invalidation of any matching L3 cachelines as well.
+             *
+             * If domain 'i' is L3-coherent, it sees the latest data in L3,
+             * otherwise it sees the latest globally-observable data.
+             */
+            batch->coherent_seqnos[access][i] =
+               iris_domain_is_l3_coherent(devinfo, i) ?
+               batch->l3_coherent_seqnos[i] : batch->coherent_seqnos[i][i];
+         } else {
+            /* Invalidating L3-coherent write domains does not trigger
+             * an invalidation of any matching L3 cachelines, however.
+             *
+             * It sees the latest data from domain i visible to L3 clients.
+             */
+            batch->coherent_seqnos[access][i] = batch->l3_coherent_seqnos[i];
+         }
+      } else {
+         /* "access" isn't L3-coherent, so invalidating it means it sees the
+          * most recent globally-observable data from domain i.
+          */
+         batch->coherent_seqnos[access][i] = batch->coherent_seqnos[i][i];
+      }
+   }
 }
 
 /**
@@ -375,9 +417,11 @@ iris_batch_mark_invalidate_sync(struct iris_batch *batch,
 static inline void
 iris_batch_mark_reset_sync(struct iris_batch *batch)
 {
-   for (unsigned i = 0; i < NUM_IRIS_DOMAINS; i++)
+   for (unsigned i = 0; i < NUM_IRIS_DOMAINS; i++) {
+      batch->l3_coherent_seqnos[i] = batch->next_seqno - 1;
       for (unsigned j = 0; j < NUM_IRIS_DOMAINS; j++)
          batch->coherent_seqnos[i][j] = batch->next_seqno - 1;
+   }
 }
 
 const char *

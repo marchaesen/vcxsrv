@@ -30,6 +30,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
 #include "util/slab.h"
+#include "util/u_debug_cb.h"
 #include "xf86drm.h"
 
 #define __user
@@ -381,7 +382,6 @@ struct vc4_context {
         struct pipe_viewport_state viewport;
         struct vc4_constbuf_stateobj constbuf[PIPE_SHADER_TYPES];
         struct vc4_vertexbuf_stateobj vertexbuf;
-        struct pipe_debug_callback debug;
 
         struct vc4_hwperfmon *perfmon;
         /** @} */
@@ -426,10 +426,10 @@ struct vc4_depth_stencil_alpha_state {
 };
 
 #define perf_debug(...) do {                            \
-        if (unlikely(vc4_debug & VC4_DEBUG_PERF))       \
+        if (VC4_DBG(PERF))                            \
                 fprintf(stderr, __VA_ARGS__);           \
-        if (unlikely(vc4->debug.debug_message))         \
-                pipe_debug_message(&vc4->debug, PERF_INFO, __VA_ARGS__);    \
+        if (unlikely(vc4->base.debug.debug_message))         \
+                util_debug_message(&vc4->base.debug, PERF_INFO, __VA_ARGS__); \
 } while (0)
 
 static inline struct vc4_context *

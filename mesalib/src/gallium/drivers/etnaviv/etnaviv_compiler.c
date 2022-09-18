@@ -31,12 +31,36 @@
 #include "util/ralloc.h"
 
 struct etna_compiler *
-etna_compiler_create(const char *renderer)
+etna_compiler_create(const char *renderer, const struct etna_specs *specs)
 {
    struct etna_compiler *compiler = rzalloc(NULL, struct etna_compiler);
 
-   if (DBG_ENABLED(ETNA_DBG_TGSI))
-      return compiler;
+   compiler->options = (nir_shader_compiler_options) {
+      .lower_fpow = true,
+      .lower_ftrunc = true,
+      .fuse_ffma16 = true,
+      .fuse_ffma32 = true,
+      .fuse_ffma64 = true,
+      .lower_bitops = true,
+      .lower_all_io_to_temps = true,
+      .vertex_id_zero_based = true,
+      .lower_flrp32 = true,
+      .lower_fmod = true,
+      .lower_vector_cmp = true,
+      .lower_fdph = true,
+      .lower_insert_byte = true,
+      .lower_insert_word = true,
+      .lower_fdiv = true, /* !specs->has_new_transcendentals */
+      .lower_fsign = !specs->has_sign_floor_ceil,
+      .lower_ffloor = !specs->has_sign_floor_ceil,
+      .lower_fceil = !specs->has_sign_floor_ceil,
+      .lower_fsqrt = !specs->has_sin_cos_sqrt,
+      .lower_sincos = !specs->has_sin_cos_sqrt,
+      .lower_uniforms_to_ubo = specs->halti >= 2,
+      .force_indirect_unrolling = nir_var_all,
+      .max_unroll_iterations = 32,
+      .vectorize_io = true,
+   };
 
    compiler->regs = etna_ra_setup(compiler);
    if (!compiler->regs) {
@@ -53,4 +77,10 @@ void
 etna_compiler_destroy(const struct etna_compiler *compiler)
 {
    ralloc_free((void *)compiler);
+}
+
+const nir_shader_compiler_options *
+etna_compiler_get_options(struct etna_compiler *compiler)
+{
+   return &compiler->options;
 }

@@ -47,7 +47,7 @@
 
 
 struct nearest_sampler {
-   PIPE_ALIGN_VAR(16) uint32_t out[64];
+   alignas(16) uint32_t out[64];
 
    const struct lp_jit_texture *texture;
    float fsrc_x;                /* src_x0 */
@@ -64,7 +64,7 @@ struct nearest_sampler {
 
 
 struct linear_interp {
-   PIPE_ALIGN_VAR(16) uint32_t out[64];
+   alignas(16) uint32_t out[64];
    __m128i a0;
    __m128i dadx;
    __m128i dady;
@@ -88,7 +88,7 @@ struct color_blend {
  * in one place.
  */
 struct shader {
-   PIPE_ALIGN_VAR(16) uint32_t out0[64];
+   alignas(16) uint32_t out0[64];
    const uint32_t *src0;
    const uint32_t *src1;
    __m128i const0;
@@ -111,14 +111,14 @@ blend_premul(struct color_blend *blend)
 {
    const uint32_t *src = blend->src;  /* aligned */
    uint32_t *dst = (uint32_t *)blend->color;      /* unaligned */
-   int width = blend->width;
+   const int width = blend->width;
    int i;
-   __m128i tmp;
    union { __m128i m128; uint ui[4]; } dstreg;
 
    blend->color += blend->stride;
 
    for (i = 0; i + 3 < width; i += 4) {
+      __m128i tmp;
       tmp = _mm_loadu_si128((const __m128i *)&dst[i]);  /* UNALIGNED READ */
       dstreg.m128 = util_sse2_blend_premul_4(*(const __m128i *)&src[i],
                                              tmp);
@@ -175,19 +175,18 @@ init_blend(struct color_blend *blend,
 static const uint32_t *
 fetch_row(struct nearest_sampler *samp)
 {
-   int y = samp->y++;
+   const int y = samp->y++;
    uint32_t *row = samp->out;
    const struct lp_jit_texture *texture = samp->texture;
-   int yy = util_iround(samp->fsrc_y + samp->fdtdy * y);
+   const int yy = util_iround(samp->fsrc_y + samp->fdtdy * y);
    const uint32_t *src_row =
       (const uint32_t *)((const uint8_t *)texture->base +
                          yy * texture->row_stride[0]);
-   int iscale_x = samp->fdsdx * 256;
-   int acc      = samp->fsrc_x * 256 + 128;
-   int width    = samp->width;
-   int i;
+   const int iscale_x = samp->fdsdx * 256;
+   const int width = samp->width;
+   int acc = samp->fsrc_x * 256 + 128;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       row[i] = src_row[acc>>8];
       acc += iscale_x;
    }
@@ -195,29 +194,28 @@ fetch_row(struct nearest_sampler *samp)
    return row;
 }
 
+
 /* Version of fetch_row which can cope with texture edges.  In
  * practise, aero never triggers this.
  */
 static const uint32_t *
 fetch_row_clamped(struct nearest_sampler *samp)
 {
-   int y = samp->y++;
+   const int y = samp->y++;
    uint32_t *row = samp->out;
    const struct lp_jit_texture *texture = samp->texture;
-
-   int yy = util_iround(samp->fsrc_y + samp->fdtdy * y);
-
+   const int yy = util_iround(samp->fsrc_y + samp->fdtdy * y);
    const uint32_t *src_row =
       (const uint32_t *)((const uint8_t *)texture->base +
                          CLAMP(yy, 0, texture->height-1) *
                          texture->row_stride[0]);
-   float src_x0 = samp->fsrc_x;
-   float scale_x = samp->fdsdx;
-   int width    = samp->width;
-   int i;
+   const float src_x0 = samp->fsrc_x;
+   const float scale_x = samp->fdsdx;
+   const int width = samp->width;
 
-   for (i = 0; i < width; i++) {
-      row[i] = src_row[CLAMP(util_iround(src_x0 + i*scale_x),0,texture->width-1)];
+   for (int i = 0; i < width; i++) {
+      row[i] = src_row[CLAMP(util_iround(src_x0 + i * scale_x),
+                             0, texture->width - 1)];
    }
 
    return row;
@@ -231,24 +229,23 @@ fetch_row_clamped(struct nearest_sampler *samp)
 static const uint32_t *
 fetch_row_xy_clamped(struct nearest_sampler *samp)
 {
-   int y = samp->y++;
+   const int y = samp->y++;
    uint32_t *row = samp->out;
    const struct lp_jit_texture *texture = samp->texture;
-   float yrow = samp->fsrc_y + samp->fdtdy * y;
-   float xrow = samp->fsrc_x + samp->fdsdy * y;
-   int width  = samp->width;
-   int i;
+   const float yrow = samp->fsrc_y + samp->fdtdy * y;
+   const float xrow = samp->fsrc_x + samp->fdsdy * y;
+   const int width  = samp->width;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       int yy = util_iround(yrow + samp->fdtdx * i);
       int xx = util_iround(xrow + samp->fdsdx * i);
 
       const uint32_t *src_row =
-         (const uint32_t *)((const uint8_t *)texture->base +
+         (const uint32_t *)((const uint8_t *) texture->base +
                             CLAMP(yy, 0, texture->height-1) *
                             texture->row_stride[0]);
 
-      row[i] = src_row[CLAMP(xx,0,texture->width-1)];
+      row[i] = src_row[CLAMP(xx, 0, texture->width - 1)];
    }
 
    return row;
@@ -264,8 +261,7 @@ init_nearest_sampler(struct nearest_sampler *samp,
                      float t0, float dtdx, float dtdy,
                      float w0, float dwdx, float dwdy)
 {
-   int i;
-   float oow = 1.0f / w0;
+   const float oow = 1.0f / w0;
 
    if (dwdx != 0.0 || dwdy != 0.0)
       return FALSE;
@@ -290,17 +286,14 @@ init_nearest_sampler(struct nearest_sampler *samp,
     * complain about uninitialized reads, set the last bit of the
     * buffer to zero:
     */
-   for (i = width; i & 3; i++)
+   for (int i = width; i & 3; i++)
       samp->out[i] = 0;
 
-   if (dsdy != 0 || dtdx != 0)
-   {
+   if (dsdy != 0 || dtdx != 0) {
       /* Arbitrary texture lookup:
        */
       samp->fetch = fetch_row_xy_clamped;
-   }
-   else
-   {
+   } else {
       /* Axis aligned stretch blit, abitrary scaling factors including
        * flipped, minifying and magnifying:
        */
@@ -317,11 +310,9 @@ init_nearest_sampler(struct nearest_sampler *samp,
       if (isrc_x  <= texture->width  && isrc_x  >= 0 &&
           isrc_y  <= texture->height && isrc_y  >= 0 &&
           isrc_x1 <= texture->width  && isrc_x1 >= 0 &&
-          isrc_y1 <= texture->height && isrc_y1 >= 0)
-      {
+          isrc_y1 <= texture->height && isrc_y1 >= 0) {
          samp->fetch = fetch_row;
-      }
-      else {
+      } else {
          samp->fetch = fetch_row_clamped;
       }
    }
@@ -535,13 +526,9 @@ blit_rgb1(const struct lp_rast_state *state,
                              a0[0][3], dadx[0][3], dady[0][3]))
       return FALSE;
 
-   init_blend(&blend,
-              x, y, width, height,
-              color, stride);
+   init_blend(&blend, x, y, width, height, color, stride);
 
-
-   init_shader(&shader,
-               x, y, width, height);
+   init_shader(&shader, x, y, width, height);
 
    /* Rasterize the rectangle and run the shader:
     */
@@ -582,10 +569,7 @@ blit_rgba_blend_premul(const struct lp_rast_state *state,
                              a0[0][3], dadx[0][3], dady[0][3]))
       return FALSE;
 
-
-   init_blend(&blend,
-              x, y, width, height,
-              color, stride);
+   init_blend(&blend, x, y, width, height, color, stride);
 
    /* Rasterize the rectangle and run the shader:
     */
@@ -643,6 +627,7 @@ linear_no_op(const struct lp_rast_state *state,
    return TRUE;
 }
 
+
 /* Check for ADD/ONE/INV_SRC_ALPHA, ie premultiplied-alpha blending.
  */
 static boolean
@@ -661,19 +646,19 @@ is_one_inv_src_alpha_blend(const struct lp_fragment_shader_variant *variant)
 }
 
 
-/* Examine the fragment shader varient and determine whether we can
+/* Examine the fragment shader variant and determine whether we can
  * substitute a fastpath linear shader implementation.
  */
 void
 llvmpipe_fs_variant_linear_fastpath(struct lp_fragment_shader_variant *variant)
 {
-   struct lp_sampler_static_state *samp0 = lp_fs_variant_key_sampler_idx(&variant->key, 0);
-
    if (LP_PERF & PERF_NO_SHADE) {
-      variant->jit_linear                   = linear_red;
+      variant->jit_linear = linear_red;
       return;
    }
 
+   struct lp_sampler_static_state *samp0 =
+      lp_fs_variant_key_sampler_idx(&variant->key, 0);
    if (!samp0)
       return;
 
@@ -682,12 +667,11 @@ llvmpipe_fs_variant_linear_fastpath(struct lp_fragment_shader_variant *variant)
        tex_format == PIPE_FORMAT_B8G8R8A8_UNORM &&
        is_nearest_clamp_sampler(samp0)) {
       if (variant->opaque) {
-         variant->jit_linear_blit             = blit_rgba_blit;
-         variant->jit_linear                  = blit_rgba;
-      }
-      else if (is_one_inv_src_alpha_blend(variant) &&
-               util_get_cpu_caps()->has_sse2) {
-         variant->jit_linear                  = blit_rgba_blend_premul;
+         variant->jit_linear_blit = blit_rgba_blit;
+         variant->jit_linear = blit_rgba;
+      } else if (is_one_inv_src_alpha_blend(variant) &&
+                 util_get_cpu_caps()->has_sse2) {
+         variant->jit_linear = blit_rgba_blend_premul;
       }
       return;
    }
@@ -697,13 +681,13 @@ llvmpipe_fs_variant_linear_fastpath(struct lp_fragment_shader_variant *variant)
        (tex_format == PIPE_FORMAT_B8G8R8A8_UNORM ||
         tex_format == PIPE_FORMAT_B8G8R8X8_UNORM) &&
        is_nearest_clamp_sampler(samp0)) {
-      variant->jit_linear_blit             = blit_rgb1_blit;
-      variant->jit_linear                  = blit_rgb1;
+      variant->jit_linear_blit = blit_rgb1_blit;
+      variant->jit_linear = blit_rgb1;
       return;
    }
 
    if (0) {
-      variant->jit_linear                   = linear_no_op;
+      variant->jit_linear = linear_no_op;
       return;
    }
 }

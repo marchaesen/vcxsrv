@@ -18,7 +18,7 @@ Linux mainline, that is why Mesa has its own kernel version which should be used
 as the base for newer kernels.
 
 So, one should base the kernel uprev from the last tag used in the Mesa CI,
-please refer to `.gitlab-ci.yml` `KERNEL_URL` variable.
+please refer to `.gitlab-ci/container/gitlab-ci.yml` `KERNEL_URL` variable.
 Every tag has a standard naming: `vX.YZ-for-mesa-ci-<commit_short_SHA>`, which
 can be created via the command:
 
@@ -28,7 +28,7 @@ Building Kernel
 ---------------
 
 When Mesa CI generates a new rootfs image, the Linux Kernel is built based on
-the script located at `.gitlab-ci/build-kernel.sh`.
+the script located at `.gitlab-ci/container/build-kernel.sh`.
 
 Updating Kconfigs
 ^^^^^^^^^^^^^^^^^
@@ -56,8 +56,8 @@ Updating image tags
 
 Every kernel uprev should update 3 image tags, located at two files.
 
-:code:`.gitlab-ci.yml` tag
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+:code:`.gitlab-ci/container/gitlab-ci.yml` tag
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - **KERNEL_URL** for the location of the new kernel
 
 :code:`.gitlab-ci/image-tags.yml` tags

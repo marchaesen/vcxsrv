@@ -174,8 +174,8 @@ xkb_keycodes "hhk" {
     <AC12> = 51;
 
     <LWIN> = 49;
-    <EISU> = 131;
-    <KANA> = 129;
+    <HJCV> = 131;
+    <HNGL> = 129;
     <RWIN> = 208;
 
     <FK13> = 111;
@@ -196,13 +196,4 @@ xkb_keycodes "alukbd" {
 
     // Japanese keypad separator (KPSP in base, JPCM in evdev)
     alias <JPCM> = <KPDC>;
-};
-
-// Aluminium Keyboards JIS
-// As of HID Usage Table v1.11, it seems there are no usages
-// for keys EISU or KANA. JIS Aluminium Keyboards overcome
-// this by outputting usages of keys Hanja and Hangul
-xkb_keycodes "jisevdev" {
-    alias <KANA> = <HJCV>;   // Switch to kana mode
-    alias <EISU> = <HNGL>;   // Switch to alphanumeric mode
 };

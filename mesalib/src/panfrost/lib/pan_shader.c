@@ -42,6 +42,7 @@ GENX(pan_shader_get_compiler_options)(void)
 #endif
 }
 
+#if PAN_ARCH <= 7
 static enum pipe_format
 varying_format(nir_alu_type t, unsigned ncomps)
 {
@@ -124,6 +125,13 @@ collect_varyings(nir_shader *s, nir_variable_mode varying_mode,
                 if (PAN_ARCH >= 6 && var->data.interpolation == INTERP_MODE_FLAT)
                         type = nir_type_uint;
 
+                /* Point size is handled specially on Valhall (with malloc
+                 * IDVS).. probably though this entire linker should be bypassed
+                 * for Valhall in the future.
+                 */
+                if (PAN_ARCH >= 9 && var->data.location == VARYING_SLOT_PSIZ)
+                        continue;
+
                 /* Demote to fp16 where possible. int16 varyings are TODO as the hw
                  * will saturate instead of wrap which is not conformant, so we need to
                  * insert i2i16/u2u16 instructions before the st_vary_32i/32u to get
@@ -150,6 +158,7 @@ collect_varyings(nir_shader *s, nir_variable_mode varying_mode,
                 *varying_count = MAX2(*varying_count, loc + sz);
         }
 }
+#endif
 
 #if PAN_ARCH >= 6
 static enum mali_register_file_format
@@ -175,6 +184,19 @@ bifrost_blend_type_from_nir(nir_alu_type nir_type)
                 return 0;
         }
 }
+
+#if PAN_ARCH <= 7
+enum mali_register_file_format
+GENX(pan_fixup_blend_type)(nir_alu_type T_size, enum pipe_format format)
+{
+        const struct util_format_description *desc = util_format_description(format);
+        unsigned size = nir_alu_type_get_type_size(T_size);
+        nir_alu_type T_format = pan_unpacked_type_for_format(desc);
+        nir_alu_type T = nir_alu_type_get_base_type(T_format) | size;
+
+        return bifrost_blend_type_from_nir(T);
+}
+#endif
 #endif
 
 void
@@ -206,7 +228,9 @@ GENX(pan_shader_compile)(nir_shader *s,
 
         switch (info->stage) {
         case MESA_SHADER_VERTEX:
-                info->attribute_count = util_bitcount64(s->info.inputs_read);
+                info->attributes_read = s->info.inputs_read;
+                info->attributes_read_count = util_bitcount64(info->attributes_read);
+                info->attribute_count = info->attributes_read_count;
 
 #if PAN_ARCH <= 5
                 bool vertex_id = BITSET_TEST(s->info.system_values_read,
@@ -222,8 +246,14 @@ GENX(pan_shader_compile)(nir_shader *s,
 
                 info->vs.writes_point_size =
                         s->info.outputs_written & (1 << VARYING_SLOT_PSIZ);
+
+#if PAN_ARCH >= 9
+                info->varyings.output_count =
+                        util_last_bit(s->info.outputs_written >> VARYING_SLOT_VAR0);
+#else
                 collect_varyings(s, nir_var_shader_out, info->varyings.output,
                                  &info->varyings.output_count);
+#endif
                 break;
         case MESA_SHADER_FRAGMENT:
                 if (s->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_DEPTH))
@@ -235,13 +265,10 @@ GENX(pan_shader_compile)(nir_shader *s,
 
                 info->fs.outputs_read = s->info.outputs_read >> FRAG_RESULT_DATA0;
                 info->fs.outputs_written = s->info.outputs_written >> FRAG_RESULT_DATA0;
-
-                /* EXT_shader_framebuffer_fetch requires per-sample */
-                info->fs.sample_shading = s->info.fs.uses_sample_shading ||
-                                          info->fs.outputs_read;
+                info->fs.sample_shading = s->info.fs.uses_sample_shading;
+                info->fs.untyped_color_outputs = s->info.fs.untyped_color_outputs;
 
                 info->fs.can_discard = s->info.fs.uses_discard;
-                info->fs.helper_invocations = s->info.fs.needs_quad_helper_invocations;
                 info->fs.early_fragment_tests = s->info.fs.early_fragment_tests;
 
                 /* List of reasons we need to execute frag shaders when things
@@ -266,6 +293,11 @@ GENX(pan_shader_compile)(nir_shader *s,
                         !info->fs.can_discard &&
                         !info->fs.outputs_read;
 
+                /* Requires the same hardware guarantees, so grouped as one bit
+                 * in the hardware.
+                 */
+                info->contains_barrier |= s->info.fs.needs_quad_helper_invocations;
+
                 info->fs.reads_frag_coord =
                         (s->info.inputs_read & (1 << VARYING_SLOT_POS)) ||
                         BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_FRAG_COORD);
@@ -274,8 +306,13 @@ GENX(pan_shader_compile)(nir_shader *s,
                 info->fs.reads_face =
                         (s->info.inputs_read & (1 << VARYING_SLOT_FACE)) ||
                         BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_FRONT_FACE);
+#if PAN_ARCH >= 9
+                info->varyings.output_count =
+                        util_last_bit(s->info.outputs_read >> VARYING_SLOT_VAR0);
+#else
                 collect_varyings(s, nir_var_shader_in, info->varyings.input,
                                  &info->varyings.input_count);
+#endif
                 break;
         case MESA_SHADER_COMPUTE:
                 info->wls_size = s->info.shared_size;
@@ -287,12 +324,11 @@ GENX(pan_shader_compile)(nir_shader *s,
         info->outputs_written = s->info.outputs_written;
 
         /* Sysvals have dedicated UBO */
-        if (info->sysvals.sysval_count)
-                info->ubo_count = MAX2(s->info.num_ubos + 1, inputs->sysval_ubo + 1);
-        else
-                info->ubo_count = s->info.num_ubos;
+        info->ubo_count = s->info.num_ubos;
+        if (info->sysvals.sysval_count && inputs->fixed_sysval_ubo < 0)
+                info->ubo_count++;
 
-        info->attribute_count += util_last_bit(s->info.images_used);
+        info->attribute_count += BITSET_LAST_BIT(s->info.images_used);
         info->writes_global = s->info.writes_memory;
 
         info->sampler_count = info->texture_count = BITSET_LAST_BIT(s->info.textures_used);

@@ -10,10 +10,7 @@ cpp_defs = [
 ]
 
 if build_sparkle
-cpp_defs += [
-    '-DXQUARTZ_SPARKLE',
-    '-DXQUARTZ_SPARKLE_FEED_URL=@0@'.format(xquartz_sparkle_feed_url),
-]
+cpp_defs += sparkle_defs
 endif
 
 # bundle data
@@ -56,7 +53,6 @@ install_data('PkgInfo',
     install_mode: 'rw-r--r--')
 
 install_data('X11.sh',
-    rename: 'X11',
     install_dir: join_paths(bundle_root, 'Contents/MacOS'),
     install_mode: 'rwxr-xr-x')
 

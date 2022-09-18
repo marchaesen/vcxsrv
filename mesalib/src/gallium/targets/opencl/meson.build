@@ -114,4 +114,12 @@ if with_opencl_icd
     install : true,
     install_dir : join_paths(get_option('sysconfdir'), 'OpenCL', 'vendors'),
   )
+
+  if meson.version().version_compare('>= 0.58')
+    # .so is hardcoded in the icd as well
+    devenv.prepend(
+      'OCL_ICD_FILENAMES',
+      meson.current_build_dir() / 'libMesaOpenCL.so.@0@'.format(opencl_version)
+    )
+  endif
 endif

@@ -478,6 +478,35 @@ bool ralloc_asprintf_append (char **str, const char *fmt, ...)
 bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
 /// @}
 
+typedef struct gc_ctx gc_ctx;
+
+/**
+ * Allocate a new garbage collection context. The children of the
+ * context are not necessarily ralloc'd pointers and cannot be stolen to a ralloc context. Instead,
+ * The user should use the mark-and-sweep interface below to free any unused children. Under the
+ * hood, this restriction lets us manage allocations ourselves, using a freelist. This means that
+ * GC contexts should be used for scenarios where there are many allocations and frees, most of
+ * which use only a few different sizes.
+ */
+gc_ctx *gc_context(const void *parent);
+
+#define gc_alloc(ctx, type, count) gc_alloc_size(ctx, sizeof(type) * (count), alignof(type))
+#define gc_zalloc(ctx, type, count) gc_zalloc_size(ctx, sizeof(type) * (count), alignof(type))
+
+#define gc_alloc_zla(ctx, type, type2, count) \
+   gc_alloc_size(ctx, sizeof(type) + sizeof(type2) * (count), MAX2(alignof(type), alignof(type2)))
+#define gc_zalloc_zla(ctx, type, type2, count) \
+   gc_zalloc_size(ctx, sizeof(type) + sizeof(type2) * (count), MAX2(alignof(type), alignof(type2)))
+
+void *gc_alloc_size(gc_ctx *ctx, size_t size, size_t align) MALLOCLIKE;
+void *gc_zalloc_size(gc_ctx *ctx, size_t size, size_t align) MALLOCLIKE;
+void gc_free(void *ptr);
+gc_ctx *gc_get_context(void *ptr);
+
+void gc_sweep_start(gc_ctx *ctx);
+void gc_mark_live(gc_ctx *ctx, const void *mem);
+void gc_sweep_end(gc_ctx *ctx);
+
 /**
  * Declare C++ new and delete operators which use ralloc.
  *

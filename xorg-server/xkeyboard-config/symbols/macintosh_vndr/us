@@ -1,12 +1,13 @@
-// symbols definition for a Macintosh "Extended" keyboard
+// Symbol definitions for Macintosh "Extended" keyboards.
 
 default xkb_symbols "extended" {
 
     name[Group1]= "USA";
+
     key <ESC>  {	[ Escape			]	};
 
     key <TLDE> {	[     grave,	asciitilde	]	};
-    key <AE01> {	[	  1,	exclam 		]	};
+    key <AE01> {	[	  1,	exclam		]	};
     key <AE02> {	[	  2,	at		]	};
     key <AE03> {	[	  3,	numbersign	]	};
     key <AE04> {	[	  4,	dollar		]	};
@@ -19,7 +20,7 @@ default xkb_symbols "extended" {
     key <AE11> {	[     minus,	underscore	]	};
     key <AE12> {	[     equal,	plus		]	};
 
-    key <AD01> {	[	  q,	Q 		]	};
+    key <AD01> {	[	  q,	Q		]	};
     key <AD02> {	[	  w,	W		]	};
     key <AD03> {	[	  e,	E		]	};
     key <AD04> {	[	  r,	R		]	};
@@ -33,7 +34,7 @@ default xkb_symbols "extended" {
     key <AD12> {	[ bracketright,	braceright	]	};
     key <BKSL> {	[ backslash,	bar		]	};
 
-    key <AC01> {	[	  a,	A 		]	};
+    key <AC01> {	[	  a,	A		]	};
     key <AC02> {	[	  s,	S		]	};
     key <AC03> {	[	  d,	D		]	};
     key <AC04> {	[	  f,	F		]	};
@@ -45,7 +46,7 @@ default xkb_symbols "extended" {
     key <AC10> {	[ semicolon,	colon		]	};
     key <AC11> {	[ apostrophe,	quotedbl	]	};
 
-    key <AB01> {	[	  z,	Z 		]	};
+    key <AB01> {	[	  z,	Z		]	};
     key <AB02> {	[	  x,	X		]	};
     key <AB03> {	[	  c,	C		]	};
     key <AB04> {	[	  v,	V		]	};
@@ -69,7 +70,6 @@ xkb_symbols "oldmac" {
 
     include "macintosh_vndr/us(extended)"
 
-    // Begin "Function" section
     key <FK01> {	[  F1		]	};
     key <FK02> {	[  F2		]	};
     key <FK03> {	[  F3		]	};
@@ -85,9 +85,7 @@ xkb_symbols "oldmac" {
     key <FK13> {	[  Print	]	};
     key <FK14> {	[  Scroll_Lock	]	};
     key <FK15> {	[  Pause	]	};
-    // End "Function" section
 
-    // Begin "Editing" section
     key  <INS> {	[  Insert	]	};
     key <HOME> {	[  Home		]	};
     key <PGUP> {	[  Prior	]	};
@@ -99,7 +97,6 @@ xkb_symbols "oldmac" {
     key <LEFT> {	[  Left		]	};
     key <DOWN> {	[  Down		]	};
     key <RGHT> {	[  Right	]	};
-    // End "Editing" section
 
     key <BKSP> {	[ BackSpace	]	};
     key  <TAB> {	[ Tab,	ISO_Left_Tab ]	};
@@ -107,7 +104,6 @@ xkb_symbols "oldmac" {
     key <CAPS> {	[ Caps_Lock	]	};
     key <NMLK> {	[ Num_Lock, Pointer_EnableKeys ] };
 
-    // Begin "Modifier" section
     key <LFSH> {	[  Shift_L	]	};
     key <RTSH> {	[  Shift_R	]	};
     key <LCTL> {	[  Control_L	]	};
@@ -116,18 +112,18 @@ xkb_symbols "oldmac" {
     key <RALT> {	[  Alt_R, Meta_R ]	};
     key <LWIN> {	[  Super_L	]	};
     key <RWIN> {	[  Super_R	]	};
-    // End "Modifier" section
 
-    // begin modifier mappings
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };
     modifier_map Mod2   { Num_Lock };
 
-    //  Fake keys for virtual<->real modifiers mapping 
+    //  Fake keys for virtual<->real modifier mappings:
     key <LVL3> {	[ ISO_Level3_Shift	]	};
-    key <MDSW> {	[ Mode_switch 		]	};
-    modifier_map Mod5   { <LVL3>, <MDSW> };
+    modifier_map Mod5   { <LVL3> };
+
+    key <LVL5> {	[ ISO_Level5_Shift	]	};
+    modifier_map Mod3   { <LVL5> };
 
     key <ALT>  {	[ NoSymbol, Alt_L	]	};
     modifier_map Mod1   { <ALT>, <LALT> };
@@ -140,6 +136,4 @@ xkb_symbols "oldmac" {
 
     key <HYPR> {	[ NoSymbol, Hyper_L	]	};
     modifier_map Mod4   { <HYPR> };
-    // end modifier mappings
-
 };

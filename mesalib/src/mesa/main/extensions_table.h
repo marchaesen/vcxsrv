@@ -31,7 +31,6 @@ EXT(ANGLE_pack_reverse_row_order            , dummy_true                        
 EXT(ANGLE_texture_compression_dxt3          , ANGLE_texture_compression_dxt          , GLL, GLC, ES1, ES2, 2011)
 EXT(ANGLE_texture_compression_dxt5          , ANGLE_texture_compression_dxt          , GLL, GLC, ES1, ES2, 2011)
 
-EXT(APPLE_object_purgeable                  , APPLE_object_purgeable                 , GLL, GLC,  x ,  x , 2006)
 EXT(APPLE_packed_pixels                     , dummy_true                             , GLL,  x ,  x ,  x , 2002)
 EXT(APPLE_texture_max_level                 , dummy_true                             ,  x ,  x , ES1, ES2, 2009)
 
@@ -200,6 +199,8 @@ EXT(ARB_vertex_type_2_10_10_10_rev          , ARB_vertex_type_2_10_10_10_rev    
 EXT(ARB_viewport_array                      , ARB_viewport_array                     , GLL, GLC,  x ,  x , 2010)
 EXT(ARB_window_pos                          , dummy_true                             , GLL,  x ,  x ,  x , 2001)
 
+EXT(ARM_shader_framebuffer_fetch_depth_stencil, ARM_shader_framebuffer_fetch_depth_stencil, GLL, GLC,  x , ES2, 2014)
+
 EXT(ATI_blend_equation_separate             , EXT_blend_equation_separate            , GLL, GLC,  x ,  x , 2003)
 EXT(ATI_draw_buffers                        , dummy_true                             , GLL,  x ,  x ,  x , 2002)
 EXT(ATI_fragment_shader                     , ATI_fragment_shader                    , GLL,  x ,  x ,  x , 2001)
@@ -261,6 +262,7 @@ EXT(EXT_gpu_shader5                         , ARB_gpu_shader5                   
 EXT(EXT_map_buffer_range                    , ARB_map_buffer_range                   ,  x ,  x , ES1, ES2, 2012)
 EXT(EXT_memory_object                       , EXT_memory_object                      , GLL, GLC,  x , ES2, 2017)
 EXT(EXT_memory_object_fd                    , EXT_memory_object_fd                   , GLL, GLC,  x , ES2, 2017)
+EXT(EXT_memory_object_win32                 , EXT_memory_object_win32                , GLL, GLC,  x , ES2, 2017)
 EXT(EXT_multi_draw_arrays                   , dummy_true                             , GLL,  x , ES1, ES2, 1999)
 EXT(EXT_multisampled_render_to_texture      , EXT_multisampled_render_to_texture     ,  x ,  x ,  x , ES2, 2016)
 EXT(EXT_multisampled_render_to_texture2     , EXT_multisampled_render_to_texture     ,  x ,  x ,  x , ES2, 2016)
@@ -281,6 +283,7 @@ EXT(EXT_sRGB_write_control                  , EXT_framebuffer_sRGB              
 EXT(EXT_secondary_color                     , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(EXT_semaphore                           , EXT_semaphore                          , GLL, GLC,  x , ES2, 2017)
 EXT(EXT_semaphore_fd                        , EXT_semaphore_fd                       , GLL, GLC,  x , ES2, 2017)
+EXT(EXT_semaphore_win32                     , EXT_semaphore_win32                    , GLL, GLC,  x , ES2, 2017)
 EXT(EXT_separate_shader_objects             , dummy_true                             ,  x ,  x ,  x , ES2, 2013)
 EXT(EXT_separate_specular_color             , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_shader_framebuffer_fetch            , EXT_shader_framebuffer_fetch           , GLL, GLC,  x , ES2, 2013)
@@ -329,8 +332,8 @@ EXT(EXT_texture_query_lod                   , ARB_texture_query_lod             
 EXT(EXT_texture_rectangle                   , NV_texture_rectangle                   , GLL,  x ,  x ,  x , 2004)
 EXT(EXT_texture_rg                          , ARB_texture_rg                         ,  x ,  x ,  x , ES2, 2011)
 EXT(EXT_texture_sRGB                        , EXT_texture_sRGB                       , GLL, GLC,  x ,  x , 2004)
-EXT(EXT_texture_sRGB_R8                     , EXT_texture_sRGB_R8                    , GLL ,GLC,  x ,  30, 2015)
-EXT(EXT_texture_sRGB_RG8                    , EXT_texture_sRGB_RG8                   ,  x ,  x ,  x ,  30, 2015)
+EXT(EXT_texture_sRGB_R8                     , EXT_texture_sRGB_R8                    , GLL, GLC,  x ,  30, 2015)
+EXT(EXT_texture_sRGB_RG8                    , EXT_texture_sRGB_RG8                   , GLL, GLC,  x ,  30, 2015)
 EXT(EXT_texture_sRGB_decode                 , EXT_texture_sRGB_decode                , GLL, GLC,  x ,  30, 2006)
 EXT(EXT_texture_shadow_lod                  , EXT_texture_shadow_lod                 , GLL, GLC,  x ,  30, 2018)
 EXT(EXT_texture_shared_exponent             , EXT_texture_shared_exponent            , GLL, GLC,  x ,  x , 2004)
@@ -383,6 +386,7 @@ EXT(MESA_ycbcr_texture                      , MESA_ycbcr_texture                
 
 EXT(NVX_gpu_memory_info                     , NVX_gpu_memory_info                    , GLL, GLC,  x ,  x , 2013)
 
+EXT(NV_ES1_1_compatibility                  , dummy_true                             , GLL,  x ,  x ,  x , 2022)
 EXT(NV_alpha_to_coverage_dither_control     , NV_alpha_to_coverage_dither_control    , GLL, GLC,  x , ES2, 2017)
 EXT(NV_blend_square                         , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(NV_compute_shader_derivatives           , NV_compute_shader_derivatives          , GLL, GLC,  x ,  32, 2018)
@@ -402,6 +406,7 @@ EXT(NV_fragment_shader_interlock            , ARB_fragment_shader_interlock     
 EXT(NV_half_float                           , ARB_half_float_vertex                  , GLL, x,  x ,  x, 2001)
 EXT(NV_image_formats                        , dummy_true                             ,  x ,  x ,  x ,  31, 2014)
 EXT(NV_light_max_exponent                   , dummy_true                             , GLL,  x ,  x ,  x , 1999)
+EXT(NV_pack_subimage                        , dummy_true                             ,  x ,  x ,  x , ES2, 2009)
 EXT(NV_packed_depth_stencil                 , dummy_true                             , GLL, GLC,  x ,  x , 2000)
 EXT(NV_pixel_buffer_object                  , EXT_pixel_buffer_object                ,  x ,  x ,  x , ES2, 2012)
 EXT(NV_primitive_restart                    , NV_primitive_restart                   , GLL,  x ,  x ,  x , 2002)
@@ -412,6 +417,7 @@ EXT(NV_read_stencil                         , dummy_true                        
 EXT(NV_sample_locations                     , ARB_sample_locations                   , GLL, GLC,  x , ES2, 2015)
 EXT(NV_shader_atomic_float                  , NV_shader_atomic_float                 , GLL, GLC,  x ,  x , 2012)
 EXT(NV_shader_atomic_int64                  , NV_shader_atomic_int64                 , GLL, GLC,  x ,  x , 2014)
+EXT(NV_shader_noperspective_interpolation   , EXT_gpu_shader4                        ,  x ,  x ,  x ,  30, 2014)
 EXT(NV_texgen_reflection                    , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(NV_texture_barrier                      , NV_texture_barrier                     , GLL, GLC,  x ,  x , 2009)
 EXT(NV_texture_env_combine4                 , NV_texture_env_combine4                , GLL,  x ,  x ,  x , 1999)
@@ -466,7 +472,7 @@ EXT(OES_stencil_wrap                        , dummy_true                        
 EXT(OES_surfaceless_context                 , dummy_true                             ,  x ,  x , ES1, ES2, 2012)
 EXT(OES_tessellation_point_size             , ARB_tessellation_shader                ,  x ,  x ,  x ,  31, 2014)
 EXT(OES_tessellation_shader                 , ARB_tessellation_shader                ,  x ,  x ,  x ,  31, 2014)
-EXT(OES_texture_3D                          , dummy_true                             ,  x ,  x ,  x , ES2, 2005)
+EXT(OES_texture_3D                          , OES_texture_3D                         ,  x ,  x ,  x , ES2, 2005)
 EXT(OES_texture_border_clamp                , dummy_true                             ,  x ,  x ,  x , ES2, 2014)
 EXT(OES_texture_buffer                      , OES_texture_buffer                     ,  x ,  x ,  x ,  31, 2014)
 EXT(OES_texture_compression_astc            , OES_texture_compression_astc           ,  x ,  x , ES1, ES2, 2015)

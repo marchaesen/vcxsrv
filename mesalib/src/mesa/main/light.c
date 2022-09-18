@@ -24,7 +24,6 @@
  */
 
 
-#include "c99_math.h"
 #include "glheader.h"
 #include "context.h"
 #include "enums.h"
@@ -35,6 +34,7 @@
 #include "util/bitscan.h"
 #include "api_exec_decl.h"
 
+#include <math.h>
 
 void GLAPIENTRY
 _mesa_ShadeModel( GLenum mode )

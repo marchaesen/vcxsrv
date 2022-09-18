@@ -38,6 +38,7 @@ libwgl = static_library(
     'stw_ext_swapinterval.c',
     'stw_framebuffer.c',
     'stw_getprocaddress.c',
+    'stw_image.c',
     'stw_nopfuncs.c',
     'stw_nopfuncs.h',
     'stw_pixelformat.c',
@@ -52,5 +53,5 @@ libwgl = static_library(
   include_directories : [
     inc_include, inc_src, inc_gallium, inc_gallium_aux, inc_mapi, inc_mesa,
   ],
-  dependencies : [idep_xmlconfig],
+  dependencies : [idep_xmlconfig, driver_zink],
 )

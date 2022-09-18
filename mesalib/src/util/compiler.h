@@ -38,8 +38,6 @@
 
 #include "util/macros.h"
 
-#include "c99_compat.h" /* inline, __func__, etc. */
-
 
 /**
  * Either define MESA_BIG_ENDIAN or MESA_LITTLE_ENDIAN, and CPU_TO_LE32.

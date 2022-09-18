@@ -1,4 +1,3 @@
-import argparse
 import copy
 import re
 import xml.etree.ElementTree as et
@@ -47,7 +46,7 @@ class VkVersion:
         # VK_MAKE_VERSION macro
         assert self.major < 1024 and self.minor < 1024
         assert self.patch is None or self.patch < 4096
-        assert(str(self) == string)
+        assert str(self) == string
 
     def __str__(self):
         ver_list = [str(self.major), str(self.minor)]
@@ -56,14 +55,12 @@ class VkVersion:
         return '.'.join(ver_list)
 
     def c_vk_version(self):
-        patch = self.patch if self.patch is not None else 0
-        ver_list = [str(self.major), str(self.minor), str(patch)]
+        ver_list = [str(self.major), str(self.minor), str(self.patch or 0)]
         return 'VK_MAKE_VERSION(' + ', '.join(ver_list) + ')'
 
     def __int_ver(self):
         # This is just an expansion of VK_VERSION
-        patch = self.patch if self.patch is not None else 0
-        return (self.major << 22) | (self.minor << 12) | patch
+        return (self.major << 22) | (self.minor << 12) | (self.patch or 0)
 
     def __gt__(self, other):
         # If only one of them has a patch version, "ignore" it by making
@@ -108,7 +105,6 @@ def get_all_exts_from_xml(xml):
                 if 'value' in enum_elem.attrib:
                     assert version is None
                     version = int(enum_elem.attrib['value'])
-        ext = Extension(name, version, True)
         extensions.append(Extension(name, version, True))
 
     return sorted(extensions, key=extension_order)
@@ -136,9 +132,11 @@ def init_exts_from_xml(xml, extensions, platform_defines):
         ext.type = ext_elem.attrib['type']
 
 # Mapping between extension name and the android version in which the extension
-# was whitelisted in Android CTS.
+# was whitelisted in Android CTS's dEQP-VK.info.device_extensions and
+# dEQP-VK.api.info.android.no_unknown_extensions, excluding those blocked by
+# android.graphics.cts.VulkanFeaturesTest#testVulkanBlockedExtensions.
 ALLOWED_ANDROID_VERSION = {
-    # Allowed Instance KHR Extensions
+    # checkInstanceExtensions on oreo-cts-release
     "VK_KHR_surface": 26,
     "VK_KHR_display": 26,
     "VK_KHR_android_surface": 26,
@@ -149,61 +147,113 @@ ALLOWED_ANDROID_VERSION = {
     "VK_KHR_xlib_surface": 26,
     "VK_KHR_get_physical_device_properties2": 26,
     "VK_KHR_get_surface_capabilities2": 26,
-    "VK_KHR_external_memory_capabilities": 28,
-    "VK_KHR_external_semaphore_capabilities": 28,
-    "VK_KHR_external_fence_capabilities": 28,
+    "VK_KHR_external_memory_capabilities": 26,
+    "VK_KHR_external_semaphore_capabilities": 26,
+    "VK_KHR_external_fence_capabilities": 26,
+    # on pie-cts-release
     "VK_KHR_device_group_creation": 28,
-    "VK_KHR_get_display_properties2": 29,
+    "VK_KHR_get_display_properties2": 28,
+    # on android10-tests-release
     "VK_KHR_surface_protected_capabilities": 29,
+    # on android13-tests-release
+    "VK_KHR_portability_enumeration": 33,
 
-    # Allowed Device KHR Extensions
+    # checkDeviceExtensions on oreo-cts-release
     "VK_KHR_swapchain": 26,
     "VK_KHR_display_swapchain": 26,
     "VK_KHR_sampler_mirror_clamp_to_edge": 26,
     "VK_KHR_shader_draw_parameters": 26,
-    "VK_KHR_shader_float_controls": 29,
-    "VK_KHR_shader_float16_int8": 29,
     "VK_KHR_maintenance1": 26,
     "VK_KHR_push_descriptor": 26,
     "VK_KHR_descriptor_update_template": 26,
     "VK_KHR_incremental_present": 26,
     "VK_KHR_shared_presentable_image": 26,
-    "VK_KHR_storage_buffer_storage_class": 28,
-    "VK_KHR_8bit_storage": 29,
-    "VK_KHR_16bit_storage": 28,
-    "VK_KHR_get_memory_requirements2": 28,
-    "VK_KHR_external_memory": 28,
-    "VK_KHR_external_memory_fd": 28,
-    "VK_KHR_external_memory_win32": 28,
-    "VK_KHR_external_semaphore": 28,
-    "VK_KHR_external_semaphore_fd": 28,
-    "VK_KHR_external_semaphore_win32": 28,
-    "VK_KHR_external_fence": 28,
-    "VK_KHR_external_fence_fd": 28,
-    "VK_KHR_external_fence_win32": 28,
-    "VK_KHR_win32_keyed_mutex": 28,
-    "VK_KHR_dedicated_allocation": 28,
-    "VK_KHR_variable_pointers": 28,
-    "VK_KHR_relaxed_block_layout": 28,
-    "VK_KHR_bind_memory2": 28,
-    "VK_KHR_maintenance2": 28,
-    "VK_KHR_image_format_list": 28,
-    "VK_KHR_sampler_ycbcr_conversion": 28,
+    "VK_KHR_storage_buffer_storage_class": 26,
+    "VK_KHR_16bit_storage": 26,
+    "VK_KHR_get_memory_requirements2": 26,
+    "VK_KHR_external_memory": 26,
+    "VK_KHR_external_memory_fd": 26,
+    "VK_KHR_external_memory_win32": 26,
+    "VK_KHR_external_semaphore": 26,
+    "VK_KHR_external_semaphore_fd": 26,
+    "VK_KHR_external_semaphore_win32": 26,
+    "VK_KHR_external_fence": 26,
+    "VK_KHR_external_fence_fd": 26,
+    "VK_KHR_external_fence_win32": 26,
+    "VK_KHR_win32_keyed_mutex": 26,
+    "VK_KHR_dedicated_allocation": 26,
+    "VK_KHR_variable_pointers": 26,
+    "VK_KHR_relaxed_block_layout": 26,
+    "VK_KHR_bind_memory2": 26,
+    "VK_KHR_maintenance2": 26,
+    "VK_KHR_image_format_list": 26,
+    "VK_KHR_sampler_ycbcr_conversion": 26,
+    # on oreo-mr1-cts-release
+    "VK_KHR_draw_indirect_count": 27,
+    # on pie-cts-release
     "VK_KHR_device_group": 28,
     "VK_KHR_multiview": 28,
     "VK_KHR_maintenance3": 28,
-    "VK_KHR_draw_indirect_count": 28,
     "VK_KHR_create_renderpass2": 28,
-    "VK_KHR_depth_stencil_resolve": 29,
     "VK_KHR_driver_properties": 28,
+    # on android10-tests-release
+    "VK_KHR_shader_float_controls": 29,
+    "VK_KHR_shader_float16_int8": 29,
+    "VK_KHR_8bit_storage": 29,
+    "VK_KHR_depth_stencil_resolve": 29,
     "VK_KHR_swapchain_mutable_format": 29,
     "VK_KHR_shader_atomic_int64": 29,
     "VK_KHR_vulkan_memory_model": 29,
-    "VK_KHR_performance_query": 30,
+    "VK_KHR_swapchain_mutable_format": 29,
+    "VK_KHR_uniform_buffer_standard_layout": 29,
+    # on android11-tests-release
+    "VK_KHR_imageless_framebuffer": 30,
+    "VK_KHR_shader_subgroup_extended_types": 30,
+    "VK_KHR_buffer_device_address": 30,
+    "VK_KHR_separate_depth_stencil_layouts": 30,
+    "VK_KHR_timeline_semaphore": 30,
+    "VK_KHR_spirv_1_4": 30,
+    "VK_KHR_pipeline_executable_properties": 30,
+    "VK_KHR_shader_clock": 30,
+    # blocked by testVulkanBlockedExtensions
+    # "VK_KHR_performance_query": 30,
+    "VK_KHR_shader_non_semantic_info": 30,
+    "VK_KHR_copy_commands2": 30,
+    # on android12-tests-release
+    "VK_KHR_shader_terminate_invocation": 31,
+    "VK_KHR_ray_tracing_pipeline": 31,
+    "VK_KHR_ray_query": 31,
+    "VK_KHR_acceleration_structure": 31,
+    "VK_KHR_pipeline_library": 31,
+    "VK_KHR_deferred_host_operations": 31,
+    "VK_KHR_fragment_shading_rate": 31,
+    "VK_KHR_zero_initialize_workgroup_memory": 31,
+    "VK_KHR_workgroup_memory_explicit_layout": 31,
+    "VK_KHR_synchronization2": 31,
+    "VK_KHR_shader_integer_dot_product": 31,
+    # on android13-tests-release
+    "VK_KHR_dynamic_rendering": 33,
+    "VK_KHR_format_feature_flags2": 33,
+    "VK_KHR_global_priority": 33,
+    "VK_KHR_maintenance4": 33,
+    "VK_KHR_portability_subset": 33,
+    "VK_KHR_present_id": 33,
+    "VK_KHR_present_wait": 33,
+    "VK_KHR_shader_subgroup_uniform_control_flow": 33,
 
+    # testNoUnknownExtensions on oreo-cts-release
     "VK_GOOGLE_display_timing": 26,
-    "VK_ANDROID_native_buffer": 26,
+    # on pie-cts-release
     "VK_ANDROID_external_memory_android_hardware_buffer": 28,
+    # on android11-tests-release
+    "VK_GOOGLE_decorate_string": 30,
+    "VK_GOOGLE_hlsl_functionality1": 30,
+    # on android13-tests-release
+    "VK_GOOGLE_surfaceless_query": 33,
+
+    # this HAL extension is always allowed and will be filtered out by the
+    # loader
+    "VK_ANDROID_native_buffer": 26,
 }
 
 # Extensions with these prefixes are checked in Android CTS, and thus must be

@@ -92,7 +92,7 @@ bi_fuse_dual(bi_context *ctx, bi_instr *I1, bi_instr *I2)
          */
         bi_builder b = bi_init_builder(ctx, bi_before_instr(I1));
 
-        bi_instr *I = bi_texc_to(&b,
+        bi_instr *I = bi_texc_dual_to(&b,
                         I1->dest[0], I2->dest[0], bi_null(), /* staging */
                         I1->src[0], I1->src[1], /* coordinates */
                         bi_imm_u32(bi_dual_tex_as_u32(desc)), I1->lod_mode,

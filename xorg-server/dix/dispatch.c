@@ -638,11 +638,11 @@ CreateConnectionBlock(void)
     if (!ConnectionInfo)
         return FALSE;
 
-    memmove(ConnectionInfo, (char *) &setup, sizeof(xConnSetup));
+    memcpy(ConnectionInfo, &setup, sizeof(xConnSetup));
     sizesofar = sizeof(xConnSetup);
     pBuf = ConnectionInfo + sizeof(xConnSetup);
 
-    memmove(pBuf, VendorString, (int) setup.nbytesVendor);
+    memcpy(pBuf, VendorString, (size_t) setup.nbytesVendor);
     sizesofar += setup.nbytesVendor;
     pBuf += setup.nbytesVendor;
     i = padding_for_int32(setup.nbytesVendor);
@@ -655,7 +655,7 @@ CreateConnectionBlock(void)
         format.depth = screenInfo.formats[i].depth;
         format.bitsPerPixel = screenInfo.formats[i].bitsPerPixel;
         format.scanLinePad = screenInfo.formats[i].scanlinePad;
-        memmove(pBuf, (char *) &format, sizeof(xPixmapFormat));
+        memcpy(pBuf, &format, sizeof(xPixmapFormat));
         pBuf += sizeof(xPixmapFormat);
         sizesofar += sizeof(xPixmapFormat);
     }
@@ -685,7 +685,7 @@ CreateConnectionBlock(void)
         root.saveUnders = FALSE;
         root.rootDepth = pScreen->rootDepth;
         root.nDepths = pScreen->numDepths;
-        memmove(pBuf, (char *) &root, sizeof(xWindowRoot));
+        memcpy(pBuf, &root, sizeof(xWindowRoot));
         sizesofar += sizeof(xWindowRoot);
         pBuf += sizeof(xWindowRoot);
 
@@ -702,7 +702,7 @@ CreateConnectionBlock(void)
             pBuf += sizesofar;
             depth.depth = pDepth->depth;
             depth.nVisuals = pDepth->numVids;
-            memmove(pBuf, (char *) &depth, sizeof(xDepth));
+            memcpy(pBuf, &depth, sizeof(xDepth));
             pBuf += sizeof(xDepth);
             sizesofar += sizeof(xDepth);
             for (k = 0; k < pDepth->numVids; k++) {
@@ -716,7 +716,7 @@ CreateConnectionBlock(void)
                 visual.redMask = pVisual->redMask;
                 visual.greenMask = pVisual->greenMask;
                 visual.blueMask = pVisual->blueMask;
-                memmove(pBuf, (char *) &visual, sizeof(xVisualType));
+                memcpy(pBuf, &visual, sizeof(xVisualType));
                 pBuf += sizeof(xVisualType);
                 sizesofar += sizeof(xVisualType);
             }

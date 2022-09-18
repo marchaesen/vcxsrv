@@ -32,13 +32,13 @@ XkbComputeRowBounds \-  Update the bounding box of a row
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry that contains the section
 .TP
-.I \- section
+.I section
 section that contains the row
 .TP
-.I \- row
+.I row
 row to be examined and updated
 .SH DESCRIPTION
 .LP

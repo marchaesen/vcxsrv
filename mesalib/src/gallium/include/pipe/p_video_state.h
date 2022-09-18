@@ -34,10 +34,13 @@
 #include "pipe/p_screen.h"
 #include "util/u_hash_table.h"
 #include "util/u_inlines.h"
+#include "util/u_rect.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define PIPE_H265_MAX_REFERENCES 15
 
 /*
  * see table 6-12 in the spec
@@ -111,6 +114,15 @@ enum pipe_h264_slice_type
    PIPE_H264_SLICE_TYPE_SI = 0x4
 };
 
+enum pipe_h265_slice_type
+{
+   /* Values match Table 7-7 in HEVC spec
+    for Name association of slice_type */
+   PIPE_H265_SLICE_TYPE_B = 0x0,
+   PIPE_H265_SLICE_TYPE_P = 0x1,
+   PIPE_H265_SLICE_TYPE_I = 0x2,
+};
+
 /* Same enum for h264/h265 */
 enum pipe_h2645_enc_picture_type
 {
@@ -130,12 +142,27 @@ enum pipe_h2645_enc_rate_control_method
    PIPE_H2645_ENC_RATE_CONTROL_METHOD_VARIABLE = 0x04
 };
 
+enum pipe_slice_buffer_placement_type
+{
+   /* whole slice is in the buffer */
+   PIPE_SLICE_BUFFER_PLACEMENT_TYPE_WHOLE = 0x0,
+   /* The beginning of the slice is in the buffer but the end is not */
+   PIPE_SLICE_BUFFER_PLACEMENT_TYPE_BEGIN = 0x1,
+   /* Neither beginning nor end of the slice is in the buffer */
+   PIPE_SLICE_BUFFER_PLACEMENT_TYPE_MIDDLE = 0x2,
+   /* end of the slice is in the buffer */
+   PIPE_SLICE_BUFFER_PLACEMENT_TYPE_END = 0x3,
+};
+
 struct pipe_picture_desc
 {
    enum pipe_video_profile profile;
    enum pipe_video_entrypoint entry_point;
    bool protected_playback;
    uint8_t *decrypt_key;
+   uint32_t key_size;
+   enum pipe_format input_format;
+   enum pipe_format output_format;
 };
 
 struct pipe_quant_matrix
@@ -296,6 +323,7 @@ struct pipe_h264_sps
    uint8_t  frame_mbs_only_flag;
    uint8_t  mb_adaptive_frame_field_flag;
    uint8_t  direct_8x8_inference_flag;
+   uint8_t  MinLumaBiPredSize8x8;
 };
 
 struct pipe_h264_pps
@@ -312,6 +340,7 @@ struct pipe_h264_pps
    uint8_t  weighted_pred_flag;
    uint8_t  weighted_bipred_idc;
    int8_t   pic_init_qp_minus26;
+   int8_t   pic_init_qs_minus26;
    int8_t   chroma_qp_index_offset;
    uint8_t  deblocking_filter_control_present_flag;
    uint8_t  constrained_intra_pred_flag;
@@ -351,7 +380,17 @@ struct pipe_h264_picture_desc
    uint32_t frame_num_list[16];
 
    struct pipe_video_buffer *ref[16];
-   void    *private;
+
+   /* using private as a parameter name conflicts with C++ keywords */
+   void    *priv;
+};
+
+struct pipe_enc_quality_modes
+{
+   unsigned int level;
+   unsigned int preset_mode;
+   unsigned int pre_encode_mode;
+   unsigned int vbaq_mode;
 };
 
 struct pipe_h264_enc_rate_control
@@ -367,7 +406,11 @@ struct pipe_h264_enc_rate_control
    unsigned peak_bits_picture_integer;
    unsigned peak_bits_picture_fraction;
    unsigned fill_data_enable;
+   unsigned skip_frame_enable;
    unsigned enforce_hrd;
+   unsigned max_au_size;
+   unsigned max_qp;
+   unsigned min_qp;
 };
 
 struct pipe_h264_enc_motion_estimation
@@ -384,12 +427,33 @@ struct pipe_h264_enc_motion_estimation
 struct pipe_h264_enc_pic_control
 {
    unsigned enc_cabac_enable;
+   unsigned enc_cabac_init_idc;
    unsigned enc_constraint_set_flags;
    unsigned enc_frame_cropping_flag;
    unsigned enc_frame_crop_left_offset;
    unsigned enc_frame_crop_right_offset;
    unsigned enc_frame_crop_top_offset;
    unsigned enc_frame_crop_bottom_offset;
+};
+
+struct h264_slice_descriptor
+{
+   /** Starting MB address for this slice. */
+   uint32_t    macroblock_address;
+   /** Number of macroblocks in this slice. */
+   uint32_t    num_macroblocks;
+   /** slice type. */
+   enum pipe_h264_slice_type slice_type;
+};
+
+struct h265_slice_descriptor
+{
+   /** Starting CTU address for this slice. */
+   uint32_t    slice_segment_address;
+   /** Number of CTUs in this slice. */
+   uint32_t    num_ctu_in_slice;
+   /** slice type. */
+   enum pipe_h265_slice_type slice_type;
 };
 
 struct pipe_h264_enc_picture_desc
@@ -414,16 +478,20 @@ struct pipe_h264_enc_picture_desc
    unsigned gop_cnt;
    unsigned pic_order_cnt;
    unsigned pic_order_cnt_type;
-   unsigned ref_idx_l0;
-   unsigned ref_idx_l1;
+   unsigned num_ref_idx_l0_active_minus1;
+   unsigned num_ref_idx_l1_active_minus1;
+   unsigned ref_idx_l0_list[32];
+   unsigned ref_idx_l1_list[32];
    unsigned gop_size;
-   unsigned ref_pic_mode;
    unsigned num_temporal_layers;
+   struct pipe_enc_quality_modes quality_modes;
 
    bool not_referenced;
    bool enable_vui;
    struct hash_table *frame_idx;
 
+   unsigned num_slice_descriptors;
+   struct h264_slice_descriptor slices_descriptors[128];
 };
 
 struct pipe_h265_enc_seq_param
@@ -432,6 +500,7 @@ struct pipe_h265_enc_seq_param
    uint8_t  general_level_idc;
    uint8_t  general_tier_flag;
    uint32_t intra_period;
+   uint32_t ip_period;
    uint16_t pic_width_in_luma_samples;
    uint16_t pic_height_in_luma_samples;
    uint32_t chroma_format_idc;
@@ -460,6 +529,8 @@ struct pipe_h265_enc_pic_param
    uint8_t log2_parallel_merge_level_minus2;
    uint8_t nal_unit_type;
    bool constrained_intra_pred_flag;
+   bool pps_loop_filter_across_slices_enabled_flag;
+   bool transform_skip_enabled_flag;
 };
 
 struct pipe_h265_enc_slice_param
@@ -482,13 +553,19 @@ struct pipe_h265_enc_rate_control
    unsigned frame_rate_num;
    unsigned frame_rate_den;
    unsigned quant_i_frames;
+   unsigned quant_p_frames;
+   unsigned quant_b_frames;
    unsigned vbv_buffer_size;
    unsigned vbv_buf_lv;
    unsigned target_bits_picture;
    unsigned peak_bits_picture_integer;
    unsigned peak_bits_picture_fraction;
    unsigned fill_data_enable;
+   unsigned skip_frame_enable;
    unsigned enforce_hrd;
+   unsigned max_au_size;
+   unsigned max_qp;
+   unsigned min_qp;
 };
 
 struct pipe_h265_enc_picture_desc
@@ -506,10 +583,16 @@ struct pipe_h265_enc_picture_desc
    unsigned frame_num;
    unsigned pic_order_cnt;
    unsigned pic_order_cnt_type;
-   unsigned ref_idx_l0;
-   unsigned ref_idx_l1;
+   struct pipe_enc_quality_modes quality_modes;
+   unsigned num_ref_idx_l0_active_minus1;
+   unsigned num_ref_idx_l1_active_minus1;
+   unsigned ref_idx_l0_list[PIPE_H265_MAX_REFERENCES];
+   unsigned ref_idx_l1_list[PIPE_H265_MAX_REFERENCES];
    bool not_referenced;
    struct hash_table *frame_idx;
+
+   unsigned num_slice_descriptors;
+   struct h265_slice_descriptor slices_descriptors[128];
 };
 
 struct pipe_h265_sps
@@ -548,6 +631,8 @@ struct pipe_h265_sps
    uint8_t num_long_term_ref_pics_sps;
    uint8_t sps_temporal_mvp_enabled_flag;
    uint8_t strong_intra_smoothing_enabled_flag;
+   uint8_t no_pic_reordering_flag;
+   uint8_t no_bi_pred_flag;
 };
 
 struct pipe_h265_pps
@@ -600,6 +685,16 @@ struct pipe_h265_picture_desc
 
    uint8_t IDRPicFlag;
    uint8_t RAPPicFlag;
+   /*
+      When the current picture is an IRAP picture, IntraPicFlag shall be equal to 1.
+      When the current picture is not an IRAP picture, the host software decoder is
+      not required to determine whether all slices of the current picture are I slices
+      – i.e. it may simply set IntraPicFlag to 0 in this case....
+
+      Some frontends have IntraPicFlag defined (ie. VAPictureParameterBufferHEVC)
+      and some others like VDPAU/OMX can derive it from RAPPicFlag
+   */
+   uint8_t IntraPicFlag;
    uint8_t CurrRpsIdx;
    uint32_t NumPocTotalCurr;
    uint32_t NumDeltaPocsOfRefRpsIdx;
@@ -619,6 +714,15 @@ struct pipe_h265_picture_desc
    uint8_t RefPicList[2][15];
    bool UseRefPicList;
    bool UseStRpsBits;
+
+   struct
+   {
+      bool slice_info_present;
+      uint32_t slice_count;
+      uint32_t slice_data_size[128];
+      uint32_t slice_data_offset[128];
+      enum pipe_slice_buffer_placement_type slice_data_flag[128];
+   } slice_parameter;
 };
 
 struct pipe_mjpeg_picture_desc
@@ -941,6 +1045,237 @@ struct pipe_av1_picture_desc
       uint32_t slice_data_size[256];
       uint32_t slice_data_offset[256];
    } slice_parameter;
+};
+
+struct pipe_vpp_blend
+{
+   enum pipe_video_vpp_blend_mode mode;
+   /* To be used with PIPE_VIDEO_VPP_BLEND_MODE_GLOBAL_ALPHA */
+   float global_alpha;
+};
+
+struct pipe_vpp_desc
+{
+   struct pipe_picture_desc base;
+   struct u_rect src_region;
+   struct u_rect dst_region;
+   enum pipe_video_vpp_orientation orientation;
+   struct pipe_vpp_blend blend;
+};
+
+
+/* To be used with PIPE_VIDEO_CAP_ENC_HEVC_PREDICTION_DIRECTION */
+enum pipe_h265_enc_pred_direction
+{
+   /* No restrictions*/
+   PIPE_H265_PRED_DIRECTION_ALL = 0x0,
+   /* P Frame*/
+   PIPE_H265_PRED_DIRECTION_PREVIOUS = 0x1,
+   /* Same reference lists for B Frame*/
+   PIPE_H265_PRED_DIRECTION_FUTURE = 0x2,
+   /* Low delay B frames */
+   PIPE_H265_PRED_DIRECTION_BI_NOT_EMPTY = 0x4,
+};
+
+/* To be used on each h265 feature bit field 
+   defined in pipe_h265_enc_cap_features
+*/
+enum pipe_h265_enc_feature
+{
+   PIPE_H265_ENC_FEATURE_NOT_SUPPORTED = 0x0,
+   PIPE_H265_ENC_FEATURE_SUPPORTED = 0x1,
+   PIPE_H265_ENC_FEATURE_REQUIRED = 0x2,
+};
+
+/* To be used with PIPE_VIDEO_CAP_ENC_HEVC_FEATURE_FLAGS
+   the config_supported bit is used to differenciate a supported
+   config with all bits as zero and unsupported by driver with value=0
+*/
+union pipe_h265_enc_cap_features {
+   struct {
+      /** Separate colour planes.
+      *
+      * Allows setting separate_colour_plane_flag in the SPS.
+      */
+      uint32_t separate_colour_planes    : 2;
+      /** Scaling lists.
+      *
+      * Allows scaling_list() elements to be present in both the SPS
+      * and the PPS.  The decoded form of the scaling lists must also
+      * be supplied in a VAQMatrixBufferHEVC buffer when scaling lists
+      * are enabled.
+      */
+      uint32_t scaling_lists             : 2;
+      /** Asymmetric motion partitions.
+      *
+      * Allows setting amp_enabled_flag in the SPS.
+      */
+      uint32_t amp                       : 2;
+      /** Sample adaptive offset filter.
+      *
+      * Allows setting slice_sao_luma_flag and slice_sao_chroma_flag
+      * in slice headers.
+      */
+      uint32_t sao                       : 2;
+      /** PCM sample blocks.
+      *
+      * Allows setting pcm_enabled_flag in the SPS.  When enabled
+      * PCM parameters must be supplied with the sequence parameters,
+      * including block sizes which may be further constrained as
+      * noted in the VAConfigAttribEncHEVCBlockSizes attribute.
+      */
+      uint32_t pcm                       : 2;
+      /** Temporal motion vector Prediction.
+      *
+      * Allows setting slice_temporal_mvp_enabled_flag in slice
+      * headers.
+      */
+      uint32_t temporal_mvp              : 2;
+      /** Strong intra smoothing.
+      *
+      * Allows setting strong_intra_smoothing_enabled_flag in the SPS.
+      */
+      uint32_t strong_intra_smoothing    : 2;
+      /** Dependent slices.
+      *
+      * Allows setting dependent_slice_segment_flag in slice headers.
+      */
+      uint32_t dependent_slices          : 2;
+      /** Sign data hiding.
+      *
+      * Allows setting sign_data_hiding_enable_flag in the PPS.
+      */
+      uint32_t sign_data_hiding          : 2;
+      /** Constrained intra prediction.
+      *
+      * Allows setting constrained_intra_pred_flag in the PPS.
+      */
+      uint32_t constrained_intra_pred    : 2;
+      /** Transform skipping.
+      *
+      * Allows setting transform_skip_enabled_flag in the PPS.
+      */
+      uint32_t transform_skip            : 2;
+      /** QP delta within coding units.
+      *
+      * Allows setting cu_qp_delta_enabled_flag in the PPS.
+      */
+      uint32_t cu_qp_delta               : 2;
+      /** Weighted prediction.
+      *
+      * Allows setting weighted_pred_flag and weighted_bipred_flag in
+      * the PPS.  The pred_weight_table() data must be supplied with
+      * every slice header when weighted prediction is enabled.
+      */
+      uint32_t weighted_prediction       : 2;
+      /** Transform and quantisation bypass.
+      *
+      * Allows setting transquant_bypass_enabled_flag in the PPS.
+      */
+      uint32_t transquant_bypass         : 2;
+      /** Deblocking filter disable.
+      *
+      * Allows setting slice_deblocking_filter_disabled_flag.
+      */
+      uint32_t deblocking_filter_disable : 2;
+      /** Flag indicating this is a supported configuration
+      *
+      *  It could be possible all the bits above are set to zero
+      *  and this is a valid configuration, so we distinguish
+      *  between get_video_param returning 0 for no support
+      *  and this case with this bit flag.
+      */
+      uint32_t config_supported                          : 1;
+   } bits;
+   uint32_t value;
+};
+
+/* To be used with PIPE_VIDEO_CAP_ENC_HEVC_BLOCK_SIZES
+   the config_supported bit is used to differenciate a supported
+   config with all bits as zero and unsupported by driver with value=0 */
+union pipe_h265_enc_cap_block_sizes {
+   struct {
+      /** Largest supported size of coding tree blocks.
+      *
+      * CtbLog2SizeY must not be larger than this.
+      */
+      uint32_t log2_max_coding_tree_block_size_minus3    : 2;
+      /** Smallest supported size of coding tree blocks.
+      *
+      * CtbLog2SizeY must not be smaller than this.
+      *
+      * This may be the same as the maximum size, indicating that only
+      * one CTB size is supported.
+      */
+      uint32_t log2_min_coding_tree_block_size_minus3    : 2;
+
+      /** Smallest supported size of luma coding blocks.
+      *
+      * MinCbLog2SizeY must not be smaller than this.
+      */
+      uint32_t log2_min_luma_coding_block_size_minus3    : 2;
+
+      /** Largest supported size of luma transform blocks.
+      *
+      * MaxTbLog2SizeY must not be larger than this.
+      */
+      uint32_t log2_max_luma_transform_block_size_minus2 : 2;
+      /** Smallest supported size of luma transform blocks.
+      *
+      * MinTbLog2SizeY must not be smaller than this.
+      */
+      uint32_t log2_min_luma_transform_block_size_minus2 : 2;
+
+      /** Largest supported transform hierarchy depth in inter
+      *  coding units.
+      *
+      * max_transform_hierarchy_depth_inter must not be larger
+      * than this.
+      */
+      uint32_t max_max_transform_hierarchy_depth_inter   : 2;
+      /** Smallest supported transform hierarchy depth in inter
+      *  coding units.
+      *
+      * max_transform_hierarchy_depth_inter must not be smaller
+      * than this.
+      */
+      uint32_t min_max_transform_hierarchy_depth_inter   : 2;
+
+      /** Largest supported transform hierarchy depth in intra
+      *  coding units.
+      *
+      * max_transform_hierarchy_depth_intra must not be larger
+      * than this.
+      */
+      uint32_t max_max_transform_hierarchy_depth_intra   : 2;
+      /** Smallest supported transform hierarchy depth in intra
+      *  coding units.
+      *
+      * max_transform_hierarchy_depth_intra must not be smaller
+      * than this.
+      */
+      uint32_t min_max_transform_hierarchy_depth_intra   : 2;
+
+      /** Largest supported size of PCM coding blocks.
+      *
+      *  Log2MaxIpcmCbSizeY must not be larger than this.
+      */
+      uint32_t log2_max_pcm_coding_block_size_minus3     : 2;
+      /** Smallest supported size of PCM coding blocks.
+      *
+      *  Log2MinIpcmCbSizeY must not be smaller than this.
+      */
+      uint32_t log2_min_pcm_coding_block_size_minus3     : 2;
+      /** Flag indicating this is a supported configuration
+      *
+      *  It could be possible all the bits above are set to zero
+      *  and this is a valid configuration, so we distinguish
+      *  between get_video_param returning 0 for no support
+      *  and this case with this bit flag.
+      */
+      uint32_t config_supported                          : 1;
+      } bits;
+      uint32_t value;
 };
 
 #ifdef __cplusplus

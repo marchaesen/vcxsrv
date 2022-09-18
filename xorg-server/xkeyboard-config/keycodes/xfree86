@@ -150,13 +150,18 @@ xkb_keycodes "basic" {
     <XFER> =   129;		// Henkan
     <NFER> =   131;		// Muhenkan
     <AE13> =   133;		// Yen
-    <EISU> =   210;		// Alphanumeric mode on macintosh
-    <KANA> =   209;		// Kana mode on macintosh
 
-    // Keys that are generated on Korean keyboards
+    // Keys that are generated on Japanese and Korean keyboards
 
-    alias <HNGL> = <FK16>;     // Hangul Latin toggle
-    alias <HJCV> = <FK17>;     // Hangul to Hanja conversion
+    // USB HID Usage Tables 1.3 Lang1.
+    // IME On on Japanese keyboards.
+    // Hangul Latin toggle on Korean keyboards.
+    <HNGL> =  209;
+
+    // USB HID Usage Tables 1.3 Lang2.
+    // IME Off on Japanese keyboards.
+    // Hangul to Hanja conversion on Korean keyboards.
+    <HJCV> =  210;
 
     // Extended keys that may be generated on "Internet" keyboards.
     // These are not standardised, hence the meaningless names.
@@ -320,8 +325,8 @@ xkb_keycodes "basic" {
     <K6E> =   206;		// <I4E>
     <K6F> =   207;		// <I4F>
     alias <K70> = <HKTG>;	// <I50>
-    alias <K71> = <KANA>;	// <I51>
-    alias <K72> = <EISU>;	// <I52>
+    alias <K71> = <HNGL>;	// <I51>
+    alias <K72> = <HJCV>;	// <I52>
     alias <K73> = <AB11>;	// <I53>
     <K74> =   219;		// <I5B>
     <K75> =   220;		// <I5C>
@@ -355,7 +360,8 @@ xkb_keycodes "basic" {
     // Other codes never generated.  The XFree86 ddx never generates
     // these codes.
     // Thus we can use them as fake keys
-    <MDSW> =     8;
+    <LVL5> =     8;
+    alias <MDSW> = <LVL5>;
     <LVL3> =   124; // <U7C>
     <ALT>  =   125; // <U7D>
     <META> =   156; // <I1C>

@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 libfreedreno_noop_drm_shim = shared_library(
-  ['freedreno_noop_drm_shim'],
+  'freedreno_noop_drm_shim',
   'freedreno_noop.c',
   include_directories: [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   dependencies: dep_drm_shim,

@@ -23,16 +23,52 @@
 #endif
 #endif
 
-#ifdef _WIN32
-
+#include <stdint.h>
 #ifndef CROSS_PLATFORM_UUIDOF
 // Warning: This macro exists in WinAdapter.h as well
-#define CROSS_PLATFORM_UUIDOF(interface, spec)                                 \
-  struct __declspec(uuid(spec)) interface;
+#if defined(_MSC_VER)
+#define CROSS_PLATFORM_UUIDOF(iface, spec)                                 \
+   struct __declspec(uuid(spec)) iface;
+#else /* defined(_MSC_VER) */
+#if defined(__MINGW32__)
+#include <guiddef.h>
+#include <sal.h>
+#ifndef _Maybenull_
+#define _Maybenull_
 #endif
-
-#else
-
+#ifndef _In_count_
+#define _In_count_(x)
+#endif
+#ifndef _In_opt_count_
+#define _In_opt_count_(x)
+#endif
+#ifndef _In_bytecount_
+#define _In_bytecount_(x)
+#endif
+#endif /*  defined(__MINGW32__) */
+#ifndef __CRT_UUID_DECL
+#define __CRT_UUID_DECL(type, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+   extern "C++"                                                          \
+   {                                                                     \
+      template <>                                                        \
+      struct __mesa_emulated_uuidof_s<type>                              \
+      {                                                                  \
+         static constexpr IID __uuid_inst = {                            \
+             l, w1, w2, {b1, b2, b3, b4, b5, b6, b7, b8}};               \
+      };                                                                 \
+      template <>                                                        \
+      constexpr const GUID &__mesa_emulated_uuidof<type>()               \
+      {                                                                  \
+         return __mesa_emulated_uuidof_s<type>::__uuid_inst;             \
+      }                                                                  \
+      template <>                                                        \
+      constexpr const GUID &__mesa_emulated_uuidof<type *>()             \
+      {                                                                  \
+         return __mesa_emulated_uuidof_s<type>::__uuid_inst;             \
+      }                                                                  \
+   }
+#define __uuidof(T) __mesa_emulated_uuidof<typename std::decay<T>::type>()
+#endif /*__CRT_UUID_DECL */
 constexpr uint8_t nybble_from_hex(char c) {
    return ((c >= '0' && c <= '9')
                ? (c - '0')
@@ -50,30 +86,37 @@ constexpr uint8_t byte_from_hexstr(const char str[2]) {
    return nybble_from_hex(str[0]) << 4 | nybble_from_hex(str[1]);
 }
 
-constexpr GUID guid_from_string(const char str[37]) {
-   return GUID{ static_cast<uint32_t>(byte_from_hexstr(str)) << 24 |
-                   static_cast<uint32_t>(byte_from_hexstr(str + 2)) << 16 |
-                   static_cast<uint32_t>(byte_from_hexstr(str + 4)) << 8 |
-                   byte_from_hexstr(str + 6),
-               static_cast<uint16_t>(
-                   static_cast<uint16_t>(byte_from_hexstr(str + 9)) << 8 |
-                   byte_from_hexstr(str + 11)),
-               static_cast<uint16_t>(
-                   static_cast<uint16_t>(byte_from_hexstr(str + 14)) << 8 |
-                   byte_from_hexstr(str + 16)),
-               {byte_from_hexstr(str + 19), byte_from_hexstr(str + 21),
-                byte_from_hexstr(str + 24), byte_from_hexstr(str + 26),
-                byte_from_hexstr(str + 28), byte_from_hexstr(str + 30),
-                byte_from_hexstr(str + 32), byte_from_hexstr(str + 34)} };
+constexpr unsigned short short_from_hexstr(const char str[2], unsigned shift)
+{
+   return ((unsigned short)(nybble_from_hex(str[0]) << 4 |
+                            nybble_from_hex(str[1])))
+          << shift;
 }
 
-#define CROSS_PLATFORM_UUIDOF(interface, spec)                                 \
-  struct interface;                                                            \
-  template <> constexpr GUID uuidof<interface>() {                             \
-    constexpr IID _IID = guid_from_string(spec);                            \
-    return _IID;                                                               \
-  }
+constexpr unsigned long word_from_hexstr(const char str[2], unsigned shift)
+{
+   return ((unsigned long)(nybble_from_hex(str[0]) << 4 |
+                           nybble_from_hex(str[1])))
+          << shift;
+}
 
+#define CROSS_PLATFORM_UUIDOF(iface, spec)                                \
+   struct iface;                                                          \
+   __CRT_UUID_DECL(                                                       \
+       iface,                                                             \
+       word_from_hexstr(spec, 24) | word_from_hexstr(spec + 2, 16) |      \
+           word_from_hexstr(spec + 4, 8) | word_from_hexstr(spec + 6, 0), \
+       short_from_hexstr(spec + 9, 8) | short_from_hexstr(spec + 11, 0),  \
+       short_from_hexstr(spec + 14, 8) | short_from_hexstr(spec + 16, 0), \
+       byte_from_hexstr(spec + 19), byte_from_hexstr(spec + 21),          \
+       byte_from_hexstr(spec + 24), byte_from_hexstr(spec + 26),          \
+       byte_from_hexstr(spec + 28), byte_from_hexstr(spec + 30),          \
+       byte_from_hexstr(spec + 32), byte_from_hexstr(spec + 34))
+
+#endif /* defined(_MSC_VER) */
+#endif /* CROSS_PLATFORM_UUIDOF */
+
+#ifndef _WIN32
 
 CROSS_PLATFORM_UUIDOF(INoMarshal, "ECC8691B-C1DB-4DC0-855E-65F6C551AF49")
 struct INoMarshal : public IUnknown {};

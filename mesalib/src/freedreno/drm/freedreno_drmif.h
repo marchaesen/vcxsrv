@@ -57,11 +57,12 @@ enum fd_param_id {
    FD_CHIP_ID,       /* 64b */
    FD_MAX_FREQ,
    FD_TIMESTAMP,
-   FD_NR_RINGS,      /* # of rings == # of distinct priority levels */
-   FD_PP_PGTABLE,    /* are per-process pagetables used for the pipe/ctx */
+   FD_NR_PRIORITIES,      /* # of rings == # of distinct priority levels */
    FD_CTX_FAULTS,    /* # of per context faults */
    FD_GLOBAL_FAULTS, /* # of global (all context) faults */
    FD_SUSPEND_COUNT, /* # of times the GPU has suspended, and potentially lost state */
+   FD_SYSPROF,       /* Settable (for CAP_SYS_ADMIN) param for system profiling */
+   FD_VA_SIZE,       /* GPU virtual address size */
 };
 
 /**
@@ -99,8 +100,15 @@ struct fd_fence {
 /* bo flags: */
 #define FD_BO_GPUREADONLY         BITSET_BIT(1)
 #define FD_BO_SCANOUT             BITSET_BIT(2)
+/* Default caching is WRITECOMBINE: */
 #define FD_BO_CACHED_COHERENT     BITSET_BIT(3)
-/* Default caching is WRITECOMBINE */
+/* Hint that the bo will not be mmap'd: */
+#define FD_BO_NOMAP               BITSET_BIT(4)
+/* Hint that the bo will be exported/shared: */
+#define FD_BO_SHARED              BITSET_BIT(5)
+
+/* backend private bo flags: */
+#define _FD_BO_VIRTIO_SHM         BITSET_BIT(6)
 
 /* bo access flags: (keep aligned to MSM_PREP_x) */
 #define FD_BO_PREP_READ   BITSET_BIT(0)
@@ -114,6 +122,7 @@ struct fd_fence {
 
 struct fd_device *fd_device_new(int fd);
 struct fd_device *fd_device_new_dup(int fd);
+struct fd_device *fd_device_open(void);
 struct fd_device *fd_device_ref(struct fd_device *dev);
 void fd_device_purge(struct fd_device *dev);
 void fd_device_del(struct fd_device *dev);
@@ -131,6 +140,7 @@ enum fd_version {
    FD_VERSION_MEMORY_FD = 2,           /* supports shared memory objects */
    FD_VERSION_SUSPENDS = 7,            /* Adds MSM_PARAM_SUSPENDS to detect device suspend */
    FD_VERSION_CACHED_COHERENT = 8,     /* Adds cached-coherent support (a6xx+) */
+   FD_VERSION_VA_SIZE = 9,
 };
 enum fd_version fd_device_version(struct fd_device *dev);
 
@@ -149,6 +159,8 @@ void fd_pipe_purge(struct fd_pipe *pipe);
 const struct fd_dev_id * fd_pipe_dev_id(struct fd_pipe *pipe);
 int fd_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param,
                       uint64_t *value);
+int fd_pipe_set_param(struct fd_pipe *pipe, enum fd_param_id param,
+                      uint64_t value);
 int fd_pipe_wait(struct fd_pipe *pipe, const struct fd_fence *fence);
 /* timeout in nanosec */
 int fd_pipe_wait_timeout(struct fd_pipe *pipe, const struct fd_fence *fence,
@@ -207,6 +219,8 @@ uint32_t fd_bo_handle(struct fd_bo *bo);
 int fd_bo_dmabuf(struct fd_bo *bo);
 uint32_t fd_bo_size(struct fd_bo *bo);
 void *fd_bo_map(struct fd_bo *bo);
+void fd_bo_upload(struct fd_bo *bo, void *src, unsigned off, unsigned len);
+bool fd_bo_prefer_upload(struct fd_bo *bo, unsigned len);
 int fd_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op);
 void fd_bo_cpu_fini(struct fd_bo *bo);
 bool fd_bo_is_cached(struct fd_bo *bo);

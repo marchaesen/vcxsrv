@@ -1,18 +1,7 @@
-dEQP-GLES2.functional.rasterization.interpolation.basic.line_loop_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.basic.line_strip_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.basic.lines_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.line_loop_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.line_strip_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.lines_wide,Fail
-dEQP-GLES3.functional.rasterization.fbo.rbo_singlesample.interpolation.lines_wide,Fail
-dEQP-GLES3.functional.rasterization.fbo.texture_2d.interpolation.lines_wide,Fail
-dEQP-GLES3.functional.rasterization.interpolation.basic.line_loop_wide,Fail
-dEQP-GLES3.functional.rasterization.interpolation.basic.line_strip_wide,Fail
-dEQP-GLES3.functional.rasterization.interpolation.basic.lines_wide,Fail
-dEQP-GLES3.functional.rasterization.interpolation.projected.line_loop_wide,Fail
-dEQP-GLES3.functional.rasterization.interpolation.projected.line_strip_wide,Fail
-dEQP-GLES3.functional.rasterization.interpolation.projected.lines_wide,Fail
-KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
+spec@!opengl 1.0@depth-clear-precision-check,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth16,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth32f_stencil8,Fail
 
 # frontbuffer reading failures?
 spec@!opengl 1.1@read-front,Fail
@@ -42,9 +31,13 @@ spec@!opengl 1.1@linestipple@Line strip,Fail
 
 spec@!opengl 3.0@clearbuffer-bug,Fail
 
-spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims line cull-back pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims pv-first,Fail
 
-spec@amd_performance_monitor@measure,Crash
+spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
 
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-vs-non-uniform-control-flow-ssbo,Fail
 
@@ -166,8 +159,6 @@ spec@glsl-1.50@execution@geometry@primitive-types gl_line_loop,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
 
-spec@intel_performance_query@intel_performance_query-issue_2235,Fail
-
 spec@khr_texture_compression_astc@miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@miptree-gl srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
@@ -176,10 +167,6 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
-
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageLoad,Fail
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail
 
 spec@oes_texture_view@rendering-formats,Fail
 spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_R32F,Fail
@@ -231,6 +218,10 @@ KHR-GL46.shader_multisample_interpolation.render.interpolate_at_offset_check.rgb
 KHR-GL46.shader_multisample_interpolation.render.interpolate_at_sample.rgba8i.samples_1,Fail
 KHR-GL46.shader_multisample_interpolation.render.interpolate_at_sample_check.rgba8i.samples_1,Fail
 KHR-GL46.shader_multisample_interpolation.render.sample.rgba8i.samples_1,Fail
+
+# "glcts: ../src/intel/compiler/brw_vec4_generator.cpp:2254: void generate_code(brw_codegen*, const brw_compiler*, void*, const nir_shader*, brw_vue_prog_data*, const cfg_t*, const brw::performance&, brw_compile_stats*, bool): Assertion `validated' failed."
+KHR-GL46.shading_language_420pack.binding_samplers,Crash
+
 KHR-GL46.texture_size_promotion.functional,Fail
 KHR-GLES31.core.sample_shading.render.rgba8i.full,Fail
 KHR-GLES31.core.sample_shading.render.rgba8i.half,Fail

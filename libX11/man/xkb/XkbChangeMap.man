@@ -35,13 +35,13 @@ keyboard description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- xkb
+.I xkb
 description from which new values are taken
 .TP
-.I \- changes
+.I changes
 identifies component parts to update
 .SH DESCRIPTION
 .LP

@@ -800,8 +800,6 @@ translate_generic_create(const struct translate_key *key)
       const struct util_format_unpack_description *unpack =
          util_format_unpack_description(key->element[i].input_format);
 
-      assert(format_desc);
-
       tg->attrib[i].type = key->element[i].type;
 
       if (format_desc->channel[0].pure_integer) {

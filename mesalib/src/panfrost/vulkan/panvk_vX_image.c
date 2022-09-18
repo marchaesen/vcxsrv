@@ -63,9 +63,6 @@ panvk_convert_swizzle(const VkComponentMapping *in,
    const VkComponentSwizzle *comp = &in->r;
    for (unsigned i = 0; i < 4; i++) {
       switch (comp[i]) {
-      case VK_COMPONENT_SWIZZLE_IDENTITY:
-         out[i] = PIPE_SWIZZLE_X + i;
-         break;
       case VK_COMPONENT_SWIZZLE_ZERO:
          out[i] = PIPE_SWIZZLE_0;
          break;
@@ -100,60 +97,146 @@ panvk_per_arch(CreateImageView)(VkDevice _device,
    VK_FROM_HANDLE(panvk_image, image, pCreateInfo->image);
    struct panvk_image_view *view;
 
-   view = vk_object_zalloc(&device->vk, pAllocator, sizeof(*view),
-                          VK_OBJECT_TYPE_IMAGE_VIEW);
+   view = vk_image_view_create(&device->vk, false, pCreateInfo,
+                               pAllocator, sizeof(*view));
    if (view == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   view->pview.format = vk_format_to_pipe_format(pCreateInfo->format);
-
-   if (pCreateInfo->subresourceRange.aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT)
-      view->pview.format = util_format_get_depth_only(view->pview.format);
-   else if (pCreateInfo->subresourceRange.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT)
-      view->pview.format = util_format_stencil_only(view->pview.format);
-
-   unsigned level_count =
-      pCreateInfo->subresourceRange.levelCount == VK_REMAINING_MIP_LEVELS ?
-      image->pimage.layout.nr_slices - pCreateInfo->subresourceRange.baseMipLevel :
-      pCreateInfo->subresourceRange.levelCount;
-   unsigned layer_count =
-      pCreateInfo->subresourceRange.layerCount == VK_REMAINING_ARRAY_LAYERS ?
-      image->pimage.layout.array_size - pCreateInfo->subresourceRange.baseArrayLayer :
-      pCreateInfo->subresourceRange.layerCount;
-
-   view->pview.dim = panvk_view_type_to_mali_tex_dim(pCreateInfo->viewType);
-   view->pview.first_level = pCreateInfo->subresourceRange.baseMipLevel;
-   view->pview.last_level = pCreateInfo->subresourceRange.baseMipLevel + level_count - 1;
-   view->pview.first_layer = pCreateInfo->subresourceRange.baseArrayLayer;
-   view->pview.last_layer = pCreateInfo->subresourceRange.baseArrayLayer + layer_count - 1;
-   panvk_convert_swizzle(&pCreateInfo->components, view->pview.swizzle);
-   view->pview.image = &image->pimage;
-   view->pview.nr_samples = image->pimage.layout.nr_samples;
-   view->vk_format = pCreateInfo->format;
+   view->pview = (struct pan_image_view) {
+      .image = &image->pimage,
+      .format = vk_format_to_pipe_format(view->vk.view_format),
+      .dim = panvk_view_type_to_mali_tex_dim(view->vk.view_type),
+      .nr_samples = image->pimage.layout.nr_samples,
+      .first_level = view->vk.base_mip_level,
+      .last_level = view->vk.base_mip_level +
+                    view->vk.level_count - 1,
+      .first_layer = view->vk.base_array_layer,
+      .last_layer = view->vk.base_array_layer +
+                    view->vk.layer_count - 1,
+   };
+   panvk_convert_swizzle(&view->vk.swizzle, view->pview.swizzle);
 
    struct panfrost_device *pdev = &device->physical_device->pdev;
 
-   if (image->usage &
+   if (view->vk.usage &
        (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
       unsigned bo_size =
          GENX(panfrost_estimate_texture_payload_size)(&view->pview) +
          pan_size(TEXTURE);
 
-      unsigned surf_descs_offset = PAN_ARCH <= 5 ? pan_size(TEXTURE) : 0;
-
       view->bo = panfrost_bo_create(pdev, bo_size, 0, "Texture descriptor");
 
-      struct panfrost_ptr surf_descs = {
-         .cpu = view->bo->ptr.cpu + surf_descs_offset,
-         .gpu = view->bo->ptr.gpu + surf_descs_offset,
-      };
-      void *tex_desc = PAN_ARCH >= 6 ?
-                       &view->descs.tex : view->bo->ptr.cpu;
-
       STATIC_ASSERT(sizeof(view->descs.tex) >= pan_size(TEXTURE));
-      GENX(panfrost_new_texture)(pdev, &view->pview, tex_desc, &surf_descs);
+      GENX(panfrost_new_texture)(pdev, &view->pview, &view->descs.tex, &view->bo->ptr);
+   }
+
+   if (view->vk.usage & VK_IMAGE_USAGE_STORAGE_BIT) {
+      uint8_t *attrib_buf = (uint8_t *)view->descs.img_attrib_buf;
+      bool is_3d = image->pimage.layout.dim == MALI_TEXTURE_DIMENSION_3D;
+      unsigned offset = image->pimage.data.offset;
+      offset += panfrost_texture_offset(&image->pimage.layout,
+                                        view->pview.first_level,
+                                        is_3d ? 0 : view->pview.first_layer,
+                                        is_3d ? view->pview.first_layer : 0);
+
+      pan_pack(attrib_buf, ATTRIBUTE_BUFFER, cfg) {
+         cfg.type = image->pimage.layout.modifier == DRM_FORMAT_MOD_LINEAR ?
+                    MALI_ATTRIBUTE_TYPE_3D_LINEAR : MALI_ATTRIBUTE_TYPE_3D_INTERLEAVED;
+         cfg.pointer = image->pimage.data.bo->ptr.gpu + offset;
+         cfg.stride = util_format_get_blocksize(view->pview.format);
+         cfg.size = image->pimage.data.bo->size - offset;
+      }
+
+      attrib_buf += pan_size(ATTRIBUTE_BUFFER);
+      pan_pack(attrib_buf, ATTRIBUTE_BUFFER_CONTINUATION_3D, cfg) {
+         unsigned level = view->pview.first_level;
+
+         cfg.s_dimension = u_minify(image->pimage.layout.width, level);
+         cfg.t_dimension = u_minify(image->pimage.layout.height, level);
+         cfg.r_dimension =
+            view->pview.dim == MALI_TEXTURE_DIMENSION_3D ?
+            u_minify(image->pimage.layout.depth, level) :
+            (view->pview.last_layer - view->pview.first_layer + 1);
+         cfg.row_stride = image->pimage.layout.slices[level].row_stride;
+         if (cfg.r_dimension > 1) {
+            cfg.slice_stride =
+               panfrost_get_layer_stride(&image->pimage.layout, level);
+         }
+      }
    }
 
    *pView = panvk_image_view_to_handle(view);
+   return VK_SUCCESS;
+}
+
+VkResult
+panvk_per_arch(CreateBufferView)(VkDevice _device,
+                                 const VkBufferViewCreateInfo *pCreateInfo,
+                                 const VkAllocationCallbacks *pAllocator,
+                                 VkBufferView *pView)
+{
+   VK_FROM_HANDLE(panvk_device, device, _device);
+   VK_FROM_HANDLE(panvk_buffer, buffer, pCreateInfo->buffer);
+
+   struct panvk_buffer_view *view =
+      vk_object_zalloc(&device->vk, pAllocator, sizeof(*view),
+                       VK_OBJECT_TYPE_BUFFER_VIEW);
+
+   if (!view)
+      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   view->fmt = vk_format_to_pipe_format(pCreateInfo->format);
+
+   struct panfrost_device *pdev = &device->physical_device->pdev;
+   mali_ptr address = panvk_buffer_gpu_ptr(buffer, pCreateInfo->offset);
+   unsigned size = panvk_buffer_range(buffer, pCreateInfo->offset,
+                                      pCreateInfo->range);
+   unsigned blksz = util_format_get_blocksize(view->fmt);
+   view->elems = size / blksz;
+
+   assert(!(address & 63));
+
+   if (buffer->vk.usage & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT) {
+      unsigned bo_size = pan_size(SURFACE_WITH_STRIDE);
+      view->bo = panfrost_bo_create(pdev, bo_size, 0, "Texture descriptor");
+
+      pan_pack(view->bo->ptr.cpu, SURFACE_WITH_STRIDE, cfg) {
+         cfg.pointer = address;
+      }
+
+      pan_pack(view->descs.tex, TEXTURE, cfg) {
+         cfg.dimension = MALI_TEXTURE_DIMENSION_1D;
+         cfg.format = pdev->formats[view->fmt].hw;
+         cfg.width = view->elems;
+         cfg.depth = cfg.height = 1;
+         cfg.swizzle = PAN_V6_SWIZZLE(R, G, B, A);
+         cfg.texel_ordering = MALI_TEXTURE_LAYOUT_LINEAR;
+         cfg.levels = 1;
+         cfg.array_size = 1;
+         cfg.surfaces = view->bo->ptr.gpu;
+         cfg.maximum_lod = cfg.minimum_lod = FIXED_16(0, false);
+      }
+   }
+
+   if (buffer->vk.usage & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT) {
+      uint8_t *attrib_buf = (uint8_t *)view->descs.img_attrib_buf;
+
+      pan_pack(attrib_buf, ATTRIBUTE_BUFFER, cfg) {
+         cfg.type = MALI_ATTRIBUTE_TYPE_3D_LINEAR;
+         cfg.pointer = address;
+         cfg.stride = blksz;
+         cfg.size = view->elems * blksz;
+      }
+
+      attrib_buf += pan_size(ATTRIBUTE_BUFFER);
+      pan_pack(attrib_buf, ATTRIBUTE_BUFFER_CONTINUATION_3D, cfg) {
+         cfg.s_dimension = view->elems;
+         cfg.t_dimension = 1;
+         cfg.r_dimension = 1;
+         cfg.row_stride = view->elems * blksz;
+      }
+   }
+
+   *pView = panvk_buffer_view_to_handle(view);
    return VK_SUCCESS;
 }

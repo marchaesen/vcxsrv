@@ -48,6 +48,9 @@ struct etna_sampler_ts {
 void
 etna_texture_init(struct pipe_context *pctx);
 
+void
+etna_texture_fini(struct pipe_context *pctx);
+
 /* If the original resource is not compatible with the sampler.  Allocate
  * an appropriately tiled texture. */
 struct etna_resource *

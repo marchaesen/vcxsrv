@@ -372,7 +372,7 @@ try_setup_point( struct lp_setup_context *setup,
       print_point(setup, v0, size);
 
    /* Bounding rectangle (in pixels) */
-   if (!setup->legacy_points || setup->multisample) {
+   if (!setup->legacy_points) {
       /*
        * Rasterize points as quads.
        */
@@ -535,7 +535,7 @@ try_setup_point( struct lp_setup_context *setup,
       plane[3].c = MIN2(y[1], (bbox.y1 + 1) << 8);
       plane[3].eo = 0;
 
-      if (!setup->legacy_points || setup->multisample) {
+      if (!setup->legacy_points) {
          /* adjust for fill-rule*/
          plane[0].c++; /* left */
          if (setup->bottom_edge_rule == 0)

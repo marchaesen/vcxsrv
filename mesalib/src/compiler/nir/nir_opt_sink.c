@@ -64,6 +64,8 @@ nir_can_move_instr(nir_instr *instr, nir_move_options options)
       case nir_intrinsic_load_interpolated_input:
       case nir_intrinsic_load_per_vertex_input:
          return options & nir_move_load_input;
+      case nir_intrinsic_load_uniform:
+         return options & nir_move_load_uniform;
       default:
          return false;
       }

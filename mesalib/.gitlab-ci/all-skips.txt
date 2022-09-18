@@ -6,9 +6,6 @@
 # reliable to be run in parallel with other tests due to CPU-side timing.
 dEQP-GLES[0-9]*.functional.flush_finish.*
 
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/4575
-dEQP-VK.wsi.display.get_display_plane_capabilities
-
 # piglit: WGL is Windows-only
 wgl@.*
 

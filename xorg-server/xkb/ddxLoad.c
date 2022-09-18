@@ -43,7 +43,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define	XKBSRV_NEED_FILE_FUNCS
 #include <xkbsrv.h>
 #include <X11/extensions/XI.h>
-#include "xkb.h"
 
 #define	PRE_ERROR_MSG "\"The XKEYBOARD keymap compiler (xkbcomp) reports:\""
 #define	ERROR_PREFIX	"\"> \""

@@ -58,6 +58,8 @@ begin_blit(struct svga_context *svga)
                                          (void*)svga->curr.depth);
    util_blitter_save_stencil_ref(svga->blitter, &svga->curr.stencil_ref);
    util_blitter_save_sample_mask(svga->blitter, svga->curr.sample_mask, 0);
+   util_blitter_save_fragment_constant_buffer_slot(svga->blitter,
+                                                   &svga->curr.constbufs[PIPE_SHADER_FRAGMENT][0]);
 }
 
 

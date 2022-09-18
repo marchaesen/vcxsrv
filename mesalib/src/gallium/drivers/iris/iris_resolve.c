@@ -109,7 +109,7 @@ resolve_sampler_views(struct iris_context *ice,
       }
 
       iris_emit_buffer_barrier_for(batch, isv->res->bo,
-                                   IRIS_DOMAIN_OTHER_READ);
+                                   IRIS_DOMAIN_SAMPLER_READ);
    }
 }
 
@@ -121,7 +121,7 @@ resolve_image_views(struct iris_context *ice,
                     bool *draw_aux_buffer_disabled,
                     bool consider_framebuffer)
 {
-   uint32_t views = info ? (shs->bound_image_views & info->images_used) : 0;
+   uint32_t views = info ? (shs->bound_image_views & info->images_used[0]) : 0;
 
    while (views) {
       const int i = u_bit_scan(&views);
@@ -381,7 +381,7 @@ flush_ubos(struct iris_batch *batch,
       const int i = u_bit_scan(&cbufs);
       struct pipe_shader_buffer *cbuf = &shs->constbuf[i];
       struct iris_resource *res = (void *)cbuf->buffer;
-      iris_emit_buffer_barrier_for(batch, res->bo, IRIS_DOMAIN_OTHER_READ);
+      iris_emit_buffer_barrier_for(batch, res->bo, IRIS_DOMAIN_PULL_CONSTANT_READ);
    }
 
    shs->dirty_cbufs = 0;
@@ -413,6 +413,17 @@ iris_predraw_flush_buffers(struct iris_context *ice,
 
    if (ice->state.stage_dirty & (IRIS_STAGE_DIRTY_BINDINGS_VS << stage))
       flush_ssbos(batch, shs);
+
+   if (ice->state.streamout_active &&
+       (ice->state.dirty & IRIS_DIRTY_SO_BUFFERS)) {
+      for (int i = 0; i < 4; i++) {
+         struct iris_stream_output_target *tgt = (void *)ice->state.so_target[i];
+         if (tgt) {
+            struct iris_bo *bo = iris_resource_bo(tgt->base.buffer);
+            iris_emit_buffer_barrier_for(batch, bo, IRIS_DOMAIN_OTHER_WRITE);
+         }
+      }
+   }
 }
 
 static void
@@ -491,33 +502,43 @@ iris_sample_with_depth_aux(const struct intel_device_info *devinfo,
                            const struct iris_resource *res)
 {
    switch (res->aux.usage) {
-   case ISL_AUX_USAGE_HIZ:
-      if (devinfo->has_sample_with_hiz)
-         break;
-      return false;
-   case ISL_AUX_USAGE_HIZ_CCS:
-      return false;
    case ISL_AUX_USAGE_HIZ_CCS_WT:
-      break;
+      /* Always support sampling with HIZ_CCS_WT.  Although the sampler
+       * doesn't comprehend HiZ, write-through means that the correct data
+       * will be in the CCS, and the sampler can simply rely on that.
+       */
+      return true;
+   case ISL_AUX_USAGE_HIZ_CCS:
+      /* Without write-through, the CCS data may be out of sync with HiZ
+       * and the sampler won't see the correct data.  Skip both.
+       */
+      return false;
+   case ISL_AUX_USAGE_HIZ:
+      /* From the Broadwell PRM (Volume 2d: Command Reference: Structures
+       * RENDER_SURFACE_STATE.AuxiliarySurfaceMode):
+       *
+       *   "If this field is set to AUX_HIZ, Number of Multisamples must be
+       *    MULTISAMPLECOUNT_1, and Surface Type cannot be SURFTYPE_3D.
+       *
+       * There is no such blurb for 1D textures, but there is sufficient
+       * evidence that this is broken on SKL+.
+       */
+      if (!devinfo->has_sample_with_hiz ||
+          res->surf.samples != 1 ||
+          res->surf.dim != ISL_SURF_DIM_2D)
+         return false;
+
+      /* Make sure that HiZ exists for all necessary miplevels. */
+      for (unsigned level = 0; level < res->surf.levels; ++level) {
+         if (!iris_resource_level_has_hiz(devinfo, res, level))
+            return false;
+      }
+
+      /* We can sample directly from HiZ in this case. */
+      return true;
    default:
       return false;
    }
-
-   for (unsigned level = 0; level < res->surf.levels; ++level) {
-      if (!iris_resource_level_has_hiz(res, level))
-         return false;
-   }
-
-   /* From the BDW PRM (Volume 2d: Command Reference: Structures
-    *                   RENDER_SURFACE_STATE.AuxiliarySurfaceMode):
-    *
-    *  "If this field is set to AUX_HIZ, Number of Multisamples must be
-    *   MULTISAMPLECOUNT_1, and Surface Type cannot be SURFTYPE_3D.
-    *
-    * There is no such blurb for 1D textures, but there is sufficient evidence
-    * that this is broken on SKL+.
-    */
-   return res->surf.samples == 1 && res->surf.dim == ISL_SURF_DIM_2D;
 }
 
 /**
@@ -537,7 +558,9 @@ iris_hiz_exec(struct iris_context *ice,
               unsigned int num_layers, enum isl_aux_op op,
               bool update_clear_depth)
 {
-   assert(iris_resource_level_has_hiz(res, level));
+   struct intel_device_info *devinfo = &batch->screen->devinfo;
+
+   assert(iris_resource_level_has_hiz(devinfo, res, level));
    assert(op != ISL_AUX_OP_NONE);
    UNUSED const char *name = NULL;
 
@@ -621,7 +644,8 @@ iris_hiz_exec(struct iris_context *ice,
  * Does the resource's slice have hiz enabled?
  */
 bool
-iris_resource_level_has_hiz(const struct iris_resource *res, uint32_t level)
+iris_resource_level_has_hiz(const struct intel_device_info *devinfo,
+                            const struct iris_resource *res, uint32_t level)
 {
    iris_resource_check_level_layer(res, level, 0);
 
@@ -630,8 +654,11 @@ iris_resource_level_has_hiz(const struct iris_resource *res, uint32_t level)
 
    /* Disable HiZ for LOD > 0 unless the width/height are 8x4 aligned.
     * For LOD == 0, we can grow the dimensions to make it work.
+    *
+    * This doesn't appear to be necessary on Gfx11+.  See details here:
+    * https://gitlab.freedesktop.org/mesa/mesa/-/issues/3788
     */
-   if (level > 0) {
+   if (devinfo->ver < 11 && level > 0) {
       if (u_minify(res->base.b.width0, level) & 7)
          return false;
 
@@ -820,10 +847,13 @@ iris_resource_set_aux_state(struct iris_context *ice,
                             uint32_t start_layer, uint32_t num_layers,
                             enum isl_aux_state aux_state)
 {
+   struct iris_screen *screen = (void *) ice->ctx.screen;
+   struct intel_device_info *devinfo = &screen->devinfo;
+
    num_layers = miptree_layer_range_length(res, level, start_layer, num_layers);
 
    if (res->surf.usage & ISL_SURF_USAGE_DEPTH_BIT) {
-      assert(iris_resource_level_has_hiz(res, level) ||
+      assert(iris_resource_level_has_hiz(devinfo, res, level) ||
              !isl_aux_state_has_valid_aux(aux_state));
    } else {
       assert(res->surf.samples == 1 ||
@@ -1040,7 +1070,7 @@ iris_resource_render_aux_usage(struct iris_context *ice,
    case ISL_AUX_USAGE_HIZ_CCS:
    case ISL_AUX_USAGE_HIZ_CCS_WT:
       assert(render_format == res->surf.format);
-      return iris_resource_level_has_hiz(res, level) ?
+      return iris_resource_level_has_hiz(devinfo, res, level) ?
              res->aux.usage : ISL_AUX_USAGE_NONE;
 
    case ISL_AUX_USAGE_STC_CCS:

@@ -64,33 +64,6 @@ vn_encode_VkExternalMemoryBufferCreateInfo(struct vn_cs_encoder *enc, const VkEx
     vn_encode_VkExternalMemoryBufferCreateInfo_self(enc, val);
 }
 
-static inline void
-vn_decode_VkExternalMemoryBufferCreateInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkExternalMemoryBufferCreateInfo_self(struct vn_cs_decoder *dec, VkExternalMemoryBufferCreateInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkFlags(dec, &val->handleTypes);
-}
-
-static inline void
-vn_decode_VkExternalMemoryBufferCreateInfo(struct vn_cs_decoder *dec, VkExternalMemoryBufferCreateInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkExternalMemoryBufferCreateInfo_pnext(dec, val->pNext);
-    vn_decode_VkExternalMemoryBufferCreateInfo_self(dec, val);
-}
-
 /* struct VkBufferOpaqueCaptureAddressCreateInfo chain */
 
 static inline size_t
@@ -142,33 +115,6 @@ vn_encode_VkBufferOpaqueCaptureAddressCreateInfo(struct vn_cs_encoder *enc, cons
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BUFFER_OPAQUE_CAPTURE_ADDRESS_CREATE_INFO });
     vn_encode_VkBufferOpaqueCaptureAddressCreateInfo_pnext(enc, val->pNext);
     vn_encode_VkBufferOpaqueCaptureAddressCreateInfo_self(enc, val);
-}
-
-static inline void
-vn_decode_VkBufferOpaqueCaptureAddressCreateInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkBufferOpaqueCaptureAddressCreateInfo_self(struct vn_cs_decoder *dec, VkBufferOpaqueCaptureAddressCreateInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_uint64_t(dec, &val->opaqueCaptureAddress);
-}
-
-static inline void
-vn_decode_VkBufferOpaqueCaptureAddressCreateInfo(struct vn_cs_decoder *dec, VkBufferOpaqueCaptureAddressCreateInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BUFFER_OPAQUE_CAPTURE_ADDRESS_CREATE_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBufferOpaqueCaptureAddressCreateInfo_pnext(dec, val->pNext);
-    vn_decode_VkBufferOpaqueCaptureAddressCreateInfo_self(dec, val);
 }
 
 /* struct VkBufferCreateInfo chain */
@@ -289,67 +235,6 @@ vn_encode_VkBufferCreateInfo(struct vn_cs_encoder *enc, const VkBufferCreateInfo
     vn_encode_VkBufferCreateInfo_self(enc, val);
 }
 
-static inline void
-vn_decode_VkBufferCreateInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    VkBaseOutStructure *pnext = (VkBaseOutStructure *)val;
-    VkStructureType stype;
-
-    if (!vn_decode_simple_pointer(dec))
-        return;
-
-    vn_decode_VkStructureType(dec, &stype);
-    while (true) {
-        assert(pnext);
-        if (pnext->sType == stype)
-            break;
-    }
-
-    switch ((int32_t)pnext->sType) {
-    case VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO:
-        vn_decode_VkBufferCreateInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkExternalMemoryBufferCreateInfo_self(dec, (VkExternalMemoryBufferCreateInfo *)pnext);
-        break;
-    case VK_STRUCTURE_TYPE_BUFFER_OPAQUE_CAPTURE_ADDRESS_CREATE_INFO:
-        vn_decode_VkBufferCreateInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkBufferOpaqueCaptureAddressCreateInfo_self(dec, (VkBufferOpaqueCaptureAddressCreateInfo *)pnext);
-        break;
-    default:
-        assert(false);
-        break;
-    }
-}
-
-static inline void
-vn_decode_VkBufferCreateInfo_self(struct vn_cs_decoder *dec, VkBufferCreateInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkFlags(dec, &val->flags);
-    vn_decode_VkDeviceSize(dec, &val->size);
-    vn_decode_VkFlags(dec, &val->usage);
-    vn_decode_VkSharingMode(dec, &val->sharingMode);
-    vn_decode_uint32_t(dec, &val->queueFamilyIndexCount);
-    if (vn_peek_array_size(dec)) {
-        const size_t array_size = vn_decode_array_size(dec, val->queueFamilyIndexCount);
-        vn_decode_uint32_t_array(dec, (uint32_t *)val->pQueueFamilyIndices, array_size);
-    } else {
-        vn_decode_array_size_unchecked(dec);
-        val->pQueueFamilyIndices = NULL;
-    }
-}
-
-static inline void
-vn_decode_VkBufferCreateInfo(struct vn_cs_decoder *dec, VkBufferCreateInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBufferCreateInfo_pnext(dec, val->pNext);
-    vn_decode_VkBufferCreateInfo_self(dec, val);
-}
-
 /* struct VkBindBufferMemoryDeviceGroupInfo chain */
 
 static inline size_t
@@ -413,40 +298,6 @@ vn_encode_VkBindBufferMemoryDeviceGroupInfo(struct vn_cs_encoder *enc, const VkB
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO });
     vn_encode_VkBindBufferMemoryDeviceGroupInfo_pnext(enc, val->pNext);
     vn_encode_VkBindBufferMemoryDeviceGroupInfo_self(enc, val);
-}
-
-static inline void
-vn_decode_VkBindBufferMemoryDeviceGroupInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkBindBufferMemoryDeviceGroupInfo_self(struct vn_cs_decoder *dec, VkBindBufferMemoryDeviceGroupInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_uint32_t(dec, &val->deviceIndexCount);
-    if (vn_peek_array_size(dec)) {
-        const size_t array_size = vn_decode_array_size(dec, val->deviceIndexCount);
-        vn_decode_uint32_t_array(dec, (uint32_t *)val->pDeviceIndices, array_size);
-    } else {
-        vn_decode_array_size_unchecked(dec);
-        val->pDeviceIndices = NULL;
-    }
-}
-
-static inline void
-vn_decode_VkBindBufferMemoryDeviceGroupInfo(struct vn_cs_decoder *dec, VkBindBufferMemoryDeviceGroupInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBindBufferMemoryDeviceGroupInfo_pnext(dec, val->pNext);
-    vn_decode_VkBindBufferMemoryDeviceGroupInfo_self(dec, val);
 }
 
 /* struct VkBindBufferMemoryInfo chain */
@@ -537,54 +388,6 @@ vn_encode_VkBindBufferMemoryInfo(struct vn_cs_encoder *enc, const VkBindBufferMe
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO });
     vn_encode_VkBindBufferMemoryInfo_pnext(enc, val->pNext);
     vn_encode_VkBindBufferMemoryInfo_self(enc, val);
-}
-
-static inline void
-vn_decode_VkBindBufferMemoryInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    VkBaseOutStructure *pnext = (VkBaseOutStructure *)val;
-    VkStructureType stype;
-
-    if (!vn_decode_simple_pointer(dec))
-        return;
-
-    vn_decode_VkStructureType(dec, &stype);
-    while (true) {
-        assert(pnext);
-        if (pnext->sType == stype)
-            break;
-    }
-
-    switch ((int32_t)pnext->sType) {
-    case VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO:
-        vn_decode_VkBindBufferMemoryInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkBindBufferMemoryDeviceGroupInfo_self(dec, (VkBindBufferMemoryDeviceGroupInfo *)pnext);
-        break;
-    default:
-        assert(false);
-        break;
-    }
-}
-
-static inline void
-vn_decode_VkBindBufferMemoryInfo_self(struct vn_cs_decoder *dec, VkBindBufferMemoryInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkBuffer(dec, &val->buffer);
-    vn_decode_VkDeviceMemory(dec, &val->memory);
-    vn_decode_VkDeviceSize(dec, &val->memoryOffset);
-}
-
-static inline void
-vn_decode_VkBindBufferMemoryInfo(struct vn_cs_decoder *dec, VkBindBufferMemoryInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBindBufferMemoryInfo_pnext(dec, val->pNext);
-    vn_decode_VkBindBufferMemoryInfo_self(dec, val);
 }
 
 /* struct VkBufferMemoryRequirementsInfo2 chain */
@@ -747,33 +550,6 @@ vn_encode_VkBufferDeviceAddressInfo(struct vn_cs_encoder *enc, const VkBufferDev
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO });
     vn_encode_VkBufferDeviceAddressInfo_pnext(enc, val->pNext);
     vn_encode_VkBufferDeviceAddressInfo_self(enc, val);
-}
-
-static inline void
-vn_decode_VkBufferDeviceAddressInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkBufferDeviceAddressInfo_self(struct vn_cs_decoder *dec, VkBufferDeviceAddressInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkBuffer(dec, &val->buffer);
-}
-
-static inline void
-vn_decode_VkBufferDeviceAddressInfo(struct vn_cs_decoder *dec, VkBufferDeviceAddressInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBufferDeviceAddressInfo_pnext(dec, val->pNext);
-    vn_decode_VkBufferDeviceAddressInfo_self(dec, val);
 }
 
 static inline size_t vn_sizeof_vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements)

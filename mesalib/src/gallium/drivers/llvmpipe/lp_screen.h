@@ -37,6 +37,7 @@
 #include "pipe/p_screen.h"
 #include "pipe/p_defines.h"
 #include "os/os_thread.h"
+#include "util/list.h"
 #include "gallivm/lp_bld.h"
 #include "gallivm/lp_bld_misc.h"
 
@@ -66,6 +67,9 @@ struct llvmpipe_screen
 
    mtx_t late_mutex;
    bool late_init_done;
+
+   mtx_t ctx_mutex;
+   struct list_head ctx_list;
 
    char renderer_string[100];
 

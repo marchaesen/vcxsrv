@@ -136,8 +136,8 @@ static inline bool
 util_blend_uses_dest(struct pipe_rt_blend_state rt)
 {
    return rt.blend_enable &&
-      (util_blend_factor_uses_dest(rt.rgb_src_factor, false) ||
-       util_blend_factor_uses_dest(rt.alpha_src_factor, true) ||
+      (util_blend_factor_uses_dest((enum pipe_blendfactor)rt.rgb_src_factor, false) ||
+       util_blend_factor_uses_dest((enum pipe_blendfactor)rt.alpha_src_factor, true) ||
        rt.rgb_dst_factor != PIPE_BLENDFACTOR_ZERO ||
        rt.alpha_dst_factor != PIPE_BLENDFACTOR_ZERO);
 }

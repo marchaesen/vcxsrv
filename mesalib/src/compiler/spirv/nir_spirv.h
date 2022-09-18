@@ -75,6 +75,19 @@ struct spirv_to_nir_options {
     */
    uint16_t float_controls_execution_mode;
 
+   /* Initial subgroup size.  This may be overwritten for CL kernels */
+   enum gl_subgroup_size subgroup_size;
+
+   /* True if RelaxedPrecision-decorated ALU result values should be performed
+    * with 16-bit math.
+    */
+   bool mediump_16bit_alu;
+
+   /* When mediump_16bit_alu is set, determines whether nir_op_fddx/fddy can be
+    * performed in 16-bit math.
+    */
+   bool mediump_16bit_derivatives;
+
    struct spirv_supported_capabilities caps;
 
    /* Address format for various kinds of pointers. */
@@ -83,6 +96,7 @@ struct spirv_to_nir_options {
    nir_address_format phys_ssbo_addr_format;
    nir_address_format push_const_addr_format;
    nir_address_format shared_addr_format;
+   nir_address_format task_payload_addr_format;
    nir_address_format global_addr_format;
    nir_address_format temp_addr_format;
    nir_address_format constant_addr_format;

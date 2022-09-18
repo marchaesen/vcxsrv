@@ -395,6 +395,7 @@
 #define XF86XK_Assistant		_EVDEVK(0x247)		/* v4.13 KEY_ASSISTANT */
 /* Use: XK_ISO_Next_Group		_EVDEVK(0x248)		   v5.2  KEY_KBD_LAYOUT_NEXT */
 #define XF86XK_EmojiPicker		_EVDEVK(0x249)		/* v5.13 KEY_EMOJI_PICKER */
+#define XF86XK_Dictate			_EVDEVK(0x24A)		/* v5.17 KEY_DICTATE */
 #define XF86XK_BrightnessMin		_EVDEVK(0x250)		/* v3.16 KEY_BRIGHTNESS_MIN */
 #define XF86XK_BrightnessMax		_EVDEVK(0x251)		/* v3.16 KEY_BRIGHTNESS_MAX */
 #define XF86XK_KbdInputAssistPrev	_EVDEVK(0x260)		/* v3.18 KEY_KBDINPUTASSIST_PREV */

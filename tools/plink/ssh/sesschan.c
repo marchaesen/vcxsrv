@@ -193,12 +193,14 @@ static const SeatVtable sesschan_seat_vt = {
     .notify_remote_exit = sesschan_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = sesschan_connection_fatal,
+    .nonfatal = nullseat_nonfatal,
     .update_specials_menu = nullseat_update_specials_menu,
     .get_ttymode = nullseat_get_ttymode,
     .set_busy_status = nullseat_set_busy_status,
     .confirm_ssh_host_key = nullseat_confirm_ssh_host_key,
     .confirm_weak_crypto_primitive = nullseat_confirm_weak_crypto_primitive,
     .confirm_weak_cached_hostkey = nullseat_confirm_weak_cached_hostkey,
+    .prompt_descriptions = nullseat_prompt_descriptions,
     .is_utf8 = nullseat_is_never_utf8,
     .echoedit_update = nullseat_echoedit_update,
     .get_x_display = nullseat_get_x_display,
@@ -291,7 +293,11 @@ static char *sesschan_log_close_msg(Channel *chan)
 
 static void sesschan_set_input_wanted(Channel *chan, bool wanted)
 {
-    /* I don't think we need to do anything here */
+    sesschan *sess = container_of(chan, sesschan, chan);
+    /* Request the back end to resume sending input, if it had become
+     * throttled by the channel window shortening */
+    if (wanted && sess->backend)
+        backend_unthrottle(sess->backend, 0);
 }
 
 static void sesschan_start_backend(sesschan *sess, const char *cmd)

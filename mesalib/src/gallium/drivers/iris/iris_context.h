@@ -29,6 +29,7 @@
 #include "util/set.h"
 #include "util/slab.h"
 #include "util/u_debug.h"
+#include "util/macros.h"
 #include "util/u_threaded_context.h"
 #include "intel/blorp/blorp.h"
 #include "intel/dev/intel_debug.h"
@@ -206,14 +207,23 @@ enum iris_nos_dep {
  * Program cache keys for state based recompiles.
  */
 
-struct iris_base_prog_key {
-   unsigned program_string_id;
-};
+/* Provide explicit padding for each member, to ensure that the compiler
+ * initializes every bit in the shader cache keys.  The keys will be compared
+ * with memcmp.
+ */
+PRAGMA_DIAGNOSTIC_PUSH
+PRAGMA_DIAGNOSTIC_ERROR(-Wpadded)
 
 /**
  * Note, we need to take care to have padding explicitly declared
  * for key since we will directly memcmp the whole struct.
  */
+struct iris_base_prog_key {
+   unsigned program_string_id;
+   bool limit_trig_input_range;
+   unsigned padding:24;
+};
+
 struct iris_vue_prog_key {
    struct iris_base_prog_key base;
 
@@ -233,6 +243,7 @@ struct iris_tcs_prog_key {
    uint8_t input_vertices;
 
    bool quads_workaround;
+   unsigned padding:16;
 
    /** A bitfield of per-patch outputs written. */
    uint32_t patch_outputs_written;
@@ -258,6 +269,9 @@ struct iris_gs_prog_key {
 struct iris_fs_prog_key {
    struct iris_base_prog_key base;
 
+   uint64_t input_slots_valid;
+   uint8_t color_outputs_valid;
+
    unsigned nr_color_regions:5;
    bool flat_shade:1;
    bool alpha_test_replicate_alpha:1;
@@ -267,9 +281,7 @@ struct iris_fs_prog_key {
    bool multisample_fbo:1;
    bool force_dual_color_blend:1;
    bool coherent_fb_fetch:1;
-
-   uint8_t color_outputs_valid;
-   uint64_t input_slots_valid;
+   uint64_t padding:43;
 };
 
 struct iris_cs_prog_key {
@@ -286,6 +298,9 @@ union iris_any_prog_key {
    struct iris_fs_prog_key fs;
    struct iris_cs_prog_key cs;
 };
+
+/* Restore the pack alignment to default. */
+PRAGMA_DIAGNOSTIC_POP
 
 /** @} */
 
@@ -342,12 +357,16 @@ enum pipe_control_flags
    PIPE_CONTROL_TILE_CACHE_FLUSH                = (1 << 25),
    PIPE_CONTROL_FLUSH_HDC                       = (1 << 26),
    PIPE_CONTROL_PSS_STALL_SYNC                  = (1 << 27),
+   PIPE_CONTROL_L3_READ_ONLY_CACHE_INVALIDATE   = (1 << 28),
+   PIPE_CONTROL_UNTYPED_DATAPORT_CACHE_FLUSH    = (1 << 29),
 };
 
 #define PIPE_CONTROL_CACHE_FLUSH_BITS \
    (PIPE_CONTROL_DEPTH_CACHE_FLUSH |  \
     PIPE_CONTROL_DATA_CACHE_FLUSH |   \
     PIPE_CONTROL_TILE_CACHE_FLUSH |   \
+    PIPE_CONTROL_FLUSH_HDC | \
+    PIPE_CONTROL_UNTYPED_DATAPORT_CACHE_FLUSH |   \
     PIPE_CONTROL_RENDER_TARGET_FLUSH)
 
 #define PIPE_CONTROL_CACHE_INVALIDATE_BITS  \
@@ -356,6 +375,10 @@ enum pipe_control_flags
     PIPE_CONTROL_VF_CACHE_INVALIDATE |      \
     PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE | \
     PIPE_CONTROL_INSTRUCTION_INVALIDATE)
+
+#define PIPE_CONTROL_L3_RO_INVALIDATE_BITS       \
+   (PIPE_CONTROL_L3_READ_ONLY_CACHE_INVALIDATE | \
+    PIPE_CONTROL_CONST_CACHE_INVALIDATE)
 
 enum iris_predicate_state {
    /* The first two states are used if we can determine whether to draw
@@ -573,20 +596,6 @@ struct iris_stream_output_target {
 };
 
 /**
- * A pool containing SAMPLER_BORDER_COLOR_STATE entries.
- *
- * See iris_border_color.c for more information.
- */
-struct iris_border_color_pool {
-   struct iris_bo *bo;
-   void *map;
-   unsigned insert_point;
-
-   /** Map from border colors to offsets in the buffer. */
-   struct hash_table *ht;
-};
-
-/**
  * The API context (derived from pipe_context).
  *
  * Most driver state is tracked here.
@@ -596,7 +605,7 @@ struct iris_context {
    struct threaded_context *thrctx;
 
    /** A debug callback for KHR_debug output. */
-   struct pipe_debug_callback dbg;
+   struct util_debug_callback dbg;
 
    /** A device reset status callback for notifying that the GPU is hosed. */
    struct pipe_device_reset_callback reset;
@@ -815,8 +824,6 @@ struct iris_context {
 
       struct iris_binder binder;
 
-      struct iris_border_color_pool border_color_pool;
-
       /** The high 16-bits of the last VBO/index buffer addresses */
       uint16_t last_vbo_high_bits[33];
       uint16_t last_index_bo_high_bits;
@@ -852,7 +859,7 @@ struct iris_context {
    if (INTEL_DEBUG(DEBUG_PERF))                        \
       dbg_printf(__VA_ARGS__);                         \
    if (unlikely(dbg))                                  \
-      pipe_debug_message(dbg, PERF_INFO, __VA_ARGS__); \
+      util_debug_message(dbg, PERF_INFO, __VA_ARGS__); \
 } while(0)
 
 struct pipe_context *
@@ -935,14 +942,6 @@ void iris_flush_all_caches(struct iris_batch *batch);
       iris_flush_all_caches(batch);
 
 void iris_init_flush_functions(struct pipe_context *ctx);
-
-/* iris_border_color.c */
-
-void iris_init_border_color_pool(struct iris_context *ice);
-void iris_destroy_border_color_pool(struct iris_context *ice);
-void iris_border_color_pool_reserve(struct iris_context *ice, unsigned count);
-uint32_t iris_upload_border_color(struct iris_context *ice,
-                                  union pipe_color_union *color);
 
 /* iris_program.c */
 void iris_upload_ubo_ssbo_surf_state(struct iris_context *ice,

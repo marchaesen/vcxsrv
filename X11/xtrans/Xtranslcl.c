@@ -881,7 +881,7 @@ TRANS(LocalOpenClient)(int type, const char *protocol,
 
 #if defined(X11_t)
     /*
-     * X has a well known port, that is transport dependant. It is easier
+     * X has a well known port, that is transport dependent. It is easier
      * to handle it here, than try and come up with a transport independent
      * representation that can be passed in and resolved the usual way.
      *

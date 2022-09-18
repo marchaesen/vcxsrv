@@ -1,8 +1,7 @@
-/**
-****************************************************************************************************
+/*
+************************************************************************************************************************
 *
-* Copyright © 2007-2021 Advanced Micro Devices, Inc.
-* All Rights Reserved.
+*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -22,8 +21,7 @@
 * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE
 *
-****************************************************************************************************
-*/
+***********************************************************************************************************************/
 
 /**
 ****************************************************************************************************
@@ -288,6 +286,10 @@ typedef enum _AddrSwizzleMode
     ADDR_SW_VAR_Z_X         = ADDR_SW_MISCDEF28,
     ADDR_SW_VAR_R_X         = ADDR_SW_MISCDEF31,
 
+    ADDR_SW_256KB_Z_X       = ADDR_SW_MISCDEF28,
+    ADDR_SW_256KB_S_X       = ADDR_SW_MISCDEF29,
+    ADDR_SW_256KB_D_X       = ADDR_SW_MISCDEF30,
+    ADDR_SW_256KB_R_X       = ADDR_SW_MISCDEF31,
 } AddrSwizzleMode;
 
 /**

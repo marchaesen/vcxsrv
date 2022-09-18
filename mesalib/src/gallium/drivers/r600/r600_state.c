@@ -147,7 +147,7 @@ static bool r600_is_sampler_format_supported(struct pipe_screen *screen, enum pi
                                    FALSE) != ~0U;
 }
 
-static bool r600_is_colorbuffer_format_supported(enum chip_class chip, enum pipe_format format)
+static bool r600_is_colorbuffer_format_supported(enum amd_gfx_level chip, enum pipe_format format)
 {
 	return r600_translate_colorformat(chip, format, FALSE) != ~0U &&
 	       r600_translate_colorswap(format, FALSE) != ~0U;
@@ -181,7 +181,7 @@ bool r600_is_format_supported(struct pipe_screen *screen,
 			return false;
 
 		/* R11G11B10 is broken on R6xx. */
-		if (rscreen->b.chip_class == R600 &&
+		if (rscreen->b.gfx_level == R600 &&
 		    format == PIPE_FORMAT_R11G11B10_FLOAT)
 			return false;
 
@@ -202,7 +202,7 @@ bool r600_is_format_supported(struct pipe_screen *screen,
 
 	if (usage & PIPE_BIND_SAMPLER_VIEW) {
 		if (target == PIPE_BUFFER) {
-			if (r600_is_vertex_format_supported(format))
+			if (r600_is_buffer_format_supported(format, false))
 				retval |= PIPE_BIND_SAMPLER_VIEW;
 		} else {
 			if (r600_is_sampler_format_supported(screen, format))
@@ -215,7 +215,7 @@ bool r600_is_format_supported(struct pipe_screen *screen,
 		      PIPE_BIND_SCANOUT |
 		      PIPE_BIND_SHARED |
 		      PIPE_BIND_BLENDABLE)) &&
-	    r600_is_colorbuffer_format_supported(rscreen->b.chip_class, format)) {
+	    r600_is_colorbuffer_format_supported(rscreen->b.gfx_level, format)) {
 		retval |= usage &
 			  (PIPE_BIND_RENDER_TARGET |
 			   PIPE_BIND_DISPLAY_TARGET |
@@ -232,7 +232,7 @@ bool r600_is_format_supported(struct pipe_screen *screen,
 	}
 
 	if ((usage & PIPE_BIND_VERTEX_BUFFER) &&
-	    r600_is_vertex_format_supported(format)) {
+	    r600_is_buffer_format_supported(format, true)) {
 		retval |= PIPE_BIND_VERTEX_BUFFER;
 	}
 
@@ -487,7 +487,7 @@ static void *r600_create_rs_state(struct pipe_context *ctx,
 		S_028810_ZCLIP_NEAR_DISABLE(!state->depth_clip_near) |
 		S_028810_ZCLIP_FAR_DISABLE(!state->depth_clip_far) |
 		S_028810_DX_LINEAR_ATTR_CLIP_ENA(1);
-	if (rctx->b.chip_class == R700) {
+	if (rctx->b.gfx_level == R700) {
 		rs->pa_cl_clip_cntl |=
 			S_028810_DX_RASTERIZATION_KILL(state->rasterizer_discard);
 	}
@@ -516,7 +516,7 @@ static void *r600_create_rs_state(struct pipe_context *ctx,
 		/* workaround possible rendering corruption on RV770 with hyperz together with sample shading */
 		sc_mode_cntl |= S_028A4C_TILE_COVER_DISABLE(state->multisample && rctx->ps_iter_samples > 1);
 	}
-	if (rctx->b.chip_class >= R700) {
+	if (rctx->b.gfx_level >= R700) {
 		sc_mode_cntl |= S_028A4C_FORCE_EOV_REZ_ENABLE(1) |
 				S_028A4C_R700_ZMM_LINE_OFFSET(1) |
 				S_028A4C_R700_VPORT_SCISSOR_ENABLE(1);
@@ -563,10 +563,10 @@ static void *r600_create_rs_state(struct pipe_context *ctx,
 									 state->fill_back != PIPE_POLYGON_MODE_FILL) |
 				 S_028814_POLYMODE_FRONT_PTYPE(r600_translate_fill(state->fill_front)) |
 				 S_028814_POLYMODE_BACK_PTYPE(r600_translate_fill(state->fill_back));
-	if (rctx->b.chip_class == R700) {
+	if (rctx->b.gfx_level == R700) {
 		r600_store_context_reg(&rs->buffer, R_028814_PA_SU_SC_MODE_CNTL, rs->pa_su_sc_mode_cntl);
 	}
-	if (rctx->b.chip_class == R600) {
+	if (rctx->b.gfx_level == R600) {
 		r600_store_context_reg(&rs->buffer, R_028350_SX_MISC,
 				       S_028350_MULTIPASS(state->rasterizer_discard));
 	}
@@ -880,7 +880,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 	if (R600_BIG_ENDIAN)
 		do_endian_swap = !rtex->db_compatible;
 
-	format = r600_translate_colorformat(rctx->b.chip_class, surf->base.format,
+	format = r600_translate_colorformat(rctx->b.gfx_level, surf->base.format,
 			                              do_endian_swap);
 	assert(format != ~0);
 
@@ -916,7 +916,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 	/* EXPORT_NORM is an optimization that can be enabled for better
 	 * performance in certain cases
 	 */
-	if (rctx->b.chip_class == R600) {
+	if (rctx->b.gfx_level == R600) {
 		/* EXPORT_NORM can be enabled if:
 		 * - 11-bit or smaller UNORM/SNORM/SRGB
 		 * - BLEND_CLAMP is enabled
@@ -1122,7 +1122,7 @@ static void r600_set_framebuffer_state(struct pipe_context *ctx,
 	/* Colorbuffers. */
 	for (i = 0; i < state->nr_cbufs; i++) {
 		/* The resolve buffer must have CMASK and FMASK to prevent hardlocks on R6xx. */
-		bool force_cmask_fmask = rctx->b.chip_class == R600 &&
+		bool force_cmask_fmask = rctx->b.gfx_level == R600 &&
 					 rctx->framebuffer.is_msaa_resolve &&
 					 i == 1;
 
@@ -1216,7 +1216,7 @@ static void r600_set_framebuffer_state(struct pipe_context *ctx,
 	}
 	if (rctx->framebuffer.state.zsbuf) {
 		rctx->framebuffer.atom.num_dw += 16;
-	} else if (rctx->screen->b.info.drm_minor >= 18) {
+	} else {
 		rctx->framebuffer.atom.num_dw += 3;
 	}
 	if (rctx->b.family > CHIP_R600 && rctx->b.family < CHIP_RV770) {
@@ -1470,9 +1470,7 @@ static void r600_emit_framebuffer_state(struct r600_context *rctx, struct r600_a
 		radeon_set_context_reg(cs, R_028D34_DB_PREFETCH_LIMIT, surf->db_prefetch_limit);
 
 		sbu |= SURFACE_BASE_UPDATE_DEPTH;
-	} else if (rctx->screen->b.info.drm_minor >= 18) {
-		/* DRM 2.6.18 allows the INVALID format to disable depth/stencil.
-		 * Older kernels are out of luck. */
+	} else {
 		radeon_set_context_reg(cs, R_028010_DB_DEPTH_INFO, S_028010_FORMAT(V_028010_DEPTH_INVALID));
 	}
 
@@ -1513,7 +1511,7 @@ static void r600_set_min_samples(struct pipe_context *ctx, unsigned min_samples)
 	rctx->ps_iter_samples = min_samples;
 	if (rctx->framebuffer.nr_samples > 1) {
 		r600_mark_atom_dirty(rctx, &rctx->rasterizer_state.atom);
-		if (rctx->b.chip_class == R600)
+		if (rctx->b.gfx_level == R600)
 			r600_mark_atom_dirty(rctx, &rctx->db_misc_state.atom);
 	}
 }
@@ -1525,7 +1523,7 @@ static void r600_emit_cb_misc_state(struct r600_context *rctx, struct r600_atom 
 
 	if (G_028808_SPECIAL_OP(a->cb_color_control) == V_028808_SPECIAL_RESOLVE_BOX) {
 		radeon_set_context_reg_seq(cs, R_028238_CB_TARGET_MASK, 2);
-		if (rctx->b.chip_class == R600) {
+		if (rctx->b.gfx_level == R600) {
 			radeon_emit(cs, 0xff); /* R_028238_CB_TARGET_MASK */
 			radeon_emit(cs, 0xff); /* R_02823C_CB_SHADER_MASK */
 		} else {
@@ -1578,7 +1576,7 @@ static void r600_emit_db_misc_state(struct r600_context *rctx, struct r600_atom 
 		S_028D10_FORCE_HIS_ENABLE0(V_028D10_FORCE_DISABLE) |
 		S_028D10_FORCE_HIS_ENABLE1(V_028D10_FORCE_DISABLE);
 
-	if (rctx->b.chip_class >= R700) {
+	if (rctx->b.gfx_level >= R700) {
 		switch (a->ps_conservative_z) {
 		default: /* fall through */
 		case TGSI_FS_DEPTH_LAYOUT_ANY:
@@ -1595,7 +1593,7 @@ static void r600_emit_db_misc_state(struct r600_context *rctx, struct r600_atom 
 
 	if (rctx->b.num_occlusion_queries > 0 &&
 	    !a->occlusion_queries_disabled) {
-		if (rctx->b.chip_class >= R700) {
+		if (rctx->b.gfx_level >= R700) {
 			db_render_control |= S_028D0C_R700_PERFECT_ZPASS_COUNTS(1);
 		}
 		db_render_override |= S_028D10_NOOP_CULL_DISABLE(1);
@@ -1616,7 +1614,7 @@ static void r600_emit_db_misc_state(struct r600_context *rctx, struct r600_atom 
 	} else {
 		db_render_override |= S_028D10_FORCE_HIZ_ENABLE(V_028D10_FORCE_DISABLE);
 	}
-	if (rctx->b.chip_class == R600 && rctx->framebuffer.nr_samples > 1 && rctx->ps_iter_samples > 0) {
+	if (rctx->b.gfx_level == R600 && rctx->framebuffer.nr_samples > 1 && rctx->ps_iter_samples > 0) {
 		/* sample shading and hyperz causes lockups on R6xx chips */
 		db_render_override |= S_028D10_FORCE_HIZ_ENABLE(V_028D10_FORCE_DISABLE);
 	}
@@ -1628,7 +1626,7 @@ static void r600_emit_db_misc_state(struct r600_context *rctx, struct r600_atom 
 				     S_028D0C_COPY_CENTROID(1) |
 				     S_028D0C_COPY_SAMPLE(a->copy_sample);
 
-		if (rctx->b.chip_class == R600)
+		if (rctx->b.gfx_level == R600)
 			db_render_override |= S_028D10_NOOP_CULL_DISABLE(1);
 
 		if (rctx->b.family == CHIP_RV610 || rctx->b.family == CHIP_RV630 ||
@@ -2115,7 +2113,7 @@ void r600_init_atom_start_cs(struct r600_context *rctx)
 	r600_init_command_buffer(cb, 256);
 
 	/* R6xx requires this packet at the start of each command buffer */
-	if (rctx->b.chip_class == R600) {
+	if (rctx->b.gfx_level == R600) {
 		r600_store_value(cb, PKT3(PKT3_START_3D_CMDBUF, 0, 0));
 		r600_store_value(cb, 0);
 	}
@@ -2307,7 +2305,7 @@ void r600_init_atom_start_cs(struct r600_context *rctx)
 
 	r600_store_config_reg(cb, R_009714_VC_ENHANCE, 0);
 
-	if (rctx->b.chip_class >= R700) {
+	if (rctx->b.gfx_level >= R700) {
 		r600_store_context_reg(cb, R_028A50_VGT_ENHANCE, 4);
 		r600_store_config_reg(cb, R_008D8C_SQ_DYN_GPR_CNTL_PS_FLUSH_REQ, 0x00004000);
 		r600_store_config_reg(cb, R_009830_DB_DEBUG, 0);
@@ -2388,7 +2386,7 @@ void r600_init_atom_start_cs(struct r600_context *rctx)
 	r600_store_context_reg(cb, R_028200_PA_SC_WINDOW_OFFSET, 0);
 	r600_store_context_reg(cb, R_02820C_PA_SC_CLIPRECT_RULE, 0xFFFF);
 
-	if (rctx->b.chip_class >= R700) {
+	if (rctx->b.gfx_level >= R700) {
 		r600_store_context_reg(cb, R_028230_PA_SC_EDGERULE, 0xAAAAAAAA);
 	}
 
@@ -2421,9 +2419,9 @@ void r600_init_atom_start_cs(struct r600_context *rctx)
 
 	r600_store_context_reg(cb, R_0288A4_SQ_PGM_RESOURCES_FS, 0);
 
-	if (rctx->b.chip_class == R700)
+	if (rctx->b.gfx_level == R700)
 		r600_store_context_reg(cb, R_028350_SX_MISC, 0);
-	if (rctx->b.chip_class == R700 && rctx->screen->b.has_streamout)
+	if (rctx->b.gfx_level == R700 && rctx->screen->b.has_streamout)
 		r600_store_context_reg(cb, R_028354_SX_SURFACE_SYNC, S_028354_SURFACE_SYNC_MASK(0xf));
 
 	r600_store_context_reg(cb, R_028800_DB_DEPTH_CONTROL, 0);
@@ -2446,7 +2444,14 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 	unsigned tmp, sid, ufi = 0;
 	int need_linear = 0;
 	unsigned z_export = 0, stencil_export = 0, mask_export = 0;
-	unsigned sprite_coord_enable = rctx->rasterizer ? rctx->rasterizer->sprite_coord_enable : 0;
+
+	/* Pull any state we use out of rctx.  Make sure that any additional
+	 * state added to this list is also checked in the caller in
+	 * r600_update_derived_state().
+	 */
+	bool sprite_coord_enable = rctx->rasterizer ? rctx->rasterizer->sprite_coord_enable : 0;
+	bool flatshade = rctx->rasterizer ? rctx->rasterizer->flatshade : 0;
+	bool msaa = rctx->framebuffer.nr_samples > 1 && rctx->ps_iter_samples > 0;
 
 	if (!cb->buf) {
 		r600_init_command_buffer(cb, 64);
@@ -2473,8 +2478,7 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 
 		if (rshader->input[i].name == TGSI_SEMANTIC_POSITION ||
 			rshader->input[i].interpolate == TGSI_INTERPOLATE_CONSTANT ||
-			(rshader->input[i].interpolate == TGSI_INTERPOLATE_COLOR &&
-				rctx->rasterizer && rctx->rasterizer->flatshade))
+			(rshader->input[i].interpolate == TGSI_INTERPOLATE_COLOR && flatshade))
 			tmp |= S_028644_FLAT_SHADE(1);
 
 		if (rshader->input[i].name == TGSI_SEMANTIC_PCOORD ||
@@ -2503,8 +2507,7 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 			z_export = 1;
 		if (rshader->output[i].name == TGSI_SEMANTIC_STENCIL)
 			stencil_export = 1;
-		if (rshader->output[i].name == TGSI_SEMANTIC_SAMPLEMASK &&
-			rctx->framebuffer.nr_samples > 1 && rctx->ps_iter_samples > 0)
+		if (rshader->output[i].name == TGSI_SEMANTIC_SAMPLEMASK && msaa)
 			mask_export = 1;
 	}
 	db_shader_control |= S_02880C_Z_EXPORT_ENABLE(z_export);
@@ -2585,8 +2588,8 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 	shader->ps_depth_export = z_export | stencil_export | mask_export;
 
 	shader->sprite_coord_enable = sprite_coord_enable;
-	if (rctx->rasterizer)
-		shader->flatshade = rctx->rasterizer->flatshade;
+	shader->flatshade = flatshade;
+	shader->msaa = msaa;
 }
 
 void r600_update_vs_state(struct pipe_context *ctx, struct r600_pipe_shader *shader)
@@ -2682,7 +2685,7 @@ void r600_update_gs_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 	/* VGT_GS_MODE is written by r600_emit_shader_stages */
 	r600_store_context_reg(cb, R_028AB8_VGT_VTX_CNT_EN, 1);
 
-	if (rctx->b.chip_class >= R700) {
+	if (rctx->b.gfx_level >= R700) {
 		r600_store_context_reg(cb, R_028B38_VGT_GS_MAX_VERT_OUT,
 				       S_028B38_MAX_VERT_OUT(shader->selector->gs_max_out_vertices));
 	}

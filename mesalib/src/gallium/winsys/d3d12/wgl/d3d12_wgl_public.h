@@ -33,7 +33,7 @@ extern "C" {
 struct pipe_resource;
 struct pipe_screen;
 struct pipe_context;
-struct stw_winsys;
+struct sw_winsys;
 
 struct pipe_screen *
 d3d12_wgl_create_screen(struct sw_winsys *winsys,

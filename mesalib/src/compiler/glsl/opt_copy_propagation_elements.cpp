@@ -654,9 +654,6 @@ ir_copy_propagation_elements_visitor::kill(kill_entry *k)
 void
 ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
 {
-   if (ir->condition)
-      return;
-
    {
       ir_variable *lhs_var = ir->whole_variable_written();
       ir_dereference_variable *rhs = ir->rhs->as_dereference_variable();

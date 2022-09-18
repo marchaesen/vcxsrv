@@ -27,19 +27,19 @@ description
 .HP
 .B XkbKeyAliasPtr XkbAddGeomKeyAlias
 .BI "(\^XkbGeometryPtr " "geom" "\^,"
-.BI "char *" "alias" "\^,"
-.BI "char *" "real" "\^);"
+.BI "_Xconst char *" "alias" "\^,"
+.BI "_Xconst char *" "real" "\^);"
 .if n .ti +5n
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry to be updated
 .TP
-.I \- alias
+.I alias
 alias to be added
 .TP
-.I \- real
+.I real
 real name to be bound to the new alias
 .SH DESCRIPTION
 .LP

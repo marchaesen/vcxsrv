@@ -1,0 +1,8 @@
+dEQP-VK.synchronization.*16384
+dEQP-VK.synchronization.*262144
+dEQP-VK.spirv_assembly.instruction.graphics.64bit_compare.double.frag_opfordnotequal_nonan_vector
+dEQP-VK.robustness.buffer_access.fragment.vec4_copy.r32_uint.oob_storage_read.range_4_bytes
+dEQP-VK.robustness.buffer_access.fragment.vec4_copy.r32_uint.oob_storage_write.range_32_bytes
+dEQP-VK.robustness.buffer_access.fragment.texel_copy.r32g32b32a32_sfloat.oob_storage_write.range_3_texels
+dEQP-VK.robustness.buffer_access.fragment.texel_copy.r32g32b32a32_uint.oob_storage_write.range_3_texels
+dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast_uvec4

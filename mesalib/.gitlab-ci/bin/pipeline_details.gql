@@ -1,0 +1,86 @@
+fragment LinkedPipelineData on Pipeline {
+  id
+  iid
+  path
+  cancelable
+  retryable
+  userPermissions {
+    updatePipeline
+  }
+  status: detailedStatus {
+    id
+    group
+    label
+    icon
+  }
+  sourceJob {
+    id
+    name
+  }
+  project {
+    id
+    name
+    fullPath
+  }
+}
+
+query getPipelineDetails($projectPath: ID!, $sha: String!) {
+  project(fullPath: $projectPath) {
+    id
+    pipeline(sha: $sha) {
+      id
+      iid
+      complete
+      downstream {
+        nodes {
+          ...LinkedPipelineData
+        }
+      }
+      upstream {
+        ...LinkedPipelineData
+      }
+      stages {
+        nodes {
+          id
+          name
+          status: detailedStatus {
+            id
+            action {
+              id
+              icon
+              path
+              title
+            }
+          }
+          groups {
+            nodes {
+              id
+              status: detailedStatus {
+                id
+                label
+                group
+                icon
+              }
+              name
+              size
+              jobs {
+                nodes {
+                  id
+                  name
+                  kind
+                  scheduledAt
+                  needs {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

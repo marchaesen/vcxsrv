@@ -38,6 +38,7 @@
 #include "main/mtypes.h"
 #include "main/macros.h"
 #include "main/enums.h"
+#include "main/context.h"
 #include "main/ffvertex_prog.h"
 #include "program/program.h"
 #include "program/prog_cache.h"
@@ -156,6 +157,16 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
    GLbitfield mask;
 
    memset(key, 0, sizeof(struct state_key));
+
+   if (_mesa_hw_select_enabled(ctx)) {
+      /* GL_SELECT mode only need position calculation.
+       * glBegin/End use VERT_BIT_SELECT_RESULT_OFFSET for multi name stack in one draw.
+       * glDrawArrays may also be called without user shader, fallback to FF one.
+       */
+      key->varying_vp_inputs = ctx->VertexProgram._VaryingInputs &
+         (VERT_BIT_POS | VERT_BIT_SELECT_RESULT_OFFSET);
+      return;
+   }
 
    /* This now relies on texenvprogram.c being active:
     */
@@ -1667,6 +1678,9 @@ static void build_tnl_program( struct tnl_program *p )
       build_atten_pointsize(p);
    else if (p->state->varying_vp_inputs & VERT_BIT_POINT_SIZE)
       build_array_pointsize(p);
+
+   if (p->state->varying_vp_inputs & VERT_BIT_SELECT_RESULT_OFFSET)
+      emit_passthrough(p, VERT_ATTRIB_SELECT_RESULT_OFFSET, VARYING_SLOT_VAR0);
 
    /* Finish up:
     */

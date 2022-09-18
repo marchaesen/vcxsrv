@@ -1116,7 +1116,7 @@ svga_context_flush_buffers(struct svga_context *svga)
    curr = svga->dirty_buffers.next;
    next = curr->next;
    while (curr != &svga->dirty_buffers) {
-      struct svga_buffer *sbuf = LIST_ENTRY(struct svga_buffer, curr, head);
+      struct svga_buffer *sbuf = list_entry(curr, struct svga_buffer, head);
 
       assert(p_atomic_read(&sbuf->b.reference.count) != 0);
       assert(sbuf->dma.pending);

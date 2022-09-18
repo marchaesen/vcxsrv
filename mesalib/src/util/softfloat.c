@@ -1452,7 +1452,12 @@ _mesa_float_to_half_rtz_slow(float val)
         if (flt_m != 0) {
             /* 'val' is a NaN, return NaN */
             e = 0x1f;
-            m = 0x1;
+            /* Retain the top bits of a NaN to make sure that the quiet/signaling
+            * status stays the same.
+            */
+            m = flt_m >> 13;
+            if (!m)
+               m = 1;
             return (s << 15) + (e << 10) + m;
         }
 

@@ -34,16 +34,16 @@ group and shift level
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server 
 .TP
-.I \- kc
+.I kc
 key of interest 
 .TP
-.I \- group
+.I group
 group of interest 
 .TP
-.I \- level
+.I level
 shift level of interest 
 .SH DESCRIPTION
 .LP

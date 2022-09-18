@@ -314,7 +314,7 @@ qir_calculate_live_intervals(struct vc4_compile *c)
 
         qir_compute_start_end(c, c->num_temps);
 
-        if (vc4_debug & VC4_DEBUG_SHADERDB) {
+        if (VC4_DBG(SHADERDB)) {
                 int last_ip = 0;
                 for (int i = 0; i < c->num_temps; i++)
                         last_ip = MAX2(last_ip, c->temp_end[i]);

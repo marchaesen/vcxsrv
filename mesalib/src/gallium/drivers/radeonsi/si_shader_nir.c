@@ -30,8 +30,7 @@ static bool si_alu_to_scalar_filter(const nir_instr *instr, const void *data)
 {
    struct si_screen *sscreen = (struct si_screen *)data;
 
-   if (sscreen->options.fp16 &&
-       instr->type == nir_instr_type_alu) {
+   if (sscreen->info.has_packed_math_16bit && instr->type == nir_instr_type_alu) {
       nir_alu_instr *alu = nir_instr_as_alu(instr);
 
       if (alu->dest.dest.is_ssa &&
@@ -41,6 +40,18 @@ static bool si_alu_to_scalar_filter(const nir_instr *instr, const void *data)
    }
 
    return true;
+}
+
+static uint8_t si_vectorize_callback(const nir_instr *instr, const void *data)
+{
+   if (instr->type != nir_instr_type_alu)
+      return 0;
+
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
+   if (nir_dest_bit_size(alu->dest.dest) == 16)
+      return 2;
+
+   return 1;
 }
 
 void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
@@ -69,7 +80,10 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
       NIR_PASS(progress, nir, nir_copy_prop);
       NIR_PASS(progress, nir, nir_opt_remove_phis);
       NIR_PASS(progress, nir, nir_opt_dce);
-      NIR_PASS(lower_phis_to_scalar, nir, nir_opt_if, true);
+      /* nir_opt_if_optimize_phi_true_false is disabled on LLVM14 (#6976) */
+      NIR_PASS(lower_phis_to_scalar, nir, nir_opt_if,
+         nir_opt_if_aggressive_last_continue |
+            (LLVM_VERSION_MAJOR == 14 ? 0 : nir_opt_if_optimize_phi_true_false));
       NIR_PASS(progress, nir, nir_opt_dead_cf);
 
       if (lower_alu_to_scalar)
@@ -113,8 +127,8 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
       if (nir->info.stage == MESA_SHADER_FRAGMENT)
          NIR_PASS_V(nir, nir_opt_move_discards_to_top);
 
-      if (sscreen->options.fp16)
-         NIR_PASS(progress, nir, nir_opt_vectorize, NULL, NULL);
+      if (sscreen->info.has_packed_math_16bit)
+         NIR_PASS(progress, nir, nir_opt_vectorize, si_vectorize_callback, NULL);
    } while (progress);
 
    NIR_PASS_V(nir, nir_lower_var_copies);
@@ -127,6 +141,14 @@ void si_nir_late_opts(nir_shader *nir)
       more_late_algebraic = false;
       NIR_PASS(more_late_algebraic, nir, nir_opt_algebraic_late);
       NIR_PASS_V(nir, nir_opt_constant_folding);
+
+      /* We should run this after constant folding for stages that support indirect
+       * inputs/outputs.
+       */
+      if (nir->options->support_indirect_inputs & BITFIELD_BIT(nir->info.stage) ||
+          nir->options->support_indirect_outputs & BITFIELD_BIT(nir->info.stage))
+         NIR_PASS_V(nir, nir_io_add_const_offset_to_base, nir_var_shader_in | nir_var_shader_out);
+
       NIR_PASS_V(nir, nir_copy_prop);
       NIR_PASS_V(nir, nir_opt_dce);
       NIR_PASS_V(nir, nir_opt_cse);
@@ -135,178 +157,49 @@ void si_nir_late_opts(nir_shader *nir)
 
 static void si_late_optimize_16bit_samplers(struct si_screen *sscreen, nir_shader *nir)
 {
-   /* Optimize and fix types of image_sample sources and destinations.
+   /* Optimize types of image_sample sources and destinations.
     *
-    * The image_sample constraints are:
-    *   nir_tex_src_coord:       has_a16 ? select 16 or 32 : 32
+    * The image_sample sources bit sizes are:
+    *   nir_tex_src_coord:       a16 ? 16 : 32
     *   nir_tex_src_comparator:  32
     *   nir_tex_src_offset:      32
-    *   nir_tex_src_bias:        32
-    *   nir_tex_src_lod:         match coord
-    *   nir_tex_src_min_lod:     match coord
-    *   nir_tex_src_ms_index:    match coord
-    *   nir_tex_src_ddx:         has_g16 && coord == 32 ? select 16 or 32 : match coord
-    *   nir_tex_src_ddy:         match ddy
+    *   nir_tex_src_bias:        a16 ? 16 : 32
+    *   nir_tex_src_lod:         a16 ? 16 : 32
+    *   nir_tex_src_min_lod:     a16 ? 16 : 32
+    *   nir_tex_src_ms_index:    a16 ? 16 : 32
+    *   nir_tex_src_ddx:         has_g16 ? (g16 ? 16 : 32) : (a16 ? 16 : 32)
+    *   nir_tex_src_ddy:         has_g16 ? (g16 ? 16 : 32) : (a16 ? 16 : 32)
     *
-    * coord and ddx are selected optimally. The types of the rest are legalized
-    * based on those two.
+    * We only use a16/g16 if all of the affected sources are 16bit.
     */
-   /* TODO: The constraints can't represent the ddx constraint. */
-   /*bool has_g16 = sscreen->info.chip_class >= GFX10 && LLVM_VERSION_MAJOR >= 12;*/
-   bool has_g16 = false;
-   nir_tex_src_type_constraints tex_constraints = {
-      [nir_tex_src_comparator]   = {true, 32},
-      [nir_tex_src_offset]       = {true, 32},
-      [nir_tex_src_bias]         = {true, 32},
-      [nir_tex_src_lod]          = {true, 0, nir_tex_src_coord},
-      [nir_tex_src_min_lod]      = {true, 0, nir_tex_src_coord},
-      [nir_tex_src_ms_index]     = {true, 0, nir_tex_src_coord},
-      [nir_tex_src_ddx]          = {!has_g16, 0, nir_tex_src_coord},
-      [nir_tex_src_ddy]          = {true, 0, has_g16 ? nir_tex_src_ddx : nir_tex_src_coord},
+   bool has_g16 = sscreen->info.gfx_level >= GFX10 && LLVM_VERSION_MAJOR >= 12;
+   struct nir_fold_tex_srcs_options fold_srcs_options[] = {
+      {
+         .sampler_dims =
+            ~(BITFIELD_BIT(GLSL_SAMPLER_DIM_CUBE) | BITFIELD_BIT(GLSL_SAMPLER_DIM_BUF)),
+         .src_types = (1 << nir_tex_src_coord) | (1 << nir_tex_src_lod) |
+                      (1 << nir_tex_src_bias) | (1 << nir_tex_src_min_lod) |
+                      (1 << nir_tex_src_ms_index) |
+                      (has_g16 ? 0 : (1 << nir_tex_src_ddx) | (1 << nir_tex_src_ddy)),
+      },
+      {
+         .sampler_dims = ~BITFIELD_BIT(GLSL_SAMPLER_DIM_CUBE),
+         .src_types = (1 << nir_tex_src_ddx) | (1 << nir_tex_src_ddy),
+      },
+   };
+   struct nir_fold_16bit_tex_image_options fold_16bit_options = {
+      .rounding_mode = nir_rounding_mode_rtne,
+      .fold_tex_dest = true,
+      .fold_image_load_store_data = true,
+      .fold_srcs_options_count = has_g16 ? 2 : 1,
+      .fold_srcs_options = fold_srcs_options,
    };
    bool changed = false;
-
-   NIR_PASS(changed, nir, nir_fold_16bit_sampler_conversions,
-            (1 << nir_tex_src_coord) |
-            (has_g16 ? 1 << nir_tex_src_ddx : 0));
-   NIR_PASS(changed, nir, nir_legalize_16bit_sampler_srcs, tex_constraints);
+   NIR_PASS(changed, nir, nir_fold_16bit_tex_image, &fold_16bit_options);
 
    if (changed) {
       si_nir_opts(sscreen, nir, false);
       si_nir_late_opts(nir);
-   }
-}
-
-static int type_size_vec4(const struct glsl_type *type, bool bindless)
-{
-   return glsl_count_attribute_slots(type, false);
-}
-
-static void si_nir_lower_color(nir_shader *nir)
-{
-   nir_function_impl *entrypoint = nir_shader_get_entrypoint(nir);
-
-   nir_builder b;
-   nir_builder_init(&b, entrypoint);
-
-   nir_foreach_block (block, entrypoint) {
-      nir_foreach_instr_safe (instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
-
-         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-
-         if (intrin->intrinsic != nir_intrinsic_load_deref)
-            continue;
-
-         nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-         if (!nir_deref_mode_is(deref, nir_var_shader_in))
-            continue;
-
-         b.cursor = nir_before_instr(instr);
-         nir_variable *var = nir_deref_instr_get_variable(deref);
-         nir_ssa_def *def;
-
-         if (var->data.location == VARYING_SLOT_COL0) {
-            def = nir_load_color0(&b);
-            nir->info.fs.color0_interp = var->data.interpolation;
-            nir->info.fs.color0_sample = var->data.sample;
-            nir->info.fs.color0_centroid = var->data.centroid;
-         } else if (var->data.location == VARYING_SLOT_COL1) {
-            def = nir_load_color1(&b);
-            nir->info.fs.color1_interp = var->data.interpolation;
-            nir->info.fs.color1_sample = var->data.sample;
-            nir->info.fs.color1_centroid = var->data.centroid;
-         } else {
-            continue;
-         }
-
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, def);
-         nir_instr_remove(instr);
-      }
-   }
-}
-
-static void si_lower_io(struct nir_shader *nir)
-{
-   /* HW supports indirect indexing for: | Enabled in driver
-    * -------------------------------------------------------
-    * TCS inputs                         | Yes
-    * TES inputs                         | Yes
-    * GS inputs                          | No
-    * -------------------------------------------------------
-    * VS outputs before TCS              | No
-    * TCS outputs                        | Yes
-    * VS/TES outputs before GS           | No
-    */
-   bool has_indirect_inputs = nir->info.stage == MESA_SHADER_TESS_CTRL ||
-                              nir->info.stage == MESA_SHADER_TESS_EVAL;
-   bool has_indirect_outputs = nir->info.stage == MESA_SHADER_TESS_CTRL;
-
-   if (!has_indirect_inputs || !has_indirect_outputs) {
-      NIR_PASS_V(nir, nir_lower_io_to_temporaries, nir_shader_get_entrypoint(nir),
-                 !has_indirect_outputs, !has_indirect_inputs);
-
-      /* Since we're doing nir_lower_io_to_temporaries late, we need
-       * to lower all the copy_deref's introduced by
-       * lower_io_to_temporaries before calling nir_lower_io.
-       */
-      NIR_PASS_V(nir, nir_split_var_copies);
-      NIR_PASS_V(nir, nir_lower_var_copies);
-      NIR_PASS_V(nir, nir_lower_global_vars_to_local);
-   }
-
-   /* The vectorization must be done after nir_lower_io_to_temporaries, because
-    * nir_lower_io_to_temporaries after vectorization breaks:
-    *    piglit/bin/arb_gpu_shader5-interpolateAtOffset -auto -fbo
-    * TODO: It's probably a bug in nir_lower_io_to_temporaries.
-    *
-    * The vectorizer can only vectorize this:
-    *    op src0.x, src1.x
-    *    op src0.y, src1.y
-    *
-    * So it requires that inputs are already vectors and it must be the same
-    * vector between instructions. The vectorizer doesn't create vectors
-    * from independent scalar sources, so vectorize inputs.
-    *
-    * TODO: The pass fails this for VS: assert(b.shader->info.stage != MESA_SHADER_VERTEX);
-    */
-   if (nir->info.stage != MESA_SHADER_VERTEX)
-      NIR_PASS_V(nir, nir_lower_io_to_vector, nir_var_shader_in);
-
-   /* Vectorize outputs, so that we don't split vectors before storing outputs. */
-   /* TODO: The pass fails an assertion for other shader stages. */
-   if (nir->info.stage == MESA_SHADER_TESS_CTRL ||
-       nir->info.stage == MESA_SHADER_FRAGMENT)
-      NIR_PASS_V(nir, nir_lower_io_to_vector, nir_var_shader_out);
-
-   if (nir->info.stage == MESA_SHADER_FRAGMENT)
-      si_nir_lower_color(nir);
-
-   NIR_PASS_V(nir, nir_lower_io, nir_var_shader_out | nir_var_shader_in,
-              type_size_vec4, nir_lower_io_lower_64bit_to_32);
-   nir->info.io_lowered = true;
-
-   /* This pass needs actual constants */
-   NIR_PASS_V(nir, nir_opt_constant_folding);
-   NIR_PASS_V(nir, nir_io_add_const_offset_to_base, nir_var_shader_in |
-                                                    nir_var_shader_out);
-
-   /* Remove dead derefs, so that nir_validate doesn't fail. */
-   NIR_PASS_V(nir, nir_opt_dce);
-
-   /* Remove input and output nir_variables, because we don't need them
-    * anymore. Also remove uniforms, because those should have been lowered
-    * to UBOs already.
-    */
-   unsigned modes = nir_var_shader_in | nir_var_shader_out | nir_var_uniform;
-   nir_foreach_variable_with_modes_safe(var, nir, modes) {
-      if (var->data.mode == nir_var_uniform &&
-          (glsl_type_get_image_count(var->type) ||
-           glsl_type_get_sampler_count(var->type)))
-         continue;
-
-      exec_node_remove(&var->node);
    }
 }
 
@@ -325,6 +218,8 @@ lower_intrinsic_instr(nir_builder *b, nir_instr *instr, void *dummy)
    case nir_intrinsic_is_sparse_texels_resident:
       /* code==0 means sparse texels are resident */
       return nir_ieq_imm(b, intrin->src[0].ssa, 0);
+   case nir_intrinsic_sparse_residency_code_and:
+      return nir_ior(b, intrin->src[0].ssa, intrin->src[1].ssa);
    default:
       return NULL;
    }
@@ -355,6 +250,8 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
    static const struct nir_lower_tex_options lower_tex_options = {
       .lower_txp = ~0u,
       .lower_txs_cube_array = true,
+      .lower_invalid_implicit_lod = true,
+      .lower_tg4_offsets = true,
    };
    NIR_PASS_V(nir, nir_lower_tex, &lower_tex_options);
 
@@ -378,7 +275,7 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
 
    NIR_PASS_V(nir, nir_lower_discard_or_demote,
               (sscreen->debug_flags & DBG(FS_CORRECT_DERIVS_AFTER_KILL)) ||
-               nir->info.is_arb_asm);
+               nir->info.use_legacy_math_rules);
 
    /* Lower load constants to scalar and then clean up the mess */
    NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
@@ -386,6 +283,12 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
    NIR_PASS_V(nir, nir_opt_intrinsics);
    NIR_PASS_V(nir, nir_lower_system_values);
    NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
+
+   /* si_nir_kill_outputs and ac_nir_optimize_outputs require outputs to be scalar. */
+   if (nir->info.stage == MESA_SHADER_VERTEX ||
+       nir->info.stage == MESA_SHADER_TESS_EVAL ||
+       nir->info.stage == MESA_SHADER_GEOMETRY)
+      NIR_PASS_V(nir, nir_lower_io_to_scalar, nir_var_shader_out);
 
    if (nir->info.stage == MESA_SHADER_COMPUTE) {
       if (nir->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS) {
@@ -430,12 +333,38 @@ char *si_finalize_nir(struct pipe_screen *screen, void *nirptr)
    struct si_screen *sscreen = (struct si_screen *)screen;
    struct nir_shader *nir = (struct nir_shader *)nirptr;
 
-   si_lower_io(nir);
+   nir_lower_io_passes(nir);
+
+   /* Remove dead derefs, so that we can remove uniforms. */
+   NIR_PASS_V(nir, nir_opt_dce);
+
+   /* Remove uniforms because those should have been lowered to UBOs already. */
+   nir_foreach_variable_with_modes_safe(var, nir, nir_var_uniform) {
+      if (!glsl_type_get_image_count(var->type) &&
+          !glsl_type_get_sampler_count(var->type))
+         exec_node_remove(&var->node);
+   }
+
    si_lower_nir(sscreen, nir);
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 
    if (sscreen->options.inline_uniforms)
       nir_find_inlinable_uniforms(nir);
+
+   /* Lower large variables that are always constant with load_constant intrinsics, which
+    * get turned into PC-relative loads from a data section next to the shader.
+    *
+    * Run this once before lcssa because the added phis may prevent this
+    * pass from operating correctly.
+    *
+    * nir_opt_large_constants may use op_amul (see nir_build_deref_offset),
+    * or may create unneeded code, so run si_nir_opts if needed.
+    */
+   NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_function_temp, NULL);
+   bool progress = false;
+   NIR_PASS(progress, nir, nir_opt_large_constants, glsl_get_natural_size_align_bytes, 16);
+   if (progress)
+      si_nir_opts(sscreen, nir, false);
 
    NIR_PASS_V(nir, nir_convert_to_lcssa, true, true); /* required by divergence analysis */
    NIR_PASS_V(nir, nir_divergence_analysis); /* to find divergent loops */

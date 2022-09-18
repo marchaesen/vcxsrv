@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2006 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
  /*
   * Authors:
@@ -40,7 +40,6 @@
 #include "util/format/u_format.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
-#include "util/simple_list.h"
 #include "util/u_transfer.h"
 
 #include "lp_context.h"
@@ -91,7 +90,16 @@ llvmpipe_texture_layout(struct llvmpipe_screen *screen,
     * of a block for all formats) though this should not be strictly necessary
     * neither. In any case it can only affect compressed or 1d textures.
     */
-   unsigned mip_align = MAX2(64, util_get_cpu_caps()->cacheline);
+   uint64_t mip_align = MAX2(64, util_get_cpu_caps()->cacheline);
+
+   /* KVM on Linux requires memory mapping to be aligned to the page size,
+    * otherwise Linux kernel errors out on trying to map host GPU mapping
+    * to guest (ARB_map_buffer_range). The improper alignment creates trouble
+    * for the virgl driver when host uses llvmpipe, causing Qemu and crosvm to
+    * bail out on the KVM error.
+    */
+   if (lpr->base.flags & PIPE_RESOURCE_FLAG_MAP_PERSISTENT)
+      os_get_page_size(&mip_align);
 
    assert(LP_MAX_TEXTURE_2D_LEVELS <= LP_MAX_TEXTURE_LEVELS);
    assert(LP_MAX_TEXTURE_3D_LEVELS <= LP_MAX_TEXTURE_LEVELS);
@@ -281,7 +289,12 @@ llvmpipe_resource_create_all(struct pipe_screen *_screen,
          lpr->size_required += (LP_RASTER_BLOCK_SIZE - 1) * 4 * sizeof(float);
 
       if (alloc_backing) {
-         lpr->data = align_malloc(lpr->size_required, 64);
+         uint64_t alignment = 64;
+
+         if (templat->flags & PIPE_RESOURCE_FLAG_MAP_PERSISTENT)
+            os_get_page_size(&alignment);
+
+         lpr->data = align_malloc(lpr->size_required, alignment);
 
          if (!lpr->data)
             goto fail;
@@ -293,7 +306,7 @@ llvmpipe_resource_create_all(struct pipe_screen *_screen,
 
 #ifdef DEBUG
    mtx_lock(&resource_list_mutex);
-   insert_at_tail(&resource_list, lpr);
+   list_addtail(&lpr->list, &resource_list.list);
    mtx_unlock(&resource_list_mutex);
 #endif
 
@@ -343,7 +356,7 @@ llvmpipe_memobj_create_from_handle(struct pipe_screen *pscreen,
 #ifdef PIPE_MEMORY_FD
    struct llvmpipe_memory_object *memobj = CALLOC_STRUCT(llvmpipe_memory_object);
 
-   if (handle->type == WINSYS_HANDLE_TYPE_FD && 
+   if (handle->type == WINSYS_HANDLE_TYPE_FD &&
        pscreen->import_memory_fd(pscreen, handle->handle, &memobj->data, &memobj->size)) {
       return &memobj->b;
    }
@@ -422,7 +435,7 @@ llvmpipe_resource_from_memobj(struct pipe_screen *pscreen,
 
 #ifdef DEBUG
    mtx_lock(&resource_list_mutex);
-   insert_at_tail(&resource_list, lpr);
+   list_addtail(&lpr->list, &resource_list.list);
    mtx_unlock(&resource_list_mutex);
 #endif
 
@@ -461,8 +474,8 @@ llvmpipe_resource_destroy(struct pipe_screen *pscreen,
    }
 #ifdef DEBUG
    mtx_lock(&resource_list_mutex);
-   if (lpr->next)
-      remove_from_list(lpr);
+   if (!list_is_empty(&lpr->list))
+      list_del(&lpr->list);
    mtx_unlock(&resource_list_mutex);
 #endif
 
@@ -601,7 +614,7 @@ llvmpipe_resource_from_handle(struct pipe_screen *_screen,
 
 #ifdef DEBUG
    mtx_lock(&resource_list_mutex);
-   insert_at_tail(&resource_list, lpr);
+   list_addtail(&lpr->list, &resource_list.list);
    mtx_unlock(&resource_list_mutex);
 #endif
 
@@ -657,6 +670,11 @@ llvmpipe_resource_from_user_memory(struct pipe_screen *_screen,
    } else
       lpr->data = user_memory;
    lpr->user_ptr = true;
+#ifdef DEBUG
+   mtx_lock(&resource_list_mutex);
+   list_addtail(&lpr->list, &resource_list.list);
+   mtx_unlock(&resource_list_mutex);
+#endif
    return &lpr->base;
 fail:
    FREE(lpr);
@@ -1029,7 +1047,7 @@ llvmpipe_print_resources(void)
 
    debug_printf("LLVMPIPE: current resources:\n");
    mtx_lock(&resource_list_mutex);
-   foreach(lpr, &resource_list) {
+   LIST_FOR_EACH_ENTRY(lpr, &resource_list.list, list) {
       unsigned size = llvmpipe_resource_size(&lpr->base);
       debug_printf("resource %u at %p, size %ux%ux%u: %u bytes, refcount %u\n",
                    lpr->id, (void *) lpr,
@@ -1122,7 +1140,7 @@ llvmpipe_init_screen_resource_funcs(struct pipe_screen *screen)
       static boolean first_call = TRUE;
       if (first_call) {
          memset(&resource_list, 0, sizeof(resource_list));
-         make_empty_list(&resource_list);
+         list_inithead(&resource_list.list);
          first_call = FALSE;
       }
    }

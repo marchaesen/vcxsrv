@@ -507,6 +507,11 @@ static void handle_reg_write(gpir_store_node *store,
 static void handle_value_write(gpir_node *node,
                                struct value_regalloc_ctx *ctx)
 {
+   /* TODO: why does an uninitialized node->value_reg
+    * sometimes end up here? */
+   if (node->value_reg < 0)
+      return;
+
    ctx->last_written[node->value_reg] = node;
    ctx->live[node->value_reg] = NULL;
 }

@@ -138,7 +138,6 @@ vector_to_scalar_alu(midgard_vector_alu v, midgard_instruction *ins)
                 .op = v.op,
                 .src1 = packed_src[0],
                 .src2 = packed_src[1],
-                .unknown = 0,
                 .outmod = v.outmod,
                 .output_full = is_full,
                 .output_component = comp
@@ -177,18 +176,23 @@ vector_to_scalar_alu(midgard_vector_alu v, midgard_instruction *ins)
  * with rep. Pretty nifty, huh? */
 
 static unsigned
-mir_pack_swizzle_64(unsigned *swizzle, unsigned max_component)
+mir_pack_swizzle_64(unsigned *swizzle, unsigned max_component,
+                    bool expand_high)
 {
         unsigned packed = 0;
+        unsigned base = expand_high ? 2 : 0;
 
-        for (unsigned i = 0; i < 2; ++i) {
+        for (unsigned i = base; i < base + 2; ++i) {
                 assert(swizzle[i] <= max_component);
 
                 unsigned a = (swizzle[i] & 1) ?
                         (COMPONENT_W << 2) | COMPONENT_Z :
                         (COMPONENT_Y << 2) | COMPONENT_X;
 
-                packed |= a << (i * 4);
+                if (i & 1)
+                        packed |= a << 4;
+                else
+                        packed |= a;
         }
 
         return packed;
@@ -238,29 +242,26 @@ mir_pack_swizzle(unsigned mask, unsigned *swizzle,
                 assert(sz == 64 || sz == 32);
                 unsigned components = (sz == 32) ? 4 : 2;
 
-                packed = mir_pack_swizzle_64(swizzle, components);
+                packed = mir_pack_swizzle_64(swizzle, components,
+                                             mask & 0xc);
 
                 if (sz == 32) {
-                        bool lo = swizzle[0] >= COMPONENT_Z;
-                        bool hi = swizzle[1] >= COMPONENT_Z;
+                        ASSERTED bool dontcare = true;
+                        bool hi = false;
 
-                        assert(!(mask & ~0xf));
-                        assert(!(mask & 0x3) || !(mask & 0xc));
+                        assert(util_bitcount(mask) <= 2);
 
-                        if (mask > 3)
-                                mask >>= 2;
+                        u_foreach_bit(i, mask) {
+                                bool hi_i = swizzle[i] >= COMPONENT_Z;
 
-                        if (mask & 0x1) {
-                                /* We can't mix halves... */
-                                if (mask & 2)
-                                        assert(lo == hi);
-
-                                *expand_mode = lo ? midgard_src_expand_high :
-                                                    midgard_src_expand_low;
-                        } else {
-                                *expand_mode = hi ? midgard_src_expand_high :
-                                                    midgard_src_expand_low;
+                                /* We can't mix halves */
+                                assert(dontcare || (hi == hi_i));
+                                hi = hi_i;
+                                dontcare = false;
                         }
+
+                        *expand_mode = hi ? midgard_src_expand_high :
+                                            midgard_src_expand_low;
                 } else if (sz < 32) {
                         unreachable("Cannot encode 8/16 swizzle in 64-bit");
                 }
@@ -813,7 +814,7 @@ emit_branch(midgard_instruction *ins,
                                 .op = op,
                                 .dest_tag = dest_tag,
                                 .offset = quadword_offset,
-                                .unknown = 1
+                                .call_mode = midgard_call_mode_default
                         };
                         assert(branch.offset == quadword_offset);
                         memcpy(util_dynarray_grow_bytes(emission, size, 1), &branch, size);
@@ -1020,10 +1021,10 @@ emit_binary_bundle(compiler_context *ctx,
 
                 ins->texture.type = bundle->tag;
                 ins->texture.next_type = next_tag;
+                ins->texture.exec = MIDGARD_PARTIAL_EXECUTION_NONE; /* default */
 
                 /* Nothing else to pack for barriers */
                 if (ins->op == midgard_tex_op_barrier) {
-                        ins->texture.cont = ins->texture.last = 1;
                         ins->texture.op = ins->op;
                         util_dynarray_append(emission, midgard_texture_word, ins->texture);
                         return;
@@ -1053,10 +1054,10 @@ emit_binary_bundle(compiler_context *ctx,
                 ins->texture.outmod = ins->outmod;
 
                 if (mir_op_computes_derivatives(ctx->stage, ins->op)) {
-                        ins->texture.cont = !ins->helper_terminate;
-                        ins->texture.last = ins->helper_terminate || ins->helper_execute;
-                } else {
-                        ins->texture.cont = ins->texture.last = 1;
+                        if (ins->helper_terminate)
+                                ins->texture.exec = MIDGARD_PARTIAL_EXECUTION_KILL;
+                        else if (!ins->helper_execute)
+                                ins->texture.exec = MIDGARD_PARTIAL_EXECUTION_SKIP;
                 }
 
                 midgard_texture_word texture = texture_word_from_instr(ins);

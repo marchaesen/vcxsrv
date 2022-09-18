@@ -42,12 +42,6 @@
 static bool VERBOSE_DECODE = false;
 static bool VERBOSE_WRITE = false;
 
-static inline uint8_t
-uint16_div_64k_to_half_to_unorm8(uint16_t v)
-{
-   return _mesa_half_to_unorm8(_mesa_uint16_div_64k_to_half(v));
-}
-
 class decode_error
 {
 public:
@@ -1614,16 +1608,10 @@ void Block::write_decoded(const Decoder &decoder, uint16_t *output)
    if (is_void_extent) {
       for (int idx = 0; idx < decoder.block_w*decoder.block_h*decoder.block_d; ++idx) {
          if (decoder.output_unorm8) {
-            if (decoder.srgb) {
-               output[idx*4+0] = void_extent_colour_r >> 8;
-               output[idx*4+1] = void_extent_colour_g >> 8;
-               output[idx*4+2] = void_extent_colour_b >> 8;
-            } else {
-               output[idx*4+0] = uint16_div_64k_to_half_to_unorm8(void_extent_colour_r);
-               output[idx*4+1] = uint16_div_64k_to_half_to_unorm8(void_extent_colour_g);
-               output[idx*4+2] = uint16_div_64k_to_half_to_unorm8(void_extent_colour_b);
-            }
-            output[idx*4+3] = uint16_div_64k_to_half_to_unorm8(void_extent_colour_a);
+            output[idx*4+0] = void_extent_colour_r >> 8;
+            output[idx*4+1] = void_extent_colour_g >> 8;
+            output[idx*4+2] = void_extent_colour_b >> 8;
+            output[idx*4+3] = void_extent_colour_a >> 8;
          } else {
             /* Store the color as FP16. */
             output[idx*4+0] = _mesa_uint16_div_64k_to_half(void_extent_colour_r);
@@ -1699,16 +1687,10 @@ void Block::write_decoded(const Decoder &decoder, uint16_t *output)
             };
 
             if (decoder.output_unorm8) {
-               if (decoder.srgb) {
-                  output[idx*4+0] = c[0] >> 8;
-                  output[idx*4+1] = c[1] >> 8;
-                  output[idx*4+2] = c[2] >> 8;
-               } else {
-                  output[idx*4+0] = c[0] == 65535 ? 0xff : uint16_div_64k_to_half_to_unorm8(c[0]);
-                  output[idx*4+1] = c[1] == 65535 ? 0xff : uint16_div_64k_to_half_to_unorm8(c[1]);
-                  output[idx*4+2] = c[2] == 65535 ? 0xff : uint16_div_64k_to_half_to_unorm8(c[2]);
-               }
-               output[idx*4+3] = c[3] == 65535 ? 0xff : uint16_div_64k_to_half_to_unorm8(c[3]);
+               output[idx*4+0] = c[0] >> 8;
+               output[idx*4+1] = c[1] >> 8;
+               output[idx*4+2] = c[2] >> 8;
+               output[idx*4+3] = c[3] >> 8;
             } else {
                /* Store the color as FP16. */
                output[idx*4+0] = c[0] == 65535 ? FP16_ONE : _mesa_uint16_div_64k_to_half(c[0]);

@@ -225,25 +225,42 @@ is_not_const_zero(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
    return true;
 }
 
-/** Is value unsigned less than 0xfffc07fc? */
+/** Is value unsigned less than the limit? */
 static inline bool
-is_ult_0xfffc07fc(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
-                  unsigned src, unsigned num_components,
-                  const uint8_t *swizzle)
+is_ult(const nir_alu_instr *instr, unsigned src, unsigned num_components, const uint8_t *swizzle,
+       uint64_t limit)
 {
    /* only constant srcs: */
    if (!nir_src_is_const(instr->src[src].src))
       return false;
 
    for (unsigned i = 0; i < num_components; i++) {
-      const unsigned val =
+      const uint64_t val =
          nir_src_comp_as_uint(instr->src[src].src, swizzle[i]);
 
-      if (val >= 0xfffc07fcU)
+      if (val >= limit)
          return false;
    }
 
    return true;
+}
+
+/** Is value unsigned less than 32? */
+static inline bool
+is_ult_32(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
+          unsigned src, unsigned num_components,
+          const uint8_t *swizzle)
+{
+   return is_ult(instr, src, num_components, swizzle, 32);
+}
+
+/** Is value unsigned less than 0xfffc07fc? */
+static inline bool
+is_ult_0xfffc07fc(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
+                  unsigned src, unsigned num_components,
+                  const uint8_t *swizzle)
+{
+   return is_ult(instr, src, num_components, swizzle, 0xfffc07fcU);
 }
 
 /** Is the first 5 bits of value unsigned greater than or equal 2? */

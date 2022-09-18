@@ -35,6 +35,13 @@
 
 namespace aco {
 
+enum aco_color_output_type {
+   ACO_TYPE_ANY32,
+   ACO_TYPE_FLOAT16,
+   ACO_TYPE_INT16,
+   ACO_TYPE_UINT16,
+};
+
 struct shader_io_state {
    uint8_t mask[VARYING_SLOT_MAX];
    Temp temps[VARYING_SLOT_MAX * 4u];
@@ -47,7 +54,7 @@ struct shader_io_state {
 };
 
 struct isel_context {
-   const struct radv_nir_compiler_options* options;
+   const struct aco_compiler_options* options;
    const struct radv_shader_args* args;
    Program* program;
    nir_shader* shader;
@@ -96,8 +103,10 @@ struct isel_context {
 
    /* tessellation information */
    uint64_t tcs_temp_only_inputs;
-   uint32_t tcs_num_patches;
    bool tcs_in_out_eq = false;
+
+   /* Fragment color output information */
+   uint16_t output_color_types;
 
    /* I/O information */
    shader_io_state inputs;
@@ -116,9 +125,10 @@ void cleanup_context(isel_context* ctx);
 
 isel_context setup_isel_context(Program* program, unsigned shader_count,
                                 struct nir_shader* const* shaders, ac_shader_config* config,
-                                const struct radv_nir_compiler_options* options,
-                                const struct radv_shader_info* info,
-                                const struct radv_shader_args* args, bool is_gs_copy_shader);
+                                const struct aco_compiler_options* options,
+                                const struct aco_shader_info* info,
+                                const struct radv_shader_args* args,
+                                bool is_gs_copy_shader, bool is_ps_epilog);
 
 } // namespace aco
 

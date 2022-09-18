@@ -14,7 +14,7 @@ RESULTS=$(realpath -s "$PWD"/results)
 # Modifiying here directly LD_LIBRARY_PATH may cause problems when
 # using a command wrapper. Hence, we will just set it when running the
 # command.
-export __LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$INSTALL/lib/"
+export __LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$INSTALL/lib/:/vkd3d-proton-tests/x64/"
 
 
 # Sanity check to ensure that our environment is sufficient to make our tests
@@ -64,7 +64,7 @@ else
     mkdir "$RESULTS"
 fi
 
-VKD3D_PROTON_TESTSUITE_CMD="wine /vkd3d-proton-tests/x64/bin/d3d12.exe >$RESULTS/vkd3d-proton.log 2>&1"
+VKD3D_PROTON_TESTSUITE_CMD="/vkd3d-proton-tests/x64/bin/d3d12 >$RESULTS/vkd3d-proton.log"
 
 quiet printf "%s\n" "Running vkd3d-proton testsuite..."
 RUN_CMD="export LD_LIBRARY_PATH=$__LD_LIBRARY_PATH; $HANG_DETECTION_CMD $VKD3D_PROTON_TESTSUITE_CMD"
@@ -72,7 +72,7 @@ RUN_CMD="export LD_LIBRARY_PATH=$__LD_LIBRARY_PATH; $HANG_DETECTION_CMD $VKD3D_P
 set +e
 eval $RUN_CMD
 
-VKD3D_PROTON_RESULTS="vkd3d-proton-${VKD3D_PROTON_RESULTS:-results}"
+VKD3D_PROTON_RESULTS="${VKD3D_PROTON_RESULTS:-vkd3d-proton-results}"
 RESULTSFILE="$RESULTS/$VKD3D_PROTON_RESULTS.txt"
 mkdir -p .gitlab-ci/vkd3d-proton
 grep "Test failed" "$RESULTS"/vkd3d-proton.log > "$RESULTSFILE"
@@ -85,6 +85,7 @@ else
 fi
 
 if diff -q ".gitlab-ci/vkd3d-proton/$VKD3D_PROTON_RESULTS.txt.baseline" "$RESULTSFILE"; then
+    echo "SUCCESS: No changes found!"
     exit 0
 fi
 

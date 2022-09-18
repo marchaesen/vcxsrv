@@ -62,7 +62,7 @@ from The Open Group.
  * Each transport is assigned a unique transport id.
  *
  * New transports can be added by adding an entry in this table.
- * For compatiblity, the transport ids should never be renumbered.
+ * For compatibility, the transport ids should never be renumbered.
  * Always add to the end of the list.
  */
 
@@ -247,7 +247,7 @@ TRANS(ParseAddress) (const char *address,
 	{
 	    /* There is a hostname specified */
 	    _protocol = "tcp";
-	    mybuf = tmpptr;	/* reset to the begining of the host ptr */
+	    mybuf = tmpptr;	/* reset to the beginning of the host ptr */
 	}
     }
     else
@@ -995,7 +995,7 @@ TRANS(GetConnectionNumber) (XtransConnInfo ciptr)
 /*
  * These functions are really utility functions, but they require knowledge
  * of the internal data structures, so they have to be part of the Transport
- * Independant API.
+ * Independent API.
  */
 
 #ifdef TRANS_SERVER

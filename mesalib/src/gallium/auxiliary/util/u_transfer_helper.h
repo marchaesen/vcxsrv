@@ -34,7 +34,6 @@ extern "C" {
 /* A helper to implement various "lowering" for transfers:
  *
  *  - exposing separate depth and stencil resources as packed depth-stencil
- *  - fake RGTC support for GLES class hardware which needs it to expose GL3+
  *  - MSAA resolves
  *
  * To use this, drivers should:
@@ -43,8 +42,8 @@ extern "C" {
  *  2) plug the transfer helpers into pipe_screen/pipe_context
  *
  * To avoid subclassing pipe_resource (and conflicting with threaded_context)
- * the vtbl contains setter/getter methods used for fake_rgct & separate_stencil
- * to access the internal_format and separate stencil buffer.
+ * the vtbl contains setter/getter methods used for separate_stencil to access
+ * the internal_format and separate stencil buffer.
  */
 
 struct u_transfer_vtbl {
@@ -79,11 +78,10 @@ struct u_transfer_vtbl {
     */
 
    /**
-    * Must be implemented if separate stencil or fake_rgtc is used.  The
-    * internal_format is the format the resource was created with.  In
-    * the case of separate stencil or fake_rgtc, prsc->format is set back
-    * to the gallium-frontend-visible format (e.g. Z32_FLOAT_S8X24_UINT or
-    * PIPE_FORMAT_{RTGC,LATC}* after the resource is created.
+    * Must be implemented if separate stencil is used.  The internal_format
+    * is the format the resource was created with.  In the case of separate
+    * stencil, prsc->format is set bac to the gallium-frontend-visible format
+    * (e.g. Z32_FLOAT_S8X24_UINT) after the resource is created.
     */
    enum pipe_format (*get_internal_format)(struct pipe_resource *prsc);
 
@@ -96,6 +94,14 @@ struct u_transfer_vtbl {
     */
    void (*set_stencil)(struct pipe_resource *prsc, struct pipe_resource *stencil);
    struct pipe_resource *(*get_stencil)(struct pipe_resource *prsc);
+};
+
+enum u_transfer_helper_flags {
+   U_TRANSFER_HELPER_SEPARATE_Z32S8 = (1 << 0),
+   U_TRANSFER_HELPER_SEPARATE_STENCIL = (1 << 1),
+   U_TRANSFER_HELPER_MSAA_MAP = (1 << 3),
+   U_TRANSFER_HELPER_Z24_IN_Z32F = (1 << 4),
+   U_TRANSFER_HELPER_INTERLEAVE_IN_PLACE = (1 << 5),
 };
 
 struct pipe_resource *u_transfer_helper_resource_create(
@@ -121,24 +127,12 @@ void u_transfer_helper_transfer_unmap(struct pipe_context *pctx,
 
 struct u_transfer_helper;
 
-struct u_transfer_helper * u_transfer_helper_create(const struct u_transfer_vtbl *vtbl,
-                                                    bool separate_z32s8,
-                                                    bool separate_stencil,
-                                                    bool fake_rgtc,
-                                                    bool msaa_map);
+struct u_transfer_helper *
+u_transfer_helper_create(const struct u_transfer_vtbl *vtbl,
+                         enum u_transfer_helper_flags flags);
 
 void u_transfer_helper_destroy(struct u_transfer_helper *helper);
 
-void *
-u_transfer_helper_deinterleave_transfer_map(struct pipe_context *pctx,
-                                            struct pipe_resource *prsc,
-                                            unsigned level, unsigned usage,
-                                            const struct pipe_box *box,
-                                            struct pipe_transfer **pptrans);
-
-void
-u_transfer_helper_deinterleave_transfer_unmap(struct pipe_context *pctx,
-                                              struct pipe_transfer *ptrans);
 #ifdef __cplusplus
 } // extern "C" {
 #endif

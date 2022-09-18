@@ -37,6 +37,10 @@
 #include "stw_pixelformat.h"
 #include "stw_winsys.h"
 
+#ifdef GALLIUM_ZINK
+#include "kopper_interface.h"
+#endif
+
 struct stw_st_framebuffer {
    struct st_framebuffer_iface base;
 
@@ -121,6 +125,18 @@ stw_pipe_blit(struct pipe_context *pipe,
    pipe->blit(pipe, &blit);
 }
 
+#ifdef GALLIUM_ZINK
+static void
+stw_st_fill_private_loader_data(struct stw_st_framebuffer *stwfb, struct kopper_loader_info *out)
+{
+   out->win32.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+   out->win32.pNext = NULL;
+   out->win32.flags = 0;
+   out->win32.hinstance = GetModuleHandle(NULL);
+   out->win32.hwnd = stwfb->fb->hWnd;
+   out->has_alpha = true;
+}
+#endif 
 /**
  * Remove outdated textures and create the requested ones.
  */
@@ -144,11 +160,15 @@ stw_st_framebuffer_validate_locked(struct st_context_iface *stctx,
 
    /* As of now, the only stw_winsys_framebuffer implementation is
     * d3d12_wgl_framebuffer and it doesn't support front buffer
-    * drawing. A fake front texture is needed to handle that scenario */
+    * drawing. A fake front texture is needed to handle that scenario.
+    * For MSAA, we just need to make sure that the back buffer also
+    * exists, so we can blt to it during flush_frontbuffer. */
    if (mask & ST_ATTACHMENT_FRONT_LEFT_MASK &&
-       stwfb->fb->winsys_framebuffer &&
-       stwfb->stvis.samples <= 1) {
-      stwfb->needs_fake_front = true;
+       stwfb->fb->winsys_framebuffer) {
+      if (stwfb->stvis.samples <= 1)
+         stwfb->needs_fake_front = true;
+      else
+         mask |= ST_ATTACHMENT_BACK_LEFT_MASK;
    }
 
    /* remove outdated textures */
@@ -185,6 +205,18 @@ stw_st_framebuffer_validate_locked(struct st_context_iface *stctx,
          bind = PIPE_BIND_DISPLAY_TARGET |
                 PIPE_BIND_SAMPLER_VIEW |
                 PIPE_BIND_RENDER_TARGET;
+
+#ifdef GALLIUM_ZINK
+         if (stw_dev->zink) {
+            /* Covers the case where we have already created a drawable that
+             * then got swapped and now we have to make a new back buffer.
+             * For Zink, we just alias the front buffer in that case.
+             */
+            if (i == ST_ATTACHMENT_BACK_LEFT && stwfb->textures[ST_ATTACHMENT_FRONT_LEFT])
+               bind &= ~PIPE_BIND_DISPLAY_TARGET;
+         }
+#endif
+
          break;
       case ST_ATTACHMENT_DEPTH_STENCIL:
          format = stwfb->stvis.depth_stencil_format;
@@ -209,12 +241,37 @@ stw_st_framebuffer_validate_locked(struct st_context_iface *stctx,
 
          templ.bind = bind;
          templ.nr_samples = templ.nr_storage_samples = 1;
-         if (stwfb->fb->winsys_framebuffer)
-            stwfb->textures[i] = stwfb->fb->winsys_framebuffer->get_resource(
-               stwfb->fb->winsys_framebuffer, i);
-         else
+
+#ifdef GALLIUM_ZINK
+         if (stw_dev->zink &&
+             i < ST_ATTACHMENT_DEPTH_STENCIL &&
+             stw_dev->screen->resource_create_drawable) {
+
+            struct kopper_loader_info loader_info;
+            void *data;
+
+            if (bind & PIPE_BIND_DISPLAY_TARGET) {
+               stw_st_fill_private_loader_data(stwfb, &loader_info);
+               data = &loader_info;
+            } else
+               data = stwfb->textures[ST_ATTACHMENT_FRONT_LEFT];
+
+            assert(data);
             stwfb->textures[i] =
-               stw_dev->screen->resource_create(stw_dev->screen, &templ);
+               stw_dev->screen->resource_create_drawable(stw_dev->screen,
+                                                             &templ,
+                                                             data);
+         } else {
+#endif
+            if (stwfb->fb->winsys_framebuffer)
+               stwfb->textures[i] = stwfb->fb->winsys_framebuffer->get_resource(
+                  stwfb->fb->winsys_framebuffer, i);
+            else
+               stwfb->textures[i] =
+                  stw_dev->screen->resource_create(stw_dev->screen, &templ);
+#ifdef GALLIUM_ZINK
+         }
+#endif
       }
    }
 
@@ -387,6 +444,7 @@ stw_st_framebuffer_flush_front(struct st_context_iface *stctx,
    struct pipe_context *pipe = stctx->pipe;
    bool ret;
    HDC hDC;
+   bool need_swap_textures = false;
 
    if (statt != ST_ATTACHMENT_FRONT_LEFT)
       return false;
@@ -395,17 +453,24 @@ stw_st_framebuffer_flush_front(struct st_context_iface *stctx,
 
    /* Resolve the front buffer. */
    if (stwfb->stvis.samples > 1) {
-      stw_pipe_blit(pipe, stwfb->textures[statt], stwfb->msaa_textures[statt]);
+      enum st_attachment_type blit_target = statt;
+      if (stwfb->fb->winsys_framebuffer) {
+         blit_target = ST_ATTACHMENT_BACK_LEFT;
+         need_swap_textures = true;
+      }
+
+      stw_pipe_blit(pipe, stwfb->textures[blit_target],
+                    stwfb->msaa_textures[statt]);
    } else if (stwfb->needs_fake_front) {
-      struct pipe_resource *ptex;
-
-      /* swap the textures */
-      ptex = stwfb->textures[ST_ATTACHMENT_FRONT_LEFT];
-      stwfb->textures[ST_ATTACHMENT_FRONT_LEFT] = stwfb->textures[ST_ATTACHMENT_BACK_LEFT];
-      stwfb->textures[ST_ATTACHMENT_BACK_LEFT] = ptex;
-
       /* fake front texture is now invalid */
       p_atomic_inc(&stwfb->base.stamp);
+      need_swap_textures = true;
+   }
+
+   if (need_swap_textures) {
+      struct pipe_resource *ptex = stwfb->textures[ST_ATTACHMENT_FRONT_LEFT];
+      stwfb->textures[ST_ATTACHMENT_FRONT_LEFT] = stwfb->textures[ST_ATTACHMENT_BACK_LEFT];
+      stwfb->textures[ST_ATTACHMENT_BACK_LEFT] = ptex;
    }
 
    if (stwfb->textures[statt])
@@ -429,7 +494,7 @@ stw_st_framebuffer_flush_front(struct st_context_iface *stctx,
  * Create a framebuffer interface.
  */
 struct st_framebuffer_iface *
-stw_st_create_framebuffer(struct stw_framebuffer *fb)
+stw_st_create_framebuffer(struct stw_framebuffer *fb, struct st_manager *smapi)
 {
    struct stw_st_framebuffer *stwfb;
 
@@ -440,7 +505,7 @@ stw_st_create_framebuffer(struct stw_framebuffer *fb)
    stwfb->fb = fb;
    stwfb->stvis = fb->pfi->stvis;
    stwfb->base.ID = p_atomic_inc_return(&stwfb_ID);
-   stwfb->base.state_manager = stw_dev->smapi;
+   stwfb->base.state_manager = smapi;
 
    stwfb->base.visual = &stwfb->stvis;
    p_atomic_set(&stwfb->base.stamp, 1);

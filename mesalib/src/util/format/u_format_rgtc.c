@@ -38,6 +38,30 @@ util_format_rgtc1_unorm_fetch_rgba_8unorm(uint8_t *restrict dst, const uint8_t *
 }
 
 void
+util_format_rgtc1_unorm_unpack_r_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)
+{
+   const unsigned bw = 4, bh = 4, comps = 1;
+   unsigned x, y, i, j;
+   unsigned block_size = 8;
+
+   for(y = 0; y < height; y += bh) {
+      const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, bh);
+      for(x = 0; x < width; x += bw) {
+         const unsigned w = MIN2(width - x, bw);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
+               uint8_t *dst = dst_row + (y + j)*dst_stride/sizeof(*dst_row) + (x + i)*comps;
+               util_format_unsigned_fetch_texel_rgtc(0, src, i, j, dst, 1);
+            }
+         }
+         src += block_size;
+      }
+      src_row += src_stride;
+   }
+}
+
+void
 util_format_rgtc1_unorm_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)
 {
    const unsigned bw = 4, bh = 4, comps = 4;
@@ -46,24 +70,26 @@ util_format_rgtc1_unorm_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned d
 
    for(y = 0; y < height; y += bh) {
       const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, bh);
       for(x = 0; x < width; x += bw) {
-         for(j = 0; j < bh; ++j) {
-            for(i = 0; i < bw; ++i) {
+         const unsigned w = MIN2(width - x, bw);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
                uint8_t *dst = dst_row + (y + j)*dst_stride/sizeof(*dst_row) + (x + i)*comps;
-	       util_format_unsigned_fetch_texel_rgtc(0, src, i, j, dst, 1);
-	       dst[1] = 0;
-	       dst[2] = 0;
-	       dst[3] = 255;
-	    }
-	 }
-	 src += block_size;
+               util_format_unsigned_fetch_texel_rgtc(0, src, i, j, dst, 1);
+               dst[1] = 0;
+               dst[2] = 0;
+               dst[3] = 255;
+            }
+         }
+         src += block_size;
       }
       src_row += src_stride;
    }
 }
 
 void
-util_format_rgtc1_unorm_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, 
+util_format_rgtc1_unorm_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row,
 					 unsigned src_stride, unsigned width, unsigned height)
 {
    const unsigned bw = 4, bh = 4, bytes_per_block = 8;
@@ -75,7 +101,7 @@ util_format_rgtc1_unorm_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst
          uint8_t tmp[4][4];  /* [bh][bw][comps] */
          for(j = 0; j < bh; ++j) {
             for(i = 0; i < bw; ++i) {
-	       tmp[j][i] = src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4];
+               tmp[j][i] = src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4];
             }
          }
          util_format_unsigned_encode_rgtc_ubyte(dst, tmp, 4, 4);
@@ -92,9 +118,11 @@ util_format_rgtc1_unorm_unpack_rgba_float(void *restrict dst_row, unsigned dst_s
    int block_size = 8;
    for(y = 0; y < height; y += 4) {
       const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, 4);
       for(x = 0; x < width; x += 4) {
-         for(j = 0; j < 4; ++j) {
-            for(i = 0; i < 4; ++i) {
+         const unsigned w = MIN2(width - x, 4);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
                float *dst = (float *)((uint8_t *)dst_row + (y + j)*dst_stride + (x + i)*16);
                uint8_t tmp_r;
                util_format_unsigned_fetch_texel_rgtc(0, src, i, j, &tmp_r, 1);
@@ -122,7 +150,7 @@ util_format_rgtc1_unorm_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_
          uint8_t tmp[4][4];  /* [bh][bw][comps] */
          for(j = 0; j < bh; ++j) {
             for(i = 0; i < bw; ++i) {
-	       tmp[j][i] = float_to_ubyte(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
+               tmp[j][i] = float_to_ubyte(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
             }
          }
          util_format_unsigned_encode_rgtc_ubyte(dst, tmp, 4, 4);
@@ -160,6 +188,32 @@ util_format_rgtc1_snorm_unpack_rgba_8unorm(UNUSED uint8_t *restrict dst_row, UNU
 }
 
 void
+util_format_rgtc1_snorm_unpack_r_8snorm(int8_t *restrict dst_row, unsigned dst_stride,
+                                        const uint8_t *restrict src_row, unsigned src_stride,
+                                        unsigned width, unsigned height)
+{
+   const unsigned bw = 4, bh = 4, comps = 1;
+   unsigned x, y, i, j;
+   unsigned block_size = 8;
+
+   for(y = 0; y < height; y += bh) {
+      const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, bh);
+      for(x = 0; x < width; x += bw) {
+         const unsigned w = MIN2(width - x, bw);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
+               int8_t *dst = dst_row + (y + j)*dst_stride/sizeof(*dst_row) + (x + i)*comps;
+               util_format_signed_fetch_texel_rgtc(0, (const int8_t *)src, i, j, dst, 1);
+            }
+         }
+         src += block_size;
+      }
+      src_row += src_stride;
+   }
+}
+
+void
 util_format_rgtc1_snorm_pack_rgba_8unorm(UNUSED uint8_t *restrict dst_row, UNUSED unsigned dst_stride,
                                          UNUSED const uint8_t *restrict src_row, UNUSED unsigned src_stride,
                                          UNUSED unsigned width, UNUSED unsigned height)
@@ -179,7 +233,7 @@ util_format_rgtc1_snorm_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_
          int8_t tmp[4][4];  /* [bh][bw][comps] */
          for(j = 0; j < bh; ++j) {
             for(i = 0; i < bw; ++i) {
-	       tmp[j][i] = float_to_byte_tex(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
+               tmp[j][i] = float_to_byte_tex(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
             }
          }
          util_format_signed_encode_rgtc_ubyte(dst, tmp, 4, 4);
@@ -196,9 +250,11 @@ util_format_rgtc1_snorm_unpack_rgba_float(void *restrict dst_row, unsigned dst_s
    int block_size = 8;
    for(y = 0; y < height; y += 4) {
       const int8_t *src = (int8_t *)src_row;
+      const unsigned h = MIN2(height - y, 4);
       for(x = 0; x < width; x += 4) {
-         for(j = 0; j < 4; ++j) {
-            for(i = 0; i < 4; ++i) {
+         const unsigned w = MIN2(width - x, 4);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
                float *dst = (float *)((uint8_t *)dst_row + (y + j)*dst_stride + (x + i)*16);
                int8_t tmp_r;
                util_format_signed_fetch_texel_rgtc(0, src, i, j, &tmp_r, 1);
@@ -237,6 +293,31 @@ util_format_rgtc2_unorm_fetch_rgba_8unorm(uint8_t *restrict dst, const uint8_t *
 }
 
 void
+util_format_rgtc2_unorm_unpack_rg_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)
+{
+   const unsigned bw = 4, bh = 4, comps = 2;
+   unsigned x, y, i, j;
+   unsigned block_size = 16;
+
+   for(y = 0; y < height; y += bh) {
+      const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, bh);
+      for(x = 0; x < width; x += bw) {
+         const unsigned w = MIN2(width - x, bw);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
+               uint8_t *dst = dst_row + (y + j)*dst_stride/sizeof(*dst_row) + (x + i)*comps;
+               util_format_unsigned_fetch_texel_rgtc(0, src, i, j, dst, 2);
+               util_format_unsigned_fetch_texel_rgtc(0, src + 8, i, j, dst + 1, 2);
+            }
+         }
+         src += block_size;
+      }
+      src_row += src_stride;
+   }
+}
+
+void
 util_format_rgtc2_unorm_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height)
 {
    const unsigned bw = 4, bh = 4, comps = 4;
@@ -245,17 +326,19 @@ util_format_rgtc2_unorm_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned d
 
    for(y = 0; y < height; y += bh) {
       const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, bh);
       for(x = 0; x < width; x += bw) {
-         for(j = 0; j < bh; ++j) {
-            for(i = 0; i < bw; ++i) {
+         const unsigned w = MIN2(width - x, bw);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
                uint8_t *dst = dst_row + (y + j)*dst_stride/sizeof(*dst_row) + (x + i)*comps;
-	       util_format_unsigned_fetch_texel_rgtc(0, src, i, j, dst, 2);
-	       util_format_unsigned_fetch_texel_rgtc(0, src + 8, i, j, dst + 1, 2);
-	       dst[2] = 0;
-	       dst[3] = 255;
-	    }
-	 }
-	 src += block_size;
+               util_format_unsigned_fetch_texel_rgtc(0, src, i, j, dst, 2);
+               util_format_unsigned_fetch_texel_rgtc(0, src + 8, i, j, dst + 1, 2);
+               dst[2] = 0;
+               dst[3] = 255;
+            }
+         }
+         src += block_size;
       }
       src_row += src_stride;
    }
@@ -274,8 +357,8 @@ util_format_rgtc2_unorm_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst
          uint8_t tmp_g[4][4];  /* [bh][bw] */
          for(j = 0; j < bh; ++j) {
             for(i = 0; i < bw; ++i) {
-	       tmp_r[j][i] = src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4];
-	       tmp_g[j][i] = src_row[((y + j)*src_stride/sizeof(*src_row) + (x + i)*4) + 1];
+               tmp_r[j][i] = src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4];
+               tmp_g[j][i] = src_row[((y + j)*src_stride/sizeof(*src_row) + (x + i)*4) + 1];
             }
          }
          util_format_unsigned_encode_rgtc_ubyte(dst, tmp_r, 4, 4);
@@ -299,7 +382,7 @@ util_format_rxtc2_unorm_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_
          uint8_t tmp_g[4][4];  /* [bh][bw][comps] */
          for(j = 0; j < bh; ++j) {
             for(i = 0; i < bw; ++i) {
-	       tmp_r[j][i] = float_to_ubyte(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
+               tmp_r[j][i] = float_to_ubyte(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
                tmp_g[j][i] = float_to_ubyte(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4 + chan2off]);
             }
          }
@@ -324,9 +407,11 @@ util_format_rgtc2_unorm_unpack_rgba_float(void *restrict dst_row, unsigned dst_s
    int block_size = 16;
    for(y = 0; y < height; y += 4) {
       const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, 4);
       for(x = 0; x < width; x += 4) {
-         for(j = 0; j < 4; ++j) {
-            for(i = 0; i < 4; ++i) {
+         const unsigned w = MIN2(width - x, 4);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
                float *dst = (float *)((uint8_t *)dst_row + (y + j)*dst_stride + (x + i)*16);
                uint8_t tmp_r, tmp_g;
                util_format_unsigned_fetch_texel_rgtc(0, src, i, j, &tmp_r, 2);
@@ -373,6 +458,33 @@ util_format_rgtc2_snorm_unpack_rgba_8unorm(UNUSED uint8_t *restrict dst_row, UNU
 }
 
 void
+util_format_rgtc2_snorm_unpack_rg_8snorm(int8_t *restrict dst_row, unsigned dst_stride,
+                                         const uint8_t *restrict src_row, unsigned src_stride,
+                                         unsigned width, unsigned height)
+{
+   const unsigned bw = 4, bh = 4, comps = 2;
+   unsigned x, y, i, j;
+   unsigned block_size = 16;
+
+   for(y = 0; y < height; y += bh) {
+      const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, bh);
+      for(x = 0; x < width; x += bw) {
+         const unsigned w = MIN2(width - x, bw);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
+               int8_t *dst = dst_row + (y + j)*dst_stride/sizeof(*dst_row) + (x + i)*comps;
+               util_format_signed_fetch_texel_rgtc(0, (const int8_t *)src, i, j, (int8_t *)dst, 2);
+               util_format_signed_fetch_texel_rgtc(0, (const int8_t *)src + 8, i, j, (int8_t *)dst + 1, 2);
+            }
+         }
+         src += block_size;
+      }
+      src_row += src_stride;
+   }
+}
+
+void
 util_format_rgtc2_snorm_pack_rgba_8unorm(UNUSED uint8_t *restrict dst_row, UNUSED unsigned dst_stride,
                                          UNUSED const uint8_t *restrict src_row, UNUSED unsigned src_stride,
                                          UNUSED unsigned width, UNUSED unsigned height)
@@ -387,9 +499,11 @@ util_format_rgtc2_snorm_unpack_rgba_float(void *restrict dst_row, unsigned dst_s
    int block_size = 16;
    for(y = 0; y < height; y += 4) {
       const int8_t *src = (int8_t *)src_row;
+      const unsigned h = MIN2(height - y, 4);
       for(x = 0; x < width; x += 4) {
-         for(j = 0; j < 4; ++j) {
-            for(i = 0; i < 4; ++i) {
+         const unsigned w = MIN2(width - x, 4);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
                float *dst = (float *)((uint8_t *)dst_row + (y + j)*dst_stride + (x + i)*16);
                int8_t tmp_r, tmp_g;
                util_format_signed_fetch_texel_rgtc(0, src, i, j, &tmp_r, 2);
@@ -419,7 +533,7 @@ util_format_rxtc2_snorm_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_
          int8_t tmp_g[4][4];  /* [bh][bw][comps] */
          for(j = 0; j < bh; ++j) {
             for(i = 0; i < bw; ++i) {
-	       tmp_r[j][i] = float_to_byte_tex(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
+               tmp_r[j][i] = float_to_byte_tex(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4]);
                tmp_g[j][i] = float_to_byte_tex(src_row[(y + j)*src_stride/sizeof(*src_row) + (x + i)*4 + chan2off]);
             }
          }

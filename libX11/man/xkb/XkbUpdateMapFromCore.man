@@ -37,22 +37,22 @@ expressed by a core format mapping
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description to update
 .TP
-.I \- first_key
+.I first_key
 keycode of first key description to update
 .TP
-.I \- num_keys
+.I num_keys
 number of key descriptions to update
 .TP
-.I \- map_width
+.I map_width
 width of core protocol keymap
 .TP
-.I \- core_keysyms
+.I core_keysyms
 symbols in core protocol keymap
 .TP
-.I \- changes
+.I changes
 backfilled with changes made to Xkb
 .SH DESCRIPTION
 .LP

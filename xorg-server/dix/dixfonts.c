@@ -293,7 +293,7 @@ doOpenFont(ClientPtr client, OFclosurePtr c)
                 err = AllocError;
                 break;
             }
-            memmove(newname, alias, newlen);
+            memcpy(newname, alias, newlen);
             c->fontname = newname;
             c->fnamelen = newlen;
             c->current_fpe = 0;
@@ -427,7 +427,7 @@ OpenFont(ClientPtr client, XID fid, Mask flags, unsigned lenfname,
         free(c);
         return BadAlloc;
     }
-    memmove(c->fontname, pfontname, lenfname);
+    memcpy(c->fontname, pfontname, lenfname);
     for (i = 0; i < num_fpes; i++) {
         c->fpe_list[i] = font_path_elements[i];
         UseFPE(c->fpe_list[i]);
@@ -641,7 +641,7 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
                     free(resolved);
                     resolved = malloc(resolvedlen + 1);
                     if (resolved)
-                        memmove(resolved, tmpname, resolvedlen + 1);
+                        memcpy(resolved, tmpname, resolvedlen + 1);
                 }
             }
 
@@ -671,7 +671,7 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
                  * is BadFontName, indicating the alias resolution
                  * is complete.
                  */
-                memmove(tmp_pattern, resolved, resolvedlen);
+                memcpy(tmp_pattern, resolved, resolvedlen);
                 if (c->haveSaved) {
                     char *tmpname;
                     int tmpnamelen;
@@ -691,11 +691,11 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
                     free(c->savedName);
                     c->savedName = malloc(namelen + 1);
                     if (c->savedName)
-                        memmove(c->savedName, name, namelen + 1);
+                        memcpy(c->savedName, name, namelen + 1);
                     c->savedNameLen = namelen;
                     aliascount = 20;
                 }
-                memmove(c->current.pattern, tmp_pattern, resolvedlen);
+                memcpy(c->current.pattern, tmp_pattern, resolvedlen);
                 c->current.patlen = resolvedlen;
                 c->current.max_names = c->names->nnames + 1;
                 c->current.current_fpe = -1;
@@ -766,7 +766,7 @@ doListFontsAndAliases(ClientPtr client, LFclosurePtr c)
             reply.nFonts--;
         else {
             *bufptr++ = names->length[i];
-            memmove(bufptr, names->names[i], names->length[i]);
+            memcpy(bufptr, names->names[i], names->length[i]);
             bufptr += names->length[i];
         }
     }
@@ -931,7 +931,7 @@ doListFontsWithInfo(ClientPtr client, LFWIclosurePtr c)
                 free(c->savedName);
                 c->savedName = malloc(namelen + 1);
                 if (c->savedName)
-                    memmove(c->savedName, name, namelen + 1);
+                    memcpy(c->savedName, name, namelen + 1);
                 aliascount = 20;
             }
             memmove(c->current.pattern, name, namelen);
@@ -1242,7 +1242,7 @@ doPolyText(ClientPtr client, PTclosurePtr c)
                         err = BadAlloc;
                         goto bail;
                     }
-                    memmove(new_closure->data, new_closure->pElt, len);
+                    memcpy(new_closure->data, new_closure->pElt, len);
                     new_closure->pElt = new_closure->data;
                     new_closure->endReq = new_closure->pElt + len;
 
@@ -1430,7 +1430,7 @@ doImageText(ClientPtr client, ITclosurePtr c)
                 err = BadAlloc;
                 goto bail;
             }
-            memmove(data, c->data, c->nChars * itemSize);
+            memcpy(data, c->data, c->nChars * itemSize);
             c->data = data;
 
             pGC = GetScratchGC(c->pGC->depth, c->pGC->pScreen);
@@ -1784,7 +1784,7 @@ GetFontPath(ClientPtr client, int *count, int *length, unsigned char **result)
         fpe = font_path_elements[i];
         *c = fpe->name_length;
         *length += *c++;
-        memmove(c, fpe->name, fpe->name_length);
+        memcpy(c, fpe->name, fpe->name_length);
         c += fpe->name_length;
     }
     *count = num_fpes;

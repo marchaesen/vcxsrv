@@ -22,6 +22,7 @@
  */
 
 #include "compiler.h"
+#include "bi_quirks.h"
 
 /* This file contains the final passes of the compiler. Running after
  * scheduling and RA, the IR is now finalized, so we need to emit it to actual
@@ -35,6 +36,12 @@ bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2)
 
         unsigned dependency_wait = next_1 ? next_1->dependencies : 0;
         dependency_wait |= next_2 ? next_2->dependencies : 0;
+
+        /* Signal barriers (slot #7) immediately. This is not optimal but good
+         * enough. Doing better requires extending the IR and scheduler.
+         */
+        if (clause->message_type == BIFROST_MESSAGE_BARRIER)
+                dependency_wait |= BITFIELD_BIT(7);
 
         bool staging_barrier = next_1 ? next_1->staging_barrier : false;
         staging_barrier |= next_2 ? next_2->staging_barrier : 0;
@@ -51,6 +58,7 @@ bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2)
                 .dependency_slot = clause->scoreboard_id,
                 .message_type = clause->message_type,
                 .next_message_type = next_1 ? next_1->message_type : 0,
+                .flush_to_zero = clause->ftz ? BIFROST_FTZ_ALWAYS : BIFROST_FTZ_DISABLE
         };
 
         uint64_t u = 0;
@@ -114,6 +122,12 @@ bi_assign_slots(bi_tuple *now, bi_tuple *prev)
 
         if (now->add) {
                 bi_foreach_src(now->add, src) {
+                        /* This is not a real source, we shouldn't assign a
+                         * slot for it.
+                         */
+                        if (now->add->op == BI_OPCODE_BLEND && src == 4)
+                                continue;
+
                         if (!(src == 0 && read_dreg))
                                 bi_assign_slot_read(&now->regs, (now->add)->src[src]);
                 }
@@ -123,7 +137,7 @@ bi_assign_slots(bi_tuple *now, bi_tuple *prev)
          * +ATEST wants its destination written to both a staging register
          * _and_ a regular write, because it may not generate a message */
 
-        if (prev->add && (!write_dreg || prev->add->op == BI_OPCODE_ATEST)) {
+        if (prev->add && prev->add->nr_dests && (!write_dreg || prev->add->op == BI_OPCODE_ATEST)) {
                 bi_index idx = prev->add->dest[0];
 
                 if (idx.type == BI_INDEX_REGISTER) {
@@ -132,8 +146,8 @@ bi_assign_slots(bi_tuple *now, bi_tuple *prev)
                 }
         }
 
-        if (prev->fma) {
-                bi_index idx = (prev->fma)->dest[0];
+        if (prev->fma && prev->fma->nr_dests) {
+                bi_index idx = prev->fma->dest[0];
 
                 if (idx.type == BI_INDEX_REGISTER) {
                         if (now->regs.slot23.slot3) {
@@ -288,7 +302,7 @@ bi_get_src_slot(bi_registers *regs, unsigned reg)
 static inline enum bifrost_packed_src
 bi_get_src_new(bi_instr *ins, bi_registers *regs, unsigned s)
 {
-        if (!ins)
+        if (!ins || s >= ins->nr_srcs)
                 return 0;
 
         bi_index src = ins->src[s];
@@ -297,8 +311,6 @@ bi_get_src_new(bi_instr *ins, bi_registers *regs, unsigned s)
                 return bi_get_src_slot(regs, src.value);
         else if (src.type == BI_INDEX_PASS)
                 return src.value;
-        else if (bi_is_null(src) && ins->op == BI_OPCODE_ZS_EMIT && s < 2)
-                return BIFROST_SRC_STAGE;
         else {
                 /* TODO make safer */
                 return BIFROST_SRC_STAGE;
@@ -633,6 +645,16 @@ bi_pack_clause(bi_context *ctx, bi_clause *clause,
                 unsigned prev = ((i == 0) ? clause->tuple_count : i) - 1;
                 ins[i] = bi_pack_tuple(clause, &clause->tuples[i],
                                 &clause->tuples[prev], i == 0, stage);
+
+                bi_instr *add = clause->tuples[i].add;
+
+                /* Different GPUs support different forms of the CLPER.i32
+                 * instruction. Check we use the right one for the target.
+                 */
+                if (add && add->op == BI_OPCODE_CLPER_OLD_I32)
+                        assert(ctx->quirks & BIFROST_LIMITED_CLPER);
+                else if (add && add->op == BI_OPCODE_CLPER_I32)
+                        assert(!(ctx->quirks & BIFROST_LIMITED_CLPER));
         }
 
         bool ec0_packed = bi_ec0_packed(clause->tuple_count);
@@ -709,10 +731,30 @@ bi_collect_blend_ret_addr(bi_context *ctx, struct util_dynarray *emission,
         assert(!(ctx->info.bifrost->blend[loc].return_offset & 0x7));
 }
 
+/*
+ * The second register destination of TEXC_DUAL is encoded into the texture
+ * operation descriptor during register allocation. It's dropped as late as
+ * possible (instruction packing) so the register remains recorded in the IR,
+ * for clause scoreboarding and so on.
+ */
+static void
+bi_lower_texc_dual(bi_context *ctx)
+{
+        bi_foreach_instr_global(ctx, I) {
+                if (I->op == BI_OPCODE_TEXC_DUAL) {
+                        /* In hardware, TEXC has 1 destination */
+                        I->op = BI_OPCODE_TEXC;
+                        bi_drop_dests(I, 1);
+                }
+        }
+}
+
 unsigned
 bi_pack(bi_context *ctx, struct util_dynarray *emission)
 {
         unsigned previous_size = emission->size;
+
+        bi_lower_texc_dual(ctx);
 
         bi_foreach_block(ctx, block) {
                 bi_assign_branch_offset(ctx, block);

@@ -461,15 +461,7 @@ rrGetPixmapSharingSyncProp(int numOutputs, RROutputPtr * outputs)
     for (o = 0; o < numOutputs; o++) {
         RRPropertyValuePtr val;
 
-        /* Try pending value first, then current value */
         if ((val = RRGetOutputProperty(outputs[o], syncProp, TRUE)) &&
-            val->data) {
-            if (!(*(char *) val->data))
-                return FALSE;
-            continue;
-        }
-
-        if ((val = RRGetOutputProperty(outputs[o], syncProp, FALSE)) &&
             val->data) {
             if (!(*(char *) val->data))
                 return FALSE;
@@ -717,6 +709,25 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
     return TRUE;
 }
 
+#define XRANDR_EMULATION_PROP "RANDR Emulation"
+static Bool
+rrCheckEmulated(RROutputPtr output)
+{
+    const char *emulStr = XRANDR_EMULATION_PROP;
+    Atom emulProp;
+    RRPropertyValuePtr val;
+
+    emulProp = MakeAtom(emulStr, strlen(emulStr), FALSE);
+    if (emulProp == None)
+        return FALSE;
+
+    val = RRGetOutputProperty(output, emulProp, TRUE);
+    if (val && val->data)
+        return !!val->data;
+
+    return FALSE;
+}
+
 /*
  * Request that the Crtc be reconfigured
  */
@@ -736,9 +747,11 @@ RRCrtcSet(RRCrtcPtr crtc,
 
     crtcChanged = FALSE;
     for (o = 0; o < numOutputs; o++) {
-        if (outputs[o] && outputs[o]->crtc != crtc) {
-            crtcChanged = TRUE;
-            break;
+        if (outputs[o]) {
+            if (rrCheckEmulated(outputs[o]) || (outputs[o]->crtc != crtc)) {
+                crtcChanged = TRUE;
+                break;
+            }
         }
     }
 

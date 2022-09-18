@@ -22,10 +22,53 @@
  */
 
 #include "ac_nir.h"
+#include "nir_builder.h"
+
+nir_ssa_def *
+ac_nir_load_arg(nir_builder *b, const struct ac_shader_args *ac_args, struct ac_arg arg)
+{
+   unsigned num_components = ac_args->args[arg.arg_index].size;
+
+   if (ac_args->args[arg.arg_index].file == AC_ARG_SGPR)
+      return nir_load_scalar_arg_amd(b, num_components, .base = arg.arg_index);
+   else
+      return nir_load_vector_arg_amd(b, num_components, .base = arg.arg_index);
+}
+
+/**
+ * This function takes an I/O intrinsic like load/store_input,
+ * and emits a sequence that calculates the full offset of that instruction,
+ * including a stride to the base and component offsets.
+ */
+nir_ssa_def *
+ac_nir_calc_io_offset(nir_builder *b,
+                      nir_intrinsic_instr *intrin,
+                      nir_ssa_def *base_stride,
+                      unsigned component_stride,
+                      ac_nir_map_io_driver_location map_io)
+{
+   unsigned base = nir_intrinsic_base(intrin);
+   unsigned semantic = nir_intrinsic_io_semantics(intrin).location;
+   unsigned mapped_driver_location = map_io ? map_io(semantic) : base;
+
+   /* base is the driver_location, which is in slots (1 slot = 4x4 bytes) */
+   nir_ssa_def *base_op = nir_imul_imm(b, base_stride, mapped_driver_location);
+
+   /* offset should be interpreted in relation to the base,
+    * so the instruction effectively reads/writes another input/output
+    * when it has an offset
+    */
+   nir_ssa_def *offset_op = nir_imul(b, base_stride, nir_ssa_for_src(b, *nir_get_io_offset_src(intrin), 1));
+
+   /* component is in bytes */
+   unsigned const_op = nir_intrinsic_component(intrin) * component_stride;
+
+   return nir_iadd_imm_nuw(b, nir_iadd_nuw(b, base_op, offset_op), const_op);
+}
 
 bool
 ac_nir_lower_indirect_derefs(nir_shader *shader,
-                             enum chip_class chip_class)
+                             enum amd_gfx_level gfx_level)
 {
    bool progress = false;
 
@@ -37,7 +80,7 @@ ac_nir_lower_indirect_derefs(nir_shader *shader,
             glsl_get_natural_size_align_bytes);
 
    /* LLVM doesn't support VGPR indexing on GFX9. */
-   bool llvm_has_working_vgpr_indexing = chip_class != GFX9;
+   bool llvm_has_working_vgpr_indexing = gfx_level != GFX9;
 
    /* TODO: Indirect indexing of GS inputs is unimplemented.
     *
@@ -62,6 +105,6 @@ ac_nir_lower_indirect_derefs(nir_shader *shader,
     */
    indirect_mask |= nir_var_function_temp;
 
-   progress |= nir_lower_indirect_derefs(shader, indirect_mask, UINT32_MAX);
+   NIR_PASS(progress, shader, nir_lower_indirect_derefs, indirect_mask, UINT32_MAX);
    return progress;
 }

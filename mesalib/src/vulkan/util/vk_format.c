@@ -161,10 +161,18 @@ static const enum pipe_format vk_format_map[] = {
 
    [VK_FORMAT_R64_UINT] = PIPE_FORMAT_R64_UINT,
    [VK_FORMAT_R64_SINT] = PIPE_FORMAT_R64_SINT,
-   /* Missing rest of 64-bit uint/sint formats */
    [VK_FORMAT_R64_SFLOAT] = PIPE_FORMAT_R64_FLOAT,
+
+   [VK_FORMAT_R64G64_UINT] = PIPE_FORMAT_R64G64_UINT,
+   [VK_FORMAT_R64G64_SINT] = PIPE_FORMAT_R64G64_SINT,
    [VK_FORMAT_R64G64_SFLOAT] = PIPE_FORMAT_R64G64_FLOAT,
+
+   [VK_FORMAT_R64G64B64_UINT] = PIPE_FORMAT_R64G64B64_UINT,
+   [VK_FORMAT_R64G64B64_SINT] = PIPE_FORMAT_R64G64B64_SINT,
    [VK_FORMAT_R64G64B64_SFLOAT] = PIPE_FORMAT_R64G64B64_FLOAT,
+
+   [VK_FORMAT_R64G64B64A64_UINT] = PIPE_FORMAT_R64G64B64A64_UINT,
+   [VK_FORMAT_R64G64B64A64_SINT] = PIPE_FORMAT_R64G64B64A64_SINT,
    [VK_FORMAT_R64G64B64A64_SFLOAT] = PIPE_FORMAT_R64G64B64A64_FLOAT,
 
    [VK_FORMAT_B10G11R11_UFLOAT_PACK32] = PIPE_FORMAT_R11G11B10_FLOAT,
@@ -273,9 +281,9 @@ vk_format_to_pipe_format(enum VkFormat vkformat)
          return PIPE_FORMAT_Y16_U16V16_422_UNORM;
       case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
          return PIPE_FORMAT_Y16_U16_V16_444_UNORM;
-      case VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT:
+      case VK_FORMAT_A4R4G4B4_UNORM_PACK16:
          return PIPE_FORMAT_B4G4R4A4_UNORM;
-      case VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT:
+      case VK_FORMAT_A4B4G4R4_UNORM_PACK16:
          return PIPE_FORMAT_R4G4B4A4_UNORM;
       default:
          return PIPE_FORMAT_NONE;
@@ -337,6 +345,56 @@ vk_format_aspects(VkFormat format)
 
    default:
       return VK_IMAGE_ASPECT_COLOR_BIT;
+   }
+}
+
+VkFormat
+vk_format_get_plane_format(VkFormat format, unsigned plane_id)
+{
+   assert(plane_id < vk_format_get_plane_count(format));
+
+   switch (format) {
+   case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+   case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
+   case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM:
+      return VK_FORMAT_R8_UNORM;
+   case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+   case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
+      return plane_id ? VK_FORMAT_R8G8_UNORM : VK_FORMAT_R8_UNORM;
+   case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:
+   case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
+   case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
+      return VK_FORMAT_R16_UNORM;
+   case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM:
+   case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
+      return plane_id ? VK_FORMAT_R16G16_UNORM : VK_FORMAT_R16_UNORM;
+   default:
+      assert(vk_format_get_plane_count(format) == 1);
+      return format;
+   }
+}
+
+VkFormat
+vk_format_get_aspect_format(VkFormat format, const VkImageAspectFlags aspect)
+{
+   assert(util_bitcount(aspect) == 1);
+   assert(aspect & vk_format_aspects(format));
+
+   switch (aspect) {
+   case VK_IMAGE_ASPECT_COLOR_BIT:
+      return format;
+   case VK_IMAGE_ASPECT_DEPTH_BIT:
+      return vk_format_depth_only(format);
+   case VK_IMAGE_ASPECT_STENCIL_BIT:
+      return vk_format_stencil_only(format);
+   case VK_IMAGE_ASPECT_PLANE_0_BIT:
+      return vk_format_get_plane_format(format, 0);
+   case VK_IMAGE_ASPECT_PLANE_1_BIT:
+      return vk_format_get_plane_format(format, 1);
+   case VK_IMAGE_ASPECT_PLANE_2_BIT:
+      return vk_format_get_plane_format(format, 2);
+   default:
+      unreachable("Cannot translate format aspect");
    }
 }
 

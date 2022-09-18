@@ -2,7 +2,7 @@ test-spirv2dxil-windows:
   extends:
     - .build-windows
     - .use-windows_test_vs2019
-    - .windows-test-rules
+    - .spirv2dxil-test-rules
   stage: layered-backends
   dependencies:
     - windows-vs2019
@@ -18,3 +18,26 @@ test-spirv2dxil-windows:
     name: "mesa_${CI_JOB_NAME}"
     paths:
       - spirv2dxil_results.txt
+
+test-dozen-deqp:
+  extends:
+    - .build-windows
+    - .use-windows_test_vs2019
+    - .dozen-test-rules
+  stage: layered-backends
+  dependencies:
+    - windows-vs2019
+  needs:
+    - windows-vs2019
+    - windows_test_vs2019
+  variables:
+    GIT_STRATEGY: none # testing doesn't build anything from source
+  script:
+    - . _install/deqp_runner_run.ps1
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - results/
+    reports:
+      junit: results/junit.xml

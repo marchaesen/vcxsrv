@@ -5,6 +5,7 @@ xkb_symbols "basic" {
 
     name[Group1]="Wolof";
 
+    key <TLDE>	{ [twosuperior,   percent,      notsign,      notsign ]	};
     key <AE01>	{ [ ampersand,          1,          bar,     NoSymbol ]	};
     key <AE02>	{ [    eacute,          2,   asciitilde,       Eacute ]	};
     key <AE03>	{ [  quotedbl,          3,   numbersign,      cedilla ]	};
@@ -27,16 +28,14 @@ xkb_symbols "basic" {
     key <AC01>	{ [         q,          Q,           at,  Greek_OMEGA ]	};
     key <AC10>	{ [         m,          M,           mu,    masculine ]	};
     key <AC11>	{ [    ntilde,     Ntilde,        acute,   dead_acute ]	};
-    key <TLDE>	{ [twosuperior,   percent,      notsign,      notsign ]	};
-
     key <BKSL>	{ [        mu,   sterling,        grave,   dead_grave ]	};
+
+    key <LSGT>	{ [      less,    greater,          bar,     NoSymbol ] };
     key <AB01>	{ [         w,          W,      lstroke,      Lstroke ]	};
     key <AB07>	{ [     comma,   question, questiondown,     NoSymbol ] };
     key <AB08>	{ [ semicolon,     period,        U2022,     multiply ]	}; // bullet
     key <AB09>	{ [     colon,      slash, periodcentered,   division ]	};
     key <AB10>	{ [    exclam,    section,   exclamdown,     NoSymbol ] };
-
-    key <LSGT>	{ [      less,    greater,          bar,     NoSymbol ] };
 
     include "level3(ralt_switch)"
 };

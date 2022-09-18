@@ -148,7 +148,7 @@ static int str_match_format(const char **pcur)
    for (unsigned i = 0; i < PIPE_FORMAT_COUNT; i++) {
       const struct util_format_description *desc =
          util_format_description(i);
-      if (desc && str_match_nocase_whole(pcur, desc->name)) {
+      if (str_match_nocase_whole(pcur, desc->name)) {
          return i;
       }
    }

@@ -40,136 +40,28 @@ namespace {
    const std::string clc_printf_whitelist = "%0123456789-+ #.AacdeEfFgGhilopsuvxX";
 
    void
-   print_formatted(const std::vector<binary::printf_info> &formatters,
+   print_formatted(std::vector<binary::printf_info> &formatters,
                    bool _strings_in_buffer,
                    const std::vector<char> &buffer) {
 
       static std::atomic<unsigned> warn_count;
+
       if (buffer.empty() && !warn_count++)
-	 std::cerr << "Printf used but no printf occurred - may cause perfomance issue." << std::endl;
+         std::cerr << "Printf used but no printf occurred - may cause perfomance issue." << std::endl;
 
-      for (size_t buf_pos = 0; buf_pos < buffer.size(); ) {
-         cl_uint fmt_idx = *(cl_uint*)&buffer[buf_pos];
-         assert(fmt_idx > 0);
-         binary::printf_info fmt = formatters[fmt_idx-1];
+      std::vector<u_printf_info> infos;
+      for (auto &f : formatters) {
+         u_printf_info info;
 
-         std::string format = (char *)fmt.strings.data();
-         buf_pos += sizeof(cl_uint);
+         info.num_args = f.arg_sizes.size();
+         info.arg_sizes = f.arg_sizes.data();
+         info.string_size = f.strings.size();
+         info.strings = f.strings.data();
 
-         if (fmt.arg_sizes.empty()) {
-            printf("%s", format.c_str());
-
-         } else {
-            size_t fmt_last_pos = 0;
-            size_t fmt_pos = 0;
-            for (int arg_size : fmt.arg_sizes) {
-               const size_t spec_pos = util_printf_next_spec_pos(format, fmt_pos);
-               const size_t cur_tok = format.rfind('%', spec_pos);
-               const size_t next_spec = util_printf_next_spec_pos(format, spec_pos);
-               const size_t next_tok = next_spec == std::string::npos ? std::string::npos :
-                  format.rfind('%', next_spec);
-
-               size_t vec_pos = format.find_first_of("v", cur_tok + 1);
-               size_t mod_pos = format.find_first_of("hl", cur_tok + 1);
-
-               // print the part before the format token
-               if (cur_tok != fmt_last_pos) {
-                  std::string s = format.substr(fmt_last_pos,
-                                                cur_tok - fmt_last_pos);
-                  printf("%s", s.c_str());
-               }
-
-               std::string print_str;
-               print_str = format.substr(cur_tok, spec_pos + 1 - cur_tok);
-
-               /* Never pass a 'n' spec to the host printf */
-               bool valid_str = print_str.find_first_not_of(clc_printf_whitelist) ==
-                  std::string::npos;
-
-               // print the formated part
-               if (spec_pos != std::string::npos && valid_str) {
-                  bool is_vector = vec_pos != std::string::npos &&
-                     vec_pos + 1 < spec_pos;
-                  bool is_string = format[spec_pos] == 's';
-                  bool is_float = std::string("fFeEgGaA")
-                     .find(format[spec_pos]) != std::string::npos;
-
-                  if (is_string) {
-                     if (_strings_in_buffer)
-                        printf(print_str.c_str(), &buffer[buf_pos]);
-                     else {
-                        uint64_t idx;
-                        memcpy(&idx, &buffer[buf_pos], 8);
-                        printf(print_str.c_str(), &fmt.strings[idx]);
-                     }
-                  } else {
-                     int component_count = 1;
-
-                     if (is_vector) {
-                        size_t l = std::min(mod_pos, spec_pos) - vec_pos - 1;
-                        std::string s = format.substr(vec_pos + 1, l);
-                        component_count = std::stoi(s);
-                        if (mod_pos != std::string::npos) {
-                           // CL C has hl specifier for 32-bit vectors, C doesn't have it
-                           // just remove it.
-                           std::string mod = format.substr(mod_pos, 2);
-                           if (mod == "hl")
-                              mod_pos = std::string::npos;
-			}
-                        print_str.erase(vec_pos - cur_tok, std::min(mod_pos, spec_pos) - vec_pos);
-                        print_str.push_back(',');
-                     }
-
-                     //in fact vec3 are vec4
-                     int men_components =
-                        component_count == 3 ? 4 : component_count;
-                     size_t elmt_size = arg_size / men_components;
-
-                     for (int i = 0; i < component_count; i++) {
-                        size_t elmt_buf_pos = buf_pos + i * elmt_size;
-                        if (is_vector && i + 1 == component_count)
-                           print_str.pop_back();
-
-                        if (is_float) {
-                           switch (elmt_size) {
-                           case 2:
-                              cl_half h;
-                              std::memcpy(&h, &buffer[elmt_buf_pos], elmt_size);
-                              printf(print_str.c_str(), h);
-                              break;
-                           case 4:
-                              cl_float f;
-                              std::memcpy(&f, &buffer[elmt_buf_pos], elmt_size);
-                              printf(print_str.c_str(), f);
-                              break;
-                           default:
-                              cl_double d;
-                              std::memcpy(&d, &buffer[elmt_buf_pos], elmt_size);
-                              printf(print_str.c_str(), d);
-                           }
-                        } else {
-                           cl_long l = 0;
-                           std::memcpy(&l, &buffer[elmt_buf_pos], elmt_size);
-                           printf(print_str.c_str(), l);
-                        }
-                     }
-                  }
-                  // print the remaining
-                  if (next_tok != spec_pos) {
-                     std::string s = format.substr(spec_pos + 1,
-                                                   next_tok - spec_pos - 1);
-                     printf("%s", s.c_str());
-                  }
-               }
-
-               fmt_pos = spec_pos;
-               fmt_last_pos = next_tok;
-
-               buf_pos += arg_size;
-               buf_pos = ALIGN(buf_pos, 4);
-            }
-         }
+         infos.push_back(info);
       }
+
+      u_printf(stdout, buffer.data(), buffer.size(), infos.data(), infos.size());
    }
 }
 

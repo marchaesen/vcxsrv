@@ -67,13 +67,13 @@ llvmpipe_set_framebuffer_state(struct pipe_context *pipe,
       const struct util_format_description *depth_desc =
          util_format_description(depth_format);
 
-      if (lp->framebuffer.zsbuf && lp->framebuffer.zsbuf->context != pipe) {
+      if (fb->zsbuf && fb->zsbuf->context != pipe) {
          debug_printf("Illegal setting of fb state with zsbuf created in "
                        "another context\n");
       }
       for (i = 0; i < fb->nr_cbufs; i++) {
-         if (lp->framebuffer.cbufs[i] &&
-             lp->framebuffer.cbufs[i]->context != pipe) {
+         if (fb->cbufs[i] &&
+             fb->cbufs[i]->context != pipe) {
             debug_printf("Illegal setting of fb state with cbuf %d created in "
                           "another context\n", i);
          }

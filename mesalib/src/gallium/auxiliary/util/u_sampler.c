@@ -73,14 +73,11 @@ default_template(struct pipe_sampler_view *view,
    if (format != PIPE_FORMAT_A8_UNORM) {
       const struct util_format_description *desc = util_format_description(format);
 
-      assert(desc);
-      if (desc) {
-         if (desc->swizzle[1] == PIPE_SWIZZLE_0) {
-            view->swizzle_g = expand_green_blue;
-         }
-         if (desc->swizzle[2] == PIPE_SWIZZLE_0) {
-            view->swizzle_b = expand_green_blue;
-         }
+      if (desc->swizzle[1] == PIPE_SWIZZLE_0) {
+         view->swizzle_g = expand_green_blue;
+      }
+      if (desc->swizzle[2] == PIPE_SWIZZLE_0) {
+         view->swizzle_b = expand_green_blue;
       }
    }
 }

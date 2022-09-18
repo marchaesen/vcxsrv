@@ -29,6 +29,7 @@
 #define TGSI_TRANSFORM_H
 
 
+#include "pipe/p_defines.h"
 #include "pipe/p_shader_tokens.h"
 #include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_build.h"
@@ -64,10 +65,11 @@ struct tgsi_transform_context
 
    /**
     * Called at end of input program to allow caller to append extra
-    * instructions.  Return number of tokens emitted.
+    * instructions.
     */
    void (*epilog)(struct tgsi_transform_context *ctx);
 
+   enum pipe_shader_type processor;
 
 /*** PRIVATE ***/
 
@@ -88,6 +90,7 @@ struct tgsi_transform_context
    uint max_tokens_out;
    struct tgsi_token *tokens_out;
    uint ti;
+   bool fail;
 };
 
 
@@ -570,10 +573,9 @@ tgsi_transform_tex_inst(struct tgsi_transform_context *ctx,
 }
 
 
-extern int
+extern struct tgsi_token *
 tgsi_transform_shader(const struct tgsi_token *tokens_in,
-                      struct tgsi_token *tokens_out,
-                      uint max_tokens_out,
+                      uint initial_tokens_len,
                       struct tgsi_transform_context *ctx);
 
 

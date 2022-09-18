@@ -23,6 +23,9 @@
  *
  */
 
+#include <unistd.h>
+#include <sys/mman.h>
+
 #include "pan_device.h"
 #include "pan_mempool.h"
 
@@ -115,6 +118,8 @@ panfrost_pool_get_bo_handles(struct panfrost_pool *pool, uint32_t *handles)
         }
 }
 
+#define PAN_GUARD_SIZE 4096
+
 static struct panfrost_ptr
 panfrost_pool_alloc_aligned(struct panfrost_pool *pool, size_t sz, unsigned alignment)
 {
@@ -123,6 +128,27 @@ panfrost_pool_alloc_aligned(struct panfrost_pool *pool, size_t sz, unsigned alig
         /* Find or create a suitable BO */
         struct panfrost_bo *bo = pool->transient_bo;
         unsigned offset = ALIGN_POT(pool->transient_offset, alignment);
+
+#ifdef PAN_DBG_OVERFLOW
+        if (unlikely(pool->base.dev->debug & PAN_DBG_OVERFLOW) &&
+            !(pool->base.create_flags & PAN_BO_INVISIBLE)) {
+                unsigned aligned = ALIGN_POT(sz, sysconf(_SC_PAGESIZE));
+                unsigned bo_size = aligned + PAN_GUARD_SIZE;
+
+                bo = panfrost_pool_alloc_backing(pool, bo_size);
+                memset(bo->ptr.cpu, 0xbb, bo_size);
+
+                /* Place the object as close as possible to the protected
+                 * region at the end of the buffer while keeping alignment. */
+                offset = ROUND_DOWN_TO(aligned - sz, alignment);
+
+                if (mprotect(bo->ptr.cpu + aligned,
+                             PAN_GUARD_SIZE, PROT_NONE) == -1)
+                        perror("mprotect");
+
+                pool->transient_bo = NULL;
+        }
+#endif
 
         /* If we don't fit, allocate a new backing */
         if (unlikely(bo == NULL || (offset + sz) >= pool->base.slab_size)) {

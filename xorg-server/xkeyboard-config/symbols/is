@@ -37,14 +37,14 @@ xkb_symbols "mac_legacy" {
     key <AE01> { [ 1,          exclam,     exclamdown,   VoidSymbol ] };
     key <AE02> { [ 2,          quotedbl,   at,           VoidSymbol ] };
     key <AE03> { [ 3,          numbersign, U2122,        sterling   ] };
-    key <AE04> { [ 4,          dollar,     U00A2,        EuroSign   ] };
+    key <AE04> { [ 4,          dollar,     cent,         EuroSign   ] };
     key <AE05> { [ 5,          percent,    U2030,        infinity   ] };
     key <AE06> { [ 6,          ampersand,  asciicircum,  U2044      ] };
-    key <AE07> { [ 7,          slash,      backslash,    U00F7      ] };
+    key <AE07> { [ 7,          slash,      backslash,    division   ] };
     key <AE08> { [ 8,          parenleft,  bracketleft,  braceleft  ] };
     key <AE09> { [ 9,          parenright, bracketright, braceright ] };
     key <AE10> { [ 0,          equal,      U2260,        U2248      ] };
-    key <AE11> { [ odiaeresis, Odiaeresis, oslash,       Ooblique   ] };
+    key <AE11> { [ odiaeresis, Odiaeresis, oslash,       Oslash     ] };
     key <AE12> { [ minus,      underscore, endash,       emdash     ] };
 
     key <AD01> { [ q,          Q,        paragraph,       VoidSymbol ] };
@@ -54,36 +54,36 @@ xkb_symbols "mac_legacy" {
     key <AD05> { [ t,          T,        degree,          VoidSymbol ] };
     key <AD06> { [ y,          Y,        yen,             VoidSymbol ] };
     key <AD07> { [ u,          U,        dead_diaeresis,  VoidSymbol ] };
-    key <AD08> { [ i,          I,        U0131,           U00AA      ] };
-    key <AD09> { [ o,          O,        dead_circumflex, U00BA      ] };
+    key <AD08> { [ i,          I,        idotless,        ordfeminine] };
+    key <AD09> { [ o,          O,        dead_circumflex, masculine  ] };
     key <AD10> { [ p,          P,        Greek_pi,        Greek_PI   ] };
-    key <AD11> { [ eth,        Eth,      U201e,           U201c      ] };
-    key <AD12> { [ apostrophe, question, questiondown,    U00B7      ] };
+    key <AD11> { [ eth,        ETH,      U201e,           U201c      ] };
+    key <AD12> { [ apostrophe, question, questiondown, periodcentered] };
 
     key <AC01> { [ a,          A,                aring,     Aring      ] };
     key <AC02> { [ s,          S,                ssharp,    abovedot   ] };
-    key <AC03> { [ d,          D,                U2202,     U2DA       ] };
-    key <AC04> { [ f,          F,                U192,      macron     ] };
+    key <AC03> { [ d,          D,                U2202,     U02DA      ] };
+    key <AC04> { [ f,          F,                function,  macron     ] };
     key <AC05> { [ g,          G,                copyright, breve      ] };
     key <AC06> { [ h,          H,                bar,       VoidSymbol ] };
-    key <AC07> { [ j,          J,                U2206,     U2dd       ] };
-    key <AC08> { [ k,          K,                U00AC,     VoidSymbol ] };
+    key <AC07> { [ j,          J,                U2206,     doubleacute] };
+    key <AC08> { [ k,          K,                notsign,   VoidSymbol ] };
     key <AC09> { [ l,          L,                U2026,     caron      ] };
     key <AC10> { [ ae,         AE,               oe,        OE         ] };
     key <AC11> { [ dead_acute, dead_diaeresis,   U201A,     U2018      ] };
     key <BKSL> { [ plus,       asterisk,         U2022,     plusminus  ] };
 
     key <LSGT> { [ less,   greater,   section,          UF8FF          ] }; // Apple logo
-    key <AB01> { [ z,      Z,         U3A9,             VoidSymbol     ] };
+    key <AB01> { [ z,      Z,         Greek_OMEGA,      VoidSymbol     ] };
     key <AB02> { [ x,      X,         asciitilde,       VoidSymbol     ] };
     key <AB03> { [ c,      C,         ccedilla,         Ccedilla       ] };
     key <AB04> { [ v,      V,         U221A,            U25CA          ] };
     key <AB05> { [ b,      B,         U222B,            VoidSymbol     ] };
     key <AB06> { [ n,      N,         dead_tilde,       VoidSymbol     ] };
-    key <AB07> { [ m,      M,         U00B5,            VoidSymbol     ] };
+    key <AB07> { [ m,      M,         mu,               VoidSymbol     ] };
     key <AB08> { [ comma,  semicolon, lessthanequal,    guillemotleft  ] };
     key <AB09> { [ period, colon,     greaterthanequal, guillemotright ] };
-    key <AB10> { [ thorn,  Thorn,     U2019,            U201d          ] };
+    key <AB10> { [ thorn,  THORN,     U2019,            U201d          ] };
 
     include "level3(ralt_switch)"
 };
@@ -94,7 +94,7 @@ partial alphanumeric_keys
 xkb_symbols "mac" {
     name[Group1]= "Icelandic (Macintosh)";
 
-    key <TLDE> { [ degree, dead_diaeresis, oslash,       Ooblique    ] };
+    key <TLDE> { [ degree, dead_diaeresis, oslash,       Oslash      ] };
     key <AE01> { [ 1,          exclam,     exclamdown,   VoidSymbol  ] };
     key <AE02> { [ 2,          quotedbl,   at,           VoidSymbol  ] };
     key <AE03> { [ 3,          numbersign, trademark,    sterling    ] };
@@ -108,17 +108,17 @@ xkb_symbols "mac" {
     key <AE11> { [ odiaeresis, Odiaeresis, backslash,    U2260       ] };
     key <AE12> { [ minus,      underscore, endash,       emdash      ] };
 
-    key <AD01> { [ q,          Q,          U0040,              paragraph           ] };
-    key <AD02> { [ w,          W,          U2211,              U00A7               ] };
-    key <AD03> { [ e,          E,          U20AC,              U00BF               ] };
+    key <AD01> { [ q,          Q,          at,                 paragraph           ] };
+    key <AD02> { [ w,          W,          U2211,              section             ] };
+    key <AD03> { [ e,          E,          U20AC,              questiondown        ] };
     key <AD04> { [ r,          R,          registered,         VoidSymbol          ] };
     key <AD05> { [ t,          T,          degree,             U2022               ] };
     key <AD06> { [ y,          Y,          yen,                VoidSymbol          ] };
     key <AD07> { [ u,          U,          dead_diaeresis,     VoidSymbol          ] };
     key <AD08> { [ i,          I,          idotless,           ordfeminine         ] };
-    key <AD09> { [ o,          O,          dead_circumflex,    U00BA               ] };
+    key <AD09> { [ o,          O,          dead_circumflex,    masculine           ] };
     key <AD10> { [ p,          P,          Greek_pi,           Greek_PI            ] };
-    key <AD11> { [ eth,        Eth,        doublelowquotemark, leftdoublequotemark ] };
+    key <AD11> { [ eth,        ETH,        doublelowquotemark, leftdoublequotemark ] };
     key <AD12> { [ apostrophe, question,   asciitilde,         periodcentered      ] };
 
     key <AC01> { [ a,          A,          aring,             Aring               ] };
@@ -126,9 +126,9 @@ xkb_symbols "mac" {
     key <AC03> { [ d,          D,          partialderivative, U02DA               ] };
     key <AC04> { [ f,          F,          function,          macron              ] };
     key <AC05> { [ g,          G,          copyright,         breve               ] };
-    key <AC06> { [ h,          H,          bar,               U00B8               ] };
+    key <AC06> { [ h,          H,          bar,               cedilla             ] };
     key <AC07> { [ j,          J,          U2206,             doubleacute         ] };
-    key <AC08> { [ k,          K,          notsign,           U2DB                ] };
+    key <AC08> { [ k,          K,          notsign,           ogonek              ] };
     key <AC09> { [ l,          L,          ellipsis,          caron               ] };
     key <AC10> { [ ae,         AE,         oe,                OE                  ] };
     key <AC11> { [ dead_acute, dead_acute, asciicircum,       leftsinglequotemark ] };
@@ -144,7 +144,7 @@ xkb_symbols "mac" {
     key <AB07> { [ m,      M,              mu,                   VoidSymbol           ] };
     key <AB08> { [ comma,  semicolon,      lessthanequal,        guillemotleft        ] };
     key <AB09> { [ period, colon,          greaterthanequal,     guillemotright       ] };
-    key <AB10> { [ thorn,  Thorn,          rightsinglequotemark, rightdoublequotemark ] };
+    key <AB10> { [ thorn,  THORN,          rightsinglequotemark, rightdoublequotemark ] };
 
     include "level3(ralt_switch)"
 };
@@ -181,8 +181,8 @@ xkb_symbols "dvorak" {
     key <AC06> { [       d,     D,           eth,     ETH     ] };
     key <AC10> { [       s,     S,           ae,      AE      ] };
     key <AC11> { [   minus,     underscore,  endash,  emdash  ] };
-    key <AB10> { [       z,     Z,           thorn,   Thorn   ] };
     key <AB06> { [       b,     B,           ssharp,  U1E9E   ] };
+    key <AB10> { [       z,     Z,           thorn,   THORN   ] };
 
     include "level3(ralt_switch)"
 };

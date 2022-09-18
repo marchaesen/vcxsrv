@@ -40,19 +40,27 @@
 #include "nir/nir_builder.h"
 
 static nir_op
-parse_atomic_op(nir_intrinsic_op op, unsigned *offset_src, unsigned *data_src)
+parse_atomic_op(nir_intrinsic_op op, unsigned *offset_src, unsigned *data_src,
+                unsigned *offset2_src)
 {
    switch (op) {
    #define OP_NOIMG(intrin, alu) \
    case nir_intrinsic_ssbo_atomic_##intrin: \
       *offset_src = 1; \
       *data_src = 2; \
+      *offset2_src = *offset_src; \
       return nir_op_##alu; \
    case nir_intrinsic_shared_atomic_##intrin: \
    case nir_intrinsic_global_atomic_##intrin: \
    case nir_intrinsic_deref_atomic_##intrin: \
       *offset_src = 0; \
       *data_src = 1; \
+      *offset2_src = *offset_src; \
+      return nir_op_##alu; \
+   case nir_intrinsic_global_atomic_##intrin##_amd: \
+      *offset_src = 0; \
+      *data_src = 1; \
+      *offset2_src = 2; \
       return nir_op_##alu;
    #define OP(intrin, alu) \
    OP_NOIMG(intrin, alu) \
@@ -61,6 +69,7 @@ parse_atomic_op(nir_intrinsic_op op, unsigned *offset_src, unsigned *data_src)
    case nir_intrinsic_bindless_image_atomic_##intrin: \
       *offset_src = 1; \
       *data_src = 3; \
+      *offset2_src = *offset_src; \
       return nir_op_##alu;
    OP(add, iadd)
    OP(imin, imin)
@@ -201,7 +210,8 @@ optimize_atomic(nir_builder *b, nir_intrinsic_instr *intrin, bool return_prev)
 {
    unsigned offset_src = 0;
    unsigned data_src = 0;
-   nir_op op = parse_atomic_op(intrin->intrinsic, &offset_src, &data_src);
+   unsigned offset2_src = 0;
+   nir_op op = parse_atomic_op(intrin->intrinsic, &offset_src, &data_src, &offset2_src);
    nir_ssa_def *data = intrin->src[data_src].ssa;
 
    /* Separate uniform reduction and scan is faster than doing a combined scan+reduce */
@@ -285,11 +295,14 @@ opt_uniform_atomics(nir_function_impl *impl)
             continue;
 
          nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-         unsigned offset_src, data_src;
-         if (parse_atomic_op(intrin->intrinsic, &offset_src, &data_src) == nir_num_opcodes)
+         unsigned offset_src, data_src, offset2_src;
+         if (parse_atomic_op(intrin->intrinsic, &offset_src, &data_src, &offset2_src) ==
+             nir_num_opcodes)
             continue;
 
          if (nir_src_is_divergent(intrin->src[offset_src]))
+            continue;
+         if (nir_src_is_divergent(intrin->src[offset2_src]))
             continue;
 
          if (is_atomic_already_optimized(b.shader, intrin))

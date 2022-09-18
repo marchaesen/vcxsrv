@@ -102,6 +102,8 @@ unsigned glsl_count_dword_slots(const struct glsl_type *type, bool is_bindless);
 unsigned glsl_count_attribute_slots(const struct glsl_type *type,
                                     bool is_gl_vertex_input);
 unsigned glsl_get_component_slots(const struct glsl_type *type);
+unsigned glsl_get_component_slots_aligned(const struct glsl_type *type,
+                                          unsigned offset);
 unsigned glsl_varying_count(const struct glsl_type *type);
 
 const char *glsl_get_struct_elem_name(const struct glsl_type *type,
@@ -165,7 +167,12 @@ bool glsl_sampler_type_is_shadow(const struct glsl_type *type);
 bool glsl_sampler_type_is_array(const struct glsl_type *type);
 bool glsl_struct_type_is_packed(const struct glsl_type *type);
 bool glsl_contains_atomic(const struct glsl_type *type);
+bool glsl_contains_double(const struct glsl_type *type);
+bool glsl_contains_integer(const struct glsl_type *type);
 bool glsl_contains_opaque(const struct glsl_type *type);
+bool glsl_record_compare(const struct glsl_type *a, const struct glsl_type *b,
+                         bool match_name, bool match_locations,
+                         bool match_precision);
 
 const struct glsl_type *glsl_void_type(void);
 const struct glsl_type *glsl_float_type(void);
@@ -234,6 +241,7 @@ const struct glsl_type *glsl_channel_type(const struct glsl_type *type);
 const struct glsl_type *glsl_float16_type(const struct glsl_type *type);
 const struct glsl_type *glsl_int16_type(const struct glsl_type *type);
 const struct glsl_type *glsl_uint16_type(const struct glsl_type *type);
+const struct glsl_type *glsl_type_to_16bit(const struct glsl_type *old_type);
 
 void glsl_get_natural_size_align_bytes(const struct glsl_type *type,
                                        unsigned *size, unsigned *align);
@@ -254,6 +262,8 @@ const struct glsl_type *glsl_type_replace_vec3_with_vec4(const struct glsl_type 
 unsigned glsl_type_get_sampler_count(const struct glsl_type *type);
 unsigned glsl_type_get_texture_count(const struct glsl_type *type);
 unsigned glsl_type_get_image_count(const struct glsl_type *type);
+
+int glsl_get_field_index(const struct glsl_type *type, const char *name);
 
 bool glsl_type_is_leaf(const struct glsl_type *type);
 

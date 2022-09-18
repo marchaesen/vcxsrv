@@ -1,0 +1,8 @@
+# The following test group pass on the first 3 runs, but may flake eventually.
+# This is an assumption, since those ones were set as failed by Android CTS
+blur2rectsnonninepatch
+bug339297_as_clip
+bug6083
+cliperror
+dashtextcaps
+largeglyphblur

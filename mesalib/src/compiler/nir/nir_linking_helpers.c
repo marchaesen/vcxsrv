@@ -148,7 +148,8 @@ nir_remove_unused_io_vars(nir_shader *shader,
          used = used_by_other_stage;
 
       if (var->data.location < VARYING_SLOT_VAR0 && var->data.location >= 0)
-         continue;
+         if (shader->info.stage != MESA_SHADER_MESH || var->data.location != VARYING_SLOT_PRIMITIVE_ID)
+            continue;
 
       if (var->data.always_active_io)
          continue;
@@ -160,15 +161,25 @@ nir_remove_unused_io_vars(nir_shader *shader,
 
       if (!(other_stage & get_variable_io_mask(var, shader->info.stage))) {
          /* This one is invalid, make it a global variable instead */
+         if (shader->info.stage == MESA_SHADER_MESH &&
+               (shader->info.outputs_read & BITFIELD64_BIT(var->data.location)))
+            var->data.mode = nir_var_mem_shared;
+         else
+            var->data.mode = nir_var_shader_temp;
          var->data.location = 0;
-         var->data.mode = nir_var_shader_temp;
 
          progress = true;
       }
    }
 
-   if (progress)
+   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+   if (progress) {
+      nir_metadata_preserve(impl, nir_metadata_dominance |
+                            nir_metadata_block_index);
       nir_fixup_deref_modes(shader);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
+   }
 
    return progress;
 }
@@ -309,7 +320,8 @@ get_unmoveable_components_masks(nir_shader *shader,
          /* If we can pack this varying then don't mark the components as
           * used.
           */
-         if (is_packing_supported_for_type(type))
+         if (is_packing_supported_for_type(type) &&
+             !var->data.always_active_io)
             continue;
 
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
@@ -956,14 +968,14 @@ nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
 void
 nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer)
 {
-   nir_variable *input_vars[MAX_VARYING] = { 0 };
+   nir_variable *input_vars[MAX_VARYING][4] = { 0 };
 
    nir_foreach_shader_in_variable(var, consumer) {
       if (var->data.location >= VARYING_SLOT_VAR0 &&
           var->data.location - VARYING_SLOT_VAR0 < MAX_VARYING) {
 
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
-         input_vars[location] = var;
+         input_vars[location][var->data.location_frac] = var;
       }
    }
 
@@ -975,8 +987,8 @@ nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer)
             continue;
 
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
-         if (input_vars[location]) {
-            input_vars[location]->data.always_active_io = true;
+         if (input_vars[location][var->data.location_frac]) {
+            input_vars[location][var->data.location_frac]->data.always_active_io = true;
          }
       }
    }
@@ -1373,25 +1385,40 @@ nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer)
       if (!can_replace_varying(out_var))
          continue;
 
-      nir_ssa_scalar uni_scalar;
       nir_ssa_def *ssa = intr->src[1].ssa;
       if (ssa->parent_instr->type == nir_instr_type_load_const) {
          progress |= replace_varying_input_by_constant_load(consumer, intr);
-      } else if (is_direct_uniform_load(ssa, &uni_scalar)) {
-         progress |= replace_varying_input_by_uniform_load(consumer, intr,
-                                                           &uni_scalar);
-      } else {
-         struct hash_entry *entry =
-               _mesa_hash_table_search(varying_values, ssa);
-         if (entry) {
-            progress |= replace_duplicate_input(consumer,
-                                                (nir_variable *) entry->data,
-                                                intr);
+         continue;
+      }
+
+      nir_ssa_scalar uni_scalar;
+      if (is_direct_uniform_load(ssa, &uni_scalar)) {
+         if (consumer->options->lower_varying_from_uniform) {
+            progress |= replace_varying_input_by_uniform_load(consumer, intr,
+                                                              &uni_scalar);
+            continue;
          } else {
             nir_variable *in_var = get_matching_input_var(consumer, out_var);
-            if (in_var) {
-               _mesa_hash_table_insert(varying_values, ssa, in_var);
+            /* The varying is loaded from same uniform, so no need to do any
+             * interpolation. Mark it as flat explicitly.
+             */
+            if (!consumer->options->no_integers &&
+                in_var && in_var->data.interpolation <= INTERP_MODE_NOPERSPECTIVE) {
+               in_var->data.interpolation = INTERP_MODE_FLAT;
+               out_var->data.interpolation = INTERP_MODE_FLAT;
             }
+         }
+      }
+
+      struct hash_entry *entry = _mesa_hash_table_search(varying_values, ssa);
+      if (entry) {
+         progress |= replace_duplicate_input(consumer,
+                                             (nir_variable *) entry->data,
+                                             intr);
+      } else {
+         nir_variable *in_var = get_matching_input_var(consumer, out_var);
+         if (in_var) {
+            _mesa_hash_table_insert(varying_values, ssa, in_var);
          }
       }
    }
@@ -1417,7 +1444,9 @@ insert_sorted(struct exec_list *var_list, nir_variable *new_var)
        */
       if (new_var->data.per_primitive < var->data.per_primitive ||
           (new_var->data.per_primitive == var->data.per_primitive &&
-           var->data.location > new_var->data.location)) {
+           (var->data.location > new_var->data.location ||
+            (var->data.location == new_var->data.location &&
+             var->data.location_frac > new_var->data.location_frac)))) {
          exec_node_insert_node_before(&var->node, &new_var->node);
          return;
       }

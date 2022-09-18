@@ -51,7 +51,7 @@ xkb_symbols "sun_type6" {
     key <AD12> { [  dead_diaeresis, dead_circumflex,    dead_tilde ] };
     key <BKSL> { [      apostrophe,        asterisk,         grave ] };
     key <AC10> { [              ae,              AE                ] };
-    key <AC11> { [          oslash,        Ooblique                ] };
+    key <AC11> { [          oslash,          Oslash                ] };
     key <AB08> { [           comma,       semicolon                ] };
     key <AB09> { [          period,           colon                ] };
     key <AB10> { [           minus,      underscore                ] };

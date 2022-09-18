@@ -297,6 +297,21 @@ struct IDSet {
       return std::make_pair(it, true);
    }
 
+   bool insert(const IDSet other)
+   {
+      bool inserted = false;
+      words.resize(std::max(words.size(), other.words.size()));
+      for (unsigned i = 0; i < other.words.size(); i++) {
+         uint64_t new_bits = other.words[i] & ~words[i];
+         if (new_bits) {
+            inserted = true;
+            bits_set += util_bitcount64(new_bits);
+            words[i] |= new_bits;
+         }
+      }
+      return inserted;
+   }
+
    size_t erase(uint32_t id)
    {
       if (!count(id))

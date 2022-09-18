@@ -402,6 +402,38 @@ dd_screen_fence_get_fd(struct pipe_screen *_screen,
 }
 
 /********************************************************************
+ * vertex state
+ */
+
+static struct pipe_vertex_state *
+dd_screen_create_vertex_state(struct pipe_screen *_screen,
+                              struct pipe_vertex_buffer *buffer,
+                              const struct pipe_vertex_element *elements,
+                              unsigned num_elements,
+                              struct pipe_resource *indexbuf,
+                              uint32_t full_velem_mask)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+   struct pipe_vertex_state *state =
+      screen->create_vertex_state(screen, buffer, elements, num_elements,
+                                  indexbuf, full_velem_mask);
+
+   if (!state)
+      return NULL;
+   state->screen = _screen;
+   return state;
+}
+
+static void
+dd_screen_vertex_state_destroy(struct pipe_screen *_screen,
+                               struct pipe_vertex_state *state)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+
+   screen->vertex_state_destroy(screen, state);
+}
+
+/********************************************************************
  * memobj
  */
 
@@ -623,6 +655,8 @@ ddebug_screen_create(struct pipe_screen *screen)
    SCR_INIT(get_device_uuid);
    SCR_INIT(finalize_nir);
    SCR_INIT(get_sparse_texture_virtual_page_size);
+   SCR_INIT(create_vertex_state);
+   SCR_INIT(vertex_state_destroy);
 
 #undef SCR_INIT
 

@@ -25,6 +25,7 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
+#include <GL/internal/dri_interface.h>
 #include "main/errors.h"
 #include "main/texobj.h"
 #include "main/teximage.h"
@@ -271,12 +272,16 @@ st_bind_egl_image(struct gl_context *ctx,
    GLenum internalFormat;
    mesa_format texFormat;
 
-   /* map pipe format to base format */
-   if (util_format_get_component_bits(stimg->format,
-                                      UTIL_FORMAT_COLORSPACE_RGB, 3) > 0)
-      internalFormat = GL_RGBA;
-   else
-      internalFormat = GL_RGB;
+   if (stimg->internalformat) {
+      internalFormat = stimg->internalformat;
+   } else {
+      /* map pipe format to base format */
+      if (util_format_get_component_bits(stimg->format,
+                                         UTIL_FORMAT_COLORSPACE_RGB, 3) > 0)
+         internalFormat = GL_RGBA;
+      else
+         internalFormat = GL_RGB;
+   }
 
    /* switch to surface based */
    if (!texObj->surface_based) {
@@ -382,8 +387,25 @@ st_bind_egl_image(struct gl_context *ctx,
       st->screen->resource_changed(st->screen, texImage->pt);
 
    texObj->surface_format = stimg->format;
+
+   switch (stimg->yuv_color_space) {
+   case __DRI_YUV_COLOR_SPACE_ITU_REC709:
+      texObj->yuv_color_space = GL_TEXTURE_YUV_COLOR_SPACE_REC709;
+      break;
+   case __DRI_YUV_COLOR_SPACE_ITU_REC2020:
+      texObj->yuv_color_space = GL_TEXTURE_YUV_COLOR_SPACE_REC2020;
+      break;
+   default:
+      texObj->yuv_color_space = GL_TEXTURE_YUV_COLOR_SPACE_REC601;
+      break;
+   }
+
+   if (stimg->yuv_range == __DRI_YUV_FULL_RANGE)
+      texObj->yuv_full_range = true;
+
    texObj->level_override = stimg->level;
    texObj->layer_override = stimg->layer;
+   _mesa_update_texture_object_swizzle(ctx, texObj);
 
    _mesa_dirty_texobj(ctx, texObj);
 }

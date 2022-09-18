@@ -412,6 +412,13 @@ _mesa_has_texture_view(const struct gl_context *ctx)
           _mesa_has_OES_texture_view(ctx);
 }
 
+static inline bool
+_mesa_hw_select_enabled(const struct gl_context *ctx)
+{
+   return ctx->RenderMode == GL_SELECT &&
+      ctx->Const.HardwareAcceleratedSelect;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -378,7 +378,7 @@ mir_bundle_idx_for_ins(midgard_instruction *tag, midgard_block *block)
         unreachable("Instruction not scheduled in block");
 }
 
-void
+midgard_instruction *
 mir_insert_instruction_before_scheduled(
         compiler_context *ctx,
         midgard_block *block,
@@ -398,9 +398,11 @@ mir_insert_instruction_before_scheduled(
 
         list_addtail(&new.instructions[0]->link, &before_bundle->instructions[0]->link);
         block->quadword_count += midgard_tag_props[new.tag].size;
+
+        return new.instructions[0];
 }
 
-void
+midgard_instruction *
 mir_insert_instruction_after_scheduled(
         compiler_context *ctx,
         midgard_block *block,
@@ -423,6 +425,8 @@ mir_insert_instruction_after_scheduled(
         memcpy(bundles + after + 1, &new, sizeof(new));
         list_add(&new.instructions[0]->link, &after_bundle->instructions[after_bundle->instruction_count - 1]->link);
         block->quadword_count += midgard_tag_props[new.tag].size;
+
+        return new.instructions[0];
 }
 
 /* Flip the first-two arguments of a (binary) op. Currently ALU

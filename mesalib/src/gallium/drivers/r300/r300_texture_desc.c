@@ -432,7 +432,7 @@ static void r300_setup_cmask_properties(struct r300_screen *screen,
     /* FP16 AA needs R500 and a fairly new DRM. */
     if ((tex->b.format == PIPE_FORMAT_R16G16B16A16_FLOAT ||
          tex->b.format == PIPE_FORMAT_R16G16B16X16_FLOAT) &&
-        (!screen->caps.is_r500 || screen->info.drm_minor < 29)) {
+        !screen->caps.is_r500) {
         return;
     }
 

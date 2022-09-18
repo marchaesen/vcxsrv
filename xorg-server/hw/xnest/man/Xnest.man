@@ -309,7 +309,7 @@ development of
 .PP
 Since
 .B Xnest
-need not use the same default visual as the the real server, the top-level
+need not use the same default visual as the real server, the top-level
 window of the
 .B Xnest
 client always has its own color map.

@@ -438,7 +438,7 @@ FreedrenoDriver::init_perfcnt()
    uint64_t val;
 
    dev = fd_device_new(drm_device.fd);
-   pipe = fd_pipe_new(dev, FD_PIPE_3D);
+   pipe = fd_pipe_new2(dev, FD_PIPE_3D, 0);
    dev_id = fd_pipe_dev_id(pipe);
 
    if (fd_pipe_get_param(pipe, FD_MAX_FREQ, &val)) {
@@ -453,6 +453,8 @@ FreedrenoDriver::init_perfcnt()
       suspend_count = val;
       has_suspend_count = true;
    }
+
+   fd_pipe_set_param(pipe, FD_SYSPROF, 1);
 
    perfcntrs = fd_perfcntrs(fd_pipe_dev_id(pipe), &num_perfcntrs);
    if (num_perfcntrs == 0) {

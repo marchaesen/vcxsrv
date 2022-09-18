@@ -29,6 +29,7 @@
 #include "pipe/p_config.h"
 #include "pipe/p_compiler.h"
 #include "util/u_memory.h"
+#include "util/u_cpu_detect.h"
 #include "util/u_math.h"
 #include "util/format/u_format.h"
 
@@ -37,7 +38,6 @@
 
 #if (defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64)) && !defined(EMBEDDED_DEVICE)
 
-#include "rtasm/rtasm_cpu.h"
 #include "rtasm/rtasm_x86sse.h"
 
 
@@ -111,8 +111,8 @@ struct translate_sse
    struct x86_function elt8_func;
    struct x86_function *func;
 
-   PIPE_ALIGN_VAR(16) float consts[NUM_FLOAT_CONSTS][4];
-   PIPE_ALIGN_VAR(16) float uconsts[NUM_UNSIGNED_CONSTS][4];
+   alignas(16) float consts[NUM_FLOAT_CONSTS][4];
+   alignas(16) float uconsts[NUM_UNSIGNED_CONSTS][4];
    int8_t reg_to_const[16];
    int8_t const_to_reg[NUM_FLOAT_CONSTS + NUM_UNSIGNED_CONSTS];
 
@@ -1509,8 +1509,7 @@ translate_sse2_create(const struct translate_key *key)
    struct translate_sse *p = NULL;
    unsigned i;
 
-   /* this is misnamed, it actually refers to whether rtasm is enabled or not */
-   if (!rtasm_cpu_has_sse())
+   if (!util_get_cpu_caps()->has_sse)
       goto fail;
 
    p = os_malloc_aligned(sizeof(struct translate_sse), 16);

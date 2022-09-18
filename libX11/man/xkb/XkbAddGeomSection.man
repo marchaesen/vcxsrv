@@ -34,19 +34,19 @@ XkbAddGeomSection \- Add one section to an existing keyboard geometry
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry to be updated
 .TP
-.I \- name
+.I name
 name of the new section
 .TP
-.I \- sz_rows
+.I sz_rows
 number of rows to reserve in the section
 .TP
-.I \- sz_doodads
+.I sz_doodads
 number of doodads to reserve in the section
 .TP
-.I \- sz_overlays
+.I sz_overlays
 number of overlays to reserve in the section
 .SH DESCRIPTION
 .LP

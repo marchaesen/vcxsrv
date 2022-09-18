@@ -38,7 +38,7 @@ static nir_ssa_def *convert_to_bit_size(nir_builder *bld, nir_ssa_def *src,
    if ((type & (nir_type_uint | nir_type_int)) && bit_size == 32 &&
        alu && (alu->op == nir_op_b2i8 || alu->op == nir_op_b2i16)) {
       nir_alu_instr *instr = nir_alu_instr_create(bld->shader, nir_op_b2i32);
-      nir_alu_src_copy(&instr->src[0], &alu->src[0]);
+      nir_alu_src_copy(&instr->src[0], &alu->src[0], instr);
       return nir_builder_alu_instr_finish_and_insert(bld, instr);
    }
 

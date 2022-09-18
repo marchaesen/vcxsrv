@@ -8,6 +8,7 @@ xkb_symbols "basic" {
 
     name[Group1]="Polish";
 
+    key <TLDE>	{ [     grave, asciitilde,      notsign,    logicalor ]	};
     key <AE01>	{ [         1,     exclam,     notequal,   exclamdown ]	};
     key <AE02>	{ [         2,         at,  twosuperior, questiondown ]	};
     key <AE04>	{ [         4,     dollar,         cent,   onequarter ]	};
@@ -33,7 +34,6 @@ xkb_symbols "basic" {
     key <AC06>	{ [         h,          H, rightsinglequotemark, U2022 ] };
     key <AC07>	{ [         j,          J,        schwa,        SCHWA ]	};
     key <AC08>	{ [         k,          K,     ellipsis,  dead_stroke ]	};
-    key <TLDE>	{ [     grave, asciitilde,      notsign,    logicalor ]	};
 
     key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
     key <AB02>	{ [         x,          X,       zacute,       Zacute ]	};
@@ -99,6 +99,7 @@ xkb_symbols "qwertz" {
 
     name[Group1]="Polish (QWERTZ)";
 
+    key <TLDE>	{ [  abovedot, dead_ogonek,     notsign,      notsign ]	};
     key <AE01>	{ [         1,     exclam,   asciitilde,   exclamdown ]	};
     key <AE02>	{ [         2,   quotedbl,   dead_caron,    oneeighth ]	};
     key <AE03>	{ [         3, numbersign, dead_circumflex,  sterling ]	};
@@ -122,9 +123,8 @@ xkb_symbols "qwertz" {
     key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]	};
     key <AC10>	{ [   lstroke,    Lstroke,       dollar, dead_doubleacute ] };
     key <AC11>	{ [   aogonek,    eogonek,       ssharp,   dead_caron ]	};
-    key <TLDE>	{ [  abovedot, dead_ogonek,     notsign,      notsign ]	};
-
     key <BKSL>	{ [    oacute,     zacute,   dead_grave,   dead_breve ]	};
+
     key <AB03>	{ [         c,          C,         cent,    copyright ]	};
     key <AB10>  { [     minus, underscore, dead_belowdot, dead_abovedot ] };
 
@@ -209,7 +209,7 @@ xkb_symbols "dvorak_altquotes" {
 // Those rules overwrite only the following rules from us(dvp):
 // * ccedilla on AltGr+c
 // * aring on Alt+a
-// * oslash/Ooblique on Alt+o
+// * oslash on Alt+o
 // * ae on Alt+e
 // * ntilde on Alt+n
 //
@@ -220,19 +220,14 @@ xkb_symbols "dvp" {
     name[Group1] = "Polish (programmer Dvorak)";
 
     //             Unmodified    Shift           AltGr            Shift+AltGr
-    // symbols row, left side
     key <AE01> { [ ampersand,    percent,        doublelowquotemark, rightdoublequotemark ] };
-
-    // symbols row, right side
-
-    // upper row, left side
 
     // upper row, right side
     key <AD08> { [ c,            C,              cacute,          Cacute     ] };
     key <AD10> { [ l,            L,              lstroke,         Lstroke    ] };
 
     // home row, left side
-    key <AC01> { [ a,            A,              aogonek,         Aogonek    ], type[Group1] = "EIGHT_LEVEL_ALPHABETIC" };
+    key <AC01> { [ a,            A,              aogonek,         Aogonek    ] };
     key <AC02> { [ o,            O,              oacute,          Oacute     ] };
     key <AC03> { [ e,            E,              eogonek,         Eogonek    ] };
 
@@ -570,9 +565,9 @@ xkb_symbols "glagolica"
     key <AC07> { [ U2C0A, U2C0A, any, any ] };//j/J/Ⰺ/Ⰺ
     key <AC08> { [ U2C0D, U2C0D, any, any ] };//k/K/Ⰽ/Ⰽ
     key <AC09> { [ U2C0E, U2C0E, any, any ] };//l/L/Ⰾ/Ⰾ
-    key <AC12> { [ U2C0C, any, any, any ] };//\/|/Ⰼ
     key <AC10> { [ U2C28, U2C24, any, any ] };//;/:/Ⱘ/Ⱔ
     key <AC11> { [ U2C06, any, any, any ] };//'/"/Ⰶ
+    key <AC12> { [ U2C0C, any, any, any ] };//\/|/Ⰼ
     key <AB01> { [ U2C08, U2C07, any, any ] };//z/Z/Ⰸ/Ⰷ
     key <AB02> { [ U2C20, U2C1F, any, any ] };//x/X/Ⱐ/Ⱏ
     key <AB03> { [ U2C1C, U2C1D, any, any] };//c/C/Ⱌ/Ⱍ

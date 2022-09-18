@@ -30,6 +30,7 @@ struct tgsi_token;
 
 struct tgsi_token *
 tgsi_add_aa_point(const struct tgsi_token *tokens_in,
-                  const int aa_point_coord_index);
+                  const int aa_point_coord_index,
+                  const bool need_texcoord_semantic);
 
 #endif /* TGSI_AA_POINT_H */

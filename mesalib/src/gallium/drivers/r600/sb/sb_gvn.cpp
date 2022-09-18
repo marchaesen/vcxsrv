@@ -174,10 +174,11 @@ void gvn::process_alu_src_constants(node &n, value* &v) {
 		}
 	}
 
+	unsigned kcache_count = 0;
 	for (vvec::iterator I = n.src.begin(), E = n.src.end(); I != E; ++I) {
 		value *c = (*I);
 
-		if (c->is_kcache() && !kc.try_reserve(c->select)) {
+		if (c->is_kcache() && (!kc.try_reserve(c->select) || ++kcache_count == 2)) {
 			process_src(v, false);
 			return;
 		}

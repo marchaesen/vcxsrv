@@ -390,6 +390,7 @@ PIPE_FORMAT_R32G32B32A32_FIXED      , plain, 1, 1, 1, h32 , h32 , h32 , h32 , xy
 PIPE_FORMAT_R10G10B10X2_USCALED     , plain, 1, 1, 1, u10 , u10 , u10  , x2 , xyz1, rgb
 # A.k.a. D3DDECLTYPE_DEC3N
 PIPE_FORMAT_R10G10B10X2_SNORM       , plain, 1, 1, 1, sn10, sn10, sn10 , x2 , xyz1, rgb
+PIPE_FORMAT_R10G10B10X2_SINT        , plain, 1, 1, 1, sp10, sp10, sp10 , x2 , xyz1, rgb
 
 PIPE_FORMAT_YV12                  , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_YV16                  , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
@@ -478,6 +479,9 @@ PIPE_FORMAT_R64G64B64_UINT          , plain, 1, 1, 1, up64, up64, up64, , xyz1, 
 PIPE_FORMAT_R64G64B64A64_UINT       , plain, 1, 1, 1, up64, up64, up64, up64, xyzw, rgb
 
 PIPE_FORMAT_R64_SINT                , plain, 1, 1, 1, sp64, , , , x001, rgb
+PIPE_FORMAT_R64G64_SINT             , plain, 1, 1, 1, sp64, sp64, , , xy01, rgb
+PIPE_FORMAT_R64G64B64_SINT          , plain, 1, 1, 1, sp64, sp64, sp64, , xyz1, rgb
+PIPE_FORMAT_R64G64B64A64_SINT       , plain, 1, 1, 1, sp64, sp64, sp64, sp64, xyzw, rgb
 
 PIPE_FORMAT_A8_UINT                 , plain, 1, 1, 1, up8, , , , 000x, rgb
 PIPE_FORMAT_I8_UINT                 , plain, 1, 1, 1, up8, , , , xxxx, rgb
@@ -540,6 +544,7 @@ PIPE_FORMAT_R8G8B8X8_UINT           , plain, 1, 1, 1, up8,  up8,  up8,  x8,  xyz
 PIPE_FORMAT_R8G8B8X8_SINT           , plain, 1, 1, 1, sp8,  sp8,  sp8,  x8,  xyz1, rgb
 PIPE_FORMAT_B10G10R10X2_UNORM       , plain, 1, 1, 1, un10, un10, un10, x2,  zyx1, rgb
 PIPE_FORMAT_B10G10R10X2_SNORM       , plain, 1, 1, 1, sn10, sn10, sn10, x2,  zyx1, rgb
+PIPE_FORMAT_B10G10R10X2_SINT        , plain, 1, 1, 1, sp10, sp10, sp10, x2,  zyx1, rgb
 PIPE_FORMAT_R16G16B16X16_UNORM      , plain, 1, 1, 1, un16, un16, un16, x16, xyz1, rgb
 PIPE_FORMAT_R16G16B16X16_SNORM      , plain, 1, 1, 1, sn16, sn16, sn16, x16, xyz1, rgb
 PIPE_FORMAT_R16G16B16X16_FLOAT      , plain, 1, 1, 1, f16,  f16,  f16,  x16, xyz1, rgb
@@ -571,6 +576,7 @@ PIPE_FORMAT_G8R8_SNORM              , plain, 1, 1, 1, sn8 , sn8 , , , yx01, rgb
 PIPE_FORMAT_G8R8_SINT               , plain, 1, 1, 1, sp8 , sp8 , , , yx01, rgb
 PIPE_FORMAT_G16R16_UNORM            , plain, 1, 1, 1, un16, un16, , , yx01, rgb
 PIPE_FORMAT_G16R16_SNORM            , plain, 1, 1, 1, sn16, sn16, , , yx01, rgb
+PIPE_FORMAT_G16R16_SINT             , plain, 1, 1, 1, sp16, sp16, , , yx01, rgb
 
 PIPE_FORMAT_A8B8G8R8_SNORM          , plain, 1, 1, 1, sn8 , sn8 , sn8 , sn8 , wzyx, rgb
 PIPE_FORMAT_A8B8G8R8_SINT           , plain, 1, 1, 1, sp8 , sp8 , sp8 , sp8 , wzyx, rgb

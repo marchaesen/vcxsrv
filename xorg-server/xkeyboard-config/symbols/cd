@@ -28,7 +28,7 @@ xkb_symbols "basic" {
     key <AD06> { [	   y,          Y                                  ] };
     key <AD07> { [	   u,          U,    0x01000289,       0x01000244 ] };
     key <AD08> { [	   i,          I,    0x01000268,       0x01000197 ] };
-    key <AD09> { [	   o,          O,        oslash,         Ooblique ] };
+    key <AD09> { [	   o,          O,        oslash,           Oslash ] };
     key <AD10> { [	   p,          P                                  ] };
     key <AD11> { [0x0100025B, 0x01000190,   asciicircum                   ] };
     key <AD12> { [ asterisk, asciicircum,        dollar                   ] };

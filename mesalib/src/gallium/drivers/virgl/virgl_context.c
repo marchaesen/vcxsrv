@@ -49,6 +49,7 @@
 #include "virgl_resource.h"
 #include "virgl_screen.h"
 #include "virgl_staging_mgr.h"
+#include "virgl_video.h"
 
 struct virgl_vertex_elements_state {
    uint32_t handle;
@@ -682,15 +683,24 @@ static void *virgl_shader_encoder(struct pipe_context *ctx,
    const struct tgsi_token *ntt_tokens = NULL;
    struct tgsi_token *new_tokens;
    int ret;
+   bool is_separable = false;
 
    if (shader->type == PIPE_SHADER_IR_NIR) {
+      struct nir_to_tgsi_options options = {
+         .unoptimized_ra = true,
+         .lower_fabs = true
+      };
       nir_shader *s = nir_shader_clone(NULL, shader->ir.nir);
-      ntt_tokens = tokens = nir_to_tgsi(s, vctx->base.screen); /* takes ownership */
+
+      /* Propagare the separable shader property to the host, unless
+       * it is an internal shader - these are marked separable even though they are not. */
+      is_separable = s->info.separate_shader && !s->info.internal;
+      ntt_tokens = tokens = nir_to_tgsi_options(s, vctx->base.screen, &options); /* takes ownership */
    } else {
       tokens = shader->tokens;
    }
 
-   new_tokens = virgl_tgsi_transform((struct virgl_screen *)vctx->base.screen, tokens);
+   new_tokens = virgl_tgsi_transform((struct virgl_screen *)vctx->base.screen, tokens, is_separable);
    if (!new_tokens)
       return NULL;
 
@@ -848,6 +858,17 @@ static void virgl_clear(struct pipe_context *ctx,
    vctx->num_draws++;
 
    virgl_encode_clear(vctx, buffers, color, depth, stencil);
+}
+
+static void virgl_clear_render_target(struct pipe_context *ctx,
+                                      struct pipe_surface *dst,
+                                      const union pipe_color_union *color,
+                                      unsigned dstx, unsigned dsty,
+                                      unsigned width, unsigned height,
+                                      bool render_condition_enabled)
+{
+   if (virgl_debug & VIRGL_DEBUG_VERBOSE)
+      debug_printf("VIRGL: clear render target unsupported.\n");
 }
 
 static void virgl_clear_texture(struct pipe_context *ctx,
@@ -1366,23 +1387,32 @@ static void *virgl_create_compute_state(struct pipe_context *ctx,
    int ret;
 
    if (state->ir_type == PIPE_SHADER_IR_NIR) {
+      struct nir_to_tgsi_options options = {
+         .unoptimized_ra = true,
+         .lower_fabs = true
+      };
       nir_shader *s = nir_shader_clone(NULL, state->prog);
-      ntt_tokens = tokens = nir_to_tgsi(s, vctx->base.screen); /* takes ownership */
+      ntt_tokens = tokens = nir_to_tgsi_options(s, vctx->base.screen, &options); /* takes ownership */
    } else {
       tokens = state->prog;
    }
+
+   void *new_tokens = virgl_tgsi_transform((struct virgl_screen *)vctx->base.screen, tokens, false);
+   if (!new_tokens)
+      return NULL;
 
    handle = virgl_object_assign_handle();
    ret = virgl_encode_shader_state(vctx, handle, PIPE_SHADER_COMPUTE,
                                    &so_info,
                                    state->req_local_mem,
-                                   tokens);
+                                   new_tokens);
    if (ret) {
       FREE((void *)ntt_tokens);
       return NULL;
    }
 
    FREE((void *)ntt_tokens);
+   FREE(new_tokens);
 
    return (void *)(unsigned long)handle;
 }
@@ -1606,6 +1636,7 @@ struct pipe_context *virgl_context_create(struct pipe_screen *pscreen,
    vctx->base.launch_grid = virgl_launch_grid;
 
    vctx->base.clear = virgl_clear;
+   vctx->base.clear_render_target = virgl_clear_render_target;
    vctx->base.clear_texture = virgl_clear_texture;
    vctx->base.draw_vbo = virgl_draw_vbo;
    vctx->base.flush = virgl_flush_from_st;
@@ -1641,6 +1672,9 @@ struct pipe_context *virgl_context_create(struct pipe_screen *pscreen,
    vctx->base.set_shader_images = virgl_set_shader_images;
    vctx->base.memory_barrier = virgl_memory_barrier;
    vctx->base.emit_string_marker = virgl_emit_string_marker;
+
+   vctx->base.create_video_codec = virgl_video_create_codec;
+   vctx->base.create_video_buffer = virgl_video_create_buffer;
 
    if (rs->caps.caps.v2.host_feature_check_version >= 7)
       vctx->base.link_shader = virgl_link_shader;

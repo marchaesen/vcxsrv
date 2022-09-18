@@ -20,9 +20,10 @@
 # SOFTWARE.
 
 inc_asahi = include_directories([
-   '.', 'lib', 'compiler'
+   '.', 'layout', 'lib', 'compiler'
 ])
 
+subdir('layout')
 subdir('lib')
 subdir('compiler')
 

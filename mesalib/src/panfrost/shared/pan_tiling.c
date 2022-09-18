@@ -28,54 +28,28 @@
 #include "pan_tiling.h"
 #include <stdbool.h>
 #include "util/macros.h"
+#include "util/bitscan.h"
 
-/* This file implements software encode/decode of the tiling format used for
- * textures and framebuffers primarily on Utgard GPUs. Names for this format
- * include "Utgard-style tiling", "(Mali) swizzled textures", and
- * "U-interleaved" (the former two names being used in the community
- * Lima/Panfrost drivers; the latter name used internally at Arm).
- * Conceptually, like any tiling scheme, the pixel reordering attempts to 2D
- * spatial locality, to improve cache locality in both horizontal and vertical
- * directions.
+/*
+ * This file implements software encode/decode of u-interleaved textures.
+ * See docs/drivers/panfrost.rst for details on the format.
  *
- * This format is tiled: first, the image dimensions must be aligned to 16
- * pixels in each axis. Once aligned, the image is divided into 16x16 tiles.
- * This size harmonizes with other properties of the GPU; on Midgard,
- * framebuffer tiles are logically 16x16 (this is the tile size used in
- * Transaction Elimination and the minimum tile size used in Hierarchical
- * Tiling). Conversely, for a standard 4 bytes-per-pixel format (like
- * RGBA8888), 16 pixels * 4 bytes/pixel = 64 bytes, equal to the cache line
- * size.
+ * The tricky bit is ordering along the space-filling curve:
  *
- * Within each 16x16 block, the bits are reordered according to this pattern:
+ *    | y3 | (x3 ^ y3) | y2 | (y2 ^ x2) | y1 | (y1 ^ x1) | y0 | (y0 ^ x0) |
  *
- * | y3 | (x3 ^ y3) | y2 | (y2 ^ x2) | y1 | (y1 ^ x1) | y0 | (y0 ^ x0) |
- *
- * Basically, interleaving the X and Y bits, with XORs thrown in for every
- * adjacent bit pair.
- *
- * This is cheap to implement both encode/decode in both hardware and software.
- * In hardware, lines are simply rerouted to reorder and some XOR gates are
- * thrown in. Software has to be a bit more clever.
- *
- * In software, the trick is to divide the pattern into two lines:
+ * While interleaving bits is trivial in hardware, it is nontrivial in software.
+ * The trick is to divide the pattern up:
  *
  *    | y3 | y3 | y2 | y2 | y1 | y1 | y0 | y0 |
  *  ^ |  0 | x3 |  0 | x2 |  0 | x1 |  0 | x0 |
  *
- * That is, duplicate the bits of the Y and space out the bits of the X. The
- * top line is a function only of Y, so it can be calculated once per row and
- * stored in a register. The bottom line is simply X with the bits spaced out.
- * Spacing out the X is easy enough with a LUT, or by subtracting+ANDing the
- * mask pattern (abusing carry bits).
+ * That is, duplicate the bits of the Y and space out the bits of the X. The top
+ * line is a function only of Y, so it can be calculated once per row and stored
+ * in a register. The bottom line is simply X with the bits spaced out. Spacing
+ * out the X is easy enough with a LUT, or by subtracting+ANDing the mask
+ * pattern (abusing carry bits).
  *
- * This format is also supported on Midgard GPUs, where it *can* be used for
- * textures and framebuffers. That said, in practice it is usually as a
- * fallback layout; Midgard introduces Arm FrameBuffer Compression, which is
- * significantly more efficient than Utgard-style tiling and preferred for both
- * textures and framebuffers, where possible. For unsupported texture types,
- * for instance sRGB textures and framebuffers, this tiling scheme is used at a
- * performance penalty, as AFBC is not compatible.
  */
 
 /* Given the lower 4-bits of the Y coordinate, we would like to
@@ -148,6 +122,16 @@ typedef struct {
   uint8_t hi;
 } __attribute__((packed)) pan_uint24_t;
 
+typedef struct {
+  uint32_t lo;
+  uint16_t hi;
+} __attribute__((packed)) pan_uint48_t;
+
+typedef struct {
+  uint64_t lo;
+  uint32_t hi;
+} __attribute__((packed)) pan_uint96_t;
+
 /* Optimized routine to tile an aligned (w & 0xF == 0) texture. Explanation:
  *
  * dest_start precomputes the offset to the beginning of the first horizontal
@@ -191,8 +175,7 @@ panfrost_access_tiled_image_##pixel_t \
 { \
    uint8_t *dest_start = dst + ((sx >> 4) * PIXELS_PER_TILE * sizeof(pixel_t)); \
    for (int y = sy, src_y = 0; src_y < h; ++y, ++src_y) { \
-      uint16_t block_y = y & ~0x0f; \
-      uint8_t *dest = (uint8_t *) (dest_start + (block_y * dst_stride)); \
+      uint8_t *dest = (uint8_t *) (dest_start + ((y >> 4) * dst_stride)); \
       pixel_t *source = src + (src_y * src_stride); \
       pixel_t *source_end = source + w; \
       unsigned expanded_y = bit_duplication[y & 0xF] << shift; \
@@ -217,8 +200,7 @@ TILED_ACCESS_TYPE(pan_uint128_t, 4);
 #define TILED_UNALIGNED_TYPE(pixel_t, is_store, tile_shift) { \
    const unsigned mask = (1 << tile_shift) - 1; \
    for (int y = sy, src_y = 0; src_y < h; ++y, ++src_y) { \
-      unsigned block_y = y & ~mask; \
-      unsigned block_start_s = block_y * dst_stride; \
+      unsigned block_start_s = (y >> tile_shift) * dst_stride; \
       unsigned source_start = src_y * src_stride; \
       unsigned expanded_y = bit_duplication[y & mask]; \
  \
@@ -244,8 +226,12 @@ TILED_ACCESS_TYPE(pan_uint128_t, 4);
       TILED_UNALIGNED_TYPE(pan_uint24_t, store, shift) \
    else if (bpp == 32) \
       TILED_UNALIGNED_TYPE(uint32_t, store, shift) \
+   else if (bpp == 48) \
+      TILED_UNALIGNED_TYPE(pan_uint48_t, store, shift) \
    else if (bpp == 64) \
       TILED_UNALIGNED_TYPE(uint64_t, store, shift) \
+   else if (bpp == 96) \
+      TILED_UNALIGNED_TYPE(pan_uint96_t, store, shift) \
    else if (bpp == 128) \
       TILED_UNALIGNED_TYPE(pan_uint128_t, store, shift) \
 }
@@ -298,8 +284,17 @@ panfrost_access_tiled_image(void *dst, void *src,
                            bool is_store)
 {
    const struct util_format_description *desc = util_format_description(format);
+   unsigned bpp = desc->block.bits;
 
-   if (desc->block.width > 1 || desc->block.bits == 24) {
+   /* Our optimized routines cannot handle unaligned blocks (without depending
+    * on platform-specific behaviour), and there is no good reason to do so. If
+    * these assertions fail, there is either a driver bug or a non-portable unit
+    * test.
+    */
+   assert((dst_stride % (bpp / 8)) == 0 && "unaligned destination stride");
+   assert((src_stride % (bpp / 8)) == 0 && "unaligned source stride");
+
+   if (desc->block.width > 1 || !util_is_power_of_two_nonzero(desc->block.bits)) {
       panfrost_access_tiled_image_generic(dst, (void *) src,
             x, y, w, h,
             dst_stride, src_stride, desc, is_store);
@@ -307,7 +302,6 @@ panfrost_access_tiled_image(void *dst, void *src,
       return;
    }
 
-   unsigned bpp = desc->block.bits;
    unsigned first_full_tile_x = DIV_ROUND_UP(x, TILE_WIDTH) * TILE_WIDTH;
    unsigned first_full_tile_y = DIV_ROUND_UP(y, TILE_HEIGHT) * TILE_HEIGHT;
    unsigned last_full_tile_x = ((x + w) / TILE_WIDTH) * TILE_WIDTH;

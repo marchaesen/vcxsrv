@@ -1352,9 +1352,6 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
     int saveType;
     PixmapFormatRec *BankFormat;
     ClockRangePtr cp;
-    int numTimings = 0;
-    range hsync[MAX_HSYNC];
-    range vrefresh[MAX_VREFRESH];
     Bool inferred_virtual = FALSE;
 
     DebugF
@@ -1394,18 +1391,9 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
         Bool specified = FALSE;
 
         if (scrp->monitor->nHsync <= 0) {
-            if (numTimings > 0) {
-                scrp->monitor->nHsync = numTimings;
-                for (i = 0; i < numTimings; i++) {
-                    scrp->monitor->hsync[i].lo = hsync[i].lo;
-                    scrp->monitor->hsync[i].hi = hsync[i].hi;
-                }
-            }
-            else {
-                scrp->monitor->hsync[0].lo = 31.5;
-                scrp->monitor->hsync[0].hi = 48.0;
-                scrp->monitor->nHsync = 1;
-            }
+            scrp->monitor->hsync[0].lo = 31.5;
+            scrp->monitor->hsync[0].hi = 48.0;
+            scrp->monitor->nHsync = 1;
             type = "default ";
         }
         else {
@@ -1426,18 +1414,9 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
 
         type = "";
         if (scrp->monitor->nVrefresh <= 0) {
-            if (numTimings > 0) {
-                scrp->monitor->nVrefresh = numTimings;
-                for (i = 0; i < numTimings; i++) {
-                    scrp->monitor->vrefresh[i].lo = vrefresh[i].lo;
-                    scrp->monitor->vrefresh[i].hi = vrefresh[i].hi;
-                }
-            }
-            else {
-                scrp->monitor->vrefresh[0].lo = 50;
-                scrp->monitor->vrefresh[0].hi = 70;
-                scrp->monitor->nVrefresh = 1;
-            }
+            scrp->monitor->vrefresh[0].lo = 50;
+            scrp->monitor->vrefresh[0].hi = 70;
+            scrp->monitor->nVrefresh = 1;
             type = "default ";
         }
         else {

@@ -155,4 +155,23 @@ mir_print_constant_component(FILE *fp, const midgard_constants *consts, unsigned
         }
 }
 
+static char *outmod_names_float[4] = {
+        "",
+        ".clamp_0_inf",
+        ".clamp_m1_1",
+        ".clamp_0_1"
+};
 
+static char *outmod_names_int[4] = {
+        ".ssat",
+        ".usat",
+        ".keeplo",
+        ".keephi"
+};
+
+void
+mir_print_outmod(FILE *fp, unsigned outmod, bool is_int)
+{
+        fprintf(fp, "%s", is_int ? outmod_names_int[outmod] :
+                outmod_names_float[outmod]);
+}

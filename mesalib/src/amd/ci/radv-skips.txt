@@ -10,3 +10,50 @@ dEQP-VK.memory.pipeline_barrier.transfer_src_transfer_dst.1048576
 
 # Exclude this test which fails on all GPUS except RDNA2+.
 dEQP-VK.api.driver_properties.conformance_version
+
+# Those cases take very long.
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_1_1048576_1
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_1_1_1048576
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_65536_1_1
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_1_65536_1
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_1_1_65536
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_4096_4_4
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_4_4096_4
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_4_4_4096
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_4_65536_4
+dEQP-VK.ray_tracing_pipeline.build.*.*.*_4_4_65536
+
+dEQP-VK.ray_tracing_pipeline.large_shader_set.*.4096
+
+dEQP-VK.ray_tracing_pipeline.misc.maxrtinvocations_AABB
+dEQP-VK.ray_tracing_pipeline.misc.maxrtinvocations_tri
+
+# Those cases take very long and hang the gpu.
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_11
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_12
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_13
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_14
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_15
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_11
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_12
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_13
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_14
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_15
+
+# Those test either fail or hang so just exclude all of them for now.
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.*
+
+# LLVM (soft hangs)
+dEQP-VK.graphicsfuzz.while-inside-switch
+
+# LLVM (timeouts)
+dEQP-VK.graphicsfuzz.spv-stable-maze-O-dead-code
+dEQP-VK.graphicsfuzz.spv-stable-maze-O-memory-accesses
+dEQP-VK.spirv_assembly.instruction.graphics.16bit_storage.uniform_32struct_to_16struct.uniform_buffer_block_geom
+
+# These tests create an ACE cmdbuf which waits for GFX, thus can cause
+# a deadlock when executed in parallel without gang submit.
+dEQP-VK.mesh_shader.nv.synchronization.*
+dEQP-VK.mesh_shader.ext.synchronization.*
+dEQP-VK.mesh_shader.nv.misc.many_task*
+dEQP-VK.mesh_shader.ext.misc.many_task*

@@ -23,7 +23,7 @@ xkb_symbols "basic" {
     key <AB08> {	[           comma,       semicolon     	]	};
     key <AB09> {	[          period,           colon     	]	};
     key <AB10> {	[           minus,      underscore     	]	};
-    key <AC10> {	[	   oslash,        Ooblique,       odiaeresis,   Odiaeresis	]	};
+    key <AC10> {	[	   oslash,          Oslash,       odiaeresis,   Odiaeresis	]	};
     key <AC11> {	[              ae,              AE 	]	};
     key <AD11> {	[	    aring,           Aring     	]	};
     key <AD12> {	[       diaeresis,     asciicircum,       asciitilde,  dead_macron     	]      	};

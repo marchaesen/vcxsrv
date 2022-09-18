@@ -30,7 +30,7 @@
 
 #include "pipebuffer/pb_cache.h"
 #include "pipebuffer/pb_slab.h"
-#include "gallium/drivers/radeon/radeon_winsys.h"
+#include "winsys/radeon_winsys.h"
 #include "util/simple_mtx.h"
 #include "util/u_queue.h"
 #include <amdgpu.h>
@@ -64,7 +64,6 @@ struct amdgpu_winsys {
     * need to layer the allocators, so that we don't waste too much memory.
     */
    struct pb_slabs bo_slabs[NUM_SLAB_ALLOCATORS];
-   struct pb_slabs bo_slabs_encrypted[NUM_SLAB_ALLOCATORS];
 
    amdgpu_device_handle dev;
 
@@ -93,7 +92,6 @@ struct amdgpu_winsys {
    /* multithreaded IB submission */
    struct util_queue cs_queue;
 
-   struct amdgpu_gpu_info amdinfo;
    struct ac_addrlib *addrlib;
 
    bool check_vm;

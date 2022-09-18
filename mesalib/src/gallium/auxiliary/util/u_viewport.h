@@ -28,7 +28,6 @@
 #ifndef U_VIEWPORT_H
 #define U_VIEWPORT_H
 
-#include "c99_compat.h"
 #include "pipe/p_state.h"
 
 #ifdef __cplusplus

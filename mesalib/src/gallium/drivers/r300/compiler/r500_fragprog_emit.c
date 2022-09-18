@@ -460,6 +460,7 @@ static void emit_flowcontrol(struct emit_state * s, struct rc_instruction * inst
 		s->Code->int_constant_count = 1;
 	}
 	s->Code->inst[newip].inst0 = R500_INST_TYPE_FC | R500_INST_ALU_WAIT;
+	s->Code->inst[newip].inst0 |= (inst->U.I.TexSemWait << R500_INST_TEX_SEM_WAIT_SHIFT);
 
 	switch(inst->U.I.Opcode){
 	struct branch_info * branch;

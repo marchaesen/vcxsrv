@@ -20,25 +20,25 @@
 
 
 opengl32_link_args = []
-if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
-  opengl32_link_args += ['-Wl,--enable-stdcall-fixup']
-endif
 
-if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
-  ogl_def = 'opengl32.mingw.def'
-else
-  ogl_def = 'opengl32.def'
-endif
+opengl32_def = custom_target(
+  'opengl32.def',
+  input: 'opengl32.def.in',
+  output : 'opengl32.def',
+  command : [prog_python, gen_vs_module_defs_py,
+             '--in_file', '@INPUT@', '--out_file', '@OUTPUT@',
+             '--compiler_id', cc.get_argument_syntax(), '--cpu_family', host_machine.cpu_family()]
+)
 
 libopengl32 = shared_library(
   'opengl32',
   ['stw_wgl.c'],
-  vs_module_defs : ogl_def,
+  vs_module_defs : opengl32_def,
   include_directories : [
     inc_include, inc_wgl, inc_src,
   ],
   link_with : [
-    libgallium_wgl, libglapi_static, libglapi
+    libgallium_wgl, libglapi_bridge, libglapi
   ],
   dependencies : [
     idep_mesautil
@@ -68,21 +68,18 @@ if with_tests
     dependencies : [idep_gtest, dep_dxheaders, extra_test_deps],
   )
 
-  # The CI pipeline for MinGW doesn't support creating a window, so don't run these tests there
-  if with_tests and cc.get_id() != 'gcc'
-    wgl_test_env = environment()
-    wgl_test_env.append('PATH', libgallium_wgl_build_dir)
-    if with_shared_glapi
-      wgl_test_env.append('PATH', libglapi_build_dir)
-    endif
-
-    test(
-      'wgl',
-      test_wgl,
-      suite : ['wgl'],
-      env : wgl_test_env,
-      depends : [libopengl32],
-      protocol : gtest_test_protocol,
-    )
+  wgl_test_env = environment()
+  wgl_test_env.append('PATH', libgallium_wgl_build_dir)
+  if with_shared_glapi
+    wgl_test_env.append('PATH', libglapi_build_dir)
   endif
+
+  test(
+    'wgl',
+    test_wgl,
+    suite : ['wgl'],
+    env : wgl_test_env,
+    depends : [libopengl32],
+    protocol : gtest_test_protocol,
+  )
 endif

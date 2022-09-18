@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2008 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 
@@ -39,10 +39,11 @@
 #define U_MATH_H
 
 
-#include "c99_math.h"
+#include "c99_compat.h"
 #include <assert.h>
 #include <float.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include "bitscan.h"
 #include "u_endian.h" /* for UTIL_ARCH_BIG_ENDIAN */
@@ -156,7 +157,7 @@ util_ifloor(float f)
 static inline int
 util_iround(float f)
 {
-#if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86) 
+#if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86)
    int r;
    __asm__ ("fistpl %0" : "=m" (r) : "t" (f) : "st");
    return r;
@@ -579,17 +580,31 @@ util_bswap16(uint16_t n)
 }
 
 /**
- * Extend sign.
+ * Mask and sign-extend a number
+ *
+ * The bit at position `width - 1` is replicated to all the higher bits.
+ * This makes no assumptions about the high bits of the value and will
+ * overwrite them with the sign bit.
+ */
+static inline int64_t
+util_mask_sign_extend(uint64_t val, unsigned width)
+{
+   assert(width > 0 && width <= 64);
+   unsigned shift = 64 - width;
+   return (int64_t)(val << shift) >> shift;
+}
+
+/**
+ * Sign-extend a number
+ *
+ * The bit at position `width - 1` is replicated to all the higher bits.
+ * This assumes and asserts that the value fits into `width` bits.
  */
 static inline int64_t
 util_sign_extend(uint64_t val, unsigned width)
 {
-	assert(width > 0);
-	if (val & (UINT64_C(1) << (width - 1))) {
-		return -(int64_t)((UINT64_C(1) << width) - val);
-	} else {
-		return val;
-	}
+   assert(width == 64 || val < (UINT64_C(1) << width));
+   return util_mask_sign_extend(val, width);
 }
 
 static inline void*

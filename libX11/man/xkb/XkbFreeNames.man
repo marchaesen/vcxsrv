@@ -33,13 +33,13 @@ XkbFreeNames \- Free symbolic names structures
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description for which names are to be freed
 .TP
-.I \- which
+.I which
 mask of names components to be freed
 .TP
-.I \- free_map
+.I free_map
 True => XkbNamesRec structure itself should be freed
 .SH DESCRIPTION
 .LP

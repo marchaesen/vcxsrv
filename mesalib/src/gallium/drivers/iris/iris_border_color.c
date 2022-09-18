@@ -39,7 +39,10 @@
  * table of known colors, and reuse the same entries.  This avoids
  * wasting a lot of space in the pool.
  *
- * If it ever does fill up, we simply flush.
+ * If it ever does fill up, we simply return the black border. We
+ * can't simply flush since the BO is shared by every context. If we
+ * ever need we may choose to have multiple BOs, refcount them and
+ * then recycle when unused.
  */
 
 #include <stdlib.h>
@@ -49,6 +52,7 @@
 #include "iris_context.h"
 
 #define BC_ALIGNMENT 64
+#define BC_BLACK 64
 
 static bool
 color_equals(const void *a, const void *b)
@@ -62,13 +66,13 @@ color_hash(const void *key)
    return _mesa_hash_data(key, sizeof(union pipe_color_union));
 }
 
-static void
-iris_reset_border_color_pool(struct iris_border_color_pool *pool,
-                             struct iris_bufmgr *bufmgr)
+void
+iris_init_border_color_pool(struct iris_bufmgr *bufmgr,
+                            struct iris_border_color_pool *pool)
 {
-   _mesa_hash_table_clear(pool->ht, NULL);
+   simple_mtx_init(&pool->lock, mtx_plain);
 
-   iris_bo_unreference(pool->bo);
+   pool->ht = _mesa_hash_table_create(NULL, color_hash, color_equals);
 
    pool->bo = iris_bo_alloc(bufmgr, "border colors",
                             IRIS_BORDER_COLOR_POOL_SIZE, 1,
@@ -77,50 +81,18 @@ iris_reset_border_color_pool(struct iris_border_color_pool *pool,
 
    /* Don't make 0 a valid offset - tools treat that as a NULL pointer. */
    pool->insert_point = BC_ALIGNMENT;
+
+   union pipe_color_union black = {.f = { 0.0, 0.0, 0.0, 1.0 }};
+   ASSERTED uint32_t black_offset = iris_upload_border_color(pool, &black);
+   assert(black_offset == BC_BLACK);
 }
 
 void
-iris_init_border_color_pool(struct iris_context *ice)
+iris_destroy_border_color_pool(struct iris_border_color_pool *pool)
 {
-   struct iris_screen *screen = (void *) ice->ctx.screen;
-   struct iris_bufmgr *bufmgr = screen->bufmgr;
-
-   struct iris_border_color_pool *pool = &ice->state.border_color_pool;
-
-   pool->bo = NULL;
-   pool->ht = _mesa_hash_table_create(ice, color_hash, color_equals);
-
-   iris_reset_border_color_pool(pool, bufmgr);
-}
-
-void
-iris_destroy_border_color_pool(struct iris_context *ice)
-{
-   struct iris_border_color_pool *pool = &ice->state.border_color_pool;
    iris_bo_unreference(pool->bo);
    ralloc_free(pool->ht);
-}
-
-/**
- * Reserve space for a number of border colors.  If no space, flushes any
- * batches that are referring to the old BO and makes a new one.
- */
-void
-iris_border_color_pool_reserve(struct iris_context *ice, unsigned count)
-{
-   struct iris_border_color_pool *pool = &ice->state.border_color_pool;
-   const unsigned remaining_entries =
-      (IRIS_BORDER_COLOR_POOL_SIZE - pool->insert_point) / BC_ALIGNMENT;
-
-   if (remaining_entries < count) {
-      /* It's safe to flush because we're called outside of state upload. */
-      iris_foreach_batch(ice, batch) {
-         if (iris_batch_references(batch, pool->bo))
-            iris_batch_flush(batch);
-      }
-
-      iris_reset_border_color_pool(pool, pool->bo->bufmgr);
-   }
+   simple_mtx_destroy(&pool->lock);
 }
 
 /**
@@ -130,25 +102,39 @@ iris_border_color_pool_reserve(struct iris_context *ice, unsigned count)
  * reserve space ahead of time by calling iris_border_color_pool_reserve().
  */
 uint32_t
-iris_upload_border_color(struct iris_context *ice,
+iris_upload_border_color(struct iris_border_color_pool *pool,
                          union pipe_color_union *color)
 {
-   struct iris_border_color_pool *pool = &ice->state.border_color_pool;
-
+   uint32_t offset;
    uint32_t hash = color_hash(color);
+
+   simple_mtx_lock(&pool->lock);
+
    struct hash_entry *entry =
       _mesa_hash_table_search_pre_hashed(pool->ht, hash, color);
-   if (entry)
-      return (uintptr_t) entry->data;
+   if (entry) {
+      offset = (uintptr_t) entry->data;
+      goto out;
+   }
 
-   assert(pool->insert_point + BC_ALIGNMENT < IRIS_BORDER_COLOR_POOL_SIZE);
+   if (pool->insert_point + BC_ALIGNMENT > IRIS_BORDER_COLOR_POOL_SIZE) {
+      static bool warned = false;
+      if (!warned) {
+         fprintf(stderr, "Border color pool is full. Using black instead.\n");
+         warned = true;
+      }
+      offset = BC_BLACK;
+      goto out;
+   }
 
-   uint32_t offset = pool->insert_point;
+   offset = pool->insert_point;
    memcpy(pool->map + offset, color, sizeof(*color));
    pool->insert_point += BC_ALIGNMENT;
 
    _mesa_hash_table_insert_pre_hashed(pool->ht, hash, pool->map + offset,
                                       (void *) (uintptr_t) offset);
+out:
+   simple_mtx_unlock(&pool->lock);
    return offset;
 }
 

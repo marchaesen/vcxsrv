@@ -316,6 +316,7 @@ static void seq_parameter_set(vid_dec_PrivateType *priv, struct vl_rbsp *rbsp)
 
    sps->direct_8x8_inference_flag = vl_rbsp_u(rbsp, 1);
 
+   sps->MinLumaBiPredSize8x8 = (sps->level_idc >= 31); /* See section A.3.3.2 of H264 spec */;
 #if ENABLE_ST_OMX_TIZONIA
    priv->stream_info.width = pic_width_in_samplesl;
 
@@ -438,8 +439,7 @@ static void picture_parameter_set(vid_dec_PrivateType *priv, struct vl_rbsp *rbs
 
    pps->pic_init_qp_minus26 = vl_rbsp_se(rbsp);
 
-   /* pic_init_qs_minus26 */
-   vl_rbsp_se(rbsp);
+   pps->pic_init_qs_minus26 = vl_rbsp_se(rbsp);
 
    pps->chroma_qp_index_offset = vl_rbsp_se(rbsp);
 

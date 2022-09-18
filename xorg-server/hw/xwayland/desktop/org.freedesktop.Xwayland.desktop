@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Xwayland
+Comment=A rootful instance of the Xwayland X11 server
+Terminal=false
+Type=Application
+Categories=System;
+NoDisplay=true

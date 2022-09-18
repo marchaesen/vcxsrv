@@ -46,6 +46,7 @@ static int to_llvm_address_space(SpvStorageClass mode)
    case SpvStorageClassUniform:
    case SpvStorageClassUniformConstant: return 2;
    case SpvStorageClassWorkgroup: return 3;
+   case SpvStorageClassGeneric: return 4;
    default: return -1;
    }
 }
@@ -725,7 +726,7 @@ vtn_handle_opencl_vstore_half_r(struct vtn_builder *b, enum OpenCLstd_Entrypoint
 }
 
 static unsigned
-vtn_add_printf_string(struct vtn_builder *b, uint32_t id, nir_printf_info *info)
+vtn_add_printf_string(struct vtn_builder *b, uint32_t id, u_printf_info *info)
 {
    nir_deref_instr *deref = vtn_nir_deref(b, id);
 
@@ -782,8 +783,8 @@ handle_printf(struct vtn_builder *b, uint32_t opcode,
    unsigned info_idx = b->shader->printf_info_count;
 
    b->shader->printf_info = reralloc(b->shader, b->shader->printf_info,
-                                     nir_printf_info, info_idx);
-   nir_printf_info *info = &b->shader->printf_info[info_idx - 1];
+                                     u_printf_info, info_idx);
+   u_printf_info *info = &b->shader->printf_info[info_idx - 1];
 
    info->strings = NULL;
    info->string_size = 0;
@@ -811,8 +812,7 @@ handle_printf(struct vtn_builder *b, uint32_t opcode,
       glsl_struct_type(fields, num_srcs - 1, "printf", true);
 
    /* Step 3, create a variable of that type and populate its fields */
-   nir_variable *var = nir_local_variable_create(b->func->nir_func->impl,
-                                                 struct_type, NULL);
+   nir_variable *var = nir_local_variable_create(b->nb.impl, struct_type, NULL);
    nir_deref_instr *deref_var = nir_build_deref_var(&b->nb, var);
    size_t fmt_pos = 0;
    for (unsigned i = 1; i < num_srcs; ++i) {

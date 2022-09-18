@@ -32,6 +32,7 @@
 
 #include "util/vl_vlc.h"
 
+#include "vl/vl_codec.h"
 #include "vdpau_private.h"
 
 /**
@@ -73,13 +74,7 @@ vlVdpDecoderCreate(VdpDevice device,
 
    mtx_lock(&dev->mutex);
 
-   supported = screen->get_video_param
-   (
-      screen,
-      templat.profile,
-      PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
-      PIPE_VIDEO_CAP_SUPPORTED
-   );
+   supported = vl_codec_supported(screen, templat.profile, false);
    if (!supported) {
       mtx_unlock(&dev->mutex);
       return VDP_STATUS_INVALID_DECODER_PROFILE;
@@ -353,7 +348,7 @@ vlVdpDecoderRenderVC1(struct pipe_vc1_picture_desc *picture,
 
 static VdpStatus
 vlVdpDecoderRenderH264(struct pipe_h264_picture_desc *picture,
-                       VdpPictureInfoH264 *picture_info)
+                       VdpPictureInfoH264 *picture_info, unsigned level_idc)
 {
    unsigned i;
 
@@ -366,11 +361,14 @@ vlVdpDecoderRenderH264(struct pipe_h264_picture_desc *picture,
    picture->pps->sps->log2_max_pic_order_cnt_lsb_minus4 = picture_info->log2_max_pic_order_cnt_lsb_minus4;
    picture->pps->sps->delta_pic_order_always_zero_flag = picture_info->delta_pic_order_always_zero_flag;
    picture->pps->sps->direct_8x8_inference_flag = picture_info->direct_8x8_inference_flag;
+   picture->pps->sps->level_idc = level_idc;
+   picture->pps->sps->MinLumaBiPredSize8x8 = (level_idc >= 31); /* See section A.3.3.2 of H264 spec */;
 
    picture->pps->transform_8x8_mode_flag = picture_info->transform_8x8_mode_flag;
    picture->pps->chroma_qp_index_offset = picture_info->chroma_qp_index_offset;
    picture->pps->second_chroma_qp_index_offset = picture_info->second_chroma_qp_index_offset;
    picture->pps->pic_init_qp_minus26 = picture_info->pic_init_qp_minus26;
+   /*picture->pps-> pic_init_qs_minus26 not passed in VdpPictureInfoH264*/
    picture->pps->entropy_coding_mode_flag = picture_info->entropy_coding_mode_flag;
    picture->pps->deblocking_filter_control_present_flag = picture_info->deblocking_filter_control_present_flag;
    picture->pps->redundant_pic_cnt_present_flag = picture_info->redundant_pic_cnt_present_flag;
@@ -492,6 +490,7 @@ vlVdpDecoderRenderH265(struct pipe_h265_picture_desc *picture,
 
    picture->IDRPicFlag = picture_info->IDRPicFlag;
    picture->RAPPicFlag = picture_info->RAPPicFlag;
+   picture->IntraPicFlag = picture_info->RAPPicFlag;
    picture->CurrRpsIdx = picture_info->CurrRpsIdx;
    picture->NumPocTotalCurr = picture_info->NumPocTotalCurr;
    picture->NumDeltaPocsOfRefRpsIdx = picture_info->NumDeltaPocsOfRefRpsIdx;
@@ -663,7 +662,7 @@ vlVdpDecoderRender(VdpDecoder decoder,
       break;
    case PIPE_VIDEO_FORMAT_MPEG4_AVC:
       desc.h264.pps = &pps_h264;
-      ret = vlVdpDecoderRenderH264(&desc.h264, (VdpPictureInfoH264 *)picture_info);
+      ret = vlVdpDecoderRenderH264(&desc.h264, (VdpPictureInfoH264 *)picture_info, dec->level);
       break;
    case PIPE_VIDEO_FORMAT_HEVC:
       desc.h265.pps = &pps_h265;

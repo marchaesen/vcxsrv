@@ -204,7 +204,7 @@ llvmpipe_get_query_result(struct pipe_context *pipe,
 static void
 llvmpipe_get_query_result_resource(struct pipe_context *pipe,
                                    struct pipe_query *q,
-                                   bool wait,
+                                   enum pipe_query_flags flags,
                                    enum pipe_query_value_type result_type,
                                    int index,
                                    struct pipe_resource *resource,
@@ -221,7 +221,7 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
          if (!lp_fence_issued(pq->fence))
             llvmpipe_flush(pipe, NULL, __FUNCTION__);
 
-         if (wait)
+         if (flags & PIPE_QUERY_WAIT)
             lp_fence_wait(pq->fence);
       }
       unsignalled = !lp_fence_signalled(pq->fence);
@@ -238,6 +238,10 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
    else {
       unsigned i;
 
+      /* don't write a value if fence hasn't signalled,
+         and partial isn't set . */
+      if (unsignalled && !(flags & PIPE_QUERY_PARTIAL))
+         return;
       switch (pq->type) {
       case PIPE_QUERY_OCCLUSION_COUNTER:
          for (i = 0; i < num_threads; i++) {

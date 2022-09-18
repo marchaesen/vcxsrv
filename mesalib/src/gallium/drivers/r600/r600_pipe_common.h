@@ -34,7 +34,7 @@
 
 #include <stdio.h>
 
-#include "radeon/radeon_winsys.h"
+#include "winsys/radeon_winsys.h"
 
 #include "util/disk_cache.h"
 #include "util/u_blitter.h"
@@ -81,13 +81,8 @@ struct u_log_context;
 #define DBG_COMPUTE		(1 << 9)
 /* gap */
 #define DBG_VM			(1 << 11)
-#define DBG_NO_IR		(1 << 12)
-#define DBG_NO_TGSI		(1 << 13)
-#define DBG_NO_ASM		(1 << 14)
 #define DBG_PREOPT_IR		(1 << 15)
 #define DBG_CHECK_IR		(1 << 16)
-#define DBG_NO_OPT_VARIANT	(1 << 17)
-#define DBG_FS_CORRECT_DERIVS_AFTER_KILL (1 << 18)
 /* gaps */
 #define DBG_TEST_DMA		(1 << 20)
 /* Bits 21-31 are reserved for the r600g driver. */
@@ -99,12 +94,10 @@ struct u_log_context;
 #define DBG_NO_TILING		(1ull << 36)
 #define DBG_SWITCH_ON_EOP	(1ull << 37)
 #define DBG_FORCE_DMA		(1ull << 38)
-#define DBG_PRECOMPILE		(1ull << 39)
 #define DBG_INFO		(1ull << 40)
 #define DBG_NO_WC		(1ull << 41)
 #define DBG_CHECK_VM		(1ull << 42)
 /* gap */
-#define DBG_UNSAFE_MATH		(1ull << 49)
 #define DBG_TEST_VMFAULT_CP	(1ull << 51)
 #define DBG_TEST_VMFAULT_SDMA	(1ull << 52)
 #define DBG_TEST_VMFAULT_SHADER	(1ull << 53)
@@ -336,7 +329,7 @@ struct r600_common_screen {
 	struct pipe_screen		b;
 	struct radeon_winsys		*ws;
 	enum radeon_family		family;
-	enum chip_class			chip_class;
+	enum amd_gfx_level			gfx_level;
 	struct radeon_info		info;
 	uint64_t			debug_flags;
 	bool				has_cp_dma;
@@ -367,6 +360,7 @@ struct r600_common_screen {
 	/* GPU load thread. */
 	mtx_t				gpu_load_mutex;
 	thrd_t				gpu_load_thread;
+	bool				gpu_load_thread_created;
 	union r600_mmio_counters	mmio_counters;
 	volatile unsigned		gpu_load_stop_thread; /* bool */
 
@@ -407,7 +401,8 @@ struct r600_common_screen {
 		unsigned compute_to_L2;
 	} barrier_flags;
 
-        struct nir_shader_compiler_options nir_options;
+	struct nir_shader_compiler_options nir_options;
+	struct nir_shader_compiler_options nir_options_fs;
 };
 
 /* This encapsulates a state or an operation which can emitted into the GPU
@@ -499,7 +494,7 @@ struct r600_common_context {
 	struct radeon_winsys		*ws;
 	struct radeon_winsys_ctx	*ctx;
 	enum radeon_family		family;
-	enum chip_class			chip_class;
+	enum amd_gfx_level			gfx_level;
 	struct r600_ring		gfx;
 	struct r600_ring		dma;
 	struct pipe_fence_handle	*last_gfx_fence;
@@ -572,7 +567,7 @@ struct r600_common_context {
 	float				sample_locations_8x[8][2];
 	float				sample_locations_16x[16][2];
 
-	struct pipe_debug_callback	debug;
+	struct util_debug_callback	debug;
 	struct pipe_device_reset_callback device_reset_callback;
 	struct u_log_context		*log;
 
@@ -622,7 +617,7 @@ struct r600_common_context {
 
 	void (*check_vm_faults)(struct r600_common_context *ctx,
 				struct radeon_saved_cs *saved,
-				enum ring_type ring);
+				enum amd_ip_type ring);
 };
 
 /* r600_buffer_common.c */

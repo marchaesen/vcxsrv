@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2014 VMware, Inc.  All rights reserved.
+ * Copyright 2014-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -48,54 +48,24 @@ get_dummy_geometry_shader(void)
 }
 
 
-static struct svga_shader_variant *
-translate_geometry_program(struct svga_context *svga,
-                           const struct svga_geometry_shader *gs,
-                           const struct svga_compile_key *key)
+struct svga_shader_variant *
+svga_get_compiled_dummy_geometry_shader(struct svga_context *svga,
+                                        struct svga_shader *shader,
+                                        const struct svga_compile_key *key)
 {
-   assert(svga_have_vgpu10(svga));
-   return svga_tgsi_vgpu10_translate(svga, &gs->base, key,
-                                     PIPE_SHADER_GEOMETRY);
-}
-
-
-/**
- * Translate TGSI shader into an svga shader variant.
- */
-static enum pipe_error
-compile_gs(struct svga_context *svga,
-           struct svga_geometry_shader *gs,
-           const struct svga_compile_key *key,
-           struct svga_shader_variant **out_variant)
-{
+   const struct tgsi_token *dummy = get_dummy_geometry_shader();
    struct svga_shader_variant *variant;
-   enum pipe_error ret = PIPE_ERROR;
+   struct svga_geometry_shader *gs = (struct svga_geometry_shader *)shader;
 
-   variant = translate_geometry_program(svga, gs, key);
-   if (!variant) {
-      /* some problem during translation, try the dummy shader */
-      const struct tgsi_token *dummy = get_dummy_geometry_shader();
-      if (!dummy) {
-         return PIPE_ERROR_OUT_OF_MEMORY;
-      }
-      debug_printf("Failed to compile geometry shader, using dummy shader instead.\n");
-      FREE((void *) gs->base.tokens);
-      gs->base.tokens = dummy;
-      variant = translate_geometry_program(svga, gs, key);
-      if (!variant) {
-         return PIPE_ERROR;
-      }
-   }
+   if (!dummy)
+      return NULL;
 
-   ret = svga_define_shader(svga, variant);
-   if (ret != PIPE_OK) {
-      svga_destroy_shader_variant(svga, variant);
-      return ret;
-   }
+   FREE((void *) gs->base.tokens);
+   gs->base.tokens = dummy;
+   svga_tgsi_scan_shader(&gs->base);
+   variant = svga_tgsi_compile_shader(svga, shader, key);
 
-   *out_variant = variant;
-
-   return PIPE_OK;
+   return variant;
 }
 
 
@@ -114,7 +84,7 @@ make_gs_key(struct svga_context *svga, struct svga_compile_key *key)
    memcpy(key->generic_remap_table, gs->generic_remap_table,
           sizeof(gs->generic_remap_table));
 
-   key->gs.vs_generic_outputs = svga->curr.vs->generic_outputs;
+   key->gs.vs_generic_outputs = svga->curr.vs->base.info.generic_outputs_mask;
 
    key->gs.need_prescale = svga->state.hw_clear.prescale[0].enabled;
 
@@ -135,9 +105,6 @@ make_gs_key(struct svga_context *svga, struct svga_compile_key *key)
 
    /* Mark this as the last shader in the vertex processing stage */
    key->last_vertex_stage = 1;
-
-   if (svga_have_gl43(svga))
-      key->image_size_used = gs->base.info.opcode_count[TGSI_OPCODE_RESQ] ? 1 : 0;
 }
 
 
@@ -202,14 +169,9 @@ emit_hw_gs(struct svga_context *svga, uint64_t dirty)
       variant = svga_search_shader_key(&gs->base, &key);
 
       if (!variant) {
-         ret = compile_gs(svga, gs, &key, &variant);
+         ret = svga_compile_shader(svga, &gs->base, &key, &variant);
          if (ret != PIPE_OK)
             goto done;
-
-         /* insert the new variant at head of linked list */
-         assert(variant);
-         variant->next = gs->base.variants;
-         gs->base.variants = variant;
       }
    }
 

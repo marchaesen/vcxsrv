@@ -140,6 +140,7 @@ typedef enum gl_state_index_ {
    STATE_ADVANCED_BLENDING_MODE,
    STATE_ALPHA_REF,        /* alpha-test reference value */
    STATE_CLIP_INTERNAL,    /* similar to STATE_CLIPPLANE, but in clip-space */
+   STATE_ATOMIC_COUNTER_OFFSET,    /* the byte offset to add to atomic counter bindings */
 
    STATE_INTERNAL_DRIVER,	/* first available state index for drivers (must be last) */
 

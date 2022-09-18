@@ -1,4 +1,4 @@
 *.pyc
 *.pyo
 *.out
-build
+/build

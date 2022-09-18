@@ -431,7 +431,7 @@ draw_create_tess_ctrl_shader(struct draw_context *draw,
 
       tcs = &llvm_tcs->base;
 
-      make_empty_list(&llvm_tcs->variants);
+      list_inithead(&llvm_tcs->variants.list);
    } else
 #endif
    {
@@ -460,8 +460,8 @@ draw_create_tess_ctrl_shader(struct draw_context *draw,
       tcs->jit_context = &draw->llvm->tcs_jit_context;
       llvm_tcs->variant_key_size =
          draw_tcs_llvm_variant_key_size(
-                                        MAX2(tcs->info.file_max[TGSI_FILE_SAMPLER]+1,
-                                             tcs->info.file_max[TGSI_FILE_SAMPLER_VIEW]+1),
+                                        tcs->info.file_max[TGSI_FILE_SAMPLER]+1,
+                                        tcs->info.file_max[TGSI_FILE_SAMPLER_VIEW]+1,
                                         tcs->info.file_max[TGSI_FILE_IMAGE]+1);
    }
 #endif
@@ -489,13 +489,10 @@ void draw_delete_tess_ctrl_shader(struct draw_context *draw,
    if (draw->llvm) {
       struct llvm_tess_ctrl_shader *shader = llvm_tess_ctrl_shader(dtcs);
 
-      struct draw_tcs_llvm_variant_list_item *li;
+      struct draw_tcs_llvm_variant_list_item *li, *next;
 
-      li = first_elem(&shader->variants);
-      while(!at_end(&shader->variants, li)) {
-         struct draw_tcs_llvm_variant_list_item *next = next_elem(li);
+      LIST_FOR_EACH_ENTRY_SAFE(li, next, &shader->variants.list, list) {
          draw_tcs_llvm_destroy_variant(li->base);
-         li = next;
       }
 
       assert(shader->variants_cached == 0);
@@ -504,7 +501,7 @@ void draw_delete_tess_ctrl_shader(struct draw_context *draw,
    }
 #endif
 
-   if (dtcs->state.ir.nir)
+   if (dtcs->state.type == PIPE_SHADER_IR_NIR && dtcs->state.ir.nir)
       ralloc_free(dtcs->state.ir.nir);
    FREE(dtcs);
 }
@@ -535,7 +532,7 @@ draw_create_tess_eval_shader(struct draw_context *draw,
          return NULL;
 
       tes = &llvm_tes->base;
-      make_empty_list(&llvm_tes->variants);
+      list_inithead(&llvm_tes->variants.list);
    } else
 #endif
    {
@@ -571,7 +568,7 @@ draw_create_tess_eval_shader(struct draw_context *draw,
          tes->clipvertex_output = i;
       }
       if (tes->info.output_semantic_name[i] == TGSI_SEMANTIC_CLIPDIST) {
-         debug_assert(tes->info.output_semantic_index[i] <
+         assert(tes->info.output_semantic_index[i] <
                       PIPE_MAX_CLIP_OR_CULL_DISTANCE_ELEMENT_COUNT);
          tes->ccdistance_output[tes->info.output_semantic_index[i]] = i;
       }
@@ -588,8 +585,8 @@ draw_create_tess_eval_shader(struct draw_context *draw,
       tes->jit_context = &draw->llvm->tes_jit_context;
       llvm_tes->variant_key_size =
          draw_tes_llvm_variant_key_size(
-                                        MAX2(tes->info.file_max[TGSI_FILE_SAMPLER]+1,
-                                             tes->info.file_max[TGSI_FILE_SAMPLER_VIEW]+1),
+                                        tes->info.file_max[TGSI_FILE_SAMPLER]+1,
+                                        tes->info.file_max[TGSI_FILE_SAMPLER_VIEW]+1,
                                         tes->info.file_max[TGSI_FILE_IMAGE]+1);
    }
 #endif
@@ -602,6 +599,7 @@ void draw_bind_tess_eval_shader(struct draw_context *draw,
    draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
    if (dtes) {
       draw->tes.tess_eval_shader = dtes;
+      draw->tes.num_tes_outputs = dtes->info.num_outputs;
       draw->tes.position_output = dtes->position_output;
       draw->tes.clipvertex_output = dtes->clipvertex_output;
    } else {
@@ -618,20 +616,17 @@ void draw_delete_tess_eval_shader(struct draw_context *draw,
 #ifdef DRAW_LLVM_AVAILABLE
    if (draw->llvm) {
       struct llvm_tess_eval_shader *shader = llvm_tess_eval_shader(dtes);
-      struct draw_tes_llvm_variant_list_item *li;
+      struct draw_tes_llvm_variant_list_item *li, *next;
 
-      li = first_elem(&shader->variants);
-      while(!at_end(&shader->variants, li)) {
-         struct draw_tes_llvm_variant_list_item *next = next_elem(li);
+      LIST_FOR_EACH_ENTRY_SAFE(li, next, &shader->variants.list, list) {
          draw_tes_llvm_destroy_variant(li->base);
-         li = next;
       }
 
       assert(shader->variants_cached == 0);
       align_free(dtes->tes_input);
    }
 #endif
-   if (dtes->state.ir.nir)
+   if (dtes->state.type == PIPE_SHADER_IR_NIR && dtes->state.ir.nir)
       ralloc_free(dtes->state.ir.nir);
    FREE(dtes);
 }

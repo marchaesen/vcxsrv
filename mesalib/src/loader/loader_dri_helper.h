@@ -31,3 +31,9 @@ __DRIimage *loader_dri_create_image(__DRIscreen *screen,
                                     const uint64_t *modifiers,
                                     unsigned int modifiers_count,
                                     void *loaderPrivate);
+
+int dri_get_initial_swap_interval(__DRIscreen *driScreen,
+                                  const __DRI2configQueryExtension *config);
+
+bool dri_valid_swap_interval(__DRIscreen *driScreen,
+                             const __DRI2configQueryExtension *config, int interval);

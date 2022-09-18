@@ -13,3 +13,14 @@ dEQP-GLES31.functional.draw_indirect.compute_interop.large.*
 # those tests until we sort it out.
 KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-arrays
 KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-elements
+
+# fail seen here and in others
+# https://gitlab.freedesktop.org/mesa/mesa/-/jobs/19776551
+dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36
+
+# InternalError (Variable pointers requested but feature not returned at
+# vktAmberTestCase.cpp:364)
+dEQP-VK.spirv_assembly.instruction.compute.vector_shuffle.vector_shuffle
+
+# Seems to timeout occasionally
+dEQP-VK.api.object_management.max_concurrent.query_pool

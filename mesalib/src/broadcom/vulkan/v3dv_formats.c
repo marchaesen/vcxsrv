@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Raspberry Pi
+ * Copyright © 2019 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,7 @@
 
 #include "v3dv_private.h"
 #include "vk_util.h"
+#include "vk_enum_defines.h"
 
 #include "drm-uapi/drm_fourcc.h"
 #include "util/format/u_format.h"
@@ -80,10 +81,10 @@ uint8_t
 v3dv_get_tex_return_size(const struct v3dv_format *vf,
                          bool compare_enable)
 {
-   if (unlikely(V3D_DEBUG & V3D_DEBUG_TMU_16BIT))
+   if (V3D_DBG(TMU_16BIT))
       return 16;
 
-   if (unlikely(V3D_DEBUG & V3D_DEBUG_TMU_32BIT))
+   if (V3D_DBG(TMU_32BIT))
       return 32;
 
    if (compare_enable)
@@ -122,7 +123,7 @@ v3dv_get_compatible_tfu_format(struct v3dv_device *device,
    return format;
 }
 
-static VkFormatFeatureFlags
+static VkFormatFeatureFlags2
 image_format_features(struct v3dv_physical_device *pdevice,
                       VkFormat vk_format,
                       const struct v3dv_format *v3dv_format,
@@ -149,7 +150,7 @@ image_format_features(struct v3dv_physical_device *pdevice,
       return 0;
    }
 
-   VkFormatFeatureFlags flags = 0;
+   VkFormatFeatureFlags2 flags = 0;
 
    /* Raster format is only supported for 1D textures, so let's just
     * always require optimal tiling for anything that requires sampling.
@@ -158,49 +159,56 @@ image_format_features(struct v3dv_physical_device *pdevice,
     */
    if (v3dv_format->tex_type != TEXTURE_DATA_FORMAT_NO &&
        tiling == VK_IMAGE_TILING_OPTIMAL) {
-      flags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
-               VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+      flags |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT |
+               VK_FORMAT_FEATURE_2_BLIT_SRC_BIT;
 
       if (v3dv_format->supports_filtering)
-         flags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+         flags |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
    }
 
    if (v3dv_format->rt_type != V3D_OUTPUT_IMAGE_FORMAT_NO) {
       if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
-         flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-                  VK_FORMAT_FEATURE_BLIT_DST_BIT;
+         flags |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
+                  VK_FORMAT_FEATURE_2_BLIT_DST_BIT;
          if (v3dv_X(pdevice, format_supports_blending)(v3dv_format))
-            flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+            flags |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT;
       } else if (aspects & zs_aspects) {
-         flags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT |
-                  VK_FORMAT_FEATURE_BLIT_DST_BIT;
+         flags |= VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT |
+                  VK_FORMAT_FEATURE_2_BLIT_DST_BIT;
       }
    }
 
    const struct util_format_description *desc =
       vk_format_description(vk_format);
-   assert(desc);
 
-   if (desc->layout == UTIL_FORMAT_LAYOUT_PLAIN && desc->is_array) {
-      flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-      if (desc->nr_channels == 1 && vk_format_is_int(vk_format))
-         flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
-   } else if (vk_format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 ||
-              vk_format == VK_FORMAT_A2B10G10R10_UINT_PACK32 ||
-              vk_format == VK_FORMAT_B10G11R11_UFLOAT_PACK32) {
-      /* To comply with shaderStorageImageExtendedFormats */
-      flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+   if (tiling != VK_IMAGE_TILING_LINEAR) {
+      if (desc->layout == UTIL_FORMAT_LAYOUT_PLAIN && desc->is_array) {
+         flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT;
+         if (desc->nr_channels == 1 && vk_format_is_int(vk_format))
+            flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT;
+      } else if (vk_format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 ||
+                 vk_format == VK_FORMAT_A2B10G10R10_UINT_PACK32 ||
+                 vk_format == VK_FORMAT_B10G11R11_UFLOAT_PACK32) {
+         /* To comply with shaderStorageImageExtendedFormats */
+         flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT;
+      }
+   }
+
+   /* All our depth formats support shadow comparisons. */
+   if (vk_format_has_depth(vk_format) &&
+       (flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT)) {
+      flags |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT;
    }
 
    if (flags) {
-      flags |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
-               VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+      flags |= VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT |
+               VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT;
    }
 
    return flags;
 }
 
-static VkFormatFeatureFlags
+static VkFormatFeatureFlags2
 buffer_format_features(VkFormat vk_format, const struct v3dv_format *v3dv_format)
 {
    if (!v3dv_format || !v3dv_format->supported)
@@ -217,32 +225,31 @@ buffer_format_features(VkFormat vk_format, const struct v3dv_format *v3dv_format
 
    const struct util_format_description *desc =
       vk_format_description(vk_format);
-   assert(desc);
 
-   VkFormatFeatureFlags flags = 0;
+   VkFormatFeatureFlags2 flags = 0;
    if (desc->layout == UTIL_FORMAT_LAYOUT_PLAIN &&
        desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB &&
        desc->is_array) {
-      flags |=  VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+      flags |=  VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT;
       if (v3dv_format->tex_type != TEXTURE_DATA_FORMAT_NO) {
-         flags |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
-                  VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+         flags |= VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT |
+                  VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT;
       }
    } else if (vk_format == VK_FORMAT_A2B10G10R10_UNORM_PACK32) {
-      flags |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT |
-               VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
-               VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+      flags |= VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT |
+               VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT |
+               VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT;
    } else if (vk_format == VK_FORMAT_A2B10G10R10_UINT_PACK32 ||
               vk_format == VK_FORMAT_B10G11R11_UFLOAT_PACK32) {
-      flags |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
-               VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+      flags |= VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT |
+               VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT;
    }
 
    if (desc->layout == UTIL_FORMAT_LAYOUT_PLAIN &&
        desc->is_array &&
        desc->nr_channels == 1 &&
        vk_format_is_int(vk_format)) {
-      flags |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
+      flags |= VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
    }
 
    return flags;
@@ -251,30 +258,21 @@ buffer_format_features(VkFormat vk_format, const struct v3dv_format *v3dv_format
 bool
 v3dv_buffer_format_supports_features(struct v3dv_device *device,
                                      VkFormat vk_format,
-                                     VkFormatFeatureFlags features)
+                                     VkFormatFeatureFlags2 features)
 {
    const struct v3dv_format *v3dv_format = v3dv_X(device, get_format)(vk_format);
-   const VkFormatFeatureFlags supported =
+   const VkFormatFeatureFlags2 supported =
       buffer_format_features(vk_format, v3dv_format);
    return (supported & features) == features;
 }
 
-VKAPI_ATTR void VKAPI_CALL
-v3dv_GetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice,
-                                       VkFormat format,
-                                       VkFormatProperties* pFormatProperties)
+/* FIXME: this helper now on anv, radv, lvp, and v3dv. Perhaps common
+ * place?
+ */
+static inline VkFormatFeatureFlags
+features2_to_features(VkFormatFeatureFlags2 features2)
 {
-   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physicalDevice);
-   const struct v3dv_format *v3dv_format = v3dv_X(pdevice, get_format)(format);
-
-   *pFormatProperties = (VkFormatProperties) {
-      .linearTilingFeatures =
-         image_format_features(pdevice, format, v3dv_format, VK_IMAGE_TILING_LINEAR),
-      .optimalTilingFeatures =
-         image_format_features(pdevice, format, v3dv_format, VK_IMAGE_TILING_OPTIMAL),
-      .bufferFeatures =
-         buffer_format_features(format, v3dv_format),
-   };
+   return features2 & VK_ALL_FORMAT_FEATURE_FLAG_BITS;
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -282,17 +280,31 @@ v3dv_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
                                         VkFormat format,
                                         VkFormatProperties2 *pFormatProperties)
 {
-   v3dv_GetPhysicalDeviceFormatProperties(physicalDevice, format,
-                                          &pFormatProperties->formatProperties);
+   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physicalDevice);
+   const struct v3dv_format *v3dv_format = v3dv_X(pdevice, get_format)(format);
+
+   VkFormatFeatureFlags2 linear2, optimal2, buffer2;
+   linear2 = image_format_features(pdevice, format, v3dv_format,
+                                   VK_IMAGE_TILING_LINEAR);
+   optimal2 = image_format_features(pdevice, format, v3dv_format,
+                                    VK_IMAGE_TILING_OPTIMAL);
+   buffer2 = buffer_format_features(format, v3dv_format);
+   pFormatProperties->formatProperties = (VkFormatProperties) {
+      .linearTilingFeatures = features2_to_features(linear2),
+      .optimalTilingFeatures = features2_to_features(optimal2),
+      .bufferFeatures = features2_to_features(buffer2),
+   };
 
    vk_foreach_struct(ext, pFormatProperties->pNext) {
       switch ((unsigned)ext->sType) {
       case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT: {
          struct VkDrmFormatModifierPropertiesListEXT *list = (void *)ext;
-         VK_OUTARRAY_MAKE(out, list->pDrmFormatModifierProperties,
-                          &list->drmFormatModifierCount);
+         VK_OUTARRAY_MAKE_TYPED(VkDrmFormatModifierPropertiesEXT, out,
+                                list->pDrmFormatModifierProperties,
+                                &list->drmFormatModifierCount);
          if (pFormatProperties->formatProperties.linearTilingFeatures) {
-            vk_outarray_append(&out, mod_props) {
+            vk_outarray_append_typed(VkDrmFormatModifierPropertiesEXT,
+                                     &out, mod_props) {
                mod_props->drmFormatModifier = DRM_FORMAT_MOD_LINEAR;
                mod_props->drmFormatModifierPlaneCount = 1;
                mod_props->drmFormatModifierTilingFeatures =
@@ -300,13 +312,44 @@ v3dv_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
             }
          }
          if (pFormatProperties->formatProperties.optimalTilingFeatures) {
-            vk_outarray_append(&out, mod_props) {
+            vk_outarray_append_typed(VkDrmFormatModifierPropertiesEXT,
+                                     &out, mod_props) {
                mod_props->drmFormatModifier = DRM_FORMAT_MOD_BROADCOM_UIF;
                mod_props->drmFormatModifierPlaneCount = 1;
                mod_props->drmFormatModifierTilingFeatures =
                   pFormatProperties->formatProperties.optimalTilingFeatures;
             }
          }
+         break;
+      }
+      case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT: {
+         struct VkDrmFormatModifierPropertiesList2EXT *list = (void *)ext;
+         VK_OUTARRAY_MAKE_TYPED(VkDrmFormatModifierProperties2EXT, out,
+                                list->pDrmFormatModifierProperties,
+                                &list->drmFormatModifierCount);
+         if (linear2) {
+            vk_outarray_append_typed(VkDrmFormatModifierProperties2EXT,
+                                     &out, mod_props) {
+               mod_props->drmFormatModifier = DRM_FORMAT_MOD_LINEAR;
+               mod_props->drmFormatModifierPlaneCount = 1;
+               mod_props->drmFormatModifierTilingFeatures = linear2;
+            }
+         }
+         if (optimal2) {
+            vk_outarray_append_typed(VkDrmFormatModifierProperties2EXT,
+                                     &out, mod_props) {
+               mod_props->drmFormatModifier = DRM_FORMAT_MOD_BROADCOM_UIF;
+               mod_props->drmFormatModifierPlaneCount = 1;
+               mod_props->drmFormatModifierTilingFeatures = optimal2;
+            }
+         }
+         break;
+      }
+      case VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3: {
+         VkFormatProperties3 *props = (VkFormatProperties3 *)ext;
+         props->linearTilingFeatures = linear2;
+         props->optimalTilingFeatures = optimal2;
+         props->bufferFeatures = buffer2;
          break;
       }
       default:
@@ -325,7 +368,7 @@ get_image_format_properties(
    VkSamplerYcbcrConversionImageFormatProperties *pYcbcrImageFormatProperties)
 {
    const struct v3dv_format *v3dv_format = v3dv_X(physical_device, get_format)(info->format);
-   VkFormatFeatureFlags format_feature_flags =
+   VkFormatFeatureFlags2 format_feature_flags =
       image_format_features(physical_device, info->format, v3dv_format, tiling);
    if (!format_feature_flags)
       goto unsupported;
@@ -342,8 +385,24 @@ get_image_format_properties(
    if (info->flags & VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT)
       goto unsupported;
 
-   if (info->usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT)) {
+   const VkImageStencilUsageCreateInfo *stencil_usage_info =
+      vk_find_struct_const(info->pNext, IMAGE_STENCIL_USAGE_CREATE_INFO);
+
+   VkImageUsageFlags image_usage =
+      info->usage | (stencil_usage_info ? stencil_usage_info->stencilUsage : 0);
+
+   /* If VK_IMAGE_CREATE_EXTENDED_USAGE_BIT is set it means the usage flags may
+    * not be be supported for the image format but are supported for at least
+    * one compatible format from which an image view can be created for the
+    * image. This means we should not report the format as unsupported based
+    * on the usage flags when usage refers to how an image view may be used
+    * (i.e. as a framebuffer attachment, for sampling, etc).
+    */
+   VkImageUsageFlags view_usage =
+      info->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT ? 0 : image_usage;
+
+   if (image_usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT)) {
          goto unsupported;
       }
 
@@ -358,14 +417,15 @@ get_image_format_properties(
       }
    }
 
-   if (info->usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
+   if (image_usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT)) {
          goto unsupported;
       }
    }
 
-   if (info->usage & VK_IMAGE_USAGE_SAMPLED_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
+   if (view_usage & (VK_IMAGE_USAGE_SAMPLED_BIT |
+                     VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT)) {
          goto unsupported;
       }
 
@@ -379,50 +439,46 @@ get_image_format_properties(
       }
    }
 
-   if (info->usage & VK_IMAGE_USAGE_STORAGE_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)) {
+   if (view_usage & VK_IMAGE_USAGE_STORAGE_BIT) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT)) {
          goto unsupported;
       }
    }
 
-   if (info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)) {
+   if (view_usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT)) {
          goto unsupported;
       }
    }
 
-   if (info->usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+   if (view_usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
       if (!(format_feature_flags &
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) {
+            VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT)) {
          goto unsupported;
       }
    }
 
-   /* FIXME: these are taken from VkPhysicalDeviceLimits, we should just put
-    * these limits available in the physical device and read them from there
-    * wherever we need them.
-    */
    switch (info->type) {
    case VK_IMAGE_TYPE_1D:
-      pImageFormatProperties->maxExtent.width = 4096;
+      pImageFormatProperties->maxExtent.width = V3D_MAX_IMAGE_DIMENSION;
       pImageFormatProperties->maxExtent.height = 1;
       pImageFormatProperties->maxExtent.depth = 1;
-      pImageFormatProperties->maxArrayLayers = 2048;
-      pImageFormatProperties->maxMipLevels = 13; /* log2(maxWidth) + 1 */
+      pImageFormatProperties->maxArrayLayers = V3D_MAX_ARRAY_LAYERS;
+      pImageFormatProperties->maxMipLevels = V3D_MAX_MIP_LEVELS;
       break;
    case VK_IMAGE_TYPE_2D:
-      pImageFormatProperties->maxExtent.width = 4096;
-      pImageFormatProperties->maxExtent.height = 4096;
+      pImageFormatProperties->maxExtent.width = V3D_MAX_IMAGE_DIMENSION;
+      pImageFormatProperties->maxExtent.height = V3D_MAX_IMAGE_DIMENSION;
       pImageFormatProperties->maxExtent.depth = 1;
-      pImageFormatProperties->maxArrayLayers = 2048;
-      pImageFormatProperties->maxMipLevels = 13; /* log2(maxWidth) + 1 */
+      pImageFormatProperties->maxArrayLayers = V3D_MAX_ARRAY_LAYERS;
+      pImageFormatProperties->maxMipLevels = V3D_MAX_MIP_LEVELS;
       break;
    case VK_IMAGE_TYPE_3D:
-      pImageFormatProperties->maxExtent.width = 4096;
-      pImageFormatProperties->maxExtent.height = 4096;
-      pImageFormatProperties->maxExtent.depth = 4096;
+      pImageFormatProperties->maxExtent.width = V3D_MAX_IMAGE_DIMENSION;
+      pImageFormatProperties->maxExtent.height = V3D_MAX_IMAGE_DIMENSION;
+      pImageFormatProperties->maxExtent.depth = V3D_MAX_IMAGE_DIMENSION;
       pImageFormatProperties->maxArrayLayers = 1;
-      pImageFormatProperties->maxMipLevels = 13; /* log2(maxWidth) + 1 */
+      pImageFormatProperties->maxMipLevels = V3D_MAX_MIP_LEVELS;
       break;
    default:
       unreachable("bad VkImageType");
@@ -451,8 +507,8 @@ get_image_format_properties(
    if (tiling != VK_IMAGE_TILING_LINEAR &&
        info->type == VK_IMAGE_TYPE_2D &&
        !(info->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) &&
-       (format_feature_flags & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT ||
-        format_feature_flags & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) {
+       (format_feature_flags & VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT ||
+        format_feature_flags & VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT)) {
       pImageFormatProperties->sampleCounts |= VK_SAMPLE_COUNT_4_BIT;
    }
 
@@ -528,6 +584,9 @@ v3dv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
       switch (s->sType) {
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO:
          external_info = (const void *) s;
+         break;
+      case VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO:
+         /* Do nothing, get_image_format_properties() below will handle it */;
          break;
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT:
          drm_format_mod_info = (const void *) s;

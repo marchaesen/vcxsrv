@@ -65,6 +65,7 @@ struct disk_cache;
 struct driOptionCache;
 struct u_transfer_helper;
 struct pipe_screen;
+struct util_queue_fence;
 
 typedef struct pipe_vertex_state *
    (*pipe_create_vertex_state_func)(struct pipe_screen *screen,
@@ -75,6 +76,7 @@ typedef struct pipe_vertex_state *
                                     uint32_t full_velem_mask);
 typedef void (*pipe_vertex_state_destroy_func)(struct pipe_screen *screen,
                                                struct pipe_vertex_state *);
+typedef void (*pipe_driver_thread_func)(void *job, void *gdata, int thread_index);
 
 /**
  * Gallium screen/adapter context.  Basically everything
@@ -170,6 +172,16 @@ struct pipe_screen {
    uint64_t (*get_timestamp)(struct pipe_screen *);
 
    /**
+    * Return an equivalent canonical format which has the same component sizes
+    * and swizzles as the original, and it is supported by the driver. Gallium
+    * already does a first canonicalization step (see get_canonical_format()
+    * on st_cb_copyimage.c) and it calls this function (if defined) to get an
+    * alternative format if the picked is not supported by the driver.
+    */
+   enum pipe_format (*get_canonical_format)(struct pipe_screen *,
+                                            enum pipe_format format);
+
+   /**
     * Create a context.
     *
     * \param screen      pipe screen
@@ -226,6 +238,10 @@ struct pipe_screen {
     */
    struct pipe_resource * (*resource_create)(struct pipe_screen *,
 					     const struct pipe_resource *templat);
+
+   struct pipe_resource * (*resource_create_drawable)(struct pipe_screen *,
+                                                      const struct pipe_resource *tmpl,
+                                                      const void *loader_private);
 
    struct pipe_resource * (*resource_create_front)(struct pipe_screen *,
                                                    const struct pipe_resource *templat,
@@ -389,6 +405,22 @@ struct pipe_screen {
    int (*fence_get_fd)(struct pipe_screen *screen,
                        struct pipe_fence_handle *fence);
 
+	/**
+	 * Create a fence from an Win32 handle.
+	 *
+	 * This is used for importing a foreign/external fence handle.
+	 *
+	 * \param fence  if not NULL, an old fence to unref and transfer a
+	 *    new fence reference to
+	 * \param handle opaque handle representing the fence object
+	 * \param type   indicates which fence types backs the handle
+	 */
+   void (*create_fence_win32)(struct pipe_screen *screen,
+                              struct pipe_fence_handle **fence,
+                              void *handle,
+                              const void *name,
+                              enum pipe_fd_type type);
+
    /**
     * Returns a driver-specific query.
     *
@@ -513,6 +545,24 @@ struct pipe_screen {
    void (*get_device_uuid)(struct pipe_screen *screen, char *uuid);
 
    /**
+    * Fill @luid with the locally unique identifier of the context
+    * The LUID returned, paired together with the contexts node mask,
+    * allows matching the context to an IDXGIAdapter1 object
+    *
+    * \param luid    pointer to a memory region of PIPE_LUID_SIZE bytes
+    */
+   void (*get_device_luid)(struct pipe_screen *screen, char *luid);
+
+   /**
+    * Return the device node mask identifying the context
+    * Together with the contexts LUID, this allows matching
+    * the context to an IDXGIAdapter1 object.
+    * 
+    * within a linked device adapter
+    */
+   uint32_t (*get_device_node_mask)(struct pipe_screen *screen);
+
+   /**
     * Set the maximum number of parallel shader compiler threads.
     */
    void (*set_max_shader_compiler_threads)(struct pipe_screen *screen,
@@ -523,7 +573,14 @@ struct pipe_screen {
     */
    bool (*is_parallel_shader_compilation_finished)(struct pipe_screen *screen,
                                                    void *shader,
-                                                   unsigned shader_type);
+                                                   enum pipe_shader_type shader_type);
+
+   void (*driver_thread_add_job)(struct pipe_screen *screen,
+                                 void *job,
+                                 struct util_queue_fence *fence,
+                                 pipe_driver_thread_func execute,
+                                 pipe_driver_thread_func cleanup,
+                                 const size_t job_size);
 
    /**
     * Set the damage region (called when KHR_partial_update() is invoked).
@@ -676,6 +733,14 @@ struct pipe_screen {
     */
    pipe_create_vertex_state_func create_vertex_state;
    pipe_vertex_state_destroy_func vertex_state_destroy;
+
+   /**
+    * Update a timeline semaphore value stored within a driver fence object.
+    * Future waits and signals will use the new value.
+    */
+   void (*set_fence_timeline_value)(struct pipe_screen *screen,
+                                    struct pipe_fence_handle *fence,
+                                    uint64_t value);
 };
 
 

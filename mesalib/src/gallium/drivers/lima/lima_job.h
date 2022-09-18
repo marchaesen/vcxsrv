@@ -95,6 +95,9 @@ lima_job_has_draw_pending(struct lima_job *job)
 }
 
 struct lima_job *lima_job_get(struct lima_context *ctx);
+struct lima_job * lima_job_get_with_fb(struct lima_context *ctx,
+                                       struct pipe_surface *cbuf,
+                                       struct pipe_surface *zsbuf);
 
 bool lima_job_add_bo(struct lima_job *job, int pipe,
                      struct lima_bo *bo, uint32_t flags);

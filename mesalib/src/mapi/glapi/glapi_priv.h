@@ -62,17 +62,11 @@ get_entrypoint_address(unsigned int functionOffset);
  * Size (in bytes) of dispatch function (entrypoint).
  */
 #if defined(USE_X86_ASM)
-# if defined(USE_ELF_TLS)
-#  define DISPATCH_FUNCTION_SIZE  16
-# else
-#  define DISPATCH_FUNCTION_SIZE  32
-# endif
+#define DISPATCH_FUNCTION_SIZE  16
 #endif
 
 #if defined(USE_X64_64_ASM)
-# if defined(USE_ELF_TLS)
-#  define DISPATCH_FUNCTION_SIZE  16
-# endif
+#define DISPATCH_FUNCTION_SIZE  16
 #endif
 
 

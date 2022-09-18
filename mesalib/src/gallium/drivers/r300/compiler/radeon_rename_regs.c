@@ -29,6 +29,8 @@
  * \file
  */
 
+#include "util/u_math.h"
+
 #include "radeon_rename_regs.h"
 
 #include "radeon_compiler.h"
@@ -60,7 +62,7 @@ void rc_rename_regs(struct radeon_compiler *c, void *user)
 			return;
 	}
 
-	used_length = 2 * rc_recompute_ips(c);
+	used_length = MIN2(2 * rc_recompute_ips(c), RC_REGISTER_MAX_INDEX);
 	used = memory_pool_malloc(&c->Pool, sizeof(unsigned char) * used_length);
 	memset(used, 0, sizeof(unsigned char) * used_length);
 

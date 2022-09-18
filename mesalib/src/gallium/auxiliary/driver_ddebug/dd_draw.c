@@ -500,7 +500,7 @@ dd_dump_get_query_result_resource(struct call_get_query_result_resource *info, F
 {
    fprintf(f, "%s:\n", __func__ + 8);
    DUMP_M(query_type, info, query_type);
-   DUMP_M(uint, info, wait);
+   DUMP_M(query_flags, info, flags);
    DUMP_M(query_value_type, info, result_type);
    DUMP_M(int, info, index);
    DUMP_M(resource, info, resource);
@@ -1346,6 +1346,37 @@ dd_context_draw_vbo(struct pipe_context *_pipe,
 }
 
 static void
+dd_context_draw_vertex_state(struct pipe_context *_pipe,
+                             struct pipe_vertex_state *state,
+                             uint32_t partial_velem_mask,
+                             struct pipe_draw_vertex_state_info info,
+                             const struct pipe_draw_start_count_bias *draws,
+                             unsigned num_draws)
+{
+   struct dd_context *dctx = dd_context(_pipe);
+   struct pipe_context *pipe = dctx->pipe;
+   struct dd_draw_record *record = dd_create_record(dctx);
+
+   record->call.type = CALL_DRAW_VBO;
+   memset(&record->call.info.draw_vbo.info, 0,
+          sizeof(record->call.info.draw_vbo.info));
+   record->call.info.draw_vbo.info.mode = info.mode;
+   record->call.info.draw_vbo.info.index_size = 4;
+   record->call.info.draw_vbo.info.instance_count = 1;
+   record->call.info.draw_vbo.drawid_offset = 0;
+   record->call.info.draw_vbo.draw = draws[0];
+   record->call.info.draw_vbo.info.index.resource = NULL;
+   pipe_resource_reference(&record->call.info.draw_vbo.info.index.resource,
+                           state->input.indexbuf);
+   memset(&record->call.info.draw_vbo.indirect, 0,
+          sizeof(record->call.info.draw_vbo.indirect));
+
+   dd_before_draw(dctx, record);
+   pipe->draw_vertex_state(pipe, state, partial_velem_mask, info, draws, num_draws);
+   dd_after_draw(dctx, record);
+}
+
+static void
 dd_context_launch_grid(struct pipe_context *_pipe,
                        const struct pipe_grid_info *info)
 {
@@ -1445,7 +1476,7 @@ dd_context_generate_mipmap(struct pipe_context *_pipe,
 static void
 dd_context_get_query_result_resource(struct pipe_context *_pipe,
                                      struct pipe_query *query,
-                                     bool wait,
+                                     enum pipe_query_flags flags,
                                      enum pipe_query_value_type result_type,
                                      int index,
                                      struct pipe_resource *resource,
@@ -1458,7 +1489,7 @@ dd_context_get_query_result_resource(struct pipe_context *_pipe,
 
    record->call.type = CALL_GET_QUERY_RESULT_RESOURCE;
    record->call.info.get_query_result_resource.query = query;
-   record->call.info.get_query_result_resource.wait = wait;
+   record->call.info.get_query_result_resource.flags = flags;
    record->call.info.get_query_result_resource.result_type = result_type;
    record->call.info.get_query_result_resource.index = index;
    record->call.info.get_query_result_resource.resource = NULL;
@@ -1470,7 +1501,7 @@ dd_context_get_query_result_resource(struct pipe_context *_pipe,
    record->call.info.get_query_result_resource.query_type = dquery->type;
 
    dd_before_draw(dctx, record);
-   pipe->get_query_result_resource(pipe, dquery->query, wait,
+   pipe->get_query_result_resource(pipe, dquery->query, flags,
                                    result_type, index, resource, offset);
    dd_after_draw(dctx, record);
 }
@@ -1825,4 +1856,5 @@ dd_init_draw_functions(struct dd_context *dctx)
    CTX_INIT(texture_unmap);
    CTX_INIT(buffer_subdata);
    CTX_INIT(texture_subdata);
+   CTX_INIT(draw_vertex_state);
 }

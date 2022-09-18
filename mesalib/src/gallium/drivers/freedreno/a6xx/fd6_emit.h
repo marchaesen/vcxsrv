@@ -31,8 +31,8 @@
 #include "pipe/p_context.h"
 
 #include "fd6_context.h"
-#include "fd6_format.h"
 #include "fd6_program.h"
+#include "fdl/fd6_format_table.h"
 #include "freedreno_context.h"
 #include "ir3_gallium.h"
 
@@ -53,7 +53,7 @@ enum fd6_state_id {
    FD6_GROUP_VTXSTATE,
    FD6_GROUP_VBO,
    FD6_GROUP_CONST,
-   FD6_GROUP_VS_DRIVER_PARAMS,
+   FD6_GROUP_DRIVER_PARAMS,
    FD6_GROUP_PRIMITIVE_PARAMS,
    FD6_GROUP_VS_TEX,
    FD6_GROUP_HS_TEX,
@@ -89,9 +89,9 @@ struct fd6_emit {
    struct fd_context *ctx;
    const struct fd_vertex_state *vtx;
    const struct pipe_draw_info *info;
-	unsigned drawid_offset;
+   unsigned drawid_offset;
    const struct pipe_draw_indirect_info *indirect;
-	const struct pipe_draw_start_count_bias *draw;
+   const struct pipe_draw_start_count_bias *draw;
    struct ir3_cache_key key;
    enum fd_dirty_3d_state dirty;
    uint32_t dirty_groups;
@@ -133,7 +133,7 @@ static inline void
 fd6_emit_take_group(struct fd6_emit *emit, struct fd_ringbuffer *stateobj,
                     enum fd6_state_id group_id, unsigned enable_mask)
 {
-   debug_assert(emit->num_groups < ARRAY_SIZE(emit->groups));
+   assert(emit->num_groups < ARRAY_SIZE(emit->groups));
    struct fd6_state_group *g = &emit->groups[emit->num_groups++];
    g->stateobj = stateobj;
    g->group_id = group_id;

@@ -36,7 +36,6 @@ struct vert_fc_state {
 	unsigned LoopsReserved;
 	int PredStack[R500_PVS_MAX_LOOP_DEPTH];
 	int PredicateReg;
-	unsigned InCFBreak;
 };
 
 static void build_pred_src(
@@ -161,7 +160,7 @@ static void lower_brk(
 {
 	if (fc_state->LoopDepth == 1) {
 		inst->U.I.Opcode = RC_OPCODE_RCP;
-		inst->U.I.DstReg.Pred = RC_PRED_INV;
+		inst->U.I.DstReg.Pred = RC_PRED_SET;
 		inst->U.I.SrcReg[0].Index = 0;
 		inst->U.I.SrcReg[0].File = RC_FILE_NONE;
 		inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_0000;
@@ -203,17 +202,8 @@ static void lower_if(
 		}
 	}
 
-	if (inst->Next->U.I.Opcode == RC_OPCODE_BRK) {
-		fc_state->InCFBreak = 1;
-	}
-	if ((fc_state->BranchDepth == 0 && fc_state->LoopDepth == 0)
-			|| (fc_state->LoopDepth == 1 && fc_state->InCFBreak)) {
-		if (fc_state->InCFBreak) {
-			inst->U.I.Opcode = RC_ME_PRED_SEQ;
-			inst->U.I.DstReg.Pred = RC_PRED_SET;
-		} else {
-			inst->U.I.Opcode = RC_ME_PRED_SNEQ;
-		}
+	if (fc_state->BranchDepth == 0 && fc_state->LoopDepth == 0) {
+		inst->U.I.Opcode = RC_ME_PRED_SNEQ;
 	} else {
 		unsigned swz;
 		inst->U.I.Opcode = RC_VE_PRED_SNEQ_PUSH;
@@ -274,17 +264,13 @@ void rc_vert_fc(struct radeon_compiler *c, void *user)
 			break;
 
 		case RC_OPCODE_ENDIF:
-			if (fc_state.LoopDepth == 1 && fc_state.InCFBreak) {
-				struct rc_instruction * to_delete = inst;
-				inst = inst->Prev;
-				rc_remove_instruction(to_delete);
-				/* XXX: Delete the endif instruction */
-			} else {
-				inst->U.I.Opcode = RC_ME_PRED_SET_POP;
-				build_pred_dst(&inst->U.I.DstReg, &fc_state);
-				build_pred_src(&inst->U.I.SrcReg[0], &fc_state);
-			}
-			fc_state.InCFBreak = 0;
+			/* TODO: If LoopDepth == 1 and there is only a single break
+			 * we can optimize out the endif just after the break. However
+			 * previous attempts were buggy, so keep it simple for now.
+			 */
+			inst->U.I.Opcode = RC_ME_PRED_SET_POP;
+			build_pred_dst(&inst->U.I.DstReg, &fc_state);
+			build_pred_src(&inst->U.I.SrcReg[0], &fc_state);
 			fc_state.BranchDepth--;
 			break;
 

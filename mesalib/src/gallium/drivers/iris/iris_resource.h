@@ -272,7 +272,7 @@ struct iris_surface {
  */
 struct iris_transfer {
    struct threaded_transfer base;
-   struct pipe_debug_callback *dbg;
+   struct util_debug_callback *dbg;
    void *buffer;
    void *ptr;
 
@@ -339,14 +339,6 @@ void iris_init_screen_resource_functions(struct pipe_screen *pscreen);
 
 void iris_dirty_for_history(struct iris_context *ice,
                             struct iris_resource *res);
-uint32_t iris_flush_bits_for_history(struct iris_context *ice,
-                                     struct iris_resource *res);
-
-void iris_flush_and_dirty_for_history(struct iris_context *ice,
-                                      struct iris_batch *batch,
-                                      struct iris_resource *res,
-                                      uint32_t extra_flags,
-                                      const char *reason);
 
 unsigned iris_get_num_logical_layers(const struct iris_resource *res,
                                      unsigned level);
@@ -489,7 +481,8 @@ bool iris_has_invalid_primary(const struct iris_resource *res,
 void iris_resource_check_level_layer(const struct iris_resource *res,
                                      uint32_t level, uint32_t layer);
 
-bool iris_resource_level_has_hiz(const struct iris_resource *res,
+bool iris_resource_level_has_hiz(const struct intel_device_info *devinfo,
+                                 const struct iris_resource *res,
                                  uint32_t level);
 
 bool iris_sample_with_depth_aux(const struct intel_device_info *devinfo,

@@ -551,6 +551,8 @@ crocus_fence_signal(struct pipe_context *ctx, struct pipe_fence_handle *fence)
          crocus_batch_add_syncobj(&ice->batches[b], fine->syncobj,
                                   I915_EXEC_FENCE_SIGNAL);
       }
+      if (ice->batches[b].contains_fence_signal)
+         crocus_batch_flush(&ice->batches[b]);
    }
 }
 

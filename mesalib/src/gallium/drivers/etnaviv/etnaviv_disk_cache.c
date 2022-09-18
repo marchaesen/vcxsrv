@@ -34,9 +34,6 @@
 void
 etna_disk_cache_init(struct etna_compiler *compiler, const char *renderer)
 {
-   if (etna_mesa_debug & ETNA_DBG_TGSI)
-      return;
-
    if (etna_mesa_debug & ETNA_DBG_NOCACHE)
       return;
 

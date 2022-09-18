@@ -170,10 +170,33 @@ fd_bc_flush(struct fd_context *ctx, bool deferred) assert_dt
     */
    if (deferred) {
       struct fd_batch *current_batch = fd_context_batch(ctx);
+      struct fd_batch *deps[ARRAY_SIZE(cache->batches)] = {0};
+      unsigned ndeps = 0;
+
+      /* To avoid a dependency loop, pull out any batches that already
+       * have a dependency on the current batch.  This ensures the
+       * following loop adding a dependency to the current_batch, all
+       * remaining batches do not have a direct or indirect dependency
+       * on the current_batch.
+       *
+       * The batches that have a dependency on the current batch will
+       * be flushed immediately (after dropping screen lock) instead
+       */
+      for (unsigned i = 0; i < n; i++) {
+         if ((batches[i] != current_batch) &&
+             fd_batch_has_dep(batches[i], current_batch)) {
+            /* We can't immediately flush while we hold the screen lock,
+             * but that doesn't matter.  We just want to skip adding any
+             * deps that would result in a loop, we can flush after we've
+             * updated the dependency graph and dropped the lock.
+             */
+            fd_batch_reference_locked(&deps[ndeps++], batches[i]);
+            fd_batch_reference_locked(&batches[i], NULL);
+         }
+      }
 
       for (unsigned i = 0; i < n; i++) {
-         if (batches[i] && (batches[i]->ctx == ctx) &&
-             (batches[i] != current_batch)) {
+         if (batches[i] && (batches[i] != current_batch)) {
             fd_batch_add_dep(current_batch, batches[i]);
          }
       }
@@ -181,6 +204,14 @@ fd_bc_flush(struct fd_context *ctx, bool deferred) assert_dt
       fd_batch_reference_locked(&current_batch, NULL);
 
       fd_screen_unlock(ctx->screen);
+
+      /* If we have any batches that we could add a dependency on (unlikely)
+       * flush them immediately.
+       */
+      for (unsigned i = 0; i < ndeps; i++) {
+         fd_batch_flush(deps[i]);
+         fd_batch_reference(&deps[i], NULL);
+      }
    } else {
       fd_screen_unlock(ctx->screen);
 
@@ -380,7 +411,7 @@ alloc_batch_locked(struct fd_batch_cache *cache, struct fd_context *ctx,
          struct fd_batch *other = cache->batches[i];
          if (!other)
             continue;
-         if (other->dependents_mask & (1 << flush_batch->idx)) {
+         if (fd_batch_has_dep(other, flush_batch)) {
             other->dependents_mask &= ~(1 << flush_batch->idx);
             struct fd_batch *ref = flush_batch;
             fd_batch_reference_locked(&ref, NULL);
@@ -400,7 +431,7 @@ alloc_batch_locked(struct fd_batch_cache *cache, struct fd_context *ctx,
    batch->idx = idx;
    cache->batch_mask |= (1 << idx);
 
-   debug_assert(cache->batches[idx] == NULL);
+   assert(cache->batches[idx] == NULL);
    cache->batches[idx] = batch;
 
    return batch;

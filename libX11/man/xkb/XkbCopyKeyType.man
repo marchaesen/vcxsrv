@@ -31,10 +31,10 @@ XkbCopyKeyType \- Copy one XkbKeyTypeRec structures
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- from
+.I from
 pointer to XkbKeyTypeRec to be copied
 .TP
-.I \- into
+.I into
 pointer to XkbKeyTypeRec to be changed
 .SH DESCRIPTION
 .LP

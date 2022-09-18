@@ -906,88 +906,132 @@ static void extractsrccolors( GLubyte srcpixels[4][4][4], const GLchan *srcaddr,
 }
 
 
-static void tx_compress_dxtn(GLint srccomps, GLint width, GLint height, const GLubyte *srcPixData,
-                     GLenum destFormat, GLubyte *dest, GLint dstRowStride)
+static void
+tx_compress_dxt1(int srccomps, int width, int height,
+                 const GLubyte *srcPixData, GLubyte *dest, int dstRowStride,
+                 unsigned dstComps)
 {
-      GLubyte *blkaddr = dest;
-      GLubyte srcpixels[4][4][4];
-      const GLchan *srcaddr = srcPixData;
-      GLint numxpixels, numypixels;
-      GLint i, j;
-      GLint dstRowDiff;
+   GLenum destFormat = dstComps == 3 ? GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+                                     : GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+   GLubyte *blkaddr = dest;
+   GLubyte srcpixels[4][4][4];
+   const GLchan *srcaddr = srcPixData;
+   int numxpixels, numypixels;
 
+   /* hmm we used to get called without dstRowStride... */
+   int dstRowDiff = dstRowStride >= (width * 2) ?
+                    dstRowStride - (((width + 3) & ~3) * 2) : 0;
+   /* fprintf(stderr, "dxt1 tex width %d tex height %d dstRowStride %d\n",
+              width, height, dstRowStride); */
+   for (int j = 0; j < height; j += 4) {
+      if (height > j + 3) numypixels = 4;
+      else numypixels = height - j;
+      srcaddr = srcPixData + j * width * srccomps;
+      for (int i = 0; i < width; i += 4) {
+         if (width > i + 3) numxpixels = 4;
+         else numxpixels = width - i;
+         extractsrccolors(srcpixels, srcaddr, width, numxpixels, numypixels, srccomps);
+         encodedxtcolorblockfaster(blkaddr, srcpixels, numxpixels, numypixels, destFormat);
+         srcaddr += srccomps * numxpixels;
+         blkaddr += 8;
+      }
+      blkaddr += dstRowDiff;
+   }
+}
+
+static void
+tx_compress_dxt3(int srccomps, int width, int height,
+                 const GLubyte *srcPixData, GLubyte *dest, int dstRowStride)
+{
+   GLenum destFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+   GLubyte *blkaddr = dest;
+   GLubyte srcpixels[4][4][4];
+   const GLchan *srcaddr = srcPixData;
+   int numxpixels, numypixels;
+
+   int dstRowDiff = dstRowStride >= (width * 4) ?
+                    dstRowStride - (((width + 3) & ~3) * 4) : 0;
+   /* fprintf(stderr, "dxt3 tex width %d tex height %d dstRowStride %d\n",
+              width, height, dstRowStride); */
+   for (int j = 0; j < height; j += 4) {
+      if (height > j + 3) numypixels = 4;
+      else numypixels = height - j;
+      srcaddr = srcPixData + j * width * srccomps;
+      for (int i = 0; i < width; i += 4) {
+         if (width > i + 3) numxpixels = 4;
+         else numxpixels = width - i;
+         extractsrccolors(srcpixels, srcaddr, width, numxpixels, numypixels, srccomps);
+         *blkaddr++ = (srcpixels[0][0][3] >> 4) | (srcpixels[0][1][3] & 0xf0);
+         *blkaddr++ = (srcpixels[0][2][3] >> 4) | (srcpixels[0][3][3] & 0xf0);
+         *blkaddr++ = (srcpixels[1][0][3] >> 4) | (srcpixels[1][1][3] & 0xf0);
+         *blkaddr++ = (srcpixels[1][2][3] >> 4) | (srcpixels[1][3][3] & 0xf0);
+         *blkaddr++ = (srcpixels[2][0][3] >> 4) | (srcpixels[2][1][3] & 0xf0);
+         *blkaddr++ = (srcpixels[2][2][3] >> 4) | (srcpixels[2][3][3] & 0xf0);
+         *blkaddr++ = (srcpixels[3][0][3] >> 4) | (srcpixels[3][1][3] & 0xf0);
+         *blkaddr++ = (srcpixels[3][2][3] >> 4) | (srcpixels[3][3][3] & 0xf0);
+         encodedxtcolorblockfaster(blkaddr, srcpixels, numxpixels, numypixels, destFormat);
+         srcaddr += srccomps * numxpixels;
+         blkaddr += 8;
+      }
+      blkaddr += dstRowDiff;
+   }
+}
+
+static void
+tx_compress_dxt5(int srccomps, int width, int height,
+                 const GLubyte *srcPixData, GLubyte *dest, int dstRowStride)
+{
+   GLenum destFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+   GLubyte *blkaddr = dest;
+   GLubyte srcpixels[4][4][4];
+   const GLchan *srcaddr = srcPixData;
+   int numxpixels, numypixels;
+
+   int dstRowDiff = dstRowStride >= (width * 4) ?
+                    dstRowStride - (((width + 3) & ~3) * 4) : 0;
+   /* fprintf(stderr, "dxt5 tex width %d tex height %d dstRowStride %d\n",
+              width, height, dstRowStride); */
+   for (int j = 0; j < height; j += 4) {
+      if (height > j + 3) numypixels = 4;
+      else numypixels = height - j;
+      srcaddr = srcPixData + j * width * srccomps;
+      for (int i = 0; i < width; i += 4) {
+         if (width > i + 3) numxpixels = 4;
+         else numxpixels = width - i;
+         extractsrccolors(srcpixels, srcaddr, width, numxpixels, numypixels, srccomps);
+         encodedxt5alpha(blkaddr, srcpixels, numxpixels, numypixels);
+         encodedxtcolorblockfaster(blkaddr + 8, srcpixels, numxpixels, numypixels, destFormat);
+         srcaddr += srccomps * numxpixels;
+         blkaddr += 16;
+      }
+      blkaddr += dstRowDiff;
+   }
+}
+
+static void
+tx_compress_dxtn(GLint srccomps, GLint width, GLint height,
+                 const GLubyte *srcPixData, GLenum destFormat,
+                 GLubyte *dest, GLint dstRowStride)
+{
    switch (destFormat) {
    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+      tx_compress_dxt1(srccomps, width, height, srcPixData,
+                       dest, dstRowStride, 3);
+      break;
    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-      /* hmm we used to get called without dstRowStride... */
-      dstRowDiff = dstRowStride >= (width * 2) ? dstRowStride - (((width + 3) & ~3) * 2) : 0;
-/*      fprintf(stderr, "dxt1 tex width %d tex height %d dstRowStride %d\n",
-              width, height, dstRowStride); */
-      for (j = 0; j < height; j += 4) {
-         if (height > j + 3) numypixels = 4;
-         else numypixels = height - j;
-         srcaddr = srcPixData + j * width * srccomps;
-         for (i = 0; i < width; i += 4) {
-            if (width > i + 3) numxpixels = 4;
-            else numxpixels = width - i;
-            extractsrccolors(srcpixels, srcaddr, width, numxpixels, numypixels, srccomps);
-            encodedxtcolorblockfaster(blkaddr, srcpixels, numxpixels, numypixels, destFormat);
-            srcaddr += srccomps * numxpixels;
-            blkaddr += 8;
-         }
-         blkaddr += dstRowDiff;
-      }
+      tx_compress_dxt1(srccomps, width, height, srcPixData,
+                       dest, dstRowStride, 4);
       break;
    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-      dstRowDiff = dstRowStride >= (width * 4) ? dstRowStride - (((width + 3) & ~3) * 4) : 0;
-/*      fprintf(stderr, "dxt3 tex width %d tex height %d dstRowStride %d\n",
-              width, height, dstRowStride); */
-      for (j = 0; j < height; j += 4) {
-         if (height > j + 3) numypixels = 4;
-         else numypixels = height - j;
-         srcaddr = srcPixData + j * width * srccomps;
-         for (i = 0; i < width; i += 4) {
-            if (width > i + 3) numxpixels = 4;
-            else numxpixels = width - i;
-            extractsrccolors(srcpixels, srcaddr, width, numxpixels, numypixels, srccomps);
-            *blkaddr++ = (srcpixels[0][0][3] >> 4) | (srcpixels[0][1][3] & 0xf0);
-            *blkaddr++ = (srcpixels[0][2][3] >> 4) | (srcpixels[0][3][3] & 0xf0);
-            *blkaddr++ = (srcpixels[1][0][3] >> 4) | (srcpixels[1][1][3] & 0xf0);
-            *blkaddr++ = (srcpixels[1][2][3] >> 4) | (srcpixels[1][3][3] & 0xf0);
-            *blkaddr++ = (srcpixels[2][0][3] >> 4) | (srcpixels[2][1][3] & 0xf0);
-            *blkaddr++ = (srcpixels[2][2][3] >> 4) | (srcpixels[2][3][3] & 0xf0);
-            *blkaddr++ = (srcpixels[3][0][3] >> 4) | (srcpixels[3][1][3] & 0xf0);
-            *blkaddr++ = (srcpixels[3][2][3] >> 4) | (srcpixels[3][3][3] & 0xf0);
-            encodedxtcolorblockfaster(blkaddr, srcpixels, numxpixels, numypixels, destFormat);
-            srcaddr += srccomps * numxpixels;
-            blkaddr += 8;
-         }
-         blkaddr += dstRowDiff;
-      }
+      tx_compress_dxt3(srccomps, width, height, srcPixData,
+                       dest, dstRowStride);
       break;
    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-      dstRowDiff = dstRowStride >= (width * 4) ? dstRowStride - (((width + 3) & ~3) * 4) : 0;
-/*      fprintf(stderr, "dxt5 tex width %d tex height %d dstRowStride %d\n",
-              width, height, dstRowStride); */
-      for (j = 0; j < height; j += 4) {
-         if (height > j + 3) numypixels = 4;
-         else numypixels = height - j;
-         srcaddr = srcPixData + j * width * srccomps;
-         for (i = 0; i < width; i += 4) {
-            if (width > i + 3) numxpixels = 4;
-            else numxpixels = width - i;
-            extractsrccolors(srcpixels, srcaddr, width, numxpixels, numypixels, srccomps);
-            encodedxt5alpha(blkaddr, srcpixels, numxpixels, numypixels);
-            encodedxtcolorblockfaster(blkaddr + 8, srcpixels, numxpixels, numypixels, destFormat);
-            srcaddr += srccomps * numxpixels;
-            blkaddr += 16;
-         }
-         blkaddr += dstRowDiff;
-      }
+      tx_compress_dxt5(srccomps, width, height, srcPixData,
+                       dest, dstRowStride);
       break;
    default:
-      assert(false);
-      return;
+      unreachable("unknown DXTn format");
    }
 }
 

@@ -246,24 +246,6 @@ ntq_store_dest(struct vc4_compile *c, nir_dest *dest, int chan,
         }
 }
 
-static struct qreg *
-ntq_get_dest(struct vc4_compile *c, nir_dest *dest)
-{
-        if (dest->is_ssa) {
-                struct qreg *qregs = ntq_init_ssa_def(c, &dest->ssa);
-                for (int i = 0; i < dest->ssa.num_components; i++)
-                        qregs[i] = c->undef;
-                return qregs;
-        } else {
-                nir_register *reg = dest->reg.reg;
-                assert(dest->reg.base_offset == 0);
-                assert(reg->num_array_elems == 0);
-                struct hash_entry *entry =
-                        _mesa_hash_table_search(c->def_ht, reg);
-                return entry->data;
-        }
-}
-
 static struct qreg
 ntq_get_src(struct vc4_compile *c, nir_src src, int i)
 {
@@ -523,7 +505,6 @@ ntq_emit_tex(struct vc4_compile *c, nir_tex_instr *instr)
 
         enum pipe_format format = c->key->tex[unit].format;
 
-        struct qreg *dest = ntq_get_dest(c, &instr->dest);
         if (util_format_is_depth_or_stencil(format)) {
                 struct qreg normalized = ntq_scale_depth_texture(c, tex);
                 struct qreg depth_output;
@@ -577,10 +558,12 @@ ntq_emit_tex(struct vc4_compile *c, nir_tex_instr *instr)
                 }
 
                 for (int i = 0; i < 4; i++)
-                        dest[i] = depth_output;
+                        ntq_store_dest(c, &instr->dest, i,
+                                       qir_MOV(c, depth_output));
         } else {
                 for (int i = 0; i < 4; i++)
-                        dest[i] = qir_UNPACK_8_F(c, tex, i);
+                        ntq_store_dest(c, &instr->dest, i,
+                                       qir_UNPACK_8_F(c, tex, i));
         }
 }
 
@@ -2262,6 +2245,7 @@ vc4_shader_ntq(struct vc4_context *vc4, enum qstage stage,
 
                 /* Apply swizzles to all samplers. */
                 .swizzle_result = ~0,
+                .lower_invalid_implicit_lod = true,
         };
 
         /* Lower the format swizzle and ARB_texture_swizzle-style swizzle.
@@ -2343,14 +2327,14 @@ vc4_shader_ntq(struct vc4_context *vc4, enum qstage stage,
 
         NIR_PASS_V(c->s, nir_convert_from_ssa, true);
 
-        if (vc4_debug & VC4_DEBUG_SHADERDB) {
+        if (VC4_DBG(SHADERDB)) {
                 fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d NIR instructions\n",
                         qir_get_stage_name(c->stage),
                         c->program_id, c->variant_id,
                         count_nir_instrs(c->s));
         }
 
-        if (vc4_debug & VC4_DEBUG_NIR) {
+        if (VC4_DBG(NIR)) {
                 fprintf(stderr, "%s prog %d/%d NIR:\n",
                         qir_get_stage_name(c->stage),
                         c->program_id, c->variant_id);
@@ -2384,7 +2368,7 @@ vc4_shader_ntq(struct vc4_context *vc4, enum qstage stage,
                 break;
         }
 
-        if (vc4_debug & VC4_DEBUG_QIR) {
+        if (VC4_DBG(QIR)) {
                 fprintf(stderr, "%s prog %d/%d pre-opt QIR:\n",
                         qir_get_stage_name(c->stage),
                         c->program_id, c->variant_id);
@@ -2398,7 +2382,7 @@ vc4_shader_ntq(struct vc4_context *vc4, enum qstage stage,
         qir_schedule_instructions(c);
         qir_emit_uniform_stream_resets(c);
 
-        if (vc4_debug & VC4_DEBUG_QIR) {
+        if (VC4_DBG(QIR)) {
                 fprintf(stderr, "%s prog %d/%d QIR:\n",
                         qir_get_stage_name(c->stage),
                         c->program_id, c->variant_id);
@@ -2409,7 +2393,7 @@ vc4_shader_ntq(struct vc4_context *vc4, enum qstage stage,
         qir_reorder_uniforms(c);
         vc4_generate_code(vc4, c);
 
-        if (vc4_debug & VC4_DEBUG_SHADERDB) {
+        if (VC4_DBG(SHADERDB)) {
                 fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d instructions\n",
                         qir_get_stage_name(c->stage),
                         c->program_id, c->variant_id,
@@ -2446,7 +2430,7 @@ vc4_shader_state_create(struct pipe_context *pctx,
        } else {
                 assert(cso->type == PIPE_SHADER_IR_TGSI);
 
-                if (vc4_debug & VC4_DEBUG_TGSI) {
+                if (VC4_DBG(TGSI)) {
                         fprintf(stderr, "prog %d TGSI:\n",
                                 so->program_id);
                         tgsi_dump(cso->tokens, 0);
@@ -2477,7 +2461,7 @@ vc4_shader_state_create(struct pipe_context *pctx,
         so->base.type = PIPE_SHADER_IR_NIR;
         so->base.ir.nir = s;
 
-        if (vc4_debug & VC4_DEBUG_NIR) {
+        if (VC4_DBG(NIR)) {
                 fprintf(stderr, "%s prog %d NIR:\n",
                         gl_shader_stage_name(s->info.stage),
                         so->program_id);
@@ -2637,7 +2621,7 @@ vc4_get_compiled_shader(struct vc4_context *vc4, enum qstage stage,
 
         shader->fs_threaded = c->fs_threaded;
 
-        if ((vc4_debug & VC4_DEBUG_SHADERDB) && stage == QSTAGE_FRAG) {
+        if (VC4_DBG(SHADERDB) && stage == QSTAGE_FRAG) {
                 fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d FS threads\n",
                         qir_get_stage_name(c->stage),
                         c->program_id, c->variant_id,

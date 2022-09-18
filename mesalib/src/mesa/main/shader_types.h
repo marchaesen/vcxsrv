@@ -185,6 +185,8 @@ struct gl_shader
    bool EarlyFragmentTests;
 
    bool ARB_fragment_coord_conventions_enable;
+   bool OES_geometry_point_size_enable;
+   bool OES_tessellation_point_size_enable;
 
    bool redeclares_gl_fragcoord;
    bool uses_gl_fragcoord;
@@ -264,8 +266,6 @@ struct gl_linked_shader
    unsigned num_combined_uniform_components;
 
    struct exec_list *ir;
-   struct exec_list *packed_varyings;
-   struct exec_list *fragdata_arrays;
    struct glsl_symbol_table *symbols;
 
    /**
@@ -438,17 +438,6 @@ struct gl_shader_program
       unsigned ActiveStreamMask;
    } Geom;
 
-   /**
-    * Compute shader state - copied into gl_program by
-    * _mesa_copy_linked_program_data().
-    */
-   struct {
-      /**
-       * Size of shared variables accessed by the compute shader.
-       */
-      unsigned SharedSize;
-   } Comp;
-
    /** Data shared by gl_program and gl_shader_program */
    struct gl_shader_program_data *data;
 
@@ -529,6 +518,9 @@ struct gl_program
    /** Is this program written to on disk shader cache */
    bool program_written_to_cache;
 
+   /** whether to skip VARYING_SLOT_PSIZ in st_translate_stream_output_info() */
+   bool skip_pointsize_xfb;
+
    /** A bitfield indicating which vertex shader inputs consume two slots
     *
     * This is used for mapping from single-slot input locations in the GL API
@@ -562,14 +554,12 @@ struct gl_program
    GLubyte SamplerUnits[MAX_SAMPLERS];
 
    struct pipe_shader_state state;
-   struct glsl_to_tgsi_visitor* glsl_to_tgsi;
    struct ati_fragment_shader *ati_fs;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
    void *serialized_nir;
    unsigned serialized_nir_size;
 
-   /* used when bypassing glsl_to_tgsi: */
    struct gl_shader_program *shader_program;
 
    struct st_variant *variants;

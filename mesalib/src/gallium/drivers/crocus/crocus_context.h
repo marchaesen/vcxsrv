@@ -442,7 +442,7 @@ struct crocus_context {
    struct threaded_context *thrctx;
 
    /** A debug callback for KHR_debug output. */
-   struct pipe_debug_callback dbg;
+   struct util_debug_callback dbg;
 
    /** A device reset status callback for notifying that the GPU is hosed. */
    struct pipe_device_reset_callback reset;
@@ -757,7 +757,7 @@ struct crocus_context {
    if (INTEL_DEBUG(DEBUG_PERF))                        \
       dbg_printf(__VA_ARGS__);                         \
    if (unlikely(dbg))                                  \
-      pipe_debug_message(dbg, PERF_INFO, __VA_ARGS__); \
+      util_debug_message(dbg, PERF_INFO, __VA_ARGS__); \
 } while(0)
 
 
@@ -770,6 +770,7 @@ void crocus_init_blit_functions(struct pipe_context *ctx);
 void crocus_init_clear_functions(struct pipe_context *ctx);
 void crocus_init_program_functions(struct pipe_context *ctx);
 void crocus_init_resource_functions(struct pipe_context *ctx);
+void crocus_init_perfquery_functions(struct pipe_context *ctx);
 bool crocus_update_compiled_shaders(struct crocus_context *ice);
 void crocus_update_compiled_compute_shader(struct crocus_context *ice);
 void crocus_fill_cs_push_const_buffer(struct brw_cs_prog_data *cs_prog_data,

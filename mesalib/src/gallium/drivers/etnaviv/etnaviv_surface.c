@@ -33,6 +33,7 @@
 #include "pipe/p_defines.h"
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
+#include "util/u_math.h"
 #include "util/u_memory.h"
 
 #include "hw/common.xml.h"
@@ -40,18 +41,24 @@
 #include "drm-uapi/drm_fourcc.h"
 
 static struct etna_resource *
-etna_render_handle_incompatible(struct pipe_context *pctx, struct pipe_resource *prsc)
+etna_render_handle_incompatible(struct pipe_context *pctx,
+                                struct pipe_resource *prsc,
+                                unsigned int level)
 {
    struct etna_context *ctx = etna_context(pctx);
    struct etna_screen *screen = ctx->screen;
    struct etna_resource *res = etna_resource(prsc);
    bool need_multitiled = screen->specs.pixel_pipes > 1 && !screen->specs.single_buffer;
    bool want_supertiled = screen->specs.can_supertile;
+   unsigned int min_tilesize = etna_screen_get_tile_size(screen, TS_MODE_128B);
 
-   /* Resource is compatible if it is tiled and has multi tiling when required
-    * TODO: LINEAR_PE feature means render to linear is possible ?
+   /* Resource is compatible if it is tiled or PE is able to render to linear
+    * and has multi tiling when required.
     */
-   if (res->layout != ETNA_LAYOUT_LINEAR &&
+   if ((res->layout != ETNA_LAYOUT_LINEAR ||
+        (VIV_FEATURE(screen, chipMinorFeatures2, LINEAR_PE) &&
+         (!VIV_FEATURE(screen, chipFeatures, FAST_CLEAR) ||
+          res->levels[level].stride % min_tilesize == 0))) &&
        (!need_multitiled || (res->layout & ETNA_LAYOUT_BIT_MULTI)))
       return res;
 
@@ -79,16 +86,16 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
 {
    struct etna_context *ctx = etna_context(pctx);
    struct etna_screen *screen = ctx->screen;
-   struct etna_resource *rsc = etna_render_handle_incompatible(pctx, prsc);
+   unsigned layer = templat->u.tex.first_layer;
+   unsigned level = templat->u.tex.level;
+   struct etna_resource *rsc = etna_render_handle_incompatible(pctx, prsc, level);
    struct etna_surface *surf = CALLOC_STRUCT(etna_surface);
 
    if (!surf)
       return NULL;
 
    assert(templat->u.tex.first_layer == templat->u.tex.last_layer);
-   unsigned layer = templat->u.tex.first_layer;
-   unsigned level = templat->u.tex.level;
-   assert(layer < rsc->base.array_size);
+   assert(layer <= util_max_layer(prsc, level));
 
    surf->base.context = pctx;
 
@@ -103,12 +110,14 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
     * offset and MMU. */
 
    if (VIV_FEATURE(screen, chipFeatures, FAST_CLEAR) &&
-       VIV_FEATURE(screen, chipMinorFeatures0, MC20) &&
        !rsc->ts_bo &&
        /* needs to be RS/BLT compatible for transfer_map/unmap */
        (rsc->levels[level].padded_width & ETNA_RS_WIDTH_MASK) == 0 &&
        (rsc->levels[level].padded_height & ETNA_RS_HEIGHT_MASK) == 0 &&
-       etna_resource_hw_tileable(screen->specs.use_blt, prsc)) {
+       etna_resource_hw_tileable(screen->specs.use_blt, prsc) &&
+       /* Multi-layer resources would need to keep much more state (TS valid and
+        * clear color per layer) and are unlikely to profit from TS usage. */
+       prsc->depth0 == 1 && prsc->array_size == 1) {
       etna_screen_resource_alloc_ts(pctx->screen, rsc);
    }
 
@@ -169,7 +178,7 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
             .dest_tiling = ETNA_LAYOUT_TILED,
             .dither = {0xffffffff, 0xffffffff},
             .width = 16,
-            .height = etna_align_up(surf->surf.ts_size / 0x40, 4),
+            .height = align(surf->surf.ts_size / 0x40, 4),
             .clear_value = {screen->specs.ts_clear_value},
             .clear_mode = VIVS_RS_CLEAR_CONTROL_MODE_ENABLED1,
             .clear_bits = 0xffff

@@ -1220,11 +1220,8 @@ mir_schedule_alu(
                 predicate.no_cond = true;
         }
 
-        /* When MRT is in use, writeout loops require r1.w to be filled with a
-         * return address for the blend shader to jump to.  We always emit the
-         * move for blend shaders themselves for ABI reasons. */
-
-        if (writeout && (ctx->inputs->is_blend || ctx->writeout_branch[1])) {
+        /* Set r1.w to the return address so we can return from blend shaders */
+        if (writeout) {
                 vadd = ralloc(ctx, midgard_instruction);
                 *vadd = v_mov(~0, make_compiler_temp(ctx));
 

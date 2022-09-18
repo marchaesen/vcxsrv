@@ -29,7 +29,8 @@ build_fmask_copy_compute_shader(struct radv_device *dev, int samples)
    const struct glsl_type *sampler_type = glsl_sampler_type(GLSL_SAMPLER_DIM_MS, false, false, GLSL_TYPE_FLOAT);
    const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_MS, false, GLSL_TYPE_FLOAT);
 
-   nir_builder b = radv_meta_init_shader(MESA_SHADER_COMPUTE, "meta_fmask_copy_cs_-%d", samples);
+   nir_builder b =
+      radv_meta_init_shader(dev, MESA_SHADER_COMPUTE, "meta_fmask_copy_cs_-%d", samples);
 
    b.shader->info.workgroup_size[0] = 8;
    b.shader->info.workgroup_size[1] = 8;
@@ -105,7 +106,7 @@ build_fmask_copy_compute_shader(struct radv_device *dev, int samples)
       frag_fetch->src[2].src = nir_src_for_ssa(input_img_deref);
       frag_fetch->src[3].src_type = nir_tex_src_ms_index;
       frag_fetch->src[3].src = nir_src_for_ssa(sample_id);
-      frag_fetch->dest_type = nir_type_uint32;
+      frag_fetch->dest_type = nir_type_float32;
       frag_fetch->is_array = false;
       frag_fetch->coord_components = 2;
 
@@ -131,8 +132,8 @@ radv_device_finish_meta_fmask_copy_state(struct radv_device *device)
 
    radv_DestroyPipelineLayout(radv_device_to_handle(device), state->fmask_copy.p_layout,
                               &state->alloc);
-   radv_DestroyDescriptorSetLayout(radv_device_to_handle(device), state->fmask_copy.ds_layout,
-                                   &state->alloc);
+   device->vk.dispatch_table.DestroyDescriptorSetLayout(radv_device_to_handle(device),
+                                                        state->fmask_copy.ds_layout, &state->alloc);
 
    for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; ++i) {
       radv_DestroyPipeline(radv_device_to_handle(device), state->fmask_copy.pipeline[i], &state->alloc);
@@ -194,7 +195,7 @@ radv_device_init_meta_fmask_copy_state(struct radv_device *device)
                                            &device->meta_state.alloc,
                                            &device->meta_state.fmask_copy.ds_layout);
    if (result != VK_SUCCESS)
-      goto fail;
+      return result;
 
    VkPipelineLayoutCreateInfo pl_create_info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -208,19 +209,16 @@ radv_device_init_meta_fmask_copy_state(struct radv_device *device)
       radv_CreatePipelineLayout(radv_device_to_handle(device), &pl_create_info,
                                 &device->meta_state.alloc, &device->meta_state.fmask_copy.p_layout);
    if (result != VK_SUCCESS)
-      goto fail;
+      return result;
 
    for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; i++) {
       uint32_t samples = 1 << i;
       result = create_fmask_copy_pipeline(device, samples, &device->meta_state.fmask_copy.pipeline[i]);
       if (result != VK_SUCCESS)
-         goto fail;
+         return result;
    }
 
    return VK_SUCCESS;
-fail:
-   radv_device_finish_meta_fmask_copy_state(device);
-   return result;
 }
 
 static void
@@ -238,10 +236,11 @@ radv_fixup_copy_dst_metadata(struct radv_cmd_buffer *cmd_buffer, const struct ra
 
    /* Copy CMASK+FMASK. */
    size = src_image->planes[0].surface.cmask_size + src_image->planes[0].surface.fmask_size;
-   src_offset = src_image->offset + src_image->planes[0].surface.fmask_offset;
-   dst_offset = dst_image->offset + dst_image->planes[0].surface.fmask_offset;
+   src_offset = src_image->bindings[0].offset + src_image->planes[0].surface.fmask_offset;
+   dst_offset = dst_image->bindings[0].offset + dst_image->planes[0].surface.fmask_offset;
 
-   radv_copy_buffer(cmd_buffer, src_image->bo, dst_image->bo, src_offset, dst_offset, size);
+   radv_copy_buffer(cmd_buffer, src_image->bindings[0].bo, dst_image->bindings[0].bo,
+                    src_offset, dst_offset, size);
 }
 
 bool
@@ -250,7 +249,7 @@ radv_can_use_fmask_copy(struct radv_cmd_buffer *cmd_buffer,
                         unsigned num_rects, const struct radv_meta_blit2d_rect *rects)
 {
    /* TODO: Test on pre GFX10 chips. */
-   if (cmd_buffer->device->physical_device->rad_info.chip_class < GFX10)
+   if (cmd_buffer->device->physical_device->rad_info.gfx_level < GFX10)
       return false;
 
    /* TODO: Add support for layers. */
@@ -303,7 +302,7 @@ radv_fmask_copy(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf
                            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                            .image = radv_image_to_handle(src->image),
                            .viewType = radv_meta_get_view_type(src->image),
-                           .format = vk_format_no_srgb(src->image->vk_format),
+                           .format = vk_format_no_srgb(src->image->vk.format),
                            .subresourceRange =
                               {
                                  .aspectMask = src->aspect_mask,
@@ -313,14 +312,14 @@ radv_fmask_copy(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf
                                  .layerCount = 1,
                               },
                         },
-                        NULL);
+                        0, NULL);
 
    radv_image_view_init(&dst_iview, device,
                         &(VkImageViewCreateInfo){
                            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                            .image = radv_image_to_handle(dst->image),
                            .viewType = radv_meta_get_view_type(dst->image),
-                           .format = vk_format_no_srgb(dst->image->vk_format),
+                           .format = vk_format_no_srgb(dst->image->vk.format),
                            .subresourceRange =
                               {
                                  .aspectMask = dst->aspect_mask,
@@ -330,7 +329,7 @@ radv_fmask_copy(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf
                                  .layerCount = 1,
                               },
                         },
-                        NULL);
+                        0, NULL);
 
    radv_meta_push_descriptor_set(
       cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,

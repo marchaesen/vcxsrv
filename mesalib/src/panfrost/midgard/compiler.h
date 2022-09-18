@@ -516,8 +516,8 @@ void mir_print_shader(compiler_context *ctx);
 bool mir_nontrivial_mod(midgard_instruction *ins, unsigned i, bool check_swizzle);
 bool mir_nontrivial_outmod(midgard_instruction *ins);
 
-void mir_insert_instruction_before_scheduled(compiler_context *ctx, midgard_block *block, midgard_instruction *tag, midgard_instruction ins);
-void mir_insert_instruction_after_scheduled(compiler_context *ctx, midgard_block *block, midgard_instruction *tag, midgard_instruction ins);
+midgard_instruction *mir_insert_instruction_before_scheduled(compiler_context *ctx, midgard_block *block, midgard_instruction *tag, midgard_instruction ins);
+midgard_instruction *mir_insert_instruction_after_scheduled(compiler_context *ctx, midgard_block *block, midgard_instruction *tag, midgard_instruction ins);
 void mir_flip(midgard_instruction *ins);
 void mir_compute_temp_count(compiler_context *ctx);
 

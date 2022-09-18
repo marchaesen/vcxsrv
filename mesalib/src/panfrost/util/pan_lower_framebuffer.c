@@ -489,7 +489,9 @@ pan_lower_fb_store(nir_shader *shader,
                 bool reorder_comps)
 {
         /* For stores, add conversion before */
-        nir_ssa_def *unpacked = nir_ssa_for_src(b, intr->src[1], 4);
+        nir_ssa_def *unpacked =
+                nir_ssa_for_src(b, intr->src[1], intr->num_components);
+        unpacked = nir_pad_vec4(b, unpacked);
 
         /* Re-order the components */
         if (reorder_comps)
@@ -539,7 +541,7 @@ pan_lower_fb_load(nir_shader *shader,
                         pan_unpacked_type_for_format(desc));
 
         unpacked = nir_convert_to_bit_size(b, unpacked, src_type, bits);
-        unpacked = nir_pad_vector(b, unpacked, nir_dest_num_components(intr->dest));
+        unpacked = nir_resize_vector(b, unpacked, intr->dest.ssa.num_components);
 
         /* Reorder the components */
         if (reorder_comps)

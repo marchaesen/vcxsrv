@@ -743,7 +743,8 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
 
    case STATE_FB_PNTC_Y_TRANSFORM:
       {
-         bool flip_y = (ctx->Point.SpriteOrigin == GL_LOWER_LEFT) ^
+         bool flip_y = (ctx->Point.SpriteOrigin == GL_UPPER_LEFT) ^
+            (ctx->Const.PointCoordOriginUpperLeft) ^
             (ctx->DrawBuffer->FlipY);
 
          value[0] = flip_y ? -1.0F : 1.0F;
@@ -777,6 +778,13 @@ fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
       {
          const GLuint plane = (GLuint) state[1];
          COPY_4V(value, ctx->Transform._ClipUserPlane[plane]);
+      }
+      return;
+
+   case STATE_ATOMIC_COUNTER_OFFSET:
+      {
+         const GLuint counter = (GLuint) state[1];
+         val[0].i = ctx->AtomicBufferBindings[counter].Offset % ctx->Const.ShaderStorageBufferOffsetAlignment;
       }
       return;
    }
@@ -911,6 +919,10 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
 
    case STATE_CLIP_INTERNAL:
       return _NEW_TRANSFORM | _NEW_PROJECTION;
+
+   /* Needs to return any nonzero value to trigger constant updating */
+   case STATE_ATOMIC_COUNTER_OFFSET:
+      return _NEW_PROGRAM_CONSTANTS;
 
    case STATE_TCS_PATCH_VERTICES_IN:
    case STATE_TES_PATCH_VERTICES_IN:
@@ -1192,6 +1204,9 @@ append_token(char *dst, gl_state_index k)
    case STATE_CLIP_INTERNAL:
       append(dst, "clipInternal");
       break;
+   case STATE_ATOMIC_COUNTER_OFFSET:
+      append(dst, "counterOffset");
+      break;
    default:
       /* probably STATE_INTERNAL_DRIVER+i (driver private state) */
       append(dst, "driverState");
@@ -1317,6 +1332,7 @@ _mesa_program_state_string(const gl_state_index16 state[STATE_LENGTH])
    case STATE_LIGHT_POSITION_NORMALIZED:
    case STATE_LIGHT_HALF_VECTOR:
    case STATE_CLIP_INTERNAL:
+   case STATE_ATOMIC_COUNTER_OFFSET:
       append_index(str, state[1], false);
       break;
    case STATE_POINT_SIZE:

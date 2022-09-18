@@ -55,6 +55,7 @@ bir_fau_name(unsigned fau_idx)
             "blend_descriptor_2", "blend_descriptor_3",
             "blend_descriptor_4", "blend_descriptor_5",
             "blend_descriptor_6", "blend_descriptor_7",
+            "tls_ptr", "wls_ptr", "program_counter",
     };
 
     assert(fau_idx < ARRAY_SIZE(names));
@@ -76,7 +77,7 @@ static void
 bi_print_index(FILE *fp, bi_index index)
 {
     if (index.discard)
-        fputs("`", fp);
+        fputs("^", fp);
 
     if (bi_is_null(index))
         fprintf(fp, "_");
@@ -89,8 +90,6 @@ bi_print_index(FILE *fp, bi_index index)
     else if (index.type == BI_INDEX_PASS)
         fprintf(fp, "%s", bir_passthrough_name(index.value));
     else if (index.type == BI_INDEX_REGISTER)
-        fprintf(fp, "br%u", index.value);
-    else if (index.type == BI_INDEX_NORMAL && index.reg)
         fprintf(fp, "r%u", index.value);
     else if (index.type == BI_INDEX_NORMAL)
         fprintf(fp, "%u", index.value);
@@ -159,17 +158,35 @@ bi_${mod}_as_str(enum bi_${mod} ${mod})
 void
 bi_print_instr(const bi_instr *I, FILE *fp)
 {
+    fputs("   ", fp);
+
     bi_foreach_dest(I, d) {
-        if (bi_is_null(I->dest[d])) break;
         if (d > 0) fprintf(fp, ", ");
 
         bi_print_index(fp, I->dest[d]);
     }
 
-    fprintf(fp, " = %s", bi_opcode_props[I->op].name);
+    if (I->nr_dests > 0)
+        fputs(" = ", fp);
+
+    fprintf(fp, "%s", bi_opcode_props[I->op].name);
 
     if (I->table)
-        fprintf(fp, ".%s", bi_table_as_str(I->table));
+        fprintf(fp, ".table%u", I->table);
+
+    if (I->flow)
+        fprintf(fp, ".flow%u", I->flow);
+
+    if (I->op == BI_OPCODE_COLLECT_I32 || I->op == BI_OPCODE_PHI) {
+        for (unsigned i = 0; i < I->nr_srcs; ++i) {
+            if (i > 0)
+                fputs(", ", fp);
+            else
+                fputs(" ", fp);
+
+            bi_print_index(fp, I->src[i]);
+        }
+    }
 
     switch (I->op) {
 % for opcode in ops:
@@ -197,7 +214,7 @@ bi_print_instr(const bi_instr *I, FILE *fp)
     }
 
     if (I->branch_target)
-            fprintf(fp, " -> block%u", I->branch_target->name);
+            fprintf(fp, " -> block%u", I->branch_target->index);
 
     fputs("\\n", fp);
 

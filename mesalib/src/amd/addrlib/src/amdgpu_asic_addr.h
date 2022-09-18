@@ -1,8 +1,7 @@
-/**
-***********************************************************************************************************************
+/*
+************************************************************************************************************************
 *
-* Copyright © 2007-2021 Advanced Micro Devices, Inc.
-* All Rights Reserved.
+*  Copyright (C) 2017-2022 Advanced Micro Devices, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -22,8 +21,7 @@
 * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE
 *
-***********************************************************************************************************************
-*/
+***********************************************************************************************************************/
 
 #ifndef _AMDGPU_ASIC_ADDR_H
 #define _AMDGPU_ASIC_ADDR_H
@@ -35,18 +33,22 @@
 #define AMDGPU_VENDOR_IS_AMD(v) ((v == ATI_VENDOR_ID) || (v == AMD_VENDOR_ID))
 
 #define FAMILY_UNKNOWN 0x00
-#define FAMILY_TN      0x69
-#define FAMILY_SI      0x6E
-#define FAMILY_CI      0x78
-#define FAMILY_KV      0x7D
-#define FAMILY_VI      0x82
-#define FAMILY_POLARIS 0x82
-#define FAMILY_CZ      0x87
-#define FAMILY_AI      0x8D
-#define FAMILY_RV      0x8E
-#define FAMILY_NV      0x8F
-#define FAMILY_VGH     0x90
-#define FAMILY_YC      0x92
+#define FAMILY_TN      0x69 //# 105 / Trinity APUs
+#define FAMILY_SI      0x6E //# 110 / Southern Islands: Tahiti, Pitcairn, CapeVerde, Oland, Hainan
+#define FAMILY_CI      0x78 //# 120 / Sea Islands: Bonaire, Hawaii
+#define FAMILY_KV      0x7D //# 125 / Kaveri APUs: Spectre, Spooky, Kalindi, Godavari
+#define FAMILY_VI      0x82 //# 130 / Volcanic Islands: Iceland, Tonga, Fiji
+#define FAMILY_POLARIS 0x82 //# 130 / Polaris: 10, 11, 12
+#define FAMILY_CZ      0x87 //# 135 / Carrizo APUs: Carrizo, Stoney
+#define FAMILY_AI      0x8D //# 141 / Vega: 10, 20
+#define FAMILY_RV      0x8E //# 142 / Raven
+#define FAMILY_NV      0x8F //# 143 / Navi: 10
+#define FAMILY_VGH     0x90 //# 144 / Van Gogh
+#define FAMILY_GFX1100 0x91
+#define FAMILY_GFX1103 0x94
+#define FAMILY_RMB     0x92 //# 146 / Rembrandt
+#define FAMILY_GC_10_3_6  0x95
+#define FAMILY_GC_10_3_7  0x97
 
 // AMDGPU_FAMILY_IS(familyId, familyName)
 #define FAMILY_IS(f, fn)     (f == FAMILY_##fn)
@@ -60,56 +62,67 @@
 #define FAMILY_IS_AI(f)      FAMILY_IS(f, AI)
 #define FAMILY_IS_RV(f)      FAMILY_IS(f, RV)
 #define FAMILY_IS_NV(f)      FAMILY_IS(f, NV)
-#define FAMILY_IS_YC(f)      FAMILY_IS(f, YC)
+#define FAMILY_IS_GFX1100(f) FAMILY_IS(f, GFX1100)
+#define FAMILY_IS_RMB(f)     FAMILY_IS(f, RMB)
 
 #define AMDGPU_UNKNOWN          0xFF
 
-#define AMDGPU_TAHITI_RANGE     0x05, 0x14
-#define AMDGPU_PITCAIRN_RANGE   0x15, 0x28
-#define AMDGPU_CAPEVERDE_RANGE  0x29, 0x3C
-#define AMDGPU_OLAND_RANGE      0x3C, 0x46
-#define AMDGPU_HAINAN_RANGE     0x46, 0xFF
+#define AMDGPU_TAHITI_RANGE     0x05, 0x14 //#  5 <= x < 20
+#define AMDGPU_PITCAIRN_RANGE   0x15, 0x28 //# 21 <= x < 40
+#define AMDGPU_CAPEVERDE_RANGE  0x29, 0x3C //# 41 <= x < 60
+#define AMDGPU_OLAND_RANGE      0x3C, 0x46 //# 60 <= x < 70
+#define AMDGPU_HAINAN_RANGE     0x46, 0xFF //# 70 <= x < max
 
-#define AMDGPU_BONAIRE_RANGE    0x14, 0x28
-#define AMDGPU_HAWAII_RANGE     0x28, 0x3C
+#define AMDGPU_BONAIRE_RANGE    0x14, 0x28 //# 20 <= x < 40
+#define AMDGPU_HAWAII_RANGE     0x28, 0x3C //# 40 <= x < 60
 
-#define AMDGPU_SPECTRE_RANGE    0x01, 0x41
-#define AMDGPU_SPOOKY_RANGE     0x41, 0x81
-#define AMDGPU_KALINDI_RANGE    0x81, 0xA1
-#define AMDGPU_GODAVARI_RANGE   0xA1, 0xFF
+#define AMDGPU_SPECTRE_RANGE    0x01, 0x41 //#   1 <= x < 65
+#define AMDGPU_SPOOKY_RANGE     0x41, 0x81 //#  65 <= x < 129
+#define AMDGPU_KALINDI_RANGE    0x81, 0xA1 //# 129 <= x < 161
+#define AMDGPU_GODAVARI_RANGE   0xA1, 0xFF //# 161 <= x < max
 
-#define AMDGPU_ICELAND_RANGE    0x01, 0x14
-#define AMDGPU_TONGA_RANGE      0x14, 0x28
-#define AMDGPU_FIJI_RANGE       0x3C, 0x50
-#define AMDGPU_POLARIS10_RANGE  0x50, 0x5A
-#define AMDGPU_POLARIS11_RANGE  0x5A, 0x64
-#define AMDGPU_POLARIS12_RANGE  0x64, 0x6E
-#define AMDGPU_VEGAM_RANGE      0x6E, 0xFF
+#define AMDGPU_ICELAND_RANGE    0x01, 0x14 //#  1 <= x < 20
+#define AMDGPU_TONGA_RANGE      0x14, 0x28 //# 20 <= x < 40
+#define AMDGPU_FIJI_RANGE       0x3C, 0x50 //# 60 <= x < 80
 
-#define AMDGPU_CARRIZO_RANGE    0x01, 0x21
-#define AMDGPU_STONEY_RANGE     0x61, 0xFF
+#define AMDGPU_POLARIS10_RANGE  0x50, 0x5A //#  80 <= x < 90
+#define AMDGPU_POLARIS11_RANGE  0x5A, 0x64 //#  90 <= x < 100
+#define AMDGPU_POLARIS12_RANGE  0x64, 0x6E //# 100 <= x < 110
+#define AMDGPU_VEGAM_RANGE      0x6E, 0xFF //# 110 <= x < max
 
-#define AMDGPU_VEGA10_RANGE     0x01, 0x14
-#define AMDGPU_VEGA12_RANGE     0x14, 0x28
-#define AMDGPU_VEGA20_RANGE     0x28, 0x32
-#define AMDGPU_ARCTURUS_RANGE   0x32, 0x3C
-#define AMDGPU_ALDEBARAN_RANGE  0x3C, 0xFF
+#define AMDGPU_CARRIZO_RANGE    0x01, 0x21 //#  1 <= x < 33
+#define AMDGPU_BRISTOL_RANGE    0x10, 0x21 //# 16 <= x < 33
+#define AMDGPU_STONEY_RANGE     0x61, 0xFF //# 97 <= x < max
 
-#define AMDGPU_RAVEN_RANGE      0x01, 0x81
-#define AMDGPU_RAVEN2_RANGE     0x81, 0x91
-#define AMDGPU_RENOIR_RANGE     0x91, 0xFF
+#define AMDGPU_VEGA10_RANGE     0x01, 0x14 //#  1 <= x < 20
+#define AMDGPU_VEGA12_RANGE     0x14, 0x28 //# 20 <= x < 40
+#define AMDGPU_VEGA20_RANGE     0x28, 0xFF //# 40 <= x < max
 
-#define AMDGPU_NAVI10_RANGE     0x01, 0x0A
-#define AMDGPU_NAVI12_RANGE     0x0A, 0x14
-#define AMDGPU_NAVI14_RANGE     0x14, 0x28
-#define AMDGPU_SIENNA_CICHLID_RANGE     0x28, 0x32
-#define AMDGPU_NAVY_FLOUNDER_RANGE      0x32, 0x3C
-#define AMDGPU_DIMGREY_CAVEFISH_RANGE   0x3C, 0x46
-#define AMDGPU_BEIGE_GOBY_RANGE         0x46, 0x50
+#define AMDGPU_RAVEN_RANGE      0x01, 0x81 //#   1 <= x < 129
+#define AMDGPU_RAVEN2_RANGE     0x81, 0x90 //# 129 <= x < 144
+#define AMDGPU_RENOIR_RANGE     0x91, 0xFF //# 145 <= x < max
 
-#define AMDGPU_VANGOGH_RANGE    0x01, 0xFF
+#define AMDGPU_NAVI10_RANGE     0x01, 0x0A //# 1  <= x < 10
+#define AMDGPU_NAVI12_RANGE     0x0A, 0x14 //# 10 <= x < 20
+#define AMDGPU_NAVI14_RANGE     0x14, 0x28 //# 20 <= x < 40
+#define AMDGPU_NAVI21_RANGE     0x28, 0x32 //# 40  <= x < 50
+#define AMDGPU_NAVI22_RANGE     0x32, 0x3C //# 50  <= x < 60
+#define AMDGPU_NAVI23_RANGE     0x3C, 0x46 //# 60  <= x < 70
+#define AMDGPU_NAVI24_RANGE     0x46, 0x50 //# 70  <= x < 80
 
-#define AMDGPU_YELLOW_CARP_RANGE 0x01, 0xFF
+#define AMDGPU_VANGOGH_RANGE    0x01, 0xFF //# 1 <= x < max
+
+#define AMDGPU_GFX1100_RANGE    0x01, 0x10 //# 01 <= x < 16
+#define AMDGPU_GFX1101_RANGE    0x20, 0xFF //# 32 <= x < 255
+#define AMDGPU_GFX1102_RANGE    0x10, 0x20 //# 16 <= x < 32
+
+#define AMDGPU_GFX1103_RANGE    0x01, 0xFF //# 1 <= x < max
+
+#define AMDGPU_REMBRANDT_RANGE  0x01, 0xFF //# 01 <= x < 255
+
+#define AMDGPU_GFX1036_RANGE    0x01, 0xFF //# 1 <= x < max
+
+#define AMDGPU_GFX1037_RANGE    0x01, 0xFF //# 1 <= x < max
 
 #define AMDGPU_EXPAND_FIX(x) x
 #define AMDGPU_RANGE_HELPER(val, min, max) ((val >= min) && (val < max))
@@ -142,6 +155,7 @@
 #define ASICREV_IS_VEGAM_P(r)          ASICREV_IS(r, VEGAM)
 
 #define ASICREV_IS_CARRIZO(r)          ASICREV_IS(r, CARRIZO)
+#define ASICREV_IS_CARRIZO_BRISTOL(r)  ASICREV_IS(r, BRISTOL)
 #define ASICREV_IS_STONEY(r)           ASICREV_IS(r, STONEY)
 
 #define ASICREV_IS_VEGA10_M(r)         ASICREV_IS(r, VEGA10)
@@ -149,23 +163,36 @@
 #define ASICREV_IS_VEGA12_P(r)         ASICREV_IS(r, VEGA12)
 #define ASICREV_IS_VEGA12_p(r)         ASICREV_IS(r, VEGA12)
 #define ASICREV_IS_VEGA20_P(r)         ASICREV_IS(r, VEGA20)
-#define ASICREV_IS_ARCTURUS(r)         ASICREV_IS(r, ARCTURUS)
-#define ASICREV_IS_ALDEBARAN(r)        ASICREV_IS(r, ALDEBARAN)
 
 #define ASICREV_IS_RAVEN(r)            ASICREV_IS(r, RAVEN)
 #define ASICREV_IS_RAVEN2(r)           ASICREV_IS(r, RAVEN2)
 #define ASICREV_IS_RENOIR(r)           ASICREV_IS(r, RENOIR)
 
 #define ASICREV_IS_NAVI10_P(r)         ASICREV_IS(r, NAVI10)
+
 #define ASICREV_IS_NAVI12_P(r)         ASICREV_IS(r, NAVI12)
+
 #define ASICREV_IS_NAVI14_M(r)         ASICREV_IS(r, NAVI14)
-#define ASICREV_IS_SIENNA_CICHLID(r)   ASICREV_IS(r, SIENNA_CICHLID)
-#define ASICREV_IS_NAVY_FLOUNDER(r)    ASICREV_IS(r, NAVY_FLOUNDER)
-#define ASICREV_IS_DIMGREY_CAVEFISH(r) ASICREV_IS(r, DIMGREY_CAVEFISH)
-#define ASICREV_IS_BEIGE_GOBY(r)       ASICREV_IS(r, BEIGE_GOBY)
+
+#define ASICREV_IS_NAVI21_M(r)         ASICREV_IS(r, NAVI21)
+
+#define ASICREV_IS_NAVI22_P(r)         ASICREV_IS(r, NAVI22)
+
+#define ASICREV_IS_NAVI23_P(r)         ASICREV_IS(r, NAVI23)
+
+#define ASICREV_IS_NAVI24_P(r)         ASICREV_IS(r, NAVI24)
 
 #define ASICREV_IS_VANGOGH(r)          ASICREV_IS(r, VANGOGH)
 
-#define ASICREV_IS_YELLOW_CARP(r)      ASICREV_IS(r, YELLOW_CARP)
+#define ASICREV_IS_GFX1100(r)          ASICREV_IS(r, GFX1100)
+#define ASICREV_IS_GFX1101(r)          ASICREV_IS(r, GFX1101)
+#define ASICREV_IS_GFX1102(r)          ASICREV_IS(r, GFX1102)
+#define ASICREV_IS_GFX1103(r)          ASICREV_IS(r, GFX1103)
+
+#define ASICREV_IS_REMBRANDT(r)        ASICREV_IS(r, REMBRANDT)
+
+#define ASICREV_IS_GFX1036(r)          ASICREV_IS(r, GFX1036)
+
+#define ASICREV_IS_GFX1037(r)          ASICREV_IS(r, GFX1037)
 
 #endif // _AMDGPU_ASIC_ADDR_H

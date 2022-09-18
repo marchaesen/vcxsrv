@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086 # we want word splitting
 
 set -ex
 
@@ -11,12 +12,15 @@ pushd kernel
 # debian (they'll get blown away by the rm of the kernel dir at the end).
 mkdir -p ld-links
 for i in /usr/bin/*-ld /usr/bin/ld; do
-    i=`basename $i`
+    i=$(basename $i)
     ln -sf /usr/bin/$i.bfd ld-links/$i
 done
-export PATH=`pwd`/ld-links:$PATH
 
-export LOCALVERSION="`basename $KERNEL_URL`"
+NEWPATH=$(pwd)/ld-links
+export PATH=$NEWPATH:$PATH
+
+KERNEL_FILENAME=$(basename $KERNEL_URL)
+export LOCALVERSION="$KERNEL_FILENAME"
 ./scripts/kconfig/merge_config.sh ${DEFCONFIG} ../.gitlab-ci/container/${KERNEL_ARCH}.config
 make ${KERNEL_IMAGE_NAME}
 for image in ${KERNEL_IMAGE_NAME}; do
@@ -28,10 +32,8 @@ if [[ -n ${DEVICE_TREES} ]]; then
     cp ${DEVICE_TREES} /lava-files/.
 fi
 
-if [[ ${DEBIAN_ARCH} = "amd64" ]]; then
-    make modules
-    INSTALL_MOD_PATH=/lava-files/rootfs-${DEBIAN_ARCH}/ make modules_install
-fi
+make modules
+INSTALL_MOD_PATH=/lava-files/rootfs-${DEBIAN_ARCH}/ make modules_install
 
 if [[ ${DEBIAN_ARCH} = "arm64" ]]; then
     make Image.lzma

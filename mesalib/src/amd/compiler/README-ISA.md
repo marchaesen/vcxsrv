@@ -171,6 +171,12 @@ When this happens, any store performed by a VS is not guaranteed
 to be complete when PS tries to load it, so we need to manually
 make sure to insert wait instructions before the position exports.
 
+## A16 and G16
+
+On GFX9, the A16 field enables both 16 bit addresses and derivatives.
+Since GFX10+ these are fully independent of each other, A16 controls 16 bit addresses
+and G16 opcodes 16 bit derivatives. A16 without G16 uses 32 bit derivatives.
+
 # Hardware Bugs
 
 ## SMEM corrupts VCCZ on SI/CI
@@ -251,8 +257,7 @@ ACO doesn't use FLAT load/store on GFX10, so is unaffected.
 ### VcmpxPermlaneHazard
 
 Triggered by:
-Any permlane instruction that follows any VOPC instruction.
-Confirmed by AMD devs that despite the name, this doesn't only affect v_cmpx.
+Any permlane instruction that follows any VOPC instruction which writes exec.
 
 Mitigated by: any VALU instruction except `v_nop`.
 

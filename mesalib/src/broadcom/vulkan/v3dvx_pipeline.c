@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Raspberry Pi
+ * Copyright © 2021 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -56,15 +56,10 @@ blend_factor(VkBlendFactor factor, bool dst_alpha_one, bool *needs_constants)
    case VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR:
    case VK_BLEND_FACTOR_SRC1_ALPHA:
    case VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA:
-      assert(!"Invalid blend factor: dual source blending not supported.");
+      unreachable("Invalid blend factor: dual source blending not supported.");
    default:
-      assert(!"Unknown blend factor.");
+      unreachable("Unknown blend factor.");
    }
-
-   /* Should be handled by the switch, added to avoid a "end of non-void
-    * function" error
-    */
-   unreachable("Unknown blend factor.");
 }
 
 static void
@@ -146,6 +141,7 @@ pack_cfg_bits(struct v3dv_pipeline *pipeline,
               const VkPipelineDepthStencilStateCreateInfo *ds_info,
               const VkPipelineRasterizationStateCreateInfo *rs_info,
               const VkPipelineRasterizationProvokingVertexStateCreateInfoEXT *pv_info,
+              const VkPipelineRasterizationLineStateCreateInfoEXT *ls_info,
               const VkPipelineMultisampleStateCreateInfo *ms_info)
 {
    assert(sizeof(pipeline->cfg_bits) == cl_packet_length(CFG_BITS));
@@ -170,7 +166,11 @@ pack_cfg_bits(struct v3dv_pipeline *pipeline,
        * exposing, at least, a minimum of 4-bits of subpixel precision
        * (the minimum requirement).
        */
-      config.line_rasterization = 1; /* perp end caps */
+      if (ls_info &&
+          ls_info->lineRasterizationMode == VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT)
+         config.line_rasterization = V3D_LINE_RASTERIZATION_DIAMOND_EXIT;
+      else
+         config.line_rasterization = V3D_LINE_RASTERIZATION_PERP_END_CAPS;
 
       if (rs_info && rs_info->polygonMode != VK_POLYGON_MODE_FILL) {
          config.direct3d_wireframe_triangles_mode = true;
@@ -178,7 +178,10 @@ pack_cfg_bits(struct v3dv_pipeline *pipeline,
             rs_info->polygonMode == VK_POLYGON_MODE_POINT;
       }
 
-      config.rasterizer_oversample_mode = pipeline->msaa ? 1 : 0;
+      /* diamond-exit rasterization does not suport oversample */
+      config.rasterizer_oversample_mode =
+         (config.line_rasterization == V3D_LINE_RASTERIZATION_PERP_END_CAPS &&
+          pipeline->msaa) ? 1 : 0;
 
       /* From the Vulkan spec:
        *
@@ -342,10 +345,11 @@ v3dX(pipeline_pack_state)(struct v3dv_pipeline *pipeline,
                           const VkPipelineDepthStencilStateCreateInfo *ds_info,
                           const VkPipelineRasterizationStateCreateInfo *rs_info,
                           const VkPipelineRasterizationProvokingVertexStateCreateInfoEXT *pv_info,
+                          const VkPipelineRasterizationLineStateCreateInfoEXT *ls_info,
                           const VkPipelineMultisampleStateCreateInfo *ms_info)
 {
    pack_blend(pipeline, cb_info);
-   pack_cfg_bits(pipeline, ds_info, rs_info, pv_info, ms_info);
+   pack_cfg_bits(pipeline, ds_info, rs_info, pv_info, ls_info, ms_info);
    pack_stencil_cfg(pipeline, ds_info);
 }
 

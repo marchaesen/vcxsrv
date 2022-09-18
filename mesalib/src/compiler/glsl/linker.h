@@ -35,17 +35,6 @@ extern bool
 link_function_calls(gl_shader_program *prog, gl_linked_shader *main,
                     gl_shader **shader_list, unsigned num_shaders);
 
-extern void
-link_invalidate_variable_locations(exec_list *ir);
-
-extern void
-link_assign_uniform_locations(struct gl_shader_program *prog,
-                              const struct gl_constants *consts);
-
-extern void
-link_set_uniform_initializers(struct gl_shader_program *prog,
-                              unsigned int boolean_true);
-
 extern int
 link_cross_validate_uniform_block(void *mem_ctx,
                                   struct gl_uniform_block **linked_blocks,
@@ -81,15 +70,6 @@ validate_interstage_inout_blocks(struct gl_shader_program *prog,
 void
 validate_interstage_uniform_blocks(struct gl_shader_program *prog,
                                    gl_linked_shader **stages);
-
-extern void
-link_assign_atomic_counter_resources(const struct gl_constants *consts,
-                                     struct gl_shader_program *prog);
-
-extern void
-link_check_atomic_counter_resources(const struct gl_constants *consts,
-                                    struct gl_shader_program *prog);
-
 
 extern struct gl_linked_shader *
 link_intrastage_shaders(void *mem_ctx,

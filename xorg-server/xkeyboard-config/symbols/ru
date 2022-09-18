@@ -288,8 +288,6 @@ xkb_symbols "tt" {
     include "ru(winkeys)"
     name[Group1]= "Tatar";
 
-    key.type[group1]="FOUR_LEVEL";
-
     key <TLDE> { [           Cyrillic_shha,           Cyrillic_SHHA,        Cyrillic_io,        Cyrillic_IO  ] };
     key <AD02> { [          Cyrillic_o_bar,          Cyrillic_O_bar,       Cyrillic_tse,       Cyrillic_TSE  ] };
     key <AD09> { [          Cyrillic_schwa,          Cyrillic_SCHWA,     Cyrillic_shcha,     Cyrillic_SHCHA  ] };
@@ -328,8 +326,6 @@ xkb_symbols "cv" {
     include "ru(winkeys)"
     name[Group1]= "Chuvash";
 
-    key.type[group1]="FOUR_LEVEL";
-
     key <AD03> { [   Cyrillic_u,   Cyrillic_U,  0x010004f3,  0x010004f2 ] };
     key <AD05> { [  Cyrillic_ie,  Cyrillic_IE,  0x010004d7,  0x010004d6 ] };
     key <AC04> { [   Cyrillic_a,   Cyrillic_A,  0x010004d1,  0x010004d0 ] };
@@ -343,8 +339,6 @@ xkb_symbols "udm" {
 
     include "ru(winkeys)"
     name[Group1]= "Udmurt";
-
-    key.type[group1]="FOUR_LEVEL";
 
     key <AE01> { [    question,      exclam,   1,   1  ] };
     key <AE02> { [   parenleft,    quotedbl,   2,   2  ] };
@@ -365,8 +359,6 @@ xkb_symbols "cv_latin" {
 
     include "us(alt-intl)"
     name[Group1]= "Chuvash (Latin)";
-
-    key.type[group1]="FOUR_LEVEL";
 
     key <AD01> { [   q,   Q,   0x01000161,   0x01000160  ] };
     key <AD02> { [   w,   W,   udiaeresis,   Udiaeresis  ] };
@@ -392,8 +384,6 @@ xkb_symbols "kom" {
     include "ru(winkeys)"
     name[Group1]= "Komi";
 
-    key.type[group1]="FOUR_LEVEL_ALPHABETIC";
-
     // cyrilllic o with diaeresis
     key <AC07> { [  Cyrillic_o,  Cyrillic_O,        U04E7,        U04E6  ] };
 
@@ -412,8 +402,6 @@ xkb_symbols "sah" {
 
     include "ru(winkeys)"
     name[Group1]= "Yakut";
-
-    key.type[group1]="FOUR_LEVEL_ALPHABETIC";
 
     key <TLDE> { [  Cyrillic_io,      Cyrillic_IO,      U04EB,                U04EA                ] };
     key <AD01> { [  Cyrillic_shorti,  Cyrillic_SHORTI,  U048B,                U048A                ] };
@@ -545,8 +533,6 @@ xkb_symbols "chm" {
 
     include "ru(winkeys)"
     name[Group1]= "Mari";
-
-    key.type[group1]="FOUR_LEVEL_ALPHABETIC";
 
     key <AC04> { [   Cyrillic_a,   Cyrillic_A,   U04D3,   U04D2  ] };
     key <AD03> { [   Cyrillic_u,   Cyrillic_U,   U04F1,   U04F0  ] };
@@ -687,6 +673,51 @@ xkb_symbols "phonetic_fr" {
     include "ru(phonetic_azerty)"
 
     name[Group1]= "Russian (phonetic, French)";
+};
+
+// Keyboard layout for Abkhazian.
+// 2022/04/13 by Nart Tlisha <daniel.abzakh@gmail.com>
+partial alphanumeric_keys
+xkb_symbols "ab" {
+
+    include "ru(common)"
+    name[Group1]= "Abkhazian (Russia)";
+
+    key <TLDE> { [     U0301,  asciitilde,        U201C,      U201D ] }; // double quotation marks
+    key <AE01> { [         1,      exclam,        U00AB,      U00BB ] }; // guillemets
+    key <AE02> { [         2,          at,     quotedbl,      U201E ] }; // low double quotation mark
+    key <AE03> { [         3,  numbersign,   numerosign             ] };
+    key <AE04> { [         4,      dollar,    semicolon             ] };
+    key <AE05> { [         5,     percent                           ] };
+    key <AE06> { [         6, asciicircum,        colon             ] };
+    key <AE07> { [         7,   ampersand,     question             ] };
+    key <AE08> { [         8,    asterisk                           ] };
+    key <AE09> { [         9,   parenleft,  bracketleft,  braceleft ] };
+    key <AE10> { [         0,  parenright, bracketright, braceright ] };
+    key <AE11> { [     minus,  underscore,        U2013,      U2014 ] }; // endash, emdash
+
+    key <AD01> { [        U049f,        U049e                       ] };
+    key <AD02> { [ Cyrillic_tse, Cyrillic_TSE,      U04b5,    U04b4 ] };
+    key <AD04> { [  Cyrillic_ka,  Cyrillic_KA,      U049b,    U049a ] };
+    key <AD07> { [ Cyrillic_ghe, Cyrillic_GHE,      U04f7,    U04f6 ] };
+    key <AD09> { [        U04d9,        U04d8                       ] };
+    key <AD10> { [  Cyrillic_ze,  Cyrillic_ZE,      U04e1,    U04e0 ] };
+    key <AD11> { [  Cyrillic_ha,  Cyrillic_HA,      U04b3,    U04b2 ] };
+    key <AD12> { [        U04bf,        U04be                       ] };
+
+    key <AC05> { [  Cyrillic_pe,  Cyrillic_PE,      U0525,    U0524 ] };
+    key <AC10> { [ Cyrillic_zhe, Cyrillic_ZHE,  semicolon,    colon ] };
+    key <AC11> { [        U04bd,        U04bc, apostrophe, quotedbl ] };
+    key <BKSL> { [    backslash,          bar,      slash           ] };
+
+    key <AB01> { [        U045f,        U040f                       ] };
+    key <AB02> { [ Cyrillic_che, Cyrillic_CHE,      U04b7,    U04b6 ] };
+    key <AB06> { [  Cyrillic_te,  Cyrillic_TE,      U04ad,    U04ac ] };
+    key <AB08> { [  Cyrillic_be,  Cyrillic_BE,      comma,     less ] };
+    key <AB09> { [        U04a9,        U04a8,     period,  greater ] };
+    key <AB10> { [        slash,     question,      comma,   period ] };
+
+    include "level3(ralt_switch)"
 };
 
 // EXTRAS:
@@ -998,7 +1029,7 @@ xkb_symbols "prxn" {
 
     key <LSGT> { [           U0495,             U0494,                       U0501,                  U0500,     U0503,    U0502,                                  U0509,    U0508 ] };                               // ҕ Ҕ ԁ Ԁ ԃ Ԃ ԉ Ԉ
     key <AB01> { [     Cyrillic_ya,       Cyrillic_YA,                       U0469,                  U0468,     U0467,    U0466,                                  UA657,    UA656 ] };                               // я Я ѩ Ѩ ѧ Ѧ ꙗ Ꙗ
-    key <AB02> { [    Cyrillic_che,      Cyrillic_CHE,                Serbian_tshe,           Serbian_TSHE,     Cyrillic_che_descender,  Cyrillic_CHE_descender,  U2016,    U00A6 ] };	                             // ч Ч ћ Ћ ҷ Ҷ ‖ ¦
+    key <AB02> { [    Cyrillic_che,      Cyrillic_CHE,                Serbian_tshe,           Serbian_TSHE,     Cyrillic_che_descender,  Cyrillic_CHE_descender,  U2016,brokenbar ] };	                             // ч Ч ћ Ћ ҷ Ҷ ‖ ¦
     key <AB03> { [      Cyrillic_es,      Cyrillic_ES,                       U046D,                  U046C,     U046B,    U046A,                                  U04F7,    U04F6 ] };                               // с С ѭ Ѭ ѫ Ѫ ӷ Ӷ
     key <AB04> { [       Cyrillic_em,     Cyrillic_EM,                    multiply,               division,     U22C5,    U2219,                                  U04CE,    U04CD ] };                               // м М × ÷ ⋅ ∙ ӎ Ӎ
     key <AB05> { [      Cyrillic_i,        Cyrillic_I,                       U0475,                  U0474,     U048B,    U048A,                         periodcentered,    U261B ] };    	                     // и И ѵ Ѵ ҋ Ҋ · ☛
@@ -1016,10 +1047,9 @@ xkb_symbols "prxn" {
 // eng: Maps <CAPS> for reaching the fifth level
 // rus: Составляетъ <CAPS> для достиженія пятаго уровня
 // srp: Саставља <CAPS> за достизање петег ступња
-
 	include "level5(caps_switch)"
 
-// eng: Offers pressing both shift keys for capslock
+// eng: Allows pressing both Shift keys for enabling ShiftLock; one Shift releases it
 // rus: Предоставляетъ нажатие обѣихъ клавишъ Shift для защелкиванія прописности буквъ
 // srp: Ставља на располагање притискивање обију тастера Shift за учвршћивање верзала
 	include "shift(both_shiftlock)"
@@ -1028,11 +1058,6 @@ xkb_symbols "prxn" {
 // rus: Дѣлаетъ что <KPDL> отдаетъ запятую вмѣсто точки, такъ какъ запятая десятичный раздѣлитель въ языкахъ пишемыхъ кириллицей
 // srp: Ради да <KPDL> враћа зарез уместо точке, будући да зарез је десетни разделитељ у језицима који се пишу ћирилицом
 	include "kpdl(comma)"
-
-// eng: Bug notice: One has to set lv5:rwin_switch_lock or one of the other level 5 locks for the caps switch to work!
-// rus: Приходится ставить lv5:rwin_switch_lock либо одинъ изъ другихъ затворовъ пятаго уровня, чтобы работалъ переключатель Caps!
-// srp: Потребно да се ставља lv5:rwin_switch_lock или једна из других брава петег ступња, да би шљакао пребацивач Caps!
-// https://bugs.freedesktop.org/show_bug.cgi?id=102189
 };
 
 
@@ -1100,91 +1125,124 @@ xkb_symbols "phonetic_mac" {
     key <AE03> { [                 3,        numbersign, numerosign  ] };
     key <AE04> { [                 4,            dollar, U20BD       ] }; // ruble
     key <AE05> { [                 5,           percent  ] };
-    key <AE06> { [                 6,             caret  ] };
+    key <AE06> { [                 6,       asciicircum  ] };
     key <AE11> { [ Cyrillic_softsign, Cyrillic_SOFTSIGN, minus,       underscore  ] };
     key <AE12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN, equal,       plus        ] };
 
     include "level3(ralt_switch)"
 };
 
-// Russian engineering Cyrillic keyboard layout (Ручей)
+// Russian engineering keyboard layout (Ручей)
 // Based on the Russian standard keyboard layout
 // Baryshkin Andrey <baryshkin_aa@codeblast.ru>
-// Last changes 2022/01/20
+// Last changes 2022/08/07
+// Version 2.0
 partial alphanumeric_keys
-xkb_symbols "ruchey_cyrillic" {
+xkb_symbols "ruchey_ru" {
 
-    name[Group1]= "Russian (Engineering, Cyrillic)";
+    name[Group1]= "Russian (engineering, RU)";
 
     include "ru(common)"
 
-    key <TLDE> { [       Cyrillic_io,       Cyrillic_IO,          U20BD ] };
-    key <AE01> { [                 1,            exclam,     numerosign ] };
-    key <AE02> { [                 2,             grave,             at ] };
-    key <AE03> { [                 3,        apostrophe,     numbersign ] };
-    key <AE04> { [                 4,          quotedbl,         dollar ] };
-    key <AE05> { [                 5,         semicolon,        percent ] };
-    key <AE06> { [                 6,             colon,    asciicircum ] };
-    key <AE07> { [                 7,          question,      ampersand ] };
-    key <AE08> { [                 8,          asterisk,     asciitilde ] };
-    key <AE09> { [                 9,         parenleft,  guillemotleft ] };
-    key <AE10> { [                 0,        parenright, guillemotright ] };
-    key <AE11> { [             minus,        underscore,     VoidSymbol ] };
-    key <AE12> { [             equal,              plus,     VoidSymbol ] };
+    key <TLDE> { [ NoSymbol,   NoSymbol,          grave,      U0301 ] };
 
-    key <AD11> { [       Cyrillic_ha,       Cyrillic_HA,      braceleft ] };
-    key <AD12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN,     braceright ] };
+    key <AE01> { [ NoSymbol,     exclam,          U20BD, VoidSymbol ] };
+    key <AE02> { [ NoSymbol,   quotedbl,             at, VoidSymbol ] };
+    key <AE03> { [ NoSymbol, numerosign,     numbersign, VoidSymbol ] };
+    key <AE04> { [ NoSymbol,  semicolon,         dollar, VoidSymbol ] };
+    key <AE05> { [ NoSymbol,    percent,     apostrophe, VoidSymbol ] };
+    key <AE06> { [ NoSymbol,      colon,    asciicircum, VoidSymbol ] };
+    key <AE07> { [ NoSymbol,   question,      ampersand, VoidSymbol ] };
+    key <AE08> { [ NoSymbol,   asterisk,     asciitilde, VoidSymbol ] };
+    key <AE09> { [ NoSymbol,  parenleft,  guillemotleft, VoidSymbol ] };
+    key <AE10> { [ NoSymbol, parenright, guillemotright, VoidSymbol ] };
+    key <AE11> { [ NoSymbol, underscore,     VoidSymbol, VoidSymbol ] };
+    key <AE12> { [ NoSymbol,       plus,     VoidSymbol, VoidSymbol ] };
 
-    key <AC10> { [      Cyrillic_zhe,      Cyrillic_ZHE,    bracketleft ] };
-    key <AC11> { [        Cyrillic_e,        Cyrillic_E,   bracketright ] };
+    key <AD04> { [ NoSymbol,   NoSymbol,       NoSymbol, registered ] };
+    key <AD03> { [ NoSymbol,   NoSymbol,       EuroSign, VoidSymbol ] };
+    key <AD06> { [ NoSymbol,   NoSymbol,          U00A5, VoidSymbol ] };
+    key <AD11> { [ NoSymbol,   NoSymbol,      braceleft, VoidSymbol ] };
+    key <AD12> { [ NoSymbol,   NoSymbol,     braceright, VoidSymbol ] };
 
-    key <AB08> { [       Cyrillic_be,       Cyrillic_BE,           less ] };
-    key <AB09> { [       Cyrillic_yu,       Cyrillic_YU,        greater ] };
-    key <AB10> { [            period,             comma,     VoidSymbol ] };
+    key <AC02> { [ NoSymbol,   NoSymbol,          U00A7, VoidSymbol ] };
+    key <AC10> { [ NoSymbol,   NoSymbol,    bracketleft, VoidSymbol ] };
+    key <AC11> { [ NoSymbol,   NoSymbol,   bracketright, VoidSymbol ] };
 
-    key <BKSL> { [             slash,         backslash,            bar ] };
-    key <LSGT> { [             slash,         backslash,            bar ] };
+    key <AB03> { [ NoSymbol,   NoSymbol,       NoSymbol,  copyright ] };
+    key <AB08> { [ NoSymbol,   NoSymbol,           less, VoidSymbol ] };
+    key <AB09> { [ NoSymbol,   NoSymbol,        greater, VoidSymbol ] };
+    key <AB10> { [   period,      comma,     VoidSymbol, VoidSymbol ] };
+
+    key <BKSL> { [    slash,  backslash,            bar, VoidSymbol ] };
+    key <LSGT> { [    slash,  backslash,            bar, VoidSymbol ] };
 
     include "kpdl(dot)"
 };
 
-// Russian engineering Latin keyboard layout (Ручей)
+// Russian engineering keyboard layout (Ручей)
 // Based on the English standard keyboard layout
 // Baryshkin Andrey <baryshkin_aa@codeblast.ru>
-// Last changes 2022/01/20
+// Last changes 2022/08/07
+// Version 2.0
 partial alphanumeric_keys
-xkb_symbols "ruchey_latin" {
+xkb_symbols "ruchey_en" {
 
-    name[Group1]= "Russian (Engineering, Latin)";
+    name[Group1]= "Russian (engineering, EN)";
 
     include "us(basic)"
 
-    key <TLDE> { [ VoidSymbol,   VoidSymbol,          U20BD ] };
-    key <AE01> { [          1,       exclam,     numerosign ] };
-    key <AE02> { [          2,        grave,             at ] };
-    key <AE03> { [          3,   apostrophe,     numbersign ] };
-    key <AE04> { [          4,     quotedbl,         dollar ] };
-    key <AE05> { [          5,    semicolon,        percent ] };
-    key <AE06> { [          6,        colon,    asciicircum ] };
-    key <AE07> { [          7,     question,      ampersand ] };
-    key <AE08> { [          8,     asterisk,     asciitilde ] };
-    key <AE09> { [          9,    parenleft,  guillemotleft ] };
-    key <AE10> { [          0,   parenright, guillemotright ] };
-    key <AE11> { [      minus,   underscore,     VoidSymbol ] };
-    key <AE12> { [      equal,         plus,     VoidSymbol ] };
+    key <TLDE> { [ VoidSymbol,   VoidSymbol,          grave,      U0301 ] };
 
-    key <AD11> { [ VoidSymbol,   VoidSymbol,      braceleft ] };
-    key <AD12> { [ VoidSymbol,   VoidSymbol,     braceright ] };
+    key <AE01> { [   NoSymbol,       exclam,          U20BD, VoidSymbol ] };
+    key <AE02> { [   NoSymbol,     quotedbl,             at, VoidSymbol ] };
+    key <AE03> { [   NoSymbol,   numerosign,     numbersign, VoidSymbol ] };
+    key <AE04> { [   NoSymbol,    semicolon,         dollar, VoidSymbol ] };
+    key <AE05> { [   NoSymbol,      percent,     apostrophe, VoidSymbol ] };
+    key <AE06> { [   NoSymbol,        colon,    asciicircum, VoidSymbol ] };
+    key <AE07> { [   NoSymbol,     question,      ampersand, VoidSymbol ] };
+    key <AE08> { [   NoSymbol,     asterisk,     asciitilde, VoidSymbol ] };
+    key <AE09> { [   NoSymbol,    parenleft,  guillemotleft, VoidSymbol ] };
+    key <AE10> { [   NoSymbol,   parenright, guillemotright, VoidSymbol ] };
+    key <AE11> { [   NoSymbol,   underscore,     VoidSymbol, VoidSymbol ] };
+    key <AE12> { [   NoSymbol,         plus,     VoidSymbol, VoidSymbol ] };
 
-    key <AC10> { [ VoidSymbol,   VoidSymbol,    bracketleft ] };
-    key <AC11> { [ VoidSymbol,   VoidSymbol,   bracketright ] };
+    key <AD04> { [   NoSymbol,     NoSymbol,       NoSymbol, registered ] };
+    key <AD03> { [   NoSymbol,     NoSymbol,       EuroSign, VoidSymbol ] };
+    key <AD06> { [   NoSymbol,     NoSymbol,          U00A5, VoidSymbol ] };
+    key <AD11> { [ VoidSymbol,   VoidSymbol,      braceleft, VoidSymbol ] };
+    key <AD12> { [ VoidSymbol,   VoidSymbol,     braceright, VoidSymbol ] };
 
-    key <AB08> { [ VoidSymbol,   VoidSymbol,           less ] };
-    key <AB09> { [ VoidSymbol,   VoidSymbol,        greater ] };
-    key <AB10> { [     period,        comma,     VoidSymbol ] };
+    key <AC02> { [   NoSymbol,     NoSymbol,          U00A7, VoidSymbol ] };
+    key <AC10> { [ VoidSymbol,   VoidSymbol,    bracketleft, VoidSymbol ] };
+    key <AC11> { [ VoidSymbol,   VoidSymbol,   bracketright, VoidSymbol ] };
 
-    key <BKSL> { [      slash,    backslash,            bar ] };
-    key <LSGT> { [      slash,    backslash,            bar ] };
+    key <AB03> { [   NoSymbol,     NoSymbol,       NoSymbol,  copyright ] };
+    key <AB08> { [ VoidSymbol,   VoidSymbol,           less, VoidSymbol ] };
+    key <AB09> { [ VoidSymbol,   VoidSymbol,        greater, VoidSymbol ] };
+    key <AB10> { [     period,        comma,     VoidSymbol, VoidSymbol ] };
+
+    key <BKSL> { [      slash,    backslash,            bar, VoidSymbol ] };
+    key <LSGT> { [      slash,    backslash,            bar, VoidSymbol ] };
 
     include "kpdl(dot)"
+};
+
+// RU Winkeys-P layout based on RU Winkeys with top row digits switched
+// Vladimir Gorelov <virtual.lark@gmail.com>
+partial alphanumeric_keys
+xkb_symbols "winkeys-p" {
+    include "ru(winkeys)"
+    name[Group1]= "Russian (Programmer)";
+
+    key <AE01> { [ exclam,      1 ] };
+    key <AE02> { [ at,          2 ] };
+    key <AE03> { [ numbersign,  3 ] };
+    key <AE04> { [ dollar,      4 ] };
+    key <AE05> { [ percent,     5 ] };
+    key <AE06> { [ asciicircum, 6 ] };
+    key <AE07> { [ ampersand,   7 ] };
+    key <AE08> { [ asterisk,    8 ] };
+    key <AE09> { [ parenleft,   9 ] };
+    key <AE10> { [ parenright,  0 ] };
 };

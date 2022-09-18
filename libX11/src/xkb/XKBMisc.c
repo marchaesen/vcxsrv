@@ -857,7 +857,7 @@ XkbUpdateKeyTypeVirtualMods(XkbDescPtr xkb,
                             XkbChangesPtr changes)
 {
     register unsigned int i;
-    unsigned int mask;
+    unsigned int mask = 0;
 
     XkbVirtualModsToReal(xkb, type->mods.vmods, &mask);
     type->mods.mask = type->mods.real_mods | mask;

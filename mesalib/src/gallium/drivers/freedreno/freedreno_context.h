@@ -436,7 +436,7 @@ struct fd_context {
     */
    struct ir3_cache *shader_cache;
 
-   struct pipe_debug_callback debug;
+   struct util_debug_callback debug;
 
    struct u_trace_context trace_context dt;
 
@@ -590,32 +590,19 @@ fd_context_dirty_resource(enum fd_dirty_3d_state dirty)
                    FD_DIRTY_TEX | FD_DIRTY_STREAMOUT);
 }
 
-#ifdef __cplusplus
-#define or_dirty(d, mask)                                                      \
-   do {                                                                        \
-      decltype(mask) _d = (d);                                                 \
-      d = (decltype(mask))(_d | (mask));                                       \
-   } while (0)
-#else
-#define or_dirty(d, mask)                                                      \
-   do {                                                                        \
-      d |= (mask);                                                             \
-   } while (0)
-#endif
-
 /* Mark specified non-shader-stage related state as dirty: */
 static inline void
 fd_context_dirty(struct fd_context *ctx, enum fd_dirty_3d_state dirty) assert_dt
 {
    assert(util_is_power_of_two_nonzero(dirty));
-   STATIC_ASSERT(ffs(dirty) <= ARRAY_SIZE(ctx->gen_dirty_map));
+   assert(ffs(dirty) <= ARRAY_SIZE(ctx->gen_dirty_map));
 
    ctx->gen_dirty |= ctx->gen_dirty_map[ffs(dirty) - 1];
 
    if (fd_context_dirty_resource(dirty))
-      or_dirty(dirty, FD_DIRTY_RESOURCE);
+      or_mask(dirty, FD_DIRTY_RESOURCE);
 
-   or_dirty(ctx->dirty, dirty);
+   or_mask(ctx->dirty, dirty);
 }
 
 static inline void
@@ -639,7 +626,7 @@ fd_context_dirty_shader(struct fd_context *ctx, enum pipe_shader_type shader,
 
    ctx->gen_dirty |= ctx->gen_dirty_shader_map[shader][ffs(dirty) - 1];
 
-   or_dirty(ctx->dirty_shader[shader], dirty);
+   or_mask(ctx->dirty_shader[shader], dirty);
    fd_context_dirty(ctx, map[ffs(dirty) - 1]);
 }
 

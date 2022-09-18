@@ -122,7 +122,7 @@ static void etna_device_del_impl(struct etna_device *dev)
 
 void etna_device_del_locked(struct etna_device *dev)
 {
-	simple_mtx_assert_locked(&etna_drm_table_lock);
+	simple_mtx_assert_locked(&etna_device_lock);
 
 	if (!p_atomic_dec_zero(&dev->refcnt))
 		return;
@@ -135,9 +135,9 @@ void etna_device_del(struct etna_device *dev)
 	if (!p_atomic_dec_zero(&dev->refcnt))
 		return;
 
-	simple_mtx_lock(&etna_drm_table_lock);
+	simple_mtx_lock(&etna_device_lock);
 	etna_device_del_impl(dev);
-	simple_mtx_unlock(&etna_drm_table_lock);
+	simple_mtx_unlock(&etna_device_lock);
 }
 
 int etna_device_fd(struct etna_device *dev)

@@ -219,10 +219,17 @@ class State(object):
           yield root
 
     def encode_leafs(self, root):
-       for name, leaf in self.isa.leafs.items():
-          if leaf.get_root() != root:
-             continue
-          yield leaf
+        for name, leafs in self.isa.leafs.items():
+            for leaf in leafs:
+                if leaf.get_root() != root:
+                    continue
+                yield leaf
+
+    def encode_leaf_groups(self, root):
+        for name, leafs in self.isa.leafs.items():
+            if leafs[0].get_root() != root:
+                continue
+            yield leafs
 
     # expressions used in a bitset (case or field or recursively parent bitsets)
     def bitset_used_exprs(self, bitset):
@@ -514,12 +521,35 @@ encode${root.get_c_name()}(struct encode_state *s, struct bitset_params *p, ${ro
 {
 %   if root.encode.case_prefix is not None:
    switch (${root.get_c_name()}_case(s, src)) {
-%      for leaf in s.encode_leafs(root):
-   case ${s.case_name(root, leaf.name)}: {
+%      for leafs in s.encode_leaf_groups(root):
+   case ${s.case_name(root, leafs[0].name)}: {
+%         for leaf in leafs:
+%           if leaf.has_gen_restriction():
+      if (s->gen >= ${leaf.gen_min} && s->gen <= ${leaf.gen_max}) {
+%           endif
 <% snippet = encode_bitset.render(s=s, root=root, leaf=leaf) %>
-      bitmask_t val = uint64_t_to_bitmask(${hex(leaf.get_pattern().match)});
+<%    words = isa.split_bits((leaf.get_pattern().match), 64) %>
+      bitmask_t val = uint64_t_to_bitmask(${words[-1]});
+
+<%    words.pop() %>
+
+%     for x in reversed(range(len(words))):
+      {
+         bitmask_t word = uint64_t_to_bitmask(${words[x]});
+         BITSET_SHL(val.bitset, 64);
+         BITSET_OR(val.bitset, val.bitset, word.bitset);
+      }
+%     endfor
+
       BITSET_OR(val.bitset, val.bitset, ${root.snippets[snippet]}(s, p, src).bitset);
       return val;
+%           if leaf.has_gen_restriction():
+      }
+%           endif
+%         endfor
+%         if leaf.has_gen_restriction():
+      break;
+%         endif
     }
 %      endfor
    default:

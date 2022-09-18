@@ -1,7 +1,3 @@
-MOV.i32.ts r1, lane_id
-MOV.i32.id r1, wls_ptr
-MOV.i32 r1, lane_id
-MOV.i32 r1, wls_ptr
 FADD.f32 r0, r1
 TEX.computed.2d.slot0 @r2, @r4:r5:r6:r7
 BRANCH
@@ -26,17 +22,10 @@ FMA.f32 r0, u0, u1, 0x0
 FMA.f32 r0, u0, 0x40490FDB, 0x0
 FMA.f32 r0, 0x3F317218, 0x40490FDB, 0x0
 
-# An instruction may only access uniforms in the default immediate mode.
-MOV.i32.id r0, u0
-MOV.i32.ts r0, u1
-
 # An instruction may access no more than a single special immediate (e.g. lane_id).
 IADD.u32 r0, lane_id, core_id
-IADD.u32.id r0, lane_id, core_id
-IADD.u32.ts r0, tls_ptr, wls_ptr
-IADD.u32.ts r0, tls_ptr, tls_ptr_hi
-IADD.u32.id r0, tls_ptr, tls_ptr_hi
-IADD.u32.id r0, tls_ptr, 0x40490FDB
+IADD.u32 r0, lane_id, core_id
+IADD.u32 r0, tls_ptr, wls_ptr
 
 # If an instruction accesses multiple staging registers, they must be aligned
 # to a register pair.

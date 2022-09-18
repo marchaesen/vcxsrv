@@ -573,7 +573,8 @@ perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
 
    /* don't move non-reorderable instructions */
    if (instr->opcode == aco_opcode::s_memtime || instr->opcode == aco_opcode::s_memrealtime ||
-       instr->opcode == aco_opcode::s_setprio || instr->opcode == aco_opcode::s_getreg_b32)
+       instr->opcode == aco_opcode::s_setprio || instr->opcode == aco_opcode::s_getreg_b32 ||
+       instr->opcode == aco_opcode::p_init_scratch || instr->opcode == aco_opcode::p_jump_to_epilog)
       return hazard_fail_unreorderable;
 
    memory_event_set instr_set;
@@ -613,7 +614,8 @@ perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
    /* Don't move memory accesses to before control barriers. I don't think
     * this is necessary for the Vulkan memory model, but it might be for GLSL450. */
    unsigned control_classes =
-      storage_buffer | storage_atomic_counter | storage_image | storage_shared;
+      storage_buffer | storage_atomic_counter | storage_image | storage_shared |
+      storage_task_payload;
    if (first->has_control_barrier &&
        ((second->access_atomic | second->access_relaxed) & control_classes))
       return hazard_fail_barrier;
@@ -675,8 +677,9 @@ schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
          break;
       /* only move VMEM instructions below descriptor loads. be more aggressive at higher num_waves
        * to help create more vmem clauses */
-      if (candidate->isVMEM() && (cursor.insert_idx - cursor.source_idx > (ctx.num_waves * 4) ||
-                                  current->operands[0].size() == 4))
+      if ((candidate->isVMEM() || candidate->isFlatLike()) &&
+          (cursor.insert_idx - cursor.source_idx > (ctx.num_waves * 4) ||
+           current->operands[0].size() == 4))
          break;
       /* don't move descriptor loads below buffer loads */
       if (candidate->format == Format::SMEM && current->operands[0].size() == 4 &&
@@ -732,7 +735,7 @@ schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
       /* check if candidate depends on current */
       bool is_dependency = !found_dependency && !ctx.mv.upwards_check_deps(up_cursor);
       /* no need to steal from following VMEM instructions */
-      if (is_dependency && candidate->isVMEM())
+      if (is_dependency && (candidate->isVMEM() || candidate->isFlatLike()))
          break;
 
       if (found_dependency) {
@@ -765,7 +768,7 @@ schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
       MoveResult res = ctx.mv.upwards_move(up_cursor);
       if (res == move_fail_ssa || res == move_fail_rar) {
          /* no need to steal from following VMEM instructions */
-         if (res == move_fail_ssa && candidate->isVMEM())
+         if (res == move_fail_ssa && (candidate->isVMEM() || candidate->isFlatLike()))
             break;
          add_to_hazard_query(&hq, candidate.get());
          ctx.mv.upwards_skip(up_cursor);
@@ -1069,6 +1072,7 @@ schedule_program(Program* program, live& live_vars)
       ctx.num_waves = 7 * wave_fac;
    ctx.num_waves = std::max<uint16_t>(ctx.num_waves, program->min_waves);
    ctx.num_waves = std::min<uint16_t>(ctx.num_waves, program->num_waves);
+   ctx.num_waves = max_suitable_waves(program, ctx.num_waves);
 
    /* VMEM_MAX_MOVES and such assume pre-GFX10 wave count */
    ctx.num_waves = std::max<uint16_t>(ctx.num_waves / wave_fac, 1);
@@ -1081,8 +1085,8 @@ schedule_program(Program* program, live& live_vars)
     * Schedule less aggressively when early primitive export is used, and
     * keep the position export at the very bottom when late primitive export is used.
     */
-   if (program->info->has_ngg_culling && program->stage.num_sw_stages() == 1) {
-      if (!program->info->has_ngg_early_prim_export)
+   if (program->info.has_ngg_culling && program->stage.num_sw_stages() == 1) {
+      if (!program->info.has_ngg_early_prim_export)
          ctx.schedule_pos_exports = false;
       else
          ctx.schedule_pos_export_div = 4;

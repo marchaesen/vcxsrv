@@ -1409,7 +1409,7 @@ get_addr_by_name(const char *argtype,
         FatalError("Xserver: %s unknown host: %s\n", argtype, namestr);
     }
     if (hep->h_length == sizeof(struct in_addr)) {
-        memmove(&addr->sin_addr, hep->h_addr, hep->h_length);
+        memcpy(&addr->sin_addr, hep->h_addr, hep->h_length);
         *addrlen = sizeof(struct sockaddr_in);
         addr->sin_family = AF_INET;
         addr->sin_port = htons(port);

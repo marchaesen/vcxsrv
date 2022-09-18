@@ -9,6 +9,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="A4XX"/>
 	<value name="A5XX"/>
 	<value name="A6XX"/>
+	<value name="A7XX"/>
 </enum>
 
 <enum name="adreno_pa_su_sc_draw">

@@ -85,9 +85,15 @@
 #include "builtin_functions.h"
 #include "util/hash_table.h"
 
+#ifndef M_PIf
 #define M_PIf   ((float) M_PI)
+#endif
+#ifndef M_PI_2f
 #define M_PI_2f ((float) M_PI_2)
+#endif
+#ifndef M_PI_4f
 #define M_PI_4f ((float) M_PI_4)
+#endif
 
 using namespace ir_builder;
 
@@ -874,18 +880,6 @@ shader_integer_functions2_int64(const _mesa_glsl_parse_state *state)
 }
 
 static bool
-is_nir(const _mesa_glsl_parse_state *state)
-{
-   return state->consts->ShaderCompilerOptions[state->stage].NirOptions;
-}
-
-static bool
-is_not_nir(const _mesa_glsl_parse_state *state)
-{
-   return !is_nir(state);
-}
-
-static bool
 sparse_enabled(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_sparse_texture2_enable;
@@ -1104,8 +1098,6 @@ private:
    B1(acos)
    B1(atan2)
    B1(atan)
-   B1(atan2_op)
-   B1(atan_op)
    B1(sinh)
    B1(cosh)
    B1(tanh)
@@ -1958,14 +1950,6 @@ builtin_builder::create_builtins()
                 _atan2(glsl_type::vec2_type),
                 _atan2(glsl_type::vec3_type),
                 _atan2(glsl_type::vec4_type),
-                _atan_op(glsl_type::float_type),
-                _atan_op(glsl_type::vec2_type),
-                _atan_op(glsl_type::vec3_type),
-                _atan_op(glsl_type::vec4_type),
-                _atan2_op(glsl_type::float_type),
-                _atan2_op(glsl_type::vec2_type),
-                _atan2_op(glsl_type::vec3_type),
-                _atan2_op(glsl_type::vec4_type),
                 NULL);
 
    F(sinh)
@@ -5931,158 +5915,6 @@ builtin_builder::_acos(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_atan2(const glsl_type *type)
-{
-   const unsigned n = type->vector_elements;
-   ir_variable *y = in_var(type, "y");
-   ir_variable *x = in_var(type, "x");
-   MAKE_SIG(type, is_not_nir, 2, y, x);
-
-   /* If we're on the left half-plane rotate the coordinates π/2 clock-wise
-    * for the y=0 discontinuity to end up aligned with the vertical
-    * discontinuity of atan(s/t) along t=0.  This also makes sure that we
-    * don't attempt to divide by zero along the vertical line, which may give
-    * unspecified results on non-GLSL 4.1-capable hardware.
-    */
-   ir_variable *flip = body.make_temp(glsl_type::bvec(n), "flip");
-   body.emit(assign(flip, gequal(imm(0.0f, n), x)));
-   ir_variable *s = body.make_temp(type, "s");
-   body.emit(assign(s, csel(flip, abs(x), y)));
-   ir_variable *t = body.make_temp(type, "t");
-   body.emit(assign(t, csel(flip, y, abs(x))));
-
-   /* If the magnitude of the denominator exceeds some huge value, scale down
-    * the arguments in order to prevent the reciprocal operation from flushing
-    * its result to zero, which would cause precision problems, and for s
-    * infinite would cause us to return a NaN instead of the correct finite
-    * value.
-    *
-    * If fmin and fmax are respectively the smallest and largest positive
-    * normalized floating point values representable by the implementation,
-    * the constants below should be in agreement with:
-    *
-    *    huge <= 1 / fmin
-    *    scale <= 1 / fmin / fmax (for |t| >= huge)
-    *
-    * In addition scale should be a negative power of two in order to avoid
-    * loss of precision.  The values chosen below should work for most usual
-    * floating point representations with at least the dynamic range of ATI's
-    * 24-bit representation.
-    */
-   ir_constant *huge = imm(1e18f, n);
-   ir_variable *scale = body.make_temp(type, "scale");
-   body.emit(assign(scale, csel(gequal(abs(t), huge),
-                                imm(0.25f, n), imm(1.0f, n))));
-   ir_variable *rcp_scaled_t = body.make_temp(type, "rcp_scaled_t");
-   body.emit(assign(rcp_scaled_t, rcp(mul(t, scale))));
-   ir_expression *s_over_t = mul(mul(s, scale), rcp_scaled_t);
-
-   /* For |x| = |y| assume tan = 1 even if infinite (i.e. pretend momentarily
-    * that ∞/∞ = 1) in order to comply with the rather artificial rules
-    * inherited from IEEE 754-2008, namely:
-    *
-    *  "atan2(±∞, −∞) is ±3π/4
-    *   atan2(±∞, +∞) is ±π/4"
-    *
-    * Note that this is inconsistent with the rules for the neighborhood of
-    * zero that are based on iterated limits:
-    *
-    *  "atan2(±0, −0) is ±π
-    *   atan2(±0, +0) is ±0"
-    *
-    * but GLSL specifically allows implementations to deviate from IEEE rules
-    * at (0,0), so we take that license (i.e. pretend that 0/0 = 1 here as
-    * well).
-    */
-   ir_expression *tan = csel(equal(abs(x), abs(y)),
-                             imm(1.0f, n), abs(s_over_t));
-
-   /* Calculate the arctangent and fix up the result if we had flipped the
-    * coordinate system.
-    */
-   ir_variable *arc = body.make_temp(type, "arc");
-   do_atan(body, type, arc, tan);
-   body.emit(assign(arc, add(arc, mul(b2f(flip), imm(M_PI_2f)))));
-
-   /* Rather convoluted calculation of the sign of the result.  When x < 0 we
-    * cannot use fsign because we need to be able to distinguish between
-    * negative and positive zero.  Unfortunately we cannot use bitwise
-    * arithmetic tricks either because of back-ends without integer support.
-    * When x >= 0 rcp_scaled_t will always be non-negative so this won't be
-    * able to distinguish between negative and positive zero, but we don't
-    * care because atan2 is continuous along the whole positive y = 0
-    * half-line, so it won't affect the result significantly.
-    */
-   body.emit(ret(csel(less(min2(y, rcp_scaled_t), imm(0.0f, n)),
-                      neg(arc), arc)));
-
-   return sig;
-}
-
-void
-builtin_builder::do_atan(ir_factory &body, const glsl_type *type, ir_variable *res, operand y_over_x)
-{
-   /*
-    * range-reduction, first step:
-    *
-    *      / y_over_x         if |y_over_x| <= 1.0;
-    * x = <
-    *      \ 1.0 / y_over_x   otherwise
-    */
-   ir_variable *x = body.make_temp(type, "atan_x");
-   body.emit(assign(x, div(min2(abs(y_over_x),
-                                imm(1.0f)),
-                           max2(abs(y_over_x),
-                                imm(1.0f)))));
-
-   /*
-    * approximate atan by evaluating polynomial:
-    *
-    * x   * 0.9999793128310355 - x^3  * 0.3326756418091246 +
-    * x^5 * 0.1938924977115610 - x^7  * 0.1173503194786851 +
-    * x^9 * 0.0536813784310406 - x^11 * 0.0121323213173444
-    */
-   ir_variable *tmp = body.make_temp(type, "atan_tmp");
-   body.emit(assign(tmp, mul(x, x)));
-   body.emit(assign(tmp, mul(add(mul(sub(mul(add(mul(sub(mul(add(mul(imm(-0.0121323213173444f),
-                                                                     tmp),
-                                                                 imm(0.0536813784310406f)),
-                                                             tmp),
-                                                         imm(0.1173503194786851f)),
-                                                     tmp),
-                                                 imm(0.1938924977115610f)),
-                                             tmp),
-                                         imm(0.3326756418091246f)),
-                                     tmp),
-                                 imm(0.9999793128310355f)),
-                             x)));
-
-   /* range-reduction fixup */
-   body.emit(assign(tmp, add(tmp,
-                             mul(b2f(greater(abs(y_over_x),
-                                          imm(1.0f, type->components()))),
-                                  add(mul(tmp,
-                                          imm(-2.0f)),
-                                      imm(M_PI_2f))))));
-
-   /* sign fixup */
-   body.emit(assign(res, mul(tmp, sign(y_over_x))));
-}
-
-ir_function_signature *
-builtin_builder::_atan(const glsl_type *type)
-{
-   ir_variable *y_over_x = in_var(type, "y_over_x");
-   MAKE_SIG(type, is_not_nir, 1, y_over_x);
-
-   ir_variable *tmp = body.make_temp(type, "tmp");
-   do_atan(body, type, tmp, y_over_x);
-   body.emit(ret(tmp));
-
-   return sig;
-}
-
-ir_function_signature *
 builtin_builder::_sinh(const glsl_type *type)
 {
    ir_variable *x = in_var(type, "x");
@@ -6174,7 +6006,7 @@ UNOP(exp,         ir_unop_exp,  always_available)
 UNOP(log,         ir_unop_log,  always_available)
 UNOP(exp2,        ir_unop_exp2, always_available)
 UNOP(log2,        ir_unop_log2, always_available)
-UNOP(atan_op,     ir_unop_atan, is_nir)
+UNOP(atan,        ir_unop_atan, always_available)
 UNOPA(sqrt,        ir_unop_sqrt)
 UNOPA(inversesqrt, ir_unop_rsq)
 
@@ -6375,9 +6207,9 @@ builtin_builder::_isinf(builtin_available_predicate avail, const glsl_type *type
 }
 
 ir_function_signature *
-builtin_builder::_atan2_op(const glsl_type *x_type)
+builtin_builder::_atan2(const glsl_type *x_type)
 {
-   return binop(is_nir, ir_binop_atan2, x_type, x_type, x_type);
+   return binop(always_available, ir_binop_atan2, x_type, x_type, x_type);
 }
 
 ir_function_signature *

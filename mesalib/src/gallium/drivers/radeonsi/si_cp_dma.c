@@ -43,7 +43,8 @@
 static inline unsigned cp_dma_max_byte_count(struct si_context *sctx)
 {
    unsigned max =
-      sctx->chip_class >= GFX9 ? S_415_BYTE_COUNT_GFX9(~0u) : S_415_BYTE_COUNT_GFX6(~0u);
+      sctx->gfx_level >= GFX11 ? 32767 :
+      sctx->gfx_level >= GFX9 ? S_415_BYTE_COUNT_GFX9(~0u) : S_415_BYTE_COUNT_GFX6(~0u);
 
    /* make it aligned for optimal performance */
    return max & ~(SI_CPDMA_ALIGNMENT - 1);
@@ -60,9 +61,9 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
    uint32_t header = 0, command = 0;
 
    assert(size <= cp_dma_max_byte_count(sctx));
-   assert(sctx->chip_class != GFX6 || cache_policy == L2_BYPASS);
+   assert(sctx->gfx_level != GFX6 || cache_policy == L2_BYPASS);
 
-   if (sctx->chip_class >= GFX9)
+   if (sctx->gfx_level >= GFX9)
       command |= S_415_BYTE_COUNT_GFX9(size);
    else
       command |= S_415_BYTE_COUNT_GFX6(size);
@@ -75,13 +76,13 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
       command |= S_415_RAW_WAIT(1);
 
    /* Src and dst flags. */
-   if (sctx->chip_class >= GFX9 && !(flags & CP_DMA_CLEAR) && src_va == dst_va) {
+   if (sctx->gfx_level >= GFX9 && !(flags & CP_DMA_CLEAR) && src_va == dst_va) {
       header |= S_411_DST_SEL(V_411_NOWHERE); /* prefetch only */
    } else if (flags & CP_DMA_DST_IS_GDS) {
       header |= S_411_DST_SEL(V_411_GDS);
       /* GDS increments the address, not CP. */
       command |= S_415_DAS(V_415_REGISTER) | S_415_DAIC(V_415_NO_INCREMENT);
-   } else if (sctx->chip_class >= GFX7 && cache_policy != L2_BYPASS) {
+   } else if (sctx->gfx_level >= GFX7 && cache_policy != L2_BYPASS) {
       header |=
          S_411_DST_SEL(V_411_DST_ADDR_TC_L2) | S_500_DST_CACHE_POLICY(cache_policy == L2_STREAM);
    }
@@ -92,14 +93,14 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
       header |= S_411_SRC_SEL(V_411_GDS);
       /* Both of these are required for GDS. It does increment the address. */
       command |= S_415_SAS(V_415_REGISTER) | S_415_SAIC(V_415_NO_INCREMENT);
-   } else if (sctx->chip_class >= GFX7 && cache_policy != L2_BYPASS) {
+   } else if (sctx->gfx_level >= GFX7 && cache_policy != L2_BYPASS) {
       header |=
          S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2) | S_500_SRC_CACHE_POLICY(cache_policy == L2_STREAM);
    }
 
    radeon_begin(cs);
 
-   if (sctx->chip_class >= GFX7) {
+   if (sctx->gfx_level >= GFX7) {
       radeon_emit(PKT3(PKT3_DMA_DATA, 5, 0));
       radeon_emit(header);
       radeon_emit(src_va);       /* SRC_ADDR_LO [31:0] */
@@ -259,7 +260,8 @@ static void si_cp_dma_realign_engine(struct si_context *sctx, unsigned size, uns
    if (!sctx->scratch_buffer || sctx->scratch_buffer->b.b.width0 < scratch_size) {
       si_resource_reference(&sctx->scratch_buffer, NULL);
       sctx->scratch_buffer = si_aligned_buffer_create(&sctx->screen->b,
-                                                      SI_RESOURCE_FLAG_UNMAPPABLE | SI_RESOURCE_FLAG_DRIVER_INTERNAL,
+                                                      PIPE_RESOURCE_FLAG_UNMAPPABLE | SI_RESOURCE_FLAG_DRIVER_INTERNAL |
+                                                      SI_RESOURCE_FLAG_DISCARDABLE,
                                                       PIPE_USAGE_DEFAULT, scratch_size, 256);
       if (!sctx->scratch_buffer)
          return;
@@ -395,46 +397,6 @@ void si_cp_dma_copy_buffer(struct si_context *sctx, struct pipe_resource *dst,
       sctx->num_cp_dma_calls++;
 }
 
-void si_cp_dma_prefetch(struct si_context *sctx, struct pipe_resource *buf,
-                        unsigned offset, unsigned size)
-{
-   uint64_t address = si_resource(buf)->gpu_address + offset;
-
-   assert(sctx->chip_class >= GFX7);
-
-   /* The prefetch address and size must be aligned, so that we don't have to apply
-    * the complicated hw bug workaround.
-    *
-    * The size should also be less than 2 MB, so that we don't have to use a loop.
-    * Callers shouldn't need to prefetch more than 2 MB.
-    */
-   assert(size % SI_CPDMA_ALIGNMENT == 0);
-   assert(address % SI_CPDMA_ALIGNMENT == 0);
-   assert(size < S_415_BYTE_COUNT_GFX6(~0u));
-
-   uint32_t header = S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2);
-   uint32_t command = S_415_BYTE_COUNT_GFX6(size);
-
-   if (sctx->chip_class >= GFX9) {
-      command |= S_415_DISABLE_WR_CONFIRM_GFX9(1);
-      header |= S_411_DST_SEL(V_411_NOWHERE);
-   } else {
-      command |= S_415_DISABLE_WR_CONFIRM_GFX6(1);
-      header |= S_411_DST_SEL(V_411_DST_ADDR_TC_L2);
-   }
-
-   struct radeon_cmdbuf *cs = &sctx->gfx_cs;
-   radeon_begin(cs);
-   radeon_emit(PKT3(PKT3_DMA_DATA, 5, 0));
-   radeon_emit(header);
-   radeon_emit(address);       /* SRC_ADDR_LO [31:0] */
-   radeon_emit(address >> 32); /* SRC_ADDR_HI [31:0] */
-   radeon_emit(address);       /* DST_ADDR_LO [31:0] */
-   radeon_emit(address >> 32); /* DST_ADDR_HI [31:0] */
-   radeon_emit(command);
-   radeon_end();
-}
-
 void si_test_gds(struct si_context *sctx)
 {
    struct pipe_context *ctx = &sctx->b;
@@ -490,7 +452,7 @@ void si_cp_write_data(struct si_context *sctx, struct si_resource *buf, unsigned
    assert(offset % 4 == 0);
    assert(size % 4 == 0);
 
-   if (sctx->chip_class == GFX6 && dst_sel == V_370_MEM)
+   if (sctx->gfx_level == GFX6 && dst_sel == V_370_MEM)
       dst_sel = V_370_MEM_GRBM;
 
    radeon_add_to_buffer_list(sctx, cs, buf, RADEON_USAGE_WRITE | RADEON_PRIO_CP_DMA);

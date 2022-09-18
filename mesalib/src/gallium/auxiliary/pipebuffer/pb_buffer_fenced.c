@@ -207,7 +207,7 @@ fenced_manager_dump_locked(struct fenced_manager *fenced_mgr)
    curr = fenced_mgr->unfenced.next;
    next = curr->next;
    while (curr != &fenced_mgr->unfenced) {
-      fenced_buf = LIST_ENTRY(struct fenced_buffer, curr, head);
+      fenced_buf = list_entry(curr, struct fenced_buffer, head);
       assert(!fenced_buf->fence);
       debug_printf("%10p %"PRIu64" %8u %7s\n",
                    (void *) fenced_buf,
@@ -222,7 +222,7 @@ fenced_manager_dump_locked(struct fenced_manager *fenced_mgr)
    next = curr->next;
    while (curr != &fenced_mgr->fenced) {
       int signaled;
-      fenced_buf = LIST_ENTRY(struct fenced_buffer, curr, head);
+      fenced_buf = list_entry(curr, struct fenced_buffer, head);
       assert(fenced_buf->buffer);
       signaled = ops->fence_signalled(ops, fenced_buf->fence, 0);
       debug_printf("%10p %"PRIu64" %8u %7s %10p %s\n",
@@ -401,7 +401,7 @@ fenced_manager_check_signalled_locked(struct fenced_manager *fenced_mgr,
    curr = fenced_mgr->fenced.next;
    next = curr->next;
    while (curr != &fenced_mgr->fenced) {
-      fenced_buf = LIST_ENTRY(struct fenced_buffer, curr, head);
+      fenced_buf = list_entry(curr, struct fenced_buffer, head);
 
       if (fenced_buf->fence != prev_fence) {
          int signaled;
@@ -455,7 +455,7 @@ fenced_manager_free_gpu_storage_locked(struct fenced_manager *fenced_mgr)
    curr = fenced_mgr->unfenced.next;
    next = curr->next;
    while (curr != &fenced_mgr->unfenced) {
-      fenced_buf = LIST_ENTRY(struct fenced_buffer, curr, head);
+      fenced_buf = list_entry(curr, struct fenced_buffer, head);
 
       /* We can only move storage if the buffer is not mapped and not
        * validated.

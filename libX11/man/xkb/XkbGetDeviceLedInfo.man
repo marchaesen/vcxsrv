@@ -36,19 +36,19 @@ with an LED feedback of an input extension device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device_info
+.I device_info
 structure to update with results
 .TP
-.I \- led_class
+.I led_class
 LED feedback class assigned by input extension
 .TP
-.I \- led_id
+.I led_id
 LED feedback ID assigned by input extension
 .TP
-.I \- which
+.I which
 mask indicating desired information
 .SH DESCRIPTION
 .LP

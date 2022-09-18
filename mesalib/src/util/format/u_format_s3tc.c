@@ -130,9 +130,11 @@ util_format_dxtn_rgb_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_
    unsigned x, y, i, j;
    for(y = 0; y < height; y += bh) {
       const uint8_t *src = src_row;
+      const unsigned h = MIN2(height - y, bh);
       for(x = 0; x < width; x += bw) {
-         for(j = 0; j < bh; ++j) {
-            for(i = 0; i < bw; ++i) {
+         const unsigned w = MIN2(width - x, bw);
+         for(j = 0; j < h; ++j) {
+            for(i = 0; i < w; ++i) {
                uint8_t *dst = dst_row + (y + j)*dst_stride/sizeof(*dst_row) + (x + i)*comps;
                fetch(0, src, i, j, dst);
                if (srgb) {

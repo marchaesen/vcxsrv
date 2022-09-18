@@ -1,2 +1,7 @@
-dEQP-VK.api.object_management.multithreaded_per_thread_device.image_2d
-dEQP-VK.api.object_management.multithreaded_per_thread_resources.image_2d
+dEQP-VK.dynamic_rendering.basic.*
+dEQP-VK.glsl.texture_functions.query.texturequerylod.isampler1d_fragment
+dEQP-VK.image.sample_texture.64_bit_compressed_format_two_samplers
+dEQP-VK.image.sample_texture.64_bit_compressed_format_two_samplers_cubemap
+dEQP-VK.image.sample_texture.128_bit_compressed_format_two_samplers
+dEQP-VK.image.sample_texture.128_bit_compressed_format_two_samplers_cubemap
+dEQP-VK.reconvergence.workgroup_uniform_control_flow_elect.compute.nesting4.2.35

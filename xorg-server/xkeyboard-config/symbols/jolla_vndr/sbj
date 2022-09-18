@@ -5,9 +5,6 @@
 //
 // 2. Set variant by:
 //    setxkbmap -rules evdev -model jollasbj -layout cz -variant qwerty
-//    In practice this is equivalent to:
-//    setxkbmap -rules evdev -model jollasbj -layout cz_qwerty
-//    However, the latter form isn't portable so always use the -variant option.
 //
 // 3. Set multilayout by:
 //    setxkbmap -rules evdev -model jollasbj -layout "us,cz" -variant ",qwerty" -option grp:ctrl_shift_toggle

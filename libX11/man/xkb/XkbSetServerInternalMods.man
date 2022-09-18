@@ -37,22 +37,22 @@ before events are delivered to the client
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to the X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- affect_real
+.I affect_real
 mask of real modifiers affected by this call
 .TP
-.I \- real_values
+.I real_values
 values for affected real modifiers (1=>set, 0=>unset) 
 .TP
-.I \- affect_virtual
+.I affect_virtual
 mask of virtual modifiers affected by this call 
 .TP
-.I \- virtual_values
+.I virtual_values
 values for affected virtual modifiers (1=>set, 0=>unset) 
 .SH DESCRIPTION
 .LP

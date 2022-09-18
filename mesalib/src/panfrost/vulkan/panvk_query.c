@@ -95,10 +95,10 @@ panvk_CmdEndQuery(VkCommandBuffer commandBuffer,
 }
 
 void
-panvk_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
-                        VkPipelineStageFlagBits pipelineStage,
-                        VkQueryPool queryPool,
-                        uint32_t query)
+panvk_CmdWriteTimestamp2(VkCommandBuffer commandBuffer,
+                         VkPipelineStageFlags2 stage,
+                         VkQueryPool queryPool,
+                         uint32_t query)
 {
    panvk_stub();
 }

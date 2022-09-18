@@ -50,11 +50,13 @@ mir_print_index(int source)
 
                 /* TODO: Moving threshold */
                 if (reg > 16 && reg < 24)
-                        printf("u%d", 23 - reg);
+                        printf("U%d", 23 - reg);
                 else
-                        printf("r%d", reg);
+                        printf("R%d", reg);
+        } else if (source & PAN_IS_REG) {
+                printf("r%d", source >> 1);
         } else {
-                printf("%d", source);
+                printf("%d", source >> 1);
         }
 }
 
@@ -71,17 +73,21 @@ mir_print_mask(unsigned mask)
         }
 }
 
+/*
+ * Print a swizzle. We only print the components enabled by the corresponding
+ * writemask, as the other components will be ignored by the hardware and so
+ * don't matter.
+ */
 static void
-mir_print_swizzle(unsigned *swizzle, nir_alu_type T)
+mir_print_swizzle(unsigned mask, unsigned *swizzle)
 {
-        unsigned comps = mir_components_for_type(T);
-
         printf(".");
 
-        for (unsigned i = 0; i < comps; ++i) {
-                unsigned C = swizzle[i];
-                assert(C < comps);
-                putchar(components[C]);
+        for (unsigned i = 0; i < 16; ++i) {
+                if (mask & BITFIELD_BIT(i)) {
+                        unsigned C = swizzle[i];
+                        putchar(components[C]);
+                }
         }
 }
 
@@ -147,12 +153,16 @@ mir_print_embedded_constant(midgard_instruction *ins, unsigned src_idx)
                 printf(")");
 }
 
-#define PRINT_SRC(ins, c) \
-        do { mir_print_index(ins->src[c]); \
-             if (ins->src[c] != ~0 && ins->src_types[c] != nir_type_invalid) { \
-                     pan_print_alu_type(ins->src_types[c], stdout); \
-                     mir_print_swizzle(ins->swizzle[c], ins->src_types[c]); \
-             } } while (0)
+static void
+mir_print_src(midgard_instruction *ins, unsigned c)
+{
+        mir_print_index(ins->src[c]);
+
+        if (ins->src[c] != ~0 && ins->src_types[c] != nir_type_invalid) {
+                pan_print_alu_type(ins->src_types[c], stdout);
+                mir_print_swizzle(ins->mask, ins->swizzle[c]);
+        }
+}
 
 void
 mir_print_instruction(midgard_instruction *ins)
@@ -184,11 +194,11 @@ mir_print_instruction(midgard_instruction *ins)
 
                 if (ins->writeout) {
                         printf(" (c: ");
-                        PRINT_SRC(ins, 0);
+                        mir_print_src(ins, 0);
                         printf(", z: ");
-                        PRINT_SRC(ins, 2);
+                        mir_print_src(ins, 2);
                         printf(", s: ");
-                        PRINT_SRC(ins, 3);
+                        mir_print_src(ins, 3);
                         printf(")");
                 }
 
@@ -210,6 +220,11 @@ mir_print_instruction(midgard_instruction *ins)
                         printf("%s.", mir_get_unit(ins->unit));
 
                 printf("%s", name ? name : "??");
+
+                if (!(midgard_is_integer_out_op(ins->op) && ins->outmod == midgard_outmod_keeplo)) {
+                        mir_print_outmod(stdout, ins->outmod, midgard_is_integer_out_op(ins->op));
+                }
+
                 break;
         }
 
@@ -256,23 +271,50 @@ mir_print_instruction(midgard_instruction *ins)
         bool is_alu = ins->type == TAG_ALU_4;
         unsigned r_constant = SSA_FIXED_REGISTER(REGISTER_CONSTANT);
 
-        if (ins->src[0] == r_constant && is_alu)
-                mir_print_embedded_constant(ins, 0);
-        else
-                PRINT_SRC(ins, 0);
+        if (is_alu && alu_opcode_props[ins->op].props & QUIRK_FLIPPED_R24) {
+                /* Moves (indicated by QUIRK_FLIPPED_R24) are 1-src, with their
+                 * one source in the second slot
+                 */
+                assert(ins->src[0] == ~0);
+        } else {
+                if (ins->src[0] == r_constant && is_alu)
+                        mir_print_embedded_constant(ins, 0);
+                else
+                        mir_print_src(ins, 0);
 
-        printf(", ");
+                printf(", ");
+        }
 
         if (ins->has_inline_constant)
                 printf("#%d", ins->inline_constant);
         else if (ins->src[1] == r_constant && is_alu)
                 mir_print_embedded_constant(ins, 1);
         else
-                PRINT_SRC(ins, 1);
+                mir_print_src(ins, 1);
 
-        for (unsigned c = 2; c <= 3; ++c) {
-                printf(", ");
-                PRINT_SRC(ins, c);
+        if (is_alu) {
+                /* ALU ops are all 2-src, though CSEL is treated like a 3-src
+                 * pseudo op with the third source scheduler lowered
+                 */
+                switch (ins->op) {
+                case midgard_alu_op_icsel:
+                case midgard_alu_op_fcsel:
+                case midgard_alu_op_icsel_v:
+                case midgard_alu_op_fcsel_v:
+                        printf(", ");
+                        mir_print_src(ins, 2);
+                        break;
+                default:
+                        assert(ins->src[2] == ~0);
+                        break;
+                }
+
+                assert(ins->src[3] == ~0);
+        } else {
+                for (unsigned c = 2; c <= 3; ++c) {
+                        printf(", ");
+                        mir_print_src(ins, c);
+                }
         }
 
         if (ins->no_spill)

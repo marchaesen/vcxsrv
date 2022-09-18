@@ -40,13 +40,26 @@
 #include "pan_util.h"
 #include "pan_format.h"
 
-#define PAN_MODIFIER_COUNT 4
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define PAN_MODIFIER_COUNT 6
 extern uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT];
 
 struct pan_image_slice_layout {
         unsigned offset;
-        unsigned line_stride;
+
+        /* For AFBC images, the number of bytes between two rows of AFBC
+         * headers.
+         *
+         * For non-AFBC images, the number of bytes between two rows of texels.
+         * For linear images, this will equal the logical stride. For
+         * images that are compressed or interleaved, this will be greater than
+         * the logical stride.
+         */
         unsigned row_stride;
+
         unsigned surface_stride;
 
         struct {
@@ -55,9 +68,6 @@ struct pan_image_slice_layout {
 
                 /* Size of the AFBC body */
                 unsigned body_size;
-
-                /* Stride between two rows of AFBC headers */
-                unsigned row_stride;
 
                 /* Stride between AFBC headers of two consecutive surfaces.
                  * For 3D textures, this must be set to header size since
@@ -92,15 +102,20 @@ struct pan_image_layout {
         unsigned nr_samples;
         enum mali_texture_dimension dim;
         unsigned nr_slices;
-        struct pan_image_slice_layout slices[MAX_MIP_LEVELS];
         unsigned array_size;
-        unsigned array_stride;
-        unsigned data_size;
-
         enum pan_image_crc_mode crc_mode;
+
+        /* The remaining fields may be derived from the above by calling
+         * pan_image_layout_init
+         */
+
+        struct pan_image_slice_layout slices[MAX_MIP_LEVELS];
+
         /* crc_size != 0 only if crc_mode == OOB otherwise CRC words are
          * counted in data_size */
         unsigned crc_size;
+        unsigned data_size;
+        unsigned array_stride;
 };
 
 struct pan_image_mem {
@@ -149,18 +164,42 @@ panfrost_format_supports_afbc(const struct panfrost_device *dev,
                 enum pipe_format format);
 
 enum pipe_format
-panfrost_afbc_format(const struct panfrost_device *dev, enum pipe_format format);
+panfrost_afbc_format(unsigned arch, enum pipe_format format);
 
 #define AFBC_HEADER_BYTES_PER_TILE 16
-
-unsigned
-panfrost_afbc_header_size(unsigned width, unsigned height);
 
 bool
 panfrost_afbc_can_ytr(enum pipe_format format);
 
-unsigned
-panfrost_block_dim(uint64_t modifier, bool width, unsigned plane);
+bool
+panfrost_afbc_can_tile(const struct panfrost_device *dev);
+
+/*
+ * Represents the block size of a single plane. For AFBC, this represents the
+ * superblock size. For u-interleaving, this represents the tile size.
+ */
+struct pan_block_size {
+        /** Width of block */
+        unsigned width;
+
+        /** Height of blocks */
+        unsigned height;
+};
+
+struct pan_block_size panfrost_afbc_superblock_size(uint64_t modifier);
+
+unsigned panfrost_afbc_superblock_width(uint64_t modifier);
+
+unsigned panfrost_afbc_superblock_height(uint64_t modifier);
+
+bool panfrost_afbc_is_wide(uint64_t modifier);
+
+uint32_t pan_afbc_row_stride(uint64_t modifier, uint32_t width);
+
+uint32_t pan_afbc_stride_blocks(uint64_t modifier, uint32_t row_stride_bytes);
+
+struct pan_block_size
+panfrost_block_size(uint64_t modifier, enum pipe_format format);
 
 #ifdef PAN_ARCH
 unsigned
@@ -193,20 +232,21 @@ struct pan_scoreboard;
 
 struct pan_image_explicit_layout {
         unsigned offset;
-        unsigned line_stride;
+        unsigned row_stride;
 };
 
 bool
-pan_image_layout_init(const struct panfrost_device *dev,
-                      struct pan_image_layout *layout,
-                      uint64_t modifier,
-                      enum pipe_format format,
-                      enum mali_texture_dimension dim,
-                      unsigned width, unsigned height, unsigned depth,
-                      unsigned array_size, unsigned nr_samples,
-                      unsigned nr_slices,
-                      enum pan_image_crc_mode crc_mode,
+pan_image_layout_init(struct pan_image_layout *layout,
                       const struct pan_image_explicit_layout *explicit_layout);
+
+unsigned
+panfrost_get_legacy_stride(const struct pan_image_layout *layout,
+                           unsigned level);
+
+unsigned
+panfrost_from_legacy_stride(unsigned legacy_stride,
+                            enum pipe_format format,
+                            uint64_t modifier);
 
 struct pan_surface {
         union {
@@ -222,5 +262,15 @@ void
 pan_iview_get_surface(const struct pan_image_view *iview,
                       unsigned level, unsigned layer, unsigned sample,
                       struct pan_surface *surf);
+
+
+#if PAN_ARCH >= 9
+enum mali_afbc_compression_mode
+pan_afbc_compression_mode(enum pipe_format format);
+#endif
+
+#ifdef __cplusplus
+} /* extern C */
+#endif
 
 #endif

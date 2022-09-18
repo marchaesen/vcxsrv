@@ -75,7 +75,7 @@ dri_st_framebuffer_validate(struct st_context_iface *stctx,
       lastStamp = drawable->dPriv->lastStamp;
       new_stamp = (drawable->texture_stamp != lastStamp);
 
-      if (new_stamp || new_mask || screen->broken_invalidate) {
+      if (new_stamp || new_mask) {
          if (new_stamp && drawable->update_drawable_info)
             drawable->update_drawable_info(drawable);
 

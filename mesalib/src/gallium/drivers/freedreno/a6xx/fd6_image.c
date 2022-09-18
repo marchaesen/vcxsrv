@@ -30,7 +30,6 @@
 #include "freedreno_resource.h"
 #include "freedreno_state.h"
 
-#include "fd6_format.h"
 #include "fd6_image.h"
 #include "fd6_resource.h"
 #include "fd6_texture.h"
@@ -156,20 +155,19 @@ fd6_build_ibo_state(struct fd_context *ctx, const struct ir3_shader_variant *v,
 
    struct fd_ringbuffer *state = fd_submit_new_ringbuffer(
       ctx->batch->submit,
-      (v->shader->nir->info.num_ssbos + v->shader->nir->info.num_images) * 16 *
-         4,
+      ir3_shader_nibo(v) * 16 * 4,
       FD_RINGBUFFER_STREAMING);
 
    assert(shader == PIPE_SHADER_COMPUTE || shader == PIPE_SHADER_FRAGMENT);
 
    uint32_t descriptor[FDL6_TEX_CONST_DWORDS];
-   for (unsigned i = 0; i < v->shader->nir->info.num_ssbos; i++) {
+   for (unsigned i = 0; i < v->num_ssbos; i++) {
       fd6_ssbo_descriptor(ctx, &bufso->sb[i], descriptor);
       fd6_emit_single_plane_descriptor(state, bufso->sb[i].buffer, descriptor);
    }
 
-   for (unsigned i = 0; i < v->shader->nir->info.num_images; i++) {
-      fd6_emit_image_descriptor(ctx, state, &imgso->si[i], true);
+   for (unsigned i = v->num_ssbos; i < v->num_ibos; i++) {
+      fd6_emit_image_descriptor(ctx, state, &imgso->si[i - v->num_ssbos], true);
    }
 
    return state;

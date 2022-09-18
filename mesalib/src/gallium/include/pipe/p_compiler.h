@@ -29,17 +29,17 @@
 #define P_COMPILER_H
 
 
-#include "c99_compat.h" /* inline, __func__, etc. */
-
 #include "p_config.h"
 
 #include "util/macros.h"
 
+#include <limits.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
-#include <stdarg.h>
-#include <limits.h>
 
 
 #if defined(_WIN32) && !defined(__WIN32__)
@@ -54,14 +54,6 @@
 #pragma warning(disable: 4296)
 
 #endif /* _MSC_VER */
-
-
-/*
- * Alternative stdint.h and stdbool.h headers are supplied in include/c99 for
- * systems that lack it.
- */
-#include <stdint.h>
-#include <stdbool.h>
 
 
 #ifdef __cplusplus
@@ -111,48 +103,11 @@ typedef unsigned char boolean;
 
 
 
-#if defined(__GNUC__)
-#define PIPE_DEPRECATED  __attribute__((__deprecated__))
-#else
-#define PIPE_DEPRECATED
-#endif
-
-
-
-/* Macros for data alignment. */
-#if defined(__GNUC__)
-
-/* See http://gcc.gnu.org/onlinedocs/gcc-4.4.2/gcc/Type-Attributes.html */
-#define PIPE_ALIGN_TYPE(_alignment, _type) _type __attribute__((aligned(_alignment)))
-
-/* See http://gcc.gnu.org/onlinedocs/gcc-4.4.2/gcc/Variable-Attributes.html */
-#define PIPE_ALIGN_VAR(_alignment) __attribute__((aligned(_alignment)))
-
+/* Macro for stack alignment. */
 #if defined(__GNUC__) && defined(PIPE_ARCH_X86)
 #define PIPE_ALIGN_STACK __attribute__((force_align_arg_pointer))
 #else
 #define PIPE_ALIGN_STACK
-#endif
-
-#elif defined(_MSC_VER)
-
-/* See http://msdn.microsoft.com/en-us/library/83ythb65.aspx */
-#define PIPE_ALIGN_TYPE(_alignment, _type) __declspec(align(_alignment)) _type
-#define PIPE_ALIGN_VAR(_alignment) __declspec(align(_alignment))
-
-#define PIPE_ALIGN_STACK
-
-#elif defined(SWIG)
-
-#define PIPE_ALIGN_TYPE(_alignment, _type) _type
-#define PIPE_ALIGN_VAR(_alignment)
-
-#define PIPE_ALIGN_STACK
-
-#else
-
-#error "Unsupported compiler"
-
 #endif
 
 /**
@@ -172,21 +127,6 @@ typedef unsigned char boolean;
 #define EXCLUSIVE_CACHELINE(decl) \
    union { char __cl_space[CACHE_LINE_SIZE]; \
            decl; }
-
-#if defined(__GNUC__)
-
-#define PIPE_READ_WRITE_BARRIER() __asm__("":::"memory")
-
-#elif defined(_MSC_VER)
-
-#define PIPE_READ_WRITE_BARRIER() _ReadWriteBarrier()
-
-#else
-
-#warning "Unsupported compiler"
-#define PIPE_READ_WRITE_BARRIER() /* */
-
-#endif
 
 #if defined(__cplusplus)
 }

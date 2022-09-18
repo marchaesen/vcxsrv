@@ -83,6 +83,9 @@ static const nir_shader_compiler_options midgard_nir_options = {
         .lower_unpack_unorm_4x8 = true,
         .lower_unpack_snorm_4x8 = true,
         .lower_pack_split = true,
+        .lower_pack_64_2x32_split = true,
+        .lower_unpack_64_2x32_split = true,
+        .lower_int64_options = nir_lower_imul_2x32_64,
 
         .lower_doubles_options = nir_lower_dmod,
 
@@ -94,9 +97,10 @@ static const nir_shader_compiler_options midgard_nir_options = {
 
         .vertex_id_zero_based = true,
         .has_cs_global_id = true,
-        .lower_cs_local_index_from_id = true,
+        .lower_cs_local_index_to_id = true,
         .max_unroll_iterations = 32,
         .force_indirect_unrolling = (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),
+        .force_indirect_unrolling_sampler = true,
 };
 
 #endif

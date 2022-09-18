@@ -34,16 +34,16 @@ attributes
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- changes
+.I changes
 controls for which to change auto-reset values
 .TP
-.I \- auto_ctrls
+.I auto_ctrls
 controls from changes that should auto reset 
 .TP
-.I \- auto_values
+.I auto_values
 1 bit => auto-reset on
 .SH DESCRIPTION
 .LP

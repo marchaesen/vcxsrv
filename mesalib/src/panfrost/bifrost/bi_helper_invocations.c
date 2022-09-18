@@ -65,7 +65,9 @@ static bool
 bi_has_skip_bit(enum bi_opcode op)
 {
         switch (op) {
+        case BI_OPCODE_TEX_SINGLE:
         case BI_OPCODE_TEXC:
+        case BI_OPCODE_TEXC_DUAL:
         case BI_OPCODE_TEXS_2D_F16:
         case BI_OPCODE_TEXS_2D_F32:
         case BI_OPCODE_TEXS_CUBE_F16:
@@ -82,11 +84,12 @@ bi_has_skip_bit(enum bi_opcode op)
  * reads from other subgroup lanes)? This only applies to fragment shaders.
  * Other shader stages do not have a notion of helper threads. */
 
-static bool
+bool
 bi_instr_uses_helpers(bi_instr *I)
 {
         switch (I->op) {
         case BI_OPCODE_TEXC:
+        case BI_OPCODE_TEXC_DUAL:
         case BI_OPCODE_TEXS_2D_F16:
         case BI_OPCODE_TEXS_2D_F32:
         case BI_OPCODE_TEXS_CUBE_F16:
@@ -94,8 +97,11 @@ bi_instr_uses_helpers(bi_instr *I)
         case BI_OPCODE_VAR_TEX_F16:
         case BI_OPCODE_VAR_TEX_F32:
                 return !I->lod_mode; /* set for zero, clear for computed */
+        case BI_OPCODE_TEX_SINGLE:
+                return (I->va_lod_mode == BI_VA_LOD_MODE_COMPUTED_LOD) ||
+                       (I->va_lod_mode == BI_VA_LOD_MODE_COMPUTED_BIAS);
         case BI_OPCODE_CLPER_I32:
-        case BI_OPCODE_CLPER_V6_I32:
+        case BI_OPCODE_CLPER_OLD_I32:
                 /* Fragment shaders require helpers to implement derivatives.
                  * Other shader stages don't have helpers at all */
                 return true;
@@ -116,7 +122,7 @@ bi_block_uses_helpers(bi_block *block)
         return false;
 }
 
-static bool
+bool
 bi_block_terminates_helpers(bi_block *block)
 {
         /* Can't terminate if a successor needs helpers */
@@ -129,6 +135,21 @@ bi_block_terminates_helpers(bi_block *block)
         return true;
 }
 
+/*
+ * Propagate the pass flag up the control flow graph by performing depth-first
+ * search on the directed control flow graph.
+ */
+static void
+bi_propagate_pass_flag(bi_block *block)
+{
+        block->pass_flags = 1;
+
+        bi_foreach_predecessor(block, pred) {
+                if ((*pred)->pass_flags == 0)
+                        bi_propagate_pass_flag(*pred);
+        }
+}
+
 void
 bi_analyze_helper_terminate(bi_context *ctx)
 {
@@ -138,50 +159,25 @@ bi_analyze_helper_terminate(bi_context *ctx)
         if (ctx->stage != MESA_SHADER_FRAGMENT || ctx->inputs->is_blend)
                 return;
 
-        /* Set blocks as directly requiring helpers, and if they do add them to
-         * the worklist to propagate to their predecessors */
+        /* Clear flags */
+        bi_foreach_block(ctx, block)
+                block->pass_flags = 0;
 
-        struct set *worklist = _mesa_set_create(NULL,
-                        _mesa_hash_pointer,
-                        _mesa_key_pointer_equal);
-
-        struct set *visited = _mesa_set_create(NULL,
-                        _mesa_hash_pointer,
-                        _mesa_key_pointer_equal);
-
-        bi_foreach_block(ctx, block) {
-                block->pass_flags = bi_block_uses_helpers(block) ? 1 : 0;
-
-                if (block->pass_flags & 1)
-                        _mesa_set_add(worklist, block);
+        /* For each block, check if it uses helpers and propagate that fact if
+         * so. We walk in reverse order to minimize the number of blocks tested:
+         * if the (unique) last block uses helpers, only that block is tested.
+         */
+        bi_foreach_block_rev(ctx, block) {
+                if (block->pass_flags == 0 && bi_block_uses_helpers(block))
+                        bi_propagate_pass_flag(block);
         }
+}
 
-        /* Next, propagate back. Since there are a finite number of blocks, the
-         * worklist (a subset of all the blocks) is finite. Since a block can
-         * only be added to the worklist if it is not on the visited list and
-         * the visited list - also a subset of the blocks - grows every
-         * iteration, the algorithm must terminate. */
-
-        struct set_entry *cur;
-
-        while((cur = _mesa_set_next_entry(worklist, NULL)) != NULL) {
-                /* Pop off a block requiring helpers */
-                bi_block *blk = (struct bi_block *) cur->key;
-                _mesa_set_remove(worklist, cur);
-
-                /* Its predecessors also require helpers */
-                bi_foreach_predecessor(blk, pred) {
-                        if (!_mesa_set_search(visited, pred)) {
-                                pred->pass_flags |= 1;
-                                _mesa_set_add(worklist, pred);
-                        }
-                }
- 
-                _mesa_set_add(visited, blk);
-        }
-
-        _mesa_set_destroy(visited, NULL);
-        _mesa_set_destroy(worklist, NULL);
+void
+bi_mark_clauses_td(bi_context *ctx)
+{
+        if (ctx->stage != MESA_SHADER_FRAGMENT || ctx->inputs->is_blend)
+                return;
 
         /* Finally, mark clauses requiring helpers */
         bi_foreach_block(ctx, block) {
@@ -204,20 +200,18 @@ bi_helper_block_update(BITSET_WORD *deps, bi_block *block)
         bool progress = false;
 
         bi_foreach_instr_in_block_rev(block, I) {
-                /* If our destination is required by helper invocation... */
-                if (I->dest[0].type != BI_INDEX_NORMAL)
-                        continue;
+                /* If a destination is required by helper invocation... */
+                bi_foreach_dest(I, d) {
+                        if (!BITSET_TEST(deps, I->dest[d].value))
+                                continue;
 
-                if (!BITSET_TEST(deps, bi_get_node(I->dest[0])))
-                        continue;
-
-                /* ...so are our sources */
-                bi_foreach_src(I, s) {
-                        if (I->src[s].type == BI_INDEX_NORMAL) {
-                                unsigned node = bi_get_node(I->src[s]);
-                                progress |= !BITSET_TEST(deps, node);
-                                BITSET_SET(deps, node);
+                        /* ...so are the sources */
+                        bi_foreach_ssa_src(I, s) {
+                                progress |= !BITSET_TEST(deps, I->src[s].value);
+                                BITSET_SET(deps, I->src[s].value);
                         }
+
+                        break;
                 }
         }
 
@@ -227,58 +221,48 @@ bi_helper_block_update(BITSET_WORD *deps, bi_block *block)
 void
 bi_analyze_helper_requirements(bi_context *ctx)
 {
-        unsigned temp_count = bi_max_temp(ctx);
-        BITSET_WORD *deps = calloc(sizeof(BITSET_WORD), BITSET_WORDS(temp_count));
+        BITSET_WORD *deps = calloc(sizeof(BITSET_WORD), ctx->ssa_alloc);
 
         /* Initialize with the sources of instructions consuming
          * derivatives */
 
         bi_foreach_instr_global(ctx, I) {
-                if (I->dest[0].type != BI_INDEX_NORMAL) continue;
                 if (!bi_instr_uses_helpers(I)) continue;
 
-                bi_foreach_src(I, s) {
-                        if (I->src[s].type == BI_INDEX_NORMAL)
-                                BITSET_SET(deps, bi_get_node(I->src[s]));
-                }
+                bi_foreach_ssa_src(I, s)
+                        BITSET_SET(deps, I->src[s].value);
         }
 
         /* Propagate that up */
+        u_worklist worklist;
+        bi_worklist_init(ctx, &worklist);
 
-        struct set *work_list = _mesa_set_create(NULL,
-                        _mesa_hash_pointer,
-                        _mesa_key_pointer_equal);
+        bi_foreach_block(ctx, block) {
+                bi_worklist_push_tail(&worklist, block);
+        }
 
-        struct set *visited = _mesa_set_create(NULL,
-                        _mesa_hash_pointer,
-                        _mesa_key_pointer_equal);
+        while (!u_worklist_is_empty(&worklist)) {
+                bi_block *blk = bi_worklist_pop_tail(&worklist);
 
-        struct set_entry *cur = _mesa_set_add(work_list, pan_exit_block(&ctx->blocks));
-
-        do {
-                bi_block *blk = (struct bi_block *) cur->key;
-                _mesa_set_remove(work_list, cur);
-
-                bool progress = bi_helper_block_update(deps, blk);
-
-                if (progress || !_mesa_set_search(visited, blk)) {
+                if (bi_helper_block_update(deps, blk)) {
                         bi_foreach_predecessor(blk, pred)
-                                _mesa_set_add(work_list, pred);
+                                bi_worklist_push_head(&worklist, *pred);
                 }
+        }
 
-                _mesa_set_add(visited, blk);
-        } while((cur = _mesa_set_next_entry(work_list, NULL)) != NULL);
-
-        _mesa_set_destroy(visited, NULL);
-        _mesa_set_destroy(work_list, NULL);
+        u_worklist_fini(&worklist);
 
         /* Set the execute bits */
 
         bi_foreach_instr_global(ctx, I) {
                 if (!bi_has_skip_bit(I->op)) continue;
-                if (I->dest[0].type != BI_INDEX_NORMAL) continue;
 
-                I->skip = !BITSET_TEST(deps, bi_get_node(I->dest[0]));
+                bool exec = false;
+
+                bi_foreach_dest(I, d)
+                        exec |= BITSET_TEST(deps, I->dest[d].value);
+
+                I->skip = !exec;
         }
 
         free(deps);

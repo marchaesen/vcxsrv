@@ -35,13 +35,13 @@ or more indicators
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- which
+.I which
 mask of indicators to change
 .TP
-.I \- desc
+.I desc
 keyboard description from which the maps are taken
 .SH DESCRIPTION
 .LP
@@ -102,7 +102,9 @@ Indicator Drives Keyboard
 _
 which_mods	New State	Effect on Keyboard Modifiers
 _
-XkbIM_UseNone or XkbIM_UseBase	On or Off	No Effect
+XkbIM_UseNone or
+.br
+XkbIM_UseBase	On or Off	No Effect
 XkbIM_UseLatched	On	T{
 Any modifiers specified in the mask field of mods are added to the latched 
 modifiers.
@@ -111,7 +113,11 @@ XkbIM_UseLatched	Off	T{
 Any modifiers specified in the mask field of mods are removed from the latched 
 modifiers.
 T}
-XkbIM_UseLocked, XkbIM_UseCompat, or XkbIM_UseEffective	On	T{
+XkbIM_UseLocked,
+.br
+XkbIM_UseCompat, or
+.br
+XkbIM_UseEffective	On	T{
 Any modifiers specified in the mask field of mods are added to the locked 
 modifiers.
 T}
@@ -119,7 +125,9 @@ XkbIM_UseLocked	Off	T{
 Any modifiers specified in the mask field of mods are removed from the locked 
 modifiers.
 T}
-XkbIM_UseCompat or XkbIM_UseEffective	Off	T{
+XkbIM_UseCompat or
+.br
+XkbIM_UseEffective	Off	T{
 Any modifiers specified in the mask field of mods are removed from both the 
 locked and latched modifiers.
 T}
@@ -129,8 +137,8 @@ If XkbIM_LEDDrivesKB is set and XkbIM_NoExplicit is not, and if you call a
 function that updates the server's image of the indicator map (such as
 .I XkbSetIndicatorMap 
 or 
-.I XkbSetNamedIndicator),
- Xkb changes the keyboard state and controls to reflect the other fields of the 
+.IR XkbSetNamedIndicator ),
+Xkb changes the keyboard state and controls to reflect the other fields of the
 indicator map. If you attempt to explicitly change the value of an indicator for 
 which XkbIM_LEDDrivesKB is absent or for which XkbIM_NoExplicit is present, 
 keyboard state or controls are unaffected.

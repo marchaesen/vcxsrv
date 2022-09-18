@@ -768,14 +768,6 @@ qir_PACK_8888_F(struct vc4_compile *c, struct qreg val)
         return dest;
 }
 
-static inline struct qreg
-qir_POW(struct vc4_compile *c, struct qreg x, struct qreg y)
-{
-        return qir_EXP2(c, qir_FMUL(c,
-                                    y,
-                                    qir_LOG2(c, x)));
-}
-
 static inline void
 qir_VPM_WRITE(struct vc4_compile *c, struct qreg val)
 {

@@ -97,6 +97,7 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    case nir_intrinsic_image_deref_atomic_fadd:
    case nir_intrinsic_image_deref_atomic_fmin:
    case nir_intrinsic_image_deref_atomic_fmax:
+   case nir_intrinsic_image_deref_samples_identical:
       var = nir_intrinsic_get_var(instr, 0);
       read = instr->intrinsic != nir_intrinsic_image_deref_store;
       write = instr->intrinsic != nir_intrinsic_image_deref_load &&
@@ -139,6 +140,7 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    case nir_intrinsic_bindless_image_atomic_fadd:
    case nir_intrinsic_bindless_image_atomic_fmin:
    case nir_intrinsic_bindless_image_atomic_fmax:
+   case nir_intrinsic_bindless_image_samples_identical:
       read = instr->intrinsic != nir_intrinsic_bindless_image_store;
       write = instr->intrinsic != nir_intrinsic_bindless_image_load &&
               instr->intrinsic != nir_intrinsic_bindless_image_sparse_load;

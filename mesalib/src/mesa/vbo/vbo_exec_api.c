@@ -180,6 +180,10 @@ vbo_exec_copy_to_current(struct vbo_exec_context *exec)
 
       assert(exec->vtx.attr[i].size);
 
+      /* VBO_ATTRIB_SELECT_RESULT_INDEX has no current */
+      if (!current)
+         continue;
+
       if (exec->vtx.attr[i].type == GL_DOUBLE ||
           exec->vtx.attr[i].type == GL_UNSIGNED_INT64_ARB) {
          memset(tmp, 0, sizeof(tmp));
@@ -477,7 +481,7 @@ is_vertex_position(const struct gl_context *ctx, GLuint index)
  * \param C  cast type (uint32_t or uint64_t)
  * \param V0, V1, v2, V3  attribute value
  */
-#define ATTR_UNION(A, N, T, C, V0, V1, V2, V3)                          \
+#define ATTR_UNION_BASE(A, N, T, C, V0, V1, V2, V3)                     \
 do {                                                                    \
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;             \
    int sz = (sizeof(C) / sizeof(GLfloat));                              \
@@ -557,11 +561,13 @@ do {                                                                    \
    }                                                                    \
 } while (0)
 
-
 #undef ERROR
 #define ERROR(err) _mesa_error(ctx, err, __func__)
 #define TAG(x) _mesa_##x
 #define SUPPRESS_STATIC
+
+#define ATTR_UNION(A, N, T, C, V0, V1, V2, V3) \
+   ATTR_UNION_BASE(A, N, T, C, V0, V1, V2, V3)
 
 #include "vbo_attrib_tmp.h"
 
@@ -842,7 +848,8 @@ _mesa_Begin(GLenum mode)
 
    ctx->Driver.CurrentExecPrimitive = mode;
 
-   ctx->Exec = ctx->BeginEnd;
+   ctx->Exec = _mesa_hw_select_enabled(ctx) ?
+      ctx->HWSelectModeBeginEnd : ctx->BeginEnd;
 
    /* We may have been called from a display list, in which case we should
     * leave dlist.c's dispatch table in place.
@@ -850,7 +857,7 @@ _mesa_Begin(GLenum mode)
    if (ctx->GLThread.enabled) {
       ctx->CurrentServerDispatch = ctx->Exec;
    } else if (ctx->CurrentClientDispatch == ctx->OutsideBeginEnd) {
-      ctx->CurrentClientDispatch = ctx->Exec;
+      ctx->CurrentClientDispatch = ctx->CurrentServerDispatch = ctx->Exec;
       _glapi_set_dispatch(ctx->CurrentClientDispatch);
    } else {
       assert(ctx->CurrentClientDispatch == ctx->Save);
@@ -908,8 +915,9 @@ _mesa_End(void)
 
    if (ctx->GLThread.enabled) {
       ctx->CurrentServerDispatch = ctx->Exec;
-   } else if (ctx->CurrentClientDispatch == ctx->BeginEnd) {
-      ctx->CurrentClientDispatch = ctx->Exec;
+   } else if (ctx->CurrentClientDispatch == ctx->BeginEnd ||
+              ctx->CurrentClientDispatch == ctx->HWSelectModeBeginEnd) {
+      ctx->CurrentClientDispatch = ctx->CurrentServerDispatch = ctx->Exec;
       _glapi_set_dispatch(ctx->CurrentClientDispatch);
    }
 
@@ -922,8 +930,13 @@ _mesa_End(void)
       last_draw->count = count;
       exec->vtx.markers[last].end = 1;
 
-      if (count)
+      if (count) {
+         /* mark result buffer used */
+         if (_mesa_hw_select_enabled(ctx))
+            ctx->Select.ResultUsed = GL_TRUE;
+
          ctx->Driver.NeedFlush |= FLUSH_STORED_VERTICES;
+      }
 
       /* Special handling for GL_LINE_LOOP */
       if (exec->vtx.mode[last] == GL_LINE_LOOP &&
@@ -993,7 +1006,7 @@ static void
 VertexAttrib4f_nopos(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+   if (index < ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs)
       ATTRF(VBO_ATTRIB_GENERIC0 + index, 4, x, y, z, w);
    else
       ERROR(GL_INVALID_VALUE);
@@ -1209,4 +1222,34 @@ _es_Materialf(GLenum face, GLenum pname, GLfloat param)
    p[0] = param;
    p[1] = p[2] = p[3] = 0.0F;
    _mesa_Materialfv(face, pname, p);
+}
+
+#undef TAG
+#undef SUPPRESS_STATIC
+#define TAG(x) _hw_select_##x
+/* filter out none vertex api */
+#define HW_SELECT_MODE
+
+#undef ATTR_UNION
+#define ATTR_UNION(A, N, T, C, V0, V1, V2, V3)     \
+   do {                                            \
+      if ((A) == 0) {                              \
+         ATTR_UNION_BASE(VBO_ATTRIB_SELECT_RESULT_OFFSET, 1, GL_UNSIGNED_INT, uint32_t, \
+                         ctx->Select.ResultOffset, 0, 0, 0); \
+      }                                            \
+      ATTR_UNION_BASE(A, N, T, C, V0, V1, V2, V3); \
+   } while (0)
+
+#include "vbo_attrib_tmp.h"
+
+void
+vbo_install_hw_select_begin_end(struct gl_context *ctx)
+{
+   int numEntries = MAX2(_gloffset_COUNT, _glapi_get_dispatch_table_size());
+   memcpy(ctx->HWSelectModeBeginEnd, ctx->BeginEnd, numEntries * sizeof(_glapi_proc));
+
+#undef NAME
+#define NAME(x) _hw_select_##x
+   struct _glapi_table *tab = ctx->HWSelectModeBeginEnd;
+   #include "api_hw_select_init.h"
 }

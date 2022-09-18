@@ -507,8 +507,6 @@ ir_builder_print_visitor::visit_enter(ir_assignment *ir)
    if (s != visit_continue)
       return (s == visit_continue_with_parent) ? visit_continue : s;
 
-   assert(ir->condition == NULL);
-
    const struct hash_entry *const he_lhs =
       _mesa_hash_table_search(index_map, ir->lhs);
 
@@ -529,7 +527,6 @@ ir_builder_print_visitor::visit_leave(ir_assignment *ir)
    const struct hash_entry *const he_rhs =
       _mesa_hash_table_search(index_map, ir->rhs);
 
-   assert(ir->condition == NULL);
    assert(ir->lhs && ir->rhs);
 
    print_with_indent("body.emit(assign(r%04X, r%04X, 0x%02x));\n\n",

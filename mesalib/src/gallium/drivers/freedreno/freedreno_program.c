@@ -169,7 +169,7 @@ fd_prog_blit_fs(struct pipe_context *pctx, int rts, bool depth)
    struct ureg_src tc;
    struct ureg_program *ureg;
 
-   debug_assert(rts <= MAX_RENDER_TARGETS);
+   assert(rts <= MAX_RENDER_TARGETS);
 
    ureg = ureg_create(PIPE_SHADER_FRAGMENT);
    if (!ureg)

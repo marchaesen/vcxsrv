@@ -60,6 +60,8 @@ struct vn_command_buffer {
 
    enum vn_command_buffer_state state;
    struct vn_cs_encoder cs;
+
+   uint32_t draw_cmd_batched;
 };
 VK_DEFINE_HANDLE_CASTS(vn_command_buffer,
                        base.base,

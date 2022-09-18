@@ -32,8 +32,6 @@
 
 struct draw_context;
 struct vertex_info;
-
-
 struct pipe_resource;
 struct pipe_query;
 struct pipe_surface;
@@ -47,11 +45,12 @@ struct pipe_fence_handle;
 struct lp_setup_variant;
 struct lp_setup_context;
 
-void lp_setup_reset( struct lp_setup_context *setup );
+void
+lp_setup_reset(struct lp_setup_context *setup);
 
 struct lp_setup_context *
-lp_setup_create( struct pipe_context *pipe,
-                 struct draw_context *draw );
+lp_setup_create(struct pipe_context *pipe,
+                struct draw_context *draw);
 
 void
 lp_setup_clear(struct lp_setup_context *setup,
@@ -60,48 +59,25 @@ lp_setup_clear(struct lp_setup_context *setup,
                unsigned clear_stencil,
                unsigned flags);
 
-
+void
+lp_setup_flush(struct lp_setup_context *setup,
+               const char *reason);
 
 void
-lp_setup_flush( struct lp_setup_context *setup,
-                struct pipe_fence_handle **fence,
-                const char *reason);
-
+lp_setup_bind_framebuffer(struct lp_setup_context *setup,
+                          const struct pipe_framebuffer_state *fb);
 
 void
-lp_setup_bind_framebuffer( struct lp_setup_context *setup,
-                           const struct pipe_framebuffer_state *fb );
-
-void 
-lp_setup_set_triangle_state( struct lp_setup_context *setup,
-                             unsigned cullmode,
-                             boolean front_is_ccw,
-                             boolean scissor,
-                             boolean half_pixel_center,
-                             boolean bottom_edge_rule,
-                             boolean multisample);
-
-void 
-lp_setup_set_line_state( struct lp_setup_context *setup,
-                         float line_width,
-                         boolean line_rectangular);
-
-void 
-lp_setup_set_point_state( struct lp_setup_context *setup,
-                          float point_size,
-                          boolean point_tri_clip,
-                          boolean point_size_per_vertex,
-                          uint sprite_coord_enable,
-                          uint sprite_coord_origin,
-                          boolean point_quad_rasterization);
+lp_setup_bind_rasterizer(struct lp_setup_context *setup,
+                         const struct pipe_rasterizer_state *rast);
 
 void
-lp_setup_set_setup_variant( struct lp_setup_context *setup,
-			    const struct lp_setup_variant *variant );
+lp_setup_set_setup_variant(struct lp_setup_context *setup,
+                           const struct lp_setup_variant *variant);
 
 void
-lp_setup_set_fs_variant( struct lp_setup_context *setup,
-                         struct lp_fragment_shader_variant *variant );
+lp_setup_set_fs_variant(struct lp_setup_context *setup,
+                        struct lp_fragment_shader_variant *variant);
 
 void
 lp_setup_set_fs_constants(struct lp_setup_context *setup,
@@ -111,7 +87,8 @@ lp_setup_set_fs_constants(struct lp_setup_context *setup,
 void
 lp_setup_set_fs_ssbos(struct lp_setup_context *setup,
                       unsigned num,
-                      struct pipe_shader_buffer *buffers);
+                      struct pipe_shader_buffer *buffers,
+                      uint32_t ssbo_write_mask);
 
 void
 lp_setup_set_fs_images(struct lp_setup_context *setup,
@@ -119,20 +96,20 @@ lp_setup_set_fs_images(struct lp_setup_context *setup,
                        struct pipe_image_view *images);
 
 void
-lp_setup_set_alpha_ref_value( struct lp_setup_context *setup,
-                              float alpha_ref_value );
+lp_setup_set_alpha_ref_value(struct lp_setup_context *setup,
+                             float alpha_ref_value);
 
 void
-lp_setup_set_stencil_ref_values( struct lp_setup_context *setup,
-                                 const ubyte refs[2] );
+lp_setup_set_stencil_ref_values(struct lp_setup_context *setup,
+                                const ubyte refs[2]);
 
 void
-lp_setup_set_blend_color( struct lp_setup_context *setup,
-                          const struct pipe_blend_color *blend_color );
+lp_setup_set_blend_color(struct lp_setup_context *setup,
+                         const struct pipe_blend_color *blend_color);
 
 void
-lp_setup_set_scissors( struct lp_setup_context *setup,
-                       const struct pipe_scissor_state *scissors );
+lp_setup_set_scissors(struct lp_setup_context *setup,
+                      const struct pipe_scissor_state *scissors);
 
 void
 lp_setup_set_viewports(struct lp_setup_context *setup,
@@ -150,28 +127,24 @@ lp_setup_set_fragment_sampler_state(struct lp_setup_context *setup,
                                     struct pipe_sampler_state **samplers);
 
 unsigned
-lp_setup_is_resource_referenced( const struct lp_setup_context *setup,
-                                const struct pipe_resource *texture );
+lp_setup_is_resource_referenced(const struct lp_setup_context *setup,
+                                const struct pipe_resource *texture);
 
 void
 lp_setup_set_sample_mask(struct lp_setup_context *setup,
                          uint32_t sample_mask);
 
 void
-lp_setup_set_flatshade_first( struct lp_setup_context *setup, 
-                              boolean flatshade_first );
+lp_setup_set_rasterizer_discard(struct lp_setup_context *setup,
+                                boolean rasterizer_discard);
 
 void
-lp_setup_set_rasterizer_discard( struct lp_setup_context *setup, 
-                                 boolean rasterizer_discard );
+lp_setup_set_vertex_info(struct lp_setup_context *setup,
+                         struct vertex_info *info);
 
 void
-lp_setup_set_vertex_info( struct lp_setup_context *setup, 
-                          struct vertex_info *info );
-
-void
-lp_setup_set_linear_mode( struct lp_setup_context *setup, 
-                          boolean permit_linear_rasterizer );
+lp_setup_set_linear_mode(struct lp_setup_context *setup,
+                         boolean permit_linear_rasterizer);
 
 void
 lp_setup_begin_query(struct lp_setup_context *setup,

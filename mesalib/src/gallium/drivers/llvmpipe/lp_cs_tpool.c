@@ -96,9 +96,13 @@ lp_cs_tpool_create(unsigned num_threads)
 
    list_inithead(&pool->workqueue);
    assert (num_threads <= LP_MAX_THREADS);
+   for (unsigned i = 0; i < num_threads; i++) {
+      if (thrd_success != u_thread_create(pool->threads + i, lp_cs_tpool_worker, pool)) {
+         num_threads = i;  /* previous thread is max */
+         break;
+      }
+   }
    pool->num_threads = num_threads;
-   for (unsigned i = 0; i < num_threads; i++)
-      pool->threads[i] = u_thread_create(lp_cs_tpool_worker, pool);
    return pool;
 }
 

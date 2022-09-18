@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright © 2009,2012 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include "c99_compat.h"
 #include "macros.h"
 
 #ifdef __cplusplus

@@ -21,26 +21,23 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Turn "dir1/dir2/dir3/dir4" into "../../../../"
-define relative_top_path
-$(eval __s:=) \
-$(foreach tmp,$(subst /,$(space),$1),$(eval __s:=$(__s)../)) \
-$(__s)
-endef
-
 MY_PATH := $(call my-dir)
 
 AOSP_ABSOLUTE_PATH := $(realpath .)
+define relative-to-absolute
+$(if $(patsubst /%,,$1),$(AOSP_ABSOLUTE_PATH)/$1,$1)
+endef
 
-m_dummy_$(LOCAL_MULTILIB) := $(TARGET_OUT_INTERMEDIATES)/MESON_DUMMY_$(LOCAL_MULTILIB)/dummy.c
+LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+LOCAL_MODULE := meson.dummy.$(LOCAL_MULTILIB)
 
-$(m_dummy_$(LOCAL_MULTILIB)):
+m_dummy := $(local-generated-sources-dir)/dummy.c
+$(m_dummy):
 	mkdir -p $(dir $@)
 	touch $@
 
-LOCAL_SRC_FILES := $(call relative_top_path,$(MY_PATH))$(m_dummy_$(LOCAL_MULTILIB))
+LOCAL_GENERATED_SOURCES := $(m_dummy)
 LOCAL_VENDOR_MODULE := true
-LOCAL_MODULE := meson.dummy.$(LOCAL_MULTILIB)
 
 # Prepare intermediate variables by AOSP make/core internals
 include $(BUILD_SHARED_LIBRARY)
@@ -72,7 +69,7 @@ $(M_TARGET_PREFIX)MESA3D_LIBEGL_BIN      := $(MESON_OUT_DIR)/install/usr/local/l
 $(M_TARGET_PREFIX)MESA3D_LIBGLESV1_BIN   := $(MESON_OUT_DIR)/install/usr/local/lib/libGLESv1_CM.so.1.1.0
 $(M_TARGET_PREFIX)MESA3D_LIBGLESV2_BIN   := $(MESON_OUT_DIR)/install/usr/local/lib/libGLESv2.so.2.0.0
 $(M_TARGET_PREFIX)MESA3D_LIBGLAPI_BIN    := $(MESON_OUT_DIR)/install/usr/local/lib/libglapi.so.0.0.0
-$(M_TARGET_PREFIX)MESA3D_LIBGBM_BIN      := $(MESON_OUT_DIR)/install/usr/local/lib/libgbm.so.1.0.0
+$(M_TARGET_PREFIX)MESA3D_LIBGBM_BIN      := $(MESON_OUT_DIR)/install/usr/local/lib/$(MESA_LIBGBM_NAME).so.1.0.0
 
 
 MESA3D_GLES_BINS := \
@@ -83,7 +80,7 @@ MESA3D_GLES_BINS := \
 
 MESON_GEN_NINJA := \
 	cd $(MESON_OUT_DIR) && PATH=/usr/bin:/usr/local/bin:$$PATH meson ./build     \
-	--cross-file $(AOSP_ABSOLUTE_PATH)/$(MESON_GEN_DIR)/aosp_cross               \
+	--cross-file $(call relative-to-absolute,$(MESON_GEN_DIR))/aosp_cross        \
 	--buildtype=release                                                          \
 	-Ddri-search-path=/vendor/$(MESA3D_LIB_DIR)/dri                              \
 	-Dplatforms=android                                                          \
@@ -94,6 +91,7 @@ MESON_GEN_NINJA := \
 	-Dgbm=enabled                                                                \
 	-Degl=enabled                                                                \
 	-Dcpp_rtti=false                                                             \
+	-Dlmsensors=disabled                                                         \
 
 MESON_BUILD := PATH=/usr/bin:/bin:/sbin:$$PATH ninja -C $(MESON_OUT_DIR)/build
 
@@ -151,6 +149,7 @@ $(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_CRTEND_SO_O := $(my_target_crtend_so_o
 ##
 
 define m-lld-flags
+  -Wl,-e,main \
   -nostdlib -Wl,--gc-sections \
   $(PRIVATE_TARGET_CRTBEGIN_SO_O) \
   $(PRIVATE_ALL_OBJECTS) \
@@ -171,13 +170,14 @@ define m-lld-flags
 endef
 
 define m-lld-flags-cleaned
+  $(patsubst -Wl$(comma)--build-id=%,, \
   $(subst prebuilts/,$(AOSP_ABSOLUTE_PATH)/prebuilts/, \
-  $(subst out/,$(AOSP_ABSOLUTE_PATH)/out/,             \
+  $(subst $(OUT_DIR)/,$(call relative-to-absolute,$(OUT_DIR))/, \
   $(subst -Wl$(comma)--fatal-warnings,,                \
   $(subst -Wl$(comma)--no-undefined-version,,          \
   $(subst -Wl$(comma)--gc-sections,,                   \
   $(patsubst %dummy.o,,                                \
-    $(m-lld-flags)))))))
+    $(m-lld-flags))))))))
 endef
 
 define m-cpp-flags
@@ -203,17 +203,32 @@ define m-c-flags
 endef
 
 define filter-c-flags
-  $(subst -std=gnu++17,, \
-  $(subst -fno-rtti,, \
-  $(patsubst  -W%,, \
-    $1)))
+  $(filter-out -std=gnu++17 -std=gnu99 -fno-rtti, \
+    $(patsubst  -W%,, $1))
 endef
 
-define m-c-abs-includes
-  $(subst  -isystem , -isystem $(AOSP_ABSOLUTE_PATH)/, \
-  $(subst  -I, -I$(AOSP_ABSOLUTE_PATH)/, \
-  $(subst  -I , -I, \
-    $(c-includes))))
+define nospace-includes
+  $(subst $(space)-isystem$(space),$(space)-isystem, \
+  $(subst $(space)-I$(space),$(space)-I, \
+  $(strip $(c-includes))))
+endef
+
+# Ensure include paths are always absolute
+# When OUT_DIR_COMMON_BASE env variable is set the AOSP/KATI will use absolute paths
+# for headers in intermediate output directories, but relative for all others.
+define abs-include
+$(strip \
+  $(if $(patsubst -I%,,$1),\
+    $(if $(patsubst -isystem/%,,$1),\
+      $(subst -isystem,-isystem$(AOSP_ABSOLUTE_PATH)/,$1),\
+      $1\
+    ),\
+    $(if $(patsubst -I/%,,$1),\
+      $(subst -I,-I$(AOSP_ABSOLUTE_PATH)/,$1),\
+      $1\
+    )\
+  )
+)
 endef
 
 $(MESON_GEN_FILES_TARGET): PREPROCESS_MESON_CONFIGS:=$(PREPROCESS_MESON_CONFIGS)
@@ -221,8 +236,10 @@ $(MESON_GEN_FILES_TARGET): MESON_GEN_DIR:=$(MESON_GEN_DIR)
 $(MESON_GEN_FILES_TARGET): $(sort $(shell find -L $(MESA3D_TOP) -not -path '*/\.*'))
 	mkdir -p $(dir $@)
 	echo -e "[properties]\n"                                                                                                  \
-		"c_args = [$(foreach flag, $(call filter-c-flags,$(m-c-flags) $(m-c-abs-includes)),'$(flag)', )'']\n"             \
-		"cpp_args = [$(foreach flag, $(call filter-c-flags,$(m-cpp-flags) $(m-c-abs-includes)),'$(flag)', )'']\n"         \
+		"c_args = [$(foreach flag,$(call filter-c-flags,$(m-c-flags)),'$(flag)', ) \
+                           $(foreach inc,$(nospace-includes),'$(call abs-include,$(inc))', )'']\n" \
+		"cpp_args = [$(foreach flag,$(call filter-c-flags,$(m-cpp-flags)),'$(flag)', ) \
+                             $(foreach inc,$(nospace-includes),'$(call abs-include,$(inc))', )'']\n" \
 		"c_link_args = [$(foreach flag, $(m-lld-flags-cleaned),'$(flag)',)'']\n"                                          \
 		"cpp_link_args = [$(foreach flag, $(m-lld-flags-cleaned),'$(flag)',)'']\n"                                        \
 		"needs_exe_wrapper = true\n"                                                                                      \
@@ -232,7 +249,7 @@ $(MESON_GEN_FILES_TARGET): $(sort $(shell find -L $(MESA3D_TOP) -not -path '*/\.
 		"cpp = [$(foreach arg,$(PRIVATE_CXX),'$(subst prebuilts/,$(AOSP_ABSOLUTE_PATH)/prebuilts/,$(arg))',)'']\n"        \
 		"c_ld = 'lld'\n"                                                                                                  \
 		"cpp_ld = 'lld'\n\n"                                                                                              \
-		"pkgconfig = ['env', 'PKG_CONFIG_LIBDIR=' + '$(AOSP_ABSOLUTE_PATH)/$(MESON_GEN_DIR)', '/usr/bin/pkg-config']\n\n" \
+		"pkgconfig = ['env', 'PKG_CONFIG_LIBDIR=' + '$(call relative-to-absolute,$(MESON_GEN_DIR))', '/usr/bin/pkg-config']\n\n" \
 		"llvm-config = '/dev/null'\n"                                                                                     \
 		"[host_machine]\n"                                                                                                \
 		"system = 'linux'\n"                                                                                              \
@@ -271,7 +288,7 @@ $(MESON_OUT_DIR)/install/.install.timestamp: MESON_BUILD:=$(MESON_BUILD)
 $(MESON_OUT_DIR)/install/.install.timestamp: $(MESON_OUT_DIR)/.build.timestamp
 	rm -rf $(dir $@)
 	mkdir -p $(dir $@)
-	DESTDIR=$(AOSP_ABSOLUTE_PATH)/$(dir $@) $(MESON_BUILD) install
+	DESTDIR=$(call relative-to-absolute,$(dir $@)) $(MESON_BUILD) install
 	$(MESON_COPY_LIBGALLIUM)
 	touch $@
 

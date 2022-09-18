@@ -42,31 +42,33 @@
 #define NO_ANISO (~0)
 #define HAS_ANISO (0)
 
-#define MODEL(gpu_id_, shortname, counters_, min_rev_anisotropic_, quirks_) \
+#define MODEL(gpu_id_, shortname, counters_, min_rev_anisotropic_, tib_size_, quirks_) \
         { \
                 .gpu_id = gpu_id_, \
                 .name = "Mali-" shortname " (Panfrost)", \
                 .performance_counters = counters_, \
                 .min_rev_anisotropic = min_rev_anisotropic_, \
+                .tilebuffer_size = tib_size_, \
                 .quirks = quirks_, \
         }
 
 /* Table of supported Mali GPUs */
 const struct panfrost_model panfrost_model_list[] = {
-        MODEL(0x720, "T720", "T72x", NO_ANISO, { .no_hierarchical_tiling = true }),
-        MODEL(0x750, "T760", "T76x", NO_ANISO, {}),
-        MODEL(0x820, "T820", "T82x", NO_ANISO, { .no_hierarchical_tiling = true }),
-        MODEL(0x830, "T830", "T83x", NO_ANISO, { .no_hierarchical_tiling = true }),
-        MODEL(0x860, "T860", "T86x", NO_ANISO, {}),
-        MODEL(0x880, "T880", "T88x", NO_ANISO, {}),
+        MODEL(0x720, "T720", "T72x", NO_ANISO, 8192, { .no_hierarchical_tiling = true }),
+        MODEL(0x750, "T760", "T76x", NO_ANISO, 8192, {}),
+        MODEL(0x820, "T820", "T82x", NO_ANISO, 8192, { .no_hierarchical_tiling = true }),
+        MODEL(0x830, "T830", "T83x", NO_ANISO, 8192, { .no_hierarchical_tiling = true }),
+        MODEL(0x860, "T860", "T86x", NO_ANISO, 8192, {}),
+        MODEL(0x880, "T880", "T88x", NO_ANISO, 8192, {}),
 
-        MODEL(0x6000, "G71", "TMIx", NO_ANISO, {}),
-        MODEL(0x6221, "G72", "THEx", 0x0030 /* r0p3 */, {}),
-        MODEL(0x7090, "G51", "TSIx", 0x1010 /* r1p1 */, {}),
-        MODEL(0x7093, "G31", "TDVx", HAS_ANISO, {}),
-        MODEL(0x7211, "G76", "TNOx", HAS_ANISO, {}),
-        MODEL(0x7212, "G52", "TGOx", HAS_ANISO, {}),
-        MODEL(0x7402, "G52 r1", "TGOx", HAS_ANISO, {}),
+        MODEL(0x6000, "G71", "TMIx", NO_ANISO, 8192, {}),
+        MODEL(0x6221, "G72", "THEx", 0x0030 /* r0p3 */, 16384, {}),
+        MODEL(0x7090, "G51", "TSIx", 0x1010 /* r1p1 */, 16384, {}),
+        MODEL(0x7093, "G31", "TDVx", HAS_ANISO, 16384, {}),
+        MODEL(0x7211, "G76", "TNOx", HAS_ANISO, 16384, {}),
+        MODEL(0x7212, "G52", "TGOx", HAS_ANISO, 16384, {}),
+        MODEL(0x7402, "G52 r1", "TGOx", HAS_ANISO, 16384, {}),
+        MODEL(0x9093, "G57", "TNAx", HAS_ANISO, 16384, {}),
 };
 
 #undef NO_ANISO
@@ -115,16 +117,6 @@ panfrost_query_raw(
 static unsigned
 panfrost_query_gpu_version(int fd)
 {
-#ifndef NDEBUG
-        /* In debug builds, allow overriding the GPU ID, for example to run
-         * Bifrost shader-db on a Midgard machine. This is a bit less heavy
-         * handed than setting up the entirety of drm-shim */
-        char *override_version = getenv("PAN_GPU_ID");
-
-        if (override_version)
-                return strtol(override_version, NULL, 16);
-#endif
-
         return panfrost_query_raw(fd, DRM_PANFROST_PARAM_GPU_PROD_ID, true, 0);
 }
 
@@ -132,6 +124,18 @@ static unsigned
 panfrost_query_gpu_revision(int fd)
 {
         return panfrost_query_raw(fd, DRM_PANFROST_PARAM_GPU_REVISION, true, 0);
+}
+
+unsigned
+panfrost_query_l2_slices(const struct panfrost_device *dev)
+{
+        /* Query MEM_FEATURES register */
+        uint32_t mem_features =
+                panfrost_query_raw(dev->fd, DRM_PANFROST_PARAM_MEM_FEATURES,
+                                   true, 0);
+
+        /* L2_SLICES is MEM_FEATURES[11:8] minus(1) */
+        return ((mem_features >> 8) & 0xF) + 1;
 }
 
 static struct panfrost_tiler_features
@@ -149,20 +153,21 @@ panfrost_query_tiler_features(int fd)
 }
 
 static unsigned
-panfrost_query_core_count(int fd)
+panfrost_query_core_count(int fd, unsigned *core_id_range)
 {
         /* On older kernels, worst-case to 16 cores */
 
         unsigned mask = panfrost_query_raw(fd,
                         DRM_PANFROST_PARAM_SHADER_PRESENT, false, 0xffff);
 
-        /* Some cores might be absent. For TLS computation purposes, we care
-         * about the greatest ID + 1, which equals the core count if all cores
-         * are present, but allocates space for absent cores if needed.
-         * util_last_bit is defined to return the greatest bit set + 1, which
-         * is exactly what we need. */
+        /* Some cores might be absent. In some cases, we care
+         * about the range of core IDs (that is, the greatest core ID + 1). If
+         * the core mask is contiguous, this equals the core count.
+         */
+        *core_id_range = util_last_bit(mask);
 
-        return util_last_bit(mask);
+        /* The actual core count skips overs the gaps */
+        return util_bitcount(mask);
 }
 
 /* Architectural maximums, since this register may be not implemented
@@ -253,6 +258,25 @@ panfrost_query_afbc(int fd, unsigned arch)
         return (arch >= 5) && (reg == 0);
 }
 
+/*
+ * To pipeline multiple tiles, a given tile may use at most half of the tile
+ * buffer. This function returns the optimal size (assuming pipelining).
+ *
+ * For Mali-G510 and Mali-G310, we will need extra logic to query the tilebuffer
+ * size for the particular variant. The CORE_FEATURES register might help.
+ */
+static unsigned
+panfrost_query_optimal_tib_size(const struct panfrost_device *dev)
+{
+        /* Preconditions ensure the returned value is a multiple of 1 KiB, the
+         * granularity of the colour buffer allocation field.
+         */
+        assert(dev->model->tilebuffer_size >= 2048);
+        assert(util_is_power_of_two_nonzero(dev->model->tilebuffer_size));
+
+        return dev->model->tilebuffer_size / 2;
+}
+
 void
 panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
 {
@@ -260,19 +284,27 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
         dev->memctx = memctx;
         dev->gpu_id = panfrost_query_gpu_version(fd);
         dev->arch = pan_arch(dev->gpu_id);
-        dev->core_count = panfrost_query_core_count(fd);
-        dev->thread_tls_alloc = panfrost_query_thread_tls_alloc(fd, dev->arch);
         dev->kernel_version = drmGetVersion(fd);
         dev->revision = panfrost_query_gpu_revision(fd);
         dev->model = panfrost_get_model(dev->gpu_id);
+
+        /* If we don't recognize the model, bail early */
+        if (!dev->model)
+                return;
+
+        dev->core_count = panfrost_query_core_count(fd, &dev->core_id_range);
+        dev->thread_tls_alloc = panfrost_query_thread_tls_alloc(fd, dev->arch);
+        dev->optimal_tib_size = panfrost_query_optimal_tib_size(dev);
         dev->compressed_formats = panfrost_query_compressed_formats(fd);
         dev->tiler_features = panfrost_query_tiler_features(fd);
         dev->has_afbc = panfrost_query_afbc(fd, dev->arch);
 
         if (dev->arch <= 6)
                 dev->formats = panfrost_pipe_format_v6;
-        else
+        else if (dev->arch <= 7)
                 dev->formats = panfrost_pipe_format_v7;
+        else
+                dev->formats = panfrost_pipe_format_v9;
 
         util_sparse_array_init(&dev->bo_map, sizeof(struct panfrost_bo), 512);
 
@@ -290,7 +322,7 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
          * active for a single job chain at once, so a single heap can be
          * shared across batches/contextes */
 
-        dev->tiler_heap = panfrost_bo_create(dev, 64 * 1024 * 1024,
+        dev->tiler_heap = panfrost_bo_create(dev, 128 * 1024 * 1024,
                         PAN_BO_INVISIBLE | PAN_BO_GROWABLE, "Tiler heap");
 
         pthread_mutex_init(&dev->submit_lock, NULL);
@@ -302,11 +334,17 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
 void
 panfrost_close_device(struct panfrost_device *dev)
 {
-        pthread_mutex_destroy(&dev->submit_lock);
-        panfrost_bo_unreference(dev->tiler_heap);
-        panfrost_bo_cache_evict_all(dev);
-        pthread_mutex_destroy(&dev->bo_cache.lock);
+        /* If we don't recognize the model, the rest of the device won't exist,
+         * we will have early-exited the device open.
+         */
+        if (dev->model) {
+                pthread_mutex_destroy(&dev->submit_lock);
+                panfrost_bo_unreference(dev->tiler_heap);
+                panfrost_bo_cache_evict_all(dev);
+                pthread_mutex_destroy(&dev->bo_cache.lock);
+                util_sparse_array_finish(&dev->bo_map);
+        }
+
         drmFreeVersion(dev->kernel_version);
-        util_sparse_array_finish(&dev->bo_map);
         close(dev->fd);
 }

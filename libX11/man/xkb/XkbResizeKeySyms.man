@@ -33,13 +33,13 @@ XkbResizeKeySyms \- Change the number of symbols bound to a key
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description to be changed
 .TP
-.I \- key
+.I key
 keycode for key to modify
 .TP
-.I \- needed
+.I needed
 new number of keysyms required for key
 .SH DESCRIPTION
 .LP

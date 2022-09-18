@@ -27,11 +27,7 @@
  **************************************************************************/
 
 
-#include "pipe/p_config.h"
-
 #include "util/u_debug.h"
-#include "pipe/p_format.h"
-#include "pipe/p_state.h"
 #include "util/u_string.h"
 #include "util/u_math.h"
 #include <inttypes.h>
@@ -66,9 +62,9 @@ _debug_vprintf(const char *format, va_list ap)
 
 
 void
-_pipe_debug_message(struct pipe_debug_callback *cb,
+_util_debug_message(struct util_debug_callback *cb,
                     unsigned *id,
-                    enum pipe_debug_type type,
+                    enum util_debug_type type,
                     const char *fmt, ...)
 {
    va_list args;
@@ -79,10 +75,10 @@ _pipe_debug_message(struct pipe_debug_callback *cb,
 }
 
 
-void
-debug_disable_error_message_boxes(void)
-{
 #ifdef _WIN32
+void
+debug_disable_win32_error_dialogs(void)
+{
    /* When Windows' error message boxes are disabled for this process (as is
     * typically the case when running tests in an automated fashion) we disable
     * CRT message boxes too.
@@ -101,8 +97,8 @@ debug_disable_error_message_boxes(void)
       _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
    }
-#endif /* _WIN32 */
 }
+#endif /* _WIN32 */
 
 
 #ifdef DEBUG
@@ -125,16 +121,16 @@ debug_print_blob(const char *name, const void *blob, unsigned size)
 static bool
 debug_get_option_should_print(void)
 {
-   static bool first = true;
+   static bool initialized = false;
    static bool value = false;
 
-   if (!first)
+   if (initialized)
       return value;
 
    /* Oh hey this will call into this function,
     * but its cool since we set first to false
     */
-   first = false;
+   initialized = true;
    value = debug_get_bool_option("GALLIUM_PRINT_OPTIONS", false);
    /* XXX should we print this option? Currently it wont */
    return value;
@@ -328,16 +324,6 @@ debug_get_flags_option(const char *name,
    }
 
    return result;
-}
-
-
-void
-_debug_assert_fail(const char *expr, const char *file, unsigned line,
-                   const char *function)
-{
-   _debug_printf("%s:%u:%s: Assertion `%s' failed.\n",
-                 file, line, function, expr);
-   os_abort();
 }
 
 

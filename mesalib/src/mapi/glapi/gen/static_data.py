@@ -1691,6 +1691,10 @@ offsets = {
     "VertexAttribs4hvNV": 1655,
     "TexPageCommitmentARB": 1656,
     "TexturePageCommitmentEXT": 1657,
+    "ImportMemoryWin32HandleEXT": 1658,
+    "ImportSemaphoreWin32HandleEXT": 1659,
+    "ImportMemoryWin32NameEXT": 1660,
+    "ImportSemaphoreWin32NameEXT": 1661,
 }
 
 functions = [

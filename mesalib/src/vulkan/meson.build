@@ -23,9 +23,17 @@ vulkan_icd_symbols = files('vulkan-icd-symbols.txt')
 
 inc_vulkan_util = include_directories('util')
 
-vulkan_wsi_args = []
 vulkan_wsi_deps = []
 vulkan_wsi_list = []
+
+vulkan_api_def = custom_target(
+  'vulkan_api.def',
+  input: 'vulkan_api.def.in',
+  output : 'vulkan_api.def',
+  command : [prog_python, gen_vs_module_defs_py,
+             '--in_file', '@INPUT@', '--out_file', '@OUTPUT@',
+             '--compiler_id', cc.get_argument_syntax(), '--cpu_family', host_machine.cpu_family()]
+)
 
 if with_platform_x11
   vulkan_wsi_deps += [
@@ -33,6 +41,7 @@ if with_platform_x11
     dep_x11_xcb,
     dep_xcb_dri3,
     dep_xcb_present,
+    dep_xcb_xfixes,
     dep_xcb_sync,
     dep_xcb_xrandr,
     dep_xcb_shm,

@@ -182,6 +182,10 @@ if with_gallium_opencl
   subdir('frontends/clover')
   subdir('targets/opencl')
 endif
+if with_gallium_rusticl
+  subdir('frontends/rusticl')
+  subdir('targets/rusticl')
+endif
 if with_dri
   subdir('frontends/dri')
   subdir('targets/dri')
@@ -231,7 +235,6 @@ if with_platform_windows
   subdir('frontends/wgl')
   if with_gallium_d3d12
     subdir('winsys/d3d12/wgl')
-    subdir('targets/libgl-d3d12')
   else
     winsys_d3d12_wgl = declare_dependency()
   endif

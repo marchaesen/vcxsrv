@@ -3151,10 +3151,10 @@ realFindSpan(int y)
         else
             newMaxy = finalMaxy + change;
         if (finalSpans) {
-            memmove(((char *) newSpans) +
+            memcpy(((char *) newSpans) +
                     (finalMiny - newMiny) * sizeof(struct finalSpan *),
-                    (char *) finalSpans,
-                    finalSize * sizeof(struct finalSpan *));
+                   finalSpans,
+                   finalSize * sizeof(struct finalSpan *));
             free(finalSpans);
         }
         if ((i = finalMiny - newMiny) > 0)

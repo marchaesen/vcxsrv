@@ -46,6 +46,7 @@ dmabuf_xml = join_paths(protodir, 'unstable', 'linux-dmabuf', 'linux-dmabuf-unst
 viewporter_xml = join_paths(protodir, 'stable', 'viewporter', 'viewporter.xml')
 xdg_shell_xml = join_paths(protodir, 'stable', 'xdg-shell', 'xdg-shell.xml')
 drm_lease_xml = join_paths(protodir, 'staging', 'drm-lease', 'drm-lease-v1.xml')
+shortcuts_inhibit_xml = join_paths(protodir, 'unstable', 'keyboard-shortcuts-inhibit', 'keyboard-shortcuts-inhibit-unstable-v1.xml')
 
 client_header = generator(scanner,
     output : '@BASENAME@-client-protocol.h',
@@ -72,6 +73,7 @@ srcs += client_header.process(dmabuf_xml)
 srcs += client_header.process(viewporter_xml)
 srcs += client_header.process(xdg_shell_xml)
 srcs += client_header.process(drm_lease_xml)
+srcs += client_header.process(shortcuts_inhibit_xml)
 srcs += code.process(relative_xml)
 srcs += code.process(pointer_xml)
 srcs += code.process(gestures_xml)
@@ -82,6 +84,7 @@ srcs += code.process(dmabuf_xml)
 srcs += code.process(viewporter_xml)
 srcs += code.process(xdg_shell_xml)
 srcs += code.process(drm_lease_xml)
+srcs += code.process(shortcuts_inhibit_xml)
 
 xwayland_glamor = []
 eglstream_srcs = []
@@ -125,6 +128,10 @@ if libdrm_dep.found()
     xwayland_dep += libdrm_dep
 endif
 
+if have_libdecor
+    xwayland_dep += libdecor_dep
+endif
+
 xwayland_server = executable(
     'Xwayland',
     srcs,
@@ -155,6 +162,7 @@ xwayland_data.set('PACKAGE_VERSION', meson.project_version())
 xwayland_data.set('xwayland_path', xwayland_path)
 xwayland_data.set('have_glamor', build_glamor ? 'true' : 'false')
 xwayland_data.set('have_eglstream', build_eglstream ? 'true' : 'false')
+xwayland_data.set('have_libdecor', have_libdecor ? 'true' : 'false')
 configure_file(
     input: 'xwayland.pc.in',
     output: 'xwayland.pc',
@@ -170,3 +178,7 @@ xwayland_manpage = configure_file(
     configuration: manpage_config,
 )
 install_man(xwayland_manpage)
+
+datadir = join_paths(get_option('prefix'), get_option('datadir'))
+desktopdir = join_paths(datadir, 'applications')
+install_data('desktop/org.freedesktop.Xwayland.desktop', install_dir : desktopdir)

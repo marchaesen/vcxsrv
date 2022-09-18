@@ -2066,17 +2066,30 @@ ast_expression::do_hir(exec_list *instructions,
                                this->primary_expression.identifier);
          }
 
-         /* From the EXT_shader_framebuffer_fetch spec:
-          *
-          *   "Unless the GL_EXT_shader_framebuffer_fetch extension has been
-          *    enabled in addition, it's an error to use gl_LastFragData if it
-          *    hasn't been explicitly redeclared with layout(noncoherent)."
-          */
-         if (var->data.fb_fetch_output && var->data.memory_coherent &&
-             !state->EXT_shader_framebuffer_fetch_enable) {
-            _mesa_glsl_error(&loc, state,
-                             "invalid use of framebuffer fetch output not "
-                             "qualified with layout(noncoherent)");
+         if (var->is_fb_fetch_color_output()) {
+            /* From the EXT_shader_framebuffer_fetch spec:
+             *
+             *   "Unless the GL_EXT_shader_framebuffer_fetch extension has been
+             *    enabled in addition, it's an error to use gl_LastFragData if it
+             *    hasn't been explicitly redeclared with layout(noncoherent)."
+             */
+            if (var->data.memory_coherent && !state->EXT_shader_framebuffer_fetch_enable) {
+               _mesa_glsl_error(&loc, state,
+                                "invalid use of framebuffer fetch output not "
+                                "qualified with layout(noncoherent)");
+            }
+         } else if (var->data.fb_fetch_output) {
+            /* From the ARM_shader_framebuffer_fetch_depth_stencil spec:
+             *
+             *   "It is not legal for a fragment shader to read from gl_LastFragDepthARM
+             *    and gl_LastFragStencilARM if the early_fragment_tests layout qualifier
+             *    is specified. This will result in a compile-time error."
+             */
+            if (state->fs_early_fragment_tests) {
+               _mesa_glsl_error(&loc, state,
+                                "invalid use of depth or stencil fetch "
+                                "with early fragment tests enabled");
+            }
          }
 
       } else {
@@ -3849,6 +3862,10 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
                _mesa_glsl_error(loc, state,
                                 "misaligned atomic counter offset");
 
+            if (*offset >= state->Const.MaxAtomicCounterBufferSize)
+               _mesa_glsl_error(loc, state,
+                                "offset > max atomic counter buffer size");
+
             var->data.offset = *offset;
             *offset += var->type->atomic_size();
 
@@ -4118,16 +4135,25 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    else if (qual->flags.q.shared_storage)
       var->data.mode = ir_var_shader_shared;
 
-   if (!is_parameter && state->has_framebuffer_fetch() &&
-       state->stage == MESA_SHADER_FRAGMENT) {
-      if (state->is_version(130, 300))
-         var->data.fb_fetch_output = qual->flags.q.in && qual->flags.q.out;
-      else
-         var->data.fb_fetch_output = (strcmp(var->name, "gl_LastFragData") == 0);
+   if (!is_parameter && state->stage == MESA_SHADER_FRAGMENT) {
+      if (state->has_framebuffer_fetch()) {
+         if (state->is_version(130, 300))
+            var->data.fb_fetch_output = qual->flags.q.in && qual->flags.q.out;
+         else
+            var->data.fb_fetch_output = (strcmp(var->name, "gl_LastFragData") == 0);
+      }
+
+      if (state->has_framebuffer_fetch_zs() &&
+          (strcmp(var->name, "gl_LastFragDepthARM") == 0 ||
+           strcmp(var->name, "gl_LastFragStencilARM") == 0)) {
+         var->data.fb_fetch_output = 1;
+      }
    }
 
-   if (var->data.fb_fetch_output) {
+   if (var->data.fb_fetch_output)
       var->data.assigned = true;
+
+   if (var->is_fb_fetch_color_output()) {
       var->data.memory_coherent = !qual->flags.q.non_coherent;
 
       /* From the EXT_shader_framebuffer_fetch spec:
@@ -8388,6 +8414,59 @@ ast_interface_block::hir(exec_list *instructions,
       if (this->array_specifier != NULL) {
          const glsl_type *block_array_type =
             process_array_type(&loc, block_type, this->array_specifier, state);
+
+         /* From Section 4.4.1 (Input Layout Qualifiers) of the GLSL 4.50 spec:
+          *
+          *    "For some blocks declared as arrays, the location can only be applied
+          *    at the block level: When a block is declared as an array where
+          *    additional locations are needed for each member for each block array
+          *    element, it is a compile-time error to specify locations on the block
+          *    members. That is, when locations would be under specified by applying
+          *    them on block members, they are not allowed on block members. For
+          *    arrayed interfaces (those generally having an extra level of
+          *    arrayness due to interface expansion), the outer array is stripped
+          *    before applying this rule"
+          *
+          * From 4.4.1 (Input Layout Qualifiers) and
+          * 4.4.2 (Output Layout Qualifiers) of GLSL ES 3.20
+          *
+          *    "If an input is declared as an array of blocks, excluding
+          *     per-vertex-arrays as required for tessellation, it is an error
+          *     to declare a member of the block with a location qualifier."
+          *
+          *    "If an output is declared as an array of blocks, excluding
+          *     per-vertex-arrays as required for tessellation, it is an error
+          *     to declare a member of the block with a location qualifier."
+          */
+         if (!redeclaring_per_vertex &&
+             (state->has_enhanced_layouts() || state->has_shader_io_blocks())) {
+            bool allow_location;
+            switch (state->stage)
+            {
+            case MESA_SHADER_TESS_CTRL:
+               allow_location = this->array_specifier->is_single_dimension();
+               break;
+            case MESA_SHADER_TESS_EVAL:
+            case MESA_SHADER_GEOMETRY:
+               allow_location = (this->array_specifier->is_single_dimension()
+                                 && var_mode == ir_var_shader_in);
+               break;
+            default:
+               allow_location = false;
+               break;
+            }
+
+            if (!allow_location) {
+               for (unsigned i = 0; i < num_variables; i++) {
+                  if (fields[i].location != -1) {
+                     _mesa_glsl_error(&loc, state,
+                                       "explicit member locations are not allowed in "
+                                       "blocks declared as arrays %s shader",
+                                       _mesa_shader_stage_to_string(state->stage));
+                  }
+               }
+            }
+         }
 
          /* Section 4.3.7 (Interface Blocks) of the GLSL 1.50 spec says:
           *

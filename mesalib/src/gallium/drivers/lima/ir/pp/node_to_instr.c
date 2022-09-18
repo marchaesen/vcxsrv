@@ -58,6 +58,18 @@ static bool ppir_do_node_to_instr_try_insert(ppir_block *block, ppir_node *node)
       return ppir_instr_insert_node(succ->instr, node);
    }
 
+   if (ppir_node_has_single_succ(node) &&
+      ppir_node_has_single_pred(ppir_node_first_succ(node)) &&
+      (ppir_node_first_succ(node)->type == ppir_node_type_branch)) {
+
+      assert(ppir_node_has_single_succ(node));
+      ppir_node *succ = ppir_node_first_succ(node);
+      assert(succ);
+      assert(succ->instr);
+
+      return ppir_instr_insert_node(succ->instr, node);
+   }
+
    switch (node->type) {
       case ppir_node_type_load:
          break;

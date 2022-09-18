@@ -104,7 +104,7 @@ fd3_program_emit(struct fd_ringbuffer *ring, struct fd3_emit *emit, int nr,
    int constmode;
    int i, j;
 
-   debug_assert(nr <= ARRAY_SIZE(color_regid));
+   assert(nr <= ARRAY_SIZE(color_regid));
 
    vp = fd3_emit_get_vp(emit);
    fp = fd3_emit_get_fp(emit);

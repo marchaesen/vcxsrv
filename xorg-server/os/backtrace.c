@@ -40,15 +40,73 @@
 #endif
 #include <dlfcn.h>
 
+static void
+print_registers(int frame, unw_cursor_t cursor)
+{
+    const struct {
+        const char *name;
+        int regnum;
+    } regs[] = {
+#if UNW_TARGET_X86_64
+        { "rax", UNW_X86_64_RAX },
+        { "rbx", UNW_X86_64_RBX },
+        { "rcx", UNW_X86_64_RCX },
+        { "rdx", UNW_X86_64_RDX },
+        { "rsi", UNW_X86_64_RSI },
+        { "rdi", UNW_X86_64_RDI },
+        { "rbp", UNW_X86_64_RBP },
+        { "rsp", UNW_X86_64_RSP },
+        { " r8", UNW_X86_64_R8  },
+        { " r9", UNW_X86_64_R9  },
+        { "r10", UNW_X86_64_R10 },
+        { "r11", UNW_X86_64_R11 },
+        { "r12", UNW_X86_64_R12 },
+        { "r13", UNW_X86_64_R13 },
+        { "r14", UNW_X86_64_R14 },
+        { "r15", UNW_X86_64_R15 },
+#endif
+    };
+    const int num_regs = sizeof(regs) / sizeof(*regs);
+    int ret, i;
+
+    if (num_regs == 0)
+        return;
+
+    /*
+     * Advance the cursor from the signal frame to the one that triggered the
+     * signal.
+     */
+    frame++;
+    ret = unw_step(&cursor);
+    if (ret < 0) {
+        ErrorFSigSafe("unw_step failed: %s [%d]\n", unw_strerror(ret), ret);
+        return;
+    }
+
+    ErrorFSigSafe("\n");
+    ErrorFSigSafe("Registers at frame #%d:\n", frame);
+
+    for (i = 0; i < num_regs; i++) {
+        uint64_t val;
+        ret = unw_get_reg(&cursor, regs[i].regnum, &val);
+        if (ret < 0) {
+            ErrorFSigSafe("unw_get_reg(%s) failed: %s [%d]\n",
+                          regs[i].name, unw_strerror(ret), ret);
+        } else {
+            ErrorFSigSafe("  %s: 0x%" PRIx64 "\n", regs[i].name, val);
+        }
+    }
+}
+
 void
 xorg_backtrace(void)
 {
-    unw_cursor_t cursor;
+    unw_cursor_t cursor, signal_cursor;
     unw_context_t context;
     unw_word_t ip;
     unw_word_t off;
     unw_proc_info_t pip;
-    int ret, i = 0;
+    int ret, i = 0, signal_frame = -1;
     char procname[256];
     const char *filename;
     Dl_info dlinfo;
@@ -97,14 +155,26 @@ xorg_backtrace(void)
         else
             filename = "?";
 
-        ErrorFSigSafe("%u: %s (%s%s+0x%x) [%p]\n", i++, filename, procname,
-            ret == -UNW_ENOMEM ? "..." : "", (int)off,
-            (void *)(uintptr_t)(ip));
+
+        if (unw_is_signal_frame(&cursor)) {
+            signal_cursor = cursor;
+            signal_frame = i;
+
+            ErrorFSigSafe("%u: <signal handler called>\n", i++);
+        } else {
+            ErrorFSigSafe("%u: %s (%s%s+0x%x) [%p]\n", i++, filename, procname,
+                ret == -UNW_ENOMEM ? "..." : "", (int)off,
+                (void *)(uintptr_t)(ip));
+        }
 
         ret = unw_step(&cursor);
         if (ret < 0)
             ErrorFSigSafe("unw_step failed: %s [%d]\n", unw_strerror(ret), ret);
     }
+
+    if (signal_frame >= 0)
+        print_registers(signal_frame, signal_cursor);
+
     ErrorFSigSafe("\n");
 }
 #else /* HAVE_LIBUNWIND */

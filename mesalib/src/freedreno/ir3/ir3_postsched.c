@@ -107,7 +107,7 @@ has_ss_src(struct ir3_instruction *instr)
 static void
 schedule(struct ir3_postsched_ctx *ctx, struct ir3_instruction *instr)
 {
-   debug_assert(ctx->block == instr->block);
+   assert(ctx->block == instr->block);
 
    /* remove from unscheduled_list:
     */
@@ -687,7 +687,7 @@ sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
       unsigned delay = node_delay(ctx, instr->data);
       d("delay=%u", delay);
 
-      debug_assert(delay <= 6);
+      assert(delay <= 6);
 
       schedule(ctx, instr);
    }

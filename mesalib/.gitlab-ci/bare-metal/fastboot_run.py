@@ -22,19 +22,21 @@
 # IN THE SOFTWARE.
 
 import argparse
-import os
+import subprocess
 import re
 from serial_buffer import SerialBuffer
 import sys
 import threading
 
+
 class FastbootRun:
-    def __init__(self, args):
+    def __init__(self, args, test_timeout):
         self.powerup = args.powerup
-        # We would like something like a 1 minute timeout, but the piglit traces
-        # jobs stall out for long periods of time.
-        self.ser = SerialBuffer(args.dev, "results/serial-output.txt", "R SERIAL> ", timeout=600)
-        self.fastboot="fastboot boot -s {ser} artifacts/fastboot.img".format(ser=args.fbserial)
+        self.ser = SerialBuffer(
+            args.dev, "results/serial-output.txt", "R SERIAL> ")
+        self.fastboot = "fastboot boot -s {ser} artifacts/fastboot.img".format(
+            ser=args.fbserial)
+        self.test_timeout = test_timeout
 
     def close(self):
         self.ser.close()
@@ -44,34 +46,40 @@ class FastbootRun:
         NO_COLOR = '\033[0m'
         print(RED + message + NO_COLOR)
 
-    def logged_system(self, cmd):
+    def logged_system(self, cmd, timeout=60):
         print("Running '{}'".format(cmd))
-        return os.system(cmd)
+        try:
+            return subprocess.call(cmd, shell=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            self.print_error("timeout, restarting run...")
+            return 2
 
     def run(self):
-        if self.logged_system(self.powerup) != 0:
-            return 1
+        if ret := self.logged_system(self.powerup):
+            return ret
 
         fastboot_ready = False
-        for line in self.ser.lines():
+        for line in self.ser.lines(timeout=2 * 60, phase="bootloader"):
             if re.search("fastboot: processing commands", line) or \
-                re.search("Listening for fastboot command on", line):
+                    re.search("Listening for fastboot command on", line):
                 fastboot_ready = True
                 break
 
             if re.search("data abort", line):
-                self.print_error("Detected crash during boot, restarting run...")
+                self.print_error(
+                    "Detected crash during boot, restarting run...")
                 return 2
 
         if not fastboot_ready:
-            self.print_error("Failed to get to fastboot prompt, restarting run...")
+            self.print_error(
+                "Failed to get to fastboot prompt, restarting run...")
             return 2
 
-        if self.logged_system(self.fastboot) != 0:
-            return 1
+        if ret := self.logged_system(self.fastboot):
+            return ret
 
         print_more_lines = -1
-        for line in self.ser.lines():
+        for line in self.ser.lines(timeout=self.test_timeout, phase="test"):
             if print_more_lines == 0:
                 return 2
             if print_more_lines > 0:
@@ -83,7 +91,8 @@ class FastbootRun:
             # The db820c boards intermittently reboot.  Just restart the run
             # when if we see a reboot after we got past fastboot.
             if re.search("PON REASON", line):
-                self.print_error("Detected spontaneous reboot, restarting run...")
+                self.print_error(
+                    "Detected spontaneous reboot, restarting run...")
                 return 2
 
             # db820c sometimes wedges around iommu fault recovery
@@ -117,18 +126,26 @@ class FastbootRun:
                 else:
                     return 1
 
-        self.print_error("Reached the end of the CPU serial log without finding a result, restarting run...")
+        self.print_error(
+            "Reached the end of the CPU serial log without finding a result, restarting run...")
         return 2
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dev', type=str, help='Serial device (otherwise reading from serial-output.txt)')
-    parser.add_argument('--powerup', type=str, help='shell command for rebooting', required=True)
-    parser.add_argument('--powerdown', type=str, help='shell command for powering off', required=True)
-    parser.add_argument('--fbserial', type=str, help='fastboot serial number of the board', required=True)
+    parser.add_argument(
+        '--dev', type=str, help='Serial device (otherwise reading from serial-output.txt)')
+    parser.add_argument('--powerup', type=str,
+                        help='shell command for rebooting', required=True)
+    parser.add_argument('--powerdown', type=str,
+                        help='shell command for powering off', required=True)
+    parser.add_argument('--fbserial', type=str,
+                        help='fastboot serial number of the board', required=True)
+    parser.add_argument('--test-timeout', type=int,
+                        help='Test phase timeout (minutes)', required=True)
     args = parser.parse_args()
 
-    fastboot = FastbootRun(args)
+    fastboot = FastbootRun(args, args.test_timeout * 60)
 
     while True:
         retval = fastboot.run()
@@ -136,11 +153,12 @@ def main():
         if retval != 2:
             break
 
-        fastboot = FastbootRun(args)
+        fastboot = FastbootRun(args, args.test_timeout * 60)
 
     fastboot.logged_system(args.powerdown)
 
     sys.exit(retval)
+
 
 if __name__ == '__main__':
     main()

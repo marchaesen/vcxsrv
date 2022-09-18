@@ -82,6 +82,12 @@ static inline int is_item_in_pool(struct compute_memory_item *item)
 	return item->start_in_dw != -1;
 }
 
+static inline int is_item_user_ptr(struct compute_memory_item *item)
+{
+	assert(item->real_buffer);
+	return item->real_buffer->b.is_user_ptr;
+}
+
 struct compute_memory_pool* compute_memory_pool_new(struct r600_screen *rscreen);
 
 void compute_memory_pool_delete(struct compute_memory_pool* pool);

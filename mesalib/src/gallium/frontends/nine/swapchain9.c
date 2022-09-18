@@ -103,11 +103,14 @@ D3DWindowBuffer_create(struct NineSwapChain9 *This,
 
     memset(&whandle, 0, sizeof(whandle));
     whandle.type = WINSYS_HANDLE_TYPE_FD;
-    This->screen->resource_get_handle(This->screen, pipe, resource,
-                                      &whandle,
-                                      for_frontbuffer_reading ?
-                                          PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE :
-                                          PIPE_HANDLE_USAGE_EXPLICIT_FLUSH);
+    if (!This->screen->resource_get_handle(This->screen, pipe, resource,
+                                           &whandle,
+                                           for_frontbuffer_reading ?
+                                               PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE :
+                                               PIPE_HANDLE_USAGE_EXPLICIT_FLUSH)) {
+        ERR("Failed to get handle for resource\n");
+        return NULL;
+    }
     nine_context_get_pipe_release(This->base.device);
     stride = whandle.stride;
     dmaBufFd = whandle.handle;

@@ -53,8 +53,10 @@ instr_dce(struct ir3_instruction *instr, bool falsedep)
    if (ir3_instr_check_mark(instr))
       return;
 
-   if (writes_gpr(instr))
-      mark_array_use(instr, instr->dsts[0]); /* dst */
+   foreach_dst (dst, instr) {
+      if (is_dest_gpr(dst))
+         mark_array_use(instr, dst);
+   }
 
    foreach_src (reg, instr)
       mark_array_use(instr, reg); /* src */
@@ -109,12 +111,19 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
     */
    foreach_block (block, &ir->block_list) {
       foreach_instr (instr, &block->instr_list) {
-         /* special case, if pre-fs texture fetch used, we cannot
-          * eliminate the barycentric i/j input
-          */
-         if (so->num_sampler_prefetch && (instr->opc == OPC_META_INPUT) &&
-             (instr->input.sysval == SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL))
-            continue;
+         if (instr->opc == OPC_META_INPUT) {
+            /* special case, if pre-fs texture fetch used, we cannot
+             * eliminate the barycentric i/j input
+             */
+            if (so->num_sampler_prefetch &&
+                instr->input.sysval == SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL)
+               continue;
+
+            /* Without GS header geometry shader is never invoked. */
+            if (instr->input.sysval == SYSTEM_VALUE_GS_HEADER_IR3)
+               continue;
+         }
+
          instr->flags |= IR3_INSTR_UNUSED;
       }
    }

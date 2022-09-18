@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Raspberry Pi
+ * Copyright © 2019 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -61,20 +61,22 @@ cache_dump_stats(struct v3dv_pipeline_cache *cache)
    fprintf(stderr, "  cache entries:      %d\n", cache->stats.count);
    fprintf(stderr, "  cache miss count:   %d\n", cache->stats.miss);
    fprintf(stderr, "  cache hit  count:   %d\n", cache->stats.hit);
+
+   fprintf(stderr, "  on-disk cache hit  count:   %d\n", cache->stats.on_disk_hit);
 }
 
 static void
 pipeline_cache_lock(struct v3dv_pipeline_cache *cache)
 {
    if (!cache->externally_synchronized)
-      pthread_mutex_lock(&cache->mutex);
+      mtx_lock(&cache->mutex);
 }
 
 static void
 pipeline_cache_unlock(struct v3dv_pipeline_cache *cache)
 {
    if (!cache->externally_synchronized)
-      pthread_mutex_unlock(&cache->mutex);
+      mtx_unlock(&cache->mutex);
 }
 
 void
@@ -178,7 +180,7 @@ v3dv_pipeline_cache_search_for_nir(struct v3dv_pipeline *pipeline,
       } else {
          cache->nir_stats.hit++;
          if (debug_cache) {
-            fprintf(stderr, "\tnir cache hit: %p\n", nir);
+            fprintf(stderr, "[v3dv nir cache] hit: %p\n", nir);
             if (dump_stats)
                cache_dump_stats(cache);
          }
@@ -188,7 +190,7 @@ v3dv_pipeline_cache_search_for_nir(struct v3dv_pipeline *pipeline,
 
    cache->nir_stats.miss++;
    if (debug_cache) {
-      fprintf(stderr, "\tnir cache miss\n");
+      fprintf(stderr, "[v3dv nir cache] miss\n");
       if (dump_stats)
          cache_dump_stats(cache);
    }
@@ -203,7 +205,7 @@ v3dv_pipeline_cache_init(struct v3dv_pipeline_cache *cache,
                          bool cache_enabled)
 {
    cache->device = device;
-   pthread_mutex_init(&cache->mutex, NULL);
+   mtx_init(&cache->mutex, mtx_plain);
 
    if (cache_enabled) {
       cache->nir_cache = _mesa_hash_table_create(NULL, sha1_hash_func,
@@ -219,7 +221,7 @@ v3dv_pipeline_cache_init(struct v3dv_pipeline_cache *cache,
       cache->stats.count = 0;
 
       cache->externally_synchronized = flags &
-         VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT;
+         VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
    } else {
       cache->nir_cache = NULL;
       cache->cache = NULL;
@@ -273,7 +275,7 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
       cache->stats.hit++;
       *cache_hit = true;
       if (debug_cache) {
-         fprintf(stderr, "\tcache hit: %p\n", cache_entry);
+         fprintf(stderr, "[v3dv cache] hit: %p\n", cache_entry);
          if (dump_stats)
             cache_dump_stats(cache);
       }
@@ -288,7 +290,7 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
 
    cache->stats.miss++;
    if (debug_cache) {
-      fprintf(stderr, "\tcache miss\n");
+      fprintf(stderr, "[v3dv cache] miss\n");
       if (dump_stats)
          cache_dump_stats(cache);
    }
@@ -300,7 +302,7 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
    struct disk_cache *disk_cache = device->pdevice->disk_cache;
    /* Note that the on-disk-cache can be independently disabled, while keeping
     * the pipeline cache working, by using the environment variable
-    * MESA_GLSL_CACHE_DISABLE.  In that case the calls to disk_cache_put/get
+    * MESA_SHADER_CACHE_DISABLE. In that case the calls to disk_cache_put/get
     * will not do anything.
     */
    if (disk_cache && device->instance->pipeline_cache_enabled) {
@@ -309,25 +311,32 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
 
       size_t buffer_size;
       uint8_t *buffer = disk_cache_get(disk_cache, cache_key, &buffer_size);
+      if (V3D_DBG(CACHE)) {
+         char sha1buf[41];
+         _mesa_sha1_format(sha1buf, cache_key);
+         fprintf(stderr, "[v3dv on-disk cache] %s %s\n",
+                 buffer ? "hit" : "miss",
+                 sha1buf);
+      }
+
       if (buffer) {
          struct blob_reader blob;
          struct v3dv_pipeline_shared_data *shared_data;
-
-         if (debug_cache)
-            fprintf(stderr, "\ton-disk-cache hit\n");
 
          blob_reader_init(&blob, buffer, buffer_size);
          shared_data = v3dv_pipeline_shared_data_create_from_blob(cache, &blob);
          free(buffer);
 
          if (shared_data) {
+            /* Technically we could increase on_disk_hit as soon as we have a
+             * buffer, but we are more interested on hits that got a valid
+             * shared_data
+             */
+            cache->stats.on_disk_hit++;
             if (cache)
                pipeline_cache_upload_shared_data(cache, shared_data, true);
             return shared_data;
          }
-      } else {
-         if (debug_cache)
-            fprintf(stderr, "\ton-disk-cache miss\n");
       }
    }
 #endif
@@ -425,8 +434,13 @@ pipeline_cache_upload_shared_data(struct v3dv_pipeline_cache *cache,
       return;
 
    pipeline_cache_lock(cache);
-   struct hash_entry *entry =
-      _mesa_hash_table_search(cache->cache, shared_data->sha1_key);
+   struct hash_entry *entry = NULL;
+
+   /* If this is being called from the disk cache, we already know that the
+    * entry is not on the hash table
+    */
+   if (!from_disk_cache)
+      entry = _mesa_hash_table_search(cache->cache, shared_data->sha1_key);
 
    if (entry) {
       pipeline_cache_unlock(cache);
@@ -464,14 +478,12 @@ pipeline_cache_upload_shared_data(struct v3dv_pipeline_cache *cache,
          cache_key cache_key;
          disk_cache_compute_key(disk_cache, shared_data->sha1_key, 20, cache_key);
 
-         disk_cache_put(disk_cache, cache_key, binary.data, binary.size, NULL);
-         if (debug_cache) {
+         if (V3D_DBG(CACHE)) {
             char sha1buf[41];
             _mesa_sha1_format(sha1buf, shared_data->sha1_key);
-
-            fprintf(stderr, "on-disk-cache, new cache entry with sha1 key %s:%p\n\n",
-                    sha1buf, shared_data);
+            fprintf(stderr, "[v3dv on-disk cache] storing %s\n", sha1buf);
          }
+         disk_cache_put(disk_cache, cache_key, binary.data, binary.size, NULL);
       }
 
       blob_finish(&binary);
@@ -618,7 +630,7 @@ pipeline_cache_load(struct v3dv_pipeline_cache *cache,
                     const void *data)
 {
    struct v3dv_device *device = cache->device;
-   struct v3dv_physical_device *pdevice = &device->instance->physicalDevice;
+   struct v3dv_physical_device *pdevice = device->pdevice;
    struct vk_pipeline_cache_header header;
 
    if (cache->cache == NULL || cache->nir_cache == NULL)
@@ -714,7 +726,7 @@ v3dv_CreatePipelineCache(VkDevice _device,
 void
 v3dv_pipeline_cache_finish(struct v3dv_pipeline_cache *cache)
 {
-   pthread_mutex_destroy(&cache->mutex);
+   mtx_destroy(&cache->mutex);
 
    if (dump_stats_on_destroy)
       cache_dump_stats(cache);
@@ -934,7 +946,7 @@ v3dv_GetPipelineCacheData(VkDevice _device,
       blob_init_fixed(&blob, NULL, SIZE_MAX);
    }
 
-   struct v3dv_physical_device *pdevice = &device->instance->physicalDevice;
+   struct v3dv_physical_device *pdevice = device->pdevice;
    VkResult result = VK_INCOMPLETE;
 
    pipeline_cache_lock(cache);

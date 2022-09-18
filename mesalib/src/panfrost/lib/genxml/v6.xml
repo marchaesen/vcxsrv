@@ -398,9 +398,7 @@
     <value name="YTR" value="1"/>
     <value name="Split Block" value="2"/>
     <value name="Wide Block" value="4"/>
-    <value name="Tiled Header" value="8"/>
     <value name="Prefetch" value="16"/>
-    <value name="Check Payload Range" value="32"/>
   </enum>
 
   <enum name="Wrap Mode">
@@ -492,17 +490,6 @@
     <value name="U32" value="3"/>
     <value name="I16" value="4"/>
     <value name="U16" value="5"/>
-  </enum>
-
-  <enum name="Message Type">
-    <value name="Disabled" value="0"/>
-    <value name="LD_VAR" value="1"/>
-    <value name="VAR_TEX" value="2"/>
-  </enum>
-
-  <enum name="Message Preload Register Format">
-    <value name="F32" value="0"/>
-    <value name="F16" value="1"/>
   </enum>
 
   <enum name="Blend Mode">
@@ -601,8 +588,8 @@
   </struct>
 
   <struct name="Draw" size="32" align="64">
-    <field name="Four Components Per Vertex" size="1" start="0:0" type="bool"/>
-    <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool"/>
+    <field name="Four Components Per Vertex" size="1" start="0:0" type="bool" default="true"/>
+    <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool" default="true"/>
     <field name="Occlusion query" size="2" start="0:3" type="Occlusion Mode" default="Disabled"/>
     <field name="Front face CCW" size="1" start="0:5" type="bool"/>
     <field name="Cull front face" size="1" start="0:6" type="bool"/>
@@ -792,26 +779,6 @@
     <field name="Stencil Fail" size="3" start="19" type="Stencil Op"/>
     <field name="Depth Fail" size="3" start="22" type="Stencil Op"/>
     <field name="Depth Pass" size="3" start="25" type="Stencil Op"/>
-  </struct>
-
-  <struct name="LD_VAR Preload" size="1" no-direct-packing="true">
-    <field name="Varying Index" size="5" start="4" type="uint"/>
-    <field name="Register Format" size="2" start="9" type="Message Preload Register Format"/>
-    <field name="Num Components" size="2" start="11" type="uint" modifier="minus(1)" default="1"/>
-  </struct>
-
-  <struct name="VAR_TEX Preload" size="1" no-direct-packing="true">
-    <field name="Varying Index" size="3" start="4" type="uint"/>
-    <field name="Sampler Index" size="2" start="7" type="uint"/>
-    <field name="Register Format" size="2" start="9" type="Message Preload Register Format"/>
-    <field name="Skip" size="1" start="14" type="bool"/>
-    <field name="Zero LOD" size="1" start="15" type="bool"/>
-  </struct>
-
-  <struct name="Message Preload" size="1">
-    <field name="Type" size="4" start="0" type="Message Type"/>
-    <field name="LD_VAR" size="16" start="0" type="LD_VAR Preload"/>
-    <field name="VAR_TEX" size="16" start="0" type="VAR_TEX Preload"/>
   </struct>
 
   <struct name="Renderer State" align="64" size="16">

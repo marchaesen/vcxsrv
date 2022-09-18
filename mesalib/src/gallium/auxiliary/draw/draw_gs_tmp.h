@@ -16,7 +16,7 @@
       case PIPE_PRIM_QUADS:                                       \
       case PIPE_PRIM_QUAD_STRIP:                                  \
       case PIPE_PRIM_POLYGON:                                     \
-         debug_assert(!"unexpected primitive type in GS");        \
+         assert(!"unexpected primitive type in GS");        \
          return;                                                  \
       default:                                                    \
          break;                                                   \

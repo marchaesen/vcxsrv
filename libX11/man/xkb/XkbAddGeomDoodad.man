@@ -33,13 +33,13 @@ top-level geometry
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry to which the doodad is added
 .TP
-.I \- section
+.I section
 section, if any, to which the doodad is added
 .TP
-.I \- name
+.I name
 name of the new doodad 
 .SH DESCRIPTION
 .LP

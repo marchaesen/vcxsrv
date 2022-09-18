@@ -278,11 +278,11 @@ emulate_logicop(struct svga_context *svga,
    blend->rt[buffer].blendeq_alpha = blend->rt[buffer].blendeq;
 
    if (logicop_func == PIPE_LOGICOP_XOR) {
-      pipe_debug_message(&svga->debug.callback, CONFORMANCE,
+      util_debug_message(&svga->debug.callback, CONFORMANCE,
                          "XOR logicop mode has limited support");
    }
    else if (logicop_func != PIPE_LOGICOP_COPY) {
-      pipe_debug_message(&svga->debug.callback, CONFORMANCE,
+      util_debug_message(&svga->debug.callback, CONFORMANCE,
                          "general logicops are not supported");
    }
 }

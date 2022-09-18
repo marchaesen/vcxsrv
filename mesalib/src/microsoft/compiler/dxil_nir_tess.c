@@ -355,3 +355,35 @@ dxil_nir_fixup_tess_level_for_domain(nir_shader *nir)
    }
    return progress;
 }
+
+static bool
+tcs_update_deref_input_types(nir_builder *b, nir_instr *instr, void *data)
+{
+   if (instr->type != nir_instr_type_deref)
+      return false;
+
+   nir_deref_instr *deref = nir_instr_as_deref(instr);
+   if (deref->deref_type != nir_deref_type_var)
+      return false;
+
+   nir_variable *var = deref->var;
+   deref->type = var->type;
+   return true;
+}
+
+bool
+dxil_nir_set_tcs_patches_in(nir_shader *nir, unsigned num_control_points)
+{
+   bool progress = false;
+   nir_foreach_variable_with_modes(var, nir, nir_var_shader_in) {
+      if (nir_is_arrayed_io(var, MESA_SHADER_TESS_CTRL)) {
+         var->type = glsl_array_type(glsl_get_array_element(var->type), num_control_points, 0);
+         progress = true;
+      }
+   }
+
+   if (progress)
+      nir_shader_instructions_pass(nir, tcs_update_deref_input_types, nir_metadata_all, NULL);
+
+   return progress;
+}

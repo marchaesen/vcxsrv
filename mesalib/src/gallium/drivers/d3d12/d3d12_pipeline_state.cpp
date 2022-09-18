@@ -68,6 +68,9 @@ get_semantic_name(int location, int driver_location, unsigned *index)
    case VARYING_SLOT_VIEWPORT:
       return "SV_ViewportArrayIndex";
 
+   case VARYING_SLOT_LAYER:
+      return "SV_RenderTargetArrayIndex";
+
    default: {
          *index = driver_location;
          return "TEXCOORD";

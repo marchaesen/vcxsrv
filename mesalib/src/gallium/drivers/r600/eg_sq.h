@@ -165,7 +165,9 @@
 #define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE               0x00000000
 #define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_IND           0x00000001
 #define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_READ                0x00000002
+#define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_ACK           0x00000002
 #define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_READ_IND            0x00000003
+#define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_IND_ACK       0x00000003
 
 #define   S_SQ_CF_ALLOC_EXPORT_WORD0_RW_GPR(x)                       (((unsigned)(x) & 0x7F) << 15)
 #define   G_SQ_CF_ALLOC_EXPORT_WORD0_RW_GPR(x)                       (((x) >> 15) & 0x7F)

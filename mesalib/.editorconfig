@@ -16,23 +16,11 @@ max_line_length = 78
 [{Makefile*,*.mk}]
 indent_style = tab
 
-[{*.py,SCons*}]
+[*.py]
 indent_style = space
 indent_size = 4
-
-[*.pl]
-indent_style = space
-indent_size = 4
-
-[*.m4]
-indent_style = space
-indent_size = 2
 
 [*.yml]
-indent_style = space
-indent_size = 2
-
-[*.html]
 indent_style = space
 indent_size = 2
 
@@ -46,3 +34,11 @@ trim_trailing_whitespace = false
 [{meson.build,meson_options.txt}]
 indent_style = space
 indent_size = 2
+
+[*.ps1]
+indent_style = space
+indent_size = 2
+
+[*.rs]
+indent_style = space
+indent_size = 4

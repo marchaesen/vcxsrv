@@ -43,7 +43,6 @@ assert sys.version_info >= (3, 6)
 #
 lst_enum_include = [
     "pipe_texture_target",
-    "pipe_shader_type",
     "pipe_shader_cap",
     "pipe_shader_ir",
     "pipe_cap",

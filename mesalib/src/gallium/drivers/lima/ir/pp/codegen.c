@@ -198,6 +198,22 @@ static void ppir_codegen_encode_uniform(ppir_node *node, void *code)
    }
 }
 
+static ppir_codegen_outmod ppir_codegen_get_outmod(ppir_outmod outmod)
+{
+   switch (outmod) {
+      case ppir_outmod_none:
+         return ppir_codegen_outmod_none;
+      case ppir_outmod_clamp_fraction:
+         return ppir_codegen_outmod_clamp_fraction;
+      case ppir_outmod_clamp_positive:
+         return ppir_codegen_outmod_clamp_positive;
+      case ppir_outmod_round:
+         return ppir_codegen_outmod_round;
+      default:
+         unreachable("invalid ppir_outmod");
+   }
+}
+
 static unsigned shift_to_op(int shift)
 {
    assert(shift >= -3 && shift <= 3);
@@ -217,7 +233,7 @@ static void ppir_codegen_encode_vec_mul(ppir_node *node, void *code)
       f->dest = index >> 2;
       f->mask = dest->write_mask << dest_shift;
    }
-   f->dest_modifier = dest->modifier;
+   f->dest_modifier = ppir_codegen_get_outmod(dest->modifier);
 
    switch (node->op) {
    case ppir_op_mul:
@@ -290,7 +306,7 @@ static void ppir_codegen_encode_scl_mul(ppir_node *node, void *code)
       f->dest = ppir_target_get_dest_reg_index(dest) + dest_component;
       f->output_en = true;
    }
-   f->dest_modifier = dest->modifier;
+   f->dest_modifier = ppir_codegen_get_outmod(dest->modifier);
 
    switch (node->op) {
    case ppir_op_mul:
@@ -356,7 +372,7 @@ static void ppir_codegen_encode_vec_add(ppir_node *node, void *code)
    int dest_shift = index & 0x3;
    f->dest = index >> 2;
    f->mask = dest->write_mask << dest_shift;
-   f->dest_modifier = dest->modifier;
+   f->dest_modifier = ppir_codegen_get_outmod(dest->modifier);
 
    switch (node->op) {
    case ppir_op_add:
@@ -446,7 +462,7 @@ static void ppir_codegen_encode_scl_add(ppir_node *node, void *code)
 
    f->dest = ppir_target_get_dest_reg_index(dest) + dest_component;
    f->output_en = true;
-   f->dest_modifier = dest->modifier;
+   f->dest_modifier = ppir_codegen_get_outmod(dest->modifier);
 
    switch (node->op) {
    case ppir_op_add:
@@ -532,7 +548,7 @@ static void ppir_codegen_encode_combine(ppir_node *node, void *code)
       int dest_component = ffs(dest->write_mask) - 1;
       assert(dest_component >= 0);
       f->scalar.dest = ppir_target_get_dest_reg_index(dest) + dest_component;
-      f->scalar.dest_modifier = dest->modifier;
+      f->scalar.dest_modifier = ppir_codegen_get_outmod(dest->modifier);
 
       ppir_src *src = alu->src;
       f->scalar.arg0_src = get_scl_reg_index(src, dest_component);
@@ -643,7 +659,7 @@ static void ppir_codegen_encode_branch(ppir_node *node, void *code)
    while (list_is_empty(&target->instr_list)) {
       if (!target->list.next)
          break;
-      target = LIST_ENTRY(ppir_block, target->list.next, list);
+      target = list_entry(target->list.next, ppir_block, list);
    }
 
    assert(!list_is_empty(&target->instr_list));
@@ -697,13 +713,13 @@ static int get_instr_encode_size(ppir_instr *instr)
 
 static void bitcopy(void *dst, int dst_offset, void *src, int src_size)
 {
-   int off1 = dst_offset & 0x1f;
-   uint32_t *cpy_dst = dst, *cpy_src = src;
+   unsigned char *cpy_dst = dst, *cpy_src = src;
+   int off1 = dst_offset & 0x07;
 
-   cpy_dst += (dst_offset >> 5);
+   cpy_dst += (dst_offset >> 3);
 
    if (off1) {
-      int off2 = 32 - off1;
+      int off2 = 0x08 - off1;
       int cpy_size = 0;
       while (1) {
          *cpy_dst |= *cpy_src << off1;

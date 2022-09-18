@@ -79,7 +79,6 @@ xkb_symbols "mac" {
 
     name[Group1]= "Italian (Macintosh)";
 
-    key <LSGT> {	[        less,  greater   	]	};
     key <TLDE> {        [        at,    numbersign,    periodcentered              ]	};
     key <AE01> {	[   ampersand,    1, guillemotleft,guillemotright	]	};
     key <AE02> {	[    quotedbl,    2 		]	};
@@ -106,7 +105,6 @@ xkb_symbols "mac" {
     key <AD10> {	[	    p,  P		]	};
     key <AD11> {	[      igrave,  asciicircum     ]	};
     key <AD12> {	[      dollar,	asterisk        ]	};
-    key <BKSL> {	[     section,  degree,           at,  numbersign      ]	};
 
     key <AC01> {	[	  a,	A,      aring,   Aring		] 	};
     key <AC02> {	[	  s,	S,     ssharp,	 U1E9E		]	};
@@ -119,7 +117,9 @@ xkb_symbols "mac" {
     key <AC09> {	[	  l,	L,     ssharp,    bar		]	};
     key <AC10> {	[         m,	M,         mu,    Oacute		]	};
     key <AC11> {	[    ugrave,	percent,         ae,    AE		]	};
+    key <BKSL> {	[   section,	degree,          at,  numbersign	]	};
 
+    key <LSGT> {	[        less,  greater   	]	};
     key <AB01> {	[	  w,	W 		]	};
     key <AB02> {	[	  x,	X		]	};
     key <AB03> {	[	  c,	C,  copyright,    copyright	]	};
@@ -285,15 +285,15 @@ xkb_symbols "fur" {
 
 	key <AC01>	{[         a,          A,   acircumflex,   Acircumflex ]};
 	key <AC03>	{[         d,          D,         U1D48                ]};
-	key <AC04>	{[         f,          F,         U1DA0,         U00AA ]};
+	key <AC04>	{[         f,          F,         U1DA0,   ordfeminine ]};
 	key <AC10>	{[    ograve,   ccedilla,            at,  dead_cedilla ]};
 	key <AC11>	{[    agrave,     degree,    numbersign,dead_abovering ]};
 	key <BKSL>	{[    ugrave,    section,    dead_grave,    dead_breve ]};
 
 	key <LSGT>	{[      less,    greater, guillemotleft,guillemotright ]};
-	key <AB03>	{[         c,          C,         U1D9C,         U00A9 ]};
+	key <AB03>	{[         c,          C,         U1D9C,     copyright ]};
 	key <AB06>	{[         n,          N,         U207F,        Ntilde ]};
-	key <AB07>	{[         m,          M,         U1D50,         U00B5 ]};
+	key <AB07>	{[         m,          M,         U1D50,            mu ]};
 	key <AB08>	{[     comma,  semicolon,    dead_acute,      multiply ]};
 	key <AB09>	{[    period,      colon,periodcentered,dead_diaeresis ]};
 	key <AB10>	{[     minus, underscore,   dead_macron,      division ]};
@@ -335,11 +335,10 @@ xkb_symbols "intl" {
     key <AC04> { [      f,           F,       U0111,           U0110 ] };
     key <AC06> { [      h,           H,       U1E25,           U1E24 ] };
     key <AC11> { [ agrave,      degree,  numbersign,           U1D58 ] };
+    key <BKSL> { [ ugrave,     section,  dead_grave,      dead_breve ] };
 
     key <AB01> { [      z,           Z                               ] };
     key <AB02> { [      x,           X,       U03C7,           U03A7 ] };
-
-    key <BKSL> { [ ugrave,     section,  dead_grave,      dead_breve ] };
 };
 
 partial alphanumeric_keys

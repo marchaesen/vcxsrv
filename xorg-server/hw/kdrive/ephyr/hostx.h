@@ -146,7 +146,8 @@ void *hostx_screen_init(KdScreenInfo *screen,
 
 void
 hostx_paint_rect(KdScreenInfo *screen,
-                 int sx, int sy, int dx, int dy, int width, int height);
+                 int sx, int sy, int dx, int dy, int width, int height,
+                 Bool sync);
 
 Bool
 hostx_load_keymap(KeySymsPtr keySyms, CARD8 *modmap, XkbControlsPtr controls);

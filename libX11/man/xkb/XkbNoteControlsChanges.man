@@ -34,13 +34,13 @@ event
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- changes
+.I changes
 records changes indicated by new
 .TP
-.I \- new
+.I new
 tells which things have changed
 .TP
-.I \- wanted
+.I wanted
 tells which parts of new to record in changes
 .SH DESCRIPTION
 .LP

@@ -33,13 +33,13 @@ XkbKeyType \- Obtain the index of a key type or the pointer to a key type
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 Xkb description of interest
 .TP
-.I \- keycode
+.I keycode
 keycode of interest
 .TP
-.I \- group
+.I group
 group index
 .SH DESCRIPTION
 .LP

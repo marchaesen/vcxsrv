@@ -30,6 +30,8 @@
 #include "util/u_video.h"
 #include "vl/vl_video_buffer.h"
 
+#include "vl/vl_codec.h"
+
 #include "entrypoint.h"
 #include "vid_dec.h"
 #include "vid_dec_av1.h"
@@ -1919,8 +1921,8 @@ static struct dec_av1_task *dec_av1_NeedTask(vid_dec_PrivateType *priv)
    assert(pscreen);
 
    if (!list_is_empty(&priv->codec_data.av1.free_tasks)) {
-      task = LIST_ENTRY(struct dec_av1_task,
-            priv->codec_data.av1.free_tasks.next, list);
+      task = list_entry(priv->codec_data.av1.free_tasks.next,
+                        struct dec_av1_task, list);
       task->buf_ref_count = 1;
       list_del(&task->list);
       return task;
@@ -2018,8 +2020,8 @@ static bool dec_av1_GetStartedTask(vid_dec_PrivateType *priv,
    if (priv->codec_data.av1.que_num <= 16)
       return false;
 
-   started_task = LIST_ENTRY(struct dec_av1_task,
-      priv->codec_data.av1.started_tasks.next, list);
+   started_task = list_entry(priv->codec_data.av1.started_tasks.next,
+                             struct dec_av1_task, list);
    list_del(&started_task->list);
    list_addtail(&started_task->list, tasks);
    --priv->codec_data.av1.que_num;
@@ -2133,8 +2135,7 @@ static struct dec_av1_task *dec_av1_BeginFrame(vid_dec_PrivateType *priv)
       pscreen = omx_screen->pscreen;
       assert(pscreen);
 
-      supported = pscreen->get_video_param(pscreen, priv->profile,
-            PIPE_VIDEO_ENTRYPOINT_BITSTREAM, PIPE_VIDEO_CAP_SUPPORTED);
+      supported = vl_codec_supported(pscreen, priv->profile, false);
       assert(supported && "AV1 is not supported");
 
       templat.profile = priv->profile;
@@ -2401,14 +2402,14 @@ void vid_dec_av1_FrameDecoded(OMX_COMPONENTTYPE *comp,
       stacked = true;
 
    if (list_is_empty(&inp->tasks)) {
-      task = LIST_ENTRY(struct dec_av1_task,
-            priv->codec_data.av1.started_tasks.next, list);
+      task = list_entry(priv->codec_data.av1.started_tasks.next,
+                        struct dec_av1_task, list);
       list_del(&task->list);
       list_addtail(&task->list, &inp->tasks);
       --priv->codec_data.av1.que_num;
    }
 
-   task = LIST_ENTRY(struct dec_av1_task, inp->tasks.next, list);
+   task = list_entry(inp->tasks.next, struct dec_av1_task, list);
 
    if (!task->no_show_frame) {
       vid_dec_FillOutput(priv, task->buf, output);

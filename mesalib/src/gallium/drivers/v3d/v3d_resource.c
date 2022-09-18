@@ -41,7 +41,7 @@
 static void
 v3d_debug_resource_layout(struct v3d_resource *rsc, const char *caller)
 {
-        if (!(unlikely(V3D_DEBUG & V3D_DEBUG_SURFACE)))
+        if (!V3D_DBG(SURFACE))
                 return;
 
         struct pipe_resource *prsc = &rsc->base;
@@ -103,6 +103,7 @@ v3d_resource_bo_alloc(struct v3d_resource *rsc)
         if (bo) {
                 v3d_bo_unreference(&rsc->bo);
                 rsc->bo = bo;
+                rsc->serial_id++;
                 v3d_debug_resource_layout(rsc, "alloc");
                 return true;
         } else {
@@ -186,6 +187,13 @@ v3d_map_usage_prep(struct pipe_context *pctx,
                                 v3d->dirty |= V3D_DIRTY_VTXBUF;
                         if (prsc->bind & PIPE_BIND_CONSTANT_BUFFER)
                                 v3d->dirty |= V3D_DIRTY_CONSTBUF;
+                        /* Since we are changing the texture BO we need to
+                         * update any bound samplers to point to the new
+                         * BO. Notice we can have samplers that are not
+                         * currently bound to the state that won't be
+                         * updated. These will be fixed when they are bound in
+                         * v3d_set_sampler_views.
+                         */
                         if (prsc->bind & PIPE_BIND_SAMPLER_VIEW)
                                 rebind_sampler_views(v3d, rsc);
                 } else {
@@ -252,14 +260,12 @@ v3d_resource_transfer_map(struct pipe_context *pctx,
 
         v3d_map_usage_prep(pctx, prsc, usage);
 
-        trans = slab_alloc(&v3d->transfer_pool);
+        trans = slab_zalloc(&v3d->transfer_pool);
         if (!trans)
                 return NULL;
 
         /* XXX: Handle DONTBLOCK, DISCARD_RANGE, PERSISTENT, COHERENT. */
 
-        /* slab_alloc_st() doesn't zero: */
-        memset(trans, 0, sizeof(*trans));
         ptrans = &trans->base;
 
         pipe_resource_reference(&ptrans->resource, prsc);
@@ -740,6 +746,8 @@ v3d_resource_setup(struct pipe_screen *pscreen,
                 }
         }
 
+        rsc->serial_id++;
+
         assert(rsc->cpp);
 
         return rsc;
@@ -1170,8 +1178,8 @@ v3d_resource_screen_init(struct pipe_screen *pscreen)
         pscreen->resource_get_param = v3d_resource_get_param;
         pscreen->resource_destroy = u_transfer_helper_resource_destroy;
         pscreen->transfer_helper = u_transfer_helper_create(&transfer_vtbl,
-                                                            true, false,
-                                                            true, true);
+                                                            U_TRANSFER_HELPER_SEPARATE_Z32S8 |
+                                                            U_TRANSFER_HELPER_MSAA_MAP);
 }
 
 void

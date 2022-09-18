@@ -99,7 +99,7 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
          else
             pformat = util_format_linear(pformat);
 
-         debug_assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
+         assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
 
          offset = fd_resource_offset(rsc, psurf->u.tex.level,
                                      psurf->u.tex.first_layer);
@@ -350,7 +350,7 @@ emit_gmem2mem_surf(struct fd_batch *batch,
       fd_resource_offset(rsc, psurf->u.tex.level, psurf->u.tex.first_layer);
    uint32_t pitch = fd_resource_pitch(rsc, psurf->u.tex.level);
 
-   debug_assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
+   assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
 
    OUT_PKT0(ring, REG_A3XX_RB_COPY_CONTROL, 4);
    OUT_RING(ring, A3XX_RB_COPY_CONTROL_MSAA_RESOLVE(MSAA_ONE) |

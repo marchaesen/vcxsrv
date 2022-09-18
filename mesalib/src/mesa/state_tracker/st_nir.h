@@ -59,6 +59,8 @@ void st_nir_lower_samplers(struct pipe_screen *screen, struct nir_shader *nir,
                            struct gl_program *prog);
 void st_nir_lower_uniforms(struct st_context *st, struct nir_shader *nir);
 
+void
+st_nir_finish_builtin_nir(struct st_context *st, struct nir_shader *nir);
 struct pipe_shader_state *
 st_nir_finish_builtin_shader(struct st_context *st,
                              struct nir_shader *nir);
@@ -72,6 +74,11 @@ st_nir_make_passthrough_shader(struct st_context *st,
                                unsigned *output_locations,
                                unsigned *interpolation_modes,
                                unsigned sysval_mask);
+void
+st_nir_add_point_size(struct nir_shader *nir);
+
+struct pipe_shader_state *
+st_nir_make_clearcolor_shader(struct st_context *st);
 
 #ifdef __cplusplus
 }

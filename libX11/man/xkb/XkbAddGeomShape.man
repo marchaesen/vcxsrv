@@ -32,13 +32,13 @@ XkbAddGeomShape \- Add a shape to a keyboard geometry
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry to be updated
 .TP
-.I \- name
+.I name
 name of the new shape
 .TP
-.I \- sz_outlines
+.I sz_outlines
 number of outlines to be reserved
 .SH DESCRIPTION
 .LP

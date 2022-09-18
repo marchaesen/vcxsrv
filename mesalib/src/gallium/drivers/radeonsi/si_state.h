@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-#define SI_NUM_GRAPHICS_SHADERS (PIPE_SHADER_TESS_EVAL + 1)
+#define SI_NUM_GRAPHICS_SHADERS (PIPE_SHADER_FRAGMENT + 1)
 #define SI_NUM_SHADERS          (PIPE_SHADER_COMPUTE + 1)
 
 #define SI_NUM_VERTEX_BUFFERS SI_MAX_ATTRIBS
@@ -91,6 +91,7 @@ struct si_state_rasterizer {
    unsigned poly_stipple_enable : 1;
    unsigned line_smooth : 1;
    unsigned poly_smooth : 1;
+   unsigned point_smooth : 1;
    unsigned uses_poly_offset : 1;
    unsigned clamp_fragment_color : 1;
    unsigned clamp_vertex_color : 1;
@@ -116,11 +117,6 @@ struct si_dsa_order_invariance {
     * guaranteed to be invariant under changes to the order in which
     * fragments arrive. */
    bool pass_set : 1;
-
-   /** Whether the last fragment that passes the combined Z/S test at each
-    * sample is guaranteed to be invariant under changes to the order in
-    * which fragments arrive. */
-   bool pass_last : 1;
 };
 
 struct si_state_dsa {
@@ -172,7 +168,6 @@ struct si_vertex_elements {
 
    uint8_t count;
 
-   uint16_t first_vb_use_mask;
    /* Vertex buffer descriptor list size aligned for optimal prefetch. */
    uint16_t vb_desc_list_alloc_size;
    uint16_t instance_divisor_is_one;     /* bitmask of inputs */
@@ -281,7 +276,7 @@ enum si_tracked_reg
 
    SI_TRACKED_PA_SC_BINNER_CNTL_0,
 
-   SI_TRACKED_DB_VRS_OVERRIDE_CNTL,
+   SI_TRACKED_DB_PA_SC_VRS_OVERRIDE_CNTL,
 
    SI_TRACKED_PA_CL_GB_VERT_CLIP_ADJ, /* 4 consecutive registers */
    SI_TRACKED_PA_CL_GB_VERT_DISC_ADJ,
@@ -362,8 +357,8 @@ enum
    /* Image descriptor of color buffer 0 for KHR_blend_equation_advanced. */
    SI_PS_IMAGE_COLORBUF0,
    SI_PS_IMAGE_COLORBUF0_HI,
-   SI_PS_IMAGE_COLORBUF0_FMASK,
-   SI_PS_IMAGE_COLORBUF0_FMASK_HI,
+   SI_PS_IMAGE_COLORBUF0_FMASK,        /* gfx6-10 */
+   SI_PS_IMAGE_COLORBUF0_FMASK_HI,     /* gfx6-10 */
 
    /* Internal constant buffers. */
    SI_HS_CONST_DEFAULT_TESS_LEVELS,
@@ -373,12 +368,18 @@ enum
    SI_PS_CONST_SAMPLE_POSITIONS,
 
    SI_RING_ESGS,                       /* gfx6-8 */
-   SI_RING_GSVS,
+   SI_RING_GSVS,                       /* gfx6-10 */
+   SI_GS_QUERY_EMULATED_COUNTERS_BUF,  /* gfx10+ */
 
    SI_NUM_INTERNAL_BINDINGS,
 
    /* Aliases to reuse slots that are unused on other generations. */
    SI_GS_QUERY_BUF = SI_RING_ESGS,     /* gfx10+ */
+
+   /* Only u_blitter uses this (and compute should be used in most cases, so this shouldn't
+    * be used much). Normal draws get the address from a user SGPR.
+    */
+   SI_GS_ATTRIBUTE_RING = SI_RING_GSVS, /* gfx11+ */
 };
 
 /* Indices into sctx->descriptors, laid out so that gfx and compute pipelines
@@ -528,19 +529,14 @@ struct pb_slab *si_bindless_descriptor_slab_alloc(void *priv, unsigned heap, uns
 void si_bindless_descriptor_slab_free(void *priv, struct pb_slab *pslab);
 void si_rebind_buffer(struct si_context *sctx, struct pipe_resource *buf);
 /* si_state.c */
-uint32_t si_translate_colorformat(enum chip_class chip_class, enum pipe_format format);
+uint32_t si_translate_colorformat(enum amd_gfx_level gfx_level, enum pipe_format format);
 void si_init_state_compute_functions(struct si_context *sctx);
 void si_init_state_functions(struct si_context *sctx);
 void si_init_screen_state_functions(struct si_screen *sscreen);
 void si_init_cs_preamble_state(struct si_context *sctx, bool uses_reg_shadowing);
 void si_make_buffer_descriptor(struct si_screen *screen, struct si_resource *buf,
-                               enum pipe_format format, unsigned offset, unsigned size,
+                               enum pipe_format format, unsigned offset, unsigned num_elements,
                                uint32_t *state);
-struct pipe_sampler_view *si_create_sampler_view_custom(struct pipe_context *ctx,
-                                                        struct pipe_resource *texture,
-                                                        const struct pipe_sampler_view *state,
-                                                        unsigned width0, unsigned height0,
-                                                        unsigned force_level);
 void si_set_sampler_depth_decompress_mask(struct si_context *sctx, struct si_texture *tex);
 void si_update_fb_dirtiness_after_rendering(struct si_context *sctx);
 void si_mark_display_dcc_dirty(struct si_context *sctx, struct si_texture *tex);
@@ -548,6 +544,7 @@ void si_update_ps_iter_samples(struct si_context *sctx);
 void si_save_qbo_state(struct si_context *sctx, struct si_qbo_state *st);
 void si_restore_qbo_state(struct si_context *sctx, struct si_qbo_state *st);
 void si_set_occlusion_query_state(struct si_context *sctx, bool old_perfect_enable);
+unsigned gfx103_get_cu_mask_ps(struct si_screen *sscreen);
 
 struct si_fast_udiv_info32 {
    unsigned multiplier; /* the "magic number" multiplier */
@@ -579,14 +576,13 @@ void si_schedule_initial_compile(struct si_context *sctx, gl_shader_stage stage,
                                  struct util_queue_fence *ready_fence,
                                  struct si_compiler_ctx_state *compiler_ctx_state, void *job,
                                  util_queue_execute_func execute);
-void si_get_active_slot_masks(const struct si_shader_info *info, uint64_t *const_and_shader_buffers,
-                              uint64_t *samplers_and_images);
+void si_get_active_slot_masks(struct si_screen *sscreen, const struct si_shader_info *info,
+                              uint64_t *const_and_shader_buffers, uint64_t *samplers_and_images);
 int si_shader_select(struct pipe_context *ctx, struct si_shader_ctx_state *state);
 void si_vs_key_update_inputs(struct si_context *sctx);
 void si_get_vs_key_inputs(struct si_context *sctx, union si_shader_key *key,
                           struct si_vs_prolog_bits *prolog_key);
 void si_update_ps_inputs_read_or_disabled(struct si_context *sctx);
-void si_update_ps_kill_enable(struct si_context *sctx);
 void si_update_vrs_flat_shading(struct si_context *sctx);
 unsigned si_get_input_prim(const struct si_shader_selector *gs, const union si_shader_key *key);
 bool si_update_ngg(struct si_context *sctx);
@@ -600,8 +596,12 @@ void si_ps_key_update_framebuffer_rasterizer_sample_shading(struct si_context *s
 void si_init_tess_factor_ring(struct si_context *sctx);
 bool si_update_gs_ring_buffers(struct si_context *sctx);
 bool si_update_spi_tmpring_size(struct si_context *sctx, unsigned bytes);
+unsigned si_get_shader_prefetch_size(struct si_shader *shader);
+bool si_set_tcs_to_fixed_func_shader(struct si_context *sctx);
 
 /* si_state_draw.cpp */
+void si_cp_dma_prefetch(struct si_context *sctx, struct pipe_resource *buf,
+                        unsigned offset, unsigned size);
 void si_set_vertex_buffer_descriptor(struct si_screen *sscreen, struct si_vertex_elements *velems,
                                      struct pipe_vertex_buffer *vb, unsigned element_index,
                                      uint32_t *out);
@@ -611,6 +611,7 @@ void si_init_draw_functions_GFX8(struct si_context *sctx);
 void si_init_draw_functions_GFX9(struct si_context *sctx);
 void si_init_draw_functions_GFX10(struct si_context *sctx);
 void si_init_draw_functions_GFX10_3(struct si_context *sctx);
+void si_init_draw_functions_GFX11(struct si_context *sctx);
 void si_init_spi_map_functions(struct si_context *sctx);
 
 /* si_state_msaa.c */
@@ -647,6 +648,20 @@ static inline unsigned si_get_image_slot(unsigned slot)
    /* image slots are in [31..0] (sampler slots [15..0]), descending */
    /* images are in slots [31..16], while FMASKs are in slots [15..0] */
    return SI_NUM_IMAGE_SLOTS - 1 - slot;
+}
+
+static inline unsigned si_clamp_texture_texel_count(unsigned max_texel_buffer_elements,
+                                                    enum pipe_format format,
+                                                    uint32_t size)
+{
+   /* The spec says:
+    *    The number of texels in the texel array is then clamped to the value of
+    *    the implementation-dependent limit GL_MAX_TEXTURE_BUFFER_SIZE.
+    *
+    * So compute the number of texels, compare to GL_MAX_TEXTURE_BUFFER_SIZE and update it.
+    */
+   unsigned stride = util_format_get_blocksize(format);
+   return MIN2(max_texel_buffer_elements, size / stride);
 }
 
 #ifdef __cplusplus

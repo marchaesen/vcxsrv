@@ -734,15 +734,75 @@ ra_move_interval(struct ra_ctx *ctx, struct ra_file *file,
    ra_push_interval(ctx, file, &temp, dst);
 }
 
+static struct ra_file *
+ra_get_file(struct ra_ctx *ctx, struct ir3_register *reg)
+{
+   if (reg->flags & IR3_REG_SHARED)
+      return &ctx->shared;
+   else if (ctx->merged_regs || !(reg->flags & IR3_REG_HALF))
+      return &ctx->full;
+   else
+      return &ctx->half;
+}
+
+
+/* Returns true if the proposed spot for "dst" or a killed source overlaps a
+ * destination that's been allocated.
+ */
 static bool
-get_reg_specified(struct ra_file *file, struct ir3_register *reg,
-                  physreg_t physreg, bool is_source)
+check_dst_overlap(struct ra_ctx *ctx, struct ra_file *file,
+                  struct ir3_register *dst, physreg_t start,
+                  physreg_t end)
+{
+   struct ir3_instruction *instr = dst->instr;
+
+   ra_foreach_dst (other_dst, instr) {
+      /* We assume only destinations before the current one have been allocated.
+       */
+      if (other_dst == dst)
+         break;
+
+      if (ra_get_file(ctx, other_dst) != file)
+         continue;
+
+      struct ra_interval *other_interval = &ctx->intervals[other_dst->name];
+      assert(!other_interval->interval.parent);
+      physreg_t other_start = other_interval->physreg_start;
+      physreg_t other_end = other_interval->physreg_end;
+
+      if (other_end > start && end > other_start)
+         return true;
+   }
+
+   return false;
+}
+
+/* True if the destination is "early-clobber," meaning that it cannot be
+ * allocated over killed sources. Some destinations always require it, but it
+ * also is implicitly true for tied destinations whose source is live-through.
+ * If the source is killed, then we skip allocating a register for the
+ * destination altogether so we don't need to worry about that case here.
+ */
+static bool
+is_early_clobber(struct ir3_register *reg)
+{
+   return (reg->flags & IR3_REG_EARLY_CLOBBER) || reg->tied;
+}
+
+static bool
+get_reg_specified(struct ra_ctx *ctx, struct ra_file *file,
+                  struct ir3_register *reg, physreg_t physreg, bool is_source)
 {
    for (unsigned i = 0; i < reg_size(reg); i++) {
-      if (!BITSET_TEST(is_source ? file->available_to_evict : file->available,
+      if (!BITSET_TEST(is_early_clobber(reg) || is_source ?
+                           file->available_to_evict : file->available,
                        physreg + i))
          return false;
    }
+
+   if (!is_source &&
+       check_dst_overlap(ctx, file, reg, physreg, physreg + reg_size(reg)))
+      return false;
 
    return true;
 }
@@ -776,7 +836,7 @@ try_evict_regs(struct ra_ctx *ctx, struct ra_file *file,
         conflicting != NULL &&
         conflicting->physreg_start < physreg + reg_size(reg);
         conflicting = next, next = ra_interval_next_or_null(next)) {
-      if (!is_source && conflicting->is_killed)
+      if (!is_early_clobber(reg) && !is_source && conflicting->is_killed)
          continue;
 
       if (conflicting->frozen) {
@@ -799,7 +859,11 @@ try_evict_regs(struct ra_ctx *ctx, struct ra_file *file,
             size--;
          }
 
-         if (size >= conflicting->physreg_end - conflicting->physreg_start) {
+         unsigned conflicting_size =
+            conflicting->physreg_end - conflicting->physreg_start;
+         if (size >= conflicting_size &&
+             !check_dst_overlap(ctx, file, reg, avail_start, avail_start +
+                                conflicting_size)) {
             for (unsigned i = 0;
                  i < conflicting->physreg_end - conflicting->physreg_start; i++)
                BITSET_CLEAR(available_to_evict, avail_start + i);
@@ -843,6 +907,10 @@ try_evict_regs(struct ra_ctx *ctx, struct ra_file *file,
          }
          
          if (!killed_available)
+            continue;
+
+         if (check_dst_overlap(ctx, file, reg, killed->physreg_start,
+                               killed->physreg_end))
             continue;
 
          /* Check for alignment if one is a full reg */
@@ -890,15 +958,16 @@ removed_interval_cmp(const void *_i1, const void *_i2)
 
    /* We sort the registers as follows:
     *
-    * |--------------------------------------------------------------------|
-    * |                    |             |             |                   |
-    * |  Half live-through | Half killed | Full killed | Full live-through |
-    * |                    |             |             |                   |
-    * |--------------------------------------------------------------------|
-    *                        |                 |
-    *                        |   Destination   |
-    *                        |                 |
-    *                        |-----------------|
+    * |------------------------------------------------------------------------------------------|
+    * |               |                    |        |        |                    |              |
+    * |  Half         | Half early-clobber | Half   | Full   | Full early-clobber | Full         |
+    * |  live-through | destination        | killed | killed | destination        | live-through |
+    * |               |                    |        |        |                    |              |
+    * |------------------------------------------------------------------------------------------|
+    *                                      |                 |
+    *                                      |   Destination   |
+    *                                      |                 |
+    *                                      |-----------------|
     *
     * Half-registers have to be first so that they stay in the low half of
     * the register file. Then half and full killed must stay together so that
@@ -930,6 +999,37 @@ removed_interval_cmp(const void *_i1, const void *_i2)
    return 0;
 }
 
+static int
+dsts_cmp(const void *_i1, const void *_i2)
+{
+   struct ir3_register *i1 = *(struct ir3_register *const *) _i1;
+   struct ir3_register *i2 = *(struct ir3_register *const *) _i2;
+
+   /* Treat tied destinations as-if they are live-through sources, and normal
+    * destinations as killed sources.
+    */
+   unsigned i1_align = reg_elem_size(i1);
+   unsigned i2_align = reg_elem_size(i2);
+   if (i1_align > i2_align)
+      return 1;
+   if (i1_align < i2_align)
+      return -1;
+
+   if (i1_align == 1) {
+      if (!is_early_clobber(i2))
+         return -1;
+      if (!is_early_clobber(i1))
+         return 1;
+   } else {
+      if (!is_early_clobber(i2))
+         return 1;
+      if (!is_early_clobber(i1))
+         return -1;
+   }
+
+   return 0;
+}
+
 /* "Compress" all the live intervals so that there is enough space for the
  * destination register. As there can be gaps when a more-aligned interval
  * follows a less-aligned interval, this also sorts them to remove such
@@ -940,29 +1040,100 @@ removed_interval_cmp(const void *_i1, const void *_i2)
  * Return the physreg to use.
  */
 static physreg_t
-compress_regs_left(struct ra_ctx *ctx, struct ra_file *file, unsigned size,
-                   unsigned align, bool is_source)
+compress_regs_left(struct ra_ctx *ctx, struct ra_file *file,
+                   struct ir3_register *reg)
 {
+   unsigned align = reg_elem_size(reg);
    DECLARE_ARRAY(struct ra_removed_interval, intervals);
    intervals_count = intervals_sz = 0;
    intervals = NULL;
 
+   DECLARE_ARRAY(struct ir3_register *, dsts);
+   dsts_count = dsts_sz = 0;
+   dsts = NULL;
+   array_insert(ctx, dsts, reg);
+   bool dst_inserted[reg->instr->dsts_count];
+
+   unsigned dst_size = reg->tied ? 0 : reg_size(reg);
+   unsigned ec_dst_size = is_early_clobber(reg) ? reg_size(reg) : 0;
+   unsigned half_dst_size = 0, ec_half_dst_size = 0;
+   if (align == 1) {
+      half_dst_size = dst_size;
+      ec_half_dst_size = ec_dst_size;
+   }
+
    unsigned removed_size = 0, removed_half_size = 0;
+   unsigned removed_killed_size = 0, removed_killed_half_size = 0;
    unsigned file_size =
       align == 1 ? MIN2(file->size, RA_HALF_SIZE) : file->size;
    physreg_t start_reg = 0;
 
    foreach_interval_rev_safe (interval, file) {
+      /* We'll check if we can compact the intervals starting here. */
+      physreg_t candidate_start = interval->physreg_end;
+
+      /* Check if there are any other destinations we need to compact. */
+      ra_foreach_dst_n (other_dst, n, reg->instr) {
+         if (other_dst == reg)
+            break;
+         if (ra_get_file(ctx, other_dst) != file)
+            continue;
+         if (dst_inserted[n])
+            continue;
+
+         struct ra_interval *other_interval = &ctx->intervals[other_dst->name];
+         /* if the destination partially overlaps this interval, we need to
+          * extend candidate_start to the end.
+          */
+         if (other_interval->physreg_start < candidate_start) {
+            candidate_start = MAX2(candidate_start,
+                                   other_interval->physreg_end);
+            continue;
+         }
+
+         dst_inserted[n] = true;
+
+         /* dst intervals with a tied killed source are considered attached to
+          * that source. Don't actually insert them. This means we have to
+          * update them below if their tied source moves.
+          */
+         if (other_dst->tied) {
+            struct ra_interval *tied_interval =
+               &ctx->intervals[other_dst->tied->def->name];
+            if (tied_interval->is_killed)
+               continue;
+         }
+
+         d("popping destination %u physreg %u\n",
+           other_interval->interval.reg->name,
+           other_interval->physreg_start);
+
+         array_insert(ctx, dsts, other_dst);
+         unsigned interval_size = reg_size(other_dst);
+         if (is_early_clobber(other_dst)) {
+            ec_dst_size += interval_size;
+            if (other_interval->interval.reg->flags & IR3_REG_HALF)
+               ec_half_dst_size += interval_size;
+         } else {
+            dst_size += interval_size;
+            if (other_interval->interval.reg->flags & IR3_REG_HALF)
+               half_dst_size += interval_size;
+         }
+      }
+
       /* Check if we can sort the intervals *after* this one and have enough
-       * space leftover to accomodate "size" units. Also check that we have
-       * enough space leftover for half-registers, if we're inserting a
-       * half-register (otherwise we only shift any half-registers down so they
-       * should be safe).
+       * space leftover to accomodate all intervals, keeping in mind that killed
+       * sources overlap non-tied destinations. Also check that we have enough
+       * space leftover for half-registers, if we're inserting a half-register
+       * (otherwise we only shift any half-registers down so they should be
+       * safe).
        */
-      if (interval->physreg_end + size + removed_size <= file->size &&
+      if (candidate_start + removed_size + ec_dst_size +
+          MAX2(removed_killed_size, dst_size) <= file->size &&
           (align != 1 ||
-           interval->physreg_end + size + removed_half_size <= file_size)) {
-         start_reg = interval->physreg_end;
+           candidate_start + removed_half_size + ec_half_dst_size +
+           MAX2(removed_killed_half_size, half_dst_size) <= file_size)) {
+         start_reg = candidate_start;
          break;
       }
 
@@ -971,20 +1142,23 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file, unsigned size,
        */
       assert(!interval->frozen);
 
-      /* Killed sources don't count because they go at the end and can
-       * overlap the register we're trying to add, unless it's a source.
+      /* Killed sources are different because they go at the end and can
+       * overlap the register we're trying to add.
        */
-      if (!interval->is_killed || is_source) {
-         removed_size += interval->physreg_end - interval->physreg_start;
-         if (interval->interval.reg->flags & IR3_REG_HALF) {
-            removed_half_size += interval->physreg_end -
-               interval->physreg_start;
-         }
+      unsigned interval_size = interval->physreg_end - interval->physreg_start;
+      if (interval->is_killed) {
+         removed_killed_size += interval_size;
+         if (interval->interval.reg->flags & IR3_REG_HALF)
+            removed_killed_half_size += interval_size;
+      } else {
+         removed_size += interval_size;
+         if (interval->interval.reg->flags & IR3_REG_HALF)
+            removed_half_size += interval_size;
       }
 
       /* Now that we've done the accounting, pop this off */
-      d("popping interval %u physreg %u\n", interval->interval.reg->name,
-        interval->physreg_start);
+      d("popping interval %u physreg %u%s\n", interval->interval.reg->name,
+        interval->physreg_start, interval->is_killed ? ", killed" : "");
       array_insert(ctx, intervals, ra_pop_interval(ctx, file, interval));
    }
 
@@ -993,48 +1167,130 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file, unsigned size,
     */
 
    qsort(intervals, intervals_count, sizeof(*intervals), removed_interval_cmp);
+   qsort(dsts, dsts_count, sizeof(*dsts), dsts_cmp);
 
-   physreg_t physreg = start_reg;
+   physreg_t live_reg = start_reg;
+   physreg_t dst_reg = (physreg_t)~0;
    physreg_t ret_reg = (physreg_t)~0;
-   for (unsigned i = 0; i < intervals_count; i++) {
-      if (ret_reg == (physreg_t)~0 &&
-          ((intervals[i].interval->is_killed && !is_source) ||
-           !(intervals[i].interval->interval.reg->flags & IR3_REG_HALF))) {
-         ret_reg = ALIGN(physreg, align);
+   unsigned dst_index = 0;
+   unsigned live_index = 0;
+
+   /* We have two lists of intervals to process, live intervals and destination
+    * intervals. Process them in the order of the disgram in insert_cmp().
+    */
+   while (live_index < intervals_count || dst_index < dsts_count) {
+      bool process_dst;
+      if (live_index == intervals_count) {
+         process_dst = true;
+      } else if (dst_index == dsts_count) {
+         process_dst = false;
+      } else {
+         struct ir3_register *dst = dsts[dst_index];
+         struct ra_interval *live_interval = intervals[live_index].interval;
+
+         bool live_half = live_interval->interval.reg->flags & IR3_REG_HALF;
+         bool live_killed = live_interval->is_killed;
+         bool dst_half = dst->flags & IR3_REG_HALF;
+         bool dst_early_clobber = is_early_clobber(dst);
+
+         if (live_half && !live_killed) {
+            /* far-left of diagram. */
+            process_dst = false;
+         } else if (dst_half && dst_early_clobber) {
+            /* mid-left of diagram. */
+            process_dst = true;
+         } else if (!dst_early_clobber) {
+            /* bottom of disagram. */
+            process_dst = true;
+         } else if (live_killed) {
+            /* middle of diagram. */
+            process_dst = false;
+         } else if (!dst_half && dst_early_clobber) {
+            /* mid-right of diagram. */
+            process_dst = true;
+         } else {
+            /* far right of diagram. */
+            assert(!live_killed && !live_half);
+            process_dst = false;
+         }
       }
 
-      if (ret_reg != (physreg_t)~0 &&
-          (is_source || !intervals[i].interval->is_killed)) {
-         physreg = MAX2(physreg, ret_reg + size);
+      struct ir3_register *cur_reg =
+         process_dst ? dsts[dst_index] :
+         intervals[live_index].interval->interval.reg;
+
+      physreg_t physreg;
+      if (process_dst && !is_early_clobber(cur_reg)) {
+         if (dst_reg == (physreg_t)~0)
+            dst_reg = live_reg;
+         physreg = dst_reg;
+      } else {
+         physreg = live_reg;
+         struct ra_interval *live_interval = intervals[live_index].interval;
+         bool live_killed = live_interval->is_killed;
+         /* If this is live-through and we've processed the destinations, we
+          * need to make sure we take into account any overlapping destinations.
+          */
+         if (!live_killed && dst_reg != (physreg_t)~0)
+            physreg = MAX2(physreg, dst_reg);
       }
 
-      if (!(intervals[i].interval->interval.reg->flags & IR3_REG_HALF)) {
+      if (!(cur_reg->flags & IR3_REG_HALF))
          physreg = ALIGN(physreg, 2);
-      }
 
-      if (physreg + intervals[i].size >
-          reg_file_size(file, intervals[i].interval->interval.reg)) {
+      d("pushing reg %u physreg %u\n", cur_reg->name, physreg);
+
+      unsigned interval_size = reg_size(cur_reg);
+      if (physreg + interval_size >
+          reg_file_size(file, cur_reg)) {
          d("ran out of room for interval %u!\n",
-           intervals[i].interval->interval.reg->name);
+           cur_reg->name);
          unreachable("reg pressure calculation was wrong!");
          return 0;
       }
 
-      d("pushing interval %u physreg %u\n",
-        intervals[i].interval->interval.reg->name, physreg);
-      ra_push_interval(ctx, file, &intervals[i], physreg);
+      if (process_dst) {
+         if (cur_reg == reg) {
+            ret_reg = physreg;
+         } else {
+            struct ra_interval *interval = &ctx->intervals[cur_reg->name];
+            interval->physreg_start = physreg;
+            interval->physreg_end = physreg + interval_size;
+         }
+         dst_index++;
+      } else {
+         ra_push_interval(ctx, file, &intervals[live_index], physreg);
+         live_index++;
+      }
 
-      physreg += intervals[i].size;
+      physreg += interval_size;
+
+      if (process_dst && !is_early_clobber(cur_reg)) {
+         dst_reg = physreg;
+      } else {
+         live_reg = physreg;
+      }
    }
 
-   if (ret_reg == (physreg_t)~0)
-      ret_reg = physreg;
+   /* If we shuffled around a tied source that is killed, we may have to update
+    * its corresponding destination since we didn't insert it above.
+    */
+   ra_foreach_dst (dst, reg->instr) {
+      if (dst == reg)
+         break;
 
-   ret_reg = ALIGN(ret_reg, align);
-   if (ret_reg + size > file_size) {
-      d("ran out of room for the new interval!\n");
-      unreachable("reg pressure calculation was wrong!");
-      return 0;
+      struct ir3_register *tied = dst->tied;
+      if (!tied)
+         continue;
+
+      struct ra_interval *tied_interval = &ctx->intervals[tied->def->name];
+      if (!tied_interval->is_killed)
+         continue;
+
+      struct ra_interval *dst_interval = &ctx->intervals[dst->name];
+      unsigned dst_size = reg_size(dst);
+      dst_interval->physreg_start = ra_interval_get_physreg(tied_interval);
+      dst_interval->physreg_end = dst_interval->physreg_start + dst_size;
    }
 
    return ret_reg;
@@ -1060,8 +1316,9 @@ update_affinity(struct ra_file *file, struct ir3_register *reg,
  * a round-robin algorithm to reduce false dependencies.
  */
 static physreg_t
-find_best_gap(struct ra_file *file, unsigned file_size, unsigned size,
-              unsigned align, bool is_source)
+find_best_gap(struct ra_ctx *ctx, struct ra_file *file,
+              struct ir3_register *dst, unsigned file_size, unsigned size,
+              unsigned align)
 {
    /* This can happen if we create a very large merge set. Just bail out in that
     * case.
@@ -1070,7 +1327,7 @@ find_best_gap(struct ra_file *file, unsigned file_size, unsigned size,
       return (physreg_t) ~0;
 
    BITSET_WORD *available =
-      is_source ? file->available_to_evict : file->available;
+      is_early_clobber(dst) ? file->available_to_evict : file->available;
 
    unsigned start = ALIGN(file->start, align) % (file_size - size + align);
    unsigned candidate = start;
@@ -1081,6 +1338,11 @@ find_best_gap(struct ra_file *file, unsigned file_size, unsigned size,
             is_available = false;
             break;
          }
+      }
+
+      if (is_available) {
+         is_available =
+            !check_dst_overlap(ctx, file, dst, candidate, candidate + size);
       }
 
       if (is_available) {
@@ -1096,17 +1358,6 @@ find_best_gap(struct ra_file *file, unsigned file_size, unsigned size,
    return (physreg_t)~0;
 }
 
-static struct ra_file *
-ra_get_file(struct ra_ctx *ctx, struct ir3_register *reg)
-{
-   if (reg->flags & IR3_REG_SHARED)
-      return &ctx->shared;
-   else if (ctx->merged_regs || !(reg->flags & IR3_REG_HALF))
-      return &ctx->full;
-   else
-      return &ctx->half;
-}
-
 /* This is the main entrypoint for picking a register. Pick a free register
  * for "reg", shuffling around sources if necessary. In the normal case where
  * "is_source" is false, this register can overlap with killed sources
@@ -1117,8 +1368,7 @@ ra_get_file(struct ra_ctx *ctx, struct ir3_register *reg)
  */
 
 static physreg_t
-get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg,
-        bool is_source)
+get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg)
 {
    unsigned file_size = reg_file_size(file, reg);
    if (reg->merge_set && reg->merge_set->preferred_reg != (physreg_t)~0) {
@@ -1126,7 +1376,7 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg,
          reg->merge_set->preferred_reg + reg->merge_set_offset;
       if (preferred_reg < file_size &&
           preferred_reg % reg_elem_size(reg) == 0 &&
-          get_reg_specified(file, reg, preferred_reg, is_source))
+          get_reg_specified(ctx, file, reg, preferred_reg, false))
          return preferred_reg;
    }
 
@@ -1137,8 +1387,9 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg,
    unsigned size = reg_size(reg);
    if (reg->merge_set && reg->merge_set->preferred_reg == (physreg_t)~0 &&
        size < reg->merge_set->size) {
-      physreg_t best_reg = find_best_gap(file, file_size, reg->merge_set->size,
-                                         reg->merge_set->alignment, is_source);
+      physreg_t best_reg = find_best_gap(ctx, file, reg, file_size,
+                                         reg->merge_set->size,
+                                         reg->merge_set->alignment);
       if (best_reg != (physreg_t)~0u) {
          best_reg += reg->merge_set_offset;
          return best_reg;
@@ -1160,14 +1411,14 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg,
             physreg_t src_physreg = ra_interval_get_physreg(src_interval);
             if (src_physreg % reg_elem_size(reg) == 0 &&
                 src_physreg + size <= file_size &&
-                get_reg_specified(file, reg, src_physreg, is_source))
+                get_reg_specified(ctx, file, reg, src_physreg, false))
                return src_physreg;
          }
       }
    }
 
    physreg_t best_reg =
-      find_best_gap(file, file_size, size, reg_elem_size(reg), is_source);
+      find_best_gap(ctx, file, reg, file_size, size, reg_elem_size(reg));
    if (best_reg != (physreg_t)~0u) {
       return best_reg;
    }
@@ -1179,7 +1430,7 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg,
    unsigned best_eviction_count = ~0;
    for (physreg_t i = 0; i + size <= file_size; i += reg_elem_size(reg)) {
       unsigned eviction_count;
-      if (try_evict_regs(ctx, file, reg, i, &eviction_count, is_source, true)) {
+      if (try_evict_regs(ctx, file, reg, i, &eviction_count, false, true)) {
          if (eviction_count < best_eviction_count) {
             best_eviction_count = eviction_count;
             best_reg = i;
@@ -1189,14 +1440,13 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg,
 
    if (best_eviction_count != ~0) {
       ASSERTED bool result = try_evict_regs(
-         ctx, file, reg, best_reg, &best_eviction_count, is_source, false);
+         ctx, file, reg, best_reg, &best_eviction_count, false, false);
       assert(result);
       return best_reg;
    }
 
    /* Use the dumb fallback only if try_evict_regs() fails. */
-   return compress_regs_left(ctx, file, reg_size(reg), reg_elem_size(reg),
-                             is_source);
+   return compress_regs_left(ctx, file, reg);
 }
 
 static void
@@ -1254,6 +1504,38 @@ allocate_dst_fixed(struct ra_ctx *ctx, struct ir3_register *dst,
    interval->physreg_end = physreg + reg_size(dst);
 }
 
+/* If a tied destination interferes with its source register, we have to insert
+ * a copy beforehand to copy the source to the destination. Because we are using
+ * the parallel_copies array and not creating a separate copy, this copy will
+ * happen in parallel with any shuffling around of the tied source, so we have
+ * to copy the source *as it exists before it is shuffled around*. We do this by
+ * inserting the copy early, before any other copies are inserted. We don't
+ * actually know the destination of the copy, but that's ok because the
+ * dst_interval will be filled out later.
+ */
+static void
+insert_tied_dst_copy(struct ra_ctx *ctx, struct ir3_register *dst)
+{
+   struct ir3_register *tied = dst->tied;
+
+   if (!tied)
+      return;
+
+   struct ra_interval *tied_interval = &ctx->intervals[tied->def->name];
+   struct ra_interval *dst_interval = &ctx->intervals[dst->name];
+
+   if (tied_interval->is_killed)
+      return;
+
+   physreg_t tied_physreg = ra_interval_get_physreg(tied_interval);
+
+   array_insert(ctx, ctx->parallel_copies,
+                (struct ra_parallel_copy){
+                   .interval = dst_interval,
+                   .src = tied_physreg,
+                });
+}
+
 static void
 allocate_dst(struct ra_ctx *ctx, struct ir3_register *dst)
 {
@@ -1262,33 +1544,17 @@ allocate_dst(struct ra_ctx *ctx, struct ir3_register *dst)
    struct ir3_register *tied = dst->tied;
    if (tied) {
       struct ra_interval *tied_interval = &ctx->intervals[tied->def->name];
-      struct ra_interval *dst_interval = &ctx->intervals[dst->name];
-      physreg_t tied_physreg = ra_interval_get_physreg(tied_interval);
       if (tied_interval->is_killed) {
          /* The easy case: the source is killed, so we can just reuse it
           * for the destination.
           */
          allocate_dst_fixed(ctx, dst, ra_interval_get_physreg(tied_interval));
-      } else {
-         /* The source is live-through, so we need to get a free register
-          * (which is free for both the source and destination!), copy the
-          * original source to it, then use that for the source and
-          * destination.
-          */
-         physreg_t physreg = get_reg(ctx, file, dst, true);
-         allocate_dst_fixed(ctx, dst, physreg);
-         array_insert(ctx, ctx->parallel_copies,
-                      (struct ra_parallel_copy){
-                         .interval = dst_interval,
-                         .src = tied_physreg,
-                      });
+         return;
       }
-
-      return;
    }
 
    /* All the hard work is done by get_reg here. */
-   physreg_t physreg = get_reg(ctx, file, dst, false);
+   physreg_t physreg = get_reg(ctx, file, dst);
 
    allocate_dst_fixed(ctx, dst, physreg);
 }
@@ -1332,7 +1598,8 @@ insert_parallel_copy_instr(struct ra_ctx *ctx, struct ir3_instruction *instr)
       struct ra_parallel_copy *entry = &ctx->parallel_copies[i];
       struct ir3_register *reg =
          ir3_dst_create(pcopy, INVALID_REG,
-                        entry->interval->interval.reg->flags & ~IR3_REG_SSA);
+                        entry->interval->interval.reg->flags &
+                        (IR3_REG_HALF | IR3_REG_ARRAY));
       reg->size = entry->interval->interval.reg->size;
       reg->wrmask = entry->interval->interval.reg->wrmask;
       assign_reg(pcopy, reg, ra_interval_get_num(entry->interval));
@@ -1342,7 +1609,8 @@ insert_parallel_copy_instr(struct ra_ctx *ctx, struct ir3_instruction *instr)
       struct ra_parallel_copy *entry = &ctx->parallel_copies[i];
       struct ir3_register *reg =
          ir3_src_create(pcopy, INVALID_REG,
-                        entry->interval->interval.reg->flags & ~IR3_REG_SSA);
+                        entry->interval->interval.reg->flags &
+                        (IR3_REG_HALF | IR3_REG_ARRAY));
       reg->size = entry->interval->interval.reg->size;
       reg->wrmask = entry->interval->interval.reg->wrmask;
       assign_reg(pcopy, reg, ra_physreg_to_num(entry->src, reg->flags));
@@ -1359,6 +1627,11 @@ handle_normal_instr(struct ra_ctx *ctx, struct ir3_instruction *instr)
    /* First, mark sources as going-to-be-killed while allocating the dest. */
    ra_foreach_src (src, instr) {
       mark_src_killed(ctx, src);
+   }
+
+   /* Pre-insert tied dst copies. */
+   ra_foreach_dst (dst, instr) {
+      insert_tied_dst_copy(ctx, dst);
    }
 
    /* Allocate the destination. */
@@ -1524,10 +1797,15 @@ handle_precolored_input(struct ra_ctx *ctx, struct ir3_instruction *instr)
    if (instr->dsts[0]->num == INVALID_REG)
       return;
 
+   struct ra_file *file = ra_get_file(ctx, instr->dsts[0]);
    struct ra_interval *interval = &ctx->intervals[instr->dsts[0]->name];
    physreg_t physreg = ra_reg_get_physreg(instr->dsts[0]);
    allocate_dst_fixed(ctx, instr->dsts[0], physreg);
-   insert_dst(ctx, instr->dsts[0]);
+
+   d("insert precolored dst %u physreg %u", instr->dsts[0]->name,
+     ra_interval_get_physreg(interval));
+
+   ra_file_insert(file, interval);
    interval->frozen = true;
 }
 
@@ -1593,7 +1871,7 @@ handle_precolored_source(struct ra_ctx *ctx, struct ir3_register *src)
     * anything unless it overlaps with our precolored physreg, so we don't
     * have to worry about evicting other precolored sources.
     */
-   if (!get_reg_specified(file, src, physreg, true)) {
+   if (!get_reg_specified(ctx, file, src, physreg, true)) {
       unsigned eviction_count;
       if (!try_evict_regs(ctx, file, src, physreg, &eviction_count, true,
                           false)) {
@@ -1706,7 +1984,7 @@ handle_phi(struct ra_ctx *ctx, struct ir3_register *def)
       physreg = ra_interval_get_physreg(parent) +
                 (def->interval_start - parent_ir3->reg->interval_start);
    } else {
-      physreg = get_reg(ctx, file, def, false);
+      physreg = get_reg(ctx, file, def);
    }
 
    allocate_dst_fixed(ctx, def, physreg);
@@ -1764,7 +2042,7 @@ insert_liveout_copy(struct ir3_block *block, physreg_t dst, physreg_t src,
    struct ir3_instruction *old_pcopy = NULL;
    if (!list_is_empty(&block->instr_list)) {
       struct ir3_instruction *last =
-         LIST_ENTRY(struct ir3_instruction, block->instr_list.prev, node);
+         list_entry(block->instr_list.prev, struct ir3_instruction, node);
       if (last->opc == OPC_META_PARALLEL_COPY)
          old_pcopy = last;
    }
@@ -1778,8 +2056,9 @@ insert_liveout_copy(struct ir3_block *block, physreg_t dst, physreg_t src,
       pcopy->dsts[pcopy->dsts_count++] = old_pcopy->dsts[i];
    }
 
-   struct ir3_register *dst_reg =
-      ir3_dst_create(pcopy, INVALID_REG, reg->flags & ~IR3_REG_SSA);
+   unsigned flags = reg->flags & (IR3_REG_HALF | IR3_REG_ARRAY);
+
+   struct ir3_register *dst_reg = ir3_dst_create(pcopy, INVALID_REG, flags);
    dst_reg->wrmask = reg->wrmask;
    dst_reg->size = reg->size;
    assign_reg(pcopy, dst_reg, ra_physreg_to_num(dst, reg->flags));
@@ -1788,8 +2067,7 @@ insert_liveout_copy(struct ir3_block *block, physreg_t dst, physreg_t src,
       pcopy->srcs[pcopy->srcs_count++] = old_pcopy->srcs[i];
    }
 
-   struct ir3_register *src_reg =
-      ir3_src_create(pcopy, INVALID_REG, reg->flags & ~IR3_REG_SSA);
+   struct ir3_register *src_reg = ir3_src_create(pcopy, INVALID_REG, flags);
    src_reg->wrmask = reg->wrmask;
    src_reg->size = reg->size;
    assign_reg(pcopy, src_reg, ra_physreg_to_num(src, reg->flags));
@@ -2053,13 +2331,13 @@ calc_target_full_pressure(struct ir3_shader_variant *v, unsigned pressure)
    unsigned reg_independent_max_waves =
       ir3_get_reg_independent_max_waves(v, double_threadsize);
    unsigned reg_dependent_max_waves = ir3_get_reg_dependent_max_waves(
-      v->shader->compiler, reg_count, double_threadsize);
+      v->compiler, reg_count, double_threadsize);
    unsigned target_waves =
       MIN2(reg_independent_max_waves, reg_dependent_max_waves);
 
    while (target <= RA_FULL_SIZE / (2 * 4) &&
           ir3_should_double_threadsize(v, target) == double_threadsize &&
-          ir3_get_reg_dependent_max_waves(v->shader->compiler, target,
+          ir3_get_reg_dependent_max_waves(v->compiler, target,
                                           double_threadsize) >= target_waves)
       target++;
 
@@ -2220,7 +2498,7 @@ static void
 calc_limit_pressure_for_cs_with_barrier(struct ir3_shader_variant *v,
                                         struct ir3_pressure *limit_pressure)
 {
-   const struct ir3_compiler *compiler = v->shader->compiler;
+   const struct ir3_compiler *compiler = v->compiler;
 
    unsigned threads_per_wg;
    if (v->local_size_variable) {
@@ -2270,7 +2548,7 @@ ir3_ra(struct ir3_shader_variant *v)
    struct ra_ctx *ctx = rzalloc(NULL, struct ra_ctx);
 
    ctx->merged_regs = v->mergedregs;
-   ctx->compiler = v->shader->compiler;
+   ctx->compiler = v->compiler;
    ctx->stage = v->type;
 
    struct ir3_liveness *live = ir3_calc_liveness(ctx, v->ir);
@@ -2299,7 +2577,7 @@ ir3_ra(struct ir3_shader_variant *v)
     * because on some gens the register file is not big enough to hold a
     * double-size wave with all 48 registers in use.
     */
-   if (v->shader->real_wavesize == IR3_DOUBLE_ONLY) {
+   if (v->real_wavesize == IR3_DOUBLE_ONLY) {
       limit_pressure.full =
          MAX2(limit_pressure.full, ctx->compiler->reg_size_vec4 / 2 * 16);
    }
@@ -2317,7 +2595,7 @@ ir3_ra(struct ir3_shader_variant *v)
    bool spilled = false;
    if (max_pressure.full > limit_pressure.full ||
        max_pressure.half > limit_pressure.half) {
-      if (!v->shader->compiler->has_pvtmem) {
+      if (!v->compiler->has_pvtmem) {
          d("max pressure exceeded!");
          goto fail;
       }

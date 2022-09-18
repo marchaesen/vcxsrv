@@ -1,8 +1,3 @@
-# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463 (Fail)
-KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
-
-glx@glx-make-current,Crash
-glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-buffer,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
@@ -20,7 +15,6 @@ glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 shaders@glsl-bug-110796,Fail
 spec@!opengl 1.0@gl-1.0-bitmap-heart-dance,Fail
-spec@!opengl 1.0@gl-1.0-dlist-bitmap,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag-const,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag-quads,Fail
@@ -28,6 +22,7 @@ spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 spec@!opengl 1.0@gl-1.0-spot-light,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=2,Fail
+spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-32f_24_8_rev samples=2,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-32f_24_8_rev samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2,Fail
@@ -97,8 +92,6 @@ spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA16- swizzled- borde
 spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
-spec@!opengl 2.0@max-samplers,Fail
-spec@!opengl 2.0@max-samplers border,Fail
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
@@ -142,8 +135,6 @@ spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT16- NPOT,Fail
 spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT24- NPOT,Fail
 spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT32- NPOT,Fail
 spec@arb_framebuffer_object@fbo-drawbuffers-none use_frag_out,Fail
-spec@arb_pixel_buffer_object@pbo-getteximage,Fail
-spec@arb_pixel_buffer_object@texsubimage array pbo,Fail
 spec@arb_point_sprite@arb_point_sprite-checkerboard,Fail
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 spec@arb_shader_storage_buffer_object@compiler@atomicmin-swizzle.vert,Fail
@@ -151,9 +142,7 @@ spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgrad,Fail
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 spec@arb_texture_float@fbo-blending-formats,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY16F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE16F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE32F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE_ALPHA32F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_RGB16F,Fail
@@ -203,7 +192,6 @@ spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 spec@ext_framebuffer_multisample@blit-mismatched-formats,Fail
 spec@ext_framebuffer_multisample@interpolation 2 centroid-edges,Fail
 spec@ext_framebuffer_multisample@interpolation 4 centroid-edges,Fail
-spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
 spec@ext_gpu_shader4@execution@texelfetch@fs-texelfetch-isampler1darray,Fail
@@ -240,10 +228,8 @@ spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled@GL_DEPTH24_ST
 spec@ext_packed_depth_stencil@texwrap formats,Fail
 spec@ext_packed_depth_stencil@texwrap formats@GL_DEPTH24_STENCIL8- NPOT,Fail
 spec@ext_packed_float@query-rgba-signed-components,Fail
-spec@ext_texture_array@array-texture,Fail
 spec@ext_texture_array@fbo-generatemipmap-array rgb9_e5,Fail
 spec@ext_texture_array@fbo-generatemipmap-array,Fail
-spec@ext_texture_array@texsubimage array,Fail
 spec@ext_texture_integer@getteximage-clamping gl_arb_texture_rg,Fail
 spec@ext_texture_integer@getteximage-clamping,Fail
 spec@ext_texture_lod_bias@lodbias,Fail
@@ -352,75 +338,25 @@ spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_RG16F,Fail
 spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_RG16I,Fail
 spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_RGBA8I,Fail
 
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3504
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
-dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
-
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3510
-dEQP-VK.api.external.semaphore.opaque_fd.info_timeline,Fail
-dEQP-VK.api.external.semaphore.sync_fd.info_timeline,Fail
-
 dEQP-VK.draw.renderpass.inverted_depth_ranges.nodepthclamp_deltazero,Fail
 
-dEQP-VK.graphicsfuzz.cov-dfdx-dfdy-after-nested-loops,Fail
+spec@!opengl 1.0@depth-clear-precision-check,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth16,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth24,Fail
 
-# Works if using V3D_DEBUG=noloopunroll
-dEQP-VK.graphicsfuzz.cov-loop-condition-clamp-vec-of-ones,Crash
+# These fail because the shaders use indirect indexing on samplers which we
+# don't support (the GLSL linker fails to link the shaders because of this).
+# If loop unrolling kicks-in for these tests it removes the indirect indexing
+# and the tests pass, but this would just be working around an issue in the
+# tests.
+spec@!opengl 2.0@max-samplers,Fail
+spec@!opengl 2.0@max-samplers border,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3759
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3913
+dEQP-VK.compute.workgroup_memory_explicit_layout.copy_memory.two_invocations,Crash
+dEQP-VK.compute.workgroup_memory_explicit_layout.zero_ext.block,Crash
+dEQP-VK.compute.workgroup_memory_explicit_layout.zero_ext.other_block,Crash
+dEQP-VK.compute.workgroup_memory_explicit_layout.zero_ext.block_with_offset,Crash

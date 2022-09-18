@@ -112,18 +112,17 @@ vector_deref_visitor::visit_enter(ir_assignment *ir)
 
             if (new_lhs->ir_type != ir_type_swizzle) {
                assert(lhs_clone->as_dereference());
-               ir_assignment *cond_assign =
-                  new(mem_ctx) ir_assignment(lhs_clone->as_dereference(),
-                                             src_temp_deref,
-                                             equal(arr_index, cmp_index),
-                                             WRITEMASK_X << i);
-               factory.emit(cond_assign);
+
+               factory.emit(if_tree(equal(arr_index, cmp_index),
+                                    assign(lhs_clone->as_dereference(),
+                                           src_temp_deref,
+                                           WRITEMASK_X << i)));
             } else {
                ir_assignment *cond_assign =
                   new(mem_ctx) ir_assignment(swizzle(lhs_clone, i, 1),
-                                             src_temp_deref,
-                                             equal(arr_index, cmp_index));
-               factory.emit(cond_assign);
+                                             src_temp_deref);
+
+               factory.emit(if_tree(equal(arr_index, cmp_index), cond_assign));
             }
          }
          ir->insert_after(factory.instructions);

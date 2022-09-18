@@ -135,6 +135,7 @@ nir_lower_pstipple_fs(struct nir_shader *shader,
    tex_var->data.how_declared = nir_var_hidden;
 
    BITSET_SET(shader->info.textures_used, binding);
+   BITSET_SET(shader->info.samplers_used, binding);
    state.stip_tex = tex_var;
 
    nir_foreach_function(function, shader) {

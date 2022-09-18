@@ -30,7 +30,7 @@
 struct fd_ringbuffer *fd6_build_tess_consts(struct fd6_emit *emit) assert_dt;
 struct fd_ringbuffer *fd6_build_user_consts(struct fd6_emit *emit) assert_dt;
 struct fd_ringbuffer *
-fd6_build_vs_driver_params(struct fd6_emit *emit) assert_dt;
+fd6_build_driver_params(struct fd6_emit *emit) assert_dt;
 
 void fd6_emit_cs_consts(const struct ir3_shader_variant *v,
                         struct fd_ringbuffer *ring, struct fd_context *ctx,

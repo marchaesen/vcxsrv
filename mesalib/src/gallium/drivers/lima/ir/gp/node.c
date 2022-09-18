@@ -28,6 +28,9 @@
 #include "gpir.h"
 
 const gpir_op_info gpir_op_infos[] = {
+   [gpir_op_unsupported] = {
+      .name = "unsupported",
+   },
    [gpir_op_mov] = {
       .name = "mov",
       .slots = (int []) {

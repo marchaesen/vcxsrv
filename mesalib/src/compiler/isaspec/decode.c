@@ -773,8 +773,6 @@ isa_decode(void *bin, int sz, FILE *out, const struct isa_decode_options *option
 	if (!options)
 		options = &default_options;
 
-	util_cpu_detect();  /* needed for _mesa_half_to_float() */
-
 	state = rzalloc_size(NULL, sizeof(*state));
 	state->options = options;
 	state->num_instr = sz / (BITMASK_WORDS * sizeof(BITSET_WORD));

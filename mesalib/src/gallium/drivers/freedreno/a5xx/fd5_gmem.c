@@ -77,7 +77,7 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
          sint = util_format_is_pure_sint(pformat);
          uint = util_format_is_pure_uint(pformat);
 
-         debug_assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
+         assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
 
          offset = fd_resource_offset(rsc, psurf->u.tex.level,
                                      psurf->u.tex.first_layer);
@@ -503,7 +503,7 @@ emit_mem2gmem_surf(struct fd_batch *batch, uint32_t base,
    struct fd_resource *rsc = fd_resource(psurf->texture);
    uint32_t stride, size;
 
-   debug_assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
+   assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
 
    if (buf == BLIT_S)
       rsc = rsc->stencil;
@@ -634,7 +634,7 @@ emit_gmem2mem_surf(struct fd_batch *batch, uint32_t base,
       fd_resource_offset(rsc, psurf->u.tex.level, psurf->u.tex.first_layer);
    pitch = fd_resource_pitch(rsc, psurf->u.tex.level);
 
-   debug_assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
+   assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
 
    OUT_PKT4(ring, REG_A5XX_RB_BLIT_FLAG_DST_LO, 4);
    OUT_RING(ring, 0x00000000); /* RB_BLIT_FLAG_DST_LO */

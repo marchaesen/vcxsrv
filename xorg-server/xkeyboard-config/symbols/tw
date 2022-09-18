@@ -26,7 +26,7 @@ xkb_symbols "tw" {
     key <AD06> { [	   y,          Y,         U1E73,            U1E72 ] };
     key <AD07> { [	   u,          U,         U0289,            U0244 ] };
     key <AD08> { [	   i,          I,         U0268,            U0197 ] };
-    key <AD09> { [	   o,          O,        oslash,         Ooblique ] };
+    key <AD09> { [	   o,          O,        oslash,           Oslash ] };
 
     key <AC02> { [	   s,          S,        ssharp,            U1E9E ] };
     key <AC03> { [	   d,          D,         U1E0F,            U1E0E ] };

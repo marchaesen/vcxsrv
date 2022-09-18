@@ -168,6 +168,96 @@ lvp_DestroyImage(VkDevice _device, VkImage _image,
    vk_image_destroy(&device->vk, pAllocator, &image->vk);
 }
 
+#include "lvp_conv.h"
+#include "util/u_sampler.h"
+#include "util/u_inlines.h"
+
+#define fix_depth_swizzle(x) do { \
+  if (x > PIPE_SWIZZLE_X && x < PIPE_SWIZZLE_0) \
+    x = PIPE_SWIZZLE_0;				\
+  } while (0)
+#define fix_depth_swizzle_a(x) do { \
+  if (x > PIPE_SWIZZLE_X && x < PIPE_SWIZZLE_0) \
+    x = PIPE_SWIZZLE_1;				\
+  } while (0)
+
+static struct pipe_sampler_view *
+lvp_create_samplerview(struct pipe_context *pctx, struct lvp_image_view *iv)
+{
+   if (!iv)
+      return NULL;
+
+   struct pipe_sampler_view templ;
+   enum pipe_format pformat;
+   if (iv->vk.aspects == VK_IMAGE_ASPECT_DEPTH_BIT)
+      pformat = lvp_vk_format_to_pipe_format(iv->vk.format);
+   else if (iv->vk.aspects == VK_IMAGE_ASPECT_STENCIL_BIT)
+      pformat = util_format_stencil_only(lvp_vk_format_to_pipe_format(iv->vk.format));
+   else
+      pformat = lvp_vk_format_to_pipe_format(iv->vk.format);
+   u_sampler_view_default_template(&templ,
+                                   iv->image->bo,
+                                   pformat);
+   if (iv->vk.view_type == VK_IMAGE_VIEW_TYPE_1D)
+      templ.target = PIPE_TEXTURE_1D;
+   if (iv->vk.view_type == VK_IMAGE_VIEW_TYPE_2D)
+      templ.target = PIPE_TEXTURE_2D;
+   if (iv->vk.view_type == VK_IMAGE_VIEW_TYPE_CUBE)
+      templ.target = PIPE_TEXTURE_CUBE;
+   if (iv->vk.view_type == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+      templ.target = PIPE_TEXTURE_CUBE_ARRAY;
+   templ.u.tex.first_layer = iv->vk.base_array_layer;
+   templ.u.tex.last_layer = iv->vk.base_array_layer + iv->vk.layer_count - 1;
+   templ.u.tex.first_level = iv->vk.base_mip_level;
+   templ.u.tex.last_level = iv->vk.base_mip_level + iv->vk.level_count - 1;
+   templ.swizzle_r = vk_conv_swizzle(iv->vk.swizzle.r);
+   templ.swizzle_g = vk_conv_swizzle(iv->vk.swizzle.g);
+   templ.swizzle_b = vk_conv_swizzle(iv->vk.swizzle.b);
+   templ.swizzle_a = vk_conv_swizzle(iv->vk.swizzle.a);
+
+   /* depth stencil swizzles need special handling to pass VK CTS
+    * but also for zink GL tests.
+    * piping A swizzle into R fixes GL_ALPHA depth texture mode
+    * only swizzling from R/0/1 (for alpha) fixes VK CTS tests
+    * and a bunch of zink tests.
+   */
+   if (iv->vk.aspects == VK_IMAGE_ASPECT_DEPTH_BIT ||
+       iv->vk.aspects == VK_IMAGE_ASPECT_STENCIL_BIT) {
+      fix_depth_swizzle(templ.swizzle_r);
+      fix_depth_swizzle(templ.swizzle_g);
+      fix_depth_swizzle(templ.swizzle_b);
+      fix_depth_swizzle_a(templ.swizzle_a);
+   }
+
+   return pctx->create_sampler_view(pctx, iv->image->bo, &templ);
+}
+
+static struct pipe_image_view
+lvp_create_imageview(const struct lvp_image_view *iv)
+{
+   struct pipe_image_view view = {0};
+   if (!iv)
+      return view;
+
+   view.resource = iv->image->bo;
+   if (iv->vk.aspects == VK_IMAGE_ASPECT_DEPTH_BIT)
+      view.format = lvp_vk_format_to_pipe_format(iv->vk.format);
+   else if (iv->vk.aspects == VK_IMAGE_ASPECT_STENCIL_BIT)
+      view.format = util_format_stencil_only(lvp_vk_format_to_pipe_format(iv->vk.format));
+   else
+      view.format = lvp_vk_format_to_pipe_format(iv->vk.format);
+
+   if (iv->vk.view_type == VK_IMAGE_VIEW_TYPE_3D) {
+      view.u.tex.first_layer = 0;
+      view.u.tex.last_layer = iv->vk.extent.depth - 1;
+   } else {
+      view.u.tex.first_layer = iv->vk.base_array_layer,
+      view.u.tex.last_layer = iv->vk.base_array_layer + iv->vk.layer_count - 1;
+   }
+   view.u.tex.level = iv->vk.base_mip_level;
+   return view;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 lvp_CreateImageView(VkDevice _device,
                     const VkImageViewCreateInfo *pCreateInfo,
@@ -178,20 +268,16 @@ lvp_CreateImageView(VkDevice _device,
    LVP_FROM_HANDLE(lvp_image, image, pCreateInfo->image);
    struct lvp_image_view *view;
 
-   view = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*view), 8,
-                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   view = vk_image_view_create(&device->vk, false, pCreateInfo,
+                               pAllocator, sizeof(*view));
    if (view == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   vk_object_base_init(&device->vk, &view->base,
-                       VK_OBJECT_TYPE_IMAGE_VIEW);
-   view->view_type = pCreateInfo->viewType;
-   view->format = pCreateInfo->format;
-   view->pformat = lvp_vk_format_to_pipe_format(pCreateInfo->format);
-   view->components = pCreateInfo->components;
-   view->subresourceRange = pCreateInfo->subresourceRange;
+   view->pformat = lvp_vk_format_to_pipe_format(view->vk.format);
    view->image = image;
    view->surface = NULL;
+   view->iv = lvp_create_imageview(view);
+   view->sv = lvp_create_samplerview(device->queue.ctx, view);
    *pView = lvp_image_view_to_handle(view);
 
    return VK_SUCCESS;
@@ -207,9 +293,9 @@ lvp_DestroyImageView(VkDevice _device, VkImageView _iview,
    if (!_iview)
      return;
 
+   pipe_sampler_view_reference(&iview->sv, NULL);
    pipe_surface_reference(&iview->surface, NULL);
-   vk_object_base_finish(&iview->base);
-   vk_free2(&device->vk.alloc, pAllocator, iview);
+   vk_image_view_destroy(&device->vk, pAllocator, &iview->vk);
 }
 
 VKAPI_ATTR void VKAPI_CALL lvp_GetImageSubresourceLayout(
@@ -297,7 +383,6 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateBuffer(
    vk_object_base_init(&device->vk, &buffer->base, VK_OBJECT_TYPE_BUFFER);
    buffer->size = pCreateInfo->size;
    buffer->usage = pCreateInfo->usage;
-   buffer->offset = 0;
 
    {
       struct pipe_resource template;
@@ -351,7 +436,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_DestroyBuffer(
 
 VKAPI_ATTR VkDeviceAddress VKAPI_CALL lvp_GetBufferDeviceAddress(
    VkDevice                                    device,
-   const VkBufferDeviceAddressInfoKHR*         pInfo)
+   const VkBufferDeviceAddressInfo*            pInfo)
 {
    LVP_FROM_HANDLE(lvp_buffer, buffer, pInfo->buffer);
 
@@ -360,16 +445,50 @@ VKAPI_ATTR VkDeviceAddress VKAPI_CALL lvp_GetBufferDeviceAddress(
 
 VKAPI_ATTR uint64_t VKAPI_CALL lvp_GetBufferOpaqueCaptureAddress(
     VkDevice                                    device,
-    const VkBufferDeviceAddressInfoKHR*         pInfo)
+    const VkBufferDeviceAddressInfo*            pInfo)
 {
    return 0;
 }
 
 VKAPI_ATTR uint64_t VKAPI_CALL lvp_GetDeviceMemoryOpaqueCaptureAddress(
     VkDevice                                    device,
-    const VkDeviceMemoryOpaqueCaptureAddressInfoKHR* pInfo)
+    const VkDeviceMemoryOpaqueCaptureAddressInfo* pInfo)
 {
    return 0;
+}
+
+static struct pipe_sampler_view *
+lvp_create_samplerview_buffer(struct pipe_context *pctx, struct lvp_buffer_view *bv)
+{
+   if (!bv)
+      return NULL;
+
+   struct pipe_sampler_view templ;
+   memset(&templ, 0, sizeof(templ));
+   templ.target = PIPE_BUFFER;
+   templ.swizzle_r = PIPE_SWIZZLE_X;
+   templ.swizzle_g = PIPE_SWIZZLE_Y;
+   templ.swizzle_b = PIPE_SWIZZLE_Z;
+   templ.swizzle_a = PIPE_SWIZZLE_W;
+   templ.format = bv->pformat;
+   templ.u.buf.offset = bv->offset;
+   templ.u.buf.size = bv->range;
+   templ.texture = bv->buffer->bo;
+   templ.context = pctx;
+   return pctx->create_sampler_view(pctx, bv->buffer->bo, &templ);
+}
+
+static struct pipe_image_view
+lvp_create_imageview_buffer(const struct lvp_buffer_view *bv)
+{
+   struct pipe_image_view view = {0};
+   if (!bv)
+      return view;
+   view.resource = bv->buffer->bo;
+   view.format = bv->pformat;
+   view.u.buf.offset = bv->offset;
+   view.u.buf.size = bv->range;
+   return view;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -392,7 +511,12 @@ lvp_CreateBufferView(VkDevice _device,
    view->format = pCreateInfo->format;
    view->pformat = lvp_vk_format_to_pipe_format(pCreateInfo->format);
    view->offset = pCreateInfo->offset;
-   view->range = pCreateInfo->range;
+   if (pCreateInfo->range == VK_WHOLE_SIZE)
+      view->range = view->buffer->size - view->offset;
+   else
+      view->range = pCreateInfo->range;
+   view->sv = lvp_create_samplerview_buffer(device->queue.ctx, view);
+   view->iv = lvp_create_imageview_buffer(view);
    *pView = lvp_buffer_view_to_handle(view);
 
    return VK_SUCCESS;
@@ -407,6 +531,7 @@ lvp_DestroyBufferView(VkDevice _device, VkBufferView bufferView,
 
    if (!bufferView)
      return;
+   pipe_sampler_view_reference(&view->sv, NULL);
    vk_object_base_finish(&view->base);
    vk_free2(&device->vk.alloc, pAllocator, view);
 }

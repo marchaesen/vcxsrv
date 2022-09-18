@@ -88,7 +88,8 @@ _XimSetEventMaskCallback(
 
     if (imid == im->private.proto.imid) {
 	if (icid) {
-	    ic = _XimICOfXICID(im, icid);
+	    if (!(ic = _XimICOfXICID(im, icid)))
+		return False;
 	    _XimProcICSetEventMask(ic, (XPointer)&buf_s[2]);
 	} else {
 	    _XimProcIMSetEventMask(im, (XPointer)&buf_s[2]);

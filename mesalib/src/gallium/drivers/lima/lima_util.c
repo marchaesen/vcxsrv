@@ -29,6 +29,7 @@
 
 #include "util/u_debug.h"
 #include "util/u_memory.h"
+#include "util/u_box.h"
 
 #include "lima_util.h"
 #include "lima_parser.h"
@@ -181,4 +182,15 @@ _lima_dump_command_stream_print(struct lima_dump *dump, void *data,
    va_end(ap);
 
    lima_dump_blob(dump->fp, data, size, is_float);
+}
+
+void
+lima_damage_rect_union(struct pipe_scissor_state *rect,
+                       unsigned minx, unsigned maxx,
+                       unsigned miny, unsigned maxy)
+{
+   rect->minx = MIN2(rect->minx, minx);
+   rect->miny = MIN2(rect->miny, miny);
+   rect->maxx = MAX2(rect->maxx, maxx);
+   rect->maxy = MAX2(rect->maxy, maxy);
 }

@@ -62,11 +62,12 @@ spirv_buffer_prepare(struct spirv_buffer *b, void *mem_ctx, size_t needed)
    return spirv_buffer_grow(b, mem_ctx, needed);
 }
 
-static inline void
+static inline uint32_t
 spirv_buffer_emit_word(struct spirv_buffer *b, uint32_t word)
 {
    assert(b->num_words < b->room);
-   b->words[b->num_words++] = word;
+   b->words[b->num_words] = word;
+   return b->num_words++;
 }
 
 static int
@@ -149,7 +150,7 @@ spirv_builder_emit_entry_point(struct spirv_builder *b,
         spirv_buffer_emit_word(&b->entry_points, interfaces[i]);
 }
 
-void
+uint32_t
 spirv_builder_emit_exec_mode_literal(struct spirv_builder *b, SpvId entry_point,
                                      SpvExecutionMode exec_mode, uint32_t param)
 {
@@ -157,7 +158,7 @@ spirv_builder_emit_exec_mode_literal(struct spirv_builder *b, SpvId entry_point,
    spirv_buffer_emit_word(&b->exec_modes, SpvOpExecutionMode | (4 << 16));
    spirv_buffer_emit_word(&b->exec_modes, entry_point);
    spirv_buffer_emit_word(&b->exec_modes, exec_mode);
-   spirv_buffer_emit_word(&b->exec_modes, param);
+   return spirv_buffer_emit_word(&b->exec_modes, param);
 }
 
 void
@@ -254,32 +255,32 @@ spirv_builder_emit_builtin(struct spirv_builder *b, SpvId target,
 }
 
 void
-spirv_builder_emit_vertex(struct spirv_builder *b, uint32_t stream)
+spirv_builder_emit_vertex(struct spirv_builder *b, uint32_t stream, bool multistream)
 {
    unsigned words = 1;
    SpvOp op = SpvOpEmitVertex;
-   if (stream > 0) {
+   if (multistream) {
       op = SpvOpEmitStreamVertex;
       words++;
    }
    spirv_buffer_prepare(&b->instructions, b->mem_ctx, words);
    spirv_buffer_emit_word(&b->instructions, op | (words << 16));
-   if (stream)
+   if (multistream)
       spirv_buffer_emit_word(&b->instructions, spirv_builder_const_uint(b, 32, stream));
 }
 
 void
-spirv_builder_end_primitive(struct spirv_builder *b, uint32_t stream)
+spirv_builder_end_primitive(struct spirv_builder *b, uint32_t stream, bool multistream)
 {
    unsigned words = 1;
    SpvOp op = SpvOpEndPrimitive;
-   if (stream > 0) {
+   if (multistream || stream > 0) {
       op = SpvOpEndStreamPrimitive;
       words++;
    }
    spirv_buffer_prepare(&b->instructions, b->mem_ctx, words);
    spirv_buffer_emit_word(&b->instructions, op | (words << 16));
-   if (stream)
+   if (multistream || stream > 0)
       spirv_buffer_emit_word(&b->instructions, spirv_builder_const_uint(b, 32, stream));
 }
 
@@ -402,6 +403,28 @@ spirv_builder_function_end(struct spirv_builder *b)
    spirv_buffer_prepare(&b->instructions, b->mem_ctx, 1);
    spirv_buffer_emit_word(&b->instructions, SpvOpFunctionEnd | (1 << 16));
 }
+
+SpvId
+spirv_builder_function_call(struct spirv_builder *b, SpvId result_type,
+                            SpvId function, const SpvId arguments[],
+                            size_t num_arguments)
+{
+   SpvId result = spirv_builder_new_id(b);
+
+   int words = 4 + num_arguments;
+   spirv_buffer_prepare(&b->instructions, b->mem_ctx, words);
+   spirv_buffer_emit_word(&b->instructions,
+                          SpvOpFunctionCall | (words << 16));
+   spirv_buffer_emit_word(&b->instructions, result_type);
+   spirv_buffer_emit_word(&b->instructions, result);
+   spirv_buffer_emit_word(&b->instructions, function);
+
+   for (int i = 0; i < num_arguments; ++i)
+      spirv_buffer_emit_word(&b->instructions, arguments[i]);
+
+   return result;
+}
+
 
 void
 spirv_builder_label(struct spirv_builder *b, SpvId label)
@@ -735,11 +758,32 @@ spirv_builder_emit_kill(struct spirv_builder *b)
    spirv_buffer_emit_word(&b->instructions, SpvOpKill | (1 << 16));
 }
 
+void
+spirv_builder_emit_demote(struct spirv_builder *b)
+{
+   spirv_buffer_prepare(&b->instructions, b->mem_ctx, 1);
+   spirv_buffer_emit_word(&b->instructions, SpvOpDemoteToHelperInvocation | (1 << 16));
+}
+
+SpvId
+spirv_is_helper_invocation(struct spirv_builder *b)
+{
+   SpvId result = spirv_builder_new_id(b);
+   SpvId result_type = spirv_builder_type_bool(b);
+
+   int words = 3;
+   spirv_buffer_prepare(&b->instructions, b->mem_ctx, words);
+   spirv_buffer_emit_word(&b->instructions, SpvOpIsHelperInvocationEXT | (words << 16));
+   spirv_buffer_emit_word(&b->instructions, result_type);
+   spirv_buffer_emit_word(&b->instructions, result);
+   return result;
+}
+
 SpvId
 spirv_builder_emit_vote(struct spirv_builder *b, SpvOp op, SpvId src)
 {
    return spirv_builder_emit_binop(b, op, spirv_builder_type_bool(b),
-                                   spirv_builder_const_uint(b, 32, SpvScopeWorkgroup), src);
+                                   spirv_builder_const_uint(b, 32, SpvScopeSubgroup), src);
 }
 
 static SpvId
@@ -1272,7 +1316,7 @@ spirv_builder_type_image(struct spirv_builder *b, SpvId sampled_type,
       sampled_type, dim, depth ? 1 : 0, arrayed ? 1 : 0, ms ? 1 : 0, sampled,
       image_format
    };
-   if (sampled == 2 && ms)
+   if (sampled == 2 && ms && dim != SpvDimSubpassData)
       spirv_builder_emit_cap(b, SpvCapabilityStorageImageMultisample);
    return get_type_def(b, SpvOpTypeImage, args, ARRAY_SIZE(args));
 }
@@ -1613,7 +1657,8 @@ spirv_builder_get_num_words(struct spirv_builder *b)
 
 size_t
 spirv_builder_get_words(struct spirv_builder *b, uint32_t *words,
-                        size_t num_words, uint32_t spirv_version)
+                        size_t num_words, uint32_t spirv_version,
+                        uint32_t *tcs_vertices_out_word)
 {
    assert(num_words >= spirv_builder_get_num_words(b));
 
@@ -1643,10 +1688,16 @@ spirv_builder_get_words(struct spirv_builder *b, uint32_t *words,
       &b->instructions
    };
 
+   bool find_tcs_vertices_out = *tcs_vertices_out_word > 0;
    for (int i = 0; i < ARRAY_SIZE(buffers); ++i) {
       const struct spirv_buffer *buffer = buffers[i];
-      for (int j = 0; j < buffer->num_words; ++j)
+      for (int j = 0; j < buffer->num_words; ++j) {
+         if (find_tcs_vertices_out && buffer == &b->exec_modes && *tcs_vertices_out_word == j) {
+            *tcs_vertices_out_word = written;
+            find_tcs_vertices_out = false;
+         }
          words[written++] = buffer->words[j];
+      }
    }
 
    assert(written == spirv_builder_get_num_words(b));

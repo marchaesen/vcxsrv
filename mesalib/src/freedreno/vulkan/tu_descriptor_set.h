@@ -1,35 +1,27 @@
 /*
  * Copyright © 2016 Bas Nieuwenhuizen
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef TU_DESCRIPTOR_SET_H
 #define TU_DESCRIPTOR_SET_H
 
-#include <vulkan/vulkan.h>
+#include "tu_common.h"
+
+#include "vk_descriptor_set_layout.h"
 
 /* The hardware supports 5 descriptor sets, but we reserve 1 for dynamic
  * descriptors and input attachments.
  */
 #define MAX_SETS 4
+
+/* I have no idea what the maximum size is, but the hardware supports very
+ * large numbers of descriptors (at least 2^16). This limit is based on
+ * CP_LOAD_STATE6, which has a 28-bit field for the DWORD offset, so that
+ * we don't have to think about what to do if that overflows, but really
+ * nothing is likely to get close to this.
+ */
+#define MAX_SET_SIZE ((1 << 28) * 4)
 
 struct tu_descriptor_set_binding_layout
 {
@@ -43,8 +35,7 @@ struct tu_descriptor_set_binding_layout
 
    uint32_t offset;
 
-   /* Index into the pDynamicOffsets array for dynamic descriptors, as well as
-    * the array of dynamic descriptors (offsetted by
+   /* Byte offset in the array of dynamic descriptors (offsetted by
     * tu_pipeline_layout::set::dynamic_offset_start).
     */
    uint32_t dynamic_offset_offset;
@@ -63,10 +54,7 @@ struct tu_descriptor_set_binding_layout
 
 struct tu_descriptor_set_layout
 {
-   struct vk_object_base base;
-
-   /* Descriptor set layouts can be destroyed at almost any time */
-   uint32_t ref_cnt;
+   struct vk_descriptor_set_layout vk;
 
    /* The create flags for this descriptor set layout */
    VkDescriptorSetLayoutCreateFlags flags;
@@ -80,41 +68,19 @@ struct tu_descriptor_set_layout
    /* Shader stages affected by this descriptor set */
    uint16_t shader_stages;
 
-   /* Number of dynamic offsets used by this descriptor set */
-   uint16_t dynamic_offset_count;
-
-   /* A bitfield of which dynamic buffers are ubo's, to make the
-    * descriptor-binding-time patching easier.
-    */
-   uint32_t dynamic_ubo;
+   /* Size of dynamic offset descriptors used by this descriptor set */
+   uint16_t dynamic_offset_size;
 
    bool has_immutable_samplers;
    bool has_variable_descriptors;
+   bool has_inline_uniforms;
 
    /* Bindings in this descriptor set */
    struct tu_descriptor_set_binding_layout binding[0];
 };
-
-struct tu_device;
-
-void tu_descriptor_set_layout_destroy(struct tu_device *device,
-                                      struct tu_descriptor_set_layout *layout);
-
-static inline void
-tu_descriptor_set_layout_ref(struct tu_descriptor_set_layout *layout)
-{
-   assert(layout && layout->ref_cnt >= 1);
-   p_atomic_inc(&layout->ref_cnt);
-}
-
-static inline void
-tu_descriptor_set_layout_unref(struct tu_device *device,
-                               struct tu_descriptor_set_layout *layout)
-{
-   assert(layout && layout->ref_cnt >= 1);
-   if (p_atomic_dec_zero(&layout->ref_cnt))
-      tu_descriptor_set_layout_destroy(device, layout);
-}
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_set_layout, vk.base,
+                               VkDescriptorSetLayout,
+                               VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT)
 
 struct tu_pipeline_layout
 {
@@ -129,8 +95,133 @@ struct tu_pipeline_layout
 
    uint32_t num_sets;
    uint32_t push_constant_size;
-   uint32_t dynamic_offset_count;
+   uint32_t dynamic_offset_size;
+
+   unsigned char sha1[20];
 };
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline_layout, base, VkPipelineLayout,
+                               VK_OBJECT_TYPE_PIPELINE_LAYOUT)
+
+struct tu_descriptor_set
+{
+   struct vk_object_base base;
+
+   /* Link to descriptor pool's desc_sets list . */
+   struct list_head pool_link;
+
+   struct tu_descriptor_set_layout *layout;
+   struct tu_descriptor_pool *pool;
+   uint32_t size;
+
+   uint64_t va;
+   /* Pointer to the GPU memory for the set for non-push descriptors, or pointer
+    * to a host memory copy for push descriptors.
+    */
+   uint32_t *mapped_ptr;
+
+   /* Size of the host memory allocation for push descriptors */
+   uint32_t host_size;
+
+   uint32_t *dynamic_descriptors;
+};
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_set, base, VkDescriptorSet,
+                               VK_OBJECT_TYPE_DESCRIPTOR_SET)
+
+struct tu_descriptor_pool_entry
+{
+   uint32_t offset;
+   uint32_t size;
+   struct tu_descriptor_set *set;
+};
+
+struct tu_descriptor_pool
+{
+   struct vk_object_base base;
+
+   struct tu_bo *bo;
+   uint64_t current_offset;
+   uint64_t size;
+
+   uint8_t *host_memory_base;
+   uint8_t *host_memory_ptr;
+   uint8_t *host_memory_end;
+   uint8_t *host_bo;
+
+   struct list_head desc_sets;
+
+   uint32_t entry_count;
+   uint32_t max_entry_count;
+   struct tu_descriptor_pool_entry entries[0];
+};
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_pool, base, VkDescriptorPool,
+                               VK_OBJECT_TYPE_DESCRIPTOR_POOL)
+
+struct tu_descriptor_update_template_entry
+{
+   VkDescriptorType descriptor_type;
+
+   /* The number of descriptors to update */
+   uint32_t descriptor_count;
+
+   /* Into mapped_ptr or dynamic_descriptors, in units of the respective array
+    */
+   uint32_t dst_offset;
+
+   /* In dwords. Not valid/used for dynamic descriptors */
+   uint32_t dst_stride;
+
+   uint32_t buffer_offset;
+
+   /* Only valid for combined image samplers and samplers */
+   uint16_t has_sampler;
+
+   /* In bytes */
+   size_t src_offset;
+   size_t src_stride;
+
+   /* For push descriptors */
+   const struct tu_sampler *immutable_samplers;
+};
+
+struct tu_descriptor_update_template
+{
+   struct vk_object_base base;
+
+   uint32_t entry_count;
+   VkPipelineBindPoint bind_point;
+   struct tu_descriptor_update_template_entry entry[0];
+};
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_update_template, base,
+                               VkDescriptorUpdateTemplate,
+                               VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE)
+
+struct tu_sampler_ycbcr_conversion {
+   struct vk_object_base base;
+
+   VkFormat format;
+   VkSamplerYcbcrModelConversion ycbcr_model;
+   VkSamplerYcbcrRange ycbcr_range;
+   VkComponentMapping components;
+   VkChromaLocation chroma_offsets[2];
+   VkFilter chroma_filter;
+};
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_sampler_ycbcr_conversion, base, VkSamplerYcbcrConversion,
+                               VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION)
+
+void
+tu_update_descriptor_sets(const struct tu_device *device,
+                          VkDescriptorSet overrideSet,
+                          uint32_t descriptorWriteCount,
+                          const VkWriteDescriptorSet *pDescriptorWrites,
+                          uint32_t descriptorCopyCount,
+                          const VkCopyDescriptorSet *pDescriptorCopies);
+
+void
+tu_update_descriptor_set_with_template(
+   const struct tu_device *device,
+   struct tu_descriptor_set *set,
+   VkDescriptorUpdateTemplate descriptorUpdateTemplate,
+   const void *pData);
 
 static inline const struct tu_sampler *
 tu_immutable_samplers(const struct tu_descriptor_set_layout *set,

@@ -34,6 +34,21 @@
 
 static pthread_mutex_t sync_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+#pragma redefine_extname __sync_add_and_fetch_8_c __sync_add_and_fetch_8
+#pragma redefine_extname __sync_sub_and_fetch_8_c __sync_sub_and_fetch_8
+#pragma redefine_extname __sync_fetch_and_add_8_c __sync_fetch_and_add_8
+#pragma redefine_extname __sync_fetch_and_sub_8_c __sync_fetch_and_sub_8
+#pragma redefine_extname __sync_val_compare_and_swap_8_c \
+    __sync_val_compare_and_swap_8
+#define __sync_add_and_fetch_8 __sync_add_and_fetch_8_c
+#define __sync_sub_and_fetch_8 __sync_sub_and_fetch_8_c
+#define __sync_fetch_and_add_8 __sync_fetch_and_add_8_c
+#define __sync_fetch_and_sub_8 __sync_fetch_and_sub_8_c
+#define __sync_val_compare_and_swap_8 __sync_val_compare_and_swap_8_c
+#endif
+
 WEAK uint64_t
 __sync_add_and_fetch_8(uint64_t *ptr, uint64_t val)
 {
@@ -55,6 +70,32 @@ __sync_sub_and_fetch_8(uint64_t *ptr, uint64_t val)
    pthread_mutex_lock(&sync_mutex);
    *ptr -= val;
    r = *ptr;
+   pthread_mutex_unlock(&sync_mutex);
+
+   return r;
+}
+
+WEAK uint64_t
+__sync_fetch_and_add_8(uint64_t *ptr, uint64_t val)
+{
+   uint64_t r;
+
+   pthread_mutex_lock(&sync_mutex);
+   r = *ptr;
+   *ptr += val;
+   pthread_mutex_unlock(&sync_mutex);
+
+   return r;
+}
+
+WEAK uint64_t
+__sync_fetch_and_sub_8(uint64_t *ptr, uint64_t val)
+{
+   uint64_t r;
+
+   pthread_mutex_lock(&sync_mutex);
+   r = *ptr;
+   *ptr -= val;
    pthread_mutex_unlock(&sync_mutex);
 
    return r;

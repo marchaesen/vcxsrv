@@ -29,8 +29,6 @@
  * Author: Jakob Bornecrantz <wallbraker@gmail.com>
  */
 
-#include "utils.h"
-
 #include "dri_screen.h"
 #include "dri_drawable.h"
 #include "dri_context.h"
@@ -267,17 +265,15 @@ dri_unbind_context(__DRIcontext * cPriv)
    struct st_context_iface *st = ctx->st;
    struct st_api *stapi = screen->st_api;
 
-   if (--ctx->bind_count == 0) {
-      if (st == stapi->get_current(stapi)) {
-         if (st->thread_finish)
-            st->thread_finish(st);
+   if (st == stapi->get_current(stapi)) {
+      if (st->thread_finish)
+         st->thread_finish(st);
 
-         /* Record HUD queries for the duration the context was "current". */
-         if (ctx->hud)
-            hud_record_only(ctx->hud, st->pipe);
+      /* Record HUD queries for the duration the context was "current". */
+      if (ctx->hud)
+         hud_record_only(ctx->hud, st->pipe);
 
-         stapi->make_current(stapi, NULL, NULL, NULL);
-      }
+      stapi->make_current(stapi, NULL, NULL, NULL);
    }
    ctx->dPriv = NULL;
    ctx->rPriv = NULL;
@@ -294,8 +290,6 @@ dri_make_current(__DRIcontext * cPriv,
    struct dri_context *ctx = dri_context(cPriv);
    struct dri_drawable *draw = dri_drawable(driDrawPriv);
    struct dri_drawable *read = dri_drawable(driReadPriv);
-
-   ++ctx->bind_count;
 
    if (!draw && !read)
       return ctx->stapi->make_current(ctx->stapi, ctx->st, NULL, NULL);

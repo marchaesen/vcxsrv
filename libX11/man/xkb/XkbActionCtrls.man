@@ -31,7 +31,7 @@ XkbActionCtrls \- Returns the ctrls fields of act converted to an unsigned int
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action from which to extract controls
 .SH DESCRIPTION
 .LP

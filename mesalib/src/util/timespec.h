@@ -34,8 +34,10 @@
 
 #include <stdint.h>
 #include <assert.h>
-#include <time.h>
 #include <stdbool.h>
+
+#include "c11/time.h"
+#include "macros.h"
 
 #define NSEC_PER_SEC 1000000000
 
@@ -77,26 +79,41 @@ timespec_sub(struct timespec *r,
    }
 }
 
+#define TIME_T_MAX \
+   ((time_t)(((time_t)-1) > 0 ? u_uintN_max(sizeof(time_t) * 8) : \
+                                u_intN_max(sizeof(time_t) * 8)))
+
 /**
  * Add a nanosecond value to a timespec
  *
  * \param r[out] result: a + b
  * \param a[in] base operand as timespec
  * \param b[in] operand in nanoseconds
+ * \return true if the calculation overflowed
  */
-static inline void
+static inline bool
 timespec_add_nsec(struct timespec *r, const struct timespec *a, uint64_t b)
 {
-   r->tv_sec = a->tv_sec + (b / NSEC_PER_SEC);
-   r->tv_nsec = a->tv_nsec + (b % NSEC_PER_SEC);
+   uint64_t b_sec = b / NSEC_PER_SEC;
+   long b_nsec = b % NSEC_PER_SEC;
+   bool overflow = (b_sec > (uint64_t)TIME_T_MAX) ||
+                   ((uint64_t)a->tv_sec > (uint64_t)TIME_T_MAX - b_sec);
+
+   r->tv_sec = (uint64_t)a->tv_sec + b_sec;
+   r->tv_nsec = (uint64_t)a->tv_nsec + b_nsec;
 
    if (r->tv_nsec >= NSEC_PER_SEC) {
-      r->tv_sec++;
+      if (r->tv_sec >= TIME_T_MAX)
+         overflow = true;
+      r->tv_sec = (uint64_t)r->tv_sec + 1ull;
       r->tv_nsec -= NSEC_PER_SEC;
    } else if (r->tv_nsec < 0) {
+      assert(overflow);
       r->tv_sec--;
       r->tv_nsec += NSEC_PER_SEC;
    }
+
+   return overflow;
 }
 
 /**
@@ -105,11 +122,12 @@ timespec_add_nsec(struct timespec *r, const struct timespec *a, uint64_t b)
  * \param r[out] result: a + b
  * \param a[in] base operand as timespec
  * \param b[in] operand in milliseconds
+ * \return true if the calculation overflowed
  */
-static inline void
+static inline bool
 timespec_add_msec(struct timespec *r, const struct timespec *a, uint64_t b)
 {
-   timespec_add_nsec(r, a, b * 1000000);
+   return timespec_add_nsec(r, a, b * 1000000) || b > (UINT64_MAX / 1000000);
 }
 
 /**
@@ -311,22 +329,5 @@ timespec_after(const struct timespec *a, const struct timespec *b)
       (a->tv_nsec > b->tv_nsec) :
       (a->tv_sec > b->tv_sec);
 }
-
-#ifndef _MSC_VER
-/**
- * Checks whether a timespec value is after the current time
- *
- * \param clock_domain[in] clock in which to do the comparison
- * \param deadline[in] timespec to compare
- * \return whether deadline is after the current time
- */
-static inline bool
-timespec_passed(clockid_t clock_domain, const struct timespec *deadline)
-{
-   struct timespec current_time;
-   clock_gettime(clock_domain, &current_time);
-   return timespec_after(&current_time, deadline);
-}
-#endif
 
 #endif /* TIMESPEC_H */

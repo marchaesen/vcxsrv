@@ -34,13 +34,13 @@ client map to their default values
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description containing client map to initialize
 .TP
-.I \- which
+.I which
 mask of types to initialize
 .TP
-.I \- keypadVMod
+.I keypadVMod
 index of NumLock virtual modifier
 .SH DESCRIPTION
 .LP

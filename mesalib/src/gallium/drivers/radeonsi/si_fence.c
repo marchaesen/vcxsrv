@@ -54,15 +54,15 @@ struct si_fence {
 /**
  * Write an EOP event.
  *
- * \param event		EVENT_TYPE_*
- * \param event_flags	Optional cache flush flags (TC)
- * \param dst_sel       MEM or TC_L2
- * \param int_sel       NONE or SEND_DATA_AFTER_WR_CONFIRM
- * \param data_sel	DISCARD, VALUE_32BIT, TIMESTAMP, or GDS
- * \param buf		Buffer
- * \param va		GPU address
- * \param old_value	Previous fence value (for a bug workaround)
- * \param new_value	Fence value to write for this event.
+ * \param event        EVENT_TYPE_*
+ * \param event_flags  Optional cache flush flags (TC)
+ * \param dst_sel      MEM or TC_L2
+ * \param int_sel      NONE or SEND_DATA_AFTER_WR_CONFIRM
+ * \param data_sel     DISCARD, VALUE_32BIT, TIMESTAMP, or GDS
+ * \param buf          Buffer
+ * \param va           GPU address
+ * \param old_value    Previous fence value (for a bug workaround)
+ * \param new_value    Fence value to write for this event.
  */
 void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigned event,
                        unsigned event_flags, unsigned dst_sel, unsigned int_sel, unsigned data_sel,
@@ -77,7 +77,7 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
 
    radeon_begin(cs);
 
-   if (ctx->chip_class >= GFX9 || (compute_ib && ctx->chip_class >= GFX7)) {
+   if (ctx->gfx_level >= GFX9 || (compute_ib && ctx->gfx_level >= GFX7)) {
       /* A ZPASS_DONE or PIXEL_STAT_DUMP_EVENT (of the DB occlusion
        * counters) must immediately precede every timestamp event to
        * prevent a GPU hang on GFX9.
@@ -85,7 +85,7 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
        * Occlusion queries don't need to do it here, because they
        * always do ZPASS_DONE before the timestamp.
        */
-      if (ctx->chip_class == GFX9 && !compute_ib && query_type != PIPE_QUERY_OCCLUSION_COUNTER &&
+      if (ctx->gfx_level == GFX9 && !compute_ib && query_type != PIPE_QUERY_OCCLUSION_COUNTER &&
           query_type != PIPE_QUERY_OCCLUSION_PREDICATE &&
           query_type != PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE) {
          struct si_screen *sscreen = ctx->screen;
@@ -99,6 +99,7 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
                ctx->eop_bug_scratch_tmz =
                   si_aligned_buffer_create(&sscreen->b,
                                            PIPE_RESOURCE_FLAG_ENCRYPTED |
+                                           PIPE_RESOURCE_FLAG_UNMAPPABLE |
                                            SI_RESOURCE_FLAG_DRIVER_INTERNAL,
                                            PIPE_USAGE_DEFAULT,
                                            16 * sscreen->info.max_render_backends, 256);
@@ -116,17 +117,17 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
                                    RADEON_USAGE_WRITE | RADEON_PRIO_QUERY);
       }
 
-      radeon_emit(PKT3(PKT3_RELEASE_MEM, ctx->chip_class >= GFX9 ? 6 : 5, 0));
+      radeon_emit(PKT3(PKT3_RELEASE_MEM, ctx->gfx_level >= GFX9 ? 6 : 5, 0));
       radeon_emit(op);
       radeon_emit(sel);
       radeon_emit(va);        /* address lo */
       radeon_emit(va >> 32);  /* address hi */
       radeon_emit(new_fence); /* immediate data lo */
       radeon_emit(0);         /* immediate data hi */
-      if (ctx->chip_class >= GFX9)
+      if (ctx->gfx_level >= GFX9)
          radeon_emit(0); /* unused */
    } else {
-      if (ctx->chip_class == GFX7 || ctx->chip_class == GFX8) {
+      if (ctx->gfx_level == GFX7 || ctx->gfx_level == GFX8) {
          struct si_resource *scratch = ctx->eop_bug_scratch;
          uint64_t va = scratch->gpu_address;
 
@@ -164,7 +165,7 @@ unsigned si_cp_write_fence_dwords(struct si_screen *screen)
 {
    unsigned dwords = 6;
 
-   if (screen->info.chip_class == GFX7 || screen->info.chip_class == GFX8)
+   if (screen->info.gfx_level == GFX7 || screen->info.gfx_level == GFX8)
       dwords *= 2;
 
    return dwords;
@@ -489,10 +490,10 @@ static void si_flush_all_queues(struct pipe_context *ctx,
       tc_driver_internal_flush_notify(sctx->tc);
    } else {
       /* Instead of flushing, create a deferred fence. Constraints:
-		 * - the gallium frontend must allow a deferred flush.
-		 * - the gallium frontend must request a fence.
+       * - the gallium frontend must allow a deferred flush.
+       * - the gallium frontend must request a fence.
        * - fence_get_fd is not allowed.
-		 * Thread safety in fence_finish must be ensured by the gallium frontend.
+       * Thread safety in fence_finish must be ensured by the gallium frontend.
        */
       if (flags & PIPE_FLUSH_DEFERRED && !(flags & PIPE_FLUSH_FENCE_FD) && fence) {
          gfx_fence = sctx->ws->cs_get_next_fence(&sctx->gfx_cs);
@@ -560,7 +561,7 @@ static void si_fence_server_signal(struct pipe_context *ctx, struct pipe_fence_h
       si_add_syncobj_signal(sctx, sfence->gfx);
 
    /**
-    * The spec does not require a flush here. We insert a flush
+    * The spec requires a flush here. We insert a flush
     * because syncobj based signals are not directly placed into
     * the command stream. Instead the signal happens when the
     * submission associated with the syncobj finishes execution.

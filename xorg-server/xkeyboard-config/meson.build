@@ -1,5 +1,5 @@
 project('xkeyboard-config',
-        version: '2.35',
+        version: '2.36.99',
         license: 'MIT/Expat',
         meson_version: '>= 0.54.0')
 
@@ -43,8 +43,6 @@ if xsltproc.found()
   # emulating what the macros do for vendorversion, hardcoding the man
   # suffixes
   man_substs.set('vendorversion', '"@0@ @1@" "X Version 11"'.format(meson.project_name(), meson.project_version()))
-  man_substs.set('appmansuffix', '1')
-  man_substs.set('miscmansuffix', '7')
   xsl = configure_file(input: 'man/man.xsl',
                        output: 'man.xsl',
                        configuration: man_substs,

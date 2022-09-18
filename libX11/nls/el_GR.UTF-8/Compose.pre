@@ -19,9 +19,9 @@ XCOMM Moreover, the following character sets are completely covered:
 XCOMM	- ISO 8859-1
 XCOMM	- ISO 8859-7
 XCOMM
-XCOMM This file consists of four parts. Two of them have been adapted from
-XCOMM the iso8859-1/Compose and iso8859-7/Compose files. The other two
-XCOMM parts have been created by:
+XCOMM This file consists of three parts. Two of them have been adapted
+XCOMM from the iso8859-1/Compose and iso8859-7/Compose files. The other
+XCOMM (middle) part has been created by:
 XCOMM	Vasilis Vasaitis <vvas@hal.csd.auth.gr>
 XCOMM based on the idea and initial implementation by:
 XCOMM	Alejandros Diamandidis <adia@egnatia.ee.auth.gr>
@@ -1967,15 +1967,5 @@ XCOMM Miscellaneous extensions.
 <Multi_key> <3> <8>			: "⅜"	U215C # VULGAR FRACTION THREE EIGHTHS
 <Multi_key> <5> <8>			: "⅝"	U215D # VULGAR FRACTION FIVE EIGHTHS
 <Multi_key> <7> <8>			: "⅞"	U215E # VULGAR FRACTION SEVEN EIGHTHS
-
-XCOMM
-XCOMM Khmer digraphs
-XCOMM
-
-<U17ff> :   "ាំ"
-<U17fe> :   "ោះ"
-<U17fd> :   "េះ"
-<U17fc> :   "ុំ"
-<U17fb> :   "ុះ"
 
 XCOMM End

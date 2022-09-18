@@ -67,13 +67,13 @@ static inline struct lp_image_static_state *
 lp_cs_variant_key_images(const struct lp_compute_shader_variant_key *key)
 {
    return (struct lp_image_static_state *)
-      &(lp_cs_variant_key_samplers(key)[key->nr_samplers]);
+      &(lp_cs_variant_key_samplers(key)[MAX2(key->nr_samplers, key->nr_sampler_views)]);
 }
 
 struct lp_cs_variant_list_item
 {
+   struct list_head list;
    struct lp_compute_shader_variant *base;
-   struct lp_cs_variant_list_item *next, *prev;
 };
 
 struct lp_compute_shader_variant
@@ -114,6 +114,7 @@ struct lp_compute_shader {
    unsigned no;
    unsigned variants_created;
    unsigned variants_cached;
+   bool zero_initialize_shared_memory;
 
    int max_global_buffers;
    struct pipe_resource **global_buffers;
@@ -149,7 +150,7 @@ struct lp_cs_context {
       struct pipe_image_view current;
    } images[LP_MAX_TGSI_SHADER_IMAGES];
 
-   void *input;
+   const void *input;
 };
 
 struct lp_cs_context *lp_csctx_create(struct pipe_context *pipe);

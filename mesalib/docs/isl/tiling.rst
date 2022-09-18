@@ -320,7 +320,7 @@ are relatively expensive in hardware while interleaving bits in a well-defined
 pattern is practically free. For a format that has more than one byte per
 element, you simply chop bits off the bottom of the pattern, hard-code them to
 0, and adjust bit indices as needed.  For a 128-bit format, for instance, the
-Y-tiled pattern becomes u_2 u_1 u_0 v_4 v_3 v_2 v_1 v_0.  The Sky Lake PRM
-Vol. 5 in the section "2D Surfaces" contains an expanded version of the above
-table (which we will not repeat here) that also includes the bit patterns for
-the Ys and Yf tiling formats.
+Y-tiled pattern becomes :math:`u_2 u_1 u_0 v_4 v_3 v_2 v_1 v_0`.  The Sky Lake
+PRM Vol. 5 in the section "2D Surfaces" contains an expanded version of the
+above table (which we will not repeat here) that also includes the bit patterns
+for the Ys and Yf tiling formats.

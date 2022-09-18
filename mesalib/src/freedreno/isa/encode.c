@@ -33,6 +33,8 @@
 struct bitset_params;
 
 struct encode_state {
+	unsigned gen;
+
 	struct ir3_compiler *compiler;
 
 	/**
@@ -306,6 +308,17 @@ __cat3_src_case(struct encode_state *s, struct ir3_register *reg)
 	}
 }
 
+typedef enum {
+   STC_DST_IMM,
+   STC_DST_A1
+} stc_dst_t;
+
+static inline stc_dst_t
+__stc_dst_case(struct encode_state *s, struct ir3_instruction *instr)
+{
+   return (instr->flags & IR3_INSTR_A1EN) ? STC_DST_A1 : STC_DST_IMM;
+}
+
 #include "encode.h"
 
 
@@ -321,6 +334,7 @@ isa_assemble(struct ir3_shader_variant *v)
 	foreach_block (block, &shader->block_list) {
 		foreach_instr (instr, &block->instr_list) {
 			struct encode_state s = {
+				.gen = shader->compiler->gen * 100,
 				.compiler = shader->compiler,
 				.instr = instr,
 			};

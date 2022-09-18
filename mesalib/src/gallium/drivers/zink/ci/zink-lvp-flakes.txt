@@ -1,4 +1,25 @@
 dEQP-GLES2.functional.texture.filtering.cube.nearest_linear_mirror_l8_pot
 spec@khr_debug@push-pop-group_gl.*
-glx@glx-multi-window-single-context
-KHR-GL46.shader_storage_buffer_object.advanced-write-tessellation
+
+# "Pending expose event- rerunning."
+#  exit status: signal: 11"
+glx@glx-copy-sub-buffer samples=2
+
+# "free(): invalid next size (fast)"
+# since it's heap corruption, it may or may not appear in a particular run
+spec@arb_compute_variable_group_size@local-size
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/jobs/20908454
+# "X connection to :99 broken (explicit kill or server shutdown)."
+glx@glx-multi-context-ib-1
+
+# depth visuals
+glx@glx-visuals-depth
+glx@glx-visuals-stencil
+
+# mysterious
+glx@glx-shader-sharing
+
+spec@arb_fragment_program@no-newline
+# glx-destroycontext-1: ../../src/xcb_conn.c:215: write_vec: Assertion `!c->out.queue_len' failed.
+glx@glx-destroycontext-1

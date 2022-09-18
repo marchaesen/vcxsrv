@@ -38,7 +38,7 @@ endif
 per_version_libs = []
 foreach ver : v3d_versions
   per_version_libs += static_library(
-    'libbroadcom-v' + ver,
+    'broadcom-v' + ver,
     [
       files('clif/v3dx_dump.c'),
       v3d_xml_pack
@@ -69,7 +69,7 @@ libv3d_neon = static_library(
 )
 
 libbroadcom_v3d = static_library(
-  'libbroadcom_v3d',
+  'broadcom_v3d',
   [
     files('common/v3d_debug.c', 'common/v3d_device_info.c', 'clif/clif_dump.c', 'common/v3d_util.c'),
     v3d_xml_pack,

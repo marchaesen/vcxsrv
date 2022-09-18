@@ -76,6 +76,10 @@
 
 /** Maximum Name stack depth */
 #define MAX_NAME_STACK_DEPTH 64
+/** Name stack buffer size */
+#define NAME_STACK_BUFFER_SIZE 2048
+/** Maximum name stack result number */
+#define MAX_NAME_STACK_RESULT_NUM 256
 
 /** Minimum point size */
 #define MIN_POINT_SIZE 1.0

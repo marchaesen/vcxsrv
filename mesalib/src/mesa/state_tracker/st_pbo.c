@@ -414,7 +414,7 @@ create_fs(struct st_context *st, bool download,
    const nir_shader_compiler_options *options =
       st_get_nir_compiler_options(st, MESA_SHADER_FRAGMENT);
    bool pos_is_sysval =
-      screen->get_param(screen, PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL);
+      screen->get_param(screen, PIPE_CAP_FS_POSITION_IS_SYSVAL);
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, options,
                                                   download ?
@@ -667,8 +667,8 @@ st_init_pbo_helpers(struct st_context *st)
    st->pbo.rgba_only =
       screen->get_param(screen, PIPE_CAP_BUFFER_SAMPLER_VIEW_RGBA_ONLY);
 
-   if (screen->get_param(screen, PIPE_CAP_TGSI_INSTANCEID)) {
-      if (screen->get_param(screen, PIPE_CAP_TGSI_VS_LAYER_VIEWPORT)) {
+   if (screen->get_param(screen, PIPE_CAP_VS_INSTANCEID)) {
+      if (screen->get_param(screen, PIPE_CAP_VS_LAYER_VIEWPORT)) {
          st->pbo.layers = true;
       } else if (screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES) >= 3 &&
                  screen->get_shader_param(screen, PIPE_SHADER_GEOMETRY,
@@ -690,7 +690,13 @@ st_init_pbo_helpers(struct st_context *st)
    memset(&st->pbo.raster, 0, sizeof(struct pipe_rasterizer_state));
    st->pbo.raster.half_pixel_center = 1;
 
-   if (st->allow_compute_based_texture_transfer)
+   const char *pbo = debug_get_option("MESA_COMPUTE_PBO", NULL);
+   if (pbo) {
+      st->force_compute_based_texture_transfer = true;
+      st->force_specialized_compute_transfer = !strncmp(pbo, "spec", 4);
+   }
+
+   if (st->allow_compute_based_texture_transfer || st->force_compute_based_texture_transfer)
       st->pbo.shaders = _mesa_hash_table_create_u32_keys(NULL);
 }
 
@@ -739,9 +745,5 @@ st_destroy_pbo_helpers(struct st_context *st)
       st->pbo.vs = NULL;
    }
 
-   if (st->pbo.shaders) {
-      hash_table_foreach(st->pbo.shaders, entry)
-         st->pipe->delete_compute_state(st->pipe, entry->data);
-      _mesa_hash_table_destroy(st->pbo.shaders, NULL);
-   }
+   st_pbo_compute_deinit(st);
 }

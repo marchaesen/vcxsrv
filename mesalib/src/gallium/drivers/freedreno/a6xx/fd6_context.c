@@ -88,7 +88,7 @@ fd6_vertex_state_create(struct pipe_context *pctx, unsigned num_elements,
       enum pipe_format pfmt = elem->src_format;
       enum a6xx_format fmt = fd6_vertex_format(pfmt);
       bool isint = util_format_is_pure_integer(pfmt);
-      debug_assert(fmt != FMT6_NONE);
+      assert(fmt != FMT6_NONE);
 
       OUT_RING(ring, A6XX_VFD_DECODE_INSTR_IDX(elem->vertex_buffer_index) |
                         A6XX_VFD_DECODE_INSTR_OFFSET(elem->src_offset) |

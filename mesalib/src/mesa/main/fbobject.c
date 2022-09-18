@@ -512,6 +512,7 @@ driver_RenderTexture_is_safe(const struct gl_renderbuffer_attachment *att)
       att->Texture->Image[att->CubeMapFace][att->TextureLevel];
 
    if (!texImage ||
+       !texImage->pt ||
        texImage->Width == 0 || texImage->Height == 0 || texImage->Depth == 0)
       return false;
 
@@ -691,45 +692,6 @@ _mesa_FramebufferRenderbuffer_sw(struct gl_context *ctx,
 
    simple_mtx_unlock(&fb->Mutex);
 }
-
-
-/**
- * Fallback for ctx->Driver.ValidateFramebuffer()
- * Check if the renderbuffer's formats are supported by the software
- * renderer.
- * Drivers should probably override this.
- */
-void
-_mesa_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
-{
-   gl_buffer_index buf;
-   for (buf = 0; buf < BUFFER_COUNT; buf++) {
-      const struct gl_renderbuffer *rb = fb->Attachment[buf].Renderbuffer;
-      if (rb) {
-         switch (rb->_BaseFormat) {
-         case GL_ALPHA:
-         case GL_LUMINANCE_ALPHA:
-         case GL_LUMINANCE:
-         case GL_INTENSITY:
-         case GL_RED:
-         case GL_RG:
-            fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED;
-            return;
-
-         default:
-            switch (rb->Format) {
-            /* XXX This list is likely incomplete. */
-            case MESA_FORMAT_R9G9B9E5_FLOAT:
-               fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED;
-               return;
-            default:;
-               /* render buffer format is supported by software rendering */
-            }
-         }
-      }
-   }
-}
-
 
 /**
  * Return true if the framebuffer has a combined depth/stencil
@@ -1328,7 +1290,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    fb->_HasSNormOrFloatColorBuffer = GL_FALSE;
    fb->_HasAttachments = true;
    fb->_IntegerBuffers = 0;
-   fb->_RGBBuffers = 0;
+   fb->_BlendForceAlphaToOne = 0;
    fb->_FP32Buffers = 0;
 
    /* Start at -2 to more easily loop over all attachment points.
@@ -1489,8 +1451,10 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          if (_mesa_is_format_integer_color(attFormat))
             fb->_IntegerBuffers |= (1 << i);
 
-         if (baseFormat == GL_RGB)
-            fb->_RGBBuffers |= (1 << i);
+         if ((baseFormat == GL_RGB && ctx->st->needs_rgb_dst_alpha_override) ||
+             (baseFormat == GL_LUMINANCE && !util_format_is_luminance(attFormat)) ||
+             (baseFormat == GL_INTENSITY && !util_format_is_intensity(attFormat)))
+            fb->_BlendForceAlphaToOne |= (1 << i);
 
          if (type == GL_FLOAT && _mesa_get_format_max_bits(attFormat) > 16)
             fb->_FP32Buffers |= (1 << i);
@@ -3836,7 +3800,8 @@ check_textarget(struct gl_context *ctx, int dims, GLenum target,
       err = dims != 2;
       break;
    case GL_TEXTURE_3D:
-      err = dims != 3;
+      err = dims != 3 ||
+            (ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D);
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
@@ -5383,6 +5348,16 @@ static void
 discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
                     GLsizei numAttachments, const GLenum *attachments)
 {
+   GLenum depth_att, stencil_att;
+
+   if (_mesa_is_user_fbo(fb)) {
+      depth_att = GL_DEPTH_ATTACHMENT;
+      stencil_att = GL_STENCIL_ATTACHMENT;
+   } else {
+      depth_att = GL_DEPTH;
+      stencil_att = GL_STENCIL;
+   }
+
    for (int i = 0; i < numAttachments; i++) {
       struct gl_renderbuffer_attachment *att =
             get_fb_attachment(ctx, fb, attachments[i]);
@@ -5395,12 +5370,12 @@ discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
        * DiscardFramebuffer if the attachments list includes both depth
        * and stencil and they both point at the same renderbuffer.
        */
-      if ((attachments[i] == GL_DEPTH_ATTACHMENT ||
-           attachments[i] == GL_STENCIL_ATTACHMENT) &&
+      if ((attachments[i] == depth_att ||
+           attachments[i] == stencil_att) &&
           (!att->Renderbuffer ||
            att->Renderbuffer->_BaseFormat == GL_DEPTH_STENCIL)) {
-         GLenum other_format = (attachments[i] == GL_DEPTH_ATTACHMENT ?
-                                GL_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT);
+         GLenum other_format = (attachments[i] == depth_att ?
+                                stencil_att : depth_att);
          bool has_both = false;
          for (int j = 0; j < numAttachments; j++) {
             if (attachments[j] == other_format) {

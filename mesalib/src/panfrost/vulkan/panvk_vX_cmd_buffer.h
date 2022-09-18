@@ -36,16 +36,9 @@ void
 panvk_per_arch(cmd_close_batch)(struct panvk_cmd_buffer *cmdbuf);
 
 
-#if PAN_ARCH <= 5
-void
-panvk_per_arch(cmd_get_polygon_list)(struct panvk_cmd_buffer *cmdbuf,
-                                     unsigned width, unsigned height,
-                                     bool has_draws);
-#else
 void
 panvk_per_arch(cmd_get_tiler_context)(struct panvk_cmd_buffer *cmdbuf,
                                       unsigned width, unsigned height);
-#endif
 
 void
 panvk_per_arch(cmd_alloc_fb_desc)(struct panvk_cmd_buffer *cmdbuf);

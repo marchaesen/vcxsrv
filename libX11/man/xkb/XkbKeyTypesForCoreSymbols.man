@@ -37,22 +37,22 @@ symbols bound to a key in a core keyboard mapping
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description in which to place symbols
 .TP
-.I \- map_width
+.I map_width
 width of core protocol keymap in xkb_syms_rtrn
 .TP
-.I \- core_syms
+.I core_syms
 core protocol format array of KeySyms
 .TP
-.I \- protected
+.I protected
 explicit key types
 .TP
-.I \- types_inout
+.I types_inout
 backfilled with the canonical types bound to groups one and two for the key
 .TP
-.I \- xkb_syms_rtrn
+.I xkb_syms_rtrn
 backfilled with symbols bound to the key in the Xkb mapping
 .SH DESCRIPTION
 .LP

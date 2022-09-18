@@ -30,13 +30,13 @@ XkbSetDetectableAutoRepeat \- Sets DetectableAutoRepeat
 .BI "Bool *" "supported_rtrn" "\^);"
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- detectable
+.I detectable
 True => set DetectableAutoRepeat
 .TP
-.I \- supported_rtrn
+.I supported_rtrn
 backfilled True if DetectableAutoRepeat supported
 .SH DESCRIPTION
 .LP

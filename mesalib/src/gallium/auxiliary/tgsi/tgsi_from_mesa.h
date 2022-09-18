@@ -61,38 +61,19 @@ tgsi_get_interp_mode(enum glsl_interp_mode mode, bool color);
 static inline enum pipe_shader_type
 pipe_shader_type_from_mesa(gl_shader_stage stage)
 {
-   switch (stage) {
-   case MESA_SHADER_VERTEX:
-      return PIPE_SHADER_VERTEX;
-   case MESA_SHADER_TESS_CTRL:
-      return PIPE_SHADER_TESS_CTRL;
-   case MESA_SHADER_TESS_EVAL:
-      return PIPE_SHADER_TESS_EVAL;
-   case MESA_SHADER_GEOMETRY:
-      return PIPE_SHADER_GEOMETRY;
-   case MESA_SHADER_FRAGMENT:
-      return PIPE_SHADER_FRAGMENT;
-   case MESA_SHADER_COMPUTE:
-   case MESA_SHADER_KERNEL:
-      return PIPE_SHADER_COMPUTE;
-   default:
-      unreachable("bad shader stage");
-   }
+   STATIC_ASSERT((enum pipe_shader_type) MESA_SHADER_VERTEX == PIPE_SHADER_VERTEX);
+   STATIC_ASSERT((enum pipe_shader_type) MESA_SHADER_FRAGMENT == PIPE_SHADER_FRAGMENT);
+   STATIC_ASSERT((enum pipe_shader_type) MESA_SHADER_TESS_CTRL == PIPE_SHADER_TESS_CTRL);
+   STATIC_ASSERT((enum pipe_shader_type) MESA_SHADER_TESS_EVAL == PIPE_SHADER_TESS_EVAL);
+   STATIC_ASSERT((enum pipe_shader_type) MESA_SHADER_GEOMETRY == PIPE_SHADER_GEOMETRY);
+   STATIC_ASSERT((enum pipe_shader_type) MESA_SHADER_COMPUTE == PIPE_SHADER_COMPUTE);
+   return (enum pipe_shader_type)stage;
 }
 
 static inline gl_shader_stage
 tgsi_processor_to_shader_stage(unsigned processor)
 {
-   switch (processor) {
-   case PIPE_SHADER_FRAGMENT:  return MESA_SHADER_FRAGMENT;
-   case PIPE_SHADER_VERTEX:    return MESA_SHADER_VERTEX;
-   case PIPE_SHADER_GEOMETRY:  return MESA_SHADER_GEOMETRY;
-   case PIPE_SHADER_TESS_CTRL: return MESA_SHADER_TESS_CTRL;
-   case PIPE_SHADER_TESS_EVAL: return MESA_SHADER_TESS_EVAL;
-   case PIPE_SHADER_COMPUTE:   return MESA_SHADER_COMPUTE;
-   default:
-      unreachable("invalid TGSI processor");
-   }
+   return (gl_shader_stage)processor;
 }
 
 #ifdef __cplusplus

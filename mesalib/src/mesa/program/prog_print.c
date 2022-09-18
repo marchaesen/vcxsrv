@@ -51,8 +51,6 @@ _mesa_register_file_name(gl_register_file f)
    switch (f) {
    case PROGRAM_TEMPORARY:
       return "TEMP";
-   case PROGRAM_ARRAY:
-      return "ARRAY";
    case PROGRAM_INPUT:
       return "INPUT";
    case PROGRAM_OUTPUT:
@@ -65,22 +63,10 @@ _mesa_register_file_name(gl_register_file f)
       return "UNIFORM";
    case PROGRAM_ADDRESS:
       return "ADDR";
-   case PROGRAM_SAMPLER:
-      return "SAMPLER";
    case PROGRAM_SYSTEM_VALUE:
       return "SYSVAL";
    case PROGRAM_UNDEFINED:
       return "UNDEFINED";
-   case PROGRAM_IMMEDIATE:
-      return "IMM";
-   case PROGRAM_BUFFER:
-      return "BUFFER";
-   case PROGRAM_MEMORY:
-      return "MEMORY";
-   case PROGRAM_IMAGE:
-      return "IMAGE";
-   case PROGRAM_HW_ATOMIC:
-      return "HWATOMIC";
    default:
       {
          static char s[20];

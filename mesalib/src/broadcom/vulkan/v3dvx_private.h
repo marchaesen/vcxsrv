@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Raspberry Pi
+ * Copyright © 2021 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -73,6 +73,9 @@ void
 v3dX(job_emit_binning_prolog)(struct v3dv_job *job,
                               const struct v3dv_frame_tiling *tiling,
                               uint32_t layers);
+
+void
+v3dX(job_emit_enable_double_buffer)(struct v3dv_job *job);
 
 void
 v3dX(cmd_buffer_execute_inside_pass)(struct v3dv_cmd_buffer *primary,
@@ -190,14 +193,14 @@ v3dX(meta_emit_copy_image_to_buffer_rcl)(struct v3dv_job *job,
                                          struct v3dv_buffer *buffer,
                                          struct v3dv_image *image,
                                          struct v3dv_meta_framebuffer *framebuffer,
-                                         const VkBufferImageCopy2KHR *region);
+                                         const VkBufferImageCopy2 *region);
 
 void
 v3dX(meta_emit_resolve_image_rcl)(struct v3dv_job *job,
                                   struct v3dv_image *dst,
                                   struct v3dv_image *src,
                                   struct v3dv_meta_framebuffer *framebuffer,
-                                  const VkImageResolve2KHR *region);
+                                  const VkImageResolve2 *region);
 
 void
 v3dX(meta_emit_copy_buffer)(struct v3dv_job *job,
@@ -224,7 +227,7 @@ v3dX(meta_emit_copy_image_rcl)(struct v3dv_job *job,
                                struct v3dv_image *dst,
                                struct v3dv_image *src,
                                struct v3dv_meta_framebuffer *framebuffer,
-                               const VkImageCopy2KHR *region);
+                               const VkImageCopy2 *region);
 
 void
 v3dX(meta_emit_tfu_job)(struct v3dv_cmd_buffer *cmd_buffer,
@@ -264,7 +267,7 @@ v3dX(meta_emit_copy_buffer_to_image_rcl)(struct v3dv_job *job,
                                          struct v3dv_image *image,
                                          struct v3dv_buffer *buffer,
                                          struct v3dv_meta_framebuffer *framebuffer,
-                                         const VkBufferImageCopy2KHR *region);
+                                         const VkBufferImageCopy2 *region);
 
 void
 v3dX(get_internal_type_bpp_for_image_aspects)(VkFormat vk_format,
@@ -278,7 +281,7 @@ v3dX(meta_copy_buffer)(struct v3dv_cmd_buffer *cmd_buffer,
                        uint32_t dst_offset,
                        struct v3dv_bo *src,
                        uint32_t src_offset,
-                       const VkBufferCopy2KHR *region);
+                       const VkBufferCopy2 *region);
 
 void
 v3dX(meta_fill_buffer)(struct v3dv_cmd_buffer *cmd_buffer,
@@ -300,6 +303,7 @@ v3dX(pipeline_pack_state)(struct v3dv_pipeline *pipeline,
                           const VkPipelineDepthStencilStateCreateInfo *ds_info,
                           const VkPipelineRasterizationStateCreateInfo *rs_info,
                           const VkPipelineRasterizationProvokingVertexStateCreateInfoEXT *pv_info,
+                          const VkPipelineRasterizationLineStateCreateInfoEXT *ls_info,
                           const VkPipelineMultisampleStateCreateInfo *ms_info);
 void
 v3dX(pipeline_pack_compile_state)(struct v3dv_pipeline *pipeline,

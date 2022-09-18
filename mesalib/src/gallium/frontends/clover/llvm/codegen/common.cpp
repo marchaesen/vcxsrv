@@ -30,6 +30,7 @@
 /// understood by pipe drivers.
 ///
 
+#include <llvm/IR/Type.h>
 #include <llvm/Support/Allocator.h>
 
 #include "llvm/codegen.hpp"
@@ -203,7 +204,7 @@ namespace {
             // Other types.
             const auto actual_type =
                isa< ::llvm::PointerType>(arg_type) && arg.hasByValAttr() ?
-               cast< ::llvm::PointerType>(arg_type)->getElementType() : arg_type;
+               cast< ::llvm::PointerType>(arg_type)->getPointerElementType() : arg_type;
 
             if (actual_type->isPointerTy()) {
                const unsigned address_space =
@@ -214,7 +215,7 @@ namespace {
                            static_cast<unsigned>(clang::LangAS::opencl_local);
                if (address_space == map[offset]) {
                   const auto pointee_type = cast<
-                     ::llvm::PointerType>(actual_type)->getElementType();
+                     ::llvm::PointerType>(actual_type)->getPointerElementType();
                   args.emplace_back(binary::argument::local, arg_api_size,
                                     target_size,
                                     dl.getABITypeAlignment(pointee_type),

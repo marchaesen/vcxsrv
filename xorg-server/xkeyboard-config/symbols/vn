@@ -73,7 +73,7 @@ xkb_symbols "fr" {
 
     include "fr(basic)"
 
-    name[Group1]="Vietnamese (French)";
+    name[Group1]="Vietnamese (France)";
 
     key <AE02> { [dead_tilde,          2,             eacute,          asciitilde ] };
     key <AE04> { [dead_acute,          4,         apostrophe,           braceleft ] };

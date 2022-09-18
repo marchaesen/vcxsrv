@@ -41,6 +41,12 @@
     <value name="Decr Wrap" value="7"/>
   </enum>
 
+  <enum name="Visibility Mode">
+    <value name="None" value="0"/>
+    <value name="Counting" value="2"/>
+    <value name="Boolean" value="3"/>
+  </enum>
+
   <enum name="Polygon Mode">
     <value name="Fill" value="0"/>
     <value name="Line" value="1"/>
@@ -59,10 +65,21 @@
     <value name="Quad strip" value="15"/> <!-- guess, confirm with piglit later XXX -->
   </enum>
 
+  <enum name="Object Type">
+    <value name="Triangle" value="0"/>
+    <value name="Line" value="1"/>
+    <value name="Point sprite UV=10" value="2"/>
+    <value name="Point sprite UV=01" value="4"/>
+  </enum>
+
   <enum name="Layout">
     <value name="Linear" value="0"/>
-    <!-- Morton order with 64x64 tiles -->
-    <value name="Tiled 64x64" value="2"/>
+    <!-- Default layout if no other layout is set -->
+    <value name="Null" value="1"/>
+    <!-- Morton order -->
+    <value name="Twiddled" value="2"/>
+    <!-- With a metadata buffer -->
+    <value name="Compressed" value="3"/>
   </enum>
 
   <enum name="Channels">
@@ -95,20 +112,22 @@
     <value name="EAC R11" value="0x5B"/>
     <value name="EAC RG11" value="0x5C"/>
 
-    <value name="ASTC 4x4 LDR" value="0x60"/>
-    <value name="ASTC 5x4 LDR" value="0x61"/>
-    <value name="ASTC 5x5 LDR" value="0x62"/>
-    <value name="ASTC 6x5 LDR" value="0x63"/>
-    <value name="ASTC 6x6 LDR" value="0x64"/>
-    <value name="ASTC 8x5 LDR" value="0x65"/>
-    <value name="ASTC 8x6 LDR" value="0x66"/>
-    <value name="ASTC 8x8 LDR" value="0x67"/>
-    <value name="ASTC 10x5 LDR" value="0x68"/>
-    <value name="ASTC 10x6 LDR" value="0x69"/>
-    <value name="ASTC 10x8 LDR" value="0x6A"/>
-    <value name="ASTC 10x10 LDR" value="0x6B"/>
-    <value name="ASTC 12x10 LDR" value="0x6C"/>
-    <value name="ASTC 12x12 LDR" value="0x6D"/>
+    <!-- For LDR use with UNORM/no-sRGB, for sRGB use with UNORM/sRGB, for HDR
+         use with FLOAT/no-sRGB -->
+    <value name="ASTC 4x4" value="0x60"/>
+    <value name="ASTC 5x4" value="0x61"/>
+    <value name="ASTC 5x5" value="0x62"/>
+    <value name="ASTC 6x5" value="0x63"/>
+    <value name="ASTC 6x6" value="0x64"/>
+    <value name="ASTC 8x5" value="0x65"/>
+    <value name="ASTC 8x6" value="0x66"/>
+    <value name="ASTC 8x8" value="0x67"/>
+    <value name="ASTC 10x5" value="0x68"/>
+    <value name="ASTC 10x6" value="0x69"/>
+    <value name="ASTC 10x8" value="0x6A"/>
+    <value name="ASTC 10x10" value="0x6B"/>
+    <value name="ASTC 12x10" value="0x6C"/>
+    <value name="ASTC 12x12" value="0x6D"/>
 
     <value name="BC1" value="0x74"/>
     <value name="BC2" value="0x75"/>
@@ -129,25 +148,25 @@
     <value name="XR" value="5"/>
   </enum>
 
-  <struct name="Varying header" size="4">
-    <field name="Triangle slots" size="8" start="0:0" type="uint"/>
-    <field name="Point slots" size="8" start="0:8" type="uint"/>
+  <struct name="CF binding header" size="4">
+    <field name="Number of 32-bit slots" size="8" start="0:0" type="uint"/>
+    <field name="Number of coefficient registers" size="8" start="0:8" type="uint"/>
   </struct>
 
-  <enum name="Varying Type">
-    <value name="Flat (first)" value="0"/>
-    <value name="Flat (last)" value="2"/>
-    <value name="Fragcoord W" value="3"/>
-    <value name="Smooth" value="7"/>
-    <value name="Fragcoord Z" value="11"/>
-    <value name="Point coordinates" value="19"/>
+  <enum name="Shade model">
+    <value name="Flat vertex 0" value="0"/>
+    <value name="Flat vertex 2" value="2"/>
+    <value name="Gouraud" value="3"/>
   </enum>
 
-  <struct name="Varying" size="4">
+  <struct name="CF binding" size="4">
     <field name="Components" size="2" start="0" type="uint" modifier="minus(1)"/>
-    <field name="Type" size="6" start="2" type="Varying Type" default="Smooth"/>
-    <field name="Triangle slot" size="8" start="8" type="uint"/>
-    <field name="Point slot" size="8" start="16" type="uint"/>
+    <field name="Shade model" size="2" start="2" type="Shade model"/>
+    <field name="Perspective" size="1" start="4" type="bool"/>
+    <field name="Fragcoord Z" size="1" start="5" type="bool"/>
+    <field name="Point sprite" size="1" start="6" type="bool"/>
+    <field name="Base slot" size="8" start="8" type="uint"/>
+    <field name="Base coefficient register" size="8" start="16" type="uint"/>
   </struct>
 
   <struct name="Format" size="2">
@@ -155,7 +174,7 @@
     <field name="Type" size="3" start="7" type="Texture Type"/>
   </struct>
 
-  <struct name="Render Target" size="16">
+  <struct name="Render Target" size="24">
     <field name="Unknown" size="4" start="0" type="hex" default="0x2"/>
     <field name="Layout" size="2" start="4" type="Layout"/>
     <field name="Format" size="10" start="6" type="Pixel Format"/>
@@ -168,22 +187,45 @@
     <field name="Unk 52" size="1" start="52" type="bool"/>
     <field name="Rotate 90" size="1" start="53" type="bool" default="false"/>
     <field name="Flip vertical" size="1" start="54" type="bool" default="false"/>
-    <field name="Unk 55" size="9" start="55" type="hex"/>
+    <!-- not 1c0, tried setting . setting 0x20/0x10/0x8 breaks render. not
+    0x4/0x2. 0x1 distorts in a funny way, renders upside-down with jitter
+    around the edges (like it's doing a 2x2 tiling or something).
+
+    When enabling mipmapping, Metal sets 0x8 and sets stride to 0x100009 -->
+    <field name="Unk 55" size="9" start="55" type="hex" default="0x00"/>
     <field name="Buffer" size="36" start="64" type="address" modifier="shr(4)"/>
     <!-- N.b. sRGB is not specified here -->
-    <!-- Off by 4? -->
-    <field name="Stride" size="24" start="104" type="hex" prefix="AGX_RT_STRIDE">
-      <value name="Tiled" value="0x100000"/>
-    </field>
+    <field name="Level" size="4" start="100" type="uint"/>
+
+    <!-- If layout is not linear -->
+    <field name="Levels" size="6" start="104" type="uint" modifier="minus(1)"/>
+    <field name="Unk tiled" size="1" start="124" type="bool"/>
+
+    <!-- If layout is linear. Off by 4? -->
+    <field name="Stride" size="24" start="104" type="hex"/>
+
+    <!-- If layout is compressed -->
+    <field name="Acceleration buffer" size="64" start="128" type="address"/>
   </struct>
 
   <enum name="Texture dimension">
+    <value name="1D" value="0"/>
+    <value name="1D Array" value="1"/>
     <value name="2D" value="2"/>
+    <value name="2D Array" value="3"/>
+    <value name="2D Multisampled" value="4"/>
+    <value name="3D" value="5"/>
     <value name="Cube" value="6"/>
+    <value name="Cube Array" value="7"/>
+    <value name="2D Array Multisampled" value="8"/>
   </enum>
 
-  <!-- Payloads follow, right-shifted by 4 because of course -->
-  <struct name="Texture" size="16">
+  <enum name="Sample Count">
+    <value name="2" value="0"/>
+    <value name="4" value="1"/>
+  </enum>
+
+  <struct name="Texture" size="24">
     <field name="Dimension" size="4" start="0" type="Texture dimension" default="2D"/>
     <field name="Layout" size="2" start="4" type="Layout"/>
     <field name="Format" size="10" start="6" type="Pixel Format"/>
@@ -193,16 +235,23 @@
     <field name="Swizzle A" size="3" start="25" type="Channel" default="A"/>
     <field name="Width" size="14" start="28" type="uint" modifier="minus(1)"/>
     <field name="Height" size="14" start="42" type="uint" modifier="minus(1)"/>
-    <field name="Levels" size="6" start="60" type="uint" modifier="minus(1)"/>
+    <field name="First level" size="4" start="56" type="uint"/>
+    <field name="Last level" size="4" start="60" type="uint"/>
+    <field name="Samples" size="1" start="64" type="Sample Count"/>
     <field name="Address" size="36" start="66" type="hex" modifier="shr(4)"/>
     <!-- Unknown bit set by Metal when mipmapping. Might relate to a mechanism
     to switch tile size (or disable tiling altogether?) at small mip levels to
     reduce wasted memory due to padding. Causing test flakiness when set. -->
     <field name="Unk mipmapped" size="1" start="102" type="bool"/>
-    <field name="Compression" size="2" start="106" type="hex"/> <!-- 0 for 64x64 tiling -->
+    <!-- This is set when no texture is bound, with layout 1 -->
+    <field name="Null" size="1" start="105" type="bool"/>
+    <field name="Compression" size="2" start="106" type="hex"/> <!-- 0 for uncompressed -->
     <field name="sRGB" size="1" start="108" type="bool"/>
-    <field name="Unk 2" size="1" start="109" type="bool"/>
+    <field name="sRGB 2-channel" size="1" start="109" type="bool"/>
     <field name="Stride" size="18" start="110" type="hex" modifier="shr(4)"/>
+    <!-- Note that 3D/arrays cannot be linear. -->
+    <field name="Depth" size="14" start="110" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Unk tiled" size="1" start="126" type="bool"/>
   </struct>
 
   <enum name="Wrap">
@@ -225,8 +274,8 @@
   </enum>
 
   <struct name="Sampler" size="8">
-    <field name="Unk 1" size="2" start="17" type="hex" default="3"/>
-    <field name="Unk 2" size="1" start="19" type="bool" default="true"/>
+    <field name="Minimum LOD" size="10" start="0" type="lod" default="0.0"/>
+    <field name="Maximum LOD" size="10" start="10" type="lod" default="INFINITY"/>
     <field name="Magnify linear" size="1" start="23" type="bool"/>
     <field name="Minify linear" size="1" start="25" type="bool"/>
     <field name="Mip filter" size="2" start="27" type="Mip filter"/>
@@ -239,33 +288,6 @@
     <field name="Border colour" size="2" start="55" type="Border colour"/>
   </struct>
 
-  <!--- Identified by tag? -->
-  <struct name="Viewport" size="40">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0xc00"/>
-
-    <!-- Acts like a scissor at 32x32 tile boundaries, ignored unless clip tile is set -->
-    <field name="Max tile X" size="9" start="1:0" type="uint" modifier="minus(1)"/>
-    <field name="Min tile X" size="9" start="1:16" type="uint"/>
-    <field name="Clip tile" size="1" start="1:31" type="bool"/>
-    <field name="Max tile Y" size="9" start="2:0" type="uint" modifier="minus(1)"/>
-    <field name="Min tile Y" size="9" start="2:16" type="uint"/>
-
-    <!-- Used to convert clip space coordinates to NDC, does not clip -->
-    <field name="Translate X" size="32" start="4:0" type="float"/>
-    <field name="Scale X" size="32" start="5:0" type="float"/>
-    <field name="Translate Y" size="32" start="6:0" type="float"/>
-    <field name="Scale Y" size="32" start="7:0" type="float"/>
-
-    <!-- Specifies an affine transformation from clip coordinates to viewport
-    depth coordinates. For APIs with clip coordinates [0, 1], this cooresponds
-    to near z and (far z - near z) respectively. In general, given clip
-    coordinate z_in, the viewport depth is given as (z_in * scale_z) +
-    translate_z.  For example, the default [0, 1] depth buffer in OpenGL with
-    [-1, +1] clip coordinates is specified as scale = 1/2, bias = 1/2 -->
-    <field name="Translate Z" size="32" start="8:0" type="float"/>
-    <field name="Scale Z" size="32" start="9:0" type="float"/>
-  </struct>
-
   <!--- Pointed to from the command buffer -->
   <struct name="Scissor" size="16">
     <field name="Max X" size="16" start="0:0" type="uint"/>
@@ -276,100 +298,201 @@
     <field name="Max Z" size="32" start="3:0" type="float"/>
   </struct>
 
-  <struct name="Rasterizer face" size="8">
-    <field name="Stencil reference" size="8" start="0:0" type="hex"/>
+  <!-- Note: this structure is not padded. It really is 12 bytes -->
+  <struct name="Depth bias" size="12">
+    <field name="Depth bias" size="32" start="0:0" type="float"/>
+    <field name="Slope scale" size="32" start="1:0" type="float"/>
+    <field name="Clamp" size="32" start="2:0" type="float"/>
+  </struct>
+
+  <!-- PPP state starts -->
+  <struct name="PPP Header" size="4">
+    <field name="Fragment control" size="1" start="0" type="bool"/>
+    <field name="Fragment control 2" size="1" start="1" type="bool"/>
+    <field name="Fragment front face" size="1" start="2" type="bool"/>
+    <field name="Fragment front face 2" size="1" start="3" type="bool"/>
+    <field name="Fragment front stencil" size="1" start="4" type="bool"/>
+    <field name="Fragment back face" size="1" start="5" type="bool"/>
+    <field name="Fragment back face 2" size="1" start="6" type="bool"/>
+    <field name="Fragment back stencil" size="1" start="7" type="bool"/>
+    <field name="Depth bias/scissor" size="1" start="8" type="bool"/>
+    <field name="Region clip" size="1" start="10" type="bool"/>
+    <field name="Viewport" size="1" start="11" type="bool"/>
+    <field name="W clamp" size="1" start="16" type="bool"/>
+    <field name="Output select" size="1" start="17" type="bool"/>
+    <field name="Varying word 0" size="1" start="18" type="bool"/>
+    <field name="Varying word 1" size="1" start="19" type="bool"/>
+    <field name="Cull" size="1" start="21" type="bool"/>
+    <field name="Cull 2" size="1" start="22" type="bool"/>
+    <field name="Fragment shader" size="1" start="23" type="bool"/>
+    <field name="Occlusion query" size="1" start="24" type="bool"/>
+    <field name="Occlusion query 2" size="1" start="25" type="bool"/>
+    <field name="Output unknown" size="1" start="26" type="bool"/>
+    <field name="Output size" size="1" start="27" type="bool"/>
+    <field name="Varying word 2" size="1" start="28" type="bool"/>
+  </struct>
+
+  <!-- Acts like a scissor at 32x32 tile boundaries, ignored unless clip tile is set -->
+  <struct name="Region clip" size="12">
+    <field name="Max X" size="9" start="0" type="uint" modifier="minus(1)"/>
+    <field name="Min X" size="9" start="16" type="uint"/>
+    <field name="Enable" size="1" start="31" type="bool"/>
+    <field name="Max Y" size="9" start="32" type="uint" modifier="minus(1)"/>
+    <field name="Min Y" size="9" start="48" type="uint"/>
+  </struct>
+
+  <!-- Used to convert clip space coordinates to NDC, does not clip -->
+  <struct name="Viewport" size="24">
+    <field name="Translate X" size="32" start="0:0" type="float"/>
+    <field name="Scale X" size="32" start="1:0" type="float"/>
+    <field name="Translate Y" size="32" start="2:0" type="float"/>
+    <field name="Scale Y" size="32" start="3:0" type="float"/>
+    <field name="Translate Z" size="32" start="4:0" type="float"/>
+    <field name="Scale Z" size="32" start="5:0" type="float"/>
+  </struct>
+
+  <struct name="Fragment face" size="4">
+    <field name="Stencil reference" size="8" start="0" type="hex"/>
     <!-- line width is 4:4 fixed point with off-by-one applied -->
-    <field name="Line width" size="8" start="0:8" type="hex"/>
-    <field name="Polygon mode" size="2" start="0:18" type="Polygon Mode"/>
-    <field name="Disable depth write" size="1" start="0:21" type="bool"/>
-    <field name="Depth function" size="3" start="0:24" type="ZS Func"/>
-    <field name="Stencil write mask" size="8" start="1:0" type="hex"/>
-    <field name="Stencil read mask" size="8" start="1:8" type="hex"/>
-    <field name="Depth pass" size="3" start="1:16" type="Stencil Op"/>
-    <field name="Depth fail" size="3" start="1:19" type="Stencil Op"/>
-    <field name="Stencil fail" size="3" start="1:22" type="Stencil Op"/>
-    <field name="Stencil compare" size="3" start="1:25" type="ZS Func"/>
+    <field name="Line width" size="8" start="8" type="hex"/>
+    <field name="Polygon mode" size="2" start="18" type="Polygon Mode"/>
+    <field name="Disable depth write" size="1" start="21" type="bool"/>
+    <field name="Unk - visibility test internal" size="2" start="22" type="hex"/>
+    <field name="Depth function" size="3" start="24" type="ZS Func"/>
   </struct>
 
-  <struct name="Rasterizer" size="28">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0x10000b5"/>
-    <field name="Unk 1" size="1" start="1:9" type="hex" default="0x1"/>
-    <field name="Scissor enable" size="1" start="1:16" type="bool"/>
-    <field name="Unk ZS" size="1" start="1:18" type="hex" default="0x1"/>
-    <field name="Unk 2" size="2" start="1:19" type="hex" default="0x0"/>
-    <field name="Unk fill lines" size="1" start="1:26" type="hex" default="0x0"/> <!-- set when drawing LINES -->
-    <field name="Front" size="64" start="2:0" type="Rasterizer face"/>
-    <field name="Back" size="64" start="4:0" type="Rasterizer face"/>
+  <struct name="Fragment face 2" size="4">
+    <field name="Unknown" size="8" start="20" type="hex" default="0x7e"/>
+    <field name="Object type" size="4" start="28" type="Object Type"/>
   </struct>
 
-  <struct name="Unknown face" size="4">
-    <field name="Unknown" size="8" start="0:20" type="hex" default="0x7e"/>
-    <field name="Lines" size="1" start="0:28" type="bool"/>
-    <field name="Points" size="1" start="0:30" type="bool"/>
+  <struct name="Fragment stencil" size="4">
+    <field name="Write mask" size="8" start="0" type="hex"/>
+    <field name="Read mask" size="8" start="8" type="hex"/>
+    <field name="Depth pass" size="3" start="16" type="Stencil Op"/>
+    <field name="Depth fail" size="3" start="19" type="Stencil Op"/>
+    <field name="Stencil fail" size="3" start="22" type="Stencil Op"/>
+    <field name="Compare" size="3" start="25" type="ZS Func"/>
   </struct>
 
-  <struct name="Unknown 4a" size="20">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0x200004a"/>
-    <field name="Unk 1" size="1" start="1:9" type="bool" default="true"/>
-    <field name="Lines or points" size="1" start="1:26" type="bool"/>
-    <field name="Reads tilebuffer" size="1" start="1:29" type="bool"/>
-    <field name="Sample mask from shader" size="1" start="1:30" type="bool"/>
-    <field name="Front" size="32" start="2:0" type="Unknown face"/>
-    <field name="Back" size="32" start="3:0" type="Unknown face"/>
-    <!-- maybe sample mask -->
-    <field name="Unk 4" size="32" start="4:0" type="hex" default="0x1ffff"/>
+  <struct name="Fragment control" size="4">
+    <field name="Unk 1" size="1" start="9" type="hex" default="0x1"/>
+    <field name="Visibility mode" size="2" start="14" type="Visibility Mode"/>
+    <field name="Scissor enable" size="1" start="16" type="bool"/>
+    <field name="Depth bias enable" size="1" start="17" type="bool"/>
+    <field name="Stencil test enable" size="1" start="18" type="bool"/>
+    <field name="Two-sided stencil" size="1" start="19" type="bool"/>
+    <field name="Unk fill lines" size="1" start="26" type="hex" default="0x0"/> <!-- set when drawing LINES -->
   </struct>
 
-  <struct name="Cull" size="8">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0x200000"/>
-    <field name="Cull front" size="1" start="1:0" type="bool"/>
-    <field name="Cull back" size="1" start="1:1" type="bool"/>
-    <field name="Unk GL 1" size="1" start="1:7" type="bool"/>
-    <field name="Unk GL 2" size="1" start="1:8" type="bool"/>
-    <field name="Depth clip" size="1" start="1:10" type="bool"/>
-    <field name="Depth clamp" size="1" start="1:11" type="bool"/>
-    <field name="Front face CCW" size="1" start="1:16" type="bool"/>
+  <struct name="Fragment control 2" size="4">
+    <field name="Unk 1" size="1" start="9" type="bool" default="true"/>
+    <!-- Or discards? -->
+    <field name="No colour output" size="1" start="21" type="bool"/>
+    <field name="Lines or points" size="1" start="26" type="bool"/>
+    <field name="Reads tilebuffer" size="1" start="29" type="bool"/>
+    <field name="Sample mask from shader" size="1" start="30" type="bool"/>
   </struct>
 
-  <struct name="Interpolation" size="20">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0x100C0000"/>
-    <field name="Varying count" size="32" start="1:0" type="uint"/>
+  <struct name="Fragment occlusion query" size="4">
+    <field name="Offset" size="18" start="14" type="uint"/>
   </struct>
 
-  <struct name="Linkage" size="16">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0xC020000"/>
-    <field name="Unk 1" size="32" start="1:0" type="hex" default="0x100"/>
-    <field name="Unk 2" size="32" start="2:0" type="hex" default="0x0"/>
-    <field name="Varying count" size="32" start="3:0" type="uint"/>
+  <struct name="Fragment occlusion query 2" size="4">
+    <field name="Unknown" size="17" start="0" type="hex"/>
   </struct>
 
-  <!-- Indexes into the array of scissor descriptors -->
-  <struct name="Set scissor" size="8">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0x100"/>
-    <field name="Index" size="32" start="1:0" type="uint"/>
+  <struct name="W Clamp" size="4">
+    <field name="W Clamp" size="32" start="0" type="float"/>
   </struct>
+
+  <struct name="Cull" size="4">
+    <field name="Cull front" size="1" start="0" type="bool"/>
+    <field name="Cull back" size="1" start="1" type="bool"/>
+    <field name="Unk GL 1" size="1" start="7" type="bool"/>
+    <field name="Unk GL 2" size="1" start="8" type="bool"/>
+    <field name="Depth clip" size="1" start="10" type="bool"/>
+    <field name="Depth clamp" size="1" start="11" type="bool"/>
+    <field name="Front face CCW" size="1" start="16" type="bool"/>
+  </struct>
+
+  <struct name="Cull 2" size="4">
+    <field name="Unknown 2" size="32" start="0" type="hex" default="0xa0"/>
+  </struct>
+
+  <struct name="Varying 0" size="4">
+    <field name="Count" size="32" start="0" type="uint"/>
+  </struct>
+
+  <struct name="Varying 1" size="4">
+    <!-- TODO -->
+  </struct>
+
+  <struct name="Varying 2" size="8">
+    <!-- TODO -->
+  </struct>
+
+  <struct name="Output Select" size="4">
+    <field name="Varyings" size="1" start="16" type="bool"/>
+    <field name="Point size" size="1" start="18" type="bool"/>
+    <field name="Frag coord Z" size="1" start="21" type="bool"/>
+  </struct>
+
+  <struct name="Output Unknown" size="4">
+    <!-- So far always zero -->
+  </struct>
+
+  <struct name="Output Size" size="4">
+    <field name="Count" size="32" start="0" type="uint"/>
+  </struct>
+
+  <!-- Indexes into the scissor and depth bias arrays -->
+  <struct name="Depth bias/Scissor" size="4">
+    <field name="Scissor" size="16" start="0" type="uint"/>
+    <field name="Depth bias" size="16" start="16" type="uint"/>
+  </struct>
+
+  <struct name="Fragment shader" size="16">
+    <!-- 4 if more than 32 textures bound -->
+    <field name="Unk 1" size="4" start="0:0" type="hex" default="0x2"/>
+    <field name="Groups of 8 immediate textures" start="0:4" size="3" type="uint"/>
+    <field name="Groups of 4 samplers" start="0:9" size="3" type="uint"/>
+    <!-- When more than 48 textures bound, switches to 0x8, unk1 switches to
+    0x6, and some funny sort of bindless access(?) is used in the shader -->
+    <field name="Unk 2" size="4" start="0:12" type="hex" default="0x1"/>
+    <field name="CF binding count" size="8" start="0:16" type="uint" default="0"/>
+    <field name="Padding 1" size="8" start="0:24" type="hex" default="0x0"/>
+    <field name="Pipeline" size="32" start="1:0" type="address"/>
+    <field name="CF bindings" size="32" start="2:0" type="address"/>
+    <field name="More than 4 textures" start="3:0" size="1" type="bool"/>
+  </struct>
+
+  <!-- PPP state ends -->
 
   <!--- Commands valid within a pipeline -->
   <struct name="Bind uniform" size="8">
     <field name="Tag" size="8" start="0:0" type="hex" default="0x1d"/>
     <field name="Start (halfs)" size="8" start="0:8" type="uint"/>
     <field name="Unk" size="4" start="0:16" type="hex" default="0x0"/>
-    <field name="Size (halfs)" size="4" start="0:20" type="uint"/>
-    <field name="Buffer" size="40" start="0:24" type="address"/>
+    <!-- Exact split is unknown. -->
+    <field name="Size (halfs)" size="7" start="0:20" type="uint"/>
+    <field name="Buffer" size="36" start="0:27" type="address" modifier="shr(3)"/>
   </struct>
 
   <struct name="Bind texture" size="8">
     <field name="Tag" size="8" start="0:0" type="hex" default="0xdd"/>
     <field name="Start" size="8" start="0:8" type="uint"/>
-    <field name="Count" size="4" start="0:20" type="uint"/>
-    <field name="Buffer" size="40" start="0:24" type="address"/>
+    <!-- Exact split is unknown. Count is at least 5 bits. Less than 8 bits. -->
+    <field name="Count" size="7" start="0:20" type="uint"/>
+    <field name="Buffer" size="36" start="0:27" type="address" modifier="shr(3)"/>
   </struct>
 
   <struct name="Bind sampler" size="8">
     <field name="Tag" size="8" start="0:0" type="hex" default="0x9d"/>
     <field name="Start" size="8" start="0:8" type="uint"/>
-    <field name="Count" size="4" start="0:20" type="uint"/>
-    <field name="Buffer" size="40" start="0:24" type="address"/>
+    <field name="Count" size="7" start="0:20" type="uint"/>
+    <!-- Exact split is unknown. -->
+    <field name="Buffer" size="36" start="0:27" type="address" modifier="shr(3)"/>
   </struct>
 
   <enum name="Preshader mode">
@@ -381,18 +504,22 @@
     <field name="Tag" size="8" start="0:0" type="hex" default="0x4d"/>
     <field name="Unk 1" size="24" start="0:8" type="hex" default="0x90"/>
     <field name="Unk 2" size="8" start="1:0" type="hex" default="0x0d"/> <!-- TODO differs with stage -->
+    <!--- Seemingly texture count related?,
+          or number of registers in the preshader? 8 with <4 in the preshader,
+          12 with more than that?
+          -->
     <field name="Unk 2b" size="8" start="1:8" type="uint" default="4"/>
     <field name="Code" size="32" start="1:16" type="address"/>
     <field name="Unk 3" size="8" start="2:16" type="hex" default="0x8d"/>
     <field name="Register quadwords" size="5" start="2:24" type="uint"/> <!-- 0 for max -->
-    <field name="Unk 3b" size="3" start="2:29" type="hex" default="0x0"/>
+    <field name="Has fragment parameters" size="1" start="2:29" type="bool" default="false"/>
     <field name="Spill size" size="8" start="3:0" type="hex" default="0"/> <!-- TODO: determine relation, see docs/table.py -->
     <field name="Unk 4" size="12" start="3:8" type="hex" default="0x801"/>
     <field name="Preshader mode" size="4" start="3:20" type="Preshader mode" default="No preshader"/>
     <field name="Unk 6" size="8" start="3:24" type="hex" default="0x0"/>
     <field name="Preshader unk" size="16" start="4:0" type="hex" default="0x0"/>
     <field name="Preshader code" size="32" start="4:16" type="address"/>
-    <field name="Unk 7" size="16" start="5:16" type="hex" default="0x0"/> <!-- blob is inconsistent -->
+    <field name="Unk 7" size="16" start="5:16" type="hex" default="0x0"/> <!-- garbage? -->
   </struct>
 
   <struct name="Fragment Parameters" size="4">
@@ -401,18 +528,22 @@
         discard_fragment) -->
     <field name="Early-z testing" size="1" start="24" type="bool"/>
     <field name="Unk 2" size="1" start="25" type="bool" default="true"/>
+    <field name="Unconditional discard 1" size="1" start="26" type="bool"/>
+    <field name="Unconditional discard 2" size="1" start="27" type="bool"/>
     <field name="Unk 3" size="4" start="28" type="hex" default="0xf"/>
   </struct>
 
-  <struct name="Set shader extended" size="32">
+  <struct name="Set shader extended" size="28">
     <field name="Tag" size="8" start="0:0" type="hex" default="0x4d"/>
     <field name="Unk 1" size="24" start="0:8" type="hex" default="0x2010bd"/>
     <field name="Unk 2" size="8" start="1:0" type="hex" default="0x0d"/>
-    <field name="Unk 2b" size="8" start="1:8" type="uint" default="5"/> <!-- 1 for other frag, 5 with discard? -->
+    <field name="Loads varyings" size="1" start="1:8" type="bool"/>
+    <field name="Unk 1 9" size="1" start="1:9" type="bool" default="0"/>
+    <field name="Code size in 64 bytes" size="6" start="1:10" type="uint"/>
     <field name="Code" size="32" start="1:16" type="address"/>
     <field name="Unk 3" size="8" start="2:16" type="hex" default="0x28d"/>
     <field name="Register quadwords" size="5" start="2:24" type="uint"/> <!-- 0 for max -->
-    <field name="Unk 3b" size="3" start="2:29" type="hex" default="0x0"/>
+    <field name="Has fragment parameters" size="1" start="2:29" type="bool" default="true"/>
     <field name="Fragment parameters" size="32" start="3:0" type="Fragment Parameters"/>
     <field name="Spill size" size="8" start="4:0" type="hex" default="0"/> <!-- TODO: determine relation, see docs/table.py -->
     <field name="Unk 4" size="12" start="4:8" type="hex" default="0x801"/>
@@ -420,50 +551,23 @@
     <field name="Unk 6" size="8" start="4:24" type="hex" default="0x0"/>
     <field name="Preshader unk" size="16" start="5:0" type="hex" default="0x0"/>
     <field name="Preshader code" size="32" start="5:16" type="address"/>
-    <field name="Unk 7" size="16" start="6:16" type="hex" default="0x0"/> <!-- blob is inconsistent -->
-    <field name="Unk 8" size="32" start="7:0" type="hex" default="0x0"/> <!-- may not exist -->
+    <field name="Unk 7" size="16" start="6:16" type="hex" default="0x0"/> <!-- garbage? -->
   </struct>
 
-  <!--- Command to bind a vertex pipeline, followed by subcommands. Counts are
-	specified in 32-bit word units. Intepretation per-shader stage. -->
-  <struct name="Bind pipeline" size="24">
-    <field name="Tag" size="32" start="0:0" type="hex" default="0x4000002e">
-      <value name="AGX_BIND_PIPELINE_VERTEX" value="0x4000002e"/>
-      <value name="AGX_BIND_PIPELINE_FRAGMENT" value="0x800000"/>
-    </field>
-    <field name="Unk 1" size="4" start="1:0" type="hex" default="0x2"/>
-    <field name="Sampler count" start="1:4" size="5" type="uint"/>
-    <field name="Texture count" start="1:9" size="3" type="uint"/>
-    <field name="Unk 2" size="4" start="1:12" type="hex" default="0x1"/>
-    <field name="Input count" size="8" start="1:16" type="uint" default="0"/>
-    <field name="Padding 1" size="8" start="1:24" type="hex" default="0x0"/>
-    <field name="Pipeline" size="32" start="2:0" type="address"/>
+  <!-- VDM commands start. VDM commands are padded out to 8b alignment. -->
+  <enum name="VDM Block Type">
+    <value name="PPP State Update" value="0"/>
+    <value name="VDM State Update" value="2"/>
+    <value name="Index List" value="3"/>
+    <value name="Stream Link" value="4"/>
+    <value name="Stream terminate" value="6"/>
+  </enum>
 
-    <!-- Overlaps -->
-    <field name="FS Varyings" size="32" start="3:0" type="address"/>
-    <field name="VS Output count 1" size="8" start="3:0" type="uint" default="0"/>
-    <field name="VS Output count 2" size="8" start="3:8" type="uint" default="0"/>
-    <field name="Padding 2" size="16" start="3:16" type="hex" default="0x0"/>
-
-    <field name="Unk 3" size="32" start="5:0" type="address"/> <!-- C020000 -->
-  </struct>
-
-  <!-- Subcommands are packed inside sized records -->
-  <struct name="Record" size="8">
-    <field name="Pointer (hi)" size="8" start="0:0" type="hex"/>
-    <field name="Size (words)" size="8" start="0:8" type="uint"/>
-    <field name="Tag" size="16" start="0:16" type="hex" default="0x0000"/>
-    <field name="Pointer (lo)" size="32" start="0:32" type="address"/>
-  </struct>
-
-  <!--- Command to issue a direct non-indexed draw -->
-  <struct name="Draw" size="16">
-    <field name="Unk" size="8" start="0:0" type="hex" default="0x0"/>
-    <field name="Primitive" size="8" start="0:8" type="Primitive"/>
-    <field name="Command" size="16" start="0:16" type="hex" default="0x61c0"/>
-    <field name="Vertex count" size="32" start="1:0" type="uint"/>
-    <field name="Instance count" size="32" start="2:0" type="uint"/> <!-- must be nonzero -->
-    <field name="Vertex start" size="32" start="3:0" type="uint"/>
+  <struct name="PPP State" size="8">
+    <field name="Pointer (hi)" size="8" start="0" type="hex"/>
+    <field name="Size (words)" size="8" start="8" type="uint"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="PPP State Update"/>
+    <field name="Pointer (lo)" size="32" start="32" type="address"/>
   </struct>
 
   <enum name="Index size">
@@ -472,22 +576,104 @@
     <value name="U32" value="2"/>
   </enum>
 
-  <struct name="Indexed draw" size="32">
-    <field name="Unk 1" size="8" start="0:0" type="hex" default="0x1"/>
-    <field name="Command" size="24" start="0:8" type="hex" default="0x400000"/>
-    <field name="Restart index" size="32" start="1:0" type="hex"/>
-    <field name="Unk 2a" size="8" start="2:0" type="hex" default="0x15"/>
-    <field name="Primitive" size="8" start="2:8" type="Primitive"/>
-    <field name="Restart enable" size="1" start="2:16" type="bool"/> <!-- Metal sets this bit for strips -->
-    <field name="Index size" size="3" start="2:17" type="Index size"/>
-    <field name="Unk 2c" size="4" start="2:20" type="hex" default="0xF"/>
-    <field name="Unk 2d" size="8" start="2:24" type="hex" default="0x61"/>
-    <field name="Index buffer offset" size="32" start="3:0" type="hex"/>
-    <field name="Index count" size="32" start="4:0" type="uint"/>
-    <field name="Instance count" size="32" start="5:0" type="uint"/>
-    <field name="Base vertex" size="32" start="6:0" type="uint"/>
-    <field name="Index buffer size" size="32" start="7:0" type="uint" modifier="shr(2)"/>
+  <struct name="VDM State" size="4">
+    <field name="Restart index present" size="1" start="0" type="bool"/>
+    <field name="Vertex shader word 0 present" size="1" start="1" type="bool"/>
+    <field name="Vertex shader word 1 present" size="1" start="2" type="bool"/>
+    <field name="Vertex outputs present" size="1" start="3" type="bool"/>
+    <field name="Vertex unknown present" size="1" start="5" type="bool"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="VDM State Update"/>
   </struct>
+
+  <struct name="VDM State Restart Index" size="4">
+    <field name="Value" size="32" start="0" type="hex"/>
+  </struct>
+
+  <struct name="VDM State Vertex Shader Word 0" size="4">
+    <!-- 4 if more than 32 textures bound -->
+    <field name="Unk 1" size="4" start="0" type="hex" default="0x2"/>
+    <field name="Groups of 8 immediate textures" start="4" size="3" type="uint"/>
+    <field name="Groups of 4 samplers" start="9" size="3" type="uint"/>
+    <!-- When more than 48 textures bound, switches to 0x8, unk1 switches to
+    0x6, and some funny sort of bindless access(?) is used in the shader -->
+    <field name="Unk 2" size="4" start="12" type="hex" default="0x1"/>
+    <field name="Padding 1" size="8" start="24" type="hex" default="0x0"/>
+  </struct>
+
+  <struct name="VDM State Vertex Shader Word 1" size="4">
+    <field name="Pipeline" size="32" start="0" type="address"/>
+  </struct>
+
+  <struct name="VDM State Vertex Outputs" size="4">
+    <field name="Output count 1" size="8" start="0" type="uint" default="0"/>
+    <field name="Output count 2" size="8" start="8" type="uint" default="0"/>
+    <field name="Padding 2" size="16" start="16" type="hex" default="0x0"/>
+  </struct>
+
+  <struct name="VDM State Vertex Unknown" size="4">
+    <!-- XXX Probably not? -->
+    <field name="More than 4 textures" start="0" size="1" type="bool"/>
+  </struct>
+
+  <!--- Command to issue a direct non-indexed draw -->
+  <struct name="Index List" size="4">
+    <field name="Index buffer hi" size="8" start="0" type="hex"/>
+    <field name="Primitive" size="8" start="8" type="Primitive"/>
+    <!-- Metal sets this bit for strips, probably wrong though -->
+    <field name="Restart enable" size="1" start="16" type="bool"/> 
+    <field name="Index size" size="3" start="17" type="Index size"/>
+
+    <!-- XXX: Might be backwards, not sure how to check that -->
+    <field name="Index buffer present" size="1" start="20" type="bool"/>
+    <field name="Index buffer size present" size="1" start="21" type="bool"/>
+
+    <!-- XXX: Might be mixed up, not sure how to check that -->
+    <field name="Index count present" size="1" start="22" type="bool" default="true"/>
+    <field name="Instance count present" size="1" start="23" type="bool" default="true"/>
+    <field name="Start present" size="1" start="24" type="bool" default="true"/>
+
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Index List"/>
+  </struct>
+
+  <struct name="Index List: Buffer lo" size="4">
+    <!-- Index buffer lsb -->
+    <field name="Buffer lo" size="32" start="0" type="hex"/>
+  </struct>
+
+  <struct name="Index List: Count" size="4">
+    <!-- Vertex count for non-indexed, index count for index count -->
+    <field name="Count" size="32" start="0" type="uint"/>
+  </struct>
+
+  <struct name="Index List: Instances" size="4">
+    <field name="Count" size="32" start="0" type="uint"/> <!-- must be nonzero -->
+  </struct>
+
+  <struct name="Index List: Start" size="4">
+    <!-- Base vertex for indexed draws -->
+    <field name="Start" size="32" start="0" type="uint"/>
+  </struct>
+
+  <struct name="Index List: Buffer size" size="4">
+    <field name="Size" size="32" start="0" type="uint" modifier="shr(2)"/>
+  </struct>
+
+  <!-- Conditional branching and function calls may be supported, see the
+       STREAM_LINK0 struct in mesa/src/imagination/csbgen/rogue_vdm.xml for a
+       probable dfinition -->
+  <struct name="Stream Link" size="8">
+    <field name="Target hi" size="8" start="0" type="hex"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Stream Link"/>
+    <field name="Target lo" size="32" start="32" type="hex"/>
+  </struct>
+
+  <struct name="Stream Terminate" size="8">
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Stream Terminate"/>
+  </struct>
+
+  <!-- VDM commands end -->
+
+  <!-- CDM commands start -->
 
   <!--- Command to launch a direct compute kernel -->
   <struct name="Launch" size="36">
@@ -502,19 +688,23 @@
     <field name="Unk" size="32" start="8:0" type="hex" default="0x60000160"/>
   </struct>
 
+  <!-- CDM commands end -->
+
   <!--- The rest of this file is likely software defined by macOS kernel -->
   <enum name="IOGPU Attachment Type">
-    <value name="Colour" value="0xA"/>
-    <value name="Depth" value="0xC"/>
+    <value name="Colour" value="0xE"/>
+    <value name="Depth" value="0x10"/>
+    <value name="Stencil" value="0x11"/>
+    <value name="Visibility" value="0x12"/>
   </enum>
 
-  <struct name="IOGPU Header" size="192">
+  <struct name="IOGPU Header" size="640">
     <field name="Unk 0" start="0:0" size="32" default="0x10000" type="hex"/>
     <field name="Total size" start="1:0" size="32" type="uint"/>
-    <field name="Unk 2" start="2:0" size="32" default="0x7" type="hex"/>
-    <field name="Attachment offset 1" start="8:0" size="32" type="uint"/>
+    <!-- 0x7 in 11.x -->
+    <field name="Unk 2" start="2:0" size="32" default="0x4" type="hex"/>
     <field name="Attachment length" start="9:0" size="32" type="uint"/>
-    <field name="Attachment offset 2" start="10:0" size="32" type="uint"/>
+    <field name="Attachment offset" start="10:0" size="32" type="uint"/>
     <field name="Unknown offset" start="11:0" size="32" type="uint"/>
     <field name="Unk 4" start="12:0" size="32" default="0x30" type="hex"/>
     <field name="Unk 5" start="13:0" size="32" default="0x01" type="hex"/>
@@ -523,16 +713,119 @@
          geometry counts -->
     <field name="Deflake 1" start="38:0" size="64" type="address"/>
     <field name="Deflake 2" start="40:0" size="64" type="address"/>
+    <field name="Unk 54" start="54:0" size="32" default="0x6b0003" type="hex"/>
+    <field name="Unk 55" start="55:0" size="32" default="0x3a0012" type="hex"/>
+    <field name="Unk 56" start="56:0" size="32" default="0x1" type="hex"/>
+    <field name="Deflake 3" start="110:0" size="64" type="address"/>
+    <field name="Unk 112" start="112:0" size="32" default="0x1" type="hex"/>
+    <field name="Unk 114" start="114:0" size="32" default="0x1c" type="hex"/>
+    <field name="OpenGL depth clipping" start="116:24" size="1" type="bool"/>
+    <field name="Unk 118" start="118:0" size="32" default="0xffffffff" type="hex"/>
+    <field name="Unk 119" start="119:0" size="32" default="0xffffffff" type="hex"/>
+    <field name="Unk 120" start="120:0" size="32" default="0xffffffff" type="hex"/>
   </struct>
 
   <struct name="IOGPU Attachment" size="24">
     <field name="Unk 0" start="0:0" size="16" default="0x100" type="hex"/>
     <field name="Address" start="0:16" size="48" type="address"/>
     <field name="Type" start="2:16" size="16" type="IOGPU Attachment Type"/>
-    <field name="Size" start="3:16" size="32" type="uint"/>
+    <field name="Size" start="3:9" size="32" type="uint"/>
     <field name="Unk 3" start="4:16" size="4" type="hex" default="0xC"/>
     <!-- Percent of total attachment space used for this attachment, expressed
          in a decimal percentage [0, 100] <field name="Percent" start="5:16" -->
     <field name="Percent" start="5:16" size="16" type="uint"/>
   </struct>
+
+  <struct name="IOGPU Internal Pipelines" size="272">
+    <field name="Clear pipeline bind" start="2:0" size="32" type="hex"/>
+    <field name="Clear pipeline unk" start="4:0" size="4" default="4" type="hex"/>
+    <field name="Clear pipeline" start="4:4" size="28" type="address" modifier="shr(4)"/>
+    <field name="Store pipeline bind" start="10:0" size="32" type="hex"/>
+    <field name="Store pipeline unk" start="12:0" size="4" default="4" type="hex"/>
+    <field name="Store pipeline" start="12:4" size="28" type="address" modifier="shr(4)"/>
+    <field name="Scissor array" start="14:0" size="64" type="address"/>
+    <field name="Depth bias array" start="16:0" size="64" type="address"/>
+    <!-- 0xc0154 with depth clear and z32f and s8
+         0x40154 with z32f and s8
+         0x44 with z32f
+         0x4000044 with z16?
+    -->
+    <field name="Depth flags" start="20:0" size="32" type="hex"/>
+    <field name="Depth compression" start="20:6" size="1" type="bool"/>
+    <field name="Depth reload" start="20:15" size="1" type="bool"/>
+    <field name="Depth format 16 unorm" start="20:26" size="1" type="bool"/>
+    <field name="Depth width" start="26:0" size="15" type="uint" default="1" modifier="minus(1)"/>
+    <field name="Depth height" start="26:15" size="15" type="uint" default="1" modifier="minus(1)"/>
+    <field name="Depth buffer (if clearing)" start="28:0" size="64" type="address"/>
+    <field name="Depth acceleration buffer (if clearing)" start="34:0" size="64" type="address"/>
+    <!-- bytes unknown type 888F50 -->
+    <field name="Depth buffer" start="38:0" size="64" type="address"/>
+    <!-- 16384 bytes, initialized with 0x7F bytes -->
+    <field name="Depth acceleration buffer" start="44:0" size="64" type="address"/>
+    <field name="Stencil buffer" start="48:0" size="64" type="address"/>
+    <!--- 16384 bytes, initialized with 0x1F bytes -->
+    <field name="Stencil acceleration buffer" start="54:0" size="64" type="address"/>
+    <field name="Stencil buffer 2" start="58:0" size="64" type="address"/>
+    <field name="Stencil acceleration buffer 2" start="64:0" size="64" type="address"/>
+  </struct>
+
+  <struct name="IOGPU Aux Framebuffer" size="256">
+    <field name="Unk 0" start="0:0" size="32" default="0x4" type="hex"/>
+    <field name="Unk 1" start="2:0" size="16" default="0xc000" type="hex"/>
+    <field name="Z16 Unorm attachment" start="2:18" size="1" type="bool"/>
+    <field name="Width" start="4:0" size="32" type="uint"/>
+    <field name="Height" start="5:0" size="32" type="uint"/>
+    <field name="Pointer" start="6:0" size="64" type="address"/>
+  </struct>
+
+  <struct name="IOGPU Clear Z/S" size="256">
+    <!-- Encoded like the depth attachment -->
+    <field name="Depth clear value" start="0:0" size="32" type="hex"/>
+    <field name="Stencil clear value" start="1:0" size="8" type="uint"/>
+    <field name="Unk 1" start="1:8" size="8" type="hex" default="3"/>
+    <field name="Set when reloading Z or S 1" start="3:8" size="1" type="bool"/>
+    <field name="Set when reloading Z or S 2" start="4:24" size="1" type="bool"/>
+    <field name="Z16 Unorm attachment" start="5:8" size="1" type="bool"/>
+    <field name="Unk 3" start="6:0" size="32" type="hex" default="0xffffffff"/>
+    <field name="Unk 4" start="7:0" size="32" type="hex" default="0xffffffff"/>
+    <field name="Unk 5" start="8:0" size="32" type="hex" default="0xffffffff"/>
+    <field name="Visibility result buffer" start="10:0" size="64" type="address"/>
+    <field name="Partial reload pipeline bind" start="20:0" size="32" type="hex"/>
+    <field name="Partial reload pipeline unk" start="22:0" size="4" default="4" type="hex"/>
+    <field name="Partial reload pipeline" start="22:4" size="28" type="address" modifier="shr(4)"/>
+    <field name="Partial store pipeline bind" start="28:0" size="32" type="hex"/>
+    <field name="Partial store pipeline unk" start="30:0" size="4" default="4" type="hex"/>
+    <field name="Partial store pipeline" start="30:4" size="28" type="address" modifier="shr(4)"/>
+  </struct>
+
+  <struct name="IOGPU Misc" size="288">
+    <!-- New in 12.x -->
+    <field name="Depth buffer" start="0:0" size="64" type="address"/>
+    <field name="Depth acceleration buffer" start="2:0" size="64" type="address"/>
+    <field name="Stencil buffer" start="4:0" size="64" type="address"/>
+    <field name="Stencil acceleration buffer" start="6:0" size="64" type="address"/>
+    <!-- maybe only set when doing a depth clear? -->
+    <field name="Unk 8:0" start="12:0" size="32" default="0x1" type="hex"/>
+    <field name="Unk 16:0" start="20:0" size="32" default="0x1c" type="hex"/>
+    <field name="Encoder ID" start="22:0" size="32" type="hex"/>
+    <!-- top bit maybe only set with a depth clear? -->
+    <field name="Unk 21:0" start="25:0" size="64" default="0x1ffffffff" type="hex"/>
+    <field name="Unknown buffer" start="30:0" size="64" type="address"/>
+    <field name="Width" start="42:0" size="32" type="uint"/>
+    <field name="Height" start="43:0" size="32" type="uint"/>
+    <field name="Unk 32:0" start="44:0" size="32" default="1" type="uint"/>
+    <field name="Unk 33:0" start="45:0" size="32" default="8" type="uint"/>
+    <field name="Unk 34:0" start="46:0" size="32" default="8" type="uint"/>
+    <field name="Unk 49:0" start="61:0" size="32" default="8" type="uint"/>
+    <field name="Unk 50:0" start="62:0" size="32" default="32" type="uint"/>
+    <field name="Unk 51:0" start="63:0" size="32" default="32" type="uint"/>
+    <field name="Unk 52:0" start="64:0" size="32" default="1" type="uint"/>
+    <field name="Unk 56:0" start="68:0" size="32" default="0" type="uint"/>
+    <field name="Unk 70:0" start="70:0" size="32" default="1" type="uint"/>
+  </struct>
+
+  <struct name="IOGPU Attachment Count" size="16">
+    <field name="Count" start="3:0" size="32" type="uint"/>
+  </struct>
+
 </agxml>

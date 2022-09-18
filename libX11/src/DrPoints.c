@@ -49,12 +49,12 @@ XDrawPoints(
     FlushGC(dpy, gc);
     while (n_points) {
 	GetReq(PolyPoint, req);
-	req->drawable = d;
-	req->gc = gc->gid;
-	req->coordMode = mode;
+	req->drawable = (CARD32) d;
+	req->gc = (CARD32) gc->gid;
+	req->coordMode = (BYTE) mode;
 	n = n_points;
 	if (!dpy->bigreq_size && n > (dpy->max_request_size - req->length))
-	    n = dpy->max_request_size - req->length;
+	    n = (int) (dpy->max_request_size - req->length);
 	SetReqLen(req, n, n);
 	nbytes = ((long)n) << 2; /* watch out for macros... */
 	if (xoff || yoff) {

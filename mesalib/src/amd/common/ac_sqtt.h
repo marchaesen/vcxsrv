@@ -30,7 +30,6 @@
 #include <stdbool.h>
 
 #include <assert.h>
-#include "c11_compat.h"
 #include "ac_rgp.h"
 
 struct radeon_cmdbuf;
@@ -290,6 +289,14 @@ enum rgp_sqtt_marker_event_type
    EventInternalUnknown = 26,
    EventCmdDrawIndirectCount = 27,
    EventCmdDrawIndexedIndirectCount = 28,
+   /* gap */
+   EventCmdTraceRaysKHR = 30,
+   EventCmdTraceRaysIndirectKHR = 31,
+   EventCmdBuildAccelerationStructuresKHR = 32,
+   EventCmdBuildAccelerationStructuresIndirectKHR = 33,
+   EventCmdCopyAccelerationStructureKHR = 34,
+   EventCmdCopyAccelerationStructureToMemoryKHR = 35,
+   EventCmdCopyMemoryToAccelerationStructureKHR = 36,
    EventInvalid = 0xffffffff
 };
 

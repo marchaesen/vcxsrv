@@ -88,7 +88,14 @@ static const nir_shader_compiler_options sp_compiler_options = {
    .lower_rotate = true,
    .lower_uniforms_to_ubo = true,
    .lower_vector_cmp = true,
+   .lower_int64_options = nir_lower_imul_2x32_64,
+   .max_unroll_iterations = 32,
    .use_interpolated_input_intrinsics = true,
+
+   /* TGSI doesn't have a semantic for local or global index, just local and
+    * workgroup id.
+    */
+   .lower_cs_local_index_to_id = true,
 };
 
 static const void *
@@ -111,7 +118,6 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1;
    case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
    case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-   case PIPE_CAP_VERTEX_SHADER_SATURATE:
       return 1;
    case PIPE_CAP_ANISOTROPIC_FILTER:
       return 1;
@@ -145,10 +151,10 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1;
    case PIPE_CAP_INDEP_BLEND_FUNC:
       return 1;
-   case PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_TGSI_FS_COORD_ORIGIN_LOWER_LEFT:
-   case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
-   case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER:
+   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
+   case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
+   case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
+   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
       return 1;
    case PIPE_CAP_DEPTH_CLIP_DISABLE:
    case PIPE_CAP_DEPTH_BOUNDS_TEST:
@@ -173,8 +179,8 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1;
    case PIPE_CAP_SHADER_STENCIL_EXPORT:
       return 1;
-   case PIPE_CAP_TGSI_ATOMFADD:
-   case PIPE_CAP_TGSI_INSTANCEID:
+   case PIPE_CAP_IMAGE_ATOMIC_FLOAT_ADD:
+   case PIPE_CAP_VS_INSTANCEID:
    case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
    case PIPE_CAP_START_INSTANCE:
       return 1;
@@ -202,7 +208,7 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_USER_VERTEX_BUFFERS:
    case PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME:
    case PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS:
-   case PIPE_CAP_TGSI_VS_LAYER_VIEWPORT:
+   case PIPE_CAP_VS_LAYER_VIEWPORT:
    case PIPE_CAP_DOUBLES:
    case PIPE_CAP_INT64:
    case PIPE_CAP_INT64_DIVMOD:
@@ -217,7 +223,7 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1;
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return 1;
-   case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
+   case PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT:
       return 65536;
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
       return 16;
@@ -232,9 +238,9 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_GATHER_SM5:
    case PIPE_CAP_TEXTURE_QUERY_LOD:
       return 1;
-   case PIPE_CAP_TGSI_VS_WINDOW_SPACE_POSITION:
+   case PIPE_CAP_VS_WINDOW_SPACE_POSITION:
       return 1;
-   case PIPE_CAP_TGSI_FS_FINE_DERIVATIVE:
+   case PIPE_CAP_FS_FINE_DERIVATIVE:
       return 1;
    case PIPE_CAP_SAMPLER_VIEW_TARGET:
       return 1;
@@ -289,7 +295,7 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
    case PIPE_CAP_CULL_DISTANCE:
    case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
-   case PIPE_CAP_TGSI_ARRAY_COMPONENTS:
+   case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
    case PIPE_CAP_TGSI_TEXCOORD:
       return 1;
    case PIPE_CAP_CLEAR_TEXTURE:
@@ -303,7 +309,7 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 0;
    case PIPE_CAP_MAX_GS_INVOCATIONS:
       return 32;
-   case PIPE_CAP_MAX_SHADER_BUFFER_SIZE:
+   case PIPE_CAP_MAX_SHADER_BUFFER_SIZE_UINT:
       return 1 << 27;
    case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
       return 4;
@@ -413,8 +419,6 @@ softpipe_is_format_supported( struct pipe_screen *screen,
       return false;
 
    format_desc = util_format_description(format);
-   if (!format_desc)
-      return false;
 
    if (sample_count > 1)
       return false;

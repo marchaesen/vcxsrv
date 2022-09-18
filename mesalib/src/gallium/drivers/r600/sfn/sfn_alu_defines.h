@@ -27,6 +27,8 @@
 #ifndef r600_sfn_alu_defines_h
 #define r600_sfn_alu_defines_h
 
+#include "../r600_isa.h"
+
 #include <map>
 #include <bitset>
 
@@ -193,9 +195,9 @@ enum EAluOp {
    op1v_flt32_to_flt64 = 206,
    op2_sad_accum_prev_uint = 207,
    op2_dot = 208,
-   op2_mul_prev = 209,
-   op2_mul_ieee_prev = 210,
-   op2_add_prev = 211,
+   op1_mul_prev = 209,
+   op1_mul_ieee_prev = 210,
+   op1_add_prev = 211,
    op2_muladd_prev = 212,
    op2_muladd_ieee_prev = 213,
    op2_interp_xy = 214,
@@ -235,12 +237,71 @@ enum EAluOp {
    op3_cnde_int = 28<< 6,
    op3_cndgt_int = 29<< 6,
    op3_cndge_int = 30<< 6,
-   op3_mul_lit = 31<< 6
+   op3_mul_lit = 31<< 6,
+   op_invalid = 0xffff
 };
 
+enum AluModifiers {
+   alu_src0_neg,
+   alu_src0_abs,
+   alu_src0_rel,
+   alu_src1_neg,
+   alu_src1_abs,
+   alu_src1_rel,
+   alu_src2_neg,
+   alu_src2_rel,
+   alu_dst_clamp,
+   alu_dst_rel,
+   alu_last_instr,
+   alu_update_exec,
+   alu_update_pred,
+   alu_write,
+   alu_op3,
+   alu_is_trans,
+   alu_is_cayman_trans,
+   alu_is_lds,
+   alu_lds_group_start,
+   alu_lds_group_end,
+   alu_lds_address,
+   alu_no_schedule_bias,
+   alu_64bit_op,
+   alu_flag_count
+};
 
+enum AluDstModifiers {
+   omod_off = 0,
+   omod_mul2 = 1,
+   omod_mul4 = 2,
+   omod_divl2 = 3
+};
 
-using AluOpFlags=std::bitset<32>;
+enum AluPredSel {
+   pred_off = 0,
+   pred_zero = 2,
+   pred_one = 3
+};
+
+enum AluBankSwizzle {
+   alu_vec_012 = 0,
+   sq_alu_scl_201 = 0,
+   alu_vec_021 = 1,
+   sq_alu_scl_122 = 1,
+   alu_vec_120 = 2,
+   sq_alu_scl_212 = 2,
+   alu_vec_102 = 3,
+   sq_alu_scl_221 = 3,
+   alu_vec_201 = 4,
+   sq_alu_scl_unknown  = 4,
+   alu_vec_210 = 5,
+   alu_vec_unknown = 6
+};
+
+inline AluBankSwizzle operator ++(AluBankSwizzle& x) {
+   x = static_cast<AluBankSwizzle>(x + 1);
+   return x;
+}
+
+using AluOpFlags=std::bitset<alu_flag_count>;
 
 struct AluOp {
    static constexpr int x = 1;
@@ -251,18 +312,22 @@ struct AluOp {
    static constexpr int t = 16;
    static constexpr int a = 31;
 
-   AluOp(int ns, int f, int um, const char *n):
-      nsrc(ns), is_float(f), unit_mask(um), name(n)
+   AluOp(int ns, int f, uint8_t um_r600, uint8_t um_r700, uint8_t um_eg, const char *n):
+      nsrc(ns), is_float(f), name(n)
    {
+      unit_mask[0] = um_r600; 
+      unit_mask[1] = um_r700; 
+      unit_mask[2] = um_eg; 
    }
 
-   bool can_channel(int flags) const {
-      return flags & unit_mask;
+   bool can_channel(int flags, r600_chip_class unit_type) const {
+      assert(unit_type < 3); 
+      return flags & unit_mask[unit_type];
    }
 
    int nsrc: 4;
    int is_float:1;
-   int unit_mask: 5;
+   uint8_t unit_mask[3];
    const char *name;
 };
 
@@ -314,6 +379,8 @@ struct AluInlineConstantDescr {
 
 extern const std::map<AluInlineConstants, AluInlineConstantDescr> alu_src_const;
 
+#define LDSOP2(X) LDS_ ## X = LDS_OP2_LDS_ ## X
+
 enum ESDOp {
    DS_OP_ADD = 0,
    DS_OP_SUB = 1,
@@ -362,8 +429,30 @@ enum ESDOp {
    DS_OP_SHORT_READ_RET = 56,
    DS_OP_USHORT_READ_RET = 57,
    DS_OP_ATOMIC_ORDERED_ALLOC_RET = 63,
-   DS_OP_INVALID = 64
+   DS_OP_INVALID = 64,
+   LDSOP2(ADD_RET),
+   LDSOP2(ADD),
+   LDSOP2(AND_RET),
+   LDSOP2(AND),
+   LDSOP2(WRITE),
+   LDSOP2(OR_RET),
+   LDSOP2(OR),
+   LDSOP2(MAX_INT_RET),
+   LDSOP2(MAX_INT),
+   LDSOP2(MAX_UINT_RET),
+   LDSOP2(MAX_UINT),
+   LDSOP2(MIN_INT_RET),
+   LDSOP2(MIN_INT),
+   LDSOP2(MIN_UINT_RET),
+   LDSOP2(MIN_UINT),
+   LDSOP2(XOR_RET),
+   LDSOP2(XOR),
+   LDSOP2(XCHG_RET),
+   LDS_CMP_XCHG_RET = LDS_OP3_LDS_CMP_XCHG_RET,
+   LDS_WRITE_REL = LDS_OP3_LDS_WRITE_REL
 };
+
+#undef LDSOP2
 
 struct LDSOp {
    int nsrc;
@@ -371,6 +460,18 @@ struct LDSOp {
 };
 
 extern const std::map<ESDOp, LDSOp> lds_ops;
+
+struct KCacheLine {
+   int bank{0};
+   int addr{0};
+   int len{0};
+   enum KCacheLockMode {
+      free,
+      lock_1,
+      lock_2
+   } mode{free};
+};
+
 
 }
 

@@ -68,6 +68,21 @@ mesa_log_v(enum mesa_log_level, const char *tag, const char *format,
 #define mesa_logd_v(fmt, va) __mesa_log_use_args((fmt), (va))
 #endif
 
+#define mesa_log_once(level, fmt, ...)        \
+   do                                         \
+   {                                          \
+      static bool once;                       \
+      if (!once) {                            \
+         once = true;                         \
+         mesa_log(level, (MESA_LOG_TAG), fmt, ##__VA_ARGS__); \
+      }                                       \
+   } while (0)
+
+#define mesa_loge_once(fmt, ...) mesa_log_once(MESA_LOG_ERROR, fmt, ##__VA_ARGS__)
+#define mesa_logw_once(fmt, ...) mesa_log_once(MESA_LOG_WARN, fmt, ##__VA_ARGS__)
+#define mesa_logi_once(fmt, ...) mesa_log_once(MESA_LOG_INFO, fmt, ##__VA_ARGS__)
+#define mesa_logd_once(fmt, ...) mesa_log_once(MESA_LOG_DEBUG, fmt, ##__VA_ARGS__)
+
 struct log_stream {
    char *msg;
    const char *tag;

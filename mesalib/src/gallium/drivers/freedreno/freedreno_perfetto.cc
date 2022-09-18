@@ -23,7 +23,7 @@
 
 #include <perfetto.h>
 
-#include "util/u_perfetto.h"
+#include "util/perf/u_perfetto.h"
 
 #include "freedreno_tracepoints.h"
 
@@ -264,6 +264,9 @@ sync_timestamp(struct fd_context *ctx)
       return;
    }
 
+   /* get cpu timestamp again because FD_TIMESTAMP can take >100us */
+   cpu_ts = perfetto::base::GetBootTimeNs().count();
+
    /* convert GPU ts into ns: */
    gpu_ts = ctx->ts_to_ns(gpu_ts);
 
@@ -447,6 +450,54 @@ fd_end_resolve(struct pipe_context *pctx, uint64_t ts_ns,
                const struct trace_end_resolve *payload)
 {
    stage_end(pctx, ts_ns, RESOLVE_STAGE_ID);
+}
+
+void
+fd_start_state_restore(struct pipe_context *pctx, uint64_t ts_ns,
+                       const void *flush_data,
+                       const struct trace_start_state_restore *payload)
+{
+   stage_start(pctx, ts_ns, STATE_RESTORE_STAGE_ID);
+}
+
+void
+fd_end_state_restore(struct pipe_context *pctx, uint64_t ts_ns,
+                     const void *flush_data,
+                     const struct trace_end_state_restore *payload)
+{
+   stage_end(pctx, ts_ns, STATE_RESTORE_STAGE_ID);
+}
+
+void
+fd_start_vsc_overflow_test(struct pipe_context *pctx, uint64_t ts_ns,
+                           const void *flush_data,
+                           const struct trace_start_vsc_overflow_test *payload)
+{
+   stage_start(pctx, ts_ns, VSC_OVERFLOW_STAGE_ID);
+}
+
+void
+fd_end_vsc_overflow_test(struct pipe_context *pctx, uint64_t ts_ns,
+                         const void *flush_data,
+                         const struct trace_end_vsc_overflow_test *payload)
+{
+   stage_end(pctx, ts_ns, VSC_OVERFLOW_STAGE_ID);
+}
+
+void
+fd_start_prologue(struct pipe_context *pctx, uint64_t ts_ns,
+                  const void *flush_data,
+                  const struct trace_start_prologue *payload)
+{
+   stage_start(pctx, ts_ns, PROLOGUE_STAGE_ID);
+}
+
+void
+fd_end_prologue(struct pipe_context *pctx, uint64_t ts_ns,
+                const void *flush_data,
+                const struct trace_end_prologue *payload)
+{
+   stage_end(pctx, ts_ns, PROLOGUE_STAGE_ID);
 }
 
 #ifdef __cplusplus

@@ -175,19 +175,16 @@ si_nir_is_output_const_if_tex_is_const(nir_shader *shader, float *in, float *out
        util_bitcount64(shader->info.outputs_written) != 1)
       return false;
 
-   /* Clone the shader */
-   nir_shader *sh = nir_shader_clone(ralloc_parent(shader), shader);
-
    struct replace_param p;
    memcpy(p.value, in, 4 * sizeof(float));
    p.texunit = texunit;
 
    /* Test if the single store_output only depends on constants and a single texture op */
-   if (nir_shader_instructions_pass(sh, store_instr_depends_on_tex, nir_metadata_all, &p)) {
+   if (nir_shader_instructions_pass(shader, store_instr_depends_on_tex, nir_metadata_all, &p)) {
       assert(*p.texunit != -1);
 
       /* Replace nir_tex_instr using texunit by vec4(v) */
-      nir_shader_instructions_pass(sh, replace_tex_by_imm,
+      nir_shader_instructions_pass(shader, replace_tex_by_imm,
                                    nir_metadata_block_index |
                                    nir_metadata_dominance, &p);
 
@@ -195,20 +192,18 @@ si_nir_is_output_const_if_tex_is_const(nir_shader *shader, float *in, float *out
       bool progress;
       do {
          progress = false;
-         NIR_PASS(progress, sh, nir_copy_prop);
-         NIR_PASS(progress, sh, nir_opt_remove_phis);
-         NIR_PASS(progress, sh, nir_opt_dce);
-         NIR_PASS(progress, sh, nir_opt_dead_cf);
-         NIR_PASS(progress, sh, nir_opt_algebraic);
-         NIR_PASS(progress, sh, nir_opt_constant_folding);
+         NIR_PASS(progress, shader, nir_copy_prop);
+         NIR_PASS(progress, shader, nir_opt_remove_phis);
+         NIR_PASS(progress, shader, nir_opt_dce);
+         NIR_PASS(progress, shader, nir_opt_dead_cf);
+         NIR_PASS(progress, shader, nir_opt_algebraic);
+         NIR_PASS(progress, shader, nir_opt_constant_folding);
       } while (progress);
 
       /* Is the output a constant value? */
-      if (get_output_as_const_value(sh, out)) {
-         ralloc_free(sh);
+      if (get_output_as_const_value(shader, out))
          return true;
-      }
    }
-   ralloc_free(sh);
+
    return false;
 }

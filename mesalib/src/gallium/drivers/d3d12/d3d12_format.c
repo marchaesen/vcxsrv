@@ -24,6 +24,7 @@
 #include "d3d12_format.h"
 
 #include "pipe/p_format.h"
+#include "pipe/p_video_enums.h"
 #include "util/format/u_format.h"
 #include "util/u_math.h"
 #include "util/compiler.h"
@@ -139,6 +140,8 @@
    MAP_FORMAT_NO_TYPELESS(B5G6R5, UNORM) \
    MAP_FORMAT_NO_TYPELESS(B5G5R5A1, UNORM) \
    MAP_FORMAT2_NO_TYPELESS(B5G5R5X1, UNORM, B5G5R5A1, UNORM) \
+\
+   MAP_FORMAT_NO_TYPELESS(B4G4R4A4, UNORM) \
 \
    MAP_FORMAT2(DXT1, RGB, BC1, UNORM) \
    MAP_FORMAT2(DXT1, RGBA, BC1, UNORM) \
@@ -391,6 +394,15 @@ d3d12_emulated_vtx_format(enum pipe_format fmt)
    case PIPE_FORMAT_R16G16B16_UINT:
       return PIPE_FORMAT_R16G16B16A16_UINT;
 
+   case PIPE_FORMAT_R8G8B8A8_SSCALED:
+      return PIPE_FORMAT_R8G8B8A8_SINT;
+   case PIPE_FORMAT_R8G8B8A8_USCALED:
+      return PIPE_FORMAT_R8G8B8A8_UINT;
+   case PIPE_FORMAT_R16G16B16A16_SSCALED:
+      return PIPE_FORMAT_R16G16B16A16_SINT;
+   case PIPE_FORMAT_R16G16B16A16_USCALED:
+      return PIPE_FORMAT_R16G16B16A16_UINT;
+
    default:
       return fmt;
    }
@@ -414,6 +426,16 @@ d3d12_non_opaque_plane_count(DXGI_FORMAT format)
    case DXGI_FORMAT_NV11:
       return 2;
 
+   case DXGI_FORMAT_R24G8_TYPELESS:
+   case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+   case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+   case DXGI_FORMAT_D24_UNORM_S8_UINT:
+   case DXGI_FORMAT_R32G8X24_TYPELESS:
+   case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+   case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+   case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+      return 2;
+
    default:
       return 1;
    }
@@ -434,4 +456,56 @@ d3d12_get_format_num_planes(enum pipe_format fmt)
 {
    return util_format_is_depth_or_stencil(fmt) ?
       util_bitcount(util_format_get_mask(fmt)) : 1;
+}
+
+DXGI_FORMAT
+d3d12_convert_pipe_video_profile_to_dxgi_format(enum pipe_video_profile profile)
+{
+   switch (profile) {
+      case PIPE_VIDEO_PROFILE_MPEG4_AVC_BASELINE:
+      case PIPE_VIDEO_PROFILE_MPEG4_AVC_CONSTRAINED_BASELINE:
+      case PIPE_VIDEO_PROFILE_MPEG4_AVC_MAIN:
+      case PIPE_VIDEO_PROFILE_MPEG4_AVC_EXTENDED:
+      case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN:
+         return DXGI_FORMAT_NV12;
+      case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH10:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_10:
+         return DXGI_FORMAT_P010;
+      default:
+      {
+         unreachable("Unsupported pipe video profile");
+      } break;
+   }
+}
+
+DXGI_COLOR_SPACE_TYPE
+d3d12_convert_from_legacy_color_space(bool rgb, uint32_t bits_per_element, bool studio_rgb, bool p709, bool studio_yuv)
+{
+   if (rgb) {
+      if (bits_per_element > 32) {
+         // All 16 bit color channel data is assumed to be linear rather than SRGB
+         return DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+      } else {
+         if (studio_rgb) {
+            return DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P709;
+         } else {
+            return DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+         }
+      }
+   } else {
+      if (p709) {
+         if (studio_yuv) {
+            return DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P709;
+         } else {
+            return DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P709;
+         }
+      } else {
+         if (studio_yuv) {
+            return DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P601;
+         } else {
+            return DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P601;
+         }
+      }
+   }
 }

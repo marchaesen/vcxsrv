@@ -181,7 +181,8 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
       if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_sample ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_vertex) {
-         nir_src_copy(&element_intr->src[1], &intr->src[1]);
+         nir_src_copy(&element_intr->src[1], &intr->src[1],
+                      &element_intr->instr);
       }
 
       nir_ssa_def_rewrite_uses(&intr->dest.ssa,
@@ -189,7 +190,8 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
    } else {
       nir_intrinsic_set_write_mask(element_intr,
                                    nir_intrinsic_write_mask(intr));
-      nir_src_copy(&element_intr->src[1], &intr->src[1]);
+      nir_src_copy(&element_intr->src[1], &intr->src[1],
+                   &element_intr->instr);
    }
 
    nir_builder_instr_insert(b, &element_intr->instr);

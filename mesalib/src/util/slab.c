@@ -110,6 +110,7 @@ slab_create_parent(struct slab_parent_pool *parent,
    parent->element_size = ALIGN_POT(sizeof(struct slab_element_header) + item_size,
                                     sizeof(intptr_t));
    parent->num_elements = num_items;
+   parent->item_size = item_size;
 }
 
 void
@@ -228,6 +229,18 @@ slab_alloc(struct slab_child_pool *pool)
    SET_MAGIC(elt, SLAB_MAGIC_ALLOCATED);
 
    return &elt[1];
+}
+
+/**
+ * Same as slab_alloc but memset the returned object to 0.
+ */
+void *
+slab_zalloc(struct slab_child_pool *pool)
+{
+   void *r = slab_alloc(pool);
+   if (r)
+      memset(r, 0, pool->parent->item_size);
+   return r;
 }
 
 /**

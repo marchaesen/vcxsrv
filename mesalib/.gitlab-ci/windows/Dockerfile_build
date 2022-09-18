@@ -1,13 +1,11 @@
 # escape=`
 
-FROM mcr.microsoft.com/windows:1809
-
-# Make sure any failure in PowerShell scripts is fatal
-SHELL ["powershell", "-ExecutionPolicy", "RemoteSigned", "-Command", "$ErrorActionPreference = 'Stop';"]
-ENV ErrorActionPreference='Stop'
-
-COPY mesa_deps_vs2019.ps1 C:\
-RUN C:\mesa_deps_vs2019.ps1
+ARG base_image
+FROM ${base_image}
 
 COPY mesa_deps_build.ps1 C:\
 RUN C:\mesa_deps_build.ps1
+
+# When building, `--isolation=process` can leverage all cores and memory
+# docker build --isolation=process -f .\Dockerfile_build -t mesa_dep --build-arg base_image=mesa_vs .
+

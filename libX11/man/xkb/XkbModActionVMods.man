@@ -32,7 +32,7 @@ Xkb modifier description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action from which to extract virtual mods
 .SH DESCRIPTION
 .LP

@@ -1,0 +1,7 @@
+dEQP-VK.dynamic_rendering.basic.*
+dEQP-VK.api.copy_and_blit.copy_commands2.depth_stencil_msaa_copy.array_to_array.d32_sfloat_D_4_bit
+dEQP-VK.api.copy_and_blit.copy_commands2.depth_stencil_msaa_copy.array_to_array.d32_sfloat_D_8_bit
+dEQP-VK.api.copy_and_blit.core.depth_stencil_msaa_copy.array_to_array.d32_sfloat_D_4_bit
+dEQP-VK.api.copy_and_blit.core.depth_stencil_msaa_copy.array_to_array.d32_sfloat_D_8_bit
+dEQP-VK.api.copy_and_blit.dedicated_allocation.depth_stencil_msaa_copy.array_to_array.d32_sfloat_D_4_bit
+dEQP-VK.api.copy_and_blit.dedicated_allocation.depth_stencil_msaa_copy.array_to_array.d32_sfloat_D_8_bit

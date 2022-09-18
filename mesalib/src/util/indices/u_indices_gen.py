@@ -32,30 +32,30 @@ INTYPES = (GENERATE, UBYTE, USHORT, UINT)
 OUTTYPES = (USHORT, UINT)
 PVS=(FIRST, LAST)
 PRS=(PRDISABLE, PRENABLE)
-PRIMS=('points', 
-       'lines', 
-       'linestrip', 
-       'lineloop', 
-       'tris', 
-       'trifan', 
-       'tristrip', 
-       'quads', 
-       'quadstrip', 
+PRIMS=('points',
+       'lines',
+       'linestrip',
+       'lineloop',
+       'tris',
+       'trifan',
+       'tristrip',
+       'quads',
+       'quadstrip',
        'polygon',
        'linesadj',
        'linestripadj',
        'trisadj',
        'tristripadj')
 
-LONGPRIMS=('PIPE_PRIM_POINTS', 
-           'PIPE_PRIM_LINES', 
-           'PIPE_PRIM_LINE_STRIP', 
-           'PIPE_PRIM_LINE_LOOP', 
-           'PIPE_PRIM_TRIANGLES', 
-           'PIPE_PRIM_TRIANGLE_FAN', 
-           'PIPE_PRIM_TRIANGLE_STRIP', 
-           'PIPE_PRIM_QUADS', 
-           'PIPE_PRIM_QUAD_STRIP', 
+LONGPRIMS=('PIPE_PRIM_POINTS',
+           'PIPE_PRIM_LINES',
+           'PIPE_PRIM_LINE_STRIP',
+           'PIPE_PRIM_LINE_LOOP',
+           'PIPE_PRIM_TRIANGLES',
+           'PIPE_PRIM_TRIANGLE_FAN',
+           'PIPE_PRIM_TRIANGLE_STRIP',
+           'PIPE_PRIM_QUADS',
+           'PIPE_PRIM_QUAD_STRIP',
            'PIPE_PRIM_POLYGON',
            'PIPE_PRIM_LINES_ADJACENCY',
            'PIPE_PRIM_LINE_STRIP_ADJACENCY',
@@ -82,6 +82,7 @@ def prolog():
 #include "util/u_debug.h"
 #include "util/u_memory.h"
 
+#include "c99_compat.h"
 
 static unsigned out_size_idx( unsigned index_size )
 {
@@ -153,7 +154,7 @@ def do_line( intype, outtype, ptr, v0, v1, inpv, outpv ):
 def do_tri( intype, outtype, ptr, v0, v1, v2, inpv, outpv ):
     if inpv == outpv:
         tri( intype, outtype, ptr, v0, v1, v2 )
-    else: 
+    else:
         if inpv == FIRST:
             tri( intype, outtype, ptr, v1, v2, v0 )
         else:
@@ -409,20 +410,20 @@ def emit_funcs():
 
 def init(intype, outtype, inpv, outpv, pr, prim):
     if intype == GENERATE:
-        print ('generate[' + 
-               outtype_idx[outtype] + 
-               '][' + pv_idx[inpv] + 
-               '][' + pv_idx[outpv] + 
-               '][' + longprim[prim] + 
+        print ('generate[' +
+               outtype_idx[outtype] +
+               '][' + pv_idx[inpv] +
+               '][' + pv_idx[outpv] +
+               '][' + longprim[prim] +
                '] = ' + name( intype, outtype, inpv, outpv, pr, prim ) + ';')
     else:
-        print ('translate[' + 
-               intype_idx[intype] + 
-               '][' + outtype_idx[outtype] + 
-               '][' + pv_idx[inpv] + 
+        print ('translate[' +
+               intype_idx[intype] +
+               '][' + outtype_idx[outtype] +
+               '][' + pv_idx[inpv] +
                '][' + pv_idx[outpv] +
-               '][' + pr_idx[pr] + 
-               '][' + longprim[prim] + 
+               '][' + pr_idx[pr] +
+               '][' + longprim[prim] +
                '] = ' + name( intype, outtype, inpv, outpv, pr, prim ) + ';')
 
 
@@ -445,7 +446,7 @@ def emit_init():
     print('}')
 
 
-    
+
 
 def epilog():
     print('#include "indices/u_indices.c"')

@@ -32,7 +32,7 @@ XkbFreeComponentList \- Free the structure returned by
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- list
+.I list
 pointer to XkbComponentListRec to free
 .SH DESCRIPTION
 .LP

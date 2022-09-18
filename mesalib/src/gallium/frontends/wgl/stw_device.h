@@ -91,6 +91,7 @@ struct stw_device
    struct st_config_options st_options;
 
    bool initialized;
+   bool zink;
 };
 
 
@@ -101,6 +102,9 @@ stw_init_screen(HDC hdc);
 
 struct stw_device *
 stw_get_device(void);
+
+char *
+stw_get_config_xml(void);
 
 static inline struct stw_context *
 stw_lookup_context_locked( DHGLRC dhglrc )

@@ -150,7 +150,7 @@ def parse_all_matches(node):
 
         # walk up to a parent match node
         node = node.parentNode
-        if node == None or not is_match_node(node):
+        if node is None or not is_match_node(node):
             break
 
         # leave if there other options at this level
@@ -184,9 +184,6 @@ def parse_fdi(fdi):
     # find all <match> leaf nodes
     num = 0
     for match_node in fdi.getElementsByTagName('match'):
-        children = set([n.tagName for n in match_node.childNodes
-                if n.nodeType == xml.dom.minidom.Node.ELEMENT_NODE])
-
         # see if there are any options at this level
         (driver, ignore, options) = parse_options(match_node)
         if not driver and not ignore and not options:

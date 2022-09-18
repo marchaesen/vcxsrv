@@ -39,6 +39,38 @@ void u_default_buffer_subdata(struct pipe_context *pipe,
    pipe_buffer_unmap(pipe, transfer);
 }
 
+void u_default_clear_buffer(struct pipe_context *pipe,
+                            struct pipe_resource *resource,
+                            unsigned offset, unsigned size,
+                            const void *clear_value,
+                            int clear_value_size)
+{
+   struct pipe_transfer *transfer = NULL;
+   struct pipe_box box;
+   uint8_t *map = NULL;
+
+   /* the write flag is implicit by the nature of buffer_subdata */
+   unsigned usage = PIPE_MAP_WRITE;
+
+   /* clear_buffer implicitly discards the rewritten buffer range. */
+   if (offset == 0 && size == resource->width0) {
+      usage |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
+   } else {
+      usage |= PIPE_MAP_DISCARD_RANGE;
+   }
+
+   u_box_1d(offset, size, &box);
+
+   map = pipe->buffer_map(pipe, resource, 0, usage, &box, &transfer);
+   if (!map)
+      return;
+
+   assert(clear_value_size > 0);
+   for (unsigned off = 0; off < size; off += clear_value_size)
+      memcpy(map + off, clear_value, MIN2(clear_value_size, size - off));
+   pipe_buffer_unmap(pipe, transfer);
+}
+
 void u_default_texture_subdata(struct pipe_context *pipe,
                                struct pipe_resource *resource,
                                unsigned level,

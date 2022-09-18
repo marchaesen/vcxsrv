@@ -23,6 +23,7 @@ libspirv_to_dxil = both_libraries(
   'spirv_to_dxil',
   [
     files(
+      'dxil_spirv_nir.c',
       'spirv_to_dxil.c',
       'spirv_to_dxil.h',
     ),

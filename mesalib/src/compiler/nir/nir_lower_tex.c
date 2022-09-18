@@ -33,6 +33,8 @@
  *     inserts instructions to clamp specified coordinates to [0.0, 1.0].
  *     Note that this automatically triggers texture projector lowering if
  *     needed, since clamping must happen after projector lowering.
+ *   + YUV-to-RGB conversion: to allow sampling YUV values as RGB values
+ *     according to a specific YUV color space and range.
  */
 
 #include "nir.h"
@@ -44,30 +46,54 @@ typedef struct nir_const_value_3_4 {
    nir_const_value v[3][4];
 } nir_const_value_3_4;
 
-static const nir_const_value_3_4 bt601_csc_coeffs = { {
+static const nir_const_value_3_4 bt601_limited_range_csc_coeffs = { {
    { { .f32 = 1.16438356f }, { .f32 =  1.16438356f }, { .f32 = 1.16438356f } },
    { { .f32 = 0.0f        }, { .f32 = -0.39176229f }, { .f32 = 2.01723214f } },
    { { .f32 = 1.59602678f }, { .f32 = -0.81296764f }, { .f32 = 0.0f        } },
 } };
-static const nir_const_value_3_4 bt709_csc_coeffs = { {
+static const nir_const_value_3_4 bt601_full_range_csc_coeffs = { {
+   { { .f32 = 1.0f        }, { .f32 =  1.0f        }, { .f32 = 1.0f        } },
+   { { .f32 = 0.0f        }, { .f32 = -0.34413629f }, { .f32 = 1.772f      } },
+   { { .f32 = 1.402f      }, { .f32 = -0.71413629f }, { .f32 = 0.0f        } },
+} };
+static const nir_const_value_3_4 bt709_limited_range_csc_coeffs = { {
    { { .f32 = 1.16438356f }, { .f32 =  1.16438356f }, { .f32 = 1.16438356f } },
    { { .f32 = 0.0f        }, { .f32 = -0.21324861f }, { .f32 = 2.11240179f } },
    { { .f32 = 1.79274107f }, { .f32 = -0.53290933f }, { .f32 = 0.0f        } },
 } };
-static const nir_const_value_3_4 bt2020_csc_coeffs = { {
+static const nir_const_value_3_4 bt709_full_range_csc_coeffs = { {
+   { { .f32 = 1.0f        }, { .f32 =  1.0f        }, { .f32 = 1.0f        } },
+   { { .f32 = 0.0f        }, { .f32 = -0.18732427f }, { .f32 = 1.8556f     } },
+   { { .f32 = 1.5748f     }, { .f32 = -0.46812427f }, { .f32 = 0.0f        } },
+} };
+static const nir_const_value_3_4 bt2020_limited_range_csc_coeffs = { {
    { { .f32 = 1.16438356f }, { .f32 =  1.16438356f }, { .f32 = 1.16438356f } },
    { { .f32 = 0.0f        }, { .f32 = -0.18732610f }, { .f32 = 2.14177232f } },
-   { { .f32 = 1.67867411f }, { .f32 = -0.65042432f }, { .f32 = 0.0f        } },
+   { { .f32 = 1.67878795f }, { .f32 = -0.65046843f }, { .f32 = 0.0f        } },
+} };
+static const nir_const_value_3_4 bt2020_full_range_csc_coeffs = { {
+   { { .f32 = 1.0f        }, { .f32 =  1.0f        }, { .f32 = 1.0f        } },
+   { { .f32 = 0.0f        }, { .f32 = -0.16455313f }, { .f32 = 1.88140000f } },
+   { { .f32 = 1.4747f     }, { .f32 = -0.57139187f }, { .f32 = 0.0f        } },
 } };
 
-static const float bt601_csc_offsets[3] = {
+static const float bt601_limited_range_csc_offsets[3] = {
    -0.874202218f, 0.531667823f, -1.085630789f
 };
-static const float bt709_csc_offsets[3] = {
+static const float bt601_full_range_csc_offsets[3] = {
+   -0.701000000f, 0.529136286f, -0.886000000f
+};
+static const float bt709_limited_range_csc_offsets[3] = {
    -0.972945075f, 0.301482665f, -1.133402218f
 };
-static const float bt2020_csc_offsets[3] = {
-   -0.915687932f, 0.347458499f, -1.148145075f
+static const float bt709_full_range_csc_offsets[3] = {
+   -0.787400000f, 0.327724273f, -0.927800000f
+};
+static const float bt2020_limited_range_csc_offsets[3] = {
+   -0.915745075f, 0.347480639f, -1.148145075f
+};
+static const float bt2020_full_range_csc_offsets[3] = {
+   -0.737350000f, 0.367972500f, -0.940700000f
 };
 
 static bool
@@ -289,7 +315,7 @@ sample_plane(nir_builder *b, nir_tex_instr *tex, int plane,
    nir_tex_instr *plane_tex =
       nir_tex_instr_create(b->shader, tex->num_srcs + 1);
    for (unsigned i = 0; i < tex->num_srcs; i++) {
-      nir_src_copy(&plane_tex->src[i].src, &tex->src[i].src);
+      nir_src_copy(&plane_tex->src[i].src, &tex->src[i].src, &plane_tex->instr);
       plane_tex->src[i].src_type = tex->src[i].src_type;
    }
    plane_tex->src[tex->num_srcs].src = nir_src_for_ssa(nir_imm_int(b, plane));
@@ -326,15 +352,28 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
    const float *offset_vals;
    const nir_const_value_3_4 *m;
    assert((options->bt709_external & options->bt2020_external) == 0);
-   if (options->bt709_external & (1u << texture_index)) {
-      m = &bt709_csc_coeffs;
-      offset_vals = bt709_csc_offsets;
-   } else if (options->bt2020_external & (1u << texture_index)) {
-      m = &bt2020_csc_coeffs;
-      offset_vals = bt2020_csc_offsets;
+   if (options->yuv_full_range_external & (1u << texture_index)) {
+      if (options->bt709_external & (1u << texture_index)) {
+         m = &bt709_full_range_csc_coeffs;
+         offset_vals = bt709_full_range_csc_offsets;
+      } else if (options->bt2020_external & (1u << texture_index)) {
+         m = &bt2020_full_range_csc_coeffs;
+         offset_vals = bt2020_full_range_csc_offsets;
+      } else {
+         m = &bt601_full_range_csc_coeffs;
+         offset_vals = bt601_full_range_csc_offsets;
+      }
    } else {
-      m = &bt601_csc_coeffs;
-      offset_vals = bt601_csc_offsets;
+      if (options->bt709_external & (1u << texture_index)) {
+         m = &bt709_limited_range_csc_coeffs;
+         offset_vals = bt709_limited_range_csc_offsets;
+      } else if (options->bt2020_external & (1u << texture_index)) {
+         m = &bt2020_limited_range_csc_coeffs;
+         offset_vals = bt2020_limited_range_csc_offsets;
+      } else {
+         m = &bt601_limited_range_csc_coeffs;
+         offset_vals = bt601_limited_range_csc_offsets;
+      }
    }
 
    unsigned bit_size = nir_dest_bit_size(tex->dest);
@@ -767,10 +806,13 @@ lower_tex_to_txd(nir_builder *b, nir_tex_instr *tex)
    txd->coord_components = tex->coord_components;
    txd->texture_index = tex->texture_index;
    txd->sampler_index = tex->sampler_index;
+   txd->is_array = tex->is_array;
+   txd->is_shadow = tex->is_shadow;
+   txd->is_new_style_shadow = tex->is_new_style_shadow;
 
    /* reuse existing srcs */
    for (unsigned i = 0; i < tex->num_srcs; i++) {
-      nir_src_copy(&txd->src[i].src, &tex->src[i].src);
+      nir_src_copy(&txd->src[i].src, &tex->src[i].src, &txd->instr);
       txd->src[i].src_type = tex->src[i].src_type;
    }
    int coord = nir_tex_instr_src_index(tex, nir_tex_src_coord);
@@ -803,11 +845,14 @@ lower_txb_to_txl(nir_builder *b, nir_tex_instr *tex)
    txl->coord_components = tex->coord_components;
    txl->texture_index = tex->texture_index;
    txl->sampler_index = tex->sampler_index;
+   txl->is_array = tex->is_array;
+   txl->is_shadow = tex->is_shadow;
+   txl->is_new_style_shadow = tex->is_new_style_shadow;
 
    /* reuse all but bias src */
    for (int i = 0; i < 2; i++) {
       if (tex->src[i].src_type != nir_tex_src_bias) {
-         nir_src_copy(&txl->src[i].src, &tex->src[i].src);
+         nir_src_copy(&txl->src[i].src, &tex->src[i].src, &txl->instr);
          txl->src[i].src_type = tex->src[i].src_type;
       }
    }
@@ -939,15 +984,15 @@ swizzle_result(nir_builder *b, nir_tex_instr *tex, const uint8_t swizzle[4])
          /* We have no 0s or 1s, just emit a swizzling MOV */
          swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4);
       } else {
-         nir_ssa_def *srcs[4];
+         nir_ssa_scalar srcs[4];
          for (unsigned i = 0; i < 4; i++) {
             if (swizzle[i] < 4) {
-               srcs[i] = nir_channel(b, &tex->dest.ssa, swizzle[i]);
+               srcs[i] = nir_get_ssa_scalar(&tex->dest.ssa, swizzle[i]);
             } else {
-               srcs[i] = get_zero_or_one(b, tex->dest_type, swizzle[i]);
+               srcs[i] = nir_get_ssa_scalar(get_zero_or_one(b, tex->dest_type, swizzle[i]), 0);
             }
          }
-         swizzled = nir_vec(b, srcs, 4);
+         swizzled = nir_vec_scalars(b, srcs, 4);
       }
    }
 
@@ -1056,6 +1101,27 @@ lower_tex_packing(nir_builder *b, nir_tex_instr *tex,
 }
 
 static bool
+lower_array_layer_round_even(nir_builder *b, nir_tex_instr *tex)
+{
+   int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+   if (coord_index < 0 || nir_tex_instr_src_type(tex, coord_index) != nir_type_float)
+      return false;
+
+   assert(tex->src[coord_index].src.is_ssa);
+   nir_ssa_def *coord = tex->src[coord_index].src.ssa;
+
+   b->cursor = nir_before_instr(&tex->instr);
+
+   unsigned layer = tex->coord_components - 1;
+   nir_ssa_def *rounded_layer = nir_fround_even(b, nir_channel(b, coord, layer));
+   nir_ssa_def *new_coord = nir_vector_insert_imm(b, coord, rounded_layer, layer);
+
+   nir_instr_rewrite_src_ssa(&tex->instr, &tex->src[coord_index].src, new_coord);
+
+   return true;
+}
+
+static bool
 sampler_index_lt(nir_tex_instr *tex, unsigned max)
 {
    assert(nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref) == -1);
@@ -1083,7 +1149,8 @@ lower_tg4_offsets(nir_builder *b, nir_tex_instr *tex)
 
    b->cursor = nir_after_instr(&tex->instr);
 
-   nir_ssa_def *dest[5] = {NULL};
+   nir_ssa_scalar dest[5] = { 0 };
+   nir_ssa_def *residency = NULL;
    for (unsigned i = 0; i < 4; ++i) {
       nir_tex_instr *tex_copy = nir_tex_instr_create(b->shader, tex->num_srcs + 1);
       tex_copy->op = tex->op;
@@ -1097,7 +1164,7 @@ lower_tg4_offsets(nir_builder *b, nir_tex_instr *tex)
       tex_copy->dest_type = tex->dest_type;
 
       for (unsigned j = 0; j < tex->num_srcs; ++j) {
-         nir_src_copy(&tex_copy->src[j].src, &tex->src[j].src);
+         nir_src_copy(&tex_copy->src[j].src, &tex->src[j].src, &tex_copy->instr);
          tex_copy->src[j].src_type = tex->src[j].src_type;
       }
 
@@ -1112,14 +1179,18 @@ lower_tg4_offsets(nir_builder *b, nir_tex_instr *tex)
 
       nir_builder_instr_insert(b, &tex_copy->instr);
 
-      dest[i] = nir_channel(b, &tex_copy->dest.ssa, 3);
+      dest[i] = nir_get_ssa_scalar(&tex_copy->dest.ssa, 3);
       if (tex->is_sparse) {
          nir_ssa_def *code = nir_channel(b, &tex_copy->dest.ssa, 4);
-         dest[4] = dest[4] ? nir_sparse_residency_code_and(b, dest[4], code) : code;
+         if (residency)
+            residency = nir_sparse_residency_code_and(b, residency, code);
+         else
+            residency = code;
       }
    }
+   dest[4] = nir_get_ssa_scalar(residency, 0);
 
-   nir_ssa_def *res = nir_vec(b, dest, tex->dest.ssa.num_components);
+   nir_ssa_def *res = nir_vec_scalars(b, dest, tex->dest.ssa.num_components);
    nir_ssa_def_rewrite_uses(&tex->dest.ssa, res);
    nir_instr_remove(&tex->instr);
 
@@ -1183,7 +1254,7 @@ nir_lower_txs_cube_array(nir_builder *b, nir_tex_instr *tex)
    assert(tex->dest.is_ssa);
    assert(tex->dest.ssa.num_components == 3);
    nir_ssa_def *size = &tex->dest.ssa;
-   size = nir_vec3(b, nir_channel(b, size, 0),
+   size = nir_vec3(b, nir_channel(b, size, 1),
                       nir_channel(b, size, 1),
                       nir_idiv(b, nir_channel(b, size, 2),
                                   nir_imm_int(b, 6)));
@@ -1314,7 +1385,8 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       /* If we are clamping any coords, we must lower projector first
        * as clamping happens *after* projection:
        */
-      if (lower_txp || sat_mask) {
+      if (lower_txp || sat_mask ||
+          (options->lower_txp_array && tex->is_array)) {
          progress |= project_src(b, tex);
       }
 
@@ -1328,9 +1400,10 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       }
 
       if ((tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) && options->lower_rect &&
-          tex->op != nir_texop_txf && !nir_tex_instr_is_query(tex)) {
-
-         if (compiler_options->has_txs)
+          tex->op != nir_texop_txf) {
+         if (nir_tex_instr_is_query(tex))
+            tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
+         else if (compiler_options->has_txs)
             lower_rect(b, tex);
          else
             lower_rect_tex_scale(b, tex);
@@ -1437,6 +1510,11 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
          progress = true;
       }
 
+      if (options->lower_array_layer_round_even && tex->is_array &&
+          tex->op != nir_texop_lod) {
+         progress |= lower_array_layer_round_even(b, tex);
+      }
+
       if (tex->op == nir_texop_txd &&
           (options->lower_txd ||
            (options->lower_txd_shadow && tex->is_shadow) ||
@@ -1449,7 +1527,8 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
            (options->lower_txd_cube_map &&
             tex->sampler_dim == GLSL_SAMPLER_DIM_CUBE) ||
            (options->lower_txd_3d &&
-            tex->sampler_dim == GLSL_SAMPLER_DIM_3D))) {
+            tex->sampler_dim == GLSL_SAMPLER_DIM_3D) ||
+           (options->lower_txd_array && tex->is_array))) {
          lower_gradient(b, tex);
          progress = true;
          continue;
@@ -1470,8 +1549,11 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       /* Only fragment and compute (in some cases) support implicit
        * derivatives.  Lower those opcodes which use implicit derivatives to
        * use an explicit LOD of 0.
+       * But don't touch RECT samplers because they don't have mips.
        */
-      if (nir_tex_instr_has_implicit_derivative(tex) &&
+      if (options->lower_invalid_implicit_lod &&
+          nir_tex_instr_has_implicit_derivative(tex) &&
+          tex->sampler_dim != GLSL_SAMPLER_DIM_RECT &&
           !nir_shader_supports_implicit_lod(b->shader)) {
          lower_zero_lod(b, tex);
          progress = true;

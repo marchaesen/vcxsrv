@@ -33,13 +33,13 @@ XkbSetXlibControls \- Changes the state of the Library Controls
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- bits_to_change
+.I bits_to_change
 selects controls to be modified 
 .TP
-.I \- values_for_bits
+.I values_for_bits
 turns selected controls on (1) or off (0)
 .SH DESCRIPTION
 .LP

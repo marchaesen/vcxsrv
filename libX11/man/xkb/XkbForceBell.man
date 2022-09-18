@@ -33,10 +33,10 @@ bell on the default keyboard
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to the X server
 .TP
-.I \- percent
+.I percent
 volume for the bell, which can range from -100 to 100 inclusive
 .SH DESCRIPTION
 .LP

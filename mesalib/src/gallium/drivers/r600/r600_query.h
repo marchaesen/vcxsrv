@@ -125,7 +125,8 @@ struct r600_query_ops {
 			   struct r600_query *, bool wait,
 			   union pipe_query_result *result);
 	void (*get_result_resource)(struct r600_common_context *,
-				    struct r600_query *, bool wait,
+				    struct r600_query *,
+				    enum pipe_query_flags flags,
 				    enum pipe_query_value_type result_type,
 				    int index,
 				    struct pipe_resource *resource,

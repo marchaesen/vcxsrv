@@ -1134,7 +1134,7 @@ glxWinSetPixelFormat(HDC hdc, int bppOverride, int drawableTypeOverride,
                     winConfig->pixelFormatIndex);
 
     /*
-       Normally, we can just use the the pixelFormatIndex corresponding
+       Normally, we can just use the pixelFormatIndex corresponding
        to the fbconfig which has been specified by the client
      */
 

@@ -32,16 +32,16 @@ XkbSetDeviceButtonActions \- Change only the button actions for an input extensi
 .BI "unsigned int " "num_buttons" "\^);"
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device
+.I device
 structure defining the device and modifications
 .TP
-.I \- first_button
+.I first_button
 number of first button to update, 0 relative
 .TP
-.I \- num_buttons
+.I num_buttons
 number of buttons to update
 .SH DESCRIPTION
 .LP

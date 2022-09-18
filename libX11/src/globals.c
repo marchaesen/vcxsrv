@@ -77,7 +77,9 @@ ZEROINIT (_XQEvent *, _qfree, NULL);
 /*
  * Debugging information and display list; used to be in XOpenDis.c
  */
+#ifndef WIN32
 ZEROINIT (int, _Xdebug, 0);
+#endif
 ZEROINIT (Display *, _XHeadOfDisplayList, NULL);
 
 
@@ -97,12 +99,10 @@ int			XTestInputActionType = 0;
 int			XTestFakeAckType   = 1;
 #endif
 
-/*
- * NOTE: any additional external definition NEED
- * to be inserted BELOW this point!!!
- */
-
-/*
- * NOTE: any additional external definition NEED
- * to be inserted ABOVE this point!!!
- */
+#ifdef USE_THREAD_SAFETY_CONSTRUCTOR
+__attribute__((constructor)) static void
+xlib_ctor(void)
+{
+    XInitThreads();
+}
+#endif

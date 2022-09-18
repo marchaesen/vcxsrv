@@ -25,6 +25,8 @@
 #define VK_SHADER_MODULE_H
 
 #include <vulkan/vulkan.h>
+
+#include "compiler/shader_enums.h"
 #include "vk_object.h"
 
 #ifdef __cplusplus
@@ -32,6 +34,8 @@ extern "C" {
 #endif
 
 struct nir_shader;
+struct nir_shader_compiler_options;
+struct spirv_to_nir_options;
 
 struct vk_shader_module {
    struct vk_object_base base;
@@ -41,8 +45,25 @@ struct vk_shader_module {
    char data[0];
 };
 
+extern const uint8_t vk_shaderModuleIdentifierAlgorithmUUID[VK_UUID_SIZE];
+
 VK_DEFINE_NONDISP_HANDLE_CASTS(vk_shader_module, base, VkShaderModule,
                                VK_OBJECT_TYPE_SHADER_MODULE)
+
+uint32_t vk_shader_module_spirv_version(const struct vk_shader_module *mod);
+
+VkResult
+vk_shader_module_to_nir(struct vk_device *device,
+                        const struct vk_shader_module *mod,
+                        gl_shader_stage stage,
+                        const char *entrypoint_name,
+                        const VkSpecializationInfo *spec_info,
+                        const struct spirv_to_nir_options *spirv_options,
+                        const struct nir_shader_compiler_options *nir_options,
+                        void *mem_ctx, struct nir_shader **nir_out);
+
+struct vk_shader_module *vk_shader_module_clone(void *mem_ctx,
+                                                const struct vk_shader_module *src);
 
 /* this should only be used for stack-allocated, temporary objects */
 #define vk_shader_module_handle_from_nir(_nir) \

@@ -55,17 +55,4 @@ bifrost_get_quirks(unsigned product_id)
         }
 }
 
-/* How many lanes per architectural warp (subgroup)? Used to lower divergent
- * indirects. */
-
-static inline unsigned
-bifrost_lanes_per_warp(unsigned product_id)
-{
-        switch (product_id >> 12) {
-        case 6: return 4;
-        case 7: return 8;
-        default: return 16;
-        }
-}
-
 #endif

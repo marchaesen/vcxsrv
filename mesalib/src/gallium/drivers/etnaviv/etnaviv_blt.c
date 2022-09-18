@@ -343,7 +343,6 @@ etna_clear_blt(struct pipe_context *pctx, unsigned buffers, const struct pipe_sc
            const union pipe_color_union *color, double depth, unsigned stencil)
 {
    struct etna_context *ctx = etna_context(pctx);
-   mtx_lock(&ctx->lock);
 
    etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, 0x00000c23);
    etna_set_state(ctx->stream, VIVS_TS_FLUSH_CACHE, VIVS_TS_FLUSH_CACHE_FLUSH);
@@ -364,7 +363,6 @@ etna_clear_blt(struct pipe_context *pctx, unsigned buffers, const struct pipe_sc
       etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, 0x00000c23);
    else
       etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, 0x00000002);
-   mtx_unlock(&ctx->lock);
 }
 
 static bool
@@ -435,7 +433,6 @@ etna_try_blt_blit(struct pipe_context *pctx,
          return true;
    }
 
-   mtx_lock(&ctx->lock);
    /* Kick off BLT here */
    if (src == dst && src_lev->ts_compress_fmt < 0) {
       /* Resolve-in-place */
@@ -450,7 +447,8 @@ etna_try_blt_blit(struct pipe_context *pctx,
       op.ts_clear_value[0] = src_lev->clear_value;
       op.ts_clear_value[1] = src_lev->clear_value;
       op.ts_mode = src_lev->ts_mode;
-      op.num_tiles = DIV_ROUND_UP(src_lev->size, src_lev->ts_mode ? 256 : 128);
+      op.num_tiles = DIV_ROUND_UP(src_lev->size,
+                                  etna_screen_get_tile_size(ctx->screen, src_lev->ts_mode));
       op.bpp = util_format_get_blocksize(src->base.format);
 
       etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, 0x00000c23);
@@ -526,7 +524,6 @@ etna_try_blt_blit(struct pipe_context *pctx,
 
    dst->seqno++;
    dst_lev->ts_valid = false;
-   mtx_unlock(&ctx->lock);
 
    return true;
 }

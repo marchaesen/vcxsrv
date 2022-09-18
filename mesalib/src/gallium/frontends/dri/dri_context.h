@@ -50,8 +50,6 @@ struct dri_context
    __DRIdrawable *dPriv;
    __DRIdrawable *rPriv;
 
-   unsigned int bind_count;
-
    /**
     * True if the __DRIdrawable's current __DRIimageBufferMask is
     * __DRI_IMAGE_BUFFER_SHARED.

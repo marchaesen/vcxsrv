@@ -109,7 +109,8 @@
 	<return type="GLboolean"/>
     </function>
 
-    <function name="BindFramebufferEXT">
+    <function name="BindFramebufferEXT"
+              marshal_call_after="_mesa_glthread_BindFramebuffer(ctx, target, framebuffer);">
         <param name="target" type="GLenum"/>
         <param name="framebuffer" type="GLuint"/>
         <glx rop="4319"/>

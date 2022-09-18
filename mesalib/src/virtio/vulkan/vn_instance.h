@@ -38,7 +38,6 @@ struct vn_instance {
    struct driOptionCache available_dri_options;
 
    struct vn_renderer *renderer;
-   struct vn_renderer_info renderer_info;
 
    struct vn_renderer_shmem_pool reply_shmem_pool;
 
@@ -110,13 +109,6 @@ vn_instance_roundtrip(struct vn_instance *instance)
 VkResult
 vn_instance_ring_submit(struct vn_instance *instance,
                         const struct vn_cs_encoder *cs);
-
-static inline void
-vn_instance_ring_wait(struct vn_instance *instance)
-{
-   struct vn_ring *ring = &instance->ring.ring;
-   vn_ring_wait_all(ring);
-}
 
 struct vn_instance_submit_command {
    /* empty command implies errors */

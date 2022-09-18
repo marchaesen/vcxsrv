@@ -32,10 +32,10 @@ description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- xkb
+.I xkb
 keyboard description that contains the ID for the keyboard and into which the 
 geometry should be loaded
 .SH DESCRIPTION

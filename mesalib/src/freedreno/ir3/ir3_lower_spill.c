@@ -65,8 +65,16 @@ set_base_reg(struct ir3_instruction *mem, unsigned val)
 static void
 reset_base_reg(struct ir3_instruction *mem)
 {
+   /* If the base register is killed, then we don't need to clobber it and it
+    * may be reused as a destination so we can't always clobber it after the
+    * instruction anyway.
+    */
+   struct ir3_register *base = mem->srcs[0];
+   if (base->flags & IR3_REG_KILL)
+      return;
+
    struct ir3_instruction *mov = ir3_instr_create(mem->block, OPC_MOV, 1, 1);
-   ir3_dst_create(mov, mem->srcs[0]->num, mem->srcs[0]->flags);
+   ir3_dst_create(mov, base->num, base->flags);
    ir3_src_create(mov, INVALID_REG, IR3_REG_IMMED)->uim_val = 0;
    mov->cat1.dst_type = mov->cat1.src_type = TYPE_U32;
 

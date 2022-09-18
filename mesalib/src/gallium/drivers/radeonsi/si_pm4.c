@@ -53,6 +53,27 @@ static void si_pm4_cmd_end(struct si_pm4_state *state, bool predicate)
    state->pm4[state->last_pm4] = PKT3(state->last_opcode, count, predicate);
 }
 
+static void si_pm4_set_reg_custom(struct si_pm4_state *state, unsigned reg, uint32_t val,
+                                  unsigned opcode, unsigned idx)
+{
+   reg >>= 2;
+
+   if (!state->max_dw)
+      state->max_dw = ARRAY_SIZE(state->pm4);
+
+   assert(state->ndw + 2 <= state->max_dw);
+
+   if (opcode != state->last_opcode || reg != (state->last_reg + 1)) {
+      si_pm4_cmd_begin(state, opcode);
+      state->pm4[state->ndw++] = reg | (idx << 28);
+   }
+
+   assert(reg <= UINT16_MAX);
+   state->last_reg = reg;
+   state->pm4[state->ndw++] = val;
+   si_pm4_cmd_end(state, false);
+}
+
 void si_pm4_set_reg(struct si_pm4_state *state, unsigned reg, uint32_t val)
 {
    unsigned opcode;
@@ -80,22 +101,14 @@ void si_pm4_set_reg(struct si_pm4_state *state, unsigned reg, uint32_t val)
       return;
    }
 
-   reg >>= 2;
+   si_pm4_set_reg_custom(state, reg, val, opcode, 0);
+}
 
-   if (!state->max_dw)
-      state->max_dw = ARRAY_SIZE(state->pm4);
+void si_pm4_set_reg_idx3(struct si_pm4_state *state, unsigned reg, uint32_t val)
+{
+   SI_CHECK_SHADOWED_REGS(reg, 1);
 
-   assert(state->ndw + 2 <= state->max_dw);
-
-   if (opcode != state->last_opcode || reg != (state->last_reg + 1)) {
-      si_pm4_cmd_begin(state, opcode);
-      state->pm4[state->ndw++] = reg;
-   }
-
-   assert(reg <= UINT16_MAX);
-   state->last_reg = reg;
-   state->pm4[state->ndw++] = val;
-   si_pm4_cmd_end(state, false);
+   si_pm4_set_reg_custom(state, reg - SI_SH_REG_OFFSET, val, PKT3_SET_SH_REG_INDEX, 3);
 }
 
 void si_pm4_clear_state(struct si_pm4_state *state)
@@ -118,7 +131,6 @@ void si_pm4_free_state(struct si_context *sctx, struct si_pm4_state *state, unsi
       }
    }
 
-   si_pm4_clear_state(state);
    FREE(state);
 }
 
@@ -146,7 +158,7 @@ void si_pm4_reset_emitted(struct si_context *sctx, bool first_cs)
        * added to the buffer list on the next draw call.
        */
       for (unsigned i = 0; i < SI_NUM_STATES; i++) {
-         struct si_pm4_state *state = sctx->emitted.array[i];
+         struct si_pm4_state *state = sctx->queued.array[i];
 
          if (state && state->is_shader) {
             sctx->emitted.array[i] = NULL;

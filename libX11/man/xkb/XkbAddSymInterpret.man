@@ -34,16 +34,16 @@ interpretations in an XkbCompatRec
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description to be updated 
 .TP
-.I \- si
+.I si
 symbol interpretation to be added
 .TP
-.I \- updateMap
+.I updateMap
 True=>apply compatibility map to keys
 .TP
-.I \- changes
+.I changes
 changes are put here 
 .SH DESCRIPTION
 .LP

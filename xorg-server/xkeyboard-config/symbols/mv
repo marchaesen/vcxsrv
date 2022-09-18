@@ -55,9 +55,4 @@ xkb_symbols "basic" {
     key <AB08> {[ Arabic_comma,         less ]};
     key <AB09> {[       period,      greater ]};
     key <AB10> {[        slash, Arabic_question_mark ]};
-
-    modifier_map Shift  { Shift_L };
-    modifier_map Lock   { Caps_Lock };
-    modifier_map Control{ Control_L };
-    modifier_map Mod3   { Mode_switch };
 };

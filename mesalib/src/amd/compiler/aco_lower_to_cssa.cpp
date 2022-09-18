@@ -104,7 +104,7 @@ collect_parallelcopies(cssa_ctx& ctx)
                /* SGPR inline constants and literals on GFX10+ can be spilled
                 * and reloaded directly (without intermediate register) */
                if (op.isConstant()) {
-                  if (ctx.program->chip_class >= GFX10)
+                  if (ctx.program->gfx_level >= GFX10)
                      continue;
                   if (op.size() == 1 && !op.isLiteral())
                      continue;

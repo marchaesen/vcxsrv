@@ -52,7 +52,8 @@ ForEachMacros:
   - nir_foreach_variable_in_list
   - nir_foreach_src
   - foreach_two_lists
-  - foreach_bit
+  - u_foreach_bit
+  - u_foreach_bit64
   - foreach_sched_node
   - foreach_src
   - foreach_src_n
@@ -78,6 +79,8 @@ ForEachMacros:
   - foreach_def
   - foreach_use
   - set_foreach
+  - u_foreach_bit
+  - u_foreach_bit64
 
 IncludeBlocks: Preserve
 IncludeCategories:

@@ -87,13 +87,7 @@ void util_sparse_array_validate(struct util_sparse_array *arr);
  * "free" elements backed by a util_sparse_array.  The list supports only two
  * operations: push and pop both of which are thread-safe and lock-free.  T
  */
-struct
-#ifdef _MSC_VER
- __declspec(align(8))
-#else
- __attribute__((aligned(8)))
-#endif
-util_sparse_array_free_list
+struct util_sparse_array_free_list
 {
    /** Head of the list
     *
@@ -103,7 +97,7 @@ util_sparse_array_free_list
     * We want this element to be 8-byte aligned.  Otherwise, the performance
     * of atomic operations on it will be aweful on 32-bit platforms.
     */
-   uint64_t head;
+   alignas(8) uint64_t head;
 
    /** The array backing this free list */
    struct util_sparse_array *arr;

@@ -143,15 +143,14 @@ lower_readonly_image_op(nir_builder *b, nir_instr *instr, void *context)
       replace_image_type_with_sampler(deref);
    }
 
-   tex->coord_components = coord_components;
    switch (intrin->intrinsic) {
    case nir_intrinsic_image_deref_load: {
       assert(intrin->src[1].is_ssa);
       nir_ssa_def *coord =
-         nir_channels(b, intrin->src[1].ssa,
-                      (1 << tex->coord_components) - 1);
+         nir_trim_vector(b, intrin->src[1].ssa, coord_components);
       tex->src[1].src_type = nir_tex_src_coord;
       tex->src[1].src = nir_src_for_ssa(coord);
+      tex->coord_components = coord_components;
 
       assert(intrin->src[3].is_ssa);
       nir_ssa_def *lod = intrin->src[3].ssa;
@@ -188,7 +187,7 @@ lower_readonly_image_op(nir_builder *b, nir_instr *instr, void *context)
    nir_ssa_def *res = &tex->dest.ssa;
    if (res->num_components != intrin->dest.ssa.num_components) {
       unsigned num_components = intrin->dest.ssa.num_components;
-      res = nir_channels(b, res, (1 << num_components) - 1);
+      res = nir_trim_vector(b, res, num_components);
    }
 
    return res;

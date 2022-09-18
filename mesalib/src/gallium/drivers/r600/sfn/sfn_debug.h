@@ -38,6 +38,16 @@ namespace r600 {
 
 */
 
+class stderr_streambuf : public std::streambuf
+{
+public:
+   stderr_streambuf();
+protected:
+   int sync();
+   int overflow(int c);
+   std::streamsize xsputn ( const char *s, std::streamsize n );
+};
+
 class SfnLog {
 public:
    enum LogFlag {
@@ -54,8 +64,12 @@ public:
       merge = 1 << 10,
       tex = 1 << 11,
       trans = 1 << 12,
-      all = (1 << 13) - 1,
+      schedule = 1 << 13,
+      opt = 1 << 14,
+      all = (1 << 15) - 1,
       nomerge = 1 << 16,
+      steps = 1 << 17,
+      noopt = 1 << 18
    };
 
    SfnLog();
@@ -95,6 +109,7 @@ public:
 private:
    uint64_t m_active_log_flags;
    uint64_t m_log_mask;
+   stderr_streambuf m_buf;
    std::ostream m_output;
 };
 

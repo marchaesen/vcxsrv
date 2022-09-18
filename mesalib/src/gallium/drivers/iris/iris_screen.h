@@ -67,8 +67,8 @@ struct iris_vtable {
                                unsigned drawid_offset,
                                const struct pipe_draw_indirect_info *indirect,
                                const struct pipe_draw_start_count_bias *sc);
-   void (*update_surface_base_address)(struct iris_batch *batch,
-                                       struct iris_binder *binder);
+   void (*update_binder_address)(struct iris_batch *batch,
+                                 struct iris_binder *binder);
    void (*upload_compute_state)(struct iris_context *ice,
                                 struct iris_batch *batch,
                                 const struct pipe_grid_info *grid);
@@ -181,13 +181,12 @@ struct iris_screen {
       bool disable_throttling;
       bool always_flush_cache;
       bool sync_compile;
+      bool limit_trig_input_range;
    } driconf;
 
    /** Does the kernel support various features (KERNEL_HAS_* bitfield)? */
    unsigned kernel_features;
 #define KERNEL_HAS_WAIT_FOR_SUBMIT (1<<0)
-
-   uint64_t aperture_bytes;
 
    /**
     * Last sequence number allocated by the cache tracking mechanism.

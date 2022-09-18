@@ -1,6 +1,7 @@
 # These seem stable on their own (or when running their whole test group),
 # but intermittently fail when mixed in with other tests.
 dEQP-GLES2.functional.shaders.functions.control_flow.return_after_loop_sequence_fragment
+dEQP-GLES2.functional.shaders.loops.do_while_uniform_iterations.nested_sequence_fragment
 dEQP-GLES2.functional.shaders.loops.while_uniform_iterations.nested_tricky_dataflow_2_fragment
 dEQP-GLES2.functional.shaders.loops.for_dynamic_iterations.nested_tricky_dataflow_2_fragment
 dEQP-GLES2.functional.shaders.loops.for_dynamic_iterations.nested_sequence_fragment

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Raspberry Pi
+ * Copyright © 2020 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -119,8 +119,8 @@ clear_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
       if (!job)
          return true;
 
-      v3dv_job_start_frame(job, width, height, max_layer, false,
-                           1, internal_bpp,
+      v3dv_job_start_frame(job, width, height, max_layer,
+                           false, true, 1, internal_bpp,
                            image->vk.samples > VK_SAMPLE_COUNT_1_BIT);
 
       struct v3dv_meta_framebuffer framebuffer;
@@ -160,11 +160,15 @@ v3dv_CmdClearColorImage(VkCommandBuffer commandBuffer,
       .color = *pColor,
    };
 
+   cmd_buffer->state.is_transfer = true;
+
    for (uint32_t i = 0; i < rangeCount; i++) {
       if (clear_image_tlb(cmd_buffer, image, &clear_value, &pRanges[i]))
          continue;
       unreachable("Unsupported color clear.");
    }
+
+   cmd_buffer->state.is_transfer = false;
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -182,11 +186,15 @@ v3dv_CmdClearDepthStencilImage(VkCommandBuffer commandBuffer,
       .depthStencil = *pDepthStencil,
    };
 
+   cmd_buffer->state.is_transfer = true;
+
    for (uint32_t i = 0; i < rangeCount; i++) {
       if (clear_image_tlb(cmd_buffer, image, &clear_value, &pRanges[i]))
          continue;
       unreachable("Unsupported depth/stencil clear.");
    }
+
+   cmd_buffer->state.is_transfer = false;
 }
 
 static void
@@ -303,39 +311,6 @@ v3dv_meta_clear_finish(struct v3dv_device *device)
    }
 }
 
-static nir_ssa_def *
-gen_rect_vertices(nir_builder *b)
-{
-   nir_ssa_def *vertex_id = nir_load_vertex_id(b);
-
-   /* vertex 0: -1.0, -1.0
-    * vertex 1: -1.0,  1.0
-    * vertex 2:  1.0, -1.0
-    * vertex 3:  1.0,  1.0
-    *
-    * so:
-    *
-    * channel 0 is vertex_id < 2 ? -1.0 :  1.0
-    * channel 1 is vertex id & 1 ?  1.0 : -1.0
-    */
-
-   nir_ssa_def *one = nir_imm_int(b, 1);
-   nir_ssa_def *c0cmp = nir_ilt(b, vertex_id, nir_imm_int(b, 2));
-   nir_ssa_def *c1cmp = nir_ieq(b, nir_iand(b, vertex_id, one), one);
-
-   nir_ssa_def *comp[4];
-   comp[0] = nir_bcsel(b, c0cmp,
-                       nir_imm_float(b, -1.0f),
-                       nir_imm_float(b, 1.0f));
-
-   comp[1] = nir_bcsel(b, c1cmp,
-                       nir_imm_float(b, 1.0f),
-                       nir_imm_float(b, -1.0f));
-   comp[2] = nir_imm_float(b, 0.0f);
-   comp[3] = nir_imm_float(b, 1.0f);
-   return nir_vec(b, comp, 4);
-}
-
 static nir_shader *
 get_clear_rect_vs()
 {
@@ -348,7 +323,7 @@ get_clear_rect_vs()
       nir_variable_create(b.shader, nir_var_shader_out, vec4, "gl_Position");
    vs_out_pos->data.location = VARYING_SLOT_POS;
 
-   nir_ssa_def *pos = gen_rect_vertices(&b);
+   nir_ssa_def *pos = nir_gen_rect_vertices(&b, NULL, NULL);
    nir_store_var(&b, vs_out_pos, pos, 0xf);
 
    return b.shader;
@@ -474,12 +449,11 @@ create_pipeline(struct v3dv_device *device,
                 VkPipeline *pipeline)
 {
    VkPipelineShaderStageCreateInfo stages[3] = { 0 };
-   struct vk_shader_module vs_m;
+   struct vk_shader_module vs_m = vk_shader_module_from_nir(vs_nir);
    struct vk_shader_module gs_m;
    struct vk_shader_module fs_m;
 
    uint32_t stage_count = 0;
-   v3dv_shader_module_internal_init(device, &vs_m, vs_nir);
    stages[stage_count].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
    stages[stage_count].stage = VK_SHADER_STAGE_VERTEX_BIT;
    stages[stage_count].module = vk_shader_module_to_handle(&vs_m);
@@ -487,7 +461,7 @@ create_pipeline(struct v3dv_device *device,
    stage_count++;
 
    if (gs_nir) {
-      v3dv_shader_module_internal_init(device, &gs_m, gs_nir);
+      gs_m = vk_shader_module_from_nir(gs_nir);
       stages[stage_count].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       stages[stage_count].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
       stages[stage_count].module = vk_shader_module_to_handle(&gs_m);
@@ -496,7 +470,7 @@ create_pipeline(struct v3dv_device *device,
    }
 
    if (fs_nir) {
-      v3dv_shader_module_internal_init(device, &fs_m, fs_nir);
+      fs_m = vk_shader_module_from_nir(fs_nir);
       stages[stage_count].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
       stages[stage_count].module = vk_shader_module_to_handle(&fs_m);
@@ -580,6 +554,7 @@ create_pipeline(struct v3dv_device *device,
                                    pipeline);
 
    ralloc_free(vs_nir);
+   ralloc_free(gs_nir);
    ralloc_free(fs_nir);
 
    return result;

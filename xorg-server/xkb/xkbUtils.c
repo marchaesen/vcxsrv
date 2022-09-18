@@ -67,7 +67,6 @@ DEALINGS IN THE SOFTWARE.
 #define	XKBSRV_NEED_FILE_FUNCS
 #include <xkbsrv.h>
 #include "xkbgeom.h"
-#include "xkb.h"
 
 /***====================================================================***/
 

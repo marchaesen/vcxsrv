@@ -123,7 +123,8 @@ type_is_tightly_packed(const struct glsl_type *type, unsigned *size_out)
 }
 
 static bool
-try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy)
+try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy,
+                 struct set *complex_vars)
 {
    nir_deref_instr *dst = nir_src_as_deref(cpy->src[0]);
    nir_deref_instr *src = nir_src_as_deref(cpy->src[1]);
@@ -168,6 +169,62 @@ try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy)
       return true;
    }
 
+   /* If one of the two types is tightly packed and happens to equal the
+    * memcpy size, then we can get the memcpy by casting to that type and
+    * doing a deref copy.
+    *
+    * However, if we blindly apply this logic, we may end up with extra casts
+    * where we don't want them. The whole point of converting memcpy to
+    * copy_deref is in the hopes that nir_opt_copy_prop_vars or
+    * nir_lower_vars_to_ssa will get rid of the copy and those passes don't
+    * handle casts well. Heuristically, only do this optimization if the
+    * tightly packed type is on a deref with nir_var_function_temp so we stick
+    * the cast on the other mode.
+    */
+   if (dst->modes == nir_var_function_temp &&
+       type_is_tightly_packed(dst->type, &type_size) &&
+       type_size == size) {
+      b->cursor = nir_instr_remove(&cpy->instr);
+      src = nir_build_deref_cast(b, &src->dest.ssa,
+                                 src->modes, dst->type, 0);
+      nir_copy_deref_with_access(b, dst, src,
+                                 nir_intrinsic_dst_access(cpy),
+                                 nir_intrinsic_src_access(cpy));
+      return true;
+   }
+
+   /* If we can get at the variable AND the only complex use of that variable
+    * is as a memcpy destination, then we don't have to care about any empty
+    * space in the variable.  In particular, we know that the variable is never
+    * cast to any other type and it's never used as a memcpy source so nothing
+    * can see any padding bytes.  This holds even if some other memcpy only
+    * writes to part of the variable.
+    */
+   if (dst->deref_type == nir_deref_type_var &&
+       dst->modes == nir_var_function_temp &&
+       _mesa_set_search(complex_vars, dst->var) == NULL &&
+       glsl_get_explicit_size(dst->type, false) <= size) {
+      b->cursor = nir_instr_remove(&cpy->instr);
+      src = nir_build_deref_cast(b, &src->dest.ssa,
+                                 src->modes, dst->type, 0);
+      nir_copy_deref_with_access(b, dst, src,
+                                 nir_intrinsic_dst_access(cpy),
+                                 nir_intrinsic_src_access(cpy));
+      return true;
+   }
+
+   if (src->modes == nir_var_function_temp &&
+       type_is_tightly_packed(src->type, &type_size) &&
+       type_size == size) {
+      b->cursor = nir_instr_remove(&cpy->instr);
+      dst = nir_build_deref_cast(b, &dst->dest.ssa,
+                                 dst->modes, src->type, 0);
+      nir_copy_deref_with_access(b, dst, src,
+                                 nir_intrinsic_dst_access(cpy),
+                                 nir_intrinsic_src_access(cpy));
+      return true;
+   }
+
    return false;
 }
 
@@ -178,6 +235,24 @@ opt_memcpy_impl(nir_function_impl *impl)
 
    nir_builder b;
    nir_builder_init(&b, impl);
+
+   struct set *complex_vars = _mesa_pointer_set_create(NULL);
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block) {
+         if (instr->type != nir_instr_type_deref)
+            continue;
+
+         nir_deref_instr *deref = nir_instr_as_deref(instr);
+         if (deref->deref_type != nir_deref_type_var)
+            continue;
+
+         nir_deref_instr_has_complex_use_options opts =
+            nir_deref_instr_has_complex_use_allow_memcpy_dst;
+         if (nir_deref_instr_has_complex_use(deref, opts))
+            _mesa_set_add(complex_vars, deref->var);
+      }
+   }
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -193,12 +268,14 @@ opt_memcpy_impl(nir_function_impl *impl)
          while (opt_memcpy_deref_cast(cpy, &cpy->src[1]))
             progress = true;
 
-         if (try_lower_memcpy(&b, cpy)) {
+         if (try_lower_memcpy(&b, cpy, complex_vars)) {
             progress = true;
             continue;
          }
       }
    }
+
+   _mesa_set_destroy(complex_vars, NULL);
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |

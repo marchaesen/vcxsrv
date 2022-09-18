@@ -169,6 +169,7 @@ initialize_texture_fields(struct gl_context *ctx,
                                    levelWidth, levelHeight, levelDepth,
                                    &levelWidth, &levelHeight, &levelDepth);
    }
+   _mesa_update_texture_object_swizzle(ctx, texObj);
    return GL_TRUE;
 }
 

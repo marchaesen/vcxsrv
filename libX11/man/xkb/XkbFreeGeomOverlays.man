@@ -33,16 +33,16 @@ XkbFreeGeomOverlays \- Free rows in a section
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- section
+.I section
 section in which overlays should be freed 
 .TP
-.I \- first
+.I first
 first overlay to be freed
 .TP
-.I \- count
+.I count
 number of overlays to be freed
 .TP
-.I \- free_all
+.I free_all
 True => all overlays are freed
 .SH DESCRIPTION
 .LP

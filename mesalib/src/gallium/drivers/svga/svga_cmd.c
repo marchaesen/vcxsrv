@@ -439,6 +439,8 @@ SVGA3D_SurfaceDMA(struct svga_winsys_context *swc,
    unsigned region_flags;
    unsigned surface_flags;
 
+   assert(!swc->have_gb_objects);
+
    if (transfer == SVGA3D_WRITE_HOST_VRAM) {
       region_flags = SVGA_RELOC_READ;
       surface_flags = SVGA_RELOC_WRITE;

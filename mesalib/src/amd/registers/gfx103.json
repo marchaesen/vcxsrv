@@ -249,9 +249,10 @@
   },
   "FLOAT_MODE": {
    "entries": [
+    {"name": "FP_32_ROUND_TOWARDS_ZERO", "value": 3},
+    {"name": "FP_16_64_ROUND_TOWARDS_ZERO", "value": 12},
     {"name": "FP_32_DENORMS", "value": 48},
-    {"name": "FP_64_DENORMS", "value": 192},
-    {"name": "FP_ALL_DENORMS", "value": 240}
+    {"name": "FP_16_64_DENORMS", "value": 192}
    ]
   },
   "ForceControl": {
@@ -902,7 +903,7 @@
     {"name": "TESS_QUAD", "value": 2}
    ]
   },
-  "VRSCombinerMode": {
+  "VRSCombinerModeSC": {
    "entries": [
     {"name": "VRS_COMB_MODE_PASSTHRU", "value": 0},
     {"name": "VRS_COMB_MODE_OVERRIDE", "value": 1},
@@ -7456,12 +7457,12 @@
   {
    "chips": ["gfx103"],
    "map": {"at": 198912, "to": "mm"},
-   "name": "VGT_ESGS_RING_SIZE_UMD"
+   "name": "VGT_ESGS_RING_SIZE"
   },
   {
    "chips": ["gfx103"],
    "map": {"at": 198916, "to": "mm"},
-   "name": "VGT_GSVS_RING_SIZE_UMD"
+   "name": "VGT_GSVS_RING_SIZE"
   },
   {
    "chips": ["gfx103"],
@@ -7524,19 +7525,19 @@
   {
    "chips": ["gfx103"],
    "map": {"at": 198968, "to": "mm"},
-   "name": "VGT_TF_RING_SIZE_UMD",
-   "type_ref": "VGT_TF_RING_SIZE_UMD"
+   "name": "VGT_TF_RING_SIZE",
+   "type_ref": "VGT_TF_RING_SIZE"
   },
   {
    "chips": ["gfx103"],
    "map": {"at": 198972, "to": "mm"},
-   "name": "VGT_HS_OFFCHIP_PARAM_UMD",
-   "type_ref": "VGT_HS_OFFCHIP_PARAM_UMD"
+   "name": "VGT_HS_OFFCHIP_PARAM",
+   "type_ref": "VGT_HS_OFFCHIP_PARAM"
   },
   {
    "chips": ["gfx103"],
    "map": {"at": 198976, "to": "mm"},
-   "name": "VGT_TF_MEMORY_BASE_UMD"
+   "name": "VGT_TF_MEMORY_BASE"
   },
   {
    "chips": ["gfx103"],
@@ -7628,7 +7629,7 @@
   {
    "chips": ["gfx103"],
    "map": {"at": 199044, "to": "mm"},
-   "name": "VGT_TF_MEMORY_BASE_HI_UMD",
+   "name": "VGT_TF_MEMORY_BASE_HI",
    "type_ref": "DB_Z_READ_BASE_HI"
   },
   {
@@ -12831,7 +12832,7 @@
   },
   "DB_VRS_OVERRIDE_CNTL": {
    "fields": [
-    {"bits": [0, 2], "enum_ref": "VRSCombinerMode", "name": "VRS_OVERRIDE_RATE_COMBINER_MODE"},
+    {"bits": [0, 2], "enum_ref": "VRSCombinerModeSC", "name": "VRS_OVERRIDE_RATE_COMBINER_MODE"},
     {"bits": [4, 5], "name": "VRS_OVERRIDE_RATE_X"},
     {"bits": [6, 7], "name": "VRS_OVERRIDE_RATE_Y"}
    ]
@@ -13297,10 +13298,10 @@
   },
   "PA_CL_VRS_CNTL": {
    "fields": [
-    {"bits": [0, 2], "enum_ref": "VRSCombinerMode", "name": "VERTEX_RATE_COMBINER_MODE"},
-    {"bits": [3, 5], "enum_ref": "VRSCombinerMode", "name": "PRIMITIVE_RATE_COMBINER_MODE"},
-    {"bits": [6, 8], "enum_ref": "VRSCombinerMode", "name": "HTILE_RATE_COMBINER_MODE"},
-    {"bits": [9, 11], "enum_ref": "VRSCombinerMode", "name": "SAMPLE_ITER_COMBINER_MODE"},
+    {"bits": [0, 2], "enum_ref": "VRSCombinerModeSC", "name": "VERTEX_RATE_COMBINER_MODE"},
+    {"bits": [3, 5], "enum_ref": "VRSCombinerModeSC", "name": "PRIMITIVE_RATE_COMBINER_MODE"},
+    {"bits": [6, 8], "enum_ref": "VRSCombinerModeSC", "name": "HTILE_RATE_COMBINER_MODE"},
+    {"bits": [9, 11], "enum_ref": "VRSCombinerModeSC", "name": "SAMPLE_ITER_COMBINER_MODE"},
     {"bits": [13, 13], "name": "EXPOSE_VRS_PIXELS_MASK"},
     {"bits": [14, 14], "name": "CMASK_RATE_HINT_FORCE_ZERO"}
    ]
@@ -14996,7 +14997,7 @@
     {"bits": [0, 7], "name": "REUSE_DEPTH"}
    ]
   },
-  "VGT_HS_OFFCHIP_PARAM_UMD": {
+  "VGT_HS_OFFCHIP_PARAM": {
    "fields": [
     {"bits": [0, 9], "name": "OFFCHIP_BUFFERING"},
     {"bits": [10, 11], "enum_ref": "VGT_HS_OFFCHIP_PARAM__OFFCHIP_GRANULARITY", "name": "OFFCHIP_GRANULARITY"}
@@ -15127,7 +15128,7 @@
     {"bits": [23, 25], "name": "MTYPE"}
    ]
   },
-  "VGT_TF_RING_SIZE_UMD": {
+  "VGT_TF_RING_SIZE": {
    "fields": [
     {"bits": [0, 15], "name": "SIZE"}
    ]

@@ -95,7 +95,7 @@ fd3_screen_is_format_supported(struct pipe_screen *pscreen,
 }
 
 /* clang-format off */
-static const uint8_t primtypes[] = {
+static const enum pc_di_primtype primtypes[] = {
    [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST,
    [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
    [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,

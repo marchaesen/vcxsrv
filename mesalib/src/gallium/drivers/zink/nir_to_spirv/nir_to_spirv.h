@@ -39,6 +39,7 @@
 struct spirv_shader {
    uint32_t *words;
    size_t num_words;
+   uint32_t tcs_vertices_out_word;
 };
 
 struct nir_shader;

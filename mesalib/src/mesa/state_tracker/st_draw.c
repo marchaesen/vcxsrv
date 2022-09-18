@@ -217,6 +217,21 @@ st_draw_gallium_multimode(struct gl_context *ctx,
    }
 }
 
+static void
+rewrite_partial_stride_indirect(struct st_context *st,
+                            const struct pipe_draw_info *info,
+                            const struct pipe_draw_indirect_info *indirect,
+                            const struct pipe_draw_start_count_bias draw)
+{
+   unsigned draw_count = 0;
+   struct u_indirect_params *new_draws = util_draw_indirect_read(st->pipe, info, indirect, &draw_count);
+   if (!new_draws)
+      return;
+   for (unsigned i = 0; i < draw_count; i++)
+      cso_draw_vbo(st->cso_context, &new_draws[i].info, i, NULL, new_draws[i].draw);
+   free(new_draws);
+}
+
 void
 st_indirect_draw_vbo(struct gl_context *ctx,
                      GLuint mode,
@@ -276,6 +291,15 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    } else {
       indirect.draw_count = draw_count;
       indirect.stride = stride;
+      if (!st->has_indirect_partial_stride && stride &&
+          (draw_count > 1 || indirect_draw_count)) {
+         /* DrawElementsIndirectCommand or DrawArraysIndirectCommand */
+         const size_t struct_size = info.index_size ? sizeof(uint32_t) * 5 : sizeof(uint32_t) * 4;
+         if (indirect.stride && indirect.stride < struct_size) {
+            rewrite_partial_stride_indirect(st, &info, &indirect, draw);
+            return;
+         }
+      }
       if (indirect_draw_count) {
          indirect.indirect_draw_count =
             indirect_draw_count->buffer;
@@ -494,4 +518,71 @@ st_draw_quad(struct st_context *st,
    pipe_resource_reference(&vb.buffer.resource, NULL);
 
    return true;
+}
+
+static void
+st_hw_select_draw_gallium(struct gl_context *ctx,
+                          struct pipe_draw_info *info,
+                          unsigned drawid_offset,
+                          const struct pipe_draw_start_count_bias *draws,
+                          unsigned num_draws)
+{
+   struct st_context *st = st_context(ctx);
+
+   prepare_draw(st, ctx, ST_PIPELINE_RENDER_STATE_MASK, ST_PIPELINE_RENDER);
+
+   if (!prepare_indexed_draw(st, ctx, info, draws, num_draws))
+      return;
+
+   if (!st_draw_hw_select_prepare_common(ctx) ||
+       !st_draw_hw_select_prepare_mode(ctx, info))
+      return;
+
+   cso_multi_draw(st->cso_context, info, drawid_offset, draws, num_draws);
+}
+
+static void
+st_hw_select_draw_gallium_multimode(struct gl_context *ctx,
+                                    struct pipe_draw_info *info,
+                                    const struct pipe_draw_start_count_bias *draws,
+                                    const unsigned char *mode,
+                                    unsigned num_draws)
+{
+   struct st_context *st = st_context(ctx);
+
+   prepare_draw(st, ctx, ST_PIPELINE_RENDER_STATE_MASK, ST_PIPELINE_RENDER);
+
+   if (!prepare_indexed_draw(st, ctx, info, draws, num_draws))
+      return;
+
+   if (!st_draw_hw_select_prepare_common(ctx))
+      return;
+
+   unsigned i, first;
+   struct cso_context *cso = st->cso_context;
+
+   /* Find consecutive draws where mode doesn't vary. */
+   for (i = 0, first = 0; i <= num_draws; i++) {
+      if (i == num_draws || mode[i] != mode[first]) {
+         info->mode = mode[first];
+
+         if (st_draw_hw_select_prepare_mode(ctx, info))
+            cso_multi_draw(cso, info, 0, &draws[first], i - first);
+
+         first = i;
+
+         /* We can pass the reference only once. st_buffer_object keeps
+          * the reference alive for later draws.
+          */
+         info->take_index_buffer_ownership = false;
+      }
+   }
+}
+
+void
+st_init_hw_select_draw_functions(struct pipe_screen *screen,
+                                 struct dd_function_table *functions)
+{
+   functions->DrawGallium = st_hw_select_draw_gallium;
+   functions->DrawGalliumMultiMode = st_hw_select_draw_gallium_multimode;
 }

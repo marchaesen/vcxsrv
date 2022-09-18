@@ -110,33 +110,6 @@ vn_encode_VkExternalMemoryImageCreateInfo(struct vn_cs_encoder *enc, const VkExt
     vn_encode_VkExternalMemoryImageCreateInfo_self(enc, val);
 }
 
-static inline void
-vn_decode_VkExternalMemoryImageCreateInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkExternalMemoryImageCreateInfo_self(struct vn_cs_decoder *dec, VkExternalMemoryImageCreateInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkFlags(dec, &val->handleTypes);
-}
-
-static inline void
-vn_decode_VkExternalMemoryImageCreateInfo(struct vn_cs_decoder *dec, VkExternalMemoryImageCreateInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkExternalMemoryImageCreateInfo_pnext(dec, val->pNext);
-    vn_decode_VkExternalMemoryImageCreateInfo_self(dec, val);
-}
-
 /* struct VkImageDrmFormatModifierListCreateInfoEXT chain */
 
 static inline size_t
@@ -200,40 +173,6 @@ vn_encode_VkImageDrmFormatModifierListCreateInfoEXT(struct vn_cs_encoder *enc, c
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT });
     vn_encode_VkImageDrmFormatModifierListCreateInfoEXT_pnext(enc, val->pNext);
     vn_encode_VkImageDrmFormatModifierListCreateInfoEXT_self(enc, val);
-}
-
-static inline void
-vn_decode_VkImageDrmFormatModifierListCreateInfoEXT_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkImageDrmFormatModifierListCreateInfoEXT_self(struct vn_cs_decoder *dec, VkImageDrmFormatModifierListCreateInfoEXT *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_uint32_t(dec, &val->drmFormatModifierCount);
-    if (vn_peek_array_size(dec)) {
-        const size_t array_size = vn_decode_array_size(dec, val->drmFormatModifierCount);
-        vn_decode_uint64_t_array(dec, (uint64_t *)val->pDrmFormatModifiers, array_size);
-    } else {
-        vn_decode_array_size_unchecked(dec);
-        val->pDrmFormatModifiers = NULL;
-    }
-}
-
-static inline void
-vn_decode_VkImageDrmFormatModifierListCreateInfoEXT(struct vn_cs_decoder *dec, VkImageDrmFormatModifierListCreateInfoEXT *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
-
-    assert(val->sType == stype);
-    vn_decode_VkImageDrmFormatModifierListCreateInfoEXT_pnext(dec, val->pNext);
-    vn_decode_VkImageDrmFormatModifierListCreateInfoEXT_self(dec, val);
 }
 
 /* struct VkSubresourceLayout */
@@ -361,42 +300,6 @@ vn_encode_VkImageDrmFormatModifierExplicitCreateInfoEXT(struct vn_cs_encoder *en
     vn_encode_VkImageDrmFormatModifierExplicitCreateInfoEXT_self(enc, val);
 }
 
-static inline void
-vn_decode_VkImageDrmFormatModifierExplicitCreateInfoEXT_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkImageDrmFormatModifierExplicitCreateInfoEXT_self(struct vn_cs_decoder *dec, VkImageDrmFormatModifierExplicitCreateInfoEXT *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_uint64_t(dec, &val->drmFormatModifier);
-    vn_decode_uint32_t(dec, &val->drmFormatModifierPlaneCount);
-    if (vn_peek_array_size(dec)) {
-        const uint32_t iter_count = vn_decode_array_size(dec, val->drmFormatModifierPlaneCount);
-        for (uint32_t i = 0; i < iter_count; i++)
-            vn_decode_VkSubresourceLayout(dec, &((VkSubresourceLayout *)val->pPlaneLayouts)[i]);
-    } else {
-        vn_decode_array_size_unchecked(dec);
-        val->pPlaneLayouts = NULL;
-    }
-}
-
-static inline void
-vn_decode_VkImageDrmFormatModifierExplicitCreateInfoEXT(struct vn_cs_decoder *dec, VkImageDrmFormatModifierExplicitCreateInfoEXT *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
-
-    assert(val->sType == stype);
-    vn_decode_VkImageDrmFormatModifierExplicitCreateInfoEXT_pnext(dec, val->pNext);
-    vn_decode_VkImageDrmFormatModifierExplicitCreateInfoEXT_self(dec, val);
-}
-
 /* struct VkImageCreateInfo chain */
 
 static inline size_t
@@ -420,12 +323,16 @@ vn_sizeof_VkImageCreateInfo_pnext(const void *val)
             size += vn_sizeof_VkImageFormatListCreateInfo_self((const VkImageFormatListCreateInfo *)pnext);
             return size;
         case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(159 /* VK_EXT_image_drm_format_modifier */))
+                break;
             size += vn_sizeof_simple_pointer(pnext);
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkImageCreateInfo_pnext(pnext->pNext);
             size += vn_sizeof_VkImageDrmFormatModifierListCreateInfoEXT_self((const VkImageDrmFormatModifierListCreateInfoEXT *)pnext);
             return size;
         case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(159 /* VK_EXT_image_drm_format_modifier */))
+                break;
             size += vn_sizeof_simple_pointer(pnext);
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkImageCreateInfo_pnext(pnext->pNext);
@@ -505,12 +412,16 @@ vn_encode_VkImageCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val)
             vn_encode_VkImageFormatListCreateInfo_self(enc, (const VkImageFormatListCreateInfo *)pnext);
             return;
         case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(159 /* VK_EXT_image_drm_format_modifier */))
+                break;
             vn_encode_simple_pointer(enc, pnext);
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkImageCreateInfo_pnext(enc, pnext->pNext);
             vn_encode_VkImageDrmFormatModifierListCreateInfoEXT_self(enc, (const VkImageDrmFormatModifierListCreateInfoEXT *)pnext);
             return;
         case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(159 /* VK_EXT_image_drm_format_modifier */))
+                break;
             vn_encode_simple_pointer(enc, pnext);
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkImageCreateInfo_pnext(enc, pnext->pNext);
@@ -563,86 +474,6 @@ vn_encode_VkImageCreateInfo(struct vn_cs_encoder *enc, const VkImageCreateInfo *
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO });
     vn_encode_VkImageCreateInfo_pnext(enc, val->pNext);
     vn_encode_VkImageCreateInfo_self(enc, val);
-}
-
-static inline void
-vn_decode_VkImageCreateInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    VkBaseOutStructure *pnext = (VkBaseOutStructure *)val;
-    VkStructureType stype;
-
-    if (!vn_decode_simple_pointer(dec))
-        return;
-
-    vn_decode_VkStructureType(dec, &stype);
-    while (true) {
-        assert(pnext);
-        if (pnext->sType == stype)
-            break;
-    }
-
-    switch ((int32_t)pnext->sType) {
-    case VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO:
-        vn_decode_VkImageCreateInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkExternalMemoryImageCreateInfo_self(dec, (VkExternalMemoryImageCreateInfo *)pnext);
-        break;
-    case VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO:
-        vn_decode_VkImageCreateInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkImageFormatListCreateInfo_self(dec, (VkImageFormatListCreateInfo *)pnext);
-        break;
-    case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT:
-        vn_decode_VkImageCreateInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkImageDrmFormatModifierListCreateInfoEXT_self(dec, (VkImageDrmFormatModifierListCreateInfoEXT *)pnext);
-        break;
-    case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT:
-        vn_decode_VkImageCreateInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkImageDrmFormatModifierExplicitCreateInfoEXT_self(dec, (VkImageDrmFormatModifierExplicitCreateInfoEXT *)pnext);
-        break;
-    case VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO:
-        vn_decode_VkImageCreateInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkImageStencilUsageCreateInfo_self(dec, (VkImageStencilUsageCreateInfo *)pnext);
-        break;
-    default:
-        assert(false);
-        break;
-    }
-}
-
-static inline void
-vn_decode_VkImageCreateInfo_self(struct vn_cs_decoder *dec, VkImageCreateInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkFlags(dec, &val->flags);
-    vn_decode_VkImageType(dec, &val->imageType);
-    vn_decode_VkFormat(dec, &val->format);
-    vn_decode_VkExtent3D(dec, &val->extent);
-    vn_decode_uint32_t(dec, &val->mipLevels);
-    vn_decode_uint32_t(dec, &val->arrayLayers);
-    vn_decode_VkSampleCountFlagBits(dec, &val->samples);
-    vn_decode_VkImageTiling(dec, &val->tiling);
-    vn_decode_VkFlags(dec, &val->usage);
-    vn_decode_VkSharingMode(dec, &val->sharingMode);
-    vn_decode_uint32_t(dec, &val->queueFamilyIndexCount);
-    if (vn_peek_array_size(dec)) {
-        const size_t array_size = vn_decode_array_size(dec, val->queueFamilyIndexCount);
-        vn_decode_uint32_t_array(dec, (uint32_t *)val->pQueueFamilyIndices, array_size);
-    } else {
-        vn_decode_array_size_unchecked(dec);
-        val->pQueueFamilyIndices = NULL;
-    }
-    vn_decode_VkImageLayout(dec, &val->initialLayout);
-}
-
-static inline void
-vn_decode_VkImageCreateInfo(struct vn_cs_decoder *dec, VkImageCreateInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkImageCreateInfo_pnext(dec, val->pNext);
-    vn_decode_VkImageCreateInfo_self(dec, val);
 }
 
 /* struct VkBindImageMemoryDeviceGroupInfo chain */
@@ -726,49 +557,6 @@ vn_encode_VkBindImageMemoryDeviceGroupInfo(struct vn_cs_encoder *enc, const VkBi
     vn_encode_VkBindImageMemoryDeviceGroupInfo_self(enc, val);
 }
 
-static inline void
-vn_decode_VkBindImageMemoryDeviceGroupInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkBindImageMemoryDeviceGroupInfo_self(struct vn_cs_decoder *dec, VkBindImageMemoryDeviceGroupInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_uint32_t(dec, &val->deviceIndexCount);
-    if (vn_peek_array_size(dec)) {
-        const size_t array_size = vn_decode_array_size(dec, val->deviceIndexCount);
-        vn_decode_uint32_t_array(dec, (uint32_t *)val->pDeviceIndices, array_size);
-    } else {
-        vn_decode_array_size_unchecked(dec);
-        val->pDeviceIndices = NULL;
-    }
-    vn_decode_uint32_t(dec, &val->splitInstanceBindRegionCount);
-    if (vn_peek_array_size(dec)) {
-        const uint32_t iter_count = vn_decode_array_size(dec, val->splitInstanceBindRegionCount);
-        for (uint32_t i = 0; i < iter_count; i++)
-            vn_decode_VkRect2D(dec, &((VkRect2D *)val->pSplitInstanceBindRegions)[i]);
-    } else {
-        vn_decode_array_size_unchecked(dec);
-        val->pSplitInstanceBindRegions = NULL;
-    }
-}
-
-static inline void
-vn_decode_VkBindImageMemoryDeviceGroupInfo(struct vn_cs_decoder *dec, VkBindImageMemoryDeviceGroupInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBindImageMemoryDeviceGroupInfo_pnext(dec, val->pNext);
-    vn_decode_VkBindImageMemoryDeviceGroupInfo_self(dec, val);
-}
-
 /* struct VkBindImagePlaneMemoryInfo chain */
 
 static inline size_t
@@ -820,33 +608,6 @@ vn_encode_VkBindImagePlaneMemoryInfo(struct vn_cs_encoder *enc, const VkBindImag
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO });
     vn_encode_VkBindImagePlaneMemoryInfo_pnext(enc, val->pNext);
     vn_encode_VkBindImagePlaneMemoryInfo_self(enc, val);
-}
-
-static inline void
-vn_decode_VkBindImagePlaneMemoryInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
-}
-
-static inline void
-vn_decode_VkBindImagePlaneMemoryInfo_self(struct vn_cs_decoder *dec, VkBindImagePlaneMemoryInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkImageAspectFlagBits(dec, &val->planeAspect);
-}
-
-static inline void
-vn_decode_VkBindImagePlaneMemoryInfo(struct vn_cs_decoder *dec, VkBindImagePlaneMemoryInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBindImagePlaneMemoryInfo_pnext(dec, val->pNext);
-    vn_decode_VkBindImagePlaneMemoryInfo_self(dec, val);
 }
 
 /* struct VkBindImageMemoryInfo chain */
@@ -949,58 +710,6 @@ vn_encode_VkBindImageMemoryInfo(struct vn_cs_encoder *enc, const VkBindImageMemo
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO });
     vn_encode_VkBindImageMemoryInfo_pnext(enc, val->pNext);
     vn_encode_VkBindImageMemoryInfo_self(enc, val);
-}
-
-static inline void
-vn_decode_VkBindImageMemoryInfo_pnext(struct vn_cs_decoder *dec, const void *val)
-{
-    VkBaseOutStructure *pnext = (VkBaseOutStructure *)val;
-    VkStructureType stype;
-
-    if (!vn_decode_simple_pointer(dec))
-        return;
-
-    vn_decode_VkStructureType(dec, &stype);
-    while (true) {
-        assert(pnext);
-        if (pnext->sType == stype)
-            break;
-    }
-
-    switch ((int32_t)pnext->sType) {
-    case VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO:
-        vn_decode_VkBindImageMemoryInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkBindImageMemoryDeviceGroupInfo_self(dec, (VkBindImageMemoryDeviceGroupInfo *)pnext);
-        break;
-    case VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO:
-        vn_decode_VkBindImageMemoryInfo_pnext(dec, pnext->pNext);
-        vn_decode_VkBindImagePlaneMemoryInfo_self(dec, (VkBindImagePlaneMemoryInfo *)pnext);
-        break;
-    default:
-        assert(false);
-        break;
-    }
-}
-
-static inline void
-vn_decode_VkBindImageMemoryInfo_self(struct vn_cs_decoder *dec, VkBindImageMemoryInfo *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_decode_VkImage(dec, &val->image);
-    vn_decode_VkDeviceMemory(dec, &val->memory);
-    vn_decode_VkDeviceSize(dec, &val->memoryOffset);
-}
-
-static inline void
-vn_decode_VkBindImageMemoryInfo(struct vn_cs_decoder *dec, VkBindImageMemoryInfo *val)
-{
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkBindImageMemoryInfo_pnext(dec, val->pNext);
-    vn_decode_VkBindImageMemoryInfo_self(dec, val);
 }
 
 /* struct VkImagePlaneMemoryRequirementsInfo chain */

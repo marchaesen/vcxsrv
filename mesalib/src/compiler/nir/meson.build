@@ -20,6 +20,8 @@
 
 nir_depends = files('nir_opcodes.py', 'nir_intrinsics.py')
 
+nir_algebraic_depends = files('nir_opcodes.py', 'nir_algebraic.py')
+
 nir_builder_opcodes_h = custom_target(
   'nir_builder_opcodes.h',
   input : 'nir_builder_opcodes_h.py',
@@ -62,7 +64,7 @@ nir_opt_algebraic_c = custom_target(
   output : 'nir_opt_algebraic.c',
   command : [prog_python, '@INPUT@'],
   capture : true,
-  depend_files : files('nir_algebraic.py'),
+  depend_files : nir_algebraic_depends,
 )
 
 nir_intrinsics_h = custom_target(
@@ -126,7 +128,7 @@ files_libnir = files(
   'nir_loop_analyze.c',
   'nir_loop_analyze.h',
   'nir_lower_alu.c',
-  'nir_lower_alu_to_scalar.c',
+  'nir_lower_alu_width.c',
   'nir_lower_alpha_test.c',
   'nir_lower_amul.c',
   'nir_lower_array_deref_of_vec.c',
@@ -136,11 +138,13 @@ files_libnir = files(
   'nir_lower_bool_to_bitsize.c',
   'nir_lower_bool_to_float.c',
   'nir_lower_bool_to_int32.c',
+  'nir_lower_cl_images.c',
   'nir_lower_clamp_color_outputs.c',
   'nir_lower_clip.c',
   'nir_lower_clip_cull_distance_arrays.c',
   'nir_lower_clip_disable.c',
   'nir_lower_clip_halfz.c',
+  'nir_lower_const_arrays_to_uniforms.c',
   'nir_lower_convert_alu_types.c',
   'nir_lower_variable_initializers.c',
   'nir_lower_discard_if.c',
@@ -184,6 +188,8 @@ files_libnir = files(
   'nir_lower_pntc_ytransform.c',
   'nir_lower_point_size.c',
   'nir_lower_point_size_mov.c',
+  'nir_lower_point_smooth.c',
+  'nir_lower_poly_line_smooth.c',
   'nir_lower_printf.c',
   'nir_lower_regs_to_ssa.c',
   'nir_lower_readonly_images_to_tex.c',
@@ -191,9 +197,11 @@ files_libnir = files(
   'nir_lower_samplers.c',
   'nir_lower_scratch.c',
   'nir_lower_shader_calls.c',
+  'nir_lower_single_sampled.c',
   'nir_lower_ssbo.c',
   'nir_lower_subgroups.c',
   'nir_lower_system_values.c',
+  'nir_lower_task_shader.c',
   'nir_lower_tex_shadow.c',
   'nir_lower_tex.c',
   'nir_lower_texcoord_replace.c',
@@ -239,12 +247,15 @@ files_libnir = files(
   'nir_opt_memcpy.c',
   'nir_opt_move.c',
   'nir_opt_move_discards_to_top.c',
+  'nir_opt_non_uniform_access.c',
   'nir_opt_offsets.c',
   'nir_opt_peephole_select.c',
   'nir_opt_phi_precision.c',
+  'nir_opt_preamble.c',
   'nir_opt_ray_queries.c',
   'nir_opt_rematerialize_compares.c',
   'nir_opt_remove_phis.c',
+  'nir_opt_shrink_stores.c',
   'nir_opt_shrink_vectors.c',
   'nir_opt_sink.c',
   'nir_opt_trivial_continues.c',
@@ -259,6 +270,7 @@ files_libnir = files(
   'nir_range_analysis.h',
   'nir_remove_dead_variables.c',
   'nir_repair_ssa.c',
+  'nir_scale_fdiv.c',
   'nir_schedule.c',
   'nir_schedule.h',
   'nir_search.c',
@@ -266,6 +278,7 @@ files_libnir = files(
   'nir_search_helpers.h',
   'nir_serialize.c',
   'nir_serialize.h',
+  'nir_split_64bit_vec3_and_vec4.c',
   'nir_split_per_member_structs.c',
   'nir_split_var_copies.c',
   'nir_split_vars.c',
@@ -359,10 +372,12 @@ _libnir = static_library(
   build_by_default : false,
 )
 
+inc_nir = include_directories('.')
+
 # Headers-only dependency
 idep_nir_headers = declare_dependency(
   sources : [nir_opcodes_h, nir_builder_opcodes_h, nir_intrinsics_h, nir_intrinsics_indices_h],
-  include_directories : include_directories('.'),
+  include_directories : inc_nir,
 )
 
 # Also link with nir
@@ -370,8 +385,6 @@ idep_nir = declare_dependency(
   dependencies : [idep_nir_headers, idep_mesautil],
   link_with : _libnir,
 )
-
-nir_algebraic_py = files('nir_algebraic.py')
 
 if with_tests
   test(

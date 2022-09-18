@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2009 VMware, Inc.
  * All Rights Reserved.
  *
@@ -36,6 +36,7 @@
 #include "u_debug_symbol.h"
 #include "u_debug_stack.h"
 #include "pipe/p_config.h"
+#include "c11/threads.h"
 
 #if defined(HAVE_LIBUNWIND)
 
@@ -75,7 +76,7 @@ symbol_name_cached(unw_cursor_t *cursor, unw_proc_info_t *pip)
          procname[1] = 0;
       }
 
-      if (asprintf(&name, "%s%s", procname, ret == -UNW_ENOMEM ? "..." : "") == -1) 
+      if (asprintf(&name, "%s%s", procname, ret == -UNW_ENOMEM ? "..." : "") == -1)
          name = "??";
       entry = _mesa_hash_table_insert(symbols_hash, addr, (void*)name);
    }
@@ -186,7 +187,6 @@ debug_backtrace_print(FILE *f,
 #include <windows.h>
 #endif
 
-
 /**
  * Capture stack backtrace.
  *
@@ -199,7 +199,6 @@ debug_backtrace_capture(struct debug_stack_frame *backtrace,
                         unsigned start_frame,
                         unsigned nr_frames)
 {
-   const void **frame_pointer = NULL;
    unsigned i = 0;
 
    if (!nr_frames) {
@@ -250,21 +249,22 @@ debug_backtrace_capture(struct debug_stack_frame *backtrace,
    }
 #endif
 
+#ifdef PIPE_ARCH_X86
 #if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION > 404) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wframe-address"
-   frame_pointer = ((const void **)__builtin_frame_address(1));
+   const void **frame_pointer = ((const void **)__builtin_frame_address(1));
 #pragma GCC diagnostic pop
-#elif defined(PIPE_CC_MSVC) && defined(PIPE_ARCH_X86)
+#elif defined(PIPE_CC_MSVC)
+   const void **frame_pointer;
    __asm {
       mov frame_pointer, ebp
    }
    frame_pointer = (const void **)frame_pointer[0];
 #else
-   frame_pointer = NULL;
+   const void **frame_pointer = NULL;
 #endif
 
-#ifdef PIPE_ARCH_X86
    while (nr_frames) {
       const void **next_frame_pointer;
 
@@ -287,8 +287,6 @@ debug_backtrace_capture(struct debug_stack_frame *backtrace,
 
       frame_pointer = next_frame_pointer;
    }
-#else
-   (void) frame_pointer;
 #endif
 
    while (nr_frames) {
@@ -298,17 +296,32 @@ debug_backtrace_capture(struct debug_stack_frame *backtrace,
 }
 
 
+static mtx_t backtrace_mutex;
+
+static void
+initialize_backtrace_mutex()
+{
+   static bool initialized = false;
+
+   if (!initialized) {
+      (void)mtx_init(&backtrace_mutex, mtx_plain);
+      initialized = true;
+   }
+}
+
 void
 debug_backtrace_dump(const struct debug_stack_frame *backtrace,
                      unsigned nr_frames)
 {
    unsigned i;
-
+   initialize_backtrace_mutex();
+   mtx_lock(&backtrace_mutex);
    for (i = 0; i < nr_frames; ++i) {
       if (!backtrace[i].function)
          break;
       debug_symbol_print(backtrace[i].function);
    }
+   mtx_unlock(&backtrace_mutex);
 }
 
 
@@ -319,6 +332,8 @@ debug_backtrace_print(FILE *f,
 {
    unsigned i;
 
+   initialize_backtrace_mutex();
+   mtx_lock(&backtrace_mutex);
    for (i = 0; i < nr_frames; ++i) {
       const char *symbol;
       if (!backtrace[i].function)
@@ -327,6 +342,8 @@ debug_backtrace_print(FILE *f,
       if (symbol)
          fprintf(f, "%s\n", symbol);
    }
+   fflush(f);
+   mtx_unlock(&backtrace_mutex);
 }
 
 #endif /* HAVE_LIBUNWIND */

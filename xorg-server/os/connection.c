@@ -79,6 +79,8 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <sys/stat.h>
+
 #ifndef WIN32
 #include <sys/socket.h>
 
@@ -989,15 +991,34 @@ MakeClientGrabPervious(ClientPtr client)
 void
 ListenOnOpenFD(int fd, int noxauth)
 {
-    char port[256];
+    char port[PATH_MAX];
     XtransConnInfo ciptr;
     const char *display_env = getenv("DISPLAY");
 
-    if (display_env && (strncmp(display_env, "/tmp/launch", 11) == 0)) {
-        /* Make the path the launchd socket if our DISPLAY is set right */
-        strcpy(port, display_env);
+    /* First check if display_env matches a <absolute path to unix socket>[.<screen number>] scheme (eg: launchd) */
+    if (display_env && display_env[0] == '/') {
+        struct stat sbuf;
+
+        strlcpy(port, display_env, sizeof(port));
+
+        /* If the path exists, we don't have do do anything else.
+         * If it doesn't, we need to check for a .<screen number> to strip off and recheck.
+         */
+        if (0 != stat(port, &sbuf)) {
+            char *dot = strrchr(port, '.');
+            if (dot) {
+                *dot = '\0';
+
+                if (0 != stat(port, &sbuf)) {
+                    display_env = NULL;
+                }
+            } else {
+                display_env = NULL;
+            }
+        }
     }
-    else {
+
+    if (!display_env) {
         /* Just some default so things don't break and die. */
         snprintf(port, sizeof(port), ":%d", atoi(display));
     }

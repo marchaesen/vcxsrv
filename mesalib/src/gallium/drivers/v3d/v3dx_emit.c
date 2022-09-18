@@ -26,6 +26,7 @@
 #include "v3d_context.h"
 #include "broadcom/common/v3d_macros.h"
 #include "broadcom/cle/v3dx_pack.h"
+#include "broadcom/common/v3d_util.h"
 #include "broadcom/compiler/v3d_compiler.h"
 
 static uint8_t
@@ -110,24 +111,6 @@ swizzled_border_color(const struct v3d_device_info *devinfo,
         }
 }
 
-static uint32_t
-translate_swizzle(unsigned char pipe_swizzle)
-{
-        switch (pipe_swizzle) {
-        case PIPE_SWIZZLE_0:
-                return 0;
-        case PIPE_SWIZZLE_1:
-                return 1;
-        case PIPE_SWIZZLE_X:
-        case PIPE_SWIZZLE_Y:
-        case PIPE_SWIZZLE_Z:
-        case PIPE_SWIZZLE_W:
-                return 2 + pipe_swizzle;
-        default:
-                unreachable("unknown swizzle");
-        }
-}
-
 static void
 emit_one_texture(struct v3d_context *v3d, struct v3d_texture_stateobj *stage_tex,
                  int i)
@@ -195,15 +178,15 @@ emit_one_texture(struct v3d_context *v3d, struct v3d_texture_stateobj *stage_tex
          * the shader, because you need the Y/Z/W channels to be defined.
          */
         if (return_size == 32) {
-                unpacked.swizzle_r = translate_swizzle(PIPE_SWIZZLE_X);
-                unpacked.swizzle_g = translate_swizzle(PIPE_SWIZZLE_Y);
-                unpacked.swizzle_b = translate_swizzle(PIPE_SWIZZLE_Z);
-                unpacked.swizzle_a = translate_swizzle(PIPE_SWIZZLE_W);
+                unpacked.swizzle_r = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_X);
+                unpacked.swizzle_g = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_Y);
+                unpacked.swizzle_b = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_Z);
+                unpacked.swizzle_a = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_W);
         } else {
-                unpacked.swizzle_r = translate_swizzle(sview->swizzle[0]);
-                unpacked.swizzle_g = translate_swizzle(sview->swizzle[1]);
-                unpacked.swizzle_b = translate_swizzle(sview->swizzle[2]);
-                unpacked.swizzle_a = translate_swizzle(sview->swizzle[3]);
+                unpacked.swizzle_r = v3d_translate_pipe_swizzle(sview->swizzle[0]);
+                unpacked.swizzle_g = v3d_translate_pipe_swizzle(sview->swizzle[1]);
+                unpacked.swizzle_b = v3d_translate_pipe_swizzle(sview->swizzle[2]);
+                unpacked.swizzle_a = v3d_translate_pipe_swizzle(sview->swizzle[3]);
         }
 
         int min_img_filter = psampler->min_img_filter;
@@ -277,7 +260,8 @@ translate_colormask(struct v3d_context *v3d, uint32_t colormask, int rt)
 
 static void
 emit_rt_blend(struct v3d_context *v3d, struct v3d_job *job,
-              struct pipe_blend_state *blend, int rt)
+              struct pipe_blend_state *blend, int rt, uint8_t rt_mask,
+              bool blend_dst_alpha_one)
 {
         struct pipe_rt_blend_state *rtblend = &blend->rt[rt];
 
@@ -289,10 +273,7 @@ emit_rt_blend(struct v3d_context *v3d, struct v3d_job *job,
 
         cl_emit(&job->bcl, BLEND_CFG, config) {
 #if V3D_VERSION >= 40
-                if (blend->independent_blend_enable)
-                        config.render_target_mask = 1 << rt;
-                else
-                        config.render_target_mask = (1 << V3D_MAX_DRAW_BUFFERS) - 1;
+                config.render_target_mask = rt_mask;
 #else
                 assert(rt == 0);
 #endif
@@ -300,18 +281,18 @@ emit_rt_blend(struct v3d_context *v3d, struct v3d_job *job,
                 config.color_blend_mode = rtblend->rgb_func;
                 config.color_blend_dst_factor =
                         v3d_factor(rtblend->rgb_dst_factor,
-                                   v3d->blend_dst_alpha_one);
+                                   blend_dst_alpha_one);
                 config.color_blend_src_factor =
                         v3d_factor(rtblend->rgb_src_factor,
-                                   v3d->blend_dst_alpha_one);
+                                   blend_dst_alpha_one);
 
                 config.alpha_blend_mode = rtblend->alpha_func;
                 config.alpha_blend_dst_factor =
                         v3d_factor(rtblend->alpha_dst_factor,
-                                   v3d->blend_dst_alpha_one);
+                                   blend_dst_alpha_one);
                 config.alpha_blend_src_factor =
                         v3d_factor(rtblend->alpha_src_factor,
-                                   v3d->blend_dst_alpha_one);
+                                   blend_dst_alpha_one);
         }
 }
 
@@ -553,7 +534,9 @@ v3dX(emit_state)(struct pipe_context *pctx)
                          * enabled
                          */
                         config.line_rasterization =
-                                v3d_line_smoothing_enabled(v3d) ? 1 : 0;
+                                v3d_line_smoothing_enabled(v3d) ?
+                                V3D_LINE_RASTERIZATION_PERP_END_CAPS :
+                                V3D_LINE_RASTERIZATION_DIAMOND_EXIT;
                 }
 
         }
@@ -625,9 +608,32 @@ v3dX(emit_state)(struct pipe_context *pctx)
 
                         if (blend->base.independent_blend_enable) {
                                 for (int i = 0; i < V3D_MAX_DRAW_BUFFERS; i++)
-                                        emit_rt_blend(v3d, job, &blend->base, i);
+                                        emit_rt_blend(v3d, job, &blend->base, i,
+                                                      (1 << i),
+                                                      v3d->blend_dst_alpha_one & (1 << i));
+                        } else if (v3d->blend_dst_alpha_one &&
+                                   util_bitcount(v3d->blend_dst_alpha_one) < job->nr_cbufs) {
+                                /* Even if we don't have independent per-RT
+                                 * blending, we may have a combination of RT
+                                 * formats were some RTs have an alpha channel
+                                 * and others don't. Since this affects how
+                                 * blending is performed, we also need to emit
+                                 * independent blend configurations in this
+                                 * case: one for RTs with alpha and one for
+                                 * RTs without.
+                                 */
+                                emit_rt_blend(v3d, job, &blend->base, 0,
+                                              ((1 << V3D_MAX_DRAW_BUFFERS) - 1) &
+                                                   v3d->blend_dst_alpha_one,
+                                              true);
+                                emit_rt_blend(v3d, job, &blend->base, 0,
+                                              ((1 << V3D_MAX_DRAW_BUFFERS) - 1) &
+                                                   ~v3d->blend_dst_alpha_one,
+                                              false);
                         } else {
-                                emit_rt_blend(v3d, job, &blend->base, 0);
+                                emit_rt_blend(v3d, job, &blend->base, 0,
+                                              (1 << V3D_MAX_DRAW_BUFFERS) - 1,
+                                              v3d->blend_dst_alpha_one);
                         }
                 }
         }

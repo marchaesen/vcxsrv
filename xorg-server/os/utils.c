@@ -1108,9 +1108,9 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
         *p++ = (len) >> 8;
         *p++ = (len & 0xff);
 
-        memmove(p, AUTHORIZATION_NAME, sizeof(AUTHORIZATION_NAME));
+        memcpy(p, AUTHORIZATION_NAME, sizeof(AUTHORIZATION_NAME));
         p += sizeof(AUTHORIZATION_NAME);
-        memmove(p, hnameptr, len);
+        memcpy(p, hnameptr, len);
         p += len;
 #if defined(IPv6) && defined(AF_INET6)
         if (ai) {

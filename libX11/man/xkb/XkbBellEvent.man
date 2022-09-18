@@ -35,16 +35,16 @@ without ringing the bell
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to the X server
 .TP
-.I \- window
+.I window
 the event window, or None 
 .TP
-.I \- percent,
+.I percent
 relative volume, which can range from -100 to 100 inclusive
 .TP
-.I \- name
+.I name
 a bell name, or NULL
 .SH DESCRIPTION
 .LP

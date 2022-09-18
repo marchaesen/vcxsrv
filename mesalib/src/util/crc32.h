@@ -28,7 +28,7 @@
 /**
  * @file
  * CRC32 function.
- * 
+ *
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
 
@@ -43,7 +43,7 @@
 extern "C" {
 #endif
 
-   
+
 uint32_t
 util_hash_crc32(const void *data, size_t size);
 

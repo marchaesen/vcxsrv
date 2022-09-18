@@ -31,10 +31,10 @@ XkbAddGeomOutline \- Add one outline to an existing shape
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- shape
+.I shape
 shape to be updated
 .TP
-.I \- sz_points
+.I sz_points
 number of points to be reserved
 .SH DESCRIPTION
 .LP

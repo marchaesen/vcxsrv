@@ -39,8 +39,6 @@ enum panvk_varying_buf_id {
    PANVK_VARY_BUF_GENERAL,
    PANVK_VARY_BUF_POSITION,
    PANVK_VARY_BUF_PSIZ,
-   PANVK_VARY_BUF_PNTCOORD,
-   PANVK_VARY_BUF_FRAGCOORD,
 
    /* Keep last */
    PANVK_VARY_BUF_MAX,
@@ -78,48 +76,17 @@ panvk_varying_buf_index(const struct panvk_varyings_info *varyings,
 }
 
 static inline enum panvk_varying_buf_id
-panvk_varying_buf_id(bool fs, gl_varying_slot loc)
+panvk_varying_buf_id(gl_varying_slot loc)
 {
    switch (loc) {
    case VARYING_SLOT_POS:
-      return fs ? PANVK_VARY_BUF_FRAGCOORD : PANVK_VARY_BUF_POSITION;
+      return PANVK_VARY_BUF_POSITION;
    case VARYING_SLOT_PSIZ:
       return PANVK_VARY_BUF_PSIZ;
-   case VARYING_SLOT_PNTC:
-      return PANVK_VARY_BUF_PNTCOORD;
    default:
       return PANVK_VARY_BUF_GENERAL;
    }
 }
-
-static inline bool
-panvk_varying_is_builtin(gl_shader_stage stage, gl_varying_slot loc)
-{
-   bool fs = stage == MESA_SHADER_FRAGMENT;
-
-   switch (loc) {
-   case VARYING_SLOT_POS:
-   case VARYING_SLOT_PNTC:
-      return fs;
-   default:
-      return false;
-   }
-}
-
-#if defined(PAN_ARCH) && PAN_ARCH <= 5
-static inline enum mali_attribute_special
-panvk_varying_special_buf_id(enum panvk_varying_buf_id buf_id)
-{
-   switch (buf_id) {
-   case PANVK_VARY_BUF_PNTCOORD:
-      return MALI_ATTRIBUTE_SPECIAL_POINT_COORD;
-   case PANVK_VARY_BUF_FRAGCOORD:
-      return MALI_ATTRIBUTE_SPECIAL_FRAG_COORD;
-   default:
-      return 0;
-   }
-}
-#endif
 
 static inline unsigned
 panvk_varying_size(const struct panvk_varyings_info *varyings,
@@ -135,13 +102,11 @@ panvk_varying_size(const struct panvk_varyings_info *varyings,
    }
 }
 
-#ifdef PAN_ARCH
 static inline unsigned
 panvk_varyings_buf_count(struct panvk_varyings_info *varyings)
 {
-   return util_bitcount(varyings->buf_mask) + (PAN_ARCH >= 6 ? 1 : 0);
+   return util_bitcount(varyings->buf_mask);
 }
-#endif
 
 static inline void
 panvk_varyings_alloc(struct panvk_varyings_info *varyings,

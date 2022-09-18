@@ -30,7 +30,7 @@ xkb_symbols "basic" {
     key <AC01> {	[        a,               A,      ordfeminine,       masculine  ]};
     key <AC03> {	[        d,               D,              eth,             ETH  ]};
     key <AC10> {	[	ae,               AE	]};
-    key <AC11> {	[   oslash,        Ooblique 	]};
+    key <AC11> {	[   oslash,          Oslash	]};
     key <AD03> {	[        e,               E,         EuroSign,            cent  ]};
     key <AD04> {	[        r,               R,       registered,        NoSymbol  ]};
     key <AD05> {	[        t,               T,            thorn,           THORN  ]};

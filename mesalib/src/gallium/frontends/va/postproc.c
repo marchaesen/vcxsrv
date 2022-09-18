@@ -32,6 +32,7 @@
 #include "vl/vl_defines.h"
 #include "vl/vl_video_buffer.h"
 #include "vl/vl_deint_filter.h"
+#include "vl/vl_winsys.h"
 
 #include "va_private.h"
 
@@ -110,6 +111,74 @@ static void vlVaGetBox(struct pipe_video_buffer *buf, unsigned idx,
    box->height = height;
 }
 
+static VAStatus vlVaVidEngineBlit(vlVaDriver *drv, vlVaContext *context,
+                                 const VARectangle *src_region,
+                                 const VARectangle *dst_region,
+                                 struct pipe_video_buffer *src,
+                                 struct pipe_video_buffer *dst,
+                                 enum vl_compositor_deinterlace deinterlace,
+                                 VAProcPipelineParameterBuffer* param)
+{
+   if (deinterlace != VL_COMPOSITOR_NONE)
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
+
+   if (src->buffer_format != PIPE_FORMAT_NV12 ||
+       dst->buffer_format != PIPE_FORMAT_NV12)
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
+
+   struct u_rect src_rect;
+   struct u_rect dst_rect;
+
+   src_rect.x0 = src_region->x;
+   src_rect.y0 = src_region->y;
+   src_rect.x1 = src_region->x + src_region->width;
+   src_rect.y1 = src_region->y + src_region->height;
+
+   dst_rect.x0 = dst_region->x;
+   dst_rect.y0 = dst_region->y;
+   dst_rect.x1 = dst_region->x + dst_region->width;
+   dst_rect.y1 = dst_region->y + dst_region->height;
+
+   context->desc.vidproc.base.input_format = src->buffer_format;
+   context->desc.vidproc.base.output_format = dst->buffer_format;
+
+   context->desc.vidproc.src_region = src_rect;
+   context->desc.vidproc.dst_region = dst_rect;
+
+   if (param->rotation_state == VA_ROTATION_NONE)
+      context->desc.vidproc.orientation = PIPE_VIDEO_VPP_ORIENTATION_DEFAULT;
+   else if (param->rotation_state == VA_ROTATION_90)
+      context->desc.vidproc.orientation = PIPE_VIDEO_VPP_ROTATION_90;
+   else if (param->rotation_state == VA_ROTATION_180)
+      context->desc.vidproc.orientation = PIPE_VIDEO_VPP_ROTATION_180;
+   else if (param->rotation_state == VA_ROTATION_270)
+      context->desc.vidproc.orientation = PIPE_VIDEO_VPP_ROTATION_270;
+
+   if (param->mirror_state == VA_MIRROR_HORIZONTAL)
+      context->desc.vidproc.orientation |= PIPE_VIDEO_VPP_FLIP_HORIZONTAL;
+   if (param->mirror_state == VA_MIRROR_VERTICAL)
+      context->desc.vidproc.orientation |= PIPE_VIDEO_VPP_FLIP_VERTICAL;
+
+   memset(&context->desc.vidproc.blend, 0, sizeof(context->desc.vidproc.blend));
+   context->desc.vidproc.blend.mode = PIPE_VIDEO_VPP_BLEND_MODE_NONE;
+   if (param->blend_state != NULL) {
+      if (param->blend_state->flags & VA_BLEND_GLOBAL_ALPHA) {
+         context->desc.vidproc.blend.mode = PIPE_VIDEO_VPP_BLEND_MODE_GLOBAL_ALPHA;
+         context->desc.vidproc.blend.global_alpha = param->blend_state->global_alpha;
+      }
+   }
+
+   if (context->needs_begin_frame) {
+      context->decoder->begin_frame(context->decoder, dst,
+                                    &context->desc.base);
+      context->needs_begin_frame = false;
+   }
+   context->decoder->process_frame(context->decoder, src, &context->desc.vidproc);
+   context->vpp_needs_flush_on_endpic = true;
+
+   return VA_STATUS_SUCCESS;
+}
+
 static VAStatus vlVaPostProcBlit(vlVaDriver *drv, vlVaContext *context,
                                  const VARectangle *src_region,
                                  const VARectangle *dst_region,
@@ -125,8 +194,10 @@ static VAStatus vlVaPostProcBlit(vlVaDriver *drv, vlVaContext *context,
    bool grab = false;
    unsigned i;
 
-   if ((src->buffer_format == PIPE_FORMAT_B8G8R8A8_UNORM ||
-        src->buffer_format == PIPE_FORMAT_B8G8R8X8_UNORM) &&
+   if ((src->buffer_format == PIPE_FORMAT_B8G8R8X8_UNORM ||
+        src->buffer_format == PIPE_FORMAT_B8G8R8A8_UNORM ||
+        src->buffer_format == PIPE_FORMAT_R8G8B8X8_UNORM ||
+        src->buffer_format == PIPE_FORMAT_R8G8B8A8_UNORM) &&
        !src->interlaced)
       grab = true;
 
@@ -288,6 +359,7 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
    struct pipe_video_buffer *src, *dst;
    vlVaSurface *src_surface, *dst_surface;
    unsigned i;
+   struct pipe_screen *pscreen;
 
    if (!drv || !context)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -302,6 +374,37 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
 
    src_surface = handle_table_get(drv->htab, param->surface);
    dst_surface = handle_table_get(drv->htab, context->target_id);
+
+   pscreen = drv->vscreen->pscreen;
+
+   if (src_surface->buffer->buffer_format != dst_surface->buffer->buffer_format &&
+       !src_surface->buffer->interlaced &&
+       (dst_surface->buffer->buffer_format == PIPE_FORMAT_NV12 ||
+        dst_surface->buffer->buffer_format == PIPE_FORMAT_P010 ||
+        dst_surface->buffer->buffer_format == PIPE_FORMAT_P016) &&
+       pscreen->get_video_param(pscreen,
+                                PIPE_VIDEO_PROFILE_UNKNOWN,
+                                PIPE_VIDEO_ENTRYPOINT_ENCODE,
+                                PIPE_VIDEO_CAP_EFC_SUPPORTED)) {
+
+      // EFC will convert the buffer to a format the encoder accepts
+      dst_surface->encoder_format = dst_surface->buffer->buffer_format;
+
+      vlVaSurface *surf;
+
+      surf = handle_table_get(drv->htab, context->target_id);
+      surf->templat.interlaced = src_surface->templat.interlaced;
+      surf->templat.buffer_format = src_surface->templat.buffer_format;
+      surf->buffer->destroy(surf->buffer);
+
+      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0) != VA_STATUS_SUCCESS)
+         return VA_STATUS_ERROR_ALLOCATION_FAILED;
+
+      pipe_resource_reference(&(((struct vl_video_buffer *)(surf->buffer))->resources[0]), ((struct vl_video_buffer *)(src_surface->buffer))->resources[0]);
+      context->target = surf->buffer;
+
+      return VA_STATUS_SUCCESS;
+   }
 
    if (!src_surface || !src_surface->buffer)
       return VA_STATUS_ERROR_INVALID_SURFACE;
@@ -367,6 +470,26 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
    src_region = vlVaRegionDefault(param->surface_region, src_surface, &def_src_region);
    dst_region = vlVaRegionDefault(param->output_region, dst_surface, &def_dst_region);
 
+   /* If the driver supports video engine post proc, attempt to do that
+    * if it fails, fallback to the other existing implementations below
+    */
+   if (pscreen->get_video_param(pscreen,
+                                PIPE_VIDEO_PROFILE_UNKNOWN,
+                                PIPE_VIDEO_ENTRYPOINT_PROCESSING,
+                                PIPE_VIDEO_CAP_SUPPORTED)) {
+      if (!context->decoder) {
+         context->decoder = drv->pipe->create_video_codec(drv->pipe, &context->templat);
+         if (!context->decoder)
+            return VA_STATUS_ERROR_ALLOCATION_FAILED;
+      }
+
+      /* Perform VPBlit, if fail, fallback to other implementations below */
+      if (VA_STATUS_SUCCESS == vlVaVidEngineBlit(drv, context, src_region, dst_region,
+                                                 src, context->target, deinterlace, param))
+         return VA_STATUS_SUCCESS;
+   }
+
+   /* Try other post proc implementations */
    if (context->target->buffer_format != PIPE_FORMAT_NV12 &&
        context->target->buffer_format != PIPE_FORMAT_P010 &&
        context->target->buffer_format != PIPE_FORMAT_P016)

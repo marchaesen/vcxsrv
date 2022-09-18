@@ -41,20 +41,23 @@
 
 static void
 st_binding_to_sb(struct gl_buffer_binding *binding,
-                 struct pipe_shader_buffer *sb)
+                 struct pipe_shader_buffer *sb,
+                 unsigned alignment)
 {
    struct gl_buffer_object *st_obj = binding->BufferObject;
 
    if (st_obj && st_obj->buffer) {
+     unsigned offset = 0;
      sb->buffer = st_obj->buffer;
-     sb->buffer_offset = binding->Offset;
-     sb->buffer_size = st_obj->buffer->width0 - binding->Offset;
+     offset = binding->Offset % alignment;
+     sb->buffer_offset = binding->Offset - offset;
+     sb->buffer_size = st_obj->buffer->width0 - sb->buffer_offset;
 
      /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
       * Take the minimum just to be sure.
       */
      if (!binding->AutomaticSize)
-       sb->buffer_size = MIN2(sb->buffer_size, (unsigned) binding->Size);
+       sb->buffer_size = MIN2(sb->buffer_size, (unsigned) binding->Size + offset);
    } else {
      sb->buffer = NULL;
      sb->buffer_offset = 0;
@@ -82,7 +85,8 @@ st_bind_atomics(struct st_context *st, struct gl_program *prog,
          &prog->sh.data->AtomicBuffers[i];
       struct pipe_shader_buffer sb;
 
-      st_binding_to_sb(&st->ctx->AtomicBufferBindings[atomic->Binding], &sb);
+      st_binding_to_sb(&st->ctx->AtomicBufferBindings[atomic->Binding], &sb,
+                       st->ctx->Const.ShaderStorageBufferOffsetAlignment);
 
       st->pipe->set_shader_buffers(st->pipe, shader_type,
                                    buffer_base + atomic->Binding, 1, &sb, 0x1);
@@ -159,7 +163,7 @@ st_bind_hw_atomic_buffers(struct st_context *st)
       return;
 
    for (i = 0; i < st->ctx->Const.MaxAtomicBufferBindings; i++)
-      st_binding_to_sb(&st->ctx->AtomicBufferBindings[i], &buffers[i]);
+      st_binding_to_sb(&st->ctx->AtomicBufferBindings[i], &buffers[i], 1);
 
    st->pipe->set_hw_atomic_buffers(st->pipe, 0, st->ctx->Const.MaxAtomicBufferBindings, buffers);
 }

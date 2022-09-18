@@ -52,7 +52,7 @@
 #include "util/u_debug.h"
 #include "drm_shim.h"
 
-#define REAL_FUNCTION_POINTER(x) typeof(x) *real_##x
+#define REAL_FUNCTION_POINTER(x) __typeof__(x) *real_##x
 
 static mtx_t shim_lock = _MTX_INITIALIZER_NP;
 struct set *opendir_set;
@@ -63,13 +63,14 @@ bool drm_shim_debug;
  */
 DIR *fake_dev_dri = (void *)&opendir_set;
 
-/* XXX: implement REAL_FUNCTION_POINTER(close); */
+REAL_FUNCTION_POINTER(close);
 REAL_FUNCTION_POINTER(closedir);
 REAL_FUNCTION_POINTER(dup);
 REAL_FUNCTION_POINTER(fcntl);
 REAL_FUNCTION_POINTER(fopen);
 REAL_FUNCTION_POINTER(ioctl);
 REAL_FUNCTION_POINTER(mmap);
+REAL_FUNCTION_POINTER(mmap64);
 REAL_FUNCTION_POINTER(open);
 REAL_FUNCTION_POINTER(opendir);
 REAL_FUNCTION_POINTER(readdir);
@@ -203,12 +204,14 @@ init_shim(void)
                                   _mesa_hash_string,
                                   _mesa_key_string_equal);
 
+   GET_FUNCTION_POINTER(close);
    GET_FUNCTION_POINTER(closedir);
    GET_FUNCTION_POINTER(dup);
    GET_FUNCTION_POINTER(fcntl);
    GET_FUNCTION_POINTER(fopen);
    GET_FUNCTION_POINTER(ioctl);
    GET_FUNCTION_POINTER(mmap);
+   GET_FUNCTION_POINTER(mmap64);
    GET_FUNCTION_POINTER(open);
    GET_FUNCTION_POINTER(opendir);
    GET_FUNCTION_POINTER(readdir);
@@ -289,6 +292,22 @@ PUBLIC int open(const char *path, int flags, ...)
    return fd;
 }
 PUBLIC int open64(const char*, int, ...) __attribute__((alias("open")));
+
+/* __open64_2 isn't declared unless _FORTIFY_SOURCE is defined. */
+PUBLIC int __open64_2(const char *path, int flags);
+PUBLIC int __open64_2(const char *path, int flags)
+{
+   return open(path, flags, 0);
+}
+
+PUBLIC int close(int fd)
+{
+   init_shim();
+
+   drm_shim_fd_unregister(fd);
+
+   return real_close(fd);
+}
 
 #if HAS_XSTAT
 /* Fakes stat to return character device stuff for our fake render node. */
@@ -517,8 +536,8 @@ opendir(const char *name)
    return dir;
 }
 
-/* If we've reached the end of the real directory list and we're
- * looking at /dev/dri, add our render node to the list.
+/* If we're looking at /dev/dri, add our render node to the list
+ * before the real entries in the directory.
  */
 PUBLIC struct dirent *
 readdir(DIR *dir)
@@ -527,26 +546,25 @@ readdir(DIR *dir)
 
    struct dirent *ent = NULL;
 
-   if (dir != fake_dev_dri)
-      ent = real_readdir(dir);
    static struct dirent render_node_dirent = { 0 };
 
-   if (!ent) {
-      mtx_lock(&shim_lock);
-      if (_mesa_set_search(opendir_set, dir)) {
-         strcpy(render_node_dirent.d_name,
-                render_node_dirent_name);
-         ent = &render_node_dirent;
-         _mesa_set_remove_key(opendir_set, dir);
-      }
-      mtx_unlock(&shim_lock);
+   mtx_lock(&shim_lock);
+   if (_mesa_set_search(opendir_set, dir)) {
+      strcpy(render_node_dirent.d_name,
+             render_node_dirent_name);
+      ent = &render_node_dirent;
+      _mesa_set_remove_key(opendir_set, dir);
    }
+   mtx_unlock(&shim_lock);
+
+   if (!ent && dir != fake_dev_dri)
+      ent = real_readdir(dir);
 
    return ent;
 }
 
-/* If we've reached the end of the real directory list and we're
- * looking at /dev/dri, add our render node to the list.
+/* If we're looking at /dev/dri, add our render node to the list
+ * before the real entries in the directory.
  */
 PUBLIC struct dirent64 *
 readdir64(DIR *dir)
@@ -554,20 +572,20 @@ readdir64(DIR *dir)
    init_shim();
 
    struct dirent64 *ent = NULL;
-   if (dir != fake_dev_dri)
-      ent = real_readdir64(dir);
+
    static struct dirent64 render_node_dirent = { 0 };
 
-   if (!ent) {
-      mtx_lock(&shim_lock);
-      if (_mesa_set_search(opendir_set, dir)) {
-         strcpy(render_node_dirent.d_name,
-                render_node_dirent_name);
-         ent = &render_node_dirent;
-         _mesa_set_remove_key(opendir_set, dir);
-      }
-      mtx_unlock(&shim_lock);
+   mtx_lock(&shim_lock);
+   if (_mesa_set_search(opendir_set, dir)) {
+      strcpy(render_node_dirent.d_name,
+             render_node_dirent_name);
+      ent = &render_node_dirent;
+      _mesa_set_remove_key(opendir_set, dir);
    }
+   mtx_unlock(&shim_lock);
+
+   if (!ent && dir != fake_dev_dri)
+      ent = real_readdir64(dir);
 
    return ent;
 }
@@ -705,5 +723,15 @@ mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 
    return real_mmap(addr, length, prot, flags, fd, offset);
 }
-PUBLIC void *mmap64(void*, size_t, int, int, int, off_t)
-   __attribute__((alias("mmap")));
+
+PUBLIC void *
+mmap64(void* addr, size_t length, int prot, int flags, int fd, off64_t offset)
+{
+   init_shim();
+
+   struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
+   if (shim_fd)
+      return drm_shim_mmap(shim_fd, length, prot, flags, fd, offset);
+
+   return real_mmap64(addr, length, prot, flags, fd, offset);
+}

@@ -4,9 +4,12 @@
 
 KHR-GL32.texture_size_promotion.functional
 
+# this is just broken.
+KHR-GL46.shader_ballot_tests.ShaderBallotBitmasks
+KHR-GL46.shader_ballot_tests.ShaderBallotFunctionRead
+
 # ignores copied from the old runner script
 spec@arb_map_buffer_alignment@arb_map_buffer_alignment-map-invalidate-range
-glx@glx-make-current
 spec@arb_timer_query.*
 spec@arb_sample_shading@builtin-gl-sample-mask
 spec@glsl-1.30@execution@tex-miplevel-selection.*
@@ -33,3 +36,13 @@ spec@arb_compute_shader@local-id-explosion
 KHR-GL46.copy_image.functional
 KHR-GL46.texture_swizzle.smoke
 KHR-GL46.texture_swizzle.functional
+
+# Kopper regression
+glx@glx-tfp
+
+# These tests started hitting timeouts when we upgraded LLVM from v11 to 13
+spec@arb_texture_rg@fbo-blending-formats
+
+#these need format conversions that gallium doesn't implement yet
+spec@arb_texture_buffer_object@formats.*arb.*
+

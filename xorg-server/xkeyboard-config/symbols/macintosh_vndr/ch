@@ -11,8 +11,7 @@ xkb_symbols "extended" {
 
     key <AE01> { [	1,	plus, 		plusminus,	infinity	]	};
     key <AE02> { [	2,	quotedbl, leftdoublequotemark,  rightdoublequotemark ]	};
-    key <AE03> { [	3,	asterisk, 	numbersign,	leftcaret	]	};
-					// not displayed here
+    key <AE03> { [	3,	asterisk, 	numbersign,	less		]	};
     key <AE04> { [	4,	ccedilla, 	Ccedilla,	slash		]	};
     key <AE05> { [	5,	percent, 	bracketleft			]	};
     key <AE06> { [	6,	ampersand, 	bracketright			]	};
@@ -30,7 +29,7 @@ xkb_symbols "extended" {
     key <AD06> { [	z,	Z, 	Greek_OMEGA,	Iacute			]	};
     key <AD07> { [ 	u,	U, 	degree,		Ugrave			]	};
     key <AD08> { [ 	i,	I, 	exclamdown,	idotless		]	};
-    key <AD09> { [ 	o,	O, 	oslash,		Ooblique		]	};
+    key <AD09> { [ 	o,	O, 	oslash,		Oslash			]	};
     key <AD10> { [ 	p,	P, 	Greek_pi,	Greek_PI		]	};
     key <AD11> { [	udiaeresis,	egrave, 	section,	ydiaeresis ]	};
     key <AD12> { [	dead_diaeresis,	exclam, 	grave,		apostrophe ]	};

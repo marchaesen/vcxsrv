@@ -36,6 +36,7 @@
 #include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_exec.h"
 #include "nir/nir_to_tgsi_info.h"
+#include "compiler/nir/nir.h"
 #include "pipe/p_shader_tokens.h"
 
 #include "util/u_math.h"
@@ -322,17 +323,17 @@ llvm_fetch_gs_outputs(struct draw_geometry_shader *shader,
       int current_verts = shader->llvm_emitted_vertices[i + (stream * shader->vector_length)];
       int next_verts = shader->llvm_emitted_vertices[i + 1 + (stream * shader->vector_length)];
 #if 0
-      int j; 
+      int j;
       for (j = 0; j < current_verts; ++j) {
          struct vertex_header *vh = (struct vertex_header *)
             (output_ptr + shader->vertex_size * (i * next_prim_boundary + j));
          debug_printf("--- %d) [%f, %f, %f, %f]\n", j + vertex_count,
                       vh->data[0][0], vh->data[0][1], vh->data[0][2], vh->data[0][3]);
-         
+
       }
 #endif
-      debug_assert(current_verts <= shader->max_output_vertices);
-      debug_assert(next_verts <= shader->max_output_vertices);
+      assert(current_verts <= shader->max_output_vertices);
+      assert(next_verts <= shader->max_output_vertices);
       if (next_verts) {
          memmove(output_ptr + (vertex_count + current_verts) * shader->vertex_size,
                  output_ptr + ((i + 1) * next_prim_boundary) * shader->vertex_size,
@@ -353,7 +354,7 @@ llvm_fetch_gs_outputs(struct draw_geometry_shader *shader,
                          vh->data[j][0], vh->data[j][1], vh->data[j][2], vh->data[j][3],
                          udata[0], udata[1], udata[2], udata[3]);
          }
-         
+
       }
    }
 #endif
@@ -418,7 +419,7 @@ static void gs_flush(struct draw_geometry_shader *shader)
       shader->draw->statistics.gs_invocations += input_primitives;
    }
 
-   debug_assert(input_primitives > 0 &&
+   assert(input_primitives > 0 &&
                 input_primitives <= 4);
 
    for (unsigned invocation = 0; invocation < shader->num_invocations; invocation++) {
@@ -470,8 +471,8 @@ static void gs_line(struct draw_geometry_shader *shader,
                         shader->fetched_prim_count);
    ++shader->in_prim_idx;
    ++shader->fetched_prim_count;
-   
-   if (draw_gs_should_flush(shader))   
+
+   if (draw_gs_should_flush(shader))
       gs_flush(shader);
 }
 
@@ -591,7 +592,7 @@ int draw_geometry_shader_run(struct draw_geometry_shader *shader,
          (struct vertex_header *)MALLOC(output_verts[i].vertex_size *
                                         total_verts_per_buffer * shader->num_invocations +
                                         DRAW_EXTRA_VERTICES_PADDING);
-      debug_assert(output_verts[i].verts);
+      assert(output_verts[i].verts);
    }
 
 #if 0
@@ -668,7 +669,7 @@ int draw_geometry_shader_run(struct draw_geometry_shader *shader,
    if (shader->fetched_prim_count > 0) {
       gs_flush(shader);
    }
-   debug_assert(shader->fetched_prim_count == 0);
+   assert(shader->fetched_prim_count == 0);
 
    /* Update prim_info:
     */
@@ -771,7 +772,7 @@ draw_create_geometry_shader(struct draw_context *draw,
 
       gs = &llvm_gs->base;
 
-      make_empty_list(&llvm_gs->variants);
+      list_inithead(&llvm_gs->variants.list);
    } else
 #endif
    {
@@ -792,8 +793,16 @@ draw_create_geometry_shader(struct draw_context *draw,
       }
 
       tgsi_scan_shader(state->tokens, &gs->info);
-   } else
+      gs->num_vertex_streams = 1;
+      for (i = 0; i < gs->state.stream_output.num_outputs; i++) {
+         if (gs->state.stream_output.output[i].stream >= gs->num_vertex_streams)
+            gs->num_vertex_streams = gs->state.stream_output.output[i].stream + 1;
+      }
+   } else {
       nir_tgsi_scan_shader(state->ir.nir, &gs->info, true);
+      nir_shader *nir = state->ir.nir;
+      gs->num_vertex_streams = util_last_bit(nir->info.gs.active_stream_mask);
+   }
 
    /* setup the defaults */
    gs->max_out_prims = 0;
@@ -823,12 +832,12 @@ draw_create_geometry_shader(struct draw_context *draw,
       gs->max_output_vertices = 32;
 
    /* Primitive boundary is bigger than max_output_vertices by one, because
-    * the specification says that the geometry shader should exit if the 
+    * the specification says that the geometry shader should exit if the
     * number of emitted vertices is bigger or equal to max_output_vertices and
     * we can't do that because we're running in the SoA mode, which means that
     * our storing routines will keep getting called on channels that have
     * overflown.
-    * So we need some scratch area where we can keep writing the overflown 
+    * So we need some scratch area where we can keep writing the overflown
     * vertices without overwriting anything important or crashing.
     */
    gs->primitive_boundary = gs->max_output_vertices + 1;
@@ -847,7 +856,7 @@ draw_create_geometry_shader(struct draw_context *draw,
          gs->clipvertex_output = i;
       }
       if (gs->info.output_semantic_name[i] == TGSI_SEMANTIC_CLIPDIST) {
-         debug_assert(gs->info.output_semantic_index[i] <
+         assert(gs->info.output_semantic_index[i] <
                       PIPE_MAX_CLIP_OR_CULL_DISTANCE_ELEMENT_COUNT);
          gs->ccdistance_output[gs->info.output_semantic_index[i]] = i;
       }
@@ -857,12 +866,6 @@ draw_create_geometry_shader(struct draw_context *draw,
       gs->clipvertex_output = gs->position_output;
 
    gs->machine = draw->gs.tgsi.machine;
-
-   gs->num_vertex_streams = 1;
-   for (i = 0; i < gs->state.stream_output.num_outputs; i++) {
-      if (gs->state.stream_output.output[i].stream >= gs->num_vertex_streams)
-         gs->num_vertex_streams = gs->state.stream_output.output[i].stream + 1;
-   }
 
 #ifdef DRAW_LLVM_AVAILABLE
    if (use_llvm) {
@@ -885,8 +888,8 @@ draw_create_geometry_shader(struct draw_context *draw,
 
       llvm_gs->variant_key_size =
          draw_gs_llvm_variant_key_size(
-            MAX2(gs->info.file_max[TGSI_FILE_SAMPLER]+1,
-                 gs->info.file_max[TGSI_FILE_SAMPLER_VIEW]+1),
+            gs->info.file_max[TGSI_FILE_SAMPLER]+1,
+            gs->info.file_max[TGSI_FILE_SAMPLER_VIEW]+1,
             gs->info.file_max[TGSI_FILE_IMAGE]+1);
    } else
 #endif
@@ -928,13 +931,10 @@ void draw_delete_geometry_shader(struct draw_context *draw,
 #ifdef DRAW_LLVM_AVAILABLE
    if (draw->llvm) {
       struct llvm_geometry_shader *shader = llvm_geometry_shader(dgs);
-      struct draw_gs_llvm_variant_list_item *li;
+      struct draw_gs_llvm_variant_list_item *li, *next;
 
-      li = first_elem(&shader->variants);
-      while(!at_end(&shader->variants, li)) {
-         struct draw_gs_llvm_variant_list_item *next = next_elem(li);
+      LIST_FOR_EACH_ENTRY_SAFE(li, next, &shader->variants.list, list) {
          draw_gs_llvm_destroy_variant(li->base);
-         li = next;
       }
 
       assert(shader->variants_cached == 0);
@@ -960,7 +960,7 @@ void draw_delete_geometry_shader(struct draw_context *draw,
    for (i = 0; i < TGSI_MAX_VERTEX_STREAMS; i++)
       FREE(dgs->stream[i].primitive_lengths);
 
-   if (dgs->state.ir.nir)
+   if (dgs->state.type == PIPE_SHADER_IR_NIR && dgs->state.ir.nir)
       ralloc_free(dgs->state.ir.nir);
    FREE((void*) dgs->state.tokens);
    FREE(dgs);

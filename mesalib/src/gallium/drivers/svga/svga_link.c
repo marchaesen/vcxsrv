@@ -71,6 +71,11 @@ svga_link_shaders(const struct tgsi_shader_info *outshader_info,
       unsigned j;
       unsigned out_index;
 
+      if (sem_name == TGSI_SEMANTIC_PCOORD) {
+         sem_name = TGSI_SEMANTIC_TEXCOORD;
+         sem_index = 0;
+      }
+
       /* search output shader outputs for same item */
       for (j = 0; j < outshader_info->num_outputs; j++) {
          assert(j < ARRAY_SIZE(outshader_info->output_semantic_name));

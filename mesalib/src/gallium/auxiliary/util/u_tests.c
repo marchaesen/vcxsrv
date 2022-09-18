@@ -322,7 +322,7 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
    static const float red[] = {1, 0, 0, 1};
 
    if (!ctx->screen->get_param(ctx->screen,
-                               PIPE_CAP_TGSI_VS_WINDOW_SPACE_POSITION)) {
+                               PIPE_CAP_VS_WINDOW_SPACE_POSITION)) {
       util_report_result(SKIP);
       return;
    }
@@ -396,7 +396,6 @@ null_sampler_view(struct pipe_context *ctx, unsigned tgsi_tex_target)
 
    /* Fragment shader. */
    fs = util_make_fragment_tex_shader(ctx, tgsi_tex_target,
-                                      TGSI_INTERPOLATE_LINEAR,
                                       TGSI_RETURN_TYPE_FLOAT,
                                       TGSI_RETURN_TYPE_FLOAT, false, false);
    cso_set_fragment_shader_handle(cso, fs);

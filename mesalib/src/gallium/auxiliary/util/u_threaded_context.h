@@ -315,6 +315,17 @@ typedef bool (*tc_is_resource_busy)(struct pipe_screen *screen,
 struct threaded_resource {
    struct pipe_resource b;
 
+   /* Pointer to the TC that first used this threaded_resource (buffer). This is used to
+    * allow TCs to determine whether they have been given a buffer that was created by a
+    * different TC, in which case all TCs have to disable busyness tracking and buffer
+    * replacement for that particular buffer.
+    * DO NOT DEREFERENCE. The only operation allowed on this pointer is equality-checking
+    * since it might be dangling if a buffer has been shared and its first_user has
+    * already been destroyed. The pointer is const void to discourage such disallowed usage.
+    * This is NULL if no TC has used this buffer yet.
+    */
+   const void *first_user;
+
    /* Since buffer invalidations are queued, we can't use the base resource
     * for unsychronized mappings. This points to the latest version of
     * the buffer after the latest invalidation. It's only used for unsychro-
@@ -342,10 +353,17 @@ struct threaded_resource {
     */
    struct util_range valid_buffer_range;
 
+   /* True if multiple threaded contexts have accessed this buffer.
+    * Disables non-multicontext-safe optimizations in TC.
+    * We can't just re-use is_shared for that purpose as that would confuse drivers.
+    */
+   bool used_by_multiple_contexts;
+
    /* Drivers are required to update this for shared resources and user
     * pointers. */
-   bool	is_shared;
+   bool is_shared;
    bool is_user_ptr;
+   bool allow_cpu_storage;
 
    /* Unique buffer ID. Drivers must set it to non-zero for buffers and it must
     * be unique. Textures must set 0. Low bits are used as a hash of the ID.
@@ -413,6 +431,12 @@ struct tc_batch {
 #endif
    uint16_t num_total_slots;
    uint16_t buffer_list_index;
+
+   /* The last mergeable call that was added to this batch (i.e.
+    * buffer subdata). This might be out-of-date or NULL.
+    */
+   struct tc_call_base *last_mergeable_call;
+
    struct util_queue_fence fence;
    struct tc_unflushed_batch_token *token;
    uint64_t slots[TC_SLOTS_PER_BATCH];
@@ -478,7 +502,7 @@ struct threaded_context {
     * there are cases where the queue is flushed directly
     * from the frontend thread
     */
-   thread_id driver_thread;
+   thrd_t driver_thread;
 #endif
 
    bool seen_tcs;
@@ -513,16 +537,15 @@ struct threaded_context {
    uint32_t shader_buffers[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_BUFFERS];
    uint32_t image_buffers[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_IMAGES];
    uint32_t shader_buffers_writeable_mask[PIPE_SHADER_TYPES];
-   uint32_t image_buffers_writeable_mask[PIPE_SHADER_TYPES];
+   uint64_t image_buffers_writeable_mask[PIPE_SHADER_TYPES];
    /* Don't use PIPE_MAX_SHADER_SAMPLER_VIEWS because it's too large. */
-   uint32_t sampler_buffers[PIPE_SHADER_TYPES][PIPE_MAX_SAMPLERS];
+   uint32_t sampler_buffers[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_SAMPLER_VIEWS];
 
    struct tc_batch batch_slots[TC_MAX_BATCHES];
    struct tc_buffer_list buffer_lists[TC_MAX_BUFFER_LISTS];
 };
 
-void threaded_resource_init(struct pipe_resource *res, bool allow_cpu_storage,
-                            unsigned map_buffer_alignment);
+void threaded_resource_init(struct pipe_resource *res, bool allow_cpu_storage);
 void threaded_resource_deinit(struct pipe_resource *res);
 struct pipe_context *threaded_context_unwrap_sync(struct pipe_context *pipe);
 void tc_driver_internal_flush_notify(struct threaded_context *tc);
@@ -594,7 +617,7 @@ tc_assert_driver_thread(struct threaded_context *tc)
    if (!tc)
       return;
 #ifndef NDEBUG
-   assert(util_thread_id_equal(tc->driver_thread, util_get_thread_id()));
+   assert(u_thread_is_self(tc->driver_thread));
 #endif
 }
 
@@ -613,6 +636,7 @@ tc_buffer_disable_cpu_storage(struct pipe_resource *buf)
       align_free(tres->cpu_storage);
       tres->cpu_storage = NULL;
    }
+   tres->allow_cpu_storage = false;
 }
 
 static inline void

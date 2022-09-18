@@ -41,7 +41,7 @@ struct fd_ringbuffer;
 
 /* grouped together emit-state for prog/vertex/state emit: */
 struct fd5_emit {
-   struct pipe_debug_callback *debug;
+   struct util_debug_callback *debug;
    const struct fd_vertex_state *vtx;
    const struct fd5_program_state *prog;
    const struct pipe_draw_info *info;
@@ -85,7 +85,7 @@ fd5_emit_get_vp(struct fd5_emit *emit)
        * is what has all the outputs that might be involved in TFB.
        */
       if (emit->binning_pass &&
-          !emit->prog->vs->shader->stream_output.num_outputs)
+          !emit->prog->vs->stream_output.num_outputs)
          emit->vs = emit->prog->bs;
       else
          emit->vs = emit->prog->vs;

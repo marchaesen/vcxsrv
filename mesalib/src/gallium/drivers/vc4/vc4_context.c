@@ -84,18 +84,6 @@ vc4_texture_barrier(struct pipe_context *pctx, unsigned flags)
 }
 
 static void
-vc4_set_debug_callback(struct pipe_context *pctx,
-                       const struct pipe_debug_callback *cb)
-{
-        struct vc4_context *vc4 = vc4_context(pctx);
-
-        if (cb)
-                vc4->debug = *cb;
-        else
-                memset(&vc4->debug, 0, sizeof(vc4->debug));
-}
-
-static void
 vc4_invalidate_resource(struct pipe_context *pctx, struct pipe_resource *prsc)
 {
         struct vc4_context *vc4 = vc4_context(pctx);
@@ -158,8 +146,8 @@ vc4_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
         int err;
 
         /* Prevent dumping of the shaders built during context setup. */
-        uint32_t saved_shaderdb_flag = vc4_debug & VC4_DEBUG_SHADERDB;
-        vc4_debug &= ~VC4_DEBUG_SHADERDB;
+        uint32_t saved_shaderdb_flag = vc4_mesa_debug & VC4_DEBUG_SHADERDB;
+        vc4_mesa_debug &= ~VC4_DEBUG_SHADERDB;
 
         vc4 = rzalloc(NULL, struct vc4_context);
         if (!vc4)
@@ -172,7 +160,7 @@ vc4_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
         pctx->priv = priv;
         pctx->destroy = vc4_context_destroy;
         pctx->flush = vc4_pipe_flush;
-        pctx->set_debug_callback = vc4_set_debug_callback;
+        pctx->set_debug_callback = u_default_set_debug_callback;
         pctx->invalidate_resource = vc4_invalidate_resource;
         pctx->texture_barrier = vc4_texture_barrier;
 
@@ -202,7 +190,7 @@ vc4_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
         if (!vc4->blitter)
                 goto fail;
 
-        vc4_debug |= saved_shaderdb_flag;
+        vc4_mesa_debug |= saved_shaderdb_flag;
 
         vc4->sample_mask = (1 << VC4_MAX_SAMPLES) - 1;
 

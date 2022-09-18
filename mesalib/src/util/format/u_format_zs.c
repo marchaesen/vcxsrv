@@ -544,6 +544,26 @@ util_format_z24_unorm_s8_uint_pack_separate(uint8_t *restrict dst_row, unsigned 
 }
 
 void
+util_format_z24_unorm_s8_uint_pack_separate_z32(uint8_t *restrict dst_row, unsigned dst_stride,
+                                                const float *z_src_row, unsigned z_src_stride,
+                                                const uint8_t *s_src_row, unsigned s_src_stride,
+                                                unsigned width, unsigned height)
+{
+   unsigned x, y;
+   for (y = 0; y < height; ++y) {
+      const float *z_src = z_src_row;
+      const uint8_t *s_src = s_src_row;
+      uint32_t *dst = (uint32_t *)dst_row;
+      for (x = 0; x < width; ++x) {
+         *dst++ = (z32_float_to_z24_unorm(*z_src++) & 0x00ffffff) | ((uint32_t)*s_src++ << 24);
+      }
+      dst_row += dst_stride / sizeof(*dst_row);
+      z_src_row += z_src_stride / sizeof(*z_src_row);
+      s_src_row += s_src_stride / sizeof(*s_src_row);
+   }
+}
+
+void
 util_format_s8_uint_z24_unorm_unpack_z_float(float *restrict dst_row, unsigned dst_stride,
                                                 const uint8_t *restrict src_row, unsigned src_stride,
                                                 unsigned width, unsigned height)

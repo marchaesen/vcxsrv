@@ -113,36 +113,24 @@ XKeycodeToKeysym(Display *dpy,
         return NoSymbol;
 
     if (col > 3) {
-        int lastSym, tmp, nGrp;
+        int firstSym, nGrp, grp;
 
-        lastSym = 3;
+        firstSym = 4;
         nGrp = XkbKeyNumGroups(xkb, kc);
-        if ((nGrp > 0) &&
-            ((tmp = XkbKeyGroupWidth(xkb, kc, XkbGroup1Index)) > 2)) {
-            if (col <= (lastSym + tmp - 2))
-                return XkbKeycodeToKeysym(dpy, kc, XkbGroup1Index,
-                                          col - lastSym + 2);
-            lastSym += tmp - 2;
-        }
-        if ((nGrp > 1) &&
-            ((tmp = XkbKeyGroupWidth(xkb, kc, XkbGroup2Index)) > 2)) {
-            if (col <= (lastSym + tmp - 2))
-                return XkbKeycodeToKeysym(dpy, kc, XkbGroup2Index,
-                                          col - lastSym + 2);
-            lastSym += tmp - 2;
-        }
-        if (nGrp > 2) {
-            tmp = XkbKeyGroupWidth(xkb, kc, XkbGroup3Index);
-            if (col <= lastSym + tmp)
-                return XkbKeycodeToKeysym(dpy, kc, XkbGroup3Index,
-                                          col - lastSym);
-            lastSym += tmp;
-        }
-        if (nGrp > 3) {
-            tmp = XkbKeyGroupWidth(xkb, kc, XkbGroup4Index);
-            if (col <= lastSym + tmp)
-                return XkbKeycodeToKeysym(dpy, kc, XkbGroup4Index,
-                                          col - lastSym);
+        for (grp = 0; grp < nGrp; grp++) {
+            int width = XkbKeyGroupWidth(xkb, kc, grp);
+            int skip = 0;
+            if (grp < 2) {
+                /* Skip the first two symbols in the first two groups, since we
+                 * return them below for indexes 0-3. */
+                skip = 2;
+                width -= skip;
+                if (width < 0)
+                    width = 0;
+            }
+            if (col < firstSym + width)
+                return XkbKeycodeToKeysym(dpy, kc, grp, col - firstSym + skip);
+            firstSym += width;
         }
         return NoSymbol;
     }

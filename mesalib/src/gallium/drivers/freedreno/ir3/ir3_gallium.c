@@ -61,7 +61,7 @@ struct ir3_shader_state {
 /**
  * Should initial variants be compiled synchronously?
  *
- * The only case where pipe_debug_message() is used in the initial-variants
+ * The only case where util_debug_message() is used in the initial-variants
  * path is with FD_MESA_DEBUG=shaderdb.  So if either debug is disabled (ie.
  * debug.debug_message==NULL), or shaderdb stats are not enabled, we can
  * compile the initial shader variant asynchronously.
@@ -75,12 +75,12 @@ initial_variants_synchronous(struct fd_context *ctx)
 
 static void
 dump_shader_info(struct ir3_shader_variant *v,
-                 struct pipe_debug_callback *debug)
+                 struct util_debug_callback *debug)
 {
    if (!FD_DBG(SHADERDB))
       return;
 
-   pipe_debug_message(
+   util_debug_message(
       debug, SHADER_INFO,
       "%s shader: %u inst, %u nops, %u non-nops, %u mov, %u cov, "
       "%u dwords, %u last-baryf, %u half, %u full, %u constlen, "
@@ -102,24 +102,23 @@ dump_shader_info(struct ir3_shader_variant *v,
 static void
 upload_shader_variant(struct ir3_shader_variant *v)
 {
-   struct shader_info *info = &v->shader->nir->info;
-   struct ir3_compiler *compiler = v->shader->compiler;
+   struct ir3_compiler *compiler = v->compiler;
 
    assert(!v->bo);
 
    v->bo =
-      fd_bo_new(compiler->dev, v->info.size, 0,
-                "%s:%s", ir3_shader_stage(v), info->name);
+      fd_bo_new(compiler->dev, v->info.size, FD_BO_NOMAP,
+                "%s:%s", ir3_shader_stage(v), v->name);
 
    /* Always include shaders in kernel crash dumps. */
    fd_bo_mark_for_dump(v->bo);
 
-   memcpy(fd_bo_map(v->bo), v->bin, v->info.size);
+   fd_bo_upload(v->bo, v->bin, 0, v->info.size);
 }
 
 struct ir3_shader_variant *
 ir3_shader_variant(struct ir3_shader *shader, struct ir3_shader_key key,
-                   bool binning_pass, struct pipe_debug_callback *debug)
+                   bool binning_pass, struct util_debug_callback *debug)
 {
    struct ir3_shader_variant *v;
    bool created = false;
@@ -176,7 +175,7 @@ copy_stream_out(struct ir3_stream_output_info *i,
 
 static void
 create_initial_variants(struct ir3_shader_state *hwcso,
-                        struct pipe_debug_callback *debug)
+                        struct util_debug_callback *debug)
 {
    struct ir3_shader *shader = hwcso->shader;
    struct ir3_compiler *compiler = shader->compiler;
@@ -246,7 +245,7 @@ static void
 create_initial_variants_async(void *job, void *gdata, int thread_index)
 {
    struct ir3_shader_state *hwcso = job;
-   struct pipe_debug_callback debug = {};
+   struct util_debug_callback debug = {};
 
    create_initial_variants(hwcso, &debug);
 }
@@ -256,7 +255,7 @@ create_initial_compute_variants_async(void *job, void *gdata, int thread_index)
 {
    struct ir3_shader_state *hwcso = job;
    struct ir3_shader *shader = hwcso->shader;
-   struct pipe_debug_callback debug = {};
+   struct util_debug_callback debug = {};
    static struct ir3_shader_key key; /* static is implicitly zeroed */
 
    ir3_shader_variant(shader, key, false, &debug);
@@ -300,7 +299,7 @@ ir3_shader_compute_state_create(struct pipe_context *pctx,
 
       ir3_finalize_nir(compiler, nir);
    } else {
-      debug_assert(cso->ir_type == PIPE_SHADER_IR_TGSI);
+      assert(cso->ir_type == PIPE_SHADER_IR_TGSI);
       if (ir3_shader_debug & IR3_DBG_DISASM) {
          tgsi_dump(cso->prog, 0);
       }
@@ -358,7 +357,7 @@ ir3_shader_state_create(struct pipe_context *pctx,
       /* we take ownership of the reference: */
       nir = cso->ir.nir;
    } else {
-      debug_assert(cso->type == PIPE_SHADER_IR_TGSI);
+      assert(cso->type == PIPE_SHADER_IR_TGSI);
       if (ir3_shader_debug & IR3_DBG_DISASM) {
          tgsi_dump(cso->tokens, 0);
       }
@@ -548,7 +547,8 @@ ir3_screen_init(struct pipe_screen *pscreen)
 {
    struct fd_screen *screen = fd_screen(pscreen);
 
-   screen->compiler = ir3_compiler_create(screen->dev, screen->dev_id, false);
+   screen->compiler = ir3_compiler_create(screen->dev, screen->dev_id,
+                                          &(struct ir3_compiler_options) {});
 
    /* TODO do we want to limit things to # of fast cores, or just limit
     * based on total # of both big and little cores.  The little cores
@@ -557,6 +557,9 @@ ir3_screen_init(struct pipe_screen *pscreen)
     * use them?
     */
    unsigned num_threads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
+
+   /* Create at least one thread - even on single core CPU systems. */
+   num_threads = MAX2(1, num_threads);
 
    util_queue_init(&screen->compile_queue, "ir3q", 64, num_threads,
                    UTIL_QUEUE_INIT_RESIZE_IF_FULL |
@@ -584,10 +587,10 @@ ir3_update_max_tf_vtx(struct fd_context *ctx,
                       const struct ir3_shader_variant *v)
 {
    struct fd_streamout_stateobj *so = &ctx->streamout;
-   struct ir3_stream_output_info *info = &v->shader->stream_output;
+   const struct ir3_stream_output_info *info = &v->stream_output;
    uint32_t maxvtxcnt = 0x7fffffff;
 
-   if (v->shader->stream_output.num_outputs == 0)
+   if (v->stream_output.num_outputs == 0)
       maxvtxcnt = 0;
    if (so->num_targets == 0)
       maxvtxcnt = 0;

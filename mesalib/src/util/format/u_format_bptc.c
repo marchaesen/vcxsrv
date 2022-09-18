@@ -29,7 +29,6 @@
 #include "util/format_srgb.h"
 #include "util/u_math.h"
 
-#define BPTC_BLOCK_DECODE
 #include "../../mesa/main/texcompress_bptc_tmp.h"
 
 void

@@ -42,7 +42,9 @@ enum fd_stage_id {
    COMPUTE_STAGE_ID,
    CLEAR_RESTORE_STAGE_ID,
    RESOLVE_STAGE_ID,
-   // TODO add the rest
+   STATE_RESTORE_STAGE_ID,
+   VSC_OVERFLOW_STAGE_ID,
+   PROLOGUE_STAGE_ID,
 
    NUM_STAGES
 };
@@ -59,7 +61,9 @@ static const struct {
    [COMPUTE_STAGE_ID] = {"Compute", "Compute job"},
    [CLEAR_RESTORE_STAGE_ID] = {"Clear/Restore", "Clear (sysmem) or per-tile clear or restore (GMEM)"},
    [RESOLVE_STAGE_ID] = {"Resolve", "Per tile resolve (GMEM to system memory"},
-   // TODO add the rest
+   [STATE_RESTORE_STAGE_ID] = {"State Restore", "Setup at the beginning of new cmdstream buffer"},
+   [VSC_OVERFLOW_STAGE_ID] = {"VSC Overflow Test", ""},
+   [PROLOGUE_STAGE_ID] = {"Prologue", "Preemble cmdstream (executed once before first tile)"},
 };
 
 /**

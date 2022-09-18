@@ -148,6 +148,18 @@ static void check_program_state( struct st_context *st )
          dirty |= ST_NEW_SCISSOR;
    }
 
+   if (st->lower_point_size && st->ctx->LastVertexStageDirty &&
+       !st->ctx->VertexProgram.PointSizeEnabled && !st->ctx->PointSizeIsSet) {
+      if (new_gp) {
+         st->dirty |= ST_NEW_GS_CONSTANTS;
+      } else if (new_tep) {
+         st->dirty |= ST_NEW_TES_CONSTANTS;
+      } else {
+         st->dirty |= ST_NEW_VS_CONSTANTS;
+      }
+   }
+   st->ctx->LastVertexStageDirty = false;
+
    st->dirty |= dirty;
 }
 
@@ -177,7 +189,6 @@ static void check_attrib_edgeflag(struct st_context *st)
 {
    st_update_edgeflags(st, _mesa_draw_edge_flag_array_enabled(st->ctx));
 }
-
 
 /***********************************************************************
  * Update all derived state:

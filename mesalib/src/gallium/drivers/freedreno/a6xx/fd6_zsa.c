@@ -30,7 +30,6 @@
 #include "util/u_string.h"
 
 #include "fd6_context.h"
-#include "fd6_format.h"
 #include "fd6_zsa.h"
 
 /* update lza state based on stencil-test func:
@@ -215,8 +214,8 @@ fd6_zsa_state_create(struct pipe_context *pctx,
 
       OUT_PKT4(ring, REG_A6XX_RB_DEPTH_CNTL, 1);
       OUT_RING(ring,
-               so->rb_depth_cntl | COND(i & FD6_ZSA_DEPTH_CLAMP,
-                                        A6XX_RB_DEPTH_CNTL_Z_CLAMP_ENABLE));
+               so->rb_depth_cntl | COND(i & FD6_ZSA_DEPTH_CLIP_DISABLE,
+                                        A6XX_RB_DEPTH_CNTL_Z_CLIP_DISABLE));
 
       OUT_PKT4(ring, REG_A6XX_RB_STENCILMASK, 2);
       OUT_RING(ring, so->rb_stencilmask);

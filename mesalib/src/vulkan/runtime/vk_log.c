@@ -90,8 +90,26 @@ __vk_log_impl(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
       instance = (struct vk_instance *) objects_or_instance;
    } else {
       objects = (struct vk_object_base **) objects_or_instance;
-      instance = vk_object_to_instance(objects[0]);
-      assert(instance->base.client_visible);
+      for (unsigned i = 0; i < object_count; i++) {
+         if (unlikely(objects[i] == NULL)) {
+            mesa_logw("vk_log*() called with NULL object\n");
+            continue;
+         }
+
+         if (unlikely(!objects[i]->client_visible)) {
+            mesa_logw("vk_log*() called with client-invisible object %p "
+                      "of type %s", objects[i],
+                      vk_ObjectType_to_str(objects[i]->type));
+         }
+
+         if (!instance) {
+            instance = vk_object_to_instance(objects[i]);
+            assert(instance->base.client_visible);
+         } else {
+            assert(vk_object_to_instance(objects[i]) == instance);
+         }
+         break;
+      }
    }
 
 #ifndef DEBUG
@@ -160,10 +178,11 @@ __vk_log_impl(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
       VkDebugUtilsObjectNameInfoEXT *object_name_infos =
          ralloc_array(NULL, VkDebugUtilsObjectNameInfoEXT, object_count);
 
-      ASSERTED int cmdbuf_n = 0, queue_n = 0;
+      ASSERTED int cmdbuf_n = 0, queue_n = 0, obj_n = 0;
       for (int i = 0; i < object_count; i++) {
          struct vk_object_base *base = objects[i];
-         assert(base->client_visible);
+         if (base == NULL || !base->client_visible)
+            continue;
 
          switch (base->type) {
          case VK_OBJECT_TYPE_COMMAND_BUFFER: {
@@ -194,7 +213,7 @@ __vk_log_impl(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
             break;
          }
 
-         object_name_infos[i] = (VkDebugUtilsObjectNameInfoEXT){
+         object_name_infos[obj_n++] = (VkDebugUtilsObjectNameInfoEXT){
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
             .pNext = NULL,
             .objectType = base->type,
@@ -202,7 +221,7 @@ __vk_log_impl(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
             .pObjectName = base->object_name,
          };
       }
-      cb_data.objectCount = object_count;
+      cb_data.objectCount = obj_n;
       cb_data.pObjects = object_name_infos;
 
       vk_debug_message(instance, severity, types, &cb_data);

@@ -297,19 +297,16 @@ static void si_dump_mmapped_reg(struct si_context *sctx, FILE *f, unsigned offse
    uint32_t value;
 
    if (ws->read_registers(ws, offset, 1, &value))
-      ac_dump_reg(f, sctx->chip_class, offset, value, ~0);
+      ac_dump_reg(f, sctx->gfx_level, offset, value, ~0);
 }
 
 static void si_dump_debug_registers(struct si_context *sctx, FILE *f)
 {
-   if (!sctx->screen->info.has_read_registers_query)
-      return;
-
    fprintf(f, "Memory-mapped registers:\n");
    si_dump_mmapped_reg(sctx, f, R_008010_GRBM_STATUS);
 
-   /* No other registers can be read on DRM < 3.1.0. */
-   if (!sctx->screen->info.is_amdgpu || sctx->screen->info.drm_minor < 1) {
+   /* No other registers can be read on radeon. */
+   if (!sctx->screen->info.is_amdgpu) {
       fprintf(f, "\n");
       return;
    }
@@ -321,7 +318,7 @@ static void si_dump_debug_registers(struct si_context *sctx, FILE *f)
    si_dump_mmapped_reg(sctx, f, R_00803C_GRBM_STATUS_SE3);
    si_dump_mmapped_reg(sctx, f, R_00D034_SDMA0_STATUS_REG);
    si_dump_mmapped_reg(sctx, f, R_00D834_SDMA1_STATUS_REG);
-   if (sctx->chip_class <= GFX8) {
+   if (sctx->gfx_level <= GFX8) {
       si_dump_mmapped_reg(sctx, f, R_000E50_SRBM_STATUS);
       si_dump_mmapped_reg(sctx, f, R_000E4C_SRBM_STATUS2);
       si_dump_mmapped_reg(sctx, f, R_000E54_SRBM_STATUS3);
@@ -355,7 +352,7 @@ static void si_log_chunk_type_cs_destroy(void *data)
 
 static void si_parse_current_ib(FILE *f, struct radeon_cmdbuf *cs, unsigned begin, unsigned end,
                                 int *last_trace_id, unsigned trace_id_count, const char *name,
-                                enum chip_class chip_class)
+                                enum amd_gfx_level gfx_level)
 {
    unsigned orig_end = end;
 
@@ -368,7 +365,7 @@ static void si_parse_current_ib(FILE *f, struct radeon_cmdbuf *cs, unsigned begi
 
       if (begin < chunk->cdw) {
          ac_parse_ib_chunk(f, chunk->buf + begin, MIN2(end, chunk->cdw) - begin, last_trace_id,
-                           trace_id_count, chip_class, NULL, NULL);
+                           trace_id_count, gfx_level, NULL, NULL);
       }
 
       if (end <= chunk->cdw)
@@ -384,7 +381,7 @@ static void si_parse_current_ib(FILE *f, struct radeon_cmdbuf *cs, unsigned begi
    assert(end <= cs->current.cdw);
 
    ac_parse_ib_chunk(f, cs->current.buf + begin, end - begin, last_trace_id, trace_id_count,
-                     chip_class, NULL, NULL);
+                     gfx_level, NULL, NULL);
 
    fprintf(f, "------------------- %s end (dw = %u) -------------------\n\n", name, orig_end);
 }
@@ -392,7 +389,7 @@ static void si_parse_current_ib(FILE *f, struct radeon_cmdbuf *cs, unsigned begi
 void si_print_current_ib(struct si_context *sctx, FILE *f)
 {
    si_parse_current_ib(f, &sctx->gfx_cs, 0, sctx->gfx_cs.prev_dw + sctx->gfx_cs.current.cdw,
-                       NULL, 0, "GFX", sctx->chip_class);
+                       NULL, 0, "GFX", sctx->gfx_level);
 }
 
 static void si_log_chunk_type_cs_print(void *data, FILE *f)
@@ -415,19 +412,15 @@ static void si_log_chunk_type_cs_print(void *data, FILE *f)
       if (chunk->gfx_begin == 0) {
          if (ctx->cs_preamble_state)
             ac_parse_ib(f, ctx->cs_preamble_state->pm4, ctx->cs_preamble_state->ndw, NULL, 0,
-                        "IB2: Init config", ctx->chip_class, NULL, NULL);
-
-         if (ctx->cs_preamble_gs_rings)
-            ac_parse_ib(f, ctx->cs_preamble_gs_rings->pm4, ctx->cs_preamble_gs_rings->ndw, NULL, 0,
-                        "IB2: Init GS rings", ctx->chip_class, NULL, NULL);
+                        "IB2: Init config", ctx->gfx_level, NULL, NULL);
       }
 
       if (scs->flushed) {
          ac_parse_ib(f, scs->gfx.ib + chunk->gfx_begin, chunk->gfx_end - chunk->gfx_begin,
-                     &last_trace_id, map ? 1 : 0, "IB", ctx->chip_class, NULL, NULL);
+                     &last_trace_id, map ? 1 : 0, "IB", ctx->gfx_level, NULL, NULL);
       } else {
          si_parse_current_ib(f, &ctx->gfx_cs, chunk->gfx_begin, chunk->gfx_end, &last_trace_id,
-                             map ? 1 : 0, "IB", ctx->chip_class);
+                             map ? 1 : 0, "IB", ctx->gfx_level);
       }
    }
 
@@ -621,7 +614,7 @@ struct si_log_chunk_desc_list {
    const char *shader_name;
    const char *elem_name;
    slot_remap_func slot_remap;
-   enum chip_class chip_class;
+   enum amd_gfx_level gfx_level;
    unsigned element_dw_size;
    unsigned num_elements;
 
@@ -639,7 +632,7 @@ static void si_log_chunk_desc_list_print(void *data, FILE *f)
 {
    struct si_log_chunk_desc_list *chunk = data;
    unsigned sq_img_rsrc_word0 =
-      chunk->chip_class >= GFX10 ? R_00A000_SQ_IMG_RSRC_WORD0 : R_008F10_SQ_IMG_RSRC_WORD0;
+      chunk->gfx_level >= GFX10 ? R_00A000_SQ_IMG_RSRC_WORD0 : R_008F10_SQ_IMG_RSRC_WORD0;
 
    for (unsigned i = 0; i < chunk->num_elements; i++) {
       unsigned cpu_dw_offset = i * chunk->element_dw_size;
@@ -654,35 +647,35 @@ static void si_log_chunk_desc_list_print(void *data, FILE *f)
       switch (chunk->element_dw_size) {
       case 4:
          for (unsigned j = 0; j < 4; j++)
-            ac_dump_reg(f, chunk->chip_class, R_008F00_SQ_BUF_RSRC_WORD0 + j * 4, gpu_list[j],
+            ac_dump_reg(f, chunk->gfx_level, R_008F00_SQ_BUF_RSRC_WORD0 + j * 4, gpu_list[j],
                         0xffffffff);
          break;
       case 8:
          for (unsigned j = 0; j < 8; j++)
-            ac_dump_reg(f, chunk->chip_class, sq_img_rsrc_word0 + j * 4, gpu_list[j], 0xffffffff);
+            ac_dump_reg(f, chunk->gfx_level, sq_img_rsrc_word0 + j * 4, gpu_list[j], 0xffffffff);
 
          fprintf(f, COLOR_CYAN "    Buffer:" COLOR_RESET "\n");
          for (unsigned j = 0; j < 4; j++)
-            ac_dump_reg(f, chunk->chip_class, R_008F00_SQ_BUF_RSRC_WORD0 + j * 4, gpu_list[4 + j],
+            ac_dump_reg(f, chunk->gfx_level, R_008F00_SQ_BUF_RSRC_WORD0 + j * 4, gpu_list[4 + j],
                         0xffffffff);
          break;
       case 16:
          for (unsigned j = 0; j < 8; j++)
-            ac_dump_reg(f, chunk->chip_class, sq_img_rsrc_word0 + j * 4, gpu_list[j], 0xffffffff);
+            ac_dump_reg(f, chunk->gfx_level, sq_img_rsrc_word0 + j * 4, gpu_list[j], 0xffffffff);
 
          fprintf(f, COLOR_CYAN "    Buffer:" COLOR_RESET "\n");
          for (unsigned j = 0; j < 4; j++)
-            ac_dump_reg(f, chunk->chip_class, R_008F00_SQ_BUF_RSRC_WORD0 + j * 4, gpu_list[4 + j],
+            ac_dump_reg(f, chunk->gfx_level, R_008F00_SQ_BUF_RSRC_WORD0 + j * 4, gpu_list[4 + j],
                         0xffffffff);
 
          fprintf(f, COLOR_CYAN "    FMASK:" COLOR_RESET "\n");
          for (unsigned j = 0; j < 8; j++)
-            ac_dump_reg(f, chunk->chip_class, sq_img_rsrc_word0 + j * 4, gpu_list[8 + j],
+            ac_dump_reg(f, chunk->gfx_level, sq_img_rsrc_word0 + j * 4, gpu_list[8 + j],
                         0xffffffff);
 
          fprintf(f, COLOR_CYAN "    Sampler state:" COLOR_RESET "\n");
          for (unsigned j = 0; j < 4; j++)
-            ac_dump_reg(f, chunk->chip_class, R_008F30_SQ_IMG_SAMP_WORD0 + j * 4, gpu_list[12 + j],
+            ac_dump_reg(f, chunk->gfx_level, R_008F30_SQ_IMG_SAMP_WORD0 + j * 4, gpu_list[12 + j],
                         0xffffffff);
          break;
       }
@@ -732,7 +725,7 @@ static void si_dump_descriptor_list(struct si_screen *screen, struct si_descript
    chunk->element_dw_size = element_dw_size;
    chunk->num_elements = num_elements;
    chunk->slot_remap = slot_remap;
-   chunk->chip_class = screen->info.chip_class;
+   chunk->gfx_level = screen->info.gfx_level;
 
    si_resource_reference(&chunk->buf, desc->buffer);
    chunk->gpu_list = desc->gpu_list;
@@ -779,21 +772,6 @@ static void si_dump_descriptors(struct si_context *sctx, gl_shader_stage stage,
       enabled_images = sctx->images[processor].enabled_mask;
    }
 
-   if (stage == MESA_SHADER_VERTEX && sctx->vb_descriptors_buffer &&
-       sctx->vb_descriptors_gpu_list) {
-      assert(info); /* only CS may not have an info struct */
-      struct si_descriptors desc = {};
-
-      desc.buffer = sctx->vb_descriptors_buffer;
-      desc.list = sctx->vb_descriptors_gpu_list;
-      desc.gpu_list = sctx->vb_descriptors_gpu_list;
-      desc.element_dw_size = 4;
-      desc.num_active_slots = sctx->vertex_elements->vb_desc_list_alloc_size / 16;
-
-      si_dump_descriptor_list(sctx->screen, &desc, name, " - Vertex buffer", 4, info->num_inputs,
-                              si_identity, log);
-   }
-
    si_dump_descriptor_list(sctx->screen, &descs[SI_SHADER_DESCS_CONST_AND_SHADER_BUFFERS], name,
                            " - Constant buffer", 4, util_last_bit(enabled_constbuf),
                            si_get_constbuf_slot, log);
@@ -814,7 +792,7 @@ static void si_dump_gfx_descriptors(struct si_context *sctx,
    if (!state->cso || !state->current)
       return;
 
-   si_dump_descriptors(sctx, state->cso->info.stage, &state->cso->info, log);
+   si_dump_descriptors(sctx, state->cso->stage, &state->cso->info, log);
 }
 
 static void si_dump_compute_descriptors(struct si_context *sctx, struct u_log_context *log)
@@ -897,7 +875,7 @@ static void si_print_annotated_shader(struct si_shader *shader, struct ac_wave_i
       return;
 
    struct si_screen *screen = shader->selector->screen;
-   gl_shader_stage stage = shader->selector->info.stage;
+   gl_shader_stage stage = shader->selector->stage;
    uint64_t start_addr = shader->bo->gpu_address;
    uint64_t end_addr = start_addr + shader->bo->b.b.width0;
    unsigned i;
@@ -976,7 +954,7 @@ static void si_print_annotated_shader(struct si_shader *shader, struct ac_wave_i
 static void si_dump_annotated_shaders(struct si_context *sctx, FILE *f)
 {
    struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP];
-   unsigned num_waves = ac_get_wave_info(sctx->chip_class, waves);
+   unsigned num_waves = ac_get_wave_info(sctx->gfx_level, waves);
 
    fprintf(f, COLOR_CYAN "The number of active waves = %u" COLOR_RESET "\n\n", num_waves);
 
@@ -1040,19 +1018,13 @@ static void si_dump_debug_state(struct pipe_context *ctx, FILE *f, unsigned flag
 
 void si_log_draw_state(struct si_context *sctx, struct u_log_context *log)
 {
-   struct si_shader_ctx_state *tcs_shader;
-
    if (!log)
       return;
-
-   tcs_shader = &sctx->shader.tcs;
-   if (sctx->shader.tes.cso && !sctx->shader.tcs.cso)
-      tcs_shader = &sctx->fixed_func_tcs_shader;
 
    si_dump_framebuffer(sctx, log);
 
    si_dump_gfx_shader(sctx, &sctx->shader.vs, log);
-   si_dump_gfx_shader(sctx, tcs_shader, log);
+   si_dump_gfx_shader(sctx, &sctx->shader.tcs, log);
    si_dump_gfx_shader(sctx, &sctx->shader.tes, log);
    si_dump_gfx_shader(sctx, &sctx->shader.gs, log);
    si_dump_gfx_shader(sctx, &sctx->shader.ps, log);
@@ -1061,7 +1033,7 @@ void si_log_draw_state(struct si_context *sctx, struct u_log_context *log)
                            4, sctx->descriptors[SI_DESCS_INTERNAL].num_active_slots, si_identity,
                            log);
    si_dump_gfx_descriptors(sctx, &sctx->shader.vs, log);
-   si_dump_gfx_descriptors(sctx, tcs_shader, log);
+   si_dump_gfx_descriptors(sctx, &sctx->shader.tcs, log);
    si_dump_gfx_descriptors(sctx, &sctx->shader.tes, log);
    si_dump_gfx_descriptors(sctx, &sctx->shader.gs, log);
    si_dump_gfx_descriptors(sctx, &sctx->shader.ps, log);
@@ -1076,14 +1048,14 @@ void si_log_compute_state(struct si_context *sctx, struct u_log_context *log)
    si_dump_compute_descriptors(sctx, log);
 }
 
-void si_check_vm_faults(struct si_context *sctx, struct radeon_saved_cs *saved, enum ring_type ring)
+void si_check_vm_faults(struct si_context *sctx, struct radeon_saved_cs *saved, enum amd_ip_type ring)
 {
    struct pipe_screen *screen = sctx->b.screen;
    FILE *f;
    uint64_t addr;
    char cmd_line[4096];
 
-   if (!ac_vm_fault_occured(sctx->chip_class, &sctx->dmesg_timestamp, &addr))
+   if (!ac_vm_fault_occured(sctx->gfx_level, &sctx->dmesg_timestamp, &addr))
       return;
 
    f = dd_get_debug_file(false);
@@ -1102,7 +1074,7 @@ void si_check_vm_faults(struct si_context *sctx, struct radeon_saved_cs *saved, 
       fprintf(f, "Last apitrace call: %u\n\n", sctx->apitrace_call_number);
 
    switch (ring) {
-   case RING_GFX: {
+   case AMD_IP_GFX: {
       struct u_log_context log;
       u_log_context_init(&log);
 
@@ -1133,5 +1105,5 @@ void si_init_debug_functions(struct si_context *sctx)
     * only new messages will be checked for VM faults.
     */
    if (sctx->screen->debug_flags & DBG(CHECK_VM))
-      ac_vm_fault_occured(sctx->chip_class, &sctx->dmesg_timestamp, NULL);
+      ac_vm_fault_occured(sctx->gfx_level, &sctx->dmesg_timestamp, NULL);
 }

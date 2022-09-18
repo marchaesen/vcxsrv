@@ -47,12 +47,12 @@ XFillArcs(
     FlushGC(dpy, gc);
     while (n_arcs) {
 	GetReq(PolyFillArc, req);
-	req->drawable = d;
-	req->gc = gc->gid;
+	req->drawable = (CARD32) d;
+	req->gc = (CARD32) gc->gid;
 	n = n_arcs;
 	len = ((long)n) * arc_scale;
 	if (!dpy->bigreq_size && len > (dpy->max_request_size - req->length)) {
-	    n = (dpy->max_request_size - req->length) / arc_scale;
+	    n = (int) ((dpy->max_request_size - req->length) / arc_scale);
 	    len = ((long)n) * arc_scale;
 	}
 	SetReqLen(req, len, len);

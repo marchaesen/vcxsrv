@@ -24,7 +24,7 @@ xkb_symbols "basic" {
     key <AE12> {	[           acute,           grave	]	};
     key <AB09> {	[          period,           colon     	]	};
     key <AB10> {	[           minus,      underscore     	]	};
-    key <AC10> {	[      odiaeresis,      Odiaeresis, 	   oslash,	     Ooblique	]	};
+    key <AC10> {	[      odiaeresis,      Odiaeresis, 	   oslash,	       Oslash	]	};
     key <AC11> {	[      adiaeresis,      Adiaeresis,            ae,		   AE	]	};
     key <AD11> {	[	    aring,           Aring     	]	};
     key <AD12> {	[       diaeresis,     asciicircum, 	asciitilde			]	};

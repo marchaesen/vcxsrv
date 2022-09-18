@@ -233,7 +233,7 @@ new_texture_handle(struct gl_context *ctx, struct gl_texture_object *texObj,
       if (!st_finalize_texture(ctx, pipe, texObj, 0))
          return 0;
 
-      st_convert_sampler(st, texObj, sampObj, 0, &sampler, false);
+      st_convert_sampler(st, texObj, sampObj, 0, &sampler, false, false, true);
 
       /* TODO: Clarify the interaction of ARB_bindless_texture and EXT_texture_sRGB_decode */
       view = st_get_texture_sampler_view_from_stobj(st, texObj, sampObj, 0,
@@ -423,7 +423,7 @@ _mesa_init_shared_handles(struct gl_shared_state *shared)
 {
    shared->TextureHandles = _mesa_hash_table_u64_create(NULL);
    shared->ImageHandles = _mesa_hash_table_u64_create(NULL);
-   mtx_init(&shared->HandlesMutex, mtx_recursive);
+   mtx_init(&shared->HandlesMutex, mtx_plain | mtx_recursive);
 }
 
 void

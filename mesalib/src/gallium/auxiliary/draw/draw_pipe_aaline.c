@@ -281,9 +281,6 @@ generate_aaline_fs(struct aaline_stage *aaline)
    const uint newLen = tgsi_num_tokens(orig_fs->tokens) + NUM_NEW_TOKENS;
 
    aaline_fs = *orig_fs; /* copy to init */
-   aaline_fs.tokens = tgsi_alloc_tokens(newLen);
-   if (aaline_fs.tokens == NULL)
-      return FALSE;
 
    memset(&transform, 0, sizeof(transform));
    transform.colorOutput = -1;
@@ -296,9 +293,9 @@ generate_aaline_fs(struct aaline_stage *aaline)
    transform.base.transform_instruction = aa_transform_inst;
    transform.base.transform_declaration = aa_transform_decl;
 
-   tgsi_transform_shader(orig_fs->tokens,
-                         (struct tgsi_token *) aaline_fs.tokens,
-                         newLen, &transform.base);
+   aaline_fs.tokens = tgsi_transform_shader(orig_fs->tokens, newLen, &transform.base);
+   if (!aaline_fs.tokens)
+      return false;
 
 #if 0 /* DEBUG */
    debug_printf("draw_aaline, orig shader:\n");

@@ -46,13 +46,11 @@ static void
 lp_rast_linear_clear(struct lp_rasterizer_task *task,
                      const union lp_rast_cmd_arg arg)
 {
-   const struct lp_scene *scene = task->scene;
-   union util_color uc;
-
    LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
 
-   uc = arg.clear_rb->color_val;
+   union util_color uc = arg.clear_rb->color_val;
 
+   const struct lp_scene *scene = task->scene;
    util_fill_rect(scene->cbufs[0].map,
                   PIPE_FORMAT_B8G8R8A8_UNORM,
                   scene->cbufs[0].stride,
@@ -63,43 +61,39 @@ lp_rast_linear_clear(struct lp_rasterizer_task *task,
                   &uc);
 }
 
+
 /* Run the scanline version of the shader across the whole tile.
  */
 static void
 lp_rast_linear_tile(struct lp_rasterizer_task *task,
-                   const union lp_rast_cmd_arg arg)
+                    const union lp_rast_cmd_arg arg)
 {
    const struct lp_rast_shader_inputs *inputs = arg.shade_tile;
-   const struct lp_rast_state *state;
-   struct lp_fragment_shader_variant *variant;
-   const struct lp_scene *scene = task->scene;
-
    if (inputs->disable)
       return;
 
-   state = task->state;
+   const struct lp_rast_state *state = task->state;
    assert(state);
    if (!state) {
       return;
    }
-   variant = state->variant;
 
-   if (variant->jit_linear_blit &&
-       inputs->is_blit)
-   {
+   const struct lp_fragment_shader_variant *variant = state->variant;
+   const struct lp_scene *scene = task->scene;
+
+   if (variant->jit_linear_blit && inputs->is_blit) {
       if (variant->jit_linear_blit(state,
                                    task->x,
                                    task->y,
                                    task->width,
                                    task->height,
-                                   (const float (*)[4])GET_A0(inputs),
-                                   (const float (*)[4])GET_DADX(inputs),
-                                   (const float (*)[4])GET_DADY(inputs),
+                                   GET_A0(inputs),
+                                   GET_DADX(inputs),
+                                   GET_DADY(inputs),
                                    scene->cbufs[0].map,
                                    scene->cbufs[0].stride))
          return;
    }
-
 
    if (variant->jit_linear) {
       if (variant->jit_linear(state,
@@ -107,9 +101,9 @@ lp_rast_linear_tile(struct lp_rasterizer_task *task,
                               task->y,
                               task->width,
                               task->height,
-                              (const float (*)[4])GET_A0(inputs),
-                              (const float (*)[4])GET_DADX(inputs),
-                              (const float (*)[4])GET_DADY(inputs),
+                              GET_A0(inputs),
+                              GET_DADX(inputs),
+                              GET_DADY(inputs),
                               scene->cbufs[0].map,
                               scene->cbufs[0].stride))
          return;
@@ -136,14 +130,11 @@ lp_rast_linear_rect(struct lp_rasterizer_task *task,
    const struct lp_scene *scene = task->scene;
    const struct lp_rast_rectangle *rect = arg.rectangle;
    const struct lp_rast_shader_inputs *inputs = &rect->inputs;
-   const struct lp_rast_state *state = task->state;
-   struct lp_fragment_shader_variant *variant = state->variant;
-   struct u_rect box;
-   int width, height;
 
    if (inputs->disable)
       return;
 
+   struct u_rect box;
    box.x0 = task->x;
    box.y0 = task->y;
    box.x1 = task->x + task->width - 1;
@@ -151,38 +142,39 @@ lp_rast_linear_rect(struct lp_rasterizer_task *task,
 
    u_rect_find_intersection(&rect->box, &box);
 
-   width  = box.x1 - box.x0 + 1;
-   height = box.y1 - box.y0 + 1;
+   const int width  = box.x1 - box.x0 + 1;
+   const int height = box.y1 - box.y0 + 1;
 
    /* Note that blit primitives can end up in the non-full-tile path,
     * the binner currently doesn't try to classify sub-tile
     * primitives.  Can detect them here though.
     */
-   if (variant->jit_linear_blit &&
-       inputs->is_blit)
-   {
+   const struct lp_rast_state *state = task->state;
+   struct lp_fragment_shader_variant *variant = state->variant;
+   if (variant->jit_linear_blit && inputs->is_blit) {
       if (variant->jit_linear_blit(state,
                                    box.x0, box.y0,
                                    width, height,
-                                   (const float (*)[4])GET_A0(inputs),
-                                   (const float (*)[4])GET_DADX(inputs),
-                                   (const float (*)[4])GET_DADY(inputs),
+                                   GET_A0(inputs),
+                                   GET_DADX(inputs),
+                                   GET_DADY(inputs),
                                    scene->cbufs[0].map,
-                                   scene->cbufs[0].stride))
+                                   scene->cbufs[0].stride)) {
          return;
+      }
    }
 
-   if (variant->jit_linear)
-   {
+   if (variant->jit_linear) {
       if (variant->jit_linear(state,
                               box.x0, box.y0,
                               width, height,
-                              (const float (*)[4])GET_A0(inputs),
-                              (const float (*)[4])GET_DADX(inputs),
-                              (const float (*)[4])GET_DADY(inputs),
+                              GET_A0(inputs),
+                              GET_DADX(inputs),
+                              GET_DADY(inputs),
                               scene->cbufs[0].map,
-                              scene->cbufs[0].stride))
+                              scene->cbufs[0].stride)) {
          return;
+      }
    }
 
    lp_rast_linear_rect_fallback(task, inputs, &box);
@@ -236,6 +228,7 @@ dispatch_linear[] = {
    lp_rast_linear_rect,         /* rect */
    lp_rast_linear_tile,         /* blit */
 };
+
 
 /* Assumptions for this path:
  *   - Single color buffer, PIPE_FORMAT_B8G8R8A8_UNORM

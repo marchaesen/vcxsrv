@@ -1,0 +1,9 @@
+# ail
+
+ail is a small library for working with the image (and buffer) layouts
+encountered with AGX hardware. Its design is inspired by isl. In
+particular, ail strives to use isl unit suffixes and to represent
+quantities in a canonical, API-agnostic fashion.
+
+See the isl documentation for conventions in mesa/docs/isl for the conventions
+that ail tries to adhere to, in particular mesa/docs/isl/units.rst.

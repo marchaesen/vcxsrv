@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 libpanfrost_noop_drm_shim = shared_library(
-  ['panfrost_noop_drm_shim'],
+  'panfrost_noop_drm_shim',
   'panfrost_noop.c',
   include_directories: [inc_include, inc_src],
   dependencies: dep_drm_shim,

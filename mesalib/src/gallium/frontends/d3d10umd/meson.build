@@ -1,7 +1,7 @@
 inc_d3d10umd = include_directories('.')
 _c_args_d3d10umd = []
 
-if cc.get_id() == 'gcc'
+if cc.get_argument_syntax() == 'gcc'
   _c_args_d3d10umd += '-Wno-unknown-pragmas'
 endif
 

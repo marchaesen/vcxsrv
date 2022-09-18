@@ -42,7 +42,7 @@
 
 using namespace r600_sb;
 
-static sb_hw_class translate_chip_class(enum chip_class cc);
+static sb_hw_class translate_chip_class(enum amd_gfx_level cc);
 static sb_hw_chip translate_chip(enum radeon_family rf);
 
 sb_context *r600_sb_context_create(struct r600_context *rctx) {
@@ -50,7 +50,7 @@ sb_context *r600_sb_context_create(struct r600_context *rctx) {
 	sb_context *sctx = new sb_context();
 
 	if (sctx->init(rctx->isa, translate_chip(rctx->b.family),
-			translate_chip_class(rctx->b.chip_class))) {
+			translate_chip_class(rctx->b.gfx_level))) {
 		delete sctx;
 		sctx = NULL;
 	}
@@ -324,7 +324,7 @@ static sb_hw_chip translate_chip(enum radeon_family rf) {
 	}
 }
 
-static sb_hw_class translate_chip_class(enum chip_class cc) {
+static sb_hw_class translate_chip_class(enum amd_gfx_level cc) {
 	switch(cc) {
 		case R600: return HW_CLASS_R600;
 		case R700: return HW_CLASS_R700;
@@ -332,7 +332,7 @@ static sb_hw_class translate_chip_class(enum chip_class cc) {
 		case CAYMAN: return HW_CLASS_CAYMAN;
 
 		default:
-			assert(!"unknown chip class");
+			assert(!"unknown gfx level");
 			return HW_CLASS_UNKNOWN;
 	}
 }

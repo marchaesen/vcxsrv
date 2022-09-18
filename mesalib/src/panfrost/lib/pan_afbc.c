@@ -66,17 +66,13 @@
  * generate a linear staging buffer and use the GPU to blit AFBC<--->linear.
  */
 
-#define AFBC_TILE_WIDTH 16
-#define AFBC_TILE_HEIGHT 16
-#define AFBC_CACHE_ALIGN 64
-
 /* AFBC supports compressing a few canonical formats. Additional formats are
  * available by using a canonical internal format. Given a PIPE format, find
  * the canonical AFBC internal format if it exists, or NONE if the format
  * cannot be compressed. */
 
 enum pipe_format
-panfrost_afbc_format(const struct panfrost_device *dev, enum pipe_format format)
+panfrost_afbc_format(unsigned arch, enum pipe_format format)
 {
         /* Don't allow swizzled formats on v7 */
         switch (format) {
@@ -88,7 +84,7 @@ panfrost_afbc_format(const struct panfrost_device *dev, enum pipe_format format)
         case PIPE_FORMAT_A8B8G8R8_UNORM:
         case PIPE_FORMAT_B8G8R8_UNORM:
         case PIPE_FORMAT_B5G6R5_UNORM:
-                if (dev->arch >= 7)
+                if (arch >= 7)
                         return PIPE_FORMAT_NONE;
 
                 break;
@@ -132,27 +128,7 @@ panfrost_afbc_format(const struct panfrost_device *dev, enum pipe_format format)
 bool
 panfrost_format_supports_afbc(const struct panfrost_device *dev, enum pipe_format format)
 {
-        return panfrost_afbc_format(dev, format) != PIPE_FORMAT_NONE;
-}
-
-unsigned
-panfrost_afbc_header_size(unsigned width, unsigned height)
-{
-        /* Align to tile */
-        unsigned aligned_width  = ALIGN_POT(width,  AFBC_TILE_WIDTH);
-        unsigned aligned_height = ALIGN_POT(height, AFBC_TILE_HEIGHT);
-
-        /* Compute size in tiles, rather than pixels */
-        unsigned tile_count_x = aligned_width  / AFBC_TILE_WIDTH;
-        unsigned tile_count_y = aligned_height / AFBC_TILE_HEIGHT;
-        unsigned tile_count = tile_count_x * tile_count_y;
-
-        /* Multiply to find the header size */
-        unsigned header_bytes = tile_count * AFBC_HEADER_BYTES_PER_TILE;
-
-        /* Align and go */
-        return ALIGN_POT(header_bytes, AFBC_CACHE_ALIGN);
-
+        return panfrost_afbc_format(dev->arch, format) != PIPE_FORMAT_NONE;
 }
 
 /* The lossless colour transform (AFBC_FORMAT_MOD_YTR) requires RGB. */
@@ -169,4 +145,14 @@ panfrost_afbc_can_ytr(enum pipe_format format)
 
         /* The fourth channel if it exists doesn't matter */
         return desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB;
+}
+
+/*
+ * Check if the device supports AFBC with tiled headers (and hence also solid
+ * colour blocks).
+ */
+bool
+panfrost_afbc_can_tile(const struct panfrost_device *dev)
+{
+        return (dev->arch >= 7);
 }

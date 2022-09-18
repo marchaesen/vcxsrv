@@ -1,0 +1,9 @@
+dEQP-VK.dynamic_rendering.basic.*
+
+# This fail is 100% reproducible when running vkcts in parallel mode,
+# but isn't reproducible when running with the normal full test list.
+# Given that we want both CI and developers to be able to get clean
+# runs, let's mark this test as a flake until it gets fixed.
+#
+# See: https://gitlab.freedesktop.org/mesa/mesa/-/issues/7220
+dEQP-VK.draw.renderpass.linear_interpolation.no_offset_8_samples

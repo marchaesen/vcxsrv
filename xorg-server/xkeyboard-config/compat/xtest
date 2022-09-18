@@ -11,7 +11,7 @@ default xkb_compatibility "xtest" {
     // just set the corresponding modifier so that xtest
     // will see the behavior it expects.
 
-    virtual_modifiers  NumLock,AltGr;
+    virtual_modifiers  NumLock;
 
     interpret.repeat= False;
     setMods.clearLocks= True;
@@ -28,8 +28,6 @@ default xkb_compatibility "xtest" {
     };
 
     interpret Mode_switch {
-	useModMapMods= level1;
-	virtualModifier= AltGr;
 	action= SetGroup(group=2);
     };
 
@@ -37,9 +35,9 @@ default xkb_compatibility "xtest" {
 	action= SetMods(modifiers=modMapMods);
     };
 
-    group 2 = AltGr;
-    group 3 = AltGr;
-    group 4 = AltGr;
+    group 2 = Mod5;
+    group 3 = Mod5;
+    group 4 = Mod5;
 
     indicator.allowExplicit= False;
     indicator "Caps Lock" {

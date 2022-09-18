@@ -38,25 +38,25 @@ for the keyboard, without ringing the corresponding bell
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to the X server
 .TP
-.I \- window
+.I window
 event window, or None
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- bell_class
+.I bell_class
 input extension bell class for the event 
 .TP
-.I \- bell_id
+.I bell_id
 input extension bell ID for the event 
 .TP
-.I \- percent
+.I percent
 volume for the bell, which can range from -100 to 100 inclusive
 .TP
-.I \- name
+.I name
 a bell name, or NULL
 .SH DESCRIPTION
 .LP

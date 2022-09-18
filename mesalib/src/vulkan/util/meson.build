@@ -46,16 +46,11 @@ vk_cmd_queue_gen_depend_files = [
   files('vk_entrypoints.py'),
   vk_entrypoints_depend_files,
 ]
-vk_commands_gen_depend_files = [
-  files('vk_entrypoints.py'),
-  vk_entrypoints_depend_files,
-]
 
 vk_entrypoints_gen = files('vk_entrypoints_gen.py')
 vk_extensions_gen = files('vk_extensions_gen.py')
 vk_icd_gen = files('vk_icd_gen.py')
 vk_cmd_queue_gen = files('vk_cmd_queue_gen.py')
-vk_commands_gen = files('vk_commands_gen.py')
 vk_dispatch_trampolines_gen = files('vk_dispatch_trampolines_gen.py')
 
 files_vulkan_util = files(
@@ -103,7 +98,7 @@ libvulkan_util = static_library(
   [files_vulkan_util, vk_dispatch_table, vk_enum_to_str, vk_extensions],
   include_directories : [inc_include, inc_src, inc_gallium],
   dependencies : [vulkan_wsi_deps, idep_mesautil, idep_nir_headers],
-  c_args : [vulkan_wsi_args],
+  c_args : [c_msvc_compat_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )

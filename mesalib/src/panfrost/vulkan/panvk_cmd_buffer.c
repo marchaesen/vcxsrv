@@ -41,17 +41,22 @@ panvk_CmdBindVertexBuffers(VkCommandBuffer commandBuffer,
                            const VkDeviceSize *pOffsets)
 {
    VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
+   struct panvk_descriptor_state *desc_state =
+      panvk_cmd_get_desc_state(cmdbuf, GRAPHICS);
 
    assert(firstBinding + bindingCount <= MAX_VBS);
 
    for (uint32_t i = 0; i < bindingCount; i++) {
-      struct panvk_buffer *buf = panvk_buffer_from_handle(pBuffers[i]);
+      VK_FROM_HANDLE(panvk_buffer, buffer, pBuffers[i]);
 
-      cmdbuf->state.vb.bufs[firstBinding + i].address = buf->bo->ptr.gpu + pOffsets[i];
-      cmdbuf->state.vb.bufs[firstBinding + i].size = buf->size - pOffsets[i];
+      cmdbuf->state.vb.bufs[firstBinding + i].address =
+         panvk_buffer_gpu_ptr(buffer, pOffsets[i]);
+      cmdbuf->state.vb.bufs[firstBinding + i].size =
+         panvk_buffer_range(buffer, pOffsets[i], VK_WHOLE_SIZE);
    }
+
    cmdbuf->state.vb.count = MAX2(cmdbuf->state.vb.count, firstBinding + bindingCount);
-   cmdbuf->state.vb.attrib_bufs = cmdbuf->state.vb.attribs = 0;
+   desc_state->vs_attrib_bufs = desc_state->vs_attribs = 0;
 }
 
 void
@@ -60,13 +65,53 @@ panvk_CmdBindIndexBuffer(VkCommandBuffer commandBuffer,
                          VkDeviceSize offset,
                          VkIndexType indexType)
 {
-   panvk_stub();
+   VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
+   VK_FROM_HANDLE(panvk_buffer, buf, buffer);
+
+   cmdbuf->state.ib.buffer = buf;
+   cmdbuf->state.ib.offset = offset;
+   switch (indexType) {
+   case VK_INDEX_TYPE_UINT16:
+      cmdbuf->state.ib.index_size = 16;
+      break;
+   case VK_INDEX_TYPE_UINT32:
+      cmdbuf->state.ib.index_size = 32;
+      break;
+   case VK_INDEX_TYPE_NONE_KHR:
+      cmdbuf->state.ib.index_size = 0;
+      break;
+   case VK_INDEX_TYPE_UINT8_EXT:
+      cmdbuf->state.ib.index_size = 8;
+      break;
+   default:
+      unreachable("Invalid index type\n");
+   }
+}
+
+static void
+panvk_set_dyn_ssbo_pointers(struct panvk_descriptor_state *desc_state,
+                            unsigned dyn_ssbo_offset,
+                            struct panvk_descriptor_set *set)
+{
+   struct panvk_sysvals *sysvals = &desc_state->sysvals;
+
+   for (unsigned i = 0; i < set->layout->num_dyn_ssbos; i++) {
+      const struct panvk_buffer_desc *ssbo =
+         &desc_state->dyn.ssbos[dyn_ssbo_offset + i];
+
+      sysvals->dyn_ssbos[dyn_ssbo_offset + i] = (struct panvk_ssbo_addr) {
+         .base_addr = panvk_buffer_gpu_ptr(ssbo->buffer, ssbo->offset),
+         .size = panvk_buffer_range(ssbo->buffer, ssbo->offset, ssbo->size),
+      };
+   }
+
+   desc_state->sysvals_ptr = 0;
 }
 
 void
 panvk_CmdBindDescriptorSets(VkCommandBuffer commandBuffer,
                             VkPipelineBindPoint pipelineBindPoint,
-                            VkPipelineLayout _layout,
+                            VkPipelineLayout layout,
                             uint32_t firstSet,
                             uint32_t descriptorSetCount,
                             const VkDescriptorSet *pDescriptorSets,
@@ -74,33 +119,52 @@ panvk_CmdBindDescriptorSets(VkCommandBuffer commandBuffer,
                             const uint32_t *pDynamicOffsets)
 {
    VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
-   VK_FROM_HANDLE(panvk_pipeline_layout, layout, _layout);
+   VK_FROM_HANDLE(panvk_pipeline_layout, playout, layout);
 
    struct panvk_descriptor_state *descriptors_state =
       &cmdbuf->bind_points[pipelineBindPoint].desc_state;
 
+   unsigned dynoffset_idx = 0;
    for (unsigned i = 0; i < descriptorSetCount; ++i) {
       unsigned idx = i + firstSet;
       VK_FROM_HANDLE(panvk_descriptor_set, set, pDescriptorSets[i]);
 
-      descriptors_state->sets[idx].set = set;
+      descriptors_state->sets[idx] = set;
 
-      if (layout->num_dynoffsets) {
-         assert(dynamicOffsetCount >= set->layout->num_dynoffsets);
+      if (set->layout->num_dyn_ssbos || set->layout->num_dyn_ubos) {
+         unsigned dyn_ubo_offset = playout->sets[idx].dyn_ubo_offset;
+         unsigned dyn_ssbo_offset = playout->sets[idx].dyn_ssbo_offset;
 
-         descriptors_state->sets[idx].dynoffsets =
-            pan_pool_alloc_aligned(&cmdbuf->desc_pool.base,
-                                   ALIGN(layout->num_dynoffsets, 4) *
-                                   sizeof(*pDynamicOffsets),
-                                   16);
-         memcpy(descriptors_state->sets[idx].dynoffsets.cpu,
-                pDynamicOffsets,
-                sizeof(*pDynamicOffsets) * set->layout->num_dynoffsets);
-         dynamicOffsetCount -= set->layout->num_dynoffsets;
-         pDynamicOffsets += set->layout->num_dynoffsets;
+         for (unsigned b = 0; b < set->layout->binding_count; b++) {
+            for (unsigned e = 0; e < set->layout->bindings[b].array_size; e++) {
+               struct panvk_buffer_desc *bdesc = NULL;
+
+               if (set->layout->bindings[b].type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) {
+                  bdesc = &descriptors_state->dyn.ubos[dyn_ubo_offset++];
+                  *bdesc = set->dyn_ubos[set->layout->bindings[b].dyn_ubo_idx + e];
+               } else if (set->layout->bindings[b].type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) {
+                  bdesc = &descriptors_state->dyn.ssbos[dyn_ssbo_offset++];
+                  *bdesc = set->dyn_ssbos[set->layout->bindings[b].dyn_ssbo_idx + e];
+               }
+
+               if (bdesc) {
+                  bdesc->offset += pDynamicOffsets[dynoffset_idx++];
+               }
+            }
+         }
       }
 
-      if (set->layout->num_ubos || set->layout->num_dynoffsets)
+      if (set->layout->num_dyn_ssbos) {
+         panvk_set_dyn_ssbo_pointers(descriptors_state,
+                                     playout->sets[idx].dyn_ssbo_offset,
+                                     set);
+      }
+
+      if (set->layout->num_dyn_ssbos)
+         descriptors_state->dirty |= PANVK_DYNAMIC_SSBO;
+
+      if (set->layout->num_ubos || set->layout->num_dyn_ubos ||
+          set->layout->num_dyn_ssbos || set->layout->desc_ubo_size)
          descriptors_state->ubos = 0;
 
       if (set->layout->num_textures)
@@ -108,9 +172,14 @@ panvk_CmdBindDescriptorSets(VkCommandBuffer commandBuffer,
 
       if (set->layout->num_samplers)
          descriptors_state->samplers = 0;
+
+      if (set->layout->num_imgs) {
+         descriptors_state->vs_attrib_bufs = descriptors_state->non_vs_attrib_bufs = 0;
+         descriptors_state->vs_attribs = descriptors_state->non_vs_attribs = 0;
+      }
    }
 
-   assert(!dynamicOffsetCount);
+   assert(dynoffset_idx == dynamicOffsetCount);
 }
 
 void
@@ -121,7 +190,25 @@ panvk_CmdPushConstants(VkCommandBuffer commandBuffer,
                        uint32_t size,
                        const void *pValues)
 {
-   panvk_stub();
+   VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
+
+   memcpy(cmdbuf->push_constants + offset, pValues, size);
+
+   if (stageFlags & VK_SHADER_STAGE_ALL_GRAPHICS) {
+      struct panvk_descriptor_state *desc_state =
+         panvk_cmd_get_desc_state(cmdbuf, GRAPHICS);
+
+      desc_state->ubos = 0;
+      desc_state->push_constants = 0;
+   }
+
+   if (stageFlags & VK_SHADER_STAGE_COMPUTE_BIT) {
+      struct panvk_descriptor_state *desc_state =
+         panvk_cmd_get_desc_state(cmdbuf, COMPUTE);
+
+      desc_state->ubos = 0;
+      desc_state->push_constants = 0;
+   }
 }
 
 void
@@ -134,23 +221,24 @@ panvk_CmdBindPipeline(VkCommandBuffer commandBuffer,
 
    cmdbuf->bind_points[pipelineBindPoint].pipeline = pipeline;
    cmdbuf->state.fs_rsd = 0;
-   memset(cmdbuf->bind_points[pipelineBindPoint].desc_state.sysvals, 0,
-          sizeof(cmdbuf->bind_points[0].desc_state.sysvals));
 
    if (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) {
       cmdbuf->state.varyings = pipeline->varyings;
 
-      if (!(pipeline->dynamic_state_mask & BITFIELD_BIT(VK_DYNAMIC_STATE_VIEWPORT)))
+      if (!(pipeline->dynamic_state_mask & BITFIELD_BIT(VK_DYNAMIC_STATE_VIEWPORT))) {
          cmdbuf->state.viewport = pipeline->viewport;
-      if (!(pipeline->dynamic_state_mask & BITFIELD_BIT(VK_DYNAMIC_STATE_SCISSOR)))
+         cmdbuf->state.dirty |= PANVK_DYNAMIC_VIEWPORT;
+      }
+      if (!(pipeline->dynamic_state_mask & BITFIELD_BIT(VK_DYNAMIC_STATE_SCISSOR))) {
          cmdbuf->state.scissor = pipeline->scissor;
+         cmdbuf->state.dirty |= PANVK_DYNAMIC_SCISSOR;
+      }
    }
 
    /* Sysvals are passed through UBOs, we need dirty the UBO array if the
     * pipeline contain shaders using sysvals.
     */
-   if (pipeline->num_sysvals)
-      cmdbuf->bind_points[pipelineBindPoint].desc_state.ubos = 0;
+   cmdbuf->bind_points[pipelineBindPoint].desc_state.ubos = 0;
 }
 
 void
@@ -279,14 +367,6 @@ panvk_CmdSetStencilReference(VkCommandBuffer commandBuffer,
    cmdbuf->state.fs_rsd = 0;
 }
 
-void
-panvk_CmdExecuteCommands(VkCommandBuffer commandBuffer,
-                         uint32_t commandBufferCount,
-                         const VkCommandBuffer *pCmdBuffers)
-{
-   panvk_stub();
-}
-
 VkResult
 panvk_CreateCommandPool(VkDevice _device,
                         const VkCommandPoolCreateInfo *pCreateInfo,
@@ -296,20 +376,21 @@ panvk_CreateCommandPool(VkDevice _device,
    VK_FROM_HANDLE(panvk_device, device, _device);
    struct panvk_cmd_pool *pool;
 
-   pool = vk_object_alloc(&device->vk, pAllocator, sizeof(*pool),
-                          VK_OBJECT_TYPE_COMMAND_POOL);
+   pool = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*pool), 8,
+                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pool == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   if (pAllocator)
-      pool->alloc = *pAllocator;
-   else
-      pool->alloc = device->vk.alloc;
+   VkResult result = vk_command_pool_init(&device->vk, &pool->vk,
+                                          pCreateInfo, pAllocator);
+   if (result != VK_SUCCESS) {
+      vk_free2(&device->vk.alloc, pAllocator, pool);
+      return result;
+   }
 
    list_inithead(&pool->active_cmd_buffers);
    list_inithead(&pool->free_cmd_buffers);
 
-   pool->queue_family_index = pCreateInfo->queueFamilyIndex;
    panvk_bo_pool_init(&pool->desc_bo_pool);
    panvk_bo_pool_init(&pool->varying_bo_pool);
    panvk_bo_pool_init(&pool->tls_bo_pool);
@@ -428,32 +509,19 @@ panvk_CmdBeginRenderPass2(VkCommandBuffer commandBuffer,
    cmdbuf->state.subpass = pass->subpasses;
    cmdbuf->state.framebuffer = fb;
    cmdbuf->state.render_area = pRenderPassBegin->renderArea;
-   cmdbuf->state.batch = vk_zalloc(&cmdbuf->pool->alloc,
+   cmdbuf->state.batch = vk_zalloc(&cmdbuf->pool->vk.alloc,
                                    sizeof(*cmdbuf->state.batch), 8,
                                    VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    util_dynarray_init(&cmdbuf->state.batch->jobs, NULL);
    util_dynarray_init(&cmdbuf->state.batch->event_ops, NULL);
    assert(pRenderPassBegin->clearValueCount <= pass->attachment_count);
    cmdbuf->state.clear =
-      vk_zalloc(&cmdbuf->pool->alloc,
+      vk_zalloc(&cmdbuf->pool->vk.alloc,
                 sizeof(*cmdbuf->state.clear) * pass->attachment_count,
                 8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    panvk_cmd_prepare_clear_values(cmdbuf, pRenderPassBegin->pClearValues);
    panvk_cmd_fb_info_init(cmdbuf);
    panvk_cmd_fb_info_set_subpass(cmdbuf);
-}
-
-void
-panvk_CmdBeginRenderPass(VkCommandBuffer cmd,
-                         const VkRenderPassBeginInfo *info,
-                         VkSubpassContents contents)
-{
-   VkSubpassBeginInfo subpass_info = {
-      .sType = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO,
-      .contents = contents
-   };
-
-   return panvk_CmdBeginRenderPass2(cmd, info, &subpass_info);
 }
 
 void
@@ -483,22 +551,11 @@ struct panvk_batch *
 panvk_cmd_open_batch(struct panvk_cmd_buffer *cmdbuf)
 {
    assert(!cmdbuf->state.batch);
-   cmdbuf->state.batch = vk_zalloc(&cmdbuf->pool->alloc,
+   cmdbuf->state.batch = vk_zalloc(&cmdbuf->pool->vk.alloc,
                                    sizeof(*cmdbuf->state.batch), 8,
                                    VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    assert(cmdbuf->state.batch);
    return cmdbuf->state.batch;
-}
-
-void
-panvk_CmdDrawIndexed(VkCommandBuffer commandBuffer,
-                     uint32_t indexCount,
-                     uint32_t instanceCount,
-                     uint32_t firstIndex,
-                     int32_t vertexOffset,
-                     uint32_t firstInstance)
-{
-   panvk_stub();
 }
 
 void
@@ -529,15 +586,6 @@ panvk_CmdDispatchBase(VkCommandBuffer commandBuffer,
                       uint32_t x,
                       uint32_t y,
                       uint32_t z)
-{
-   panvk_stub();
-}
-
-void
-panvk_CmdDispatch(VkCommandBuffer commandBuffer,
-                  uint32_t x,
-                  uint32_t y,
-                  uint32_t z)
 {
    panvk_stub();
 }

@@ -547,8 +547,6 @@ struct r300_context {
     /* Occlusion query. */
     struct r300_atom query_start;
 
-    struct pipe_debug_callback debug;
-
     /* The pointers to the first and the last atom. */
     struct r300_atom *first_dirty, *last_dirty;
 
@@ -671,6 +669,11 @@ static inline struct r300_context* r300_context(struct pipe_context* context)
 static inline struct r300_fragment_shader *r300_fs(struct r300_context *r300)
 {
     return (struct r300_fragment_shader*)r300->fs.state;
+}
+
+static inline struct r300_vertex_shader *r300_vs(struct r300_context *r300)
+{
+    return (struct r300_vertex_shader*)r300->vs_state.state;
 }
 
 static inline void r300_mark_atom_dirty(struct r300_context *r300,

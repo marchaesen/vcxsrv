@@ -38,28 +38,28 @@ XkbSetDebuggingFlags \- Change the values of any of the debug controls
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- mask
+.I mask
 mask selecting debug output flags to change
 .TP
-.I \- flags
+.I flags
 values for debug output flags selected by mask
 .TP
-.I \- msg
+.I msg
 message to print right now
 .TP
-.I \- ctrls_mask
+.I ctrls_mask
 mask selecting debug controls to change 
 .TP
-.I \- ctrls
+.I ctrls
 values for debug controls selected by ctrls_mask
 .TP
-.I \- ret_flags
+.I ret_flags
 resulting state of all debug output flags
 .TP
-.I \- ret_ctrls
+.I ret_ctrls
 resulting state of all debug controls
 .SH DESCRIPTION
 .LP

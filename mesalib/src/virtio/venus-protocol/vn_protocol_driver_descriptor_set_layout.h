@@ -130,6 +130,14 @@ vn_sizeof_VkDescriptorSetLayoutCreateInfo_pnext(const void *val)
             size += vn_sizeof_VkDescriptorSetLayoutCreateInfo_pnext(pnext->pNext);
             size += vn_sizeof_VkDescriptorSetLayoutBindingFlagsCreateInfo_self((const VkDescriptorSetLayoutBindingFlagsCreateInfo *)pnext);
             return size;
+        case VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE:
+            if (!vn_cs_renderer_protocol_has_extension(352 /* VK_VALVE_mutable_descriptor_type */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkDescriptorSetLayoutCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_self((const VkMutableDescriptorTypeCreateInfoVALVE *)pnext);
+            return size;
         default:
             /* ignore unknown/unsupported struct */
             break;
@@ -181,6 +189,14 @@ vn_encode_VkDescriptorSetLayoutCreateInfo_pnext(struct vn_cs_encoder *enc, const
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkDescriptorSetLayoutCreateInfo_pnext(enc, pnext->pNext);
             vn_encode_VkDescriptorSetLayoutBindingFlagsCreateInfo_self(enc, (const VkDescriptorSetLayoutBindingFlagsCreateInfo *)pnext);
+            return;
+        case VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE:
+            if (!vn_cs_renderer_protocol_has_extension(352 /* VK_VALVE_mutable_descriptor_type */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkDescriptorSetLayoutCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkMutableDescriptorTypeCreateInfoVALVE_self(enc, (const VkMutableDescriptorTypeCreateInfoVALVE *)pnext);
             return;
         default:
             /* ignore unknown/unsupported struct */
@@ -385,6 +401,8 @@ vn_decode_VkDescriptorSetLayoutSupport_pnext(struct vn_cs_decoder *dec, const vo
         assert(pnext);
         if (pnext->sType == stype)
             break;
+
+        pnext = pnext->pNext;
     }
 
     switch ((int32_t)pnext->sType) {

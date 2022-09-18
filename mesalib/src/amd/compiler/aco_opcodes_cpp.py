@@ -1,6 +1,6 @@
 
 template = """\
-/* 
+/*
  * Copyright (c) 2018 Valve Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -37,40 +37,40 @@ is_atomic = "".join([opcodes[name].is_atomic for name in reversed(opcode_names)]
 %>
 
 extern const aco::Info instr_info = {
-   .opcode_gfx7 = {
+   {
       % for name in opcode_names:
       ${opcodes[name].opcode_gfx7},
       % endfor
    },
-   .opcode_gfx9 = {
+   {
       % for name in opcode_names:
       ${opcodes[name].opcode_gfx9},
       % endfor
    },
-   .opcode_gfx10 = {
+   {
       % for name in opcode_names:
       ${opcodes[name].opcode_gfx10},
       % endfor
    },
-   .can_use_input_modifiers = std::bitset<${len(opcode_names)}>("${can_use_input_modifiers}"),
-   .can_use_output_modifiers = std::bitset<${len(opcode_names)}>("${can_use_output_modifiers}"),
-   .is_atomic = std::bitset<${len(opcode_names)}>("${is_atomic}"),
-   .name = {
+   std::bitset<${len(opcode_names)}>("${can_use_input_modifiers}"),
+   std::bitset<${len(opcode_names)}>("${can_use_output_modifiers}"),
+   std::bitset<${len(opcode_names)}>("${is_atomic}"),
+   {
       % for name in opcode_names:
       "${name}",
       % endfor
    },
-   .format = {
+   {
       % for name in opcode_names:
       aco::Format::${str(opcodes[name].format.name)},
       % endfor
    },
-   .operand_size = {
+   {
       % for name in opcode_names:
       ${opcodes[name].operand_size},
       % endfor
    },
-   .classes = {
+   {
       % for name in opcode_names:
       (instr_class)${opcodes[name].cls.value},
       % endfor

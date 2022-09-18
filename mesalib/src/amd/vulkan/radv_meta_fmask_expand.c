@@ -33,7 +33,8 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
       glsl_sampler_type(GLSL_SAMPLER_DIM_MS, false, true, GLSL_TYPE_FLOAT);
    const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_MS, true, GLSL_TYPE_FLOAT);
 
-   nir_builder b = radv_meta_init_shader(MESA_SHADER_COMPUTE, "meta_fmask_expand_cs-%d", samples);
+   nir_builder b =
+      radv_meta_init_shader(device, MESA_SHADER_COMPUTE, "meta_fmask_expand_cs-%d", samples);
    b.shader->info.workgroup_size[0] = 8;
    b.shader->info.workgroup_size[1] = 8;
 
@@ -106,14 +107,14 @@ radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer, struct radv_
                         pipeline);
 
    cmd_buffer->state.flush_bits |= radv_dst_access_flush(
-      cmd_buffer, VK_ACCESS_2_SHADER_READ_BIT_KHR | VK_ACCESS_2_SHADER_WRITE_BIT_KHR, image);
+      cmd_buffer, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT, image);
 
    radv_image_view_init(&iview, device,
                         &(VkImageViewCreateInfo){
                            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                            .image = radv_image_to_handle(image),
                            .viewType = radv_meta_get_view_type(image),
-                           .format = vk_format_no_srgb(image->vk_format),
+                           .format = vk_format_no_srgb(image->vk.format),
                            .subresourceRange =
                               {
                                  .aspectMask = subresourceRange->aspectMask,
@@ -123,7 +124,7 @@ radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer, struct radv_
                                  .layerCount = layer_count,
                               },
                         },
-                        NULL);
+                        0, NULL);
 
    radv_meta_push_descriptor_set(
       cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -159,7 +160,7 @@ radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer, struct radv_
 
    cmd_buffer->state.flush_bits |=
       RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT_KHR, image);
+      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT, image);
 
    /* Re-initialize FMASK in fully expanded mode. */
    cmd_buffer->state.flush_bits |= radv_init_fmask(cmd_buffer, image, subresourceRange);
@@ -177,8 +178,8 @@ radv_device_finish_meta_fmask_expand_state(struct radv_device *device)
    radv_DestroyPipelineLayout(radv_device_to_handle(device), state->fmask_expand.p_layout,
                               &state->alloc);
 
-   radv_DestroyDescriptorSetLayout(radv_device_to_handle(device), state->fmask_expand.ds_layout,
-                                   &state->alloc);
+   device->vk.dispatch_table.DestroyDescriptorSetLayout(
+      radv_device_to_handle(device), state->fmask_expand.ds_layout, &state->alloc);
 }
 
 static VkResult
@@ -238,7 +239,7 @@ radv_device_init_meta_fmask_expand_state(struct radv_device *device)
    result = radv_CreateDescriptorSetLayout(radv_device_to_handle(device), &ds_create_info,
                                            &state->alloc, &state->fmask_expand.ds_layout);
    if (result != VK_SUCCESS)
-      goto fail;
+      return result;
 
    VkPipelineLayoutCreateInfo color_create_info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -251,17 +252,14 @@ radv_device_init_meta_fmask_expand_state(struct radv_device *device)
    result = radv_CreatePipelineLayout(radv_device_to_handle(device), &color_create_info,
                                       &state->alloc, &state->fmask_expand.p_layout);
    if (result != VK_SUCCESS)
-      goto fail;
+      return result;
 
    for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; i++) {
       uint32_t samples = 1 << i;
       result = create_fmask_expand_pipeline(device, samples, &state->fmask_expand.pipeline[i]);
       if (result != VK_SUCCESS)
-         goto fail;
+         return result;
    }
 
    return VK_SUCCESS;
-fail:
-   radv_device_finish_meta_fmask_expand_state(device);
-   return result;
 }

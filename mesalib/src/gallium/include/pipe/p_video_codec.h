@@ -96,6 +96,13 @@ struct pipe_video_codec
                             void **feedback);
 
    /**
+    * Perform post-process effect
+    */
+   void (*process_frame)(struct pipe_video_codec *codec,
+                         struct pipe_video_buffer *source,
+                         const struct pipe_vpp_desc *process_properties);
+
+   /**
     * end decoding of the current frame
     */
    void (*end_frame)(struct pipe_video_codec *codec,

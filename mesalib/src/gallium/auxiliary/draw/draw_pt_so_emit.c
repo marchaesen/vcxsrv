@@ -277,7 +277,7 @@ void draw_pt_so_emit( struct pt_so_emit *emit,
    struct vbuf_render *render = draw->render;
    unsigned start, i, stream;
 
-   if (!emit->has_so) {
+   if (!emit->has_so && num_vertex_streams == 1) {
       if (draw->collect_primgen) {
          unsigned i;
          unsigned total = 0;
@@ -292,7 +292,7 @@ void draw_pt_so_emit( struct pt_so_emit *emit,
       return;
    }
 
-   if (!draw->so.num_targets)
+   if (!emit->has_so && !draw->collect_primgen)
       return;
 
    /* XXX: need to flush to get prim_vbuf.c to release its allocation??*/
@@ -322,7 +322,7 @@ void draw_pt_so_emit( struct pt_so_emit *emit,
       }
       render->set_stream_output_info(render,
                                      stream,
-                                     emit->emitted_primitives,
+                                     emit->has_so ? emit->emitted_primitives : 0,
                                      emit->generated_primitives);
    }
 }

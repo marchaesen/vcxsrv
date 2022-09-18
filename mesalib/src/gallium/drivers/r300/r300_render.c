@@ -40,6 +40,7 @@
 #include "r300_screen_buffer.h"
 #include "r300_emit.h"
 #include "r300_reg.h"
+#include "r300_vs.h"
 
 #include <limits.h>
 
@@ -814,6 +815,10 @@ static void r300_draw_vbo(struct pipe_context* pipe,
         }
 
     r300_update_derived_state(r300);
+
+    /* Skip draw if we failed to compile the vertex shader. */
+    if (r300_vs(r300)->shader->dummy)
+        return;
 
     /* Draw. */
     if (info.index_size) {

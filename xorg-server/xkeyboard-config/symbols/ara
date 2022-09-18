@@ -43,9 +43,9 @@ xkb_symbols "basic" {
     key <AC09> {  [     Arabic_meem,                slash,                  NoSymbol,            NoSymbol ]};  // ‎م‎ /
     key <AC10> {  [      Arabic_kaf,                colon,                Arabic_gaf,            NoSymbol ]};  // ‎ك‎ :     ‎گ‎
     key <AC11> {  [      Arabic_tah,             quotedbl,                     U27E9,               U200D ]};  // ‎ط‎ "     ⟩ ZWJ
-    key <BKSL> {  [       backslash,             ellipsis,                     U27E8,               U202F ]};  // \ …     ⟨ NNBSP
+    key <BKSL> {  [       backslash,                  bar,                     U27E8,               U202F ]};  // \ |     ⟨ NNBSP
 
-    key <LSGT> {  [             bar,            brokenbar,                  NoSymbol,            NoSymbol ]};  // | ¦ 
+    key <LSGT> {  [             bar,             ellipsis,                 brokenbar,            NoSymbol ]};  // | …     ¦
     key <AB01> { [Arabic_hamzaonyeh,           asciitilde,            guillemotright,               U203A ]};  // ‎ئ‎ ~     » ›
     key <AB02> {  [    Arabic_hamza,         Arabic_sukun,             guillemotleft,               U2039 ]};  // ‎ء‎ ◌ْ     « ‹
     key <AB03> { [Arabic_hamzaonwaw,           braceright,                  NoSymbol,            NoSymbol ]};  // ‎ؤ }
@@ -391,9 +391,9 @@ xkb_symbols "basic_ext" {
     key <AC09> {  [     Arabic_meem,                slash,                     U06B3,               U06B1 ]};  // ‎م‎ /     ‎ڳ‎ ‎ڱ‎
     key <AC10> {  [      Arabic_kaf,                colon,                Arabic_gaf,        Arabic_keheh ]};  // ‎ك‎ :     ‎گ‎ ‎ک‎
     key <AC11> {  [      Arabic_tah,             quotedbl,                     U27E9,               U200D ]};  // ‎ط‎ "     ⟩ ZWJ
-    key <BKSL> {  [       backslash,             ellipsis,                     U27E8,               U202F ]};  // \ …     ⟨ NNBSP
+    key <BKSL> {  [       backslash,                  bar,                     U27E8,               U202F ]};  // \ |     ⟨ NNBSP
 
-    key <LSGT> {  [             bar,            brokenbar,                     U06C0,               U0620 ]};  // | ¦     ‎ۀ‎ ‎ؠ‎
+    key <LSGT> {  [             bar,             ellipsis,                     U06C0,               U0620 ]};  // | …     ‎ۀ‎ ‎ؠ‎
     key <AB01> { [Arabic_hamzaonyeh,           asciitilde,            guillemotright,               U203A ]};  // ‎ئ‎ ~     » ›
     key <AB02> {  [    Arabic_hamza,         Arabic_sukun,             guillemotleft,               U2039 ]};  // ‎ء‎ ◌ْ     « ‹
     key <AB03> { [Arabic_hamzaonwaw,           braceright,                     U06C7,               U0677 ]};  // ‎ؤ }     ‎ۇ‎ ‎ٷ‎
@@ -502,7 +502,7 @@ xkb_symbols "uga" {
     key <AC09> { [   U1038E,      slash          ]};  // 𐎎 /
     key <AC10> { [   U1038B,      colon          ]};  // 𐎋:
     key <AC11> { [   U10389,      quotedbl       ]};  // 𐎉  "
-    key <BKSL> { [backslash,      ellipsis       ]};  // \ …
+    key <BKSL> { [backslash,      bar            ]};  // \ |
 
     key <LSGT> { [      bar,      endash         ]};  // | –
     key <AB01> { [   U1039B,      guillemotleft  ]};  // 𐎛 «

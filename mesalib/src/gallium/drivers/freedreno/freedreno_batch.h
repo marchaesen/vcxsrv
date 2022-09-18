@@ -261,6 +261,7 @@ struct fd_batch *fd_batch_create(struct fd_context *ctx, bool nondraw);
 
 void fd_batch_reset(struct fd_batch *batch) assert_dt;
 void fd_batch_flush(struct fd_batch *batch) assert_dt;
+bool fd_batch_has_dep(struct fd_batch *batch, struct fd_batch *dep) assert_dt;
 void fd_batch_add_dep(struct fd_batch *batch, struct fd_batch *dep) assert_dt;
 void fd_batch_resource_write(struct fd_batch *batch,
                              struct fd_resource *rsc) assert_dt;

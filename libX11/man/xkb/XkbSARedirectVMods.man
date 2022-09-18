@@ -31,7 +31,7 @@ an unsigned int
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action from which to extract vmods
 .SH DESCRIPTION
 .LP

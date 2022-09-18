@@ -34,16 +34,16 @@ a keyboard description from the server
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to server
 .TP
-.I \- first
+.I first
 keycode of first key to get
 .TP
-.I \- num
+.I num
 number of keys for which behaviors are desired
 .TP
-.I \- xkb
+.I xkb
 Xkb description to contain the result
 .SH DESCRIPTION
 .LP

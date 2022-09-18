@@ -435,4 +435,7 @@ mir_print_constant_component(FILE *fp, const midgard_constants *consts,
                              unsigned c, midgard_reg_mode reg_mode, bool half,
                              unsigned mod, midgard_alu_op op);
 
+void
+mir_print_outmod(FILE *fp, unsigned outmod, bool is_int);
+
 #endif

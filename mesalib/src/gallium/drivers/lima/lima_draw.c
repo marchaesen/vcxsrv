@@ -147,17 +147,6 @@ lima_update_job_wb(struct lima_context *ctx, unsigned buffers)
 }
 
 static void
-lima_damage_rect_union(struct pipe_scissor_state *rect,
-                       unsigned minx, unsigned maxx,
-                       unsigned miny, unsigned maxy)
-{
-   rect->minx = MIN2(rect->minx, minx);
-   rect->miny = MIN2(rect->miny, miny);
-   rect->maxx = MAX2(rect->maxx, maxx);
-   rect->maxy = MAX2(rect->maxy, maxy);
-}
-
-static void
 lima_clear(struct pipe_context *pctx, unsigned buffers, const struct pipe_scissor_state *scissor_state,
            const union pipe_color_union *color, double depth, unsigned stencil)
 {
@@ -686,13 +675,18 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
 
    /* need more investigation */
    if (info->mode == PIPE_PRIM_POINTS)
-      render->multi_sample = 0x0000F000;
+      render->multi_sample = 0x00000000;
    else if (info->mode < PIPE_PRIM_TRIANGLES)
-      render->multi_sample = 0x0000F400;
+      render->multi_sample = 0x00000400;
    else
-      render->multi_sample = 0x0000F800;
+      render->multi_sample = 0x00000800;
    if (ctx->framebuffer.base.samples)
       render->multi_sample |= 0x68;
+   if (ctx->blend->base.alpha_to_coverage)
+      render->multi_sample |= (1 << 7);
+   if (ctx->blend->base.alpha_to_one)
+      render->multi_sample |= (1 << 8);
+   render->multi_sample |= (ctx->sample_mask << 12);
 
    /* Set gl_FragColor register, need to specify it 4 times */
    render->multi_sample |= (fs->state.frag_color0_reg << 28) |
@@ -727,7 +721,8 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
 
    if (fs->state.uses_discard ||
        ctx->zsa->base.alpha_enabled ||
-       fs->state.frag_depth_reg != -1) {
+       fs->state.frag_depth_reg != -1 ||
+       ctx->blend->base.alpha_to_coverage) {
       early_z = false;
       pixel_kill = false;
    }
@@ -1207,7 +1202,6 @@ lima_draw_vbo(struct pipe_context *pctx,
    if (job->draws > MAX_DRAWS_PER_JOB) {
       unsigned resolve = job->resolve;
       lima_do_job(job);
-      job = lima_job_get(ctx);
       /* Subsequent job will need to resolve the same buffers */
       lima_update_job_wb(ctx, resolve);
    }

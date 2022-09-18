@@ -1287,6 +1287,7 @@ svga_get_timestamp(struct pipe_context *pipe)
    struct pipe_query *q = svga_create_query(pipe, PIPE_QUERY_TIMESTAMP, 0);
    union pipe_query_result result;
 
+   util_query_clear_result(&result, PIPE_QUERY_TIMESTAMP);
    svga_begin_query(pipe, q);
    svga_end_query(pipe,q);
    svga_get_query_result(pipe, q, TRUE, &result);

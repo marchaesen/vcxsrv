@@ -70,19 +70,19 @@ radv_translate_format_to_hw(struct radeon_info *info, VkFormat format, unsigned 
 static bool
 radv_sdma_v4_v5_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
                                      struct radv_buffer *buffer,
-                                     const VkBufferImageCopy2KHR *region)
+                                     const VkBufferImageCopy2 *region)
 {
    assert(image->plane_count == 1);
    struct radv_device *device = cmd_buffer->device;
    unsigned bpp = image->planes[0].surface.bpe;
    uint64_t dst_address = buffer->bo->va;
-   uint64_t src_address = image->bo->va + image->planes[0].surface.u.gfx9.surf_offset;
+   uint64_t src_address = image->bindings[0].bo->va + image->planes[0].surface.u.gfx9.surf_offset;
    unsigned src_pitch = image->planes[0].surface.u.gfx9.surf_pitch;
    unsigned copy_width = DIV_ROUND_UP(image->info.width, image->planes[0].surface.blk_w);
    unsigned copy_height = DIV_ROUND_UP(image->info.height, image->planes[0].surface.blk_h);
    bool tmz = false;
 
-   uint32_t ib_pad_dw_mask = cmd_buffer->device->physical_device->rad_info.ib_pad_dw_mask[RING_DMA];
+   uint32_t ib_pad_dw_mask = cmd_buffer->device->physical_device->rad_info.ib_pad_dw_mask[AMD_IP_SDMA];
 
    /* Linear -> linear sub-window copy. */
    if (image->planes[0].surface.is_linear) {
@@ -121,7 +121,7 @@ radv_sdma_v4_v5_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer, struct 
       unsigned linear_slice_pitch = region->bufferRowLength * copy_height;
       uint64_t tiled_address = src_address;
       uint64_t linear_address = dst_address;
-      bool is_v5 = device->physical_device->rad_info.chip_class >= GFX10;
+      bool is_v5 = device->physical_device->rad_info.gfx_level >= GFX10;
       /* Only SDMA 5 supports DCC with SDMA */
       bool dcc = radv_dcc_enabled(image, 0) && is_v5;
 
@@ -163,14 +163,14 @@ radv_sdma_v4_v5_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer, struct 
          unsigned hw_fmt, hw_type;
          uint64_t md_address = tiled_address + image->planes[0].surface.meta_offset;
 
-         radv_translate_format_to_hw(&device->physical_device->rad_info, image->vk_format, &hw_fmt,
+         radv_translate_format_to_hw(&device->physical_device->rad_info, image->vk.format, &hw_fmt,
                                      &hw_type);
 
          /* Add metadata */
          radeon_emit(cmd_buffer->cs, (uint32_t)md_address);
          radeon_emit(cmd_buffer->cs, (uint32_t)(md_address >> 32));
          radeon_emit(cmd_buffer->cs,
-                     hw_fmt | vi_alpha_is_on_msb(device, image->vk_format) << 8 | hw_type << 9 |
+                     hw_fmt | vi_alpha_is_on_msb(device, image->vk.format) << 8 | hw_type << 9 |
                         image->planes[0].surface.u.gfx9.color.dcc.max_compressed_block_size << 24 |
                         V_028C78_MAX_BLOCK_SIZE_256B << 26 | tmz << 29 |
                         image->planes[0].surface.u.gfx9.color.dcc.pipe_aligned << 31);
@@ -189,8 +189,8 @@ radv_sdma_v4_v5_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer, struct 
 
 bool
 radv_sdma_copy_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
-                     struct radv_buffer *buffer, const VkBufferImageCopy2KHR *region)
+                     struct radv_buffer *buffer, const VkBufferImageCopy2 *region)
 {
-   assert(cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9);
+   assert(cmd_buffer->device->physical_device->rad_info.gfx_level >= GFX9);
    return radv_sdma_v4_v5_copy_image_to_buffer(cmd_buffer, image, buffer, region);
 }

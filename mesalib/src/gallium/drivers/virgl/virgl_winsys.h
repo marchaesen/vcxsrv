@@ -103,6 +103,9 @@ struct virgl_winsys {
                                   uint32_t stride,
                                   struct winsys_handle *whandle);
 
+   uint32_t (*resource_get_storage_size)(struct virgl_winsys* vws,
+                                         struct virgl_hw_res* res);
+
    struct virgl_cmd_buf *(*cmd_buf_create)(struct virgl_winsys *ws, uint32_t size);
    void (*cmd_buf_destroy)(struct virgl_cmd_buf *buf);
 
@@ -173,6 +176,9 @@ static inline void virgl_ws_fill_new_caps_defaults(struct virgl_drm_caps *caps)
    caps->caps.v2.max_compute_shared_memory_size = 0;
    caps->caps.v2.host_feature_check_version = 0;
    caps->caps.v2.max_shader_sampler_views = 16;
+   for (int shader_type = 0; shader_type < PIPE_SHADER_TYPES; shader_type++) {
+      caps->caps.v2.max_const_buffer_size[shader_type] = 4096 * sizeof(float[4]);
+   }
 }
 
 extern enum virgl_formats pipe_to_virgl_format(enum pipe_format format);

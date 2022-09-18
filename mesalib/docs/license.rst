@@ -80,7 +80,7 @@ Mesa Component Licenses
 +-----------------+------------------------+-----------------------------+
 | GLX client code | src/glx/               | SGI Free Software License B |
 +-----------------+------------------------+-----------------------------+
-| C11 thread      | include/c11/threads*.h | Boost (permissive)          |
+| C11 thread      | src/c11/impl/threads*  | Boost (permissive)          |
 | emulation       |                        |                             |
 +-----------------+------------------------+-----------------------------+
 

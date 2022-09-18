@@ -1,4 +1,4 @@
-! option	=	types
+! option			=	types
   caps:internal			=	+caps(internal)
   caps:internal_nocancel	=	+caps(internal_nocancel)
   caps:shift			=	+caps(shift)
@@ -6,4 +6,4 @@
   numpad:pc			=	+numpad(pc)
   numpad:mac			=	+numpad(mac)
   numpad:microsoft		=	+numpad(microsoft)
-  numpad:shift3       		=	+numpad(shift3)
+  numpad:shift3			=	+numpad(shift3)

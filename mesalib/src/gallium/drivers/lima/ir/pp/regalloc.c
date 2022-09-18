@@ -418,6 +418,7 @@ static ppir_reg *ppir_regalloc_choose_spill_node(ppir_compiler *comp,
     * but not too much as to offset the num_components base cost. */
    const float slot_scale = 1.1f;
 
+   memset(spill_costs, 0, sizeof(spill_costs[0]) * comp->reg_num);
    list_for_each_entry(ppir_reg, reg, &comp->reg_list, list) {
       if (reg->spilled) {
          /* not considered for spilling */

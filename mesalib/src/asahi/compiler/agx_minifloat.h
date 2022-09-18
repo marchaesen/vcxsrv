@@ -82,32 +82,4 @@ agx_minifloat_exact(float f)
    return memcmp(&f, &f_, sizeof(float)) == 0;
 }
 
-#ifndef NDEBUG
-static inline void
-agx_minifloat_tests(void)
-{
-   /* Decode some representative values */
-   assert(agx_minifloat_decode(0) == 0.0f);
-   assert(agx_minifloat_decode(25) == 0.390625f);
-   assert(agx_minifloat_decode(135) == -0.109375f);
-   assert(agx_minifloat_decode(255) == -31.0);
-
-   /* Verify exactness */
-   assert(agx_minifloat_exact(0.0f));
-   assert(agx_minifloat_exact(0.390625f));
-   assert(agx_minifloat_exact(-0.109375f));
-   assert(agx_minifloat_exact(-31.0));
-   assert(!agx_minifloat_exact(3.141f));
-   assert(!agx_minifloat_exact(2.718f));
-   assert(!agx_minifloat_exact(1.618f));
-
-   /* Check that all values round trip */
-   for (unsigned i = 0; i < 0x100; ++i) {
-      float f = agx_minifloat_decode(i);
-      assert(agx_minifloat_encode(f) == i);
-      assert(agx_minifloat_exact(f));
-   }
-}
-#endif
-
 #endif

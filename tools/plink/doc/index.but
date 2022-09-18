@@ -867,6 +867,11 @@ saved sessions from
 \IM{authentication agent} agent, authentication
 
 \IM{-c-pageant} \c{-c} Pageant command-line option
+\IM{--keylist} \c{--keylist} Pageant command-line option
+\IM{--openssh-config} \c{--openssh-config} Pageant command-line option
+
+\IM{Windows OpenSSH} Windows OpenSSH
+\IM{Windows OpenSSH} OpenSSH, on Windows
 
 \IM{FAQ} FAQ
 \IM{FAQ} Frequently Asked Questions
@@ -937,3 +942,11 @@ saved sessions from
 
 \IM{shifted arrow keys} arrow keys, shifted
 \IM{shifted arrow keys} shifted arrow keys
+
+\IM{certificate}{certificates} certificates, SSH
+\IM{certificate}{certificates} SSH certificates
+\IM{certificate}{certificates} OpenSSH certificates
+\IM{certificate}{certificates} CA (certification authority)
+
+\IM{Microsoft Store} Microsoft Store
+\IM{Microsoft Store} Windows Store

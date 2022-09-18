@@ -10,27 +10,27 @@
 #include "dialog.h"
 #include "storage.h"
 
-static void about_handler(union control *ctrl, dlgparam *dlg,
+static void about_handler(dlgcontrol *ctrl, dlgparam *dlg,
                           void *data, int event)
 {
-    HWND *hwndp = (HWND *)ctrl->generic.context.p;
+    HWND *hwndp = (HWND *)ctrl->context.p;
 
     if (event == EVENT_ACTION) {
         modal_about_box(*hwndp);
     }
 }
 
-static void help_handler(union control *ctrl, dlgparam *dlg,
+static void help_handler(dlgcontrol *ctrl, dlgparam *dlg,
                          void *data, int event)
 {
-    HWND *hwndp = (HWND *)ctrl->generic.context.p;
+    HWND *hwndp = (HWND *)ctrl->context.p;
 
     if (event == EVENT_ACTION) {
         show_help(*hwndp);
     }
 }
 
-static void variable_pitch_handler(union control *ctrl, dlgparam *dlg,
+static void variable_pitch_handler(dlgcontrol *ctrl, dlgparam *dlg,
                                    void *data, int event)
 {
     if (event == EVENT_REFRESH) {
@@ -46,7 +46,7 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
     const struct BackendVtable *backvt;
     bool resize_forbidden = false;
     struct controlset *s;
-    union control *c;
+    dlgcontrol *c;
     char *str;
 
     if (!midsession) {
@@ -56,11 +56,11 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
         s = ctrl_getset(b, "", "", "");
         c = ctrl_pushbutton(s, "About", 'a', HELPCTX(no_help),
                             about_handler, P(hwndp));
-        c->generic.column = 0;
+        c->column = 0;
         if (has_help) {
             c = ctrl_pushbutton(s, "Help", 'h', HELPCTX(no_help),
                                 help_handler, P(hwndp));
-            c->generic.column = 1;
+            c->column = 1;
         }
     }
 
@@ -82,8 +82,8 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
         int i;
         for (i = 0; i < s->ncontrols; i++) {
             c = s->ctrls[i];
-            if (c->generic.type == CTRL_CHECKBOX &&
-                c->generic.context.i == CONF_scrollbar) {
+            if (c->type == CTRL_CHECKBOX &&
+                c->context.i == CONF_scrollbar) {
                 /*
                  * Control i is the scrollbar checkbox.
                  * Control s->ncontrols-1 is the scrollbar-in-FS one.
@@ -91,7 +91,7 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
                 if (i < s->ncontrols-2) {
                     c = s->ctrls[s->ncontrols-1];
                     memmove(s->ctrls+i+2, s->ctrls+i+1,
-                            (s->ncontrols-i-2)*sizeof(union control *));
+                            (s->ncontrols-i-2)*sizeof(dlgcontrol *));
                     s->ctrls[i+1] = c;
                 }
                 break;
@@ -134,9 +134,9 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
         int i;
         for (i = 0; i < s->ncontrols; i++) {
             c = s->ctrls[i];
-            if (c->generic.type == CTRL_RADIO &&
-                c->generic.context.i == CONF_beep) {
-                assert(c->generic.handler == conf_radiobutton_handler);
+            if (c->type == CTRL_RADIO &&
+                c->context.i == CONF_beep) {
+                assert(c->handler == conf_radiobutton_handler);
                 c->radio.nbuttons += 2;
                 c->radio.buttons =
                     sresize(c->radio.buttons, c->radio.nbuttons, char *);
@@ -173,7 +173,7 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
                       I(CONF_beep_ind),
                       "Disabled", I(B_IND_DISABLED),
                       "Flashing", I(B_IND_FLASH),
-                      "Steady", I(B_IND_STEADY), NULL);
+                      "Steady", I(B_IND_STEADY));
 
     /*
      * The sunken-edge border is a Windows GUI feature.
@@ -198,7 +198,7 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
                       "Antialiased", I(FQ_ANTIALIASED),
                       "Non-Antialiased", I(FQ_NONANTIALIASED),
                       "ClearType", I(FQ_CLEARTYPE),
-                      "Default", I(FQ_DEFAULT), NULL);
+                      "Default", I(FQ_DEFAULT));
 
     /*
      * Cyrillic Lock is a horrid misfeature even on Windows, and
@@ -233,9 +233,9 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
         int i;
         for (i = 0; i < s->ncontrols; i++) {
             c = s->ctrls[i];
-            if (c->generic.type == CTRL_RADIO &&
-                c->generic.context.i == CONF_vtmode) {
-                assert(c->generic.handler == conf_radiobutton_handler);
+            if (c->type == CTRL_RADIO &&
+                c->context.i == CONF_vtmode) {
+                assert(c->handler == conf_radiobutton_handler);
                 c->radio.nbuttons += 3;
                 c->radio.buttons =
                     sresize(c->radio.buttons, c->radio.nbuttons, char *);
@@ -289,14 +289,14 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
                       I(CONF_mouse_is_xterm),
                       "Windows (Middle extends, Right brings up menu)", I(2),
                       "Compromise (Middle extends, Right pastes)", I(0),
-                      "xterm (Right extends, Middle pastes)", I(1), NULL);
+                      "xterm (Right extends, Middle pastes)", I(1));
     /*
      * This really ought to go at the _top_ of its box, not the
      * bottom, so we'll just do some shuffling now we've set it
      * up...
      */
     c = s->ctrls[s->ncontrols-1];      /* this should be the new control */
-    memmove(s->ctrls+1, s->ctrls, (s->ncontrols-1)*sizeof(union control *));
+    memmove(s->ctrls+1, s->ctrls, (s->ncontrols-1)*sizeof(dlgcontrol *));
     s->ctrls[0] = c;
 
     /*
@@ -328,7 +328,7 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
                           "Change the number of rows and columns", I(RESIZE_TERM),
                           "Change the size of the font", I(RESIZE_FONT),
                           "Change font size only when maximised", I(RESIZE_EITHER),
-                          "Forbid resizing completely", I(RESIZE_DISABLED), NULL);
+                          "Forbid resizing completely", I(RESIZE_DISABLED));
     }
 
     /*
@@ -355,39 +355,16 @@ void win_setup_config_box(struct controlbox *b, HWND *hwndp, bool has_help,
                   I(CONF_fullscreenonaltenter));
 
     /*
-     * Windows supports a local-command proxy. This also means we
-     * must adjust the text on the `Telnet command' control.
+     * Windows supports a local-command proxy.
      */
     if (!midsession) {
         int i;
         s = ctrl_getset(b, "Connection/Proxy", "basics", NULL);
         for (i = 0; i < s->ncontrols; i++) {
             c = s->ctrls[i];
-            if (c->generic.type == CTRL_RADIO &&
-                c->generic.context.i == CONF_proxy_type) {
-                assert(c->generic.handler == conf_radiobutton_handler);
-                c->radio.nbuttons++;
-                c->radio.buttons =
-                    sresize(c->radio.buttons, c->radio.nbuttons, char *);
-                c->radio.buttons[c->radio.nbuttons-1] =
-                    dupstr("Local");
-                c->radio.buttondata =
-                    sresize(c->radio.buttondata, c->radio.nbuttons, intorptr);
-                c->radio.buttondata[c->radio.nbuttons-1] = I(PROXY_CMD);
-                if (c->radio.ncolumns < 4)
-                    c->radio.ncolumns = 4;
-                break;
-            }
-        }
-
-        for (i = 0; i < s->ncontrols; i++) {
-            c = s->ctrls[i];
-            if (c->generic.type == CTRL_EDITBOX &&
-                c->generic.context.i == CONF_proxy_telnet_command) {
-                assert(c->generic.handler == conf_editbox_handler);
-                sfree(c->generic.label);
-                c->generic.label = dupstr("Telnet command, or local"
-                                          " proxy command");
+            if (c->type == CTRL_LISTBOX &&
+                c->handler == proxy_type_handler) {
+                c->context.i |= PROXY_UI_FLAG_LOCAL;
                 break;
             }
         }

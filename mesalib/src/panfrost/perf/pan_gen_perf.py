@@ -200,7 +200,7 @@ def main():
             c.write(".symbol_name = \"%s\"," % (counter.underscore_name))
             c.write(".units = PAN_PERF_COUNTER_UNITS_%s," % (counter.units.upper()))
             c.write(".offset = %u," % (counter.offset))
-            c.write(".category = &%s.categories[%u]," % (current_struct_name, i))
+            c.write(".category_index = %u," % i)
 
             c.outdent(tab_size)
             c.write("}, // counter")

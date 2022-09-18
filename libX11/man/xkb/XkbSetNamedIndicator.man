@@ -48,31 +48,31 @@ indicator map for the indicator
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- led_class
+.I led_class
 feedback class, or XkbDfltXIClass
 .TP
-.I \- led_id
+.I led_id
 feedback ID, or XkbDfltXIId
 .TP
-.I \- name
+.I name
 name of the indicator to change
 .TP
-.I \- change_state
+.I change_state
 whether to change the indicator state or not
 .TP
-.I \- state
+.I state
 desired new state for the indicator
 .TP
-.I \- create_new
+.I create_new
 whether a new indicator with the specified name should be created when necessary
 .TP
-.I \- map
+.I map
 new map for the indicator
 .SH DESCRIPTION
 .LP

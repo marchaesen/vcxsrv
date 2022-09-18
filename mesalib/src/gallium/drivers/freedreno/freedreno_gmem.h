@@ -62,7 +62,7 @@ struct fd_gmem_stateobj {
    uint8_t num_vsc_pipes; /* number of pipes for a20x */
 
    struct fd_vsc_pipe vsc_pipe[32];
-   struct fd_tile tile[2048];
+   struct fd_tile *tile;
 
    struct list_head node;
 };

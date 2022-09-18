@@ -33,7 +33,6 @@
 
 #include "fd6_blend.h"
 #include "fd6_context.h"
-#include "fd6_format.h"
 #include "fd6_pack.h"
 
 // XXX move somewhere common.. same across a3xx/a4xx/a5xx..

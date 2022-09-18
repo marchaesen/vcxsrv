@@ -245,6 +245,7 @@ v3d_rcl_emit_loads(struct v3d_job *job, struct v3d_cl *cl, int layer)
         if ((loads_pending & PIPE_CLEAR_DEPTHSTENCIL) &&
             (V3D_VERSION >= 40 ||
              (job->zsbuf && job->zsbuf->texture->nr_samples > 1))) {
+                assert(!job->early_zs_clear);
                 struct pipe_surface *src = job->bbuf ? job->bbuf : job->zsbuf;
                 struct v3d_resource *rsc = v3d_resource(src->texture);
 
@@ -345,6 +346,7 @@ v3d_rcl_emit_stores(struct v3d_job *job, struct v3d_cl *cl, int layer)
 
         if (job->store & PIPE_CLEAR_DEPTHSTENCIL && job->zsbuf &&
             !(V3D_VERSION < 40 && job->zsbuf->texture->nr_samples <= 1)) {
+                assert(!job->early_zs_clear);
                 struct v3d_resource *rsc = v3d_resource(job->zsbuf->texture);
                 if (rsc->separate_stencil) {
                         if (job->store & PIPE_CLEAR_DEPTH) {
@@ -418,7 +420,7 @@ v3d_rcl_emit_stores(struct v3d_job *job, struct v3d_cl *cl, int layer)
          */
         if (job->clear) {
                 cl_emit(cl, CLEAR_TILE_BUFFERS, clear) {
-                        clear.clear_z_stencil_buffer = true;
+                        clear.clear_z_stencil_buffer = !job->early_zs_clear;
                         clear.clear_all_render_targets = true;
                 }
         }
@@ -657,7 +659,7 @@ emit_render_layer(struct v3d_job *job, uint32_t layer)
                 }
                 if (i == 0 || do_double_initial_tile_clear(job)) {
                         cl_emit(&job->rcl, CLEAR_TILE_BUFFERS, clear) {
-                                clear.clear_z_stencil_buffer = true;
+                                clear.clear_z_stencil_buffer = !job->early_zs_clear;
                                 clear.clear_all_render_targets = true;
                         }
                 }
@@ -726,23 +728,36 @@ v3dX(emit_rcl)(struct v3d_job *job)
                 }
 #endif /* V3D_VERSION >= 40 */
 
-                /* XXX: Early D/S clear */
-
-                switch (job->first_ez_state) {
-                case V3D_EZ_UNDECIDED:
-                case V3D_EZ_LT_LE:
-                        config.early_z_disable = false;
-                        config.early_z_test_and_update_direction =
-                                EARLY_Z_DIRECTION_LT_LE;
-                        break;
-                case V3D_EZ_GT_GE:
-                        config.early_z_disable = false;
-                        config.early_z_test_and_update_direction =
-                                EARLY_Z_DIRECTION_GT_GE;
-                        break;
-                case V3D_EZ_DISABLED:
+                if (job->decided_global_ez_enable) {
+                        switch (job->first_ez_state) {
+                        case V3D_EZ_UNDECIDED:
+                        case V3D_EZ_LT_LE:
+                                config.early_z_disable = false;
+                                config.early_z_test_and_update_direction =
+                                        EARLY_Z_DIRECTION_LT_LE;
+                                break;
+                        case V3D_EZ_GT_GE:
+                                config.early_z_disable = false;
+                                config.early_z_test_and_update_direction =
+                                        EARLY_Z_DIRECTION_GT_GE;
+                                break;
+                        case V3D_EZ_DISABLED:
+                                config.early_z_disable = true;
+                        }
+                } else {
+                        assert(job->draw_calls_queued == 0);
                         config.early_z_disable = true;
                 }
+
+#if V3D_VERSION >= 40
+                assert(job->zsbuf || config.early_z_disable);
+
+                job->early_zs_clear = (job->clear & PIPE_CLEAR_DEPTHSTENCIL) &&
+                        !(job->load & PIPE_CLEAR_DEPTHSTENCIL) &&
+                        !(job->store & PIPE_CLEAR_DEPTHSTENCIL);
+
+                config.early_depth_stencil_clear = job->early_zs_clear;
+#endif /* V3D_VERSION >= 40 */
 
                 config.image_width_pixels = job->draw_width;
                 config.image_height_pixels = job->draw_height;

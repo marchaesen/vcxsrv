@@ -32,10 +32,10 @@ XkbAllocControls \- Allocates an XkbControlsRec structure in the XkbDescRec
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 Xkb description in which to allocate ctrls rec
 .TP
-.I \- which
+.I which
 mask of components of ctrls to allocate
 .SH DESCRIPTION
 .LP

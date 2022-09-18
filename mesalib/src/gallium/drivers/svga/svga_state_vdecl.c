@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -49,7 +49,7 @@ emit_hw_vs_vdecl(struct svga_context *svga, uint64_t dirty)
    unsigned neg_bias = 0;
 
    assert(svga->curr.velems->count >=
-          svga->curr.vs->base.info.file_count[TGSI_FILE_INPUT]);
+          svga->curr.vs->base.info.num_inputs);
 
    /**
     * We can't set the VDECL offset to something negative, so we

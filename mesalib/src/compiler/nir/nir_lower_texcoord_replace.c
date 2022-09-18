@@ -123,8 +123,7 @@ nir_lower_texcoord_replace_impl(nir_function_impl *impl,
             nir_ishl(&b, nir_imm_int(&b, 1),
                          nir_iadd_imm(&b, index, base));
 
-         nir_ssa_def *cond =
-            nir_i2b(&b, nir_iand_imm(&b, mask, coord_replace));
+         nir_ssa_def *cond = nir_test_mask(&b, mask, coord_replace);
          nir_ssa_def *result = nir_bcsel(&b, cond, new_coord,
                                          &intrin->dest.ssa);
 

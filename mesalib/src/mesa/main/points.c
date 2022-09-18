@@ -36,6 +36,13 @@
 #include "api_exec_decl.h"
 
 
+static void
+update_point_size_set(struct gl_context *ctx)
+{
+   float size = CLAMP(ctx->Point.Size, ctx->Point.MinSize, ctx->Point.MaxSize);
+   ctx->PointSizeIsSet = (size == 1.0 && ctx->Point.Size == 1.0) || ctx->Point._Attenuated;
+}
+
 /**
  * Set current point size.
  * \param size  point diameter in pixels
@@ -54,6 +61,7 @@ point_size(struct gl_context *ctx, GLfloat size, bool no_error)
 
    FLUSH_VERTICES(ctx, _NEW_POINT, GL_POINT_BIT);
    ctx->Point.Size = size;
+   update_point_size_set(ctx);
 }
 
 
@@ -121,6 +129,7 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
          ctx->Point._Attenuated = (ctx->Point.Params[0] != 1.0F ||
                                    ctx->Point.Params[1] != 0.0F ||
                                    ctx->Point.Params[2] != 0.0F);
+         update_point_size_set(ctx);
          break;
       case GL_POINT_SIZE_MIN_EXT:
          if (params[0] < 0.0F) {

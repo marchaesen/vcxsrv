@@ -39,6 +39,12 @@ struct iris_binder
    struct iris_bo *bo;
    void *map;
 
+   /** Required alignment for each binding table in bytes */
+   uint32_t alignment;
+
+   /** Binding table size in bytes */
+   uint32_t size;
+
    /** Insert new entries at this offset (in bytes) */
    uint32_t insert_point;
 

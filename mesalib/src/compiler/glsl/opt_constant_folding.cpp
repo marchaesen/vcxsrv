@@ -145,23 +145,6 @@ ir_constant_folding_visitor::visit_enter(ir_assignment *ir)
    ir->rhs->accept(this);
    handle_rvalue(&ir->rhs);
 
-   if (ir->condition) {
-      ir->condition->accept(this);
-      handle_rvalue(&ir->condition);
-
-      ir_constant *const_val = ir->condition->as_constant();
-      /* If the condition is constant, either remove the condition or
-       * remove the never-executed assignment.
-       */
-      if (const_val) {
-	 if (const_val->value.b[0])
-	    ir->condition = NULL;
-	 else
-	    ir->remove();
-	 this->progress = true;
-      }
-   }
-
    /* Don't descend into the LHS because we want it to stay as a
     * variable dereference.  FINISHME: We probably should to get array
     * indices though.

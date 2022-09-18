@@ -1,0 +1,27 @@
+GTF-GL46.gtf30.GL3Tests.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
+GTF-GL46.gtf30.GL3Tests.sgis_texture_lod.sgis_texture_lod_basic_lod_selection,Fail
+GTF-GL46.gtf32.GL3Tests.draw_elements_base_vertex.draw_elements_base_vertex_invalid_mode,Fail
+
+KHR-Single-GL46.arrays_of_arrays_gl.AtomicUsage,Fail
+KHR-Single-GL46.arrays_of_arrays_gl.SubroutineFunctionCalls2,Crash
+dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_srgb_color,Fail
+dEQP-GLES31.functional.texture.border_clamp.range_clamp.nearest_srgb_color,Fail
+
+# Turnip has maxFragmentInputComponents = 124, while GL requires
+# gl_MaxFragmentInputComponents >= 128
+KHR-GL46.limits.max_fragment_input_components,Fail
+
+# https://gerrit.khronos.org/c/vk-gl-cts/+/9672
+KHR-GL46.buffer_storage.map_persistent_draw,Fail
+
+# https://gerrit.khronos.org/c/vk-gl-cts/+/9667
+KHR-GL46.gpu_shader_fp64.builtin.mod_dvec2,Fail
+KHR-GL46.gpu_shader_fp64.builtin.mod_dvec3,Fail
+KHR-GL46.gpu_shader_fp64.builtin.mod_dvec4,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/6723
+KHR-GL46.copy_image.functional,Fail
+KHR-GL46.texture_view.view_classes,Fail
+
+# https://gerrit.khronos.org/c/vk-gl-cts/+/9891/
+KHR-GLES31.core.polygon_offset_clamp.PolygonOffsetClampMinMax,Fail

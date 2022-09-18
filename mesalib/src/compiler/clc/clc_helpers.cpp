@@ -24,6 +24,7 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 #include <sstream>
+#include <mutex>
 
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/IR/DiagnosticPrinter.h>
@@ -54,7 +55,9 @@
 #include "spirv.h"
 
 #ifdef USE_STATIC_OPENCL_C_H
+#if LLVM_VERSION_MAJOR < 15
 #include "opencl-c.h.h"
+#endif
 #include "opencl-c-base.h.h"
 #endif
 
@@ -72,9 +75,14 @@ using ::llvm::raw_string_ostream;
 
 static void
 llvm_log_handler(const ::llvm::DiagnosticInfo &di, void *data) {
-   raw_string_ostream os { *reinterpret_cast<std::string *>(data) };
+   const clc_logger *logger = static_cast<clc_logger *>(data);
+
+   std::string log;
+   raw_string_ostream os { log };
    ::llvm::DiagnosticPrinterRawOStream printer { os };
    di.print(printer);
+
+   clc_error(logger, "%s", log.c_str());
 }
 
 class SPIRVKernelArg {
@@ -96,13 +104,16 @@ public:
 
 class SPIRVKernelInfo {
 public:
-   SPIRVKernelInfo(uint32_t fid, const char *nm) : funcId(fid), name(nm), vecHint(0) { }
+   SPIRVKernelInfo(uint32_t fid, const char *nm)
+      : funcId(fid), name(nm), vecHint(0), localSize(), localSizeHint() { }
    ~SPIRVKernelInfo() { }
 
    uint32_t funcId;
    std::string name;
    std::vector<SPIRVKernelArg> args;
    unsigned vecHint;
+   unsigned localSize[3];
+   unsigned localSizeHint[3];
 };
 
 class SPIRVKernelParser {
@@ -441,14 +452,26 @@ public:
    void parseExecutionMode(const spv_parsed_instruction_t *ins)
    {
       uint32_t executionMode = ins->words[ins->operands[1].offset];
-      if (executionMode != SpvExecutionModeVecTypeHint)
-         return;
-
       uint32_t funcId = ins->words[ins->operands[0].offset];
-      uint32_t vecHint = ins->words[ins->operands[2].offset];
+
       for (auto& kernel : kernels) {
-         if (kernel.funcId == funcId)
-            kernel.vecHint = vecHint;
+         if (kernel.funcId == funcId) {
+            switch (executionMode) {
+            case SpvExecutionModeVecTypeHint:
+               kernel.vecHint = ins->words[ins->operands[2].offset];
+               break;
+            case SpvExecutionModeLocalSize:
+               kernel.localSize[0] = ins->words[ins->operands[2].offset];
+               kernel.localSize[1] = ins->words[ins->operands[3].offset];
+               kernel.localSize[2] = ins->words[ins->operands[4].offset];
+            case SpvExecutionModeLocalSizeHint:
+               kernel.localSizeHint[0] = ins->words[ins->operands[2].offset];
+               kernel.localSizeHint[1] = ins->words[ins->operands[3].offset];
+               kernel.localSizeHint[2] = ins->words[ins->operands[4].offset];
+            default:
+               return;
+            }
+         }
       }
    }
 
@@ -607,21 +630,6 @@ public:
       return SPV_SUCCESS;
    }
 
-   bool parsingComplete()
-   {
-      for (auto &kernel : kernels) {
-         if (kernel.name.empty())
-            return false;
-
-         for (auto &arg : kernel.args) {
-            if (arg.name.empty() || arg.typeName.empty())
-               return false;
-         }
-      }
-
-      return true;
-   }
-
    bool parseBinary(const struct clc_binary &spvbin, const struct clc_logger *logger)
    {
       /* 3 passes should be enough to retrieve all kernel information:
@@ -640,13 +648,9 @@ public:
                logger->error(logger->priv, diagnostic->error);
             return false;
          }
-
-         if (parsingComplete())
-            return true;
       }
 
-      assert(0);
-      return false;
+      return true;
    }
 
    std::vector<SPIRVKernelInfo> kernels;
@@ -686,6 +690,8 @@ clc_spirv_get_kernels_info(const struct clc_binary *spvbin,
       kernels[i].num_args = parser.kernels[i].args.size();
       kernels[i].vec_hint_size = parser.kernels[i].vecHint >> 16;
       kernels[i].vec_hint_type = (enum clc_vec_hint_type)(parser.kernels[i].vecHint & 0xFFFF);
+      memcpy(kernels[i].local_size, parser.kernels[i].localSize, sizeof(kernels[i].local_size));
+      memcpy(kernels[i].local_size_hint, parser.kernels[i].localSizeHint, sizeof(kernels[i].local_size_hint));
       if (!kernels[i].num_args)
          continue;
 
@@ -741,31 +747,36 @@ clc_free_kernels_info(const struct clc_kernel_info *kernels,
    free((void *)kernels);
 }
 
-static std::pair<std::unique_ptr<::llvm::Module>, std::unique_ptr<LLVMContext>>
-clc_compile_to_llvm_module(const struct clc_compile_args *args,
+static std::unique_ptr<::llvm::Module>
+clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
+                           const struct clc_compile_args *args,
                            const struct clc_logger *logger)
 {
-   LLVMInitializeAllTargets();
-   LLVMInitializeAllTargetInfos();
-   LLVMInitializeAllTargetMCs();
-   LLVMInitializeAllAsmPrinters();
-
-   std::string log;
-   std::unique_ptr<LLVMContext> llvm_ctx { new LLVMContext };
-   llvm_ctx->setDiagnosticHandlerCallBack(llvm_log_handler, &log);
+   std::string diag_log_str;
+   raw_string_ostream diag_log_stream { diag_log_str };
 
    std::unique_ptr<clang::CompilerInstance> c { new clang::CompilerInstance };
-   clang::DiagnosticsEngine diag { new clang::DiagnosticIDs,
-         new clang::DiagnosticOptions,
-         new clang::TextDiagnosticPrinter(*new raw_string_ostream(log),
-                                          &c->getDiagnosticOpts(), true)};
+
+   clang::DiagnosticsEngine diag {
+      new clang::DiagnosticIDs,
+      new clang::DiagnosticOptions,
+      new clang::TextDiagnosticPrinter(diag_log_stream,
+                                       &c->getDiagnosticOpts())
+   };
 
    std::vector<const char *> clang_opts = {
       args->source.name,
       "-triple", "spir64-unknown-unknown",
       // By default, clang prefers to use modules to pull in the default headers,
       // which doesn't work with our technique of embedding the headers in our binary
+#if LLVM_VERSION_MAJOR >= 15
+      "-fdeclare-opencl-builtins",
+#else
       "-finclude-default-header",
+#endif
+#if LLVM_VERSION_MAJOR >= 15
+      "-no-opaque-pointers",
+#endif
       // Add a default CL compiler version. Clang will pick the last one specified
       // on the command line, so the app can override this one.
       "-cl-std=cl1.2",
@@ -774,7 +785,10 @@ clc_compile_to_llvm_module(const struct clc_compile_args *args,
       // LLVM's optimizations can produce code that the translator can't translate
       "-O0",
       // Ensure inline functions are actually emitted
-      "-fgnu89-inline"
+      "-fgnu89-inline",
+      // Undefine clang added SPIR(V) defines so we don't magically enable extensions
+      "-U__SPIR__",
+      "-U__SPIRV__",
    };
    // We assume there's appropriate defines for __OPENCL_VERSION__ and __IMAGE_SUPPORT__
    // being provided by the caller here.
@@ -788,13 +802,13 @@ clc_compile_to_llvm_module(const struct clc_compile_args *args,
                                                   clang_opts.data() + clang_opts.size(),
 #endif
                                                   diag)) {
-      clc_error(logger, "%sCouldn't create Clang invocation.\n", log.c_str());
+      clc_error(logger, "Couldn't create Clang invocation.\n");
       return {};
    }
 
    if (diag.hasErrorOccurred()) {
       clc_error(logger, "%sErrors occurred during Clang invocation.\n",
-                log.c_str());
+                diag_log_str.c_str());
       return {};
    }
 
@@ -804,8 +818,8 @@ clc_compile_to_llvm_module(const struct clc_compile_args *args,
    c->getDiagnosticOpts().ShowCarets = false;
 
    c->createDiagnostics(new clang::TextDiagnosticPrinter(
-                           *new raw_string_ostream(log),
-                           &c->getDiagnosticOpts(), true));
+                           diag_log_stream,
+                           &c->getDiagnosticOpts()));
 
    c->setTarget(clang::TargetInfo::CreateTargetInfo(
                    c->getDiagnostics(), c->getInvocation().TargetOpts));
@@ -825,9 +839,11 @@ clc_compile_to_llvm_module(const struct clc_compile_args *args,
                                        clang::frontend::Angled,
                                        false, false);
 
+#if LLVM_VERSION_MAJOR < 15
       ::llvm::sys::path::append(system_header_path, "opencl-c.h");
       c->getPreprocessorOpts().addRemappedFile(system_header_path.str(),
          ::llvm::MemoryBuffer::getMemBuffer(llvm::StringRef(opencl_c_source, ARRAY_SIZE(opencl_c_source) - 1)).release());
+#endif
 
       ::llvm::sys::path::remove_filename(system_header_path);
       ::llvm::sys::path::append(system_header_path, "opencl-c-base.h");
@@ -844,7 +860,47 @@ clc_compile_to_llvm_module(const struct clc_compile_args *args,
                                     clang::frontend::Angled,
                                     false, false);
    // Add opencl include
+#if LLVM_VERSION_MAJOR >= 15
+   c->getPreprocessorOpts().Includes.push_back("opencl-c-base.h");
+#else
    c->getPreprocessorOpts().Includes.push_back("opencl-c.h");
+#endif
+#endif
+
+#if LLVM_VERSION_MAJOR >= 14
+   c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-all");
+   c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_byte_addressable_store");
+   c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_global_int32_base_atomics");
+   c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_global_int32_extended_atomics");
+   c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_local_int32_base_atomics");
+   c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_local_int32_extended_atomics");
+   if (args->features.fp16) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_fp16");
+   }
+   if (args->features.fp64) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_fp64");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+__opencl_c_fp64");
+   }
+   if (args->features.int64) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cles_khr_int64");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+__opencl_c_int64");
+   }
+   if (args->features.images) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+__opencl_c_images");
+   }
+   if (args->features.images_read_write) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+__opencl_c_read_write_images");
+   }
+   if (args->features.images_write_3d) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_3d_image_writes");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+__opencl_c_3d_image_writes");
+   }
+   if (args->features.intel_subgroups) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_intel_subgroups");
+   }
+   if (args->features.subgroups) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_subgroups");
+   }
 #endif
 
    if (args->num_headers) {
@@ -869,14 +925,14 @@ clc_compile_to_llvm_module(const struct clc_compile_args *args,
            ::llvm::MemoryBuffer::getMemBufferCopy(std::string(args->source.value)).release());
 
    // Compile the code
-   clang::EmitLLVMOnlyAction act(llvm_ctx.get());
+   clang::EmitLLVMOnlyAction act(&llvm_ctx);
    if (!c->ExecuteAction(act)) {
       clc_error(logger, "%sError executing LLVM compilation action.\n",
-                log.c_str());
+                diag_log_str.c_str());
       return {};
    }
 
-   return { act.takeModule(), std::move(llvm_ctx) };
+   return act.takeModule();
 }
 
 static SPIRV::VersionNumber
@@ -897,7 +953,7 @@ spirv_version_to_llvm_spirv_translator_version(enum clc_spirv_version version)
 
 static int
 llvm_mod_to_spirv(std::unique_ptr<::llvm::Module> mod,
-                  std::unique_ptr<LLVMContext> context,
+                  LLVMContext &context,
                   const struct clc_compile_args *args,
                   const struct clc_logger *logger,
                   struct clc_binary *out_spirv)
@@ -960,13 +1016,19 @@ clc_c_to_spir(const struct clc_compile_args *args,
               const struct clc_logger *logger,
               struct clc_binary *out_spir)
 {
-   auto pair = clc_compile_to_llvm_module(args, logger);
-   if (!pair.first)
+   clc_initialize_llvm();
+
+   LLVMContext llvm_ctx;
+   llvm_ctx.setDiagnosticHandlerCallBack(llvm_log_handler,
+                                         const_cast<clc_logger *>(logger));
+
+   auto mod = clc_compile_to_llvm_module(llvm_ctx, args, logger);
+   if (!mod)
       return -1;
 
    ::llvm::SmallVector<char, 0> buffer;
    ::llvm::BitcodeWriter writer(buffer);
-   writer.writeModule(*pair.first);
+   writer.writeModule(*mod);
 
    out_spir->size = buffer.size_in_bytes();
    out_spir->data = malloc(out_spir->size);
@@ -980,10 +1042,16 @@ clc_c_to_spirv(const struct clc_compile_args *args,
                const struct clc_logger *logger,
                struct clc_binary *out_spirv)
 {
-   auto pair = clc_compile_to_llvm_module(args, logger);
-   if (!pair.first)
+   clc_initialize_llvm();
+
+   LLVMContext llvm_ctx;
+   llvm_ctx.setDiagnosticHandlerCallBack(llvm_log_handler,
+                                         const_cast<clc_logger *>(logger));
+
+   auto mod = clc_compile_to_llvm_module(llvm_ctx, args, logger);
+   if (!mod)
       return -1;
-   return llvm_mod_to_spirv(std::move(pair.first), std::move(pair.second), args, logger, out_spirv);
+   return llvm_mod_to_spirv(std::move(mod), llvm_ctx, args, logger, out_spirv);
 }
 
 int
@@ -991,18 +1059,18 @@ clc_spir_to_spirv(const struct clc_binary *in_spir,
                   const struct clc_logger *logger,
                   struct clc_binary *out_spirv)
 {
-   LLVMInitializeAllTargets();
-   LLVMInitializeAllTargetInfos();
-   LLVMInitializeAllTargetMCs();
-   LLVMInitializeAllAsmPrinters();
+   clc_initialize_llvm();
 
-   std::unique_ptr<LLVMContext> llvm_ctx{ new LLVMContext };
+   LLVMContext llvm_ctx;
+   llvm_ctx.setDiagnosticHandlerCallBack(llvm_log_handler,
+                                         const_cast<clc_logger *>(logger));
+
    ::llvm::StringRef spir_ref(static_cast<const char*>(in_spir->data), in_spir->size);
-   auto mod = ::llvm::parseBitcodeFile(::llvm::MemoryBufferRef(spir_ref, "<spir>"), *llvm_ctx);
+   auto mod = ::llvm::parseBitcodeFile(::llvm::MemoryBufferRef(spir_ref, "<spir>"), llvm_ctx);
    if (!mod)
       return -1;
 
-   return llvm_mod_to_spirv(std::move(mod.get()), std::move(llvm_ctx), NULL, logger, out_spirv);
+   return llvm_mod_to_spirv(std::move(mod.get()), llvm_ctx, NULL, logger, out_spirv);
 }
 
 class SPIRVMessageConsumer {
@@ -1012,22 +1080,20 @@ public:
    void operator()(spv_message_level_t level, const char *src,
                    const spv_position_t &pos, const char *msg)
    {
-      switch(level) {
-      case SPV_MSG_FATAL:
-      case SPV_MSG_INTERNAL_ERROR:
-      case SPV_MSG_ERROR:
-         clc_error(logger, "(file=%s,line=%ld,column=%ld,index=%ld): %s\n",
-                   src, pos.line, pos.column, pos.index, msg);
-         break;
+      if (level == SPV_MSG_INFO || level == SPV_MSG_DEBUG)
+         return;
 
-      case SPV_MSG_WARNING:
-         clc_warning(logger, "(file=%s,line=%ld,column=%ld,index=%ld): %s\n",
-                     src, pos.line, pos.column, pos.index, msg);
-         break;
+      std::ostringstream message;
+      message << "(file=" << src
+              << ",line=" << pos.line
+              << ",column=" << pos.column
+              << ",index=" << pos.index
+              << "): " << msg << "\n";
 
-      default:
-         break;
-      }
+      if (level == SPV_MSG_WARNING)
+         clc_warning(logger, "%s", message.str().c_str());
+      else
+         clc_error(logger, "%s", message.str().c_str());
    }
 
 private:
@@ -1153,4 +1219,23 @@ void
 clc_free_spirv_binary(struct clc_binary *spvbin)
 {
    free(spvbin->data);
+}
+
+void
+initialize_llvm_once(void)
+{
+   LLVMInitializeAllTargets();
+   LLVMInitializeAllTargetInfos();
+   LLVMInitializeAllTargetMCs();
+   LLVMInitializeAllAsmParsers();
+   LLVMInitializeAllAsmPrinters();
+}
+
+std::once_flag initialize_llvm_once_flag;
+
+void
+clc_initialize_llvm(void)
+{
+   std::call_once(initialize_llvm_once_flag,
+                  []() { initialize_llvm_once(); });
 }

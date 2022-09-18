@@ -12,9 +12,14 @@ KHR-GL45.copy_image.functional
 KHR-GL45.texture_size_promotion.functional
 KHR-GL45.texture_swizzle.functional
 KHR-GL45.texture_swizzle.smoke
+KHR-Single-GL45.arrays_of_arrays_gl.SubroutineArgumentAliasing3
+KHR-Single-GL45.arrays_of_arrays_gl.SubroutineArgumentAliasing4
 KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2
 arb_pipeline_statistics_query-comp
 gl-1.0-blend-func
+
+# this is just broken.
+KHR-GL45.shader_ballot_tests.ShaderBallotFunctionRead
 
 # piglit tests that would take too much memory on shared runners
 max-texture-size
@@ -29,3 +34,8 @@ longprim
 
 # Unreliable on shared runners due to timing
 ext_timer_query@time-elapsed
+spec@arb_timer_query@query gl_timestamp
+
+# These tests started hitting timeouts when we upgraded LLVM from v11 to 13
+spec@arb_texture_rg@fbo-blending-formats
+spec@ext_framebuffer_object@fbo-blending-formats

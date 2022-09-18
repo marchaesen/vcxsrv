@@ -87,6 +87,10 @@ dot4(const float *a, const float *b)
 #define TAG(x) x##_xy_gb_halfz_viewport
 #include "draw_cliptest_tmp.h"
 
+#define FLAGS (DO_CLIP_XY_GUARD_BAND | DO_CLIP_FULL_Z | DO_VIEWPORT)
+#define TAG(x) x##_xy_gb_fullz_viewport
+#include "draw_cliptest_tmp.h"
+
 #define FLAGS (DO_CLIP_FULL_Z | DO_VIEWPORT)
 #define TAG(x) x##_fullz_viewport
 #include "draw_cliptest_tmp.h"
@@ -134,11 +138,6 @@ void draw_pt_post_vs_prepare( struct pt_post_vs *pvs,
 			      boolean need_edgeflags )
 {
    pvs->flags = 0;
-
-   /* This combination not currently tested/in use:
-    */
-   if (!clip_halfz)
-      guard_band = FALSE;
 
    if (clip_xy && !guard_band) {
       pvs->flags |= DO_CLIP_XY;
@@ -191,6 +190,10 @@ void draw_pt_post_vs_prepare( struct pt_post_vs *pvs,
 
    case DO_CLIP_XY_GUARD_BAND | DO_CLIP_HALF_Z | DO_VIEWPORT:
       pvs->run = do_cliptest_xy_gb_halfz_viewport;
+      break;
+
+   case DO_CLIP_XY_GUARD_BAND | DO_CLIP_FULL_Z | DO_VIEWPORT:
+      pvs->run = do_cliptest_xy_gb_fullz_viewport;
       break;
 
    case DO_CLIP_FULL_Z | DO_VIEWPORT:

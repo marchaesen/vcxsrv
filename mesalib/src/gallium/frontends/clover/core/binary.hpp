@@ -57,7 +57,7 @@ namespace clover {
 
       struct printf_info {
          std::vector<uint32_t> arg_sizes;
-         std::vector<uint8_t> strings;
+         std::vector<char> strings;
       };
 
       struct arg_info {

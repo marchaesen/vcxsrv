@@ -38,25 +38,25 @@ device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 device to configure, or XkbUseCoreKbd
 .TP
-.I \- timeout
+.I timeout
 seconds idle until AccessXTimeout occurs
 .TP
-.I \- ctrls_mask
+.I ctrls_mask
 boolean controls to modify 
 .TP
-.I \- ctrls_values
+.I ctrls_values
 new bits for controls selected by ctrls_mask
 .TP
-.I \- opts_mask
+.I opts_mask
 ax_options to change
 .TP
-.I \- opts_values
+.I opts_values
 new bits for ax_options selected by opts_mask
 .SH DESCRIPTION
 .LP

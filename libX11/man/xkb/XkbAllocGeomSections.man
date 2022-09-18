@@ -31,10 +31,10 @@ XkbAllocGeomSections \- Allocate geometry sections
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry for which sections should be allocated
 .TP
-.I \- num_needed
+.I num_needed
 number of new sections required
 .SH DESCRIPTION
 .LP

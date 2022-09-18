@@ -32,7 +32,7 @@ member of the keyboard description record
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description structure
 .SH DESCRIPTION
 .LP

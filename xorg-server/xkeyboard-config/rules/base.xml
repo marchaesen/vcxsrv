@@ -1333,6 +1333,13 @@
        <vendor>Google</vendor>
      </configItem>
     </model>
+    <model>
+      <configItem>
+       <name>ppkb</name>
+       <description>PinePhone Keyboard</description>
+       <vendor>Pine64</vendor>
+     </configItem>
+    </model>
   </modelList>
   <layoutList>
     <layout>
@@ -1712,7 +1719,7 @@
         <shortDescription>hy</shortDescription>
         <description>Armenian</description>
         <countryList>
-          <iso3166Id>AL</iso3166Id>
+          <iso3166Id>AM</iso3166Id>
         </countryList>
         <languageList>
           <iso639Id>hye</iso639Id>
@@ -1845,12 +1852,21 @@
           <configItem>
             <name>ru</name>
             <description>Russian (Belarus)</description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+            </languageList>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>intl</name>
             <description>Belarusian (intl.)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>phonetic</name>
+            <description>Belarusian (phonetic)</description>
           </configItem>
         </variant>
       </variantList>
@@ -2214,7 +2230,7 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_tamilnet</name>
+            <name>tamilnet</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <shortDescription>ta</shortDescription>
             <description>Tamil (TamilNet '99)</description>
@@ -2225,7 +2241,7 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_tamilnet_with_tam_nums</name>
+            <name>tamilnet_tamilnumbers</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <shortDescription>ta</shortDescription>
             <description>Tamil (TamilNet '99 with Tamil numerals)</description>
@@ -2236,7 +2252,7 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_tamilnet_TAB</name>
+            <name>tamilnet_TAB</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <shortDescription>ta</shortDescription>
             <description>Tamil (TamilNet '99, TAB encoding)</description>
@@ -2247,7 +2263,7 @@
         </variant>
         <variant>
           <configItem>
-            <name>tam_tamilnet_TSCII</name>
+            <name>tamilnet_TSCII</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <shortDescription>ta</shortDescription>
             <description>Tamil (TamilNet '99, TSCII encoding)</description>
@@ -2261,7 +2277,18 @@
             <name>tam</name>
             <!-- Keyboard indicator for Tamil layouts -->
             <shortDescription>ta</shortDescription>
-            <description>Tamil (InScript)</description>
+            <description>Tamil (InScript, with Arabic numerals)</description>
+            <languageList>
+              <iso639Id>tam</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>tam_tamilnumbers</name>
+            <!-- Keyboard indicator for Tamil layouts -->
+            <shortDescription>ta</shortDescription>
+            <description>Tamil (InScript, with Tamil numerals)</description>
             <languageList>
               <iso639Id>tam</iso639Id>
             </languageList>
@@ -2934,19 +2961,7 @@
         <variant>
           <configItem>
             <name>multix</name>
-            <description>Canadian (intl.)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>multi</name>
-            <description>Canadian (intl., 1st part)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>multi-2gr</name>
-            <description>Canadian (intl., 2nd part)</description>
+            <description>Canadian (CSA)</description>
           </configItem>
         </variant>
         <variant>
@@ -3149,7 +3164,7 @@
     <layout>
       <configItem>
         <name>cz</name>
-        <!-- Keyboard indicator for Chech layouts -->
+        <!-- Keyboard indicator for Czech layouts -->
         <shortDescription>cs</shortDescription>
         <description>Czech</description>
         <countryList>
@@ -3355,6 +3370,16 @@
           <configItem>
             <name>pes_keypad</name>
             <description>Persian (with Persian keypad)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>azb</name>
+            <shortDescription>azb</shortDescription>
+            <description>Azerbaijani (Iran)</description>
+            <languageList>
+              <iso639Id>azb</iso639Id>
+            </languageList>
           </configItem>
         </variant>
         <variant>
@@ -3630,7 +3655,10 @@
         <variant>
           <configItem>
             <name>bre</name>
-            <description>French (Breton)</description>
+            <description>Breton (France)</description>
+            <languageList>
+              <iso639Id>bre</iso639Id>
+            </languageList>
           </configItem>
         </variant>
         <variant>
@@ -4515,12 +4543,6 @@
             <description>Spanish (Latin American, Colemak)</description>
           </configItem>
         </variant>
-        <variant>
-          <configItem>
-            <name>colemak-gaming</name>
-            <description>Spanish (Latin American, Colemak for gaming)</description>
-          </configItem>
-        </variant>
       </variantList>
     </layout>
     <layout>
@@ -5056,6 +5078,19 @@
         </variant>
         <variant>
           <configItem>
+            <name>ruchey_ru</name>
+            <description>Russian (engineering, RU)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>ruchey_en</name>
+            <shortDescription>en</shortDescription>
+            <description>Russian (engineering, EN)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>legacy</name>
             <description>Russian (legacy)</description>
           </configItem>
@@ -5203,6 +5238,15 @@
           <configItem>
             <name>phonetic_fr</name>
             <description>Russian (phonetic, French)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>ab</name>
+            <description>Abkhazian (Russia)</description>
+            <languageList>
+              <iso639Id>abk</iso639Id>
+            </languageList>
           </configItem>
         </variant>
       </variantList>
@@ -5876,7 +5920,7 @@
     <layout>
       <configItem>
         <name>ua</name>
-        <!-- Keyboard indicator for Ukranian layouts -->
+        <!-- Keyboard indicator for Ukrainian layouts -->
         <shortDescription>uk</shortDescription>
         <description>Ukrainian</description>
         <countryList>
@@ -5927,6 +5971,9 @@
           <configItem>
             <name>rstu_ru</name>
             <description>Russian (Ukraine, standard RSTU)</description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+            </languageList>
           </configItem>
         </variant>
         <variant>
@@ -6100,12 +6147,18 @@
           <configItem>
             <name>us</name>
             <description>Vietnamese (US)</description>
+            <countryList>
+              <iso3166Id>US</iso3166Id>
+            </countryList>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>fr</name>
-            <description>Vietnamese (French)</description>
+            <description>Vietnamese (France)</description>
+            <countryList>
+              <iso3166Id>FR</iso3166Id>
+            </countryList>
           </configItem>
         </variant>
       </variantList>
@@ -6738,42 +6791,51 @@
         </countryList>
         <languageList>
           <iso639Id>ind</iso639Id>
-          <iso639Id>msa</iso639Id>
-          <iso639Id>min</iso639Id>
           <iso639Id>ace</iso639Id>
+          <iso639Id>ban</iso639Id>
+          <iso639Id>bbc</iso639Id>
+          <iso639Id>bew</iso639Id>
           <iso639Id>bjn</iso639Id>
-          <iso639Id>tsg</iso639Id>
-          <iso639Id>mfa</iso639Id>
+          <iso639Id>btm</iso639Id>
+          <iso639Id>bts</iso639Id>
+          <iso639Id>bug</iso639Id>
+          <iso639Id>gor</iso639Id>
+          <iso639Id>jav</iso639Id>
+          <iso639Id>jax</iso639Id>
+          <iso639Id>mad</iso639Id>
+          <iso639Id>mak</iso639Id>
+          <iso639Id>min</iso639Id>
+          <iso639Id>mui</iso639Id>
+          <iso639Id>sas</iso639Id>
+          <iso639Id>sun</iso639Id>
         </languageList>
       </configItem>
       <variantList>
        <variant>
          <configItem>
-          <name>phonetic</name>
-            <description>Indonesian (Arab Pegon, phonetic)</description>
+          <name>javanese</name>
+            <description>Javanese</description>
          </configItem>
        </variant>
        <variant>
          <configItem>
-          <name>phoneticx</name>
-            <description>Indonesian (Arab Pegon, extended phonetic)</description>
+          <name>melayu-phonetic</name>
+            <description>Indonesian (Arab Melayu, phonetic)</description>
+         </configItem>
+       </variant>
+       <variant>
+         <configItem>
+          <name>melayu-phoneticx</name>
+            <description>Indonesian (Arab Melayu, extended phonetic)</description>
+         </configItem>
+       </variant>
+       <variant>
+         <configItem>
+          <name>pegon-phonetic</name>
+            <description>Indonesian (Arab Pegon, phonetic)</description>
          </configItem>
        </variant>
       </variantList>
-    </layout>
-    <layout>
-      <configItem>
-        <name>jv</name>
-        <shortDescription>jv</shortDescription>
-        <description>Indonesian (Javanese)</description>
-        <countryList>
-          <iso3166Id>ID</iso3166Id>
-        </countryList>
-        <languageList>
-          <iso639Id>jav</iso639Id>
-        </languageList>
-      </configItem>
-      <variantList/>
     </layout>
     <layout>
       <configItem>
@@ -6892,20 +6954,20 @@
       </option>
       <option>
         <configItem>
-          <name>grp:shift_caps_switch</name>
-          <description>Caps Lock to first layout; Shift+Caps Lock to last layout</description>
+          <name>grp:caps_select</name>
+          <description>Caps Lock to first layout; Shift+Caps Lock to second layout</description>
         </configItem>
       </option>
       <option>
         <configItem>
-          <name>grp:win_menu_switch</name>
-          <description>Left Win to first layout; Right Win/Menu to last layout</description>
+          <name>grp:win_menu_select</name>
+          <description>Left Win to first layout; Right Win/Menu to second layout</description>
         </configItem>
       </option>
       <option>
         <configItem>
-          <name>grp:lctrl_rctrl_switch</name>
-          <description>Left Ctrl to first layout; Right Ctrl to last layout</description>
+          <name>grp:ctrl_select</name>
+          <description>Left Ctrl to first layout; Right Ctrl to second layout</description>
         </configItem>
       </option>
       <option>
@@ -6917,19 +6979,25 @@
       <option>
         <configItem>
           <name>grp:shifts_toggle</name>
-          <description>Both Shift together</description>
+          <description>Both Shifts together</description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>grp:alts_toggle</name>
-          <description>Both Alt together</description>
+          <description>Both Alts together</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>grp:alt_altgr_toggle</name>
+          <description>Both Alts together; AltGr alone chooses third level</description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>grp:ctrls_toggle</name>
-          <description>Both Ctrl together</description>
+          <description>Both Ctrls together</description>
         </configItem>
       </option>
       <option>
@@ -6976,12 +7044,6 @@
       </option>
       <option>
         <configItem>
-          <name>grp:alt_space_toggle</name>
-          <description>Alt+Space</description>
-        </configItem>
-      </option>
-      <option>
-        <configItem>
           <name>grp:menu_toggle</name>
           <description>Menu</description>
         </configItem>
@@ -6994,8 +7056,20 @@
       </option>
       <option>
         <configItem>
+          <name>grp:alt_space_toggle</name>
+          <description>Alt+Space</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>grp:win_space_toggle</name>
           <description>Win+Space</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>grp:ctrl_space_toggle</name>
+          <description>Ctrl+Space</description>
         </configItem>
       </option>
       <option>
@@ -7037,7 +7111,7 @@
       <option>
         <configItem>
           <name>grp:lctrl_lwin_rctrl_menu</name>
-          <description>Left Ctrl+Left Win to first layout; Right Ctrl+Menu to second layout</description>
+          <description>Ctrl+Left Win to first layout; Ctrl+Menu to second layout</description>
         </configItem>
       </option>
       <option>
@@ -7196,7 +7270,7 @@
       </option>
       <option>
         <configItem>
-          <name>ctrl:swapcaps_hyper</name>
+          <name>ctrl:hyper_capscontrol</name>
           <description>Caps Lock as Ctrl, Ctrl as Hyper</description>
         </configItem>
       </option>
@@ -7774,19 +7848,19 @@
       <option>
         <configItem>
           <name>shift:both_capslock</name>
-          <description>Both Shift together enable Caps Lock</description>
+          <description>Both Shifts together enable Caps Lock</description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>shift:both_capslock_cancel</name>
-          <description>Both Shift together enable Caps Lock; one Shift key disables it</description>
+          <description>Both Shifts together enable Caps Lock; one Shift key disables it</description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>shift:both_shiftlock</name>
-          <description>Both Shift together enable Shift Lock</description>
+          <description>Both Shifts together enable Shift Lock</description>
         </configItem>
       </option>
       <option>
@@ -7852,6 +7926,12 @@
       </configItem>
       <option>
         <configItem>
+          <name>lv5:caps_switch</name>
+          <description>Caps Lock chooses 5th level</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>lv5:lsgt_switch</name>
           <description>The "&lt; &gt;" key chooses 5th level</description>
         </configItem>
@@ -7866,6 +7946,12 @@
         <configItem>
           <name>lv5:menu_switch</name>
           <description>Menu chooses 5th level</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>lv5:rctrl_switch</name>
+          <description>Right Ctrl chooses 5th level</description>
         </configItem>
       </option>
       <option>
@@ -7957,12 +8043,6 @@
       </option>
       <option>
         <configItem>
-          <name>nbsp:level3s</name>
-          <description>Non-breaking space at the 3rd level, nothing at the 4th level</description>
-        </configItem>
-      </option>
-      <option>
-        <configItem>
           <name>nbsp:level3n</name>
           <description>Non-breaking space at the 3rd level, thin non-breaking space at the 4th level</description>
         </configItem>
@@ -8007,12 +8087,6 @@
         <configItem>
           <name>nbsp:zwnj2nb3</name>
           <description>Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd level</description>
-        </configItem>
-      </option>
-      <option>
-        <configItem>
-          <name>nbsp:zwnj2nb3s</name>
-          <description>Zero-width non-joiner at the 2nd level, non-breaking space at the 3rd level, nothing at the 4th level</description>
         </configItem>
       </option>
       <option>

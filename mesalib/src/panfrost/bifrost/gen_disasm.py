@@ -238,7 +238,7 @@ def build_lut(mnemonic, desc, test):
     key_set = find_context_keys(desc, test)
     ordered = 'ordering' in key_set
     key_set.discard('ordering')
-    keys = list(key_set)
+    keys = sorted(list(key_set))
 
     # Evaluate the deriveds for every possible state, forming a (state -> deriveds) map
     testf = compile_derived(test, keys)

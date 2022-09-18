@@ -30,3 +30,7 @@ host, without Docker.
 The Mesa build runs inside the base container, executing `mesa_build.ps1`.
 This simply compiles Mesa using Meson and Ninja, executing the build and
 unit tests. Currently, no build artifacts are captured.
+
+## Using build scripts locally
+
+`*.ps1` scripts for building dockers are using PowerShell 7 to run

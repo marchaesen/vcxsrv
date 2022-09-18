@@ -40,7 +40,7 @@
  */
 static void
 crocus_set_debug_callback(struct pipe_context *ctx,
-                          const struct pipe_debug_callback *cb)
+                          const struct util_debug_callback *cb)
 {
    struct crocus_context *ice = (struct crocus_context *)ctx;
 
@@ -277,6 +277,7 @@ crocus_create_context(struct pipe_screen *pscreen, void *priv, unsigned flags)
    crocus_init_program_functions(ctx);
    crocus_init_resource_functions(ctx);
    crocus_init_flush_functions(ctx);
+   crocus_init_perfquery_functions(ctx);
 
    crocus_init_program_cache(ice);
 

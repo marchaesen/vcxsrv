@@ -13,7 +13,8 @@ The **MESA_GLSL** environment variable can be set to a comma-separated
 list of keywords to control some aspects of the GLSL compiler and shader
 execution. These are generally used for debugging.
 
--  **dump** - print GLSL shader code to stdout at link time
+-  **dump** - print GLSL shader code, IR, and NIR to stdout at link time
+-  **source** - print GLSL shader code to stdout at link time
 -  **log** - log all GLSL shaders to files. The filenames will be
    "shader_X.vert" or "shader_X.frag" where X the shader ID.
 -  **cache_info** - print debug information about shader cache

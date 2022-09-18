@@ -34,30 +34,6 @@
 ! $azerty = be fr
 ! $qwertz = al ch cz de hr hu ro si sk
 
-
-// All layouts with 3rd and 4th levels:
-! $threelevellayouts = af al az \
-              bd be bg br bt \
-              ca ch cm cn cz \
-              de dk dz \
-              ee es eu \
-              fi fo fr \
-              gb ge gh gr \
-              hr hu \
-              ie il in ir is it \
-              kh kz \
-              latam \
-              lk lt lv \
-              ml mm mn mt \
-              ng nl no \
-              ph pk pl pt \
-              ro rs \
-              se si sk sn sy \
-              tg tm tr tw \
-              ua us \
-              vn \
-              za
-
 ! $thinkpads = thinkpad thinkpad60 thinkpadz60
 
 ! $sun = sun_type6_jp sun_type6_usb sun_type6_euro_usb \

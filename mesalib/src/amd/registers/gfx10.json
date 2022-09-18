@@ -295,9 +295,10 @@
   },
   "FLOAT_MODE": {
    "entries": [
+    {"name": "FP_32_ROUND_TOWARDS_ZERO", "value": 3},
+    {"name": "FP_16_64_ROUND_TOWARDS_ZERO", "value": 12},
     {"name": "FP_32_DENORMS", "value": 48},
-    {"name": "FP_64_DENORMS", "value": 192},
-    {"name": "FP_ALL_DENORMS", "value": 240}
+    {"name": "FP_16_64_DENORMS", "value": 192}
    ]
   },
   "ForceControl": {
@@ -8045,12 +8046,12 @@
   {
    "chips": ["gfx10"],
    "map": {"at": 198912, "to": "mm"},
-   "name": "VGT_ESGS_RING_SIZE_UMD"
+   "name": "VGT_ESGS_RING_SIZE"
   },
   {
    "chips": ["gfx10"],
    "map": {"at": 198916, "to": "mm"},
-   "name": "VGT_GSVS_RING_SIZE_UMD"
+   "name": "VGT_GSVS_RING_SIZE"
   },
   {
    "chips": ["gfx10"],
@@ -8113,19 +8114,19 @@
   {
    "chips": ["gfx10"],
    "map": {"at": 198968, "to": "mm"},
-   "name": "VGT_TF_RING_SIZE_UMD",
-   "type_ref": "VGT_TF_RING_SIZE_UMD"
+   "name": "VGT_TF_RING_SIZE",
+   "type_ref": "VGT_TF_RING_SIZE"
   },
   {
    "chips": ["gfx10"],
    "map": {"at": 198972, "to": "mm"},
-   "name": "VGT_HS_OFFCHIP_PARAM_UMD",
-   "type_ref": "VGT_HS_OFFCHIP_PARAM_UMD"
+   "name": "VGT_HS_OFFCHIP_PARAM",
+   "type_ref": "VGT_HS_OFFCHIP_PARAM"
   },
   {
    "chips": ["gfx10"],
    "map": {"at": 198976, "to": "mm"},
-   "name": "VGT_TF_MEMORY_BASE_UMD"
+   "name": "VGT_TF_MEMORY_BASE"
   },
   {
    "chips": ["gfx10"],
@@ -8217,7 +8218,7 @@
   {
    "chips": ["gfx10"],
    "map": {"at": 199044, "to": "mm"},
-   "name": "VGT_TF_MEMORY_BASE_HI_UMD",
+   "name": "VGT_TF_MEMORY_BASE_HI",
    "type_ref": "DB_Z_READ_BASE_HI"
   },
   {
@@ -15161,7 +15162,7 @@
     {"bits": [0, 7], "name": "REUSE_DEPTH"}
    ]
   },
-  "VGT_HS_OFFCHIP_PARAM_UMD": {
+  "VGT_HS_OFFCHIP_PARAM": {
    "fields": [
     {"bits": [0, 8], "name": "OFFCHIP_BUFFERING"},
     {"bits": [9, 10], "enum_ref": "VGT_HS_OFFCHIP_PARAM__OFFCHIP_GRANULARITY", "name": "OFFCHIP_GRANULARITY"}
@@ -15285,7 +15286,7 @@
     {"bits": [23, 25], "name": "MTYPE"}
    ]
   },
-  "VGT_TF_RING_SIZE_UMD": {
+  "VGT_TF_RING_SIZE": {
    "fields": [
     {"bits": [0, 15], "name": "SIZE"}
    ]

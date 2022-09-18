@@ -31,6 +31,8 @@ int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
         memset(&state, 0, sizeof state);
 
         while (mblen > 0) {
+            if (n >= wclen)
+                return n;
             size_t i = mbrtowc(wcstr+n, mbstr, (size_t)mblen, &state);
             if (i == (size_t)-1 || i == (size_t)-2)
                 break;
@@ -44,6 +46,8 @@ int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
         int n = 0;
 
         while (mblen > 0) {
+            if (n >= wclen)
+                return n;
             wcstr[n] = 0xD800 | (mbstr[0] & 0xFF);
             n++;
             mbstr++;
@@ -57,8 +61,7 @@ int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
 }
 
 int wc_to_mb(int codepage, int flags, const wchar_t *wcstr, int wclen,
-             char *mbstr, int mblen, const char *defchr,
-             struct unicode_data *ucsdata)
+             char *mbstr, int mblen, const char *defchr)
 {
     if (codepage == DEFAULT_CODEPAGE) {
         char output[MB_LEN_MAX];
@@ -260,7 +263,7 @@ const char *cp_enumerate(int index)
     return charset_to_localenc(charset);
 }
 
-int decode_codepage(char *cp_name)
+int decode_codepage(const char *cp_name)
 {
     if (!cp_name || !*cp_name)
         return CS_UTF8;

@@ -143,10 +143,6 @@
 #include "macros.h"
 #include "git_sha1.h"
 
-#ifdef USE_SPARC_ASM
-#include "sparc/sparc.h"
-#endif
-
 #include "compiler/glsl_types.h"
 #include "compiler/glsl/builtin_functions.h"
 #include "compiler/glsl/glsl_parser_extras.h"
@@ -484,12 +480,6 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->GLSLVersionCompat = consts->GLSLVersion;
 
    consts->GLSLLowerConstArrays = true;
-
-   /* Assume that if GLSL 1.30+ (or GLSL ES 3.00+) is supported that
-    * gl_VertexID is implemented using a native hardware register with OpenGL
-    * semantics.
-    */
-   consts->VertexID_is_zero_based = false;
 
    /* GL_ARB_draw_buffers */
    consts->MaxDrawBuffers = MAX_DRAW_BUFFERS;
@@ -1080,6 +1070,8 @@ _mesa_initialize_context(struct gl_context *ctx,
       }
       break;
    }
+   ctx->VertexProgram.PointSizeEnabled = ctx->API == API_OPENGLES2;
+   ctx->PointSizeIsSet = GL_TRUE;
 
    ctx->FirstTimeCurrent = GL_TRUE;
 
@@ -1138,6 +1130,7 @@ _mesa_free_context_data(struct gl_context *ctx, bool destroy_debug_output)
 
    _mesa_free_attrib_data(ctx);
    _mesa_free_eval_data( ctx );
+   _mesa_free_feedback(ctx);
    _mesa_free_texture_data( ctx );
    _mesa_free_image_textures(ctx);
    _mesa_free_matrix_data( ctx );
@@ -1169,6 +1162,7 @@ _mesa_free_context_data(struct gl_context *ctx, bool destroy_debug_output)
    free(ctx->Save);
    free(ctx->ContextLost);
    free(ctx->MarshalExec);
+   free(ctx->HWSelectModeBeginEnd);
 
    /* Shared context state (display lists, textures, etc) */
    _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);
@@ -1492,11 +1486,6 @@ _mesa_make_current( struct gl_context *newCtx,
       FLUSH_VERTICES(curCtx, 0, 0);
       st_glFlush(curCtx, 0);
    }
-
-   /* Call this periodically to detect when the user has begun using
-    * GL rendering from multiple threads.
-    */
-   _glapi_check_multithread();
 
    if (!newCtx) {
       _glapi_set_dispatch(NULL);  /* none current */

@@ -41,18 +41,6 @@
 #include "vk_util.h"
 
 
-VkResult
-panvk_CreateComputePipelines(VkDevice _device,
-                             VkPipelineCache pipelineCache,
-                             uint32_t count,
-                             const VkComputePipelineCreateInfo *pCreateInfos,
-                             const VkAllocationCallbacks *pAllocator,
-                             VkPipeline *pPipelines)
-{
-   panvk_stub();
-   return VK_SUCCESS;
-}
-
 void
 panvk_DestroyPipeline(VkDevice _device,
                       VkPipeline _pipeline,

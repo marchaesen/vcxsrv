@@ -185,6 +185,11 @@ partial alphanumeric_keys
 };
 
 partial alphanumeric_keys
+	xkb_symbols "workman-p" {
+	include "us(workman-p)"
+};
+
+partial alphanumeric_keys
 	xkb_symbols "norman" {
 	include "us(norman)"
 };

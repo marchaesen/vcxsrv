@@ -152,6 +152,23 @@ TEST_F(ConstantFold, VectorConstructions4i8)
    EXPECT_FOLD(bi_mkvec_v4i8_to(b, reg, c, c, c, c), 0xFEFEFEFE);
 }
 
+TEST_F(ConstantFold, VectorConstructions2i8)
+{
+   bi_index reg = bi_register(0);
+   bi_index u32 = bi_imm_u32(0xCAFEBABE);
+   bi_index rem = bi_imm_u32(0xABCD1234);
+
+   bi_index a = bi_byte(u32, 0); /* 0xBE */
+   bi_index B = bi_byte(u32, 1); /* 0xBA */
+   bi_index c = bi_byte(u32, 2); /* 0xFE */
+   bi_index d = bi_byte(u32, 3); /* 0xCA */
+
+   EXPECT_FOLD(bi_mkvec_v2i8_to(b, reg, a, B, rem), 0x1234BABE);
+   EXPECT_FOLD(bi_mkvec_v2i8_to(b, reg, a, d, rem), 0x1234CABE);
+   EXPECT_FOLD(bi_mkvec_v2i8_to(b, reg, c, d, rem), 0x1234CAFE);
+   EXPECT_FOLD(bi_mkvec_v2i8_to(b, reg, d, d, rem), 0x1234CACA);
+}
+
 TEST_F(ConstantFold, LimitedShiftsForTexturing)
 {
    bi_index reg = bi_register(0);
@@ -171,18 +188,6 @@ TEST_F(ConstantFold, LimitedShiftsForTexturing)
    EXPECT_NOT_FOLD(I);
 }
 
-TEST_F(ConstantFold, LimitedRoundingForTexturing)
-{
-   bi_index reg = bi_register(0);
-
-   EXPECT_FOLD(bi_f32_to_u32_to(b, reg, bi_imm_f32(15.0), BI_ROUND_NONE), 15);
-   EXPECT_FOLD(bi_f32_to_u32_to(b, reg, bi_imm_f32(15.9), BI_ROUND_NONE), 15);
-   EXPECT_FOLD(bi_f32_to_u32_to(b, reg, bi_imm_f32(-20.4), BI_ROUND_NONE), 0);
-
-   EXPECT_NOT_FOLD(bi_f32_to_u32_to(b, reg, bi_imm_f32(-20.4), BI_ROUND_RTP));
-   EXPECT_NOT_FOLD(bi_f32_to_u32_to(b, reg, bi_imm_f32(-20.4), BI_ROUND_RTZ));
-}
-
 TEST_F(ConstantFold, NonConstantSourcesCannotBeFolded)
 {
    bi_index reg = bi_register(0);
@@ -198,6 +203,6 @@ TEST_F(ConstantFold, OtherOperationsShouldNotFold)
    bi_index zero = bi_fau(bir_fau(BIR_FAU_IMMEDIATE | 0), false);
    bi_index reg = bi_register(0);
 
-   EXPECT_NOT_FOLD(bi_fma_f32_to(b, reg, zero, zero, zero, BI_ROUND_NONE));
-   EXPECT_NOT_FOLD(bi_fadd_f32_to(b, reg, zero, zero, BI_ROUND_NONE));
+   EXPECT_NOT_FOLD(bi_fma_f32_to(b, reg, zero, zero, zero));
+   EXPECT_NOT_FOLD(bi_fadd_f32_to(b, reg, zero, zero));
 }

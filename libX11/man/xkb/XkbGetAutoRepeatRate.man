@@ -34,16 +34,16 @@ for a keyboard device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 desired device ID, or XkbUseCoreKbd
 .TP
-.I \- timeout_rtrn
+.I timeout_rtrn
 backfilled with initial repeat delay, ms
 .TP
-.I \- interval_rtrn
+.I interval_rtrn
 backfilled with subsequent repeat delay, ms
 .SH DESCRIPTION
 .LP

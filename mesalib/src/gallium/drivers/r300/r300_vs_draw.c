@@ -314,7 +314,7 @@ void r300_draw_init_vertex_shader(struct r300_context *r300,
     struct draw_context *draw = r300->draw;
     struct tgsi_shader_info info;
     struct vs_transform_context transform;
-    const uint newLen = tgsi_num_tokens(vs->state.tokens) + 100 /* XXX */;
+    const uint newLen = tgsi_num_tokens(vs->state.tokens) + 100;
     struct pipe_shader_state new_vs = {
         .type = PIPE_SHADER_IR_TGSI,
         .tokens = tgsi_alloc_tokens(newLen)
@@ -322,9 +322,6 @@ void r300_draw_init_vertex_shader(struct r300_context *r300,
     unsigned i;
 
     tgsi_scan_shader(vs->state.tokens, &info);
-
-    if (new_vs.tokens == NULL)
-        return;
 
     memset(&transform, 0, sizeof(transform));
     for (i = 0; i < ARRAY_SIZE(transform.out_remap); i++) {
@@ -350,9 +347,9 @@ void r300_draw_init_vertex_shader(struct r300_context *r300,
         }
     }
 
-    tgsi_transform_shader(vs->state.tokens,
-                          (struct tgsi_token*)new_vs.tokens,
-                          newLen, &transform.base);
+    new_vs.tokens = tgsi_transform_shader(vs->state.tokens, newLen, &transform.base);
+    if (!new_vs.tokens)
+        return;
 
 #if 0
     printf("----------------------------------------------\norig shader:\n");
@@ -374,6 +371,6 @@ void r300_draw_init_vertex_shader(struct r300_context *r300,
     r300_init_vs_outputs(r300, vs);
 
     /* Make the last generic be WPOS. */
-    vs->outputs.wpos = vs->outputs.generic[transform.last_generic + 1];
-    vs->outputs.generic[transform.last_generic + 1] = ATTR_UNUSED;
+    vs->shader->outputs.wpos = vs->shader->outputs.generic[transform.last_generic + 1];
+    vs->shader->outputs.generic[transform.last_generic + 1] = ATTR_UNUSED;
 }

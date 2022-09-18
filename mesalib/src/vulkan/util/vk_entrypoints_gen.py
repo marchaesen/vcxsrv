@@ -128,6 +128,9 @@ TEMPLATE_C = Template(COPYRIGHT + """
       % endfor
 #else
     #pragma comment(linker, "/alternatename:${p}_${e.name}=vk_entrypoint_stub")
+#if defined(_M_ARM64EC)
+    #pragma comment(linker, "/alternatename:#${p}_${e.name}=#vk_entrypoint_stub")
+#endif
 #endif
 #else
     VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()}) __attribute__ ((weak));

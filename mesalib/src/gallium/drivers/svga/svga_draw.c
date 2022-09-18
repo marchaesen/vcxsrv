@@ -357,15 +357,15 @@ svga_validate_sampler_resources(struct svga_context *svga,
 
    if (pipe_type == SVGA_PIPE_GRAPHICS) {
       first_shader = PIPE_SHADER_VERTEX;
-      last_shader = PIPE_SHADER_TESS_EVAL;
+      last_shader = PIPE_SHADER_COMPUTE;
    }
    else {
       assert(svga_have_gl43(svga));
       first_shader = PIPE_SHADER_COMPUTE;
-      last_shader = PIPE_SHADER_COMPUTE;
+      last_shader = first_shader+1;
    }
 
-   for (shader = first_shader; shader <= last_shader; shader++) {
+   for (shader = first_shader; shader < last_shader; shader++) {
       unsigned count = svga->curr.num_sampler_views[shader];
       unsigned i;
       struct svga_winsys_surface *surfaces[PIPE_MAX_SAMPLERS];
@@ -440,15 +440,15 @@ svga_validate_constant_buffers(struct svga_context *svga,
 
    if (pipe_type == SVGA_PIPE_GRAPHICS) {
       first_shader = PIPE_SHADER_VERTEX;
-      last_shader = PIPE_SHADER_TESS_EVAL;
+      last_shader = PIPE_SHADER_COMPUTE;
    }
    else {
       assert(svga_have_gl43(svga));
       first_shader = PIPE_SHADER_COMPUTE;
-      last_shader = PIPE_SHADER_COMPUTE;
+      last_shader = first_shader + 1;
    }
 
-   for (shader = first_shader; shader <= last_shader; shader++) {
+   for (shader = first_shader; shader < last_shader; shader++) {
 
       enum pipe_error ret;
       struct svga_buffer *buffer;
@@ -542,14 +542,14 @@ svga_validate_image_views(struct svga_context *svga,
 
    if (pipe_type == SVGA_PIPE_GRAPHICS) {
       first_shader = PIPE_SHADER_VERTEX;
-      last_shader = PIPE_SHADER_TESS_EVAL;
+      last_shader = PIPE_SHADER_COMPUTE;
    }
    else {
       first_shader = PIPE_SHADER_COMPUTE;
-      last_shader = PIPE_SHADER_COMPUTE;
+      last_shader = first_shader + 1;
    }
 
-   for (shader = first_shader; shader <= last_shader; shader++) {
+   for (shader = first_shader; shader < last_shader; shader++) {
       ret = svga_validate_image_view_resources(svga,
                svga->state.hw_draw.num_image_views[shader],
                &svga->state.hw_draw.image_views[shader][0], rebind);
@@ -581,14 +581,14 @@ svga_validate_shader_buffers(struct svga_context *svga,
 
    if (pipe_type == SVGA_PIPE_GRAPHICS) {
       first_shader = PIPE_SHADER_VERTEX;
-      last_shader = PIPE_SHADER_TESS_EVAL;
+      last_shader = PIPE_SHADER_COMPUTE;
    }
    else {
       first_shader = PIPE_SHADER_COMPUTE;
-      last_shader = PIPE_SHADER_COMPUTE;
+      last_shader = first_shader + 1;
    }
 
-   for (shader = first_shader; shader <= last_shader; shader++) {
+   for (shader = first_shader; shader < last_shader; shader++) {
       ret = svga_validate_shader_buffer_resources(svga,
                svga->state.hw_draw.num_shader_buffers[shader],
                &svga->state.hw_draw.shader_buffers[shader][0], rebind);

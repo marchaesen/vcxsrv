@@ -32,8 +32,5 @@ extern struct pipe_screen *iris_screen_create(int fd, const struct pipe_screen_c
 struct pipe_screen *
 iris_drm_screen_create(int fd, const struct pipe_screen_config *config)
 {
-   int newfd = os_dupfd_cloexec(fd);
-   if (newfd < 0)
-      return NULL;
-   return iris_screen_create(newfd, config);
+   return iris_screen_create(fd, config);
 }

@@ -89,7 +89,7 @@ tegra_screen_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
 }
 
 static int
-tegra_screen_get_shader_param(struct pipe_screen *pscreen, unsigned shader,
+tegra_screen_get_shader_param(struct pipe_screen *pscreen, enum pipe_shader_type shader,
                               enum pipe_shader_cap param)
 {
    struct tegra_screen *screen = to_tegra_screen(pscreen);
@@ -245,6 +245,10 @@ tegra_screen_resource_create(struct pipe_screen *pscreen,
    pipe_reference_init(&resource->base.reference, 1);
    resource->base.screen = &screen->base;
 
+   /* use private reference count for wrapped resources */
+   resource->gpu->reference.count += 100000000;
+   resource->refcount = 100000000;
+
    return &resource->base;
 
 destroy:
@@ -352,6 +356,8 @@ tegra_screen_resource_destroy(struct pipe_screen *pscreen,
 {
    struct tegra_resource *resource = to_tegra_resource(presource);
 
+   /* adjust private reference count */
+   p_atomic_add(&resource->gpu->reference.count, -resource->refcount);
    pipe_resource_reference(&resource->gpu, NULL);
    free(resource);
 }
@@ -439,7 +445,7 @@ tegra_screen_query_memory_info(struct pipe_screen *pscreen,
 static const void *
 tegra_screen_get_compiler_options(struct pipe_screen *pscreen,
                                   enum pipe_shader_ir ir,
-                                  unsigned int shader)
+                                  enum pipe_shader_type shader)
 {
    struct tegra_screen *screen = to_tegra_screen(pscreen);
    const void *options = NULL;

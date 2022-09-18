@@ -31,7 +31,8 @@ extern "C" {
 enum radeon_family
 {
    CHIP_UNKNOWN = 0,
-   CHIP_R300, /* R3xx-based cores. (GFX2) */
+   /* R3xx-based cores. (GFX2) */
+   CHIP_R300,
    CHIP_R350,
    CHIP_RV350,
    CHIP_RV370,
@@ -39,7 +40,8 @@ enum radeon_family
    CHIP_RS400,
    CHIP_RC410,
    CHIP_RS480,
-   CHIP_R420, /* R4xx-based cores. (GFX2) */
+   /* R4xx-based cores. (GFX2) */
+   CHIP_R420,
    CHIP_R423,
    CHIP_R430,
    CHIP_R480,
@@ -48,13 +50,15 @@ enum radeon_family
    CHIP_RS600,
    CHIP_RS690,
    CHIP_RS740,
-   CHIP_RV515, /* R5xx-based cores. (GFX2) */
+   /* R5xx-based cores. (GFX2) */
+   CHIP_RV515,
    CHIP_R520,
    CHIP_RV530,
    CHIP_R580,
    CHIP_RV560,
    CHIP_RV570,
-   CHIP_R600, /* GFX3 (R6xx) */
+   /* GFX3 (R6xx) */
+   CHIP_R600,
    CHIP_RV610,
    CHIP_RV630,
    CHIP_RV670,
@@ -62,11 +66,13 @@ enum radeon_family
    CHIP_RV635,
    CHIP_RS780,
    CHIP_RS880,
-   CHIP_RV770, /* GFX3 (R7xx) */
+   /* GFX3 (R7xx) */
+   CHIP_RV770,
    CHIP_RV730,
    CHIP_RV710,
    CHIP_RV740,
-   CHIP_CEDAR, /* GFX4 (Evergreen) */
+   /* GFX4 (Evergreen) */
+   CHIP_CEDAR,
    CHIP_REDWOOD,
    CHIP_JUNIPER,
    CHIP_CYPRESS,
@@ -77,47 +83,59 @@ enum radeon_family
    CHIP_BARTS,
    CHIP_TURKS,
    CHIP_CAICOS,
-   CHIP_CAYMAN, /* GFX5 (Northern Islands) */
+   /* GFX5 (Northern Islands) */
+   CHIP_CAYMAN,
    CHIP_ARUBA,
-   CHIP_TAHITI, /* GFX6 (Southern Islands) */
+   /* GFX6 (Southern Islands) */
+   CHIP_TAHITI,
    CHIP_PITCAIRN,
    CHIP_VERDE,
    CHIP_OLAND,
    CHIP_HAINAN,
-   CHIP_BONAIRE, /* GFX7 (Sea Islands) */
+   /* GFX7 (Sea Islands) */
+   CHIP_BONAIRE,
    CHIP_KAVERI,
    CHIP_KABINI,
-   CHIP_HAWAII,
-   CHIP_TONGA, /* GFX8 (Volcanic Islands & Polaris) */
+   CHIP_HAWAII,         /* Radeon 290, 390 */
+   /* GFX8 (Volcanic Islands & Polaris) */
+   CHIP_TONGA,          /* Radeon 285, 380 */
    CHIP_ICELAND,
    CHIP_CARRIZO,
-   CHIP_FIJI,
+   CHIP_FIJI,           /* Radeon Fury */
    CHIP_STONEY,
-   CHIP_POLARIS10,
-   CHIP_POLARIS11,
-   CHIP_POLARIS12,
+   CHIP_POLARIS10,      /* Radeon 470, 480, 570, 580, 590 */
+   CHIP_POLARIS11,      /* Radeon 460, 560 */
+   CHIP_POLARIS12,      /* Radeon 540, 550 */
    CHIP_VEGAM,
-   CHIP_VEGA10, /* GFX9 (Vega) */
+   /* GFX9 (Vega) */
+   CHIP_VEGA10,         /* Vega 56, 64 */
    CHIP_VEGA12,
-   CHIP_VEGA20,
-   CHIP_RAVEN,
-   CHIP_RAVEN2,
-   CHIP_RENOIR,
-   CHIP_ARCTURUS,
-   CHIP_ALDEBARAN,
-   CHIP_NAVI10,
-   CHIP_NAVI12,
-   CHIP_NAVI14,
-   CHIP_SIENNA_CICHLID,
-   CHIP_NAVY_FLOUNDER,
-   CHIP_VANGOGH,
-   CHIP_DIMGREY_CAVEFISH,
-   CHIP_BEIGE_GOBY,
-   CHIP_YELLOW_CARP,
+   CHIP_VEGA20,         /* Radeon VII, MI50 */
+   CHIP_RAVEN,          /* Ryzen 2000, 3000 */
+   CHIP_RAVEN2,         /* Ryzen 2200U, 3200U */
+   CHIP_RENOIR,         /* Ryzen 4000, 5000 */
+   CHIP_ARCTURUS,       /* MI100 */
+   CHIP_ALDEBARAN,      /* MI200 */
+   /* GFX10.1 (RDNA 1) */
+   CHIP_NAVI10,         /* Radeon 5600, 5700 */
+   CHIP_NAVI12,         /* Radeon Pro 5600M */
+   CHIP_NAVI14,         /* Radeon 5300, 5500 */
+   /* GFX10.3 (RDNA 2) */
+   CHIP_NAVI21,         /* Radeon 6800, 6900 (formerly "Sienna Cichlid") */
+   CHIP_NAVI22,         /* Radeon 6700 (formerly "Navy Flounder") */
+   CHIP_VANGOGH,        /* Steam Deck */
+   CHIP_NAVI23,         /* Radeon 6600 (formerly "Dimgrey Cavefish") */
+   CHIP_NAVI24,         /* Radeon 6400, 6500 (formerly "Beige Goby") */
+   CHIP_REMBRANDT,      /* Ryzen 6000 (formerly "Yellow Carp") */
+   CHIP_GFX1036,
+   CHIP_GFX1100,
+   CHIP_GFX1101,
+   CHIP_GFX1102,
+   CHIP_GFX1103,
    CHIP_LAST,
 };
 
-enum chip_class
+enum amd_gfx_level
 {
    CLASS_UNKNOWN = 0,
    R300,
@@ -133,22 +151,38 @@ enum chip_class
    GFX9,
    GFX10,
    GFX10_3,
+   GFX11,
 
    NUM_GFX_VERSIONS,
 };
 
-enum ring_type
+enum amd_ip_type
 {
-   RING_GFX = 0,
-   RING_COMPUTE,
-   RING_DMA,
-   RING_UVD,
-   RING_VCE,
-   RING_UVD_ENC,
-   RING_VCN_DEC,
-   RING_VCN_ENC,
-   RING_VCN_JPEG,
-   NUM_RING_TYPES,
+   AMD_IP_GFX = 0,
+   AMD_IP_COMPUTE,
+   AMD_IP_SDMA,
+   AMD_IP_UVD,
+   AMD_IP_VCE,
+   AMD_IP_UVD_ENC,
+   AMD_IP_VCN_DEC,
+   AMD_IP_VCN_ENC,
+   AMD_IP_VCN_UNIFIED = AMD_IP_VCN_ENC,
+   AMD_IP_VCN_JPEG,
+   AMD_NUM_IP_TYPES,
+};
+
+enum amd_vram_type {
+   AMD_VRAM_TYPE_UNKNOWN = 0,
+   AMD_VRAM_TYPE_GDDR1,
+   AMD_VRAM_TYPE_DDR2,
+   AMD_VRAM_TYPE_GDDR3,
+   AMD_VRAM_TYPE_GDDR4,
+   AMD_VRAM_TYPE_GDDR5,
+   AMD_VRAM_TYPE_HBM,
+   AMD_VRAM_TYPE_DDR3,
+   AMD_VRAM_TYPE_DDR4,
+   AMD_VRAM_TYPE_GDDR6,
+   AMD_VRAM_TYPE_DDR5,
 };
 
 const char *ac_get_family_name(enum radeon_family family);

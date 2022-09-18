@@ -13,6 +13,7 @@ cp $CI_COMMON/init*.sh $rootfs_dst/
 cp "${CI_JOB_JWT_FILE}" "${rootfs_dst}${CI_JOB_JWT_FILE}"
 
 cp $CI_COMMON/capture-devcoredump.sh $rootfs_dst/
+cp $CI_COMMON/intel-gpu-freq.sh $rootfs_dst/
 
 set +x
 

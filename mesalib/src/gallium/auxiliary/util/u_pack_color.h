@@ -529,30 +529,32 @@ util_pack_z(enum pipe_format format, double z)
 {
    union fi fui;
 
-   if (z == 0.0)
+   if (format == PIPE_FORMAT_Z32_FLOAT) {
+      fui.f = (float)z;
+      return fui.ui;
+   }
+
+   if (z <= 0.0)
       return 0;
 
    switch (format) {
    case PIPE_FORMAT_Z16_UNORM:
-      if (z == 1.0)
+      if (z >= 1.0)
          return 0xffff;
       return (uint32_t) lrint(z * 0xffff);
    case PIPE_FORMAT_Z32_UNORM:
       /* special-case to avoid overflow */
-      if (z == 1.0)
+      if (z >= 1.0)
          return 0xffffffff;
       return (uint32_t) llrint(z * 0xffffffff);
-   case PIPE_FORMAT_Z32_FLOAT:
-      fui.f = (float)z;
-      return fui.ui;
    case PIPE_FORMAT_Z24_UNORM_S8_UINT:
    case PIPE_FORMAT_Z24X8_UNORM:
-      if (z == 1.0)
+      if (z >= 1.0)
          return 0xffffff;
       return (uint32_t) lrint(z * 0xffffff);
    case PIPE_FORMAT_S8_UINT_Z24_UNORM:
    case PIPE_FORMAT_X8Z24_UNORM:
-      if (z == 1.0)
+      if (z >= 1.0)
          return 0xffffff00;
       return ((uint32_t) lrint(z * 0xffffff)) << 8;
    case PIPE_FORMAT_S8_UINT:

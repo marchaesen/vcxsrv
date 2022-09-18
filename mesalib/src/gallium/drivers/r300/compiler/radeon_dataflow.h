@@ -31,6 +31,8 @@
 
 #include "radeon_program_constants.h"
 
+#include <stdbool.h>
+
 struct radeon_compiler;
 struct rc_instruction;
 struct rc_swizzle_caps;
@@ -91,6 +93,7 @@ struct rc_reader_data {
 	unsigned int AbortOnWrite;
 	unsigned int LoopDepth;
 	unsigned int InElse;
+	bool ReadersAfterEndloop;
 	struct rc_instruction * Writer;
 
 	unsigned int ReaderCount;

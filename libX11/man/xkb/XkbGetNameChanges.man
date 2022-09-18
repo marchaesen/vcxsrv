@@ -35,13 +35,13 @@ actual values of the results of one or more calls to
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- xkb
+.I xkb
 keyboard description to which names are copied
 .TP
-.I \- changes
+.I changes
 names components to be obtained from the server
 .SH DESCRIPTION
 .LP

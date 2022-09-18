@@ -368,7 +368,7 @@ dump_constants(struct dxil_dumper *d, struct list_head *list)
                _mesa_string_buffer_printf(d->buf, " %%%d",
                                           cnst->array_values[i]->id);
                dump_type_name(d, cnst->value.type);
-	       if (i != cnst->value.type->array_or_vector_def.num_elems - 1)
+               if (i != cnst->value.type->array_or_vector_def.num_elems - 1)
                   _mesa_string_buffer_append(d->buf, ",");
                _mesa_string_buffer_append(d->buf, " ");
             }

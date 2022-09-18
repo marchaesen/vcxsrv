@@ -90,7 +90,7 @@ int CallStack::update_max_depth(unsigned type)
    elements = (stack.loop + stack.push_wqm ) * entry_size;
    elements += stack.push;
 
-   switch (m_bc.chip_class) {
+   switch (m_bc.gfx_level) {
    case R600:
    case R700:
      /* pre-r8xx: if any non-WQM PUSH instruction is invoked, 2 elements on

@@ -26,8 +26,9 @@
 #ifndef _ANON_FILE_H_
 #define _ANON_FILE_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
-int os_create_anonymous_file(off_t size, const char *debug_name);
+/* On win32, off_t is only 32 bit, so always using 64 bit size */
+int os_create_anonymous_file(int64_t size, const char *debug_name);
 
 #endif

@@ -789,6 +789,9 @@ struct gl_texture_image
    /** Cube map face: index into gl_texture_object::Image[] array */
    GLuint Face;
 
+   unsigned FormatSwizzle;
+   unsigned FormatSwizzleGLSL130; //for depth formats
+
    /** GL_ARB_texture_multisample */
    GLuint NumSamples;            /**< Sample count, or 0 for non-multisample */
    GLboolean FixedSampleLocations; /**< Same sample locations for all pixels? */
@@ -876,6 +879,14 @@ struct gl_texture_object_attrib
    GLubyte NumLevels;          /**< GL_ARB_texture_view */
 };
 
+
+typedef enum
+{
+   WRAP_S = (1<<0),
+   WRAP_T = (1<<1),
+   WRAP_R = (1<<2),
+} gl_sampler_wrap;
+
 /**
  * Sampler object state.  These objects are new with GL_ARB_sampler_objects
  * and OpenGL 3.3.  Legacy texture objects also contain a sampler object.
@@ -888,11 +899,23 @@ struct gl_sampler_object
 
    struct gl_sampler_attrib Attrib;  /**< State saved by glPushAttrib */
 
+   uint8_t glclamp_mask; /**< mask of GL_CLAMP wraps active */
+
    /** GL_ARB_bindless_texture */
    bool HandleAllocated;
    struct util_dynarray Handles;
 };
 
+/**
+ * YUV color space that should be used to sample textures backed by YUV
+ * images.
+ */
+enum gl_texture_yuv_color_space
+{
+   GL_TEXTURE_YUV_COLOR_SPACE_REC601,
+   GL_TEXTURE_YUV_COLOR_SPACE_REC709,
+   GL_TEXTURE_YUV_COLOR_SPACE_REC2020,
+};
 
 /**
  * Texture object state.  Contains the array of mipmap images, border color,
@@ -917,8 +940,6 @@ struct gl_texture_object
    GLboolean _MipmapComplete;  /**< Is the whole mipmap valid? */
    GLboolean _IsIntegerFormat; /**< Does the texture store integer values? */
    GLboolean _RenderToTexture; /**< Any rendering to this texture? */
-   GLboolean Purgeable;        /**< Is the buffer purgeable under memory
-                                    pressure? */
    GLboolean Immutable;        /**< GL_ARB_texture_storage */
    GLboolean _IsFloat;         /**< GL_OES_float_texture */
    GLboolean _IsHalfFloat;     /**< GL_OES_half_float_texture */
@@ -960,6 +981,9 @@ struct gl_texture_object
    /* The texture must include at levels [0..lastLevel] once validated:
     */
    GLuint lastLevel;
+
+   unsigned Swizzle;
+   unsigned SwizzleGLSL130;
 
    unsigned int validated_first_level;
    unsigned int validated_last_level;
@@ -1008,6 +1032,12 @@ struct gl_texture_object
     * views and surfaces instead of pt->format.
     */
    enum pipe_format surface_format;
+
+   /* If surface_based is true and surface_format is a YUV format, these
+    * settings should be used to convert from YUV to RGB.
+    */
+   enum gl_texture_yuv_color_space yuv_color_space;
+   bool yuv_full_range;
 
    /* When non-negative, samplers should use this level instead of the level
     * range specified by the GL state.
@@ -1414,7 +1444,6 @@ struct gl_buffer_object
    GLubyte *Data;       /**< Location of storage either in RAM or VRAM. */
    GLboolean DeletePending;   /**< true if buffer object is removed from the hash */
    GLboolean Written;   /**< Ever written to? (for debugging) */
-   GLboolean Purgeable; /**< Is the buffer purgeable under memory pressure? */
    GLboolean Immutable; /**< GL_ARB_buffer_storage */
    gl_buffer_usage UsageHistory; /**< How has this buffer been used so far? */
 
@@ -1787,6 +1816,15 @@ struct gl_selection
    GLboolean HitFlag;	/**< hit flag */
    GLfloat HitMinZ;	/**< minimum hit depth */
    GLfloat HitMaxZ;	/**< maximum hit depth */
+
+   /* HW GL_SELECT */
+   void *SaveBuffer;        /**< array holds multi stack data */
+   GLuint SaveBufferTail;   /**< offset to SaveBuffer's tail */
+   GLuint SavedStackNum;    /**< number of saved stacks */
+
+   GLboolean ResultUsed;    /**< whether any draw used result buffer */
+   GLuint ResultOffset;     /**< offset into result buffer */
+   struct gl_buffer_object *Result; /**< result buffer */
 };
 
 
@@ -2258,6 +2296,7 @@ struct gl_ati_fragment_shader_state
 #define GLSL_DUMP_ON_ERROR 0x80 /**< Dump shaders to stderr on compile error */
 #define GLSL_CACHE_INFO 0x100 /**< Print debug information about shader cache */
 #define GLSL_CACHE_FALLBACK 0x200 /**< Force shader cache fallback paths */
+#define GLSL_SOURCE 0x400 /**< Only dump GLSL */
 
 
 /**
@@ -2395,7 +2434,6 @@ struct gl_shared_state
    bool DisplayListsAffectGLThread;
 
    struct _mesa_HashTable *DisplayList;	   /**< Display lists hash table */
-   struct _mesa_HashTable *BitmapAtlas;    /**< For optimized glBitmap text */
    struct _mesa_HashTable *TexObjects;	   /**< Texture objects hash table */
 
    /** Default texture objects (shared by all texture units) */
@@ -2525,7 +2563,6 @@ struct gl_renderbuffer
    GLint RefCount;
    GLuint Width, Height;
    GLuint Depth;
-   GLboolean Purgeable;  /**< Is the buffer purgeable under memory pressure? */
    GLboolean AttachedAnytime; /**< TRUE if it was attached to a framebuffer */
    GLubyte NumSamples;    /**< zero means not multisampled */
    GLubyte NumStorageSamples; /**< for AMD_framebuffer_multisample_advanced */
@@ -2691,7 +2728,7 @@ struct gl_framebuffer
    bool _HasAttachments;
 
    GLbitfield _IntegerBuffers;  /**< Which color buffers are integer valued */
-   GLbitfield _RGBBuffers;  /**< Which color buffers have baseformat == RGB */
+   GLbitfield _BlendForceAlphaToOne;  /**< Which color buffers need blend factor adjustment */
    GLbitfield _FP32Buffers; /**< Which color buffers are FP32 */
 
    /* ARB_color_buffer_float */
@@ -3044,6 +3081,8 @@ struct gl_semaphore_object
 {
    GLuint Name;            /**< hash table ID/name */
    struct pipe_fence_handle *fence;
+   enum pipe_fd_type type;
+   uint64_t timeline_value;
 };
 
 /**
@@ -3062,7 +3101,6 @@ struct gl_client_attrib_node
  * The VBO module implemented in src/vbo.
  */
 struct vbo_context {
-   struct gl_vertex_buffer_binding binding;
    struct gl_array_attributes current[VBO_ATTRIB_MAX];
 
    struct gl_vertex_array_object *VAO;
@@ -3247,6 +3285,11 @@ struct gl_context
     * display list).  Only valid functions between those two are set.
     */
    struct _glapi_table *BeginEnd;
+   /**
+    * Same as BeginEnd except vertex postion set functions. Used when
+    * HW GL_SELECT mode instead of BeginEnd.
+    */
+   struct _glapi_table *HWSelectModeBeginEnd;
    /**
     * Dispatch table for when a graphics reset has happened.
     */
@@ -3538,6 +3581,9 @@ struct gl_context
    GLboolean _NeedEyeCoords;
 
    GLuint TextureStateTimestamp; /**< detect changes to shared state */
+
+   GLboolean LastVertexStageDirty; /**< the last vertex stage has changed */
+   GLboolean PointSizeIsSet; /**< the glPointSize value in the shader is set */
 
    /** \name For debugging/development only */
    /*@{*/

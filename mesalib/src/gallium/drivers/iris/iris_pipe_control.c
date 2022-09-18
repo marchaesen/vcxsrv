@@ -184,25 +184,43 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
                              struct iris_bo *bo,
                              enum iris_domain access)
 {
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
+   const struct brw_compiler *compiler = batch->screen->compiler;
+
+   const bool access_via_l3 = iris_domain_is_l3_coherent(devinfo, access);
+
    const uint32_t all_flush_bits = (PIPE_CONTROL_CACHE_FLUSH_BITS |
                                     PIPE_CONTROL_STALL_AT_SCOREBOARD |
                                     PIPE_CONTROL_FLUSH_ENABLE);
    const uint32_t flush_bits[NUM_IRIS_DOMAINS] = {
       [IRIS_DOMAIN_RENDER_WRITE] = PIPE_CONTROL_RENDER_TARGET_FLUSH,
       [IRIS_DOMAIN_DEPTH_WRITE] = PIPE_CONTROL_DEPTH_CACHE_FLUSH,
-      [IRIS_DOMAIN_DATA_WRITE] = PIPE_CONTROL_DATA_CACHE_FLUSH,
-      [IRIS_DOMAIN_OTHER_WRITE] = PIPE_CONTROL_FLUSH_ENABLE,
+      [IRIS_DOMAIN_DATA_WRITE] = PIPE_CONTROL_FLUSH_HDC,
+      /* OTHER_WRITE includes "VF Cache Invalidate" to make sure that any
+       * stream output writes are finished.  CS stall is added implicitly.
+       */
+      [IRIS_DOMAIN_OTHER_WRITE] = PIPE_CONTROL_FLUSH_ENABLE | PIPE_CONTROL_VF_CACHE_INVALIDATE,
       [IRIS_DOMAIN_VF_READ] = PIPE_CONTROL_STALL_AT_SCOREBOARD,
+      [IRIS_DOMAIN_SAMPLER_READ] = PIPE_CONTROL_STALL_AT_SCOREBOARD,
+      [IRIS_DOMAIN_PULL_CONSTANT_READ] = PIPE_CONTROL_STALL_AT_SCOREBOARD,
       [IRIS_DOMAIN_OTHER_READ] = PIPE_CONTROL_STALL_AT_SCOREBOARD,
    };
    const uint32_t invalidate_bits[NUM_IRIS_DOMAINS] = {
       [IRIS_DOMAIN_RENDER_WRITE] = PIPE_CONTROL_RENDER_TARGET_FLUSH,
       [IRIS_DOMAIN_DEPTH_WRITE] = PIPE_CONTROL_DEPTH_CACHE_FLUSH,
-      [IRIS_DOMAIN_DATA_WRITE] = PIPE_CONTROL_DATA_CACHE_FLUSH,
+      [IRIS_DOMAIN_DATA_WRITE] = PIPE_CONTROL_FLUSH_HDC,
       [IRIS_DOMAIN_OTHER_WRITE] = PIPE_CONTROL_FLUSH_ENABLE,
       [IRIS_DOMAIN_VF_READ] = PIPE_CONTROL_VF_CACHE_INVALIDATE,
-      [IRIS_DOMAIN_OTHER_READ] = (PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE |
-                                  PIPE_CONTROL_CONST_CACHE_INVALIDATE),
+      [IRIS_DOMAIN_SAMPLER_READ] = PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE,
+      [IRIS_DOMAIN_PULL_CONSTANT_READ] = PIPE_CONTROL_CONST_CACHE_INVALIDATE |
+         (compiler->indirect_ubos_use_sampler ?
+          PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE :
+          PIPE_CONTROL_DATA_CACHE_FLUSH),
+   };
+   const uint32_t l3_flush_bits[NUM_IRIS_DOMAINS] = {
+      [IRIS_DOMAIN_RENDER_WRITE] = PIPE_CONTROL_TILE_CACHE_FLUSH,
+      [IRIS_DOMAIN_DEPTH_WRITE] = PIPE_CONTROL_TILE_CACHE_FLUSH,
+      [IRIS_DOMAIN_DATA_WRITE] = PIPE_CONTROL_DATA_CACHE_FLUSH,
    };
    uint32_t bits = 0;
 
@@ -212,6 +230,8 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
     */
    for (unsigned i = 0; i < IRIS_DOMAIN_OTHER_WRITE; i++) {
       assert(!iris_domain_is_read_only(i));
+      assert(iris_domain_is_l3_coherent(devinfo, i));
+
       if (i != access) {
          const uint64_t seqno = READ_ONCE(bo->last_seqnos[i]);
 
@@ -223,8 +243,19 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
          if (seqno > batch->coherent_seqnos[access][i]) {
             bits |= invalidate_bits[access];
 
-            if (seqno > batch->coherent_seqnos[i][i])
-               bits |= flush_bits[i];
+            if (access_via_l3) {
+               /* Both domains share L3.  If the most recent read/write access
+                * in domain `i' isn't visible to L3, then flush it to L3.
+                */
+               if (seqno > batch->l3_coherent_seqnos[i])
+                  bits |= flush_bits[i];
+            } else {
+               /* Domain `i` is L3 coherent but the specified domain is not.
+                * Flush both this cache and L3 out to memory.
+                */
+               if (seqno > batch->coherent_seqnos[i][i])
+                  bits |= flush_bits[i] | l3_flush_bits[i];
+            }
          }
       }
    }
@@ -239,10 +270,14 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
          assert(iris_domain_is_read_only(i));
          const uint64_t seqno = READ_ONCE(bo->last_seqnos[i]);
 
+         const uint64_t last_visible_seqno =
+            iris_domain_is_l3_coherent(devinfo, i) ?
+            batch->l3_coherent_seqnos[i] : batch->coherent_seqnos[i][i];
+
          /* Flush if the most recent access from this domain occurred
           * after its most recent flush.
           */
-         if (seqno > batch->coherent_seqnos[i][i])
+         if (seqno > last_visible_seqno)
             bits |= flush_bits[i];
       }
    }
@@ -255,6 +290,8 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
    const unsigned i = IRIS_DOMAIN_OTHER_WRITE;
    const uint64_t seqno = READ_ONCE(bo->last_seqnos[i]);
 
+   assert(!iris_domain_is_l3_coherent(devinfo, i));
+
    /* Invalidate unless the most recent read/write access from this
     * domain is already guaranteed to be visible to the specified
     * domain.  Flush if the most recent access from this domain
@@ -262,6 +299,14 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
     */
    if (seqno > batch->coherent_seqnos[access][i]) {
       bits |= invalidate_bits[access];
+
+      /* There is a non-L3-coherent write that isn't visible to the
+       * specified domain.  If the access is via L3, then it might see
+       * stale L3 data that was loaded before that write.  In this case,
+       * we try to invalidate all read-only sections of the L3 cache.
+       */
+      if (access_via_l3 && seqno > batch->l3_coherent_seqnos[i])
+         bits |= PIPE_CONTROL_L3_RO_INVALIDATE_BITS;
 
       if (seqno > batch->coherent_seqnos[i][i])
          bits |= flush_bits[i];

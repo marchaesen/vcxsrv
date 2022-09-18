@@ -299,6 +299,9 @@ st_update_rasterizer(struct st_context *st)
    raster->depth_clip_near = !ctx->Transform.DepthClampNear;
    raster->depth_clip_far = !ctx->Transform.DepthClampFar;
    raster->depth_clamp = !raster->depth_clip_far;
+   /* this should be different for GL vs GLES but without NV_depth_buffer_float
+      it doesn't matter, and likely virgl would need fixes to deal with it. */
+   raster->unclamped_fragment_depth_values = false;
    raster->clip_plane_enable = ctx->Transform.ClipPlanesEnabled;
    raster->clip_halfz = (ctx->Transform.ClipDepthMode == GL_ZERO_TO_ONE);
 

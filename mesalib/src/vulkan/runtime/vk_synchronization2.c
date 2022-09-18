@@ -40,36 +40,36 @@ vk_common_CmdWriteTimestamp(
    struct vk_device *device = cmd_buffer->base.device;
 
    device->dispatch_table.CmdWriteTimestamp2KHR(commandBuffer,
-                                                (VkPipelineStageFlags2KHR) pipelineStage,
+                                                (VkPipelineStageFlags2) pipelineStage,
                                                 queryPool,
                                                 query);
 }
 
-static VkMemoryBarrier2KHR
+static VkMemoryBarrier2
 upgrade_memory_barrier(const VkMemoryBarrier *barrier,
-                       VkPipelineStageFlags2KHR src_stage_mask2,
-                       VkPipelineStageFlags2KHR dst_stage_mask2)
+                       VkPipelineStageFlags2 src_stage_mask2,
+                       VkPipelineStageFlags2 dst_stage_mask2)
 {
-   return (VkMemoryBarrier2KHR) {
-      .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
+   return (VkMemoryBarrier2) {
+      .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
       .srcStageMask  = src_stage_mask2,
-      .srcAccessMask = (VkAccessFlags2KHR) barrier->srcAccessMask,
+      .srcAccessMask = (VkAccessFlags2) barrier->srcAccessMask,
       .dstStageMask  = dst_stage_mask2,
-      .dstAccessMask = (VkAccessFlags2KHR) barrier->dstAccessMask,
+      .dstAccessMask = (VkAccessFlags2) barrier->dstAccessMask,
    };
 }
 
-static VkBufferMemoryBarrier2KHR
+static VkBufferMemoryBarrier2
 upgrade_buffer_memory_barrier(const VkBufferMemoryBarrier *barrier,
-                              VkPipelineStageFlags2KHR src_stage_mask2,
-                              VkPipelineStageFlags2KHR dst_stage_mask2)
+                              VkPipelineStageFlags2 src_stage_mask2,
+                              VkPipelineStageFlags2 dst_stage_mask2)
 {
-   return (VkBufferMemoryBarrier2KHR) {
-      .sType                = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR,
+   return (VkBufferMemoryBarrier2) {
+      .sType                = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
       .srcStageMask         = src_stage_mask2,
-      .srcAccessMask        = (VkAccessFlags2KHR) barrier->srcAccessMask,
+      .srcAccessMask        = (VkAccessFlags2) barrier->srcAccessMask,
       .dstStageMask         = dst_stage_mask2,
-      .dstAccessMask        = (VkAccessFlags2KHR) barrier->dstAccessMask,
+      .dstAccessMask        = (VkAccessFlags2) barrier->dstAccessMask,
       .srcQueueFamilyIndex  = barrier->srcQueueFamilyIndex,
       .dstQueueFamilyIndex  = barrier->dstQueueFamilyIndex,
       .buffer               = barrier->buffer,
@@ -78,17 +78,17 @@ upgrade_buffer_memory_barrier(const VkBufferMemoryBarrier *barrier,
    };
 }
 
-static VkImageMemoryBarrier2KHR
+static VkImageMemoryBarrier2
 upgrade_image_memory_barrier(const VkImageMemoryBarrier *barrier,
-                             VkPipelineStageFlags2KHR src_stage_mask2,
-                             VkPipelineStageFlags2KHR dst_stage_mask2)
+                             VkPipelineStageFlags2 src_stage_mask2,
+                             VkPipelineStageFlags2 dst_stage_mask2)
 {
-   return (VkImageMemoryBarrier2KHR) {
-      .sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+   return (VkImageMemoryBarrier2) {
+      .sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
       .srcStageMask         = src_stage_mask2,
-      .srcAccessMask        = (VkAccessFlags2KHR) barrier->srcAccessMask,
+      .srcAccessMask        = (VkAccessFlags2) barrier->srcAccessMask,
       .dstStageMask         = dst_stage_mask2,
-      .dstAccessMask        = (VkAccessFlags2KHR) barrier->dstAccessMask,
+      .dstAccessMask        = (VkAccessFlags2) barrier->dstAccessMask,
       .oldLayout            = barrier->oldLayout,
       .newLayout            = barrier->newLayout,
       .srcQueueFamilyIndex  = barrier->srcQueueFamilyIndex,
@@ -114,12 +114,12 @@ vk_common_CmdPipelineBarrier(
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
    struct vk_device *device = cmd_buffer->base.device;
 
-   STACK_ARRAY(VkMemoryBarrier2KHR, memory_barriers, memoryBarrierCount);
-   STACK_ARRAY(VkBufferMemoryBarrier2KHR, buffer_barriers, bufferMemoryBarrierCount);
-   STACK_ARRAY(VkImageMemoryBarrier2KHR, image_barriers, imageMemoryBarrierCount);
+   STACK_ARRAY(VkMemoryBarrier2, memory_barriers, memoryBarrierCount);
+   STACK_ARRAY(VkBufferMemoryBarrier2, buffer_barriers, bufferMemoryBarrierCount);
+   STACK_ARRAY(VkImageMemoryBarrier2, image_barriers, imageMemoryBarrierCount);
 
-   VkPipelineStageFlags2KHR src_stage_mask2 = (VkPipelineStageFlags2KHR) srcStageMask;
-   VkPipelineStageFlags2KHR dst_stage_mask2 = (VkPipelineStageFlags2KHR) dstStageMask;
+   VkPipelineStageFlags2 src_stage_mask2 = (VkPipelineStageFlags2) srcStageMask;
+   VkPipelineStageFlags2 dst_stage_mask2 = (VkPipelineStageFlags2) dstStageMask;
 
    for (uint32_t i = 0; i < memoryBarrierCount; i++) {
       memory_barriers[i] = upgrade_memory_barrier(&pMemoryBarriers[i],
@@ -137,8 +137,8 @@ vk_common_CmdPipelineBarrier(
                                                        dst_stage_mask2);
    }
 
-   VkDependencyInfoKHR dep_info = {
-      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
+   VkDependencyInfo dep_info = {
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
       .memoryBarrierCount = memoryBarrierCount,
       .pMemoryBarriers = memory_barriers,
       .bufferMemoryBarrierCount = bufferMemoryBarrierCount,
@@ -163,13 +163,13 @@ vk_common_CmdSetEvent(
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
    struct vk_device *device = cmd_buffer->base.device;
 
-   VkMemoryBarrier2KHR mem_barrier = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
-      .srcStageMask = (VkPipelineStageFlags2KHR) stageMask,
-      .dstStageMask = (VkPipelineStageFlags2KHR) stageMask,
+   VkMemoryBarrier2 mem_barrier = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+      .srcStageMask = (VkPipelineStageFlags2) stageMask,
+      .dstStageMask = (VkPipelineStageFlags2) stageMask,
    };
-   VkDependencyInfoKHR dep_info = {
-      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
+   VkDependencyInfo dep_info = {
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
       .memoryBarrierCount = 1,
       .pMemoryBarriers = &mem_barrier,
    };
@@ -188,7 +188,7 @@ vk_common_CmdResetEvent(
 
    device->dispatch_table.CmdResetEvent2KHR(commandBuffer,
                                             event,
-                                            (VkPipelineStageFlags2KHR) stageMask);
+                                            (VkPipelineStageFlags2) stageMask);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -208,22 +208,22 @@ vk_common_CmdWaitEvents(
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
    struct vk_device *device = cmd_buffer->base.device;
 
-   STACK_ARRAY(VkDependencyInfoKHR, deps, eventCount);
+   STACK_ARRAY(VkDependencyInfo, deps, eventCount);
 
    /* Note that dstStageMask and srcStageMask in the CmdWaitEvent2() call
     * are the same.  This is to match the CmdSetEvent2() call from
     * vk_common_CmdSetEvent().  The actual src->dst stage barrier will
     * happen as part of the CmdPipelineBarrier() call below.
     */
-   VkMemoryBarrier2KHR stage_barrier = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
+   VkMemoryBarrier2 stage_barrier = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
       .srcStageMask = srcStageMask,
       .dstStageMask = srcStageMask,
    };
 
    for (uint32_t i = 0; i < eventCount; i++) {
-      deps[i] = (VkDependencyInfoKHR) {
-         .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
+      deps[i] = (VkDependencyInfo) {
+         .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
          .memoryBarrierCount = 1,
          .pMemoryBarriers = &stage_barrier,
       };
@@ -265,7 +265,7 @@ vk_common_CmdWriteBufferMarkerAMD(
    struct vk_device *device = cmd_buffer->base.device;
 
    device->dispatch_table.CmdWriteBufferMarker2AMD(commandBuffer,
-                                                   (VkPipelineStageFlags2KHR) pipelineStage,
+                                                   (VkPipelineStageFlags2) pipelineStage,
                                                    dstBuffer,
                                                    dstOffset,
                                                    marker);
@@ -290,7 +290,7 @@ vk_common_QueueSubmit(
    VK_FROM_HANDLE(vk_queue, queue, _queue);
    struct vk_device *device = queue->base.device;
 
-   STACK_ARRAY(VkSubmitInfo2KHR, submit_info_2, submitCount);
+   STACK_ARRAY(VkSubmitInfo2, submit_info_2, submitCount);
    STACK_ARRAY(VkPerformanceQuerySubmitInfoKHR, perf_query_submit_info, submitCount);
    STACK_ARRAY(struct wsi_memory_signal_submit_info, wsi_mem_submit_info, submitCount);
 
@@ -303,18 +303,18 @@ vk_common_QueueSubmit(
       n_signal_semaphores += pSubmits[s].signalSemaphoreCount;
    }
 
-   STACK_ARRAY(VkSemaphoreSubmitInfoKHR, wait_semaphores, n_wait_semaphores);
-   STACK_ARRAY(VkCommandBufferSubmitInfoKHR, command_buffers, n_command_buffers);
-   STACK_ARRAY(VkSemaphoreSubmitInfoKHR, signal_semaphores, n_signal_semaphores);
+   STACK_ARRAY(VkSemaphoreSubmitInfo, wait_semaphores, n_wait_semaphores);
+   STACK_ARRAY(VkCommandBufferSubmitInfo, command_buffers, n_command_buffers);
+   STACK_ARRAY(VkSemaphoreSubmitInfo, signal_semaphores, n_signal_semaphores);
 
    n_wait_semaphores = 0;
    n_command_buffers = 0;
    n_signal_semaphores = 0;
 
    for (uint32_t s = 0; s < submitCount; s++) {
-      const VkTimelineSemaphoreSubmitInfoKHR *timeline_info =
+      const VkTimelineSemaphoreSubmitInfo *timeline_info =
          vk_find_struct_const(pSubmits[s].pNext,
-                              TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR);
+                              TIMELINE_SEMAPHORE_SUBMIT_INFO);
       const uint64_t *wait_values = NULL;
       const uint64_t *signal_values = NULL;
 
@@ -350,8 +350,8 @@ vk_common_QueueSubmit(
          vk_find_struct_const(pSubmits[s].pNext, DEVICE_GROUP_SUBMIT_INFO);
 
       for (uint32_t i = 0; i < pSubmits[s].waitSemaphoreCount; i++) {
-         wait_semaphores[n_wait_semaphores + i] = (VkSemaphoreSubmitInfoKHR) {
-            .sType       = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+         wait_semaphores[n_wait_semaphores + i] = (VkSemaphoreSubmitInfo) {
+            .sType       = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .semaphore   = pSubmits[s].pWaitSemaphores[i],
             .value       = wait_values ? wait_values[i] : 0,
             .stageMask   = pSubmits[s].pWaitDstStageMask[i],
@@ -359,18 +359,18 @@ vk_common_QueueSubmit(
          };
       }
       for (uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++) {
-         command_buffers[n_command_buffers + i] = (VkCommandBufferSubmitInfoKHR) {
-            .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
+         command_buffers[n_command_buffers + i] = (VkCommandBufferSubmitInfo) {
+            .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
             .commandBuffer = pSubmits[s].pCommandBuffers[i],
             .deviceMask    = group_info ? group_info->pCommandBufferDeviceMasks[i] : 0,
          };
       }
       for (uint32_t i = 0; i < pSubmits[s].signalSemaphoreCount; i++) {
-         signal_semaphores[n_signal_semaphores + i] = (VkSemaphoreSubmitInfoKHR) {
-            .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+         signal_semaphores[n_signal_semaphores + i] = (VkSemaphoreSubmitInfo) {
+            .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .semaphore = pSubmits[s].pSignalSemaphores[i],
             .value     = signal_values ? signal_values[i] : 0,
-            .stageMask = 0,
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .deviceIndex = group_info ? group_info->pSignalSemaphoreDeviceIndices[i] : 0,
          };
       }
@@ -378,10 +378,10 @@ vk_common_QueueSubmit(
       const VkProtectedSubmitInfo *protected_info =
          vk_find_struct_const(pSubmits[s].pNext, PROTECTED_SUBMIT_INFO);
 
-      submit_info_2[s] = (VkSubmitInfo2KHR) {
-         .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
+      submit_info_2[s] = (VkSubmitInfo2) {
+         .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
          .flags                    = ((protected_info && protected_info->protectedSubmit) ?
-                                      VK_SUBMIT_PROTECTED_BIT_KHR : 0),
+                                      VK_SUBMIT_PROTECTED_BIT : 0),
          .waitSemaphoreInfoCount   = pSubmits[s].waitSemaphoreCount,
          .pWaitSemaphoreInfos      = &wait_semaphores[n_wait_semaphores],
          .commandBufferInfoCount   = pSubmits[s].commandBufferCount,

@@ -209,7 +209,7 @@ xkb_symbols "phonetic" {
 partial alphanumeric_keys
 xkb_symbols "biblical" {
 	name[Group1]= "Hebrew (Biblical, Tiro)";
-	key.type = "FOUR_LEVEL_SEMIALPHABETIC";
+	key.type[Group1] = "FOUR_LEVEL_SEMIALPHABETIC";
 
 	key <TLDE> { [ U05C3, U05AE, semicolon, asciitilde ] };
 	key <AE01> { [ 1,     U05A9, VoidSymbol, exclam ] };
@@ -277,7 +277,7 @@ xkb_symbols "biblical" {
 partial alphanumeric_keys
 xkb_symbols "biblicalSIL" {
 	name[Group1]= "Hebrew (Biblical, SIL phonetic)";
-	key.type = "FOUR_LEVEL_SEMIALPHABETIC";
+	key.type[Group1] = "FOUR_LEVEL_SEMIALPHABETIC";
 
 	key <TLDE> { [ U20AC,		U20AA,		U0024 ] }; 			//Euro, 		Shekel, 		Dollar		-
 	key <AE01> { [ 1,		U0021,		U05BD,		U0597 ] };		//1,			exclamation	meteg		revia
@@ -288,8 +288,8 @@ xkb_symbols "biblicalSIL" {
 	key <AE06> { [ 6,		VoidSymbol,	U05AD,		U059F ] };		//6,			-			dehi			qar. para
 	key <AE07> { [ 7,		U05AC,		U05A3,		U05A1 ] };		//7,			iluy			munah		pazer
 	key <AE08> { [ 8,		U059D,		U059B,		U0595 ] };		//8,			g. muqdam	tevir			zaq. gadol
-	key <AE09> { [ 9,		U0029,		U05A7,		U0593 ] };		//9,			parenth.R		darqa		shalshelet
-	key <AE10> { [ 0,		U0028,		U05AA,		U05AF ] };		//0,			paren.L		yer. ben yomo	masora c.
+	key <AE09> { [ 9,	   parenright,		U05A7,		U0593 ] };		//9,			parenth.R		darqa		shalshelet
+	key <AE10> { [ 0,	    parenleft,		U05AA,		U05AF ] };		//0,			parenth.L		yer. ben yomo	masora c.
 	key <AE11> { [ U05BE,		U2013,		U2014,		U05BF ] };	//Maqaf, 		en dash		em dash		rafe
 	key <AE12> { [ U05BC,		VoidSymbol,	U0591,		U25CC ] };	//Dagesh		-			etnahta		mark base
 
@@ -326,8 +326,8 @@ xkb_symbols "biblicalSIL" {
 	key <AB05> { [ hebrew_bet ] };									//bet			-			-
 	key <AB06> { [ hebrew_nun,	hebrew_finalnun ] }; 					//nun, 		final nun
 	key <AB07> { [ hebrew_mem,	hebrew_finalmem, U200C,		U200D ] };	//mem, 		final mem		0.wid.non.join.	0.wid.joiner
-	key <AB08> { [ U002C,		U05E2, 		U00AB,		U0307 ] }; //comma, 	ayin			guillemetsR	masora dot
-	key <AB09> { [ U0002E,		U05D0, 		U00BB,		U0308 ] }; //period, 		alef			guillemetsL	thousands
+	key <AB08> { [ comma,		U05E2,		guillemotleft,	U0307 ] };	//comma,	ayin			guillemetR	masora dot
+	key <AB09> { [ period,		U05D0,		guillemotright,	U0308 ] };	//period,	alef			guillemetL	thousands
 	key <AB10> { [ slash,		question,	U05F3 ] };					//slash		question		geresh P
 
 	key <SPCE> { [ space, 		space,		thinspace,	nobreakspace ] };//space		space			thin space,		nbsp

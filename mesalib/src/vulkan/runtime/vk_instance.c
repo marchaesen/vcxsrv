@@ -23,12 +23,17 @@
 
 #include "vk_instance.h"
 
+#ifdef HAVE_LIBDRM
+#include <xf86drm.h>
+#endif
+
 #include "vk_alloc.h"
 #include "vk_common_entrypoints.h"
 #include "vk_dispatch_trampolines.h"
 #include "vk_log.h"
 #include "vk_util.h"
 #include "vk_debug_utils.h"
+#include "vk_physical_device.h"
 
 #include "compiler/glsl_types.h"
 
@@ -176,14 +181,34 @@ vk_instance_init(struct vk_instance *instance,
 
    list_inithead(&instance->debug_utils.callbacks);
 
+   list_inithead(&instance->physical_devices.list);
+
+   if (mtx_init(&instance->physical_devices.mutex, mtx_plain) != 0) {
+      mtx_destroy(&instance->debug_report.callbacks_mutex);
+      mtx_destroy(&instance->debug_utils.callbacks_mutex);
+      return vk_error(instance, VK_ERROR_INITIALIZATION_FAILED);
+   }
+
    glsl_type_singleton_init_or_ref();
 
    return VK_SUCCESS;
 }
 
+static void
+destroy_physical_devices(struct vk_instance *instance)
+{
+   list_for_each_entry_safe(struct vk_physical_device, pdevice,
+                            &instance->physical_devices.list, link) {
+      list_del(&pdevice->link);
+      instance->physical_devices.destroy(pdevice);
+   }
+}
+
 void
 vk_instance_finish(struct vk_instance *instance)
 {
+   destroy_physical_devices(instance);
+
    glsl_type_singleton_decref();
    if (unlikely(!list_is_empty(&instance->debug_utils.callbacks))) {
       list_for_each_entry_safe(struct vk_debug_utils_messenger, messenger,
@@ -204,6 +229,7 @@ vk_instance_finish(struct vk_instance *instance)
    }
    mtx_destroy(&instance->debug_report.callbacks_mutex);
    mtx_destroy(&instance->debug_utils.callbacks_mutex);
+   mtx_destroy(&instance->physical_devices.mutex);
    vk_free(&instance->alloc, (char *)instance->app_info.app_name);
    vk_free(&instance->alloc, (char *)instance->app_info.engine_name);
    vk_object_base_finish(&instance->base);
@@ -328,4 +354,120 @@ vk_instance_get_physical_device_proc_addr(const struct vk_instance *instance,
                                                              name,
                                                              instance->app_info.api_version,
                                                              &instance->enabled_extensions);
+}
+
+static VkResult
+enumerate_drm_physical_devices_locked(struct vk_instance *instance)
+{
+#ifdef HAVE_LIBDRM
+   /* TODO: Check for more devices ? */
+   drmDevicePtr devices[8];
+   int max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
+
+   if (max_devices < 1)
+      return VK_SUCCESS;
+
+   VkResult result;
+   for (uint32_t i = 0; i < (uint32_t)max_devices; i++) {
+      struct vk_physical_device *pdevice;
+      result = instance->physical_devices.try_create_for_drm(instance, devices[i], &pdevice);
+
+      /* Incompatible DRM device, skip. */
+      if (result == VK_ERROR_INCOMPATIBLE_DRIVER) {
+         result = VK_SUCCESS;
+         continue;
+      }
+
+      /* Error creating the physical device, report the error. */
+      if (result != VK_SUCCESS)
+         break;
+
+      list_addtail(&pdevice->link, &instance->physical_devices.list);
+   }
+
+   drmFreeDevices(devices, max_devices);
+   return result;
+#endif
+   return VK_SUCCESS;
+}
+
+static VkResult
+enumerate_physical_devices_locked(struct vk_instance *instance)
+{
+   if (instance->physical_devices.enumerate)
+      return instance->physical_devices.enumerate(instance);
+
+   VkResult result = VK_SUCCESS;
+
+   if (instance->physical_devices.try_create_for_drm) {
+      result = enumerate_drm_physical_devices_locked(instance);
+      if (result != VK_SUCCESS) {
+         destroy_physical_devices(instance);
+         return result;
+      }
+   }
+
+   return result;
+}
+
+static VkResult
+enumerate_physical_devices(struct vk_instance *instance)
+{
+   VkResult result = VK_SUCCESS;
+
+   mtx_lock(&instance->physical_devices.mutex);
+   if (!instance->physical_devices.enumerated) {
+      result = enumerate_physical_devices_locked(instance);
+      if (result == VK_SUCCESS)
+         instance->physical_devices.enumerated = true;
+   }
+   mtx_unlock(&instance->physical_devices.mutex);
+
+   return result;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_EnumeratePhysicalDevices(VkInstance _instance, uint32_t *pPhysicalDeviceCount,
+                                   VkPhysicalDevice *pPhysicalDevices)
+{
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
+   VK_OUTARRAY_MAKE_TYPED(VkPhysicalDevice, out, pPhysicalDevices, pPhysicalDeviceCount);
+
+   VkResult result = enumerate_physical_devices(instance);
+   if (result != VK_SUCCESS)
+      return result;
+
+   list_for_each_entry(struct vk_physical_device, pdevice,
+                       &instance->physical_devices.list, link) {
+      vk_outarray_append_typed(VkPhysicalDevice, &out, element) {
+         *element = vk_physical_device_to_handle(pdevice);
+      }
+   }
+
+   return vk_outarray_status(&out);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_EnumeratePhysicalDeviceGroups(VkInstance _instance, uint32_t *pGroupCount,
+                                        VkPhysicalDeviceGroupProperties *pGroupProperties)
+{
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
+   VK_OUTARRAY_MAKE_TYPED(VkPhysicalDeviceGroupProperties, out, pGroupProperties,
+                          pGroupCount);
+
+   VkResult result = enumerate_physical_devices(instance);
+   if (result != VK_SUCCESS)
+      return result;
+
+   list_for_each_entry(struct vk_physical_device, pdevice,
+                       &instance->physical_devices.list, link) {
+      vk_outarray_append_typed(VkPhysicalDeviceGroupProperties, &out, p) {
+         p->physicalDeviceCount = 1;
+         memset(p->physicalDevices, 0, sizeof(p->physicalDevices));
+         p->physicalDevices[0] = vk_physical_device_to_handle(pdevice);
+         p->subsetAllocation = false;
+      }
+   }
+
+   return vk_outarray_status(&out);
 }

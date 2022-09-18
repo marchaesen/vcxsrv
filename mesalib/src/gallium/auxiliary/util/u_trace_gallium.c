@@ -29,7 +29,7 @@
 
 #include "u_tracepoints.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -76,7 +76,7 @@ u_trace_pipe_context_init(struct u_trace_context *utctx,
 inline void
 trace_framebuffer_state(struct u_trace *ut, void *cs, const struct pipe_framebuffer_state *pfb)
 {
-   if (likely(!ut->enabled))
+   if (likely(!u_trace_instrument()))
       return;
 
    trace_framebuffer(ut, cs, pfb);
@@ -91,6 +91,6 @@ trace_framebuffer_state(struct u_trace *ut, void *cs, const struct pipe_framebuf
    }
 }
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif

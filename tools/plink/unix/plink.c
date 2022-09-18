@@ -322,7 +322,12 @@ static BinarySink *stdout_bs, *stderr_bs;
 
 static enum { EOF_NO, EOF_PENDING, EOF_SENT } outgoingeof;
 
-size_t try_output(bool is_stderr)
+static size_t output_backlog(void)
+{
+    return bufchain_size(&stdout_data) + bufchain_size(&stderr_data);
+}
+
+void try_output(bool is_stderr)
 {
     bufchain *chain = (is_stderr ? &stderr_data : &stdout_data);
     int fd = (is_stderr ? STDERR_FILENO : STDOUT_FILENO);
@@ -343,12 +348,13 @@ size_t try_output(bool is_stderr)
             perror(is_stderr ? "stderr: write" : "stdout: write");
             exit(1);
         }
+
+        backend_unthrottle(backend, output_backlog());
     }
     if (outgoingeof == EOF_PENDING && bufchain_size(&stdout_data) == 0) {
         close(STDOUT_FILENO);
         outgoingeof = EOF_SENT;
     }
-    return bufchain_size(&stdout_data) + bufchain_size(&stderr_data);
 }
 
 static size_t plink_output(
@@ -360,7 +366,8 @@ static size_t plink_output(
     BinarySink *bs = is_stderr ? stderr_bs : stdout_bs;
     put_data(bs, data, len);
 
-    return try_output(is_stderr);
+    try_output(is_stderr);
+    return output_backlog();
 }
 
 static bool plink_eof(Seat *seat)
@@ -373,8 +380,13 @@ static bool plink_eof(Seat *seat)
 
 static SeatPromptResult plink_get_userpass_input(Seat *seat, prompts_t *p)
 {
+    /* Plink doesn't support Restart Session, so we can just have a
+     * single static cmdline_get_passwd_input_state that's never reset */
+    static cmdline_get_passwd_input_state cmdline_state =
+        CMDLINE_GET_PASSWD_INPUT_STATE_INIT;
+
     SeatPromptResult spr;
-    spr = cmdline_get_passwd_input(p);
+    spr = cmdline_get_passwd_input(p, &cmdline_state, false);
     if (spr.kind == SPRK_INCOMPLETE)
         spr = console_get_userpass_input(p);
     return spr;
@@ -397,12 +409,14 @@ static const SeatVtable plink_seat_vt = {
     .notify_remote_exit = nullseat_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = console_connection_fatal,
+    .nonfatal = console_nonfatal,
     .update_specials_menu = nullseat_update_specials_menu,
     .get_ttymode = plink_get_ttymode,
     .set_busy_status = nullseat_set_busy_status,
     .confirm_ssh_host_key = console_confirm_ssh_host_key,
     .confirm_weak_crypto_primitive = console_confirm_weak_crypto_primitive,
     .confirm_weak_cached_hostkey = console_confirm_weak_cached_hostkey,
+    .prompt_descriptions = console_prompt_descriptions,
     .is_utf8 = nullseat_is_never_utf8,
     .echoedit_update = plink_echoedit_update,
     .get_x_display = nullseat_get_x_display,
@@ -429,57 +443,57 @@ static void from_tty(void *vbuf, unsigned len)
     p = buf; end = buf + len;
     while (p < end) {
         switch (state) {
-            case NORMAL:
-                if (*p == '\xff') {
-                    p++;
-                    state = FF;
-                } else {
-                    q = memchr(p, '\xff', end - p);
-                    if (q == NULL) q = end;
-                    backend_send(backend, p, q - p);
-                    p = q;
-                }
-                break;
-            case FF:
-                if (*p == '\xff') {
-                    backend_send(backend, p, 1);
-                    p++;
-                    state = NORMAL;
-                } else if (*p == '\0') {
-                    p++;
-                    state = FF00;
-                } else abort();
-                break;
-            case FF00:
-                if (*p == '\0') {
-                    backend_special(backend, SS_BRK, 0);
-                } else {
-                    /*
-                     * Pretend that PARMRK wasn't set.  This involves
-                     * faking what INPCK and IGNPAR would have done if
-                     * we hadn't overridden them.  Unfortunately, we
-                     * can't do this entirely correctly because INPCK
-                     * distinguishes between framing and parity
-                     * errors, but PARMRK format represents both in
-                     * the same way.  We assume that parity errors are
-                     * more common than framing errors, and hence
-                     * treat all input errors as being subject to
-                     * INPCK.
-                     */
-                    if (orig_termios.c_iflag & INPCK) {
-                        /* If IGNPAR is set, we throw away the character. */
-                        if (!(orig_termios.c_iflag & IGNPAR)) {
-                            /* PE/FE get passed on as NUL. */
-                            *p = 0;
-                            backend_send(backend, p, 1);
-                        }
-                    } else {
-                        /* INPCK not set.  Assume we got a parity error. */
-                        backend_send(backend, p, 1);
-                    }
-                }
+          case NORMAL:
+            if (*p == '\xff') {
+                p++;
+                state = FF;
+            } else {
+                q = memchr(p, '\xff', end - p);
+                if (q == NULL) q = end;
+                backend_send(backend, p, q - p);
+                p = q;
+            }
+            break;
+          case FF:
+            if (*p == '\xff') {
+                backend_send(backend, p, 1);
                 p++;
                 state = NORMAL;
+            } else if (*p == '\0') {
+                p++;
+                state = FF00;
+            } else abort();
+            break;
+          case FF00:
+            if (*p == '\0') {
+                backend_special(backend, SS_BRK, 0);
+            } else {
+                /*
+                 * Pretend that PARMRK wasn't set.  This involves
+                 * faking what INPCK and IGNPAR would have done if
+                 * we hadn't overridden them.  Unfortunately, we
+                 * can't do this entirely correctly because INPCK
+                 * distinguishes between framing and parity
+                 * errors, but PARMRK format represents both in
+                 * the same way.  We assume that parity errors are
+                 * more common than framing errors, and hence
+                 * treat all input errors as being subject to
+                 * INPCK.
+                 */
+                if (orig_termios.c_iflag & INPCK) {
+                    /* If IGNPAR is set, we throw away the character. */
+                    if (!(orig_termios.c_iflag & IGNPAR)) {
+                        /* PE/FE get passed on as NUL. */
+                        *p = 0;
+                        backend_send(backend, p, 1);
+                    }
+                } else {
+                    /* INPCK not set.  Assume we got a parity error. */
+                    backend_send(backend, p, 1);
+                }
+            }
+            p++;
+            state = NORMAL;
         }
     }
 }
@@ -644,13 +658,11 @@ static void plink_pw_check(void *vctx, pollwrapper *pw)
         }
     }
 
-    if (pollwrap_check_fd_rwx(pw, STDOUT_FILENO, SELECT_W)) {
-        backend_unthrottle(backend, try_output(false));
-    }
+    if (pollwrap_check_fd_rwx(pw, STDOUT_FILENO, SELECT_W))
+        try_output(false);
 
-    if (pollwrap_check_fd_rwx(pw, STDERR_FILENO, SELECT_W)) {
-        backend_unthrottle(backend, try_output(true));
-    }
+    if (pollwrap_check_fd_rwx(pw, STDERR_FILENO, SELECT_W))
+        try_output(true);
 }
 
 static bool plink_continue(void *vctx, bool found_any_fd,

@@ -2,7 +2,7 @@
   extends:
     - .build-windows
     - .use-windows_test_vs2019
-    - .windows-test-rules
+    - .glon12-test-rules
   stage: layered-backends
   dependencies:
     - windows-vs2019
@@ -12,6 +12,7 @@
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
     GALLIUM_DRIVER: d3d12
+    WGL_DISABLE_ERROR_DIALOGS: "true"
 
 .d3d12-test-piglit:
   extends:
@@ -31,7 +32,7 @@ test-d3d12-quick_gl:
   variables:
     PIGLIT_PROFILE: quick_gl
     PIGLIT_RESULTS: "d3d12-quick_gl"
-    PIGLIT_TESTS: -x nv_copy_depth_to_color -x glsl-1.30.execution.tex-miplevel-selection -x arb_timer_query.timestamp-get
+    PIGLIT_TESTS: -x nv_copy_depth_to_color -x glsl-1.30.execution.tex-miplevel-selection -x arb_timer_query.timestamp-get -x max-size -x query.gl_timestamp -x query.time-elapsed -x tes-gs-max-output
 
 test-d3d12-quick_shader:
   extends:

@@ -33,13 +33,13 @@ XkbNoteNameChanges \- Note the changed names in a changes structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- old
+.I old
 XkbNameChanges structure to be updated
 .TP
-.I \- new
+.I new
 event from which changes are to be copied
 .TP
-.I \- wanted
+.I wanted
 types of names for which changes are to be noted
 .SH DESCRIPTION
 .LP

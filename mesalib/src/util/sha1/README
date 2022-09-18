@@ -25,7 +25,7 @@ http://cvsweb.openbsd.org/cgi-bin/cvsweb/~checkout~/src/include/sha1.h?rev=HEAD
 Notes:
  - The files should not have any local changes. If there are any they should be
 clearly documented below and one should aim to upstream them where possible.
- 
+
  - Files will be periodically syncronised with the respective upstream sources.
 Updates will be made regularly, but since the code is _not_ aimed as a
 cryptography solution any issues found should not be considered security ones.

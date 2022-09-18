@@ -38,7 +38,6 @@
 
 #include "frontend/sw_winsys.h"
 
-#include <directx/d3d12.h>
 #include <dxguids/dxguids.h>
 #include <memory>
 
@@ -67,6 +66,21 @@ d3d12_resource_destroy(struct pipe_screen *pscreen,
                        struct pipe_resource *presource)
 {
    struct d3d12_resource *resource = d3d12_resource(presource);
+
+   // When instanciating a planar d3d12_resource, the same resource->dt pointer
+   // is copied to all their planes linked list resources
+   // Different instances of objects like d3d12_surface, can be pointing
+   // to different planes of the same overall (ie. NV12) planar d3d12_resource
+   // sharing the same dt, so keep a refcount when destroying them
+   // and only destroy it on the last plane being destroyed
+   if (resource->dt_refcount > 0)
+      resource->dt_refcount--;
+   if ((resource->dt_refcount == 0) && resource->dt)
+   {
+      struct d3d12_screen *screen = d3d12_screen(pscreen);
+      screen->winsys->displaytarget_destroy(screen->winsys, resource->dt);
+   }
+
    threaded_resource_deinit(presource);
    if (can_map_directly(presource))
       util_range_destroy(&resource->valid_buffer_range);
@@ -80,11 +94,14 @@ resource_is_busy(struct d3d12_context *ctx,
                  struct d3d12_resource *res,
                  bool want_to_write)
 {
+   if (d3d12_batch_has_references(d3d12_current_batch(ctx), res->bo, want_to_write))
+      return true;
+
    bool busy = false;
-
-   for (unsigned i = 0; i < ARRAY_SIZE(ctx->batches); i++)
-      busy |= d3d12_batch_has_references(&ctx->batches[i], res->bo, want_to_write);
-
+   d3d12_foreach_submitted_batch(ctx, batch) {
+      if (!d3d12_reset_batch(ctx, batch, 0))
+         busy |= d3d12_batch_has_references(batch, res->bo, want_to_write);
+   }
    return busy;
 }
 
@@ -97,11 +114,8 @@ d3d12_resource_wait_idle(struct d3d12_context *ctx,
       d3d12_flush_cmdlist_and_wait(ctx);
    } else {
       d3d12_foreach_submitted_batch(ctx, batch) {
-         if (d3d12_batch_has_references(batch, res->bo, want_to_write)) {
+         if (d3d12_batch_has_references(batch, res->bo, want_to_write))
             d3d12_reset_batch(ctx, batch, PIPE_TIMEOUT_INFINITE);
-            if (!resource_is_busy(ctx, res, want_to_write))
-               break;
-         }
       }
    }
 }
@@ -160,7 +174,7 @@ init_buffer(struct d3d12_screen *screen,
    buf = bufmgr->create_buffer(bufmgr, templ->width0, &buf_desc);
    if (!buf)
       return false;
-   res->bo = d3d12_bo_wrap_buffer(buf);
+   res->bo = d3d12_bo_wrap_buffer(screen, buf);
 
    return true;
 }
@@ -168,7 +182,9 @@ init_buffer(struct d3d12_screen *screen,
 static bool
 init_texture(struct d3d12_screen *screen,
              struct d3d12_resource *res,
-             const struct pipe_resource *templ)
+             const struct pipe_resource *templ,
+             ID3D12Heap *heap,
+             uint64_t placed_offset)
 {
    ID3D12Resource *d3d12_res;
 
@@ -184,9 +200,18 @@ init_texture(struct d3d12_screen *screen,
    desc.MipLevels = templ->last_level + 1;
 
    desc.SampleDesc.Count = MAX2(templ->nr_samples, 1);
-   desc.SampleDesc.Quality = 0; /* TODO: figure this one out */
+   desc.SampleDesc.Quality = 0;
+
+   desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+   desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 
    switch (templ->target) {
+   case PIPE_BUFFER:
+      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      break;
+
    case PIPE_TEXTURE_1D:
    case PIPE_TEXTURE_1D_ARRAY:
       desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
@@ -210,8 +235,6 @@ init_texture(struct d3d12_screen *screen,
    default:
       unreachable("Invalid texture type");
    }
-
-   desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
    if (templ->bind & PIPE_BIND_SHADER_BUFFER)
       desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -242,19 +265,35 @@ init_texture(struct d3d12_screen *screen,
       }
    }
 
-   desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-   if (templ->bind & (PIPE_BIND_SCANOUT |
-                      PIPE_BIND_SHARED | PIPE_BIND_LINEAR))
+   if (templ->bind & (PIPE_BIND_SCANOUT | PIPE_BIND_LINEAR))
       desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-   D3D12_HEAP_PROPERTIES heap_pris = screen->dev->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_DEFAULT);
+   HRESULT hres = E_FAIL;
+   enum d3d12_residency_status init_residency;
 
-   HRESULT hres = screen->dev->CreateCommittedResource(&heap_pris,
-                                                   D3D12_HEAP_FLAG_NONE,
-                                                   &desc,
-                                                   D3D12_RESOURCE_STATE_COMMON,
-                                                   NULL,
-                                                   IID_PPV_ARGS(&d3d12_res));
+   if (heap) {
+      init_residency = d3d12_permanently_resident;
+      hres = screen->dev->CreatePlacedResource(heap,
+                                               placed_offset,
+                                               &desc,
+                                               D3D12_RESOURCE_STATE_COMMON,
+                                               nullptr,
+                                               IID_PPV_ARGS(&d3d12_res));
+   } else {
+      D3D12_HEAP_PROPERTIES heap_pris = GetCustomHeapProperties(screen->dev, D3D12_HEAP_TYPE_DEFAULT);
+
+      D3D12_HEAP_FLAGS heap_flags = screen->support_create_not_resident ?
+         D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT : D3D12_HEAP_FLAG_NONE;
+      init_residency = screen->support_create_not_resident ? d3d12_evicted : d3d12_resident;
+
+      hres = screen->dev->CreateCommittedResource(&heap_pris,
+                                                  heap_flags,
+                                                  &desc,
+                                                  D3D12_RESOURCE_STATE_COMMON,
+                                                  NULL,
+                                                  IID_PPV_ARGS(&d3d12_res));
+   }
+
    if (FAILED(hres))
       return false;
 
@@ -267,9 +306,10 @@ init_texture(struct d3d12_screen *screen,
                                              templ->height0,
                                              64, NULL,
                                              &res->dt_stride);
+      res->dt_refcount = 1;
    }
 
-   res->bo = d3d12_bo_wrap_res(d3d12_res, templ->format);
+   res->bo = d3d12_bo_wrap_res(screen, d3d12_res, init_residency);
 
    return true;
 }
@@ -290,21 +330,23 @@ convert_planar_resource(struct d3d12_resource *res)
       if (!plane_res) {
          plane_res = CALLOC_STRUCT(d3d12_resource);
          *plane_res = *res;
+         plane_res->dt_refcount = num_planes;
          d3d12_bo_reference(plane_res->bo);
          pipe_reference_init(&plane_res->base.b.reference, 1);
-         threaded_resource_init(&plane_res->base.b, false, 0);
+         threaded_resource_init(&plane_res->base.b, false);
       }
 
       plane_res->base.b.next = next;
       next = &plane_res->base.b;
 
+      plane_res->plane_slice = plane;
       plane_res->base.b.format = util_format_get_plane_format(res->base.b.format, plane);
       plane_res->base.b.width0 = util_format_get_plane_width(res->base.b.format, plane, res->base.b.width0);
       plane_res->base.b.height0 = util_format_get_plane_height(res->base.b.format, plane, res->base.b.height0);
 
 #if DEBUG
       struct d3d12_screen *screen = d3d12_screen(res->base.b.screen);
-      D3D12_RESOURCE_DESC desc = res->bo->res->GetDesc();
+      D3D12_RESOURCE_DESC desc = GetDesc(res->bo->res);
       D3D12_PLACED_SUBRESOURCE_FOOTPRINT placed_footprint = {};
       D3D12_SUBRESOURCE_FOOTPRINT *footprint = &placed_footprint.Footprint;
       unsigned subresource = plane * desc.MipLevels * desc.DepthOrArraySize;
@@ -312,20 +354,25 @@ convert_planar_resource(struct d3d12_resource *res)
       assert(plane_res->base.b.width0 == footprint->Width);
       assert(plane_res->base.b.height0 == footprint->Height);
       assert(plane_res->base.b.depth0 == footprint->Depth);
+      assert(plane_res->first_plane == &res->base.b);
 #endif
    }
 }
 
 static struct pipe_resource *
-d3d12_resource_create(struct pipe_screen *pscreen,
-                      const struct pipe_resource *templ)
+d3d12_resource_create_or_place(struct d3d12_screen *screen,
+                               struct d3d12_resource *res,
+                               const struct pipe_resource *templ,
+                               ID3D12Heap *heap,
+                               uint64_t placed_offset)
 {
-   struct d3d12_screen *screen = d3d12_screen(pscreen);
-   struct d3d12_resource *res = CALLOC_STRUCT(d3d12_resource);
    bool ret;
 
    res->base.b = *templ;
+
    res->overall_format = templ->format;
+   res->plane_slice = 0;
+   res->first_plane = &res->base.b;
 
    if (D3D12_DEBUG_RESOURCE & d3d12_debug) {
       debug_printf("D3D12: Create %sresource %s@%d %dx%dx%d as:%d mip:%d\n",
@@ -336,12 +383,12 @@ d3d12_resource_create(struct pipe_screen *pscreen,
    }
 
    pipe_reference_init(&res->base.b.reference, 1);
-   res->base.b.screen = pscreen;
+   res->base.b.screen = &screen->base;
 
-   if (templ->target == PIPE_BUFFER) {
+   if (templ->target == PIPE_BUFFER && !heap) {
       ret = init_buffer(screen, res, templ);
    } else {
-      ret = init_texture(screen, res, templ);
+      ret = init_texture(screen, res, templ, heap, placed_offset);
    }
 
    if (!ret) {
@@ -352,7 +399,7 @@ d3d12_resource_create(struct pipe_screen *pscreen,
    init_valid_range(res);
    threaded_resource_init(&res->base.b,
       templ->usage == PIPE_USAGE_DEFAULT &&
-      templ->target == PIPE_BUFFER, 64);
+      templ->target == PIPE_BUFFER);
 
    memset(&res->bind_counts, 0, sizeof(d3d12_resource::bind_counts));
 
@@ -362,13 +409,25 @@ d3d12_resource_create(struct pipe_screen *pscreen,
 }
 
 static struct pipe_resource *
+d3d12_resource_create(struct pipe_screen *pscreen,
+                      const struct pipe_resource *templ)
+{
+   struct d3d12_resource *res = CALLOC_STRUCT(d3d12_resource);
+   if (!res)
+      return NULL;
+
+   return d3d12_resource_create_or_place(d3d12_screen(pscreen), res, templ, nullptr, 0);
+}
+
+static struct pipe_resource *
 d3d12_resource_from_handle(struct pipe_screen *pscreen,
                           const struct pipe_resource *templ,
                           struct winsys_handle *handle, unsigned usage)
 {
    struct d3d12_screen *screen = d3d12_screen(pscreen);
    if (handle->type != WINSYS_HANDLE_TYPE_D3D12_RES &&
-       handle->type != WINSYS_HANDLE_TYPE_FD)
+       handle->type != WINSYS_HANDLE_TYPE_FD &&
+       handle->type != WINSYS_HANDLE_TYPE_WIN32_NAME)
       return NULL;
 
    struct d3d12_resource *res = CALLOC_STRUCT(d3d12_resource);
@@ -384,33 +443,56 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
       }
    }
 
-   pipe_reference_init(&res->base.b.reference, 1);
-   res->base.b.screen = pscreen;
+#ifdef _WIN32
+   HANDLE d3d_handle = handle->handle;
+#else
+   HANDLE d3d_handle = (HANDLE) (intptr_t) handle->handle;
+#endif
+
+#ifdef _WIN32
+   HANDLE d3d_handle_to_close = nullptr;
+   if (handle->type == WINSYS_HANDLE_TYPE_WIN32_NAME) {
+      screen->dev->OpenSharedHandleByName((LPCWSTR)handle->name, GENERIC_ALL, &d3d_handle_to_close);
+      d3d_handle = d3d_handle_to_close;
+   }
+#endif
 
    ID3D12Resource *d3d12_res = nullptr;
+   ID3D12Heap *d3d12_heap = nullptr;
    if (res->bo) {
       d3d12_res = res->bo->res;
    } else if (handle->type == WINSYS_HANDLE_TYPE_D3D12_RES) {
-      d3d12_res = (ID3D12Resource *)handle->com_obj;
+      IUnknown *obj = (IUnknown *)handle->com_obj;
+      (void)obj->QueryInterface(&d3d12_res);
+      (void)obj->QueryInterface(&d3d12_heap);
+      obj->Release();
    } else {
-      struct d3d12_screen *screen = d3d12_screen(pscreen);
-
-#ifdef _WIN32
-      HANDLE d3d_handle = handle->handle;
-#else
-      HANDLE d3d_handle = (HANDLE)(intptr_t)handle->handle;
-#endif
       screen->dev->OpenSharedHandle(d3d_handle, IID_PPV_ARGS(&d3d12_res));
    }
+
+#ifdef _WIN32
+   if (d3d_handle_to_close) {
+      CloseHandle(d3d_handle_to_close);
+   }
+#endif
 
    D3D12_PLACED_SUBRESOURCE_FOOTPRINT placed_footprint = {};
    D3D12_SUBRESOURCE_FOOTPRINT *footprint = &placed_footprint.Footprint;
    D3D12_RESOURCE_DESC incoming_res_desc;
 
-   if (!d3d12_res)
+   if (!d3d12_res && !d3d12_heap)
       goto invalid;
 
-   incoming_res_desc = d3d12_res->GetDesc();
+   if (d3d12_heap) {
+      assert(templ);
+      assert(!res->bo);
+      assert(!d3d12_res);
+      return d3d12_resource_create_or_place(screen, res, templ, d3d12_heap, handle->offset);
+   }
+
+   pipe_reference_init(&res->base.b.reference, 1);
+   res->base.b.screen = pscreen;
+   incoming_res_desc = GetDesc(d3d12_res);
 
    /* Get a description for this plane */
    if (templ && handle->format != templ->format) {
@@ -461,6 +543,7 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
    res->base.b.nr_samples = incoming_res_desc.SampleDesc.Count;
    res->base.b.last_level = incoming_res_desc.MipLevels - 1;
    res->base.b.usage = PIPE_USAGE_DEFAULT;
+   res->base.b.bind |= PIPE_BIND_SHARED;
    if (incoming_res_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
       res->base.b.bind |= PIPE_BIND_RENDER_TARGET | PIPE_BIND_BLENDABLE | PIPE_BIND_DISPLAY_TARGET;
    if (incoming_res_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
@@ -502,25 +585,31 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
             res->base.b.last_level + 1, templ->last_level + 1);
          goto invalid;
       }
-      if ((footprint->Format != d3d12_get_format(templ->format) &&
-           footprint->Format != d3d12_get_typeless_format(templ->format)) ||
-          (incoming_res_desc.Format != d3d12_get_format((enum pipe_format)handle->format) &&
-           incoming_res_desc.Format != d3d12_get_typeless_format((enum pipe_format)handle->format))) {
-         debug_printf("d3d12: Importing resource with mismatched format: "
-            "plane could be DXGI format %d or %d, but is %d, "
-            "overall could be DXGI format %d or %d, but is %d\n",
-            d3d12_get_format(templ->format),
-            d3d12_get_typeless_format(templ->format),
-            footprint->Format,
-            d3d12_get_format((enum pipe_format)handle->format),
-            d3d12_get_typeless_format((enum pipe_format)handle->format),
-            incoming_res_desc.Format);
-         goto invalid;
+      if (templ->target != PIPE_BUFFER) {
+         if ((footprint->Format != d3d12_get_format(templ->format) &&
+              footprint->Format != d3d12_get_typeless_format(templ->format)) ||
+             (incoming_res_desc.Format != d3d12_get_format((enum pipe_format)handle->format) &&
+              incoming_res_desc.Format != d3d12_get_typeless_format((enum pipe_format)handle->format))) {
+            debug_printf("d3d12: Importing resource with mismatched format: "
+               "plane could be DXGI format %d or %d, but is %d, "
+               "overall could be DXGI format %d or %d, but is %d\n",
+               d3d12_get_format(templ->format),
+               d3d12_get_typeless_format(templ->format),
+               footprint->Format,
+               d3d12_get_format((enum pipe_format)handle->format),
+               d3d12_get_typeless_format((enum pipe_format)handle->format),
+               incoming_res_desc.Format);
+            goto invalid;
+         }
       }
+      /* In an ideal world we'd be able to validate this, but gallium's use of bind
+       * flags during resource creation is pretty bad: some bind flags are always set
+       * (like PIPE_BIND_RENDER_TARGET) while others are never set (PIPE_BIND_SHADER_BUFFER)
+       * 
       if (templ->bind & ~res->base.b.bind) {
          debug_printf("d3d12: Imported resource doesn't have necessary bind flags\n");
          goto invalid;
-      }
+      } */
 
       res->base.b.format = templ->format;
       res->overall_format = (enum pipe_format)handle->format;
@@ -545,13 +634,15 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
       handle->format = res->overall_format;
 
    res->dxgi_format = d3d12_get_format(res->overall_format);
+   res->plane_slice = handle->plane;
+   res->first_plane = &res->base.b;
 
    if (!res->bo) {
-      res->bo = d3d12_bo_wrap_res(d3d12_res, res->overall_format);
+      res->bo = d3d12_bo_wrap_res(screen, d3d12_res, d3d12_permanently_resident);
    }
    init_valid_range(res);
 
-   threaded_resource_init(&res->base.b, false, 0);
+   threaded_resource_init(&res->base.b, false);
    convert_planar_resource(res);
 
    return &res->base.b;
@@ -604,6 +695,247 @@ d3d12_resource_get_handle(struct pipe_screen *pscreen,
    }
 }
 
+struct pipe_resource *
+d3d12_resource_from_resource(struct pipe_screen *pscreen,
+                              ID3D12Resource* input_res)
+{
+    D3D12_RESOURCE_DESC input_desc = GetDesc(input_res);
+    struct winsys_handle handle;
+    memset(&handle, 0, sizeof(handle));
+    handle.type = WINSYS_HANDLE_TYPE_D3D12_RES;
+    handle.format = d3d12_get_pipe_format(input_desc.Format);
+    handle.com_obj = input_res;
+    input_res->AddRef();
+
+    struct pipe_resource templ;
+    memset(&templ, 0, sizeof(templ));
+    if(input_desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER) {
+       templ.target = PIPE_BUFFER;
+    } else {
+      templ.target = (input_desc.DepthOrArraySize > 1) ? PIPE_TEXTURE_2D_ARRAY : PIPE_TEXTURE_2D;
+    }
+    
+    templ.format = d3d12_get_pipe_format(input_desc.Format);
+    templ.width0 = input_desc.Width;
+    templ.height0 = input_desc.Height;
+    templ.depth0 = input_desc.DepthOrArraySize;
+    templ.array_size = input_desc.DepthOrArraySize;
+    templ.flags = 0;
+
+    return d3d12_resource_from_handle(
+        pscreen,
+        &templ,
+        &handle,
+        PIPE_USAGE_DEFAULT
+    );
+}
+
+/**
+ * On Map/Unmap operations, we readback or flush all the underlying planes
+ * of planar resources. The map/unmap operation from the caller is 
+ * expected to be done for res->plane_slice plane only, but some
+ * callers expect adjacent allocations for next contiguous plane access
+ * 
+ * In this function, we take the res and box the caller passed, and the plane_* properties
+ * that are currently being readback/flushed, and adjust the d3d12_transfer ptrans
+ * accordingly for the GPU copy operation between planes.
+ */
+static void d3d12_adjust_transfer_dimensions_for_plane(const struct d3d12_resource *res,
+                                                       unsigned plane_slice,
+                                                       unsigned plane_stride,
+                                                       unsigned plane_layer_stride,
+                                                       unsigned plane_offset,
+                                                       const struct pipe_box* original_box,
+                                                       struct pipe_transfer *ptrans/*inout*/)
+{
+   /* Adjust strides, offsets to the corresponding plane*/
+   ptrans->stride = plane_stride;
+   ptrans->layer_stride = plane_layer_stride;
+   ptrans->offset = plane_offset;
+
+   /* Find multipliers such that:*/
+   /* first_plane.width = width_multiplier * planes[res->plane_slice].width*/
+   /* first_plane.height = height_multiplier * planes[res->plane_slice].height*/
+   float width_multiplier = res->first_plane->width0 / (float) util_format_get_plane_width(res->overall_format, res->plane_slice, res->first_plane->width0);
+   float height_multiplier = res->first_plane->height0 / (float) util_format_get_plane_height(res->overall_format, res->plane_slice, res->first_plane->height0);
+   
+   /* Normalize box back to overall dimensions (first plane)*/
+   ptrans->box.width = width_multiplier * original_box->width;
+   ptrans->box.height = height_multiplier * original_box->height;
+   ptrans->box.x = width_multiplier * original_box->x;
+   ptrans->box.y = height_multiplier * original_box->y;
+
+   /* Now adjust dimensions to plane_slice*/
+   ptrans->box.width = util_format_get_plane_width(res->overall_format, plane_slice, ptrans->box.width);
+   ptrans->box.height = util_format_get_plane_height(res->overall_format, plane_slice, ptrans->box.height);
+   ptrans->box.x = util_format_get_plane_width(res->overall_format, plane_slice, ptrans->box.x);
+   ptrans->box.y = util_format_get_plane_height(res->overall_format, plane_slice, ptrans->box.y);
+}
+
+static
+void d3d12_resource_get_planes_info(pipe_resource *pres,
+                                    unsigned num_planes,
+                                    pipe_resource **planes,
+                                    unsigned *strides,
+                                    unsigned *layer_strides,
+                                    unsigned *offsets,
+                                    unsigned *staging_res_size)
+{
+   struct d3d12_resource* res = d3d12_resource(pres);
+   *staging_res_size = 0;
+   struct pipe_resource *cur_plane_resource = res->first_plane;
+   for (uint plane_slice = 0; plane_slice < num_planes; ++plane_slice) {
+      planes[plane_slice] = cur_plane_resource;
+      int width = util_format_get_plane_width(res->base.b.format, plane_slice, res->first_plane->width0);
+      int height = util_format_get_plane_height(res->base.b.format, plane_slice, res->first_plane->height0);
+
+      strides[plane_slice] = align(util_format_get_stride(cur_plane_resource->format, width),
+                           D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+
+      layer_strides[plane_slice] = align(util_format_get_2d_size(cur_plane_resource->format,
+                                                   strides[plane_slice],
+                                                   height),
+                                 D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+
+      offsets[plane_slice] = *staging_res_size;
+      *staging_res_size += layer_strides[plane_slice];
+      cur_plane_resource = cur_plane_resource->next;
+   }
+}
+
+static constexpr unsigned d3d12_max_planes = 3;
+
+/**
+ * Get stride and offset for the given pipe resource without the need to get
+ * a winsys_handle.
+ */
+void
+d3d12_resource_get_info(struct pipe_screen *pscreen,
+                        struct pipe_resource *pres,
+                        unsigned *stride,
+                        unsigned *offset)
+{
+
+   struct d3d12_resource* res = d3d12_resource(pres);
+   unsigned num_planes = util_format_get_num_planes(res->overall_format);
+
+   pipe_resource *planes[d3d12_max_planes];
+   unsigned int strides[d3d12_max_planes];
+   unsigned int layer_strides[d3d12_max_planes];
+   unsigned int offsets[d3d12_max_planes];
+   unsigned staging_res_size = 0;
+   d3d12_resource_get_planes_info(
+      pres,
+      num_planes,
+      planes,
+      strides,
+      layer_strides,
+      offsets,
+      &staging_res_size
+   );
+
+   if(stride) {
+      *stride = strides[res->plane_slice];
+   }
+
+   if(offset) {
+      *offset = offsets[res->plane_slice];
+   }
+}
+
+static struct pipe_memory_object *
+d3d12_memobj_create_from_handle(struct pipe_screen *pscreen, struct winsys_handle *handle, bool dedicated)
+{
+   if (handle->type != WINSYS_HANDLE_TYPE_WIN32_HANDLE &&
+       handle->type != WINSYS_HANDLE_TYPE_WIN32_NAME) {
+      debug_printf("d3d12: Unsupported memobj handle type\n");
+      return NULL;
+   }
+
+   struct d3d12_screen *screen = d3d12_screen(pscreen);
+   IUnknown *obj;
+#ifdef _WIN32
+      HANDLE d3d_handle = handle->handle;
+#else
+      HANDLE d3d_handle = (HANDLE)(intptr_t)handle->handle;
+#endif
+
+#ifdef _WIN32
+      HANDLE d3d_handle_to_close = nullptr;
+      if (handle->type == WINSYS_HANDLE_TYPE_WIN32_NAME) {
+         screen->dev->OpenSharedHandleByName((LPCWSTR) handle->name, GENERIC_ALL, &d3d_handle_to_close);
+         d3d_handle = d3d_handle_to_close;
+      }
+#endif
+
+   screen->dev->OpenSharedHandle(d3d_handle, IID_PPV_ARGS(&obj));
+
+#ifdef _WIN32
+   if (d3d_handle_to_close) {
+      CloseHandle(d3d_handle_to_close);
+   }
+#endif
+
+   if (!obj) {
+      debug_printf("d3d12: Failed to open memobj handle as anything\n");
+      return NULL;
+   }
+
+   struct d3d12_memory_object *memobj = CALLOC_STRUCT(d3d12_memory_object);
+   if (!memobj) {
+      obj->Release();
+      return NULL;
+   }
+   memobj->base.dedicated = dedicated;
+
+   (void)obj->QueryInterface(&memobj->res);
+   (void)obj->QueryInterface(&memobj->heap);
+   obj->Release();
+   if (!memobj->res && !memobj->heap) {
+      debug_printf("d3d12: Memory object isn't a resource or heap\n");
+      free(memobj);
+      return NULL;
+   }
+
+   bool expect_dedicated = memobj->res != nullptr;
+   if (dedicated != expect_dedicated)
+      debug_printf("d3d12: Expected dedicated to be %s for imported %s\n",
+                   expect_dedicated ? "true" : "false",
+                   expect_dedicated ? "resource" : "heap");
+
+   return &memobj->base;
+}
+
+static void
+d3d12_memobj_destroy(struct pipe_screen *pscreen, struct pipe_memory_object *pmemobj)
+{
+   struct d3d12_memory_object *memobj = d3d12_memory_object(pmemobj);
+   if (memobj->res)
+      memobj->res->Release();
+   if (memobj->heap)
+      memobj->heap->Release();
+   free(memobj);
+}
+
+static pipe_resource *
+d3d12_resource_from_memobj(struct pipe_screen *pscreen,
+                           const struct pipe_resource *templ,
+                           struct pipe_memory_object *pmemobj,
+                           uint64_t offset)
+{
+   struct d3d12_memory_object *memobj = d3d12_memory_object(pmemobj);
+
+   struct winsys_handle whandle = {};
+   whandle.type = WINSYS_HANDLE_TYPE_D3D12_RES;
+   whandle.com_obj = memobj->res ? (void *) memobj->res : (void *) memobj->heap;
+   whandle.offset = offset;
+   whandle.format = templ->format;
+
+   // WINSYS_HANDLE_TYPE_D3D12_RES implies taking ownership of the reference
+   ((IUnknown *)whandle.com_obj)->AddRef();
+   return d3d12_resource_from_handle(pscreen, templ, &whandle, 0);
+}
+
 void
 d3d12_screen_resource_init(struct pipe_screen *pscreen)
 {
@@ -611,6 +943,11 @@ d3d12_screen_resource_init(struct pipe_screen *pscreen)
    pscreen->resource_from_handle = d3d12_resource_from_handle;
    pscreen->resource_get_handle = d3d12_resource_get_handle;
    pscreen->resource_destroy = d3d12_resource_destroy;
+   pscreen->resource_get_info = d3d12_resource_get_info;
+
+   pscreen->memobj_create_from_handle = d3d12_memobj_create_from_handle;
+   pscreen->memobj_destroy = d3d12_memobj_destroy;
+   pscreen->resource_from_memobj = d3d12_resource_from_memobj;
 }
 
 unsigned int
@@ -631,7 +968,7 @@ get_subresource_id(struct d3d12_resource *res, unsigned resid,
    unsigned layer_stride = res->base.b.last_level + 1;
 
    return resid * resource_stride + z * layer_stride +
-         base_level;
+         base_level + res->plane_slice * resource_stride;
 }
 
 static D3D12_TEXTURE_COPY_LOCATION
@@ -658,7 +995,7 @@ fill_buffer_location(struct d3d12_context *ctx,
    D3D12_TEXTURE_COPY_LOCATION buf_loc = {0};
    D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
    uint64_t offset = 0;
-   auto descr = d3d12_resource_underlying(res, &offset)->GetDesc();
+   auto descr = GetDesc(d3d12_resource_underlying(res, &offset));
    struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
    ID3D12Device* dev = screen->dev;
 
@@ -669,6 +1006,7 @@ fill_buffer_location(struct d3d12_context *ctx,
    buf_loc.pResource = d3d12_resource_underlying(staging_res, &offset);
    buf_loc.PlacedFootprint = footprint;
    buf_loc.PlacedFootprint.Offset += offset;
+   buf_loc.PlacedFootprint.Offset += trans->base.b.offset;
 
    if (util_format_has_depth(util_format_description(res->base.b.format)) &&
        screen->opts2.ProgrammableSamplePositionsTier == D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED) {
@@ -707,8 +1045,8 @@ copy_texture_region(struct d3d12_context *ctx,
 
    d3d12_batch_reference_resource(batch, info.src, false);
    d3d12_batch_reference_resource(batch, info.dst, true);
-   d3d12_transition_resource_state(ctx, info.src, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_BIND_INVALIDATE_FULL);
-   d3d12_transition_resource_state(ctx, info.dst, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_BIND_INVALIDATE_FULL);
+   d3d12_transition_resource_state(ctx, info.src, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
+   d3d12_transition_resource_state(ctx, info.dst, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
    d3d12_apply_resource_states(ctx, false);
    ctx->cmdlist->CopyTextureRegion(&info.dst_loc, info.dst_x, info.dst_y, info.dst_z,
                                    &info.src_loc, info.src_box);
@@ -898,8 +1236,8 @@ transfer_buf_to_buf(struct d3d12_context *ctx,
 
    // Same-resource copies not supported, since the resource would need to be in both states
    assert(src_d3d12 != dst_d3d12);
-   d3d12_transition_resource_state(ctx, src, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_BIND_INVALIDATE_FULL);
-   d3d12_transition_resource_state(ctx, dst, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_BIND_INVALIDATE_FULL);
+   d3d12_transition_resource_state(ctx, src, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
+   d3d12_transition_resource_state(ctx, dst, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
    d3d12_apply_resource_states(ctx, false);
    ctx->cmdlist->CopyBufferRegion(dst_d3d12, dst_offset,
                                   src_d3d12, src_offset,
@@ -945,8 +1283,11 @@ synchronize(struct d3d12_context *ctx,
    }
 
    if (!(usage & PIPE_MAP_UNSYNCHRONIZED) && resource_is_busy(ctx, res, usage & PIPE_MAP_WRITE)) {
-      if (usage & PIPE_MAP_DONTBLOCK)
+      if (usage & PIPE_MAP_DONTBLOCK) {
+         if (d3d12_batch_has_references(d3d12_current_batch(ctx), res->bo, usage & PIPE_MAP_WRITE))
+            d3d12_flush_cmdlist(ctx);
          return false;
+      }
 
       d3d12_resource_wait_idle(ctx, res, usage & PIPE_MAP_WRITE);
    }
@@ -1239,15 +1580,11 @@ d3d12_transfer_map(struct pipe_context *pctx,
 
    slab_child_pool* transfer_pool = (usage & TC_TRANSFER_MAP_THREADED_UNSYNC) ?
       &ctx->transfer_pool_unsync : &ctx->transfer_pool;
-   struct d3d12_transfer *trans = (struct d3d12_transfer *)slab_alloc(transfer_pool);
+   struct d3d12_transfer *trans = (struct d3d12_transfer *)slab_zalloc(transfer_pool);
    struct pipe_transfer *ptrans = &trans->base.b;
    if (!trans)
       return NULL;
 
-   memset(trans, 0, sizeof(*trans));
-   pipe_resource_reference(&ptrans->resource, pres);
-
-   ptrans->resource = pres;
    ptrans->level = level;
    ptrans->usage = (enum pipe_map_flags)usage;
    ptrans->box = *box;
@@ -1268,8 +1605,10 @@ d3d12_transfer_map(struct pipe_context *pctx,
       }
 
       range = linear_range(box, ptrans->stride, ptrans->layer_stride);
-      if (!synchronize(ctx, res, usage, &range))
+      if (!synchronize(ctx, res, usage, &range)) {
+         slab_free(transfer_pool, trans);
          return NULL;
+      }
       ptr = d3d12_bo_map(res->bo, &range);
    } else if (unlikely(pres->format == PIPE_FORMAT_Z24_UNORM_S8_UINT ||
                        pres->format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT)) {
@@ -1280,6 +1619,72 @@ d3d12_transfer_map(struct pipe_context *pctx,
       } else {
          ptr = nullptr;
       }
+   } else if(util_format_is_yuv(res->overall_format)) {
+
+      /* Get planes information*/
+
+      unsigned num_planes = util_format_get_num_planes(res->overall_format);
+      pipe_resource *planes[d3d12_max_planes];
+      unsigned int strides[d3d12_max_planes];
+      unsigned int layer_strides[d3d12_max_planes];
+      unsigned int offsets[d3d12_max_planes];
+      unsigned staging_res_size = 0;
+
+      d3d12_resource_get_planes_info(
+         pres,
+         num_planes,
+         planes,
+         strides,
+         layer_strides,
+         offsets,
+         &staging_res_size
+      );
+      
+      /* Allocate a buffer for all the planes to fit in adjacent memory*/
+
+      pipe_resource_usage staging_usage = (usage & (PIPE_MAP_READ | PIPE_MAP_READ_WRITE)) ?
+         PIPE_USAGE_STAGING : PIPE_USAGE_STREAM;
+      trans->staging_res = pipe_buffer_create(pctx->screen, 0,
+                                              staging_usage,
+                                              staging_res_size);
+      if (!trans->staging_res)
+         return NULL;
+
+      struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
+
+      /* Readback contents into the buffer allocation now if map was intended for read*/
+
+      /* Read all planes if readback needed*/
+      if (usage & PIPE_MAP_READ) {
+         pipe_box original_box = ptrans->box;
+         for (uint plane_slice = 0; plane_slice < num_planes; ++plane_slice) {
+            /* Adjust strides, offsets, box to the corresponding plane for the copytexture operation*/
+            d3d12_adjust_transfer_dimensions_for_plane(res,
+                                                       plane_slice,
+                                                       strides[plane_slice],
+                                                       layer_strides[plane_slice],
+                                                       offsets[plane_slice],
+                                                       &original_box,
+                                                       ptrans/*inout*/);
+            /* Perform the readback*/
+            if(!transfer_image_to_buf(ctx, d3d12_resource(planes[plane_slice]), staging_res, trans, 0)){
+               return NULL;
+            }
+         }
+
+         d3d12_flush_cmdlist_and_wait(ctx);
+      }
+
+      /* Map the whole staging buffer containing all the planes contiguously*/
+      /* Just offset the resulting ptr to the according plane offset*/
+
+      range.End = staging_res_size - range.Begin;
+      uint8_t* all_planes_map = (uint8_t*) d3d12_bo_map(staging_res->bo, &range);
+
+      ptrans->stride = strides[res->plane_slice];
+      ptrans->layer_stride = layer_strides[res->plane_slice];
+      ptr = all_planes_map + offsets[res->plane_slice];
+
    } else {
       ptrans->stride = align(util_format_get_stride(pres->format, box->width),
                               D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
@@ -1324,8 +1729,10 @@ d3d12_transfer_map(struct pipe_context *pctx,
       trans->staging_res = pipe_buffer_create(pctx->screen, 0,
                                               staging_usage,
                                               staging_res_size);
-      if (!trans->staging_res)
+      if (!trans->staging_res) {
+         slab_free(transfer_pool, trans);
          return NULL;
+      }
 
       struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
 
@@ -1347,6 +1754,7 @@ d3d12_transfer_map(struct pipe_context *pctx,
       ptr = d3d12_bo_map(staging_res->bo, &range);
    }
 
+   pipe_resource_reference(&ptrans->resource, pres);
    *transfer = ptrans;
    return ptr;
 }
@@ -1355,6 +1763,7 @@ static void
 d3d12_transfer_unmap(struct pipe_context *pctx,
                      struct pipe_transfer *ptrans)
 {
+   struct d3d12_context *ctx = d3d12_context(pctx);
    struct d3d12_resource *res = d3d12_resource(ptrans->resource);
    struct d3d12_transfer *trans = (struct d3d12_transfer *)ptrans;
    D3D12_RANGE range = { 0, 0 };
@@ -1364,27 +1773,81 @@ d3d12_transfer_unmap(struct pipe_context *pctx,
          write_zs_surface(pctx, res, trans);
       free(trans->data);
    } else if (trans->staging_res) {
-      struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
+      if(util_format_is_yuv(res->overall_format)) {
 
-      if (trans->base.b.usage & PIPE_MAP_WRITE) {
-         assert(ptrans->box.x >= 0);
-         range.Begin = res->base.b.target == PIPE_BUFFER ?
-            (unsigned)ptrans->box.x % BUFFER_MAP_ALIGNMENT : 0;
-         range.End = staging_res->base.b.width0 - range.Begin;
+         /* Get planes information*/
+         unsigned num_planes = util_format_get_num_planes(res->overall_format);
+         pipe_resource *planes[d3d12_max_planes];
+         unsigned int strides[d3d12_max_planes];
+         unsigned int layer_strides[d3d12_max_planes];
+         unsigned int offsets[d3d12_max_planes];
+         unsigned staging_res_size = 0;
+
+         d3d12_resource_get_planes_info(
+            ptrans->resource,
+            num_planes,
+            planes,
+            strides,
+            layer_strides,
+            offsets,
+            &staging_res_size
+         );      
+
+         /* Flush the changed contents into the GPU texture*/
+
+         /* In theory we should just flush only the contents for the plane*/
+         /* requested in res->plane_slice, but the VAAPI frontend has this*/
+         /* behaviour in which they assume that mapping the first plane of*/
+         /* NV12, P010, etc resources will will give them a buffer containing*/
+         /* both Y and UV planes contigously in vaDeriveImage and then vaMapBuffer*/
+         /* so, flush them all*/
+         
+         struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
+         if (trans->base.b.usage & PIPE_MAP_WRITE) {
+            assert(ptrans->box.x >= 0);
+            range.Begin = res->base.b.target == PIPE_BUFFER ?
+               (unsigned)ptrans->box.x % BUFFER_MAP_ALIGNMENT : 0;
+            range.End = staging_res->base.b.width0 - range.Begin;
+            
+            d3d12_bo_unmap(staging_res->bo, &range);
+            pipe_box original_box = ptrans->box;
+            for (uint plane_slice = 0; plane_slice < num_planes; ++plane_slice) {
+               /* Adjust strides, offsets to the corresponding plane for the copytexture operation*/
+               d3d12_adjust_transfer_dimensions_for_plane(res,
+                                                          plane_slice,
+                                                          strides[plane_slice],
+                                                          layer_strides[plane_slice],
+                                                          offsets[plane_slice],
+                                                          &original_box,
+                                                          ptrans/*inout*/);  
+
+               transfer_buf_to_image(ctx, d3d12_resource(planes[plane_slice]), staging_res, trans, 0);
+            }
+         }
+
+         pipe_resource_reference(&trans->staging_res, NULL);
+      } else {
+         struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
+         if (trans->base.b.usage & PIPE_MAP_WRITE) {
+            assert(ptrans->box.x >= 0);
+            range.Begin = res->base.b.target == PIPE_BUFFER ?
+               (unsigned)ptrans->box.x % BUFFER_MAP_ALIGNMENT : 0;
+            range.End = staging_res->base.b.width0 - range.Begin;
+         }
+         d3d12_bo_unmap(staging_res->bo, &range);
+
+         if (trans->base.b.usage & PIPE_MAP_WRITE) {
+            struct d3d12_context *ctx = d3d12_context(pctx);
+            if (res->base.b.target == PIPE_BUFFER) {
+               uint64_t dst_offset = trans->base.b.box.x;
+               uint64_t src_offset = dst_offset % BUFFER_MAP_ALIGNMENT;
+               transfer_buf_to_buf(ctx, staging_res, res, src_offset, dst_offset, ptrans->box.width);
+            } else
+               transfer_buf_to_image(ctx, res, staging_res, trans, 0);
+         }
+
+         pipe_resource_reference(&trans->staging_res, NULL);
       }
-      d3d12_bo_unmap(staging_res->bo, &range);
-
-      if (trans->base.b.usage & PIPE_MAP_WRITE) {
-         struct d3d12_context *ctx = d3d12_context(pctx);
-         if (res->base.b.target == PIPE_BUFFER) {
-            uint64_t dst_offset = trans->base.b.box.x;
-            uint64_t src_offset = dst_offset % BUFFER_MAP_ALIGNMENT;
-            transfer_buf_to_buf(ctx, staging_res, res, src_offset, dst_offset, ptrans->box.width);
-         } else
-            transfer_buf_to_image(ctx, res, staging_res, trans, 0);
-      }
-
-      pipe_resource_reference(&trans->staging_res, NULL);
    } else {
       if (trans->base.b.usage & PIPE_MAP_WRITE) {
          range.Begin = ptrans->box.x;

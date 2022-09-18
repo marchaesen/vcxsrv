@@ -92,7 +92,8 @@ main(int argc, const char **argv)
       bool fail = strcmp(reference, output);
 
       if (fail) {
-         printf("Got %sExpected %s\n", output, reference);
+         /* Extra spaces after Got to align with Expected */
+         printf("Got      %sExpected %s\n", output, reference);
          nr_fail++;
       } else {
          nr_pass++;

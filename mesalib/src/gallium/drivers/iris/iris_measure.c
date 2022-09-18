@@ -32,6 +32,19 @@
 #include "iris_defines.h"
 #include "compiler/shader_info.h"
 
+/**
+ * This callback is registered with intel_measure.  It will be called when
+ * snapshot data has been fully collected, so iris can release the associated
+ * resources.
+ */
+static void
+measure_batch_free(struct intel_measure_batch *base)
+{
+   struct iris_measure_batch *batch =
+      container_of(base, struct iris_measure_batch, base);
+   iris_destroy_batch_measure(batch);
+}
+
 void
 iris_init_screen_measure(struct iris_screen *screen)
 {
@@ -39,6 +52,7 @@ iris_init_screen_measure(struct iris_screen *screen)
 
    memset(measure_device, 0, sizeof(*measure_device));
    intel_measure_init(measure_device);
+   measure_device->release_batch = &measure_batch_free;
    struct intel_measure_config *config = measure_device->config;
    if (config == NULL)
       return;

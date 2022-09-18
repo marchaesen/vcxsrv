@@ -158,7 +158,7 @@ static void r600_flush_vgt_streamout(struct r600_common_context *rctx)
 	unsigned reg_strmout_cntl;
 
 	/* The register is at different places on different ASICs. */
-	if (rctx->chip_class >= EVERGREEN) {
+	if (rctx->gfx_level >= EVERGREEN) {
 		reg_strmout_cntl = R_0084FC_CP_STRMOUT_CNTL;
 	} else {
 		reg_strmout_cntl = R_008490_CP_STRMOUT_CNTL;
@@ -306,7 +306,7 @@ static void r600_emit_streamout_enable(struct r600_common_context *rctx,
 	unsigned strmout_buffer_val = rctx->streamout.hw_enabled_mask &
 				      rctx->streamout.enabled_stream_buffers_mask;
 
-	if (rctx->chip_class >= EVERGREEN) {
+	if (rctx->gfx_level >= EVERGREEN) {
 		strmout_buffer_reg = R_028B98_VGT_STRMOUT_BUFFER_CONFIG;
 
 		strmout_config_reg = R_028B94_VGT_STRMOUT_CONFIG;

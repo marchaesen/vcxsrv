@@ -102,6 +102,18 @@ fd4_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
       .sprite_coord_mode = ctx->rasterizer->sprite_coord_mode,
    };
 
+   /* Check if we actually need the tg4 workarounds */
+   if (ir3_get_shader_info(emit.key.vs)->uses_texture_gather) {
+      emit.key.key.has_per_samp = true;
+      memcpy(emit.key.key.vsampler_swizzles, fd4_ctx->vsampler_swizzles,
+            sizeof(emit.key.key.vsampler_swizzles));
+   }
+   if (ir3_get_shader_info(emit.key.fs)->uses_texture_gather) {
+      emit.key.key.has_per_samp = true;
+      memcpy(emit.key.key.fsampler_swizzles, fd4_ctx->fsampler_swizzles,
+            sizeof(emit.key.key.fsampler_swizzles));
+   }
+
    if (info->mode != PIPE_PRIM_MAX && !indirect && !info->primitive_restart &&
        !u_trim_pipe_prim(info->mode, (unsigned *)&draw->count))
       return false;

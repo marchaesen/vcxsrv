@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Raspberry Pi
+ * Copyright © 2021 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -229,8 +229,8 @@ v3dX(get_format)(VkFormat format)
 
    switch (format) {
    /* VK_EXT_4444_formats */
-   case VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT:
-   case VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT:
+   case VK_FORMAT_A4R4G4B4_UNORM_PACK16:
+   case VK_FORMAT_A4B4G4R4_UNORM_PACK16:
       return &format_table_4444[VK_ENUM_OFFSET(format)];
 
    default:
@@ -459,23 +459,17 @@ v3dX(get_internal_type_bpp_for_image_aspects)(VkFormat vk_format,
                                               uint32_t *internal_type,
                                               uint32_t *internal_bpp)
 {
-   const VkImageAspectFlags ds_aspects = VK_IMAGE_ASPECT_DEPTH_BIT |
-                                         VK_IMAGE_ASPECT_STENCIL_BIT;
-
    /* We can't store depth/stencil pixel formats to a raster format, so
-    * so instead we load our depth/stencil aspects to a compatible color
-    * format.
+    * instead we load our depth/stencil aspects to a compatible color format.
     */
-   /* FIXME: pre-compute this at image creation time? */
-   if (aspect_mask & ds_aspects) {
+   if (aspect_mask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
+      *internal_bpp = V3D_INTERNAL_BPP_32;
       switch (vk_format) {
       case VK_FORMAT_D16_UNORM:
          *internal_type = V3D_INTERNAL_TYPE_16UI;
-         *internal_bpp = V3D_INTERNAL_BPP_32;
          break;
       case VK_FORMAT_D32_SFLOAT:
          *internal_type = V3D_INTERNAL_TYPE_32F;
-         *internal_bpp = V3D_INTERNAL_BPP_32;
          break;
       case VK_FORMAT_X8_D24_UNORM_PACK32:
       case VK_FORMAT_D24_UNORM_S8_UINT:
@@ -484,7 +478,6 @@ v3dX(get_internal_type_bpp_for_image_aspects)(VkFormat vk_format,
           * load command for more details.
           */
          *internal_type = V3D_INTERNAL_TYPE_8UI;
-         *internal_bpp = V3D_INTERNAL_BPP_32;
          break;
       default:
          assert(!"unsupported format");

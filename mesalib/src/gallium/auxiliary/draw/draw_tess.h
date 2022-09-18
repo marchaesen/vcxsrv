@@ -77,7 +77,7 @@ struct draw_tess_eval_shader {
    struct pipe_shader_state state;
    struct tgsi_shader_info info;
 
-   unsigned prim_mode;
+   enum pipe_prim_type prim_mode;
    unsigned spacing;
    unsigned vertex_order_cw;
    unsigned point_mode;

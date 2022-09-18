@@ -31,6 +31,15 @@ if with_ld_version_script
   va_link_depends += files('va.sym')
 endif
 
+link_with_libva_gallium = [
+  libgalliumvlwinsys, libgalliumvl, libgallium,
+  libpipe_loader_static, libws_null, libwsw, libswdri, libswkmsdri,
+]
+
+if with_glx == 'xlib' or with_glx == 'gallium-xlib'
+  link_with_libva_gallium += [libws_xlib]
+endif
+
 libva_gallium = shared_library(
   'gallium_drv_video',
   'target.c',
@@ -40,12 +49,9 @@ libva_gallium = shared_library(
     inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_util, inc_gallium_winsys, inc_gallium_drivers,
   ],
   link_whole : [libva_st],
-  link_with : [
-    libgalliumvlwinsys, libgalliumvl, libgallium,
-    libpipe_loader_static, libws_null, libwsw, libswdri, libswkmsdri,
-  ],
+  link_with : link_with_libva_gallium,
   dependencies : [
-    dep_libdrm, driver_r600, driver_radeonsi, driver_nouveau,
+    dep_libdrm, driver_r600, driver_radeonsi, driver_nouveau, driver_d3d12, driver_virgl,
     idep_mesautil,
   ],
   link_depends : va_link_depends,
@@ -57,7 +63,9 @@ libva_gallium = shared_library(
 
 foreach d : [[with_gallium_r600, 'r600'],
              [with_gallium_radeonsi, 'radeonsi'],
-             [with_gallium_nouveau, 'nouveau']]
+             [with_gallium_nouveau, 'nouveau'],
+             [with_gallium_virgl, 'virtio_gpu'],
+             [with_gallium_d3d12_video, 'd3d12']]
   if d[0]
     va_drivers += '@0@_drv_video.so'.format(d[1])
   endif

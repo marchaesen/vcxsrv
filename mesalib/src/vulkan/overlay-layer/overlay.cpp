@@ -269,7 +269,7 @@ static void unmap_object(uint64_t obj)
 static VkLayerInstanceCreateInfo *get_instance_chain_info(const VkInstanceCreateInfo *pCreateInfo,
                                                           VkLayerFunction func)
 {
-   vk_foreach_struct(item, pCreateInfo->pNext) {
+   vk_foreach_struct_const(item, pCreateInfo->pNext) {
       if (item->sType == VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO &&
           ((VkLayerInstanceCreateInfo *) item)->function == func)
          return (VkLayerInstanceCreateInfo *) item;
@@ -281,7 +281,7 @@ static VkLayerInstanceCreateInfo *get_instance_chain_info(const VkInstanceCreate
 static VkLayerDeviceCreateInfo *get_device_chain_info(const VkDeviceCreateInfo *pCreateInfo,
                                                       VkLayerFunction func)
 {
-   vk_foreach_struct(item, pCreateInfo->pNext) {
+   vk_foreach_struct_const(item, pCreateInfo->pNext) {
       if (item->sType == VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO &&
           ((VkLayerDeviceCreateInfo *) item)->function == func)
          return (VkLayerDeviceCreateInfo *)item;
@@ -2182,7 +2182,7 @@ static void overlay_CmdBindPipeline(
    switch (pipelineBindPoint) {
    case VK_PIPELINE_BIND_POINT_GRAPHICS: cmd_buffer_data->stats.stats[OVERLAY_PARAM_ENABLED_pipeline_graphics]++; break;
    case VK_PIPELINE_BIND_POINT_COMPUTE: cmd_buffer_data->stats.stats[OVERLAY_PARAM_ENABLED_pipeline_compute]++; break;
-   case VK_PIPELINE_BIND_POINT_RAY_TRACING_NV: cmd_buffer_data->stats.stats[OVERLAY_PARAM_ENABLED_pipeline_raytracing]++; break;
+   case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: cmd_buffer_data->stats.stats[OVERLAY_PARAM_ENABLED_pipeline_raytracing]++; break;
    default: break;
    }
    struct device_data *device_data = cmd_buffer_data->device;
@@ -2455,7 +2455,7 @@ static VkResult overlay_QueueSubmit(
 static VkResult overlay_QueueSubmit2KHR(
     VkQueue                                     queue,
     uint32_t                                    submitCount,
-    const VkSubmitInfo2KHR*                     pSubmits,
+    const VkSubmitInfo2*                        pSubmits,
     VkFence                                     fence)
 {
    struct queue_data *queue_data = FIND(struct queue_data, queue);

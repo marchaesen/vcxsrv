@@ -72,7 +72,10 @@ static LLVMValueRef load_const_buffer_desc_fast_path(struct si_shader_context *c
    uint32_t rsrc3 = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
                     S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
 
-   if (ctx->screen->info.chip_class >= GFX10)
+   if (ctx->screen->info.gfx_level >= GFX11)
+      rsrc3 |= S_008F0C_FORMAT(V_008F0C_GFX11_FORMAT_32_FLOAT) |
+               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
+   else if (ctx->screen->info.gfx_level >= GFX10)
       rsrc3 |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
    else
@@ -86,9 +89,7 @@ static LLVMValueRef load_const_buffer_desc_fast_path(struct si_shader_context *c
    return ac_build_gather_values(&ctx->ac, desc_elems, 4);
 }
 
-static LLVMValueRef load_ubo(struct ac_shader_abi *abi,
-                             unsigned desc_set, unsigned binding,
-                             bool valid_binding, LLVMValueRef index)
+static LLVMValueRef load_ubo(struct ac_shader_abi *abi, LLVMValueRef index)
 {
    struct si_shader_context *ctx = si_shader_context_from_abi(abi);
    struct si_shader_selector *sel = ctx->shader->selector;
@@ -137,7 +138,7 @@ static LLVMValueRef load_ssbo(struct ac_shader_abi *abi, LLVMValueRef index, boo
  */
 static LLVMValueRef force_dcc_off(struct si_shader_context *ctx, LLVMValueRef rsrc)
 {
-   if (ctx->screen->info.chip_class <= GFX7) {
+   if (ctx->screen->info.gfx_level <= GFX7) {
       return rsrc;
    } else {
       LLVMValueRef i32_6 = LLVMConstInt(ctx->ac.i32, 6, 0);
@@ -164,7 +165,7 @@ static LLVMValueRef force_write_compress_off(struct si_shader_context *ctx, LLVM
 static LLVMValueRef fixup_image_desc(struct si_shader_context *ctx, LLVMValueRef rsrc,
                                      bool uses_store)
 {
-   if (uses_store && ctx->ac.chip_class <= GFX9)
+   if (uses_store && ctx->ac.gfx_level <= GFX9)
       rsrc = force_dcc_off(ctx, rsrc);
 
    if (!uses_store && ctx->screen->info.has_image_load_dcc_bug &&
@@ -221,6 +222,7 @@ static LLVMValueRef si_load_sampler_desc(struct si_shader_context *ctx, LLVMValu
       break;
    case AC_DESC_FMASK:
       /* The FMASK is at [8:15]. */
+      assert(ctx->screen->info.gfx_level < GFX11);
       index = ac_build_imad(&ctx->ac, index, LLVMConstInt(ctx->ac.i32, 2, 0), ctx->ac.i32_1);
       break;
    case AC_DESC_SAMPLER:
@@ -282,7 +284,10 @@ static LLVMValueRef si_nir_load_sampler_desc(struct ac_shader_abi *abi, unsigned
    }
 
    unsigned num_slots = image ? ctx->num_images : ctx->num_samplers;
-   assert(const_index < num_slots || dynamic_index);
+
+   /* Redirect invalid resource indices to the first array element. */
+   if (const_index >= num_slots)
+      const_index = base_index;
 
    LLVMValueRef list = ac_get_arg(&ctx->ac, ctx->samplers_and_images);
    LLVMValueRef index = LLVMConstInt(ctx->ac.i32, const_index, false);

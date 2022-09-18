@@ -59,7 +59,7 @@
    "name": "COMPUTE_STATIC_THREAD_MGMT_SE7"
   },
   {
-   "chips": ["gfx103"],
+   "chips": ["gfx103", "gfx11"],
    "map": {"at": 199052, "to": "mm"},
    "name": "GE_VRS_RATE",
    "type_ref": "GE_VRS_RATE"

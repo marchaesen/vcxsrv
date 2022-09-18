@@ -24,7 +24,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
-import sys, time, pdb, string, cProfile
+import sys
 from reg import *
 
 # Default input / log files

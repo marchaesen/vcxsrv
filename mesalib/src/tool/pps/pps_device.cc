@@ -101,7 +101,7 @@ std::optional<DrmDevice> DrmDevice::create(int32_t gpu_num)
 
    if (num_devices > 0 && gpu_num < num_devices) {
       drmDevicePtr device = devices[gpu_num];
-      int fd = open(device->nodes[DRM_NODE_RENDER], O_RDONLY);
+      int fd = open(device->nodes[DRM_NODE_RENDER], O_RDWR);
       ret = create_drm_device(fd, gpu_num);
    }
 

@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <xf86drm.h>
 
 #include "drm/freedreno_drmif.h"
@@ -44,6 +45,15 @@
 #include "freedreno_perfcntr.h"
 
 #define MAX_CNTR_PER_GROUP 24
+#define REFRESH_MS         500
+
+static struct {
+   int refresh_ms;
+   bool dump;
+} options = {
+   .refresh_ms = REFRESH_MS,
+   .dump = false,
+};
 
 /* NOTE first counter group should always be CP, since we unconditionally
  * use CP counter to measure the gpu freq.
@@ -105,6 +115,16 @@ gettime_us(void)
    return (ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
 }
 
+static void
+sleep_us(uint32_t us)
+{
+   const struct timespec ts = {
+      .tv_sec = us / 1000000,
+      .tv_nsec = (us % 1000000) * 1000,
+   };
+   clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, NULL);
+}
+
 static uint32_t
 delta(uint32_t a, uint32_t b)
 {
@@ -118,13 +138,12 @@ delta(uint32_t a, uint32_t b)
 static void
 find_device(void)
 {
-   int ret, fd;
+   int ret;
 
-   fd = drmOpenWithType("msm", NULL, DRM_NODE_RENDER);
-   if (fd < 0)
+   dev.dev = fd_device_open();
+   if (!dev.dev)
       err(1, "could not open drm device");
 
-   dev.dev = fd_device_new(fd);
    dev.pipe = fd_pipe_new(dev.dev, FD_PIPE_3D);
 
    uint64_t val;
@@ -159,6 +178,8 @@ find_device(void)
    if (!dev.io) {
       err(1, "could not map device");
    }
+
+   fd_pipe_set_param(dev.pipe, FD_SYSPROF, 1);
 }
 
 /*
@@ -284,8 +305,6 @@ resample_counter(struct counter_group *group, int ctr)
    group->stime[ctr] = t;
 }
 
-#define REFRESH_MS 500
-
 /* sample all the counters: */
 static void
 resample(void)
@@ -293,7 +312,7 @@ resample(void)
    static uint64_t last_time;
    uint64_t current_time = gettime_us();
 
-   if ((current_time - last_time) < (REFRESH_MS * 1000 / 2))
+   if ((current_time - last_time) < (options.refresh_ms * 1000 / 2))
       return;
 
    last_time = current_time;
@@ -642,7 +661,7 @@ main_ui(void)
       goto out;
 
    cbreak();
-   wtimeout(mainwin, REFRESH_MS);
+   wtimeout(mainwin, options.refresh_ms);
    noecho();
    keypad(mainwin, TRUE);
    curs_set(0);
@@ -696,6 +715,39 @@ out:
    delwin(mainwin);
    endwin();
    refresh();
+}
+
+static void
+dump_counters(void)
+{
+   resample();
+   sleep_us(options.refresh_ms * 1000);
+   resample();
+
+   for (unsigned i = 0; i < dev.ngroups; i++) {
+      const struct counter_group *group = &dev.groups[i];
+      for (unsigned j = 0; j < group->group->num_counters; j++) {
+         const char *label = group->label[j];
+         float val = group->current[j];
+
+         /* we did not config the first CP counter */
+         if (i == 0 && j == 0)
+            label = group->group->countables[0].name;
+
+         int n = printf("%s: ", label) - 2;
+         while (n++ < ctr_width)
+            fputc(' ', stdout);
+
+         if (strstr(label, "CYCLE") ||
+             strstr(label, "BUSY") ||
+             strstr(label, "IDLE")) {
+            val = val / dev.max_freq * 100.0f;
+            printf("%.2f%%\n", val);
+         } else {
+            printf("%'.2f\n", val);
+         }
+      }
+   }
 }
 
 static void
@@ -832,6 +884,39 @@ config_restore(void)
    }
 }
 
+static void
+print_usage(const char *argv0)
+{
+   fprintf(stderr,
+           "Usage: %s [OPTION]...\n"
+           "\n"
+           "  -r <N>     refresh every N milliseconds\n"
+           "  -d         dump counters and exit\n"
+           "  -h         show this message\n",
+           argv0);
+   exit(2);
+}
+
+static void
+parse_options(int argc, char **argv)
+{
+   int c;
+
+   while ((c = getopt(argc, argv, "r:d")) != -1) {
+      switch (c) {
+      case 'r':
+         options.refresh_ms = atoi(optarg);
+         break;
+      case 'd':
+         options.dump = true;
+         break;
+      default:
+         print_usage(argv[0]);
+         break;
+      }
+   }
+}
+
 /*
  * main
  */
@@ -839,6 +924,8 @@ config_restore(void)
 int
 main(int argc, char **argv)
 {
+   parse_options(argc, argv);
+
    find_device();
 
    const struct fd_perfcntr_group *groups;
@@ -859,7 +946,10 @@ main(int argc, char **argv)
    config_restore();
    flush_ring();
 
-   main_ui();
+   if (options.dump)
+      dump_counters();
+   else
+      main_ui();
 
    return 0;
 }

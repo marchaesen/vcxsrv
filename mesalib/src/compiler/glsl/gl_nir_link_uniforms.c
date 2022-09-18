@@ -211,6 +211,9 @@ nir_setup_uniform_remap_tables(const struct gl_constants *consts,
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       struct gl_uniform_storage *uniform = &prog->data->UniformStorage[i];
 
+      if (uniform->hidden)
+         continue;
+
       if (uniform->is_shader_storage ||
           glsl_get_base_type(uniform->type) == GLSL_TYPE_SUBROUTINE)
          continue;
@@ -239,6 +242,9 @@ nir_setup_uniform_remap_tables(const struct gl_constants *consts,
 
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       struct gl_uniform_storage *uniform = &prog->data->UniformStorage[i];
+
+      if (uniform->hidden)
+         continue;
 
       if (uniform->is_shader_storage ||
           glsl_get_base_type(uniform->type) == GLSL_TYPE_SUBROUTINE)
@@ -382,6 +388,24 @@ nir_setup_uniform_remap_tables(const struct gl_constants *consts,
             p->sh.NumSubroutineUniformRemapTable;
          p->sh.NumSubroutineUniformRemapTable += entries;
       }
+   }
+
+   /* assign storage to hidden uniforms */
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      struct gl_uniform_storage *uniform = &prog->data->UniformStorage[i];
+
+      if (!uniform->hidden ||
+          glsl_get_base_type(uniform->type) == GLSL_TYPE_SUBROUTINE)
+         continue;
+
+      const unsigned entries =
+         MAX2(1, prog->data->UniformStorage[i].array_elements);
+
+      uniform->storage = &data[data_pos];
+
+      unsigned num_slots = glsl_get_component_slots(uniform->type);
+      for (unsigned k = 0; k < entries; k++)
+         data_pos += num_slots;
    }
 }
 
@@ -1669,7 +1693,8 @@ gl_nir_link_uniforms(const struct gl_constants *consts,
          struct gl_uniform_block *blocks = NULL;
          int num_blocks = 0;
          int buffer_block_index = -1;
-         if (!prog->data->spirv && state.var_is_in_block) {
+         bool is_interface_array = false;
+         if (state.var_is_in_block) {
             /* If the uniform is inside a uniform block determine its block index by
              * comparing the bindings, we can not use names.
              */
@@ -1678,14 +1703,14 @@ gl_nir_link_uniforms(const struct gl_constants *consts,
             num_blocks = nir_variable_is_in_ssbo(state.current_var) ?
                prog->data->NumShaderStorageBlocks : prog->data->NumUniformBlocks;
 
-            bool is_interface_array =
+            is_interface_array =
                glsl_without_array(state.current_var->type) == state.current_var->interface_type &&
                glsl_type_is_array(state.current_var->type);
 
             const char *ifc_name =
                glsl_get_type_name(state.current_var->interface_type);
 
-            if (is_interface_array) {
+            if (is_interface_array && !prog->data->spirv) {
                unsigned l = strlen(ifc_name);
 
                /* Even when a match is found, do not "break" here.  As this is
@@ -1711,36 +1736,58 @@ gl_nir_link_uniforms(const struct gl_constants *consts,
                }
             } else {
                for (unsigned i = 0; i < num_blocks; i++) {
-                  if (strcmp(ifc_name, blocks[i].name.string) == 0) {
+                  bool match = false;
+                  if (!prog->data->spirv) {
+                     match = strcmp(ifc_name, blocks[i].name.string) == 0;
+                  } else {
+                     match = var->data.binding == blocks[i].Binding;
+                  }
+                  if (match) {
                      buffer_block_index = i;
 
-                     struct hash_entry *entry =
-                        _mesa_hash_table_search(state.referenced_uniforms[shader_type],
-                                                var->name);
-                     if (entry)
-                        blocks[i].stageref |= 1U << shader_type;
+                     if (!prog->data->spirv) {
+                        struct hash_entry *entry =
+                           _mesa_hash_table_search(state.referenced_uniforms[shader_type],
+                                                   var->name);
+                        if (entry)
+                           blocks[i].stageref |= 1U << shader_type;
+                     }
 
                      break;
                   }
                }
             }
+         }
 
-            if (nir_variable_is_in_ssbo(var) &&
-                !(var->data.access & ACCESS_NON_WRITEABLE)) {
-               unsigned array_size = is_interface_array ?
-                  glsl_get_length(var->type) : 1;
+         if (nir_variable_is_in_ssbo(var) &&
+             !(var->data.access & ACCESS_NON_WRITEABLE)) {
+            unsigned array_size = is_interface_array ?
+               glsl_get_length(var->type) : 1;
 
-               STATIC_ASSERT(MAX_SHADER_STORAGE_BUFFERS <= 32);
+            STATIC_ASSERT(MAX_SHADER_STORAGE_BUFFERS <= 32);
 
-               /* Shaders that use too many SSBOs will fail to compile, which
-                * we don't care about.
-                *
-                * This is true for shaders that do not use too many SSBOs:
-                */
-               if (buffer_block_index + array_size <= 32) {
-                  state.shader_storage_blocks_write_access |=
-                     u_bit_consecutive(buffer_block_index, array_size);
-               }
+            /* Buffers from each stage are pointers to the one stored in the program. We need
+             * to account for this before computing the mask below otherwise the mask will be
+             * incorrect.
+             *    sh->Program->sh.SSBlocks: [a][b][c][d][e][f]
+             *    VS prog->data->SSBlocks : [a][b][c]
+             *    FS prog->data->SSBlocks : [d][e][f]
+             * eg for FS buffer 1, buffer_block_index will be 4 but sh_block_index will be 1.
+             */
+            int base = 0;
+            base = sh->Program->sh.ShaderStorageBlocks[0] - prog->data->ShaderStorageBlocks;
+
+            assert(base >= 0);
+
+            int sh_block_index = buffer_block_index - base;
+            /* Shaders that use too many SSBOs will fail to compile, which
+             * we don't care about.
+             *
+             * This is true for shaders that do not use too many SSBOs:
+             */
+            if (sh_block_index + array_size <= 32) {
+               state.shader_storage_blocks_write_access |=
+                  u_bit_consecutive(sh_block_index, array_size);
             }
          }
 

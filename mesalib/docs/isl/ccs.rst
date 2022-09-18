@@ -52,7 +52,7 @@ concerned, is that fast-clears use only 1 bit per cache-line pair whereas color
 compression uses 2 bits.
 
 What is a cache-line pair?  Both the X and Y tiling formats are arranged as an
-8x8 grid of cache lines.  (See the [chapter on tiling](#tiling) for more
+8x8 grid of cache lines.  (See the :doc:`chapter on tiling <tiling>` for more
 details.)  In either case, a cache-line pair is a pair of cache lines whose
 starting addresses differ by 512 bytes or 8 cache lines.  This results in the
 two cache lines being vertically adjacent when the main surface is X-tiled and

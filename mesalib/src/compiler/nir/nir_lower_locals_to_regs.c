@@ -159,7 +159,7 @@ get_deref_reg_src(nir_deref_instr *deref, struct locals_to_regs_state *state)
          if (src.reg.indirect) {
             assert(src.reg.base_offset == 0);
          } else {
-            src.reg.indirect = malloc(sizeof(nir_src));
+            src.reg.indirect = gc_alloc(gc_get_context(deref), nir_src, 1);
             *src.reg.indirect =
                nir_src_for_ssa(nir_imm_int(b, src.reg.base_offset));
             src.reg.base_offset = 0;
@@ -200,7 +200,17 @@ lower_locals_to_regs_block(nir_block *block,
 
          nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_mov);
          mov->src[0].src = get_deref_reg_src(deref, state);
+
+         if (mov->src[0].src.reg.reg->num_array_elems != 0 &&
+             mov->src[0].src.reg.base_offset >= mov->src[0].src.reg.reg->num_array_elems) {
+            /* out-of-bounds read, return 0 instead. */
+            mov->src[0].src = nir_src_for_ssa(nir_imm_intN_t(b, 0, mov->src[0].src.reg.reg->bit_size));
+            for (int i = 0; i < intrin->num_components; i++)
+               mov->src[0].swizzle[i] = 0;
+         }
+
          mov->dest.write_mask = (1 << intrin->num_components) - 1;
+
          if (intrin->dest.is_ssa) {
             nir_ssa_dest_init(&mov->instr, &mov->dest.dest,
                               intrin->num_components,
@@ -208,7 +218,7 @@ lower_locals_to_regs_block(nir_block *block,
             nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
                                      &mov->dest.dest.ssa);
          } else {
-            nir_dest_copy(&mov->dest.dest, &intrin->dest);
+            nir_dest_copy(&mov->dest.dest, &intrin->dest, &mov->instr);
          }
          nir_builder_instr_insert(b, &mov->instr);
 
@@ -226,9 +236,17 @@ lower_locals_to_regs_block(nir_block *block,
 
          nir_src reg_src = get_deref_reg_src(deref, state);
 
+         if (reg_src.reg.reg->num_array_elems != 0 &&
+             reg_src.reg.base_offset >= reg_src.reg.reg->num_array_elems) {
+            /* Out of bounds write, just eliminate it. */
+            nir_instr_remove(&intrin->instr);
+            state->progress = true;
+            break;
+         }
+
          nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_mov);
 
-         nir_src_copy(&mov->src[0].src, &intrin->src[1]);
+         nir_src_copy(&mov->src[0].src, &intrin->src[1], &mov->instr);
 
          /* The normal NIR SSA copy propagate pass can't happen after this pass,
           * so do an ad-hoc copy propagate since this ALU op can do swizzles

@@ -78,10 +78,10 @@ unsigned
 panfrost_get_total_stack_size(
                 unsigned thread_size,
                 unsigned threads_per_core,
-                unsigned core_count)
+                unsigned core_id_range)
 {
         unsigned size_per_thread = (thread_size == 0) ? 0 :
                 util_next_power_of_two(ALIGN_POT(thread_size, 16));
 
-        return size_per_thread * threads_per_core * core_count;
+        return size_per_thread * threads_per_core * core_id_range;
 }

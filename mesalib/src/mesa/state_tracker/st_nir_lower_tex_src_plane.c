@@ -132,6 +132,7 @@ lower_tex_src_plane_block(nir_builder *b, lower_tex_src_state *state, nir_block 
 
          unsigned u_v_samp = state->sampler_map[y_samp][plane[0].i32 - 1];
          BITSET_SET(state->shader->info.textures_used, u_v_samp);
+         BITSET_SET(state->shader->info.samplers_used, u_v_samp);
 
          /* For drivers using PIPE_CAP_NIR_SAMPLERS_AS_DEREF, we need
           * to reference the correct sampler nir variable.

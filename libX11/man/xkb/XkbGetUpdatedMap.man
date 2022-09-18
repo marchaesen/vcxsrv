@@ -34,13 +34,13 @@ keyboard description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- which
+.I which
 mask selecting subcomponents to populate
 .TP
-.I \- xkb
+.I xkb
 keyboard description to be updated
 .SH DESCRIPTION
 .LP

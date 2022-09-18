@@ -391,6 +391,7 @@ d3d12_lower_load_patch_vertices_in(struct nir_shader *nir)
 struct invert_depth_state
 {
    unsigned viewport_mask;
+   bool clip_halfz;
    nir_ssa_def *viewport_index;
    nir_instr *store_pos_instr;
 };
@@ -413,14 +414,16 @@ invert_depth_impl(nir_builder *b, struct invert_depth_state *state)
    nir_ssa_def *pos = nir_ssa_for_src(b, intr->src[1], 4);
 
    if (state->viewport_index) {
-      nir_push_if(b, nir_i2b1(b, nir_iand_imm(b,
-         nir_ishl(b, nir_imm_int(b, 1), state->viewport_index),
-         state->viewport_mask)));
+      nir_push_if(b, nir_test_mask(b, nir_ishl(b, nir_imm_int(b, 1), state->viewport_index), state->viewport_mask));
    }
+   nir_ssa_def *old_depth = nir_channel(b, pos, 2);
+   nir_ssa_def *new_depth = nir_fneg(b, old_depth);
+   if (state->clip_halfz)
+      new_depth = nir_fadd_imm(b, new_depth, 1.0);
    nir_ssa_def *def = nir_vec4(b,
                                nir_channel(b, pos, 0),
                                nir_channel(b, pos, 1),
-                               nir_fneg(b, nir_channel(b, pos, 2)),
+                               new_depth,
                                nir_channel(b, pos, 3));
    if (state->viewport_index) {
       nir_pop_if(b, NULL);
@@ -455,19 +458,20 @@ invert_depth_instr(nir_builder *b, struct nir_instr *instr, struct invert_depth_
 }
 
 /* In OpenGL the windows space depth value z_w is evaluated according to "s * z_d + b"
- * with  "s + (far - near) / 2" (depth clip:minus_one_to_one) [OpenGL 3.3, 2.13.1].
+ * with  "s = (far - near) / 2" (depth clip:minus_one_to_one) [OpenGL 3.3, 2.13.1].
  * When we switch the far and near value to satisfy DirectX requirements we have
  * to compensate by inverting "z_d' = -z_d" with this lowering pass.
+ * When depth clip is set zero_to_one, we compensate with "z_d' = 1.0f - z_d" instead.
  */
 void
-d3d12_nir_invert_depth(nir_shader *shader, unsigned viewport_mask)
+d3d12_nir_invert_depth(nir_shader *shader, unsigned viewport_mask, bool clip_halfz)
 {
    if (shader->info.stage != MESA_SHADER_VERTEX &&
        shader->info.stage != MESA_SHADER_TESS_EVAL &&
        shader->info.stage != MESA_SHADER_GEOMETRY)
       return;
 
-   struct invert_depth_state state = { viewport_mask };
+   struct invert_depth_state state = { viewport_mask, clip_halfz };
    nir_foreach_function(function, shader) {
       if (function->impl) {
          nir_builder b;
@@ -677,60 +681,6 @@ d3d12_add_missing_dual_src_target(struct nir_shader *s,
    }
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
-}
-
-static bool
-fix_io_uint_type(struct nir_shader *s, nir_variable_mode modes, int slot)
-{
-   nir_variable *fixed_var = NULL;
-   nir_foreach_variable_with_modes(var, s, modes) {
-      if (var->data.location == slot) {
-         var->type = glsl_uint_type();
-         fixed_var = var;
-         break;
-      }
-   }
-
-   assert(fixed_var);
-
-   nir_foreach_function(function, s) {
-      if (function->impl) {
-         nir_foreach_block(block, function->impl) {
-            nir_foreach_instr_safe(instr, block) {
-               if (instr->type == nir_instr_type_deref) {
-                  nir_deref_instr *deref = nir_instr_as_deref(instr);
-                  if (deref->var == fixed_var)
-                     deref->type = fixed_var->type;
-               }
-            }
-         }
-      }
-   }
-   return true;
-}
-
-bool
-d3d12_fix_io_uint_type(struct nir_shader *s, uint64_t in_mask, uint64_t out_mask)
-{
-   if (!(s->info.outputs_written & out_mask) &&
-       !(s->info.inputs_read & in_mask))
-      return false;
-
-   bool progress = false;
-
-   while (in_mask) {
-      int slot = u_bit_scan64(&in_mask);
-      progress |= (s->info.inputs_read & (1ull << slot)) &&
-                  fix_io_uint_type(s, nir_var_shader_in, slot);
-   }
-
-   while (out_mask) {
-      int slot = u_bit_scan64(&out_mask);
-      progress |= (s->info.outputs_written & (1ull << slot)) &&
-                  fix_io_uint_type(s, nir_var_shader_out, slot);
-   }
-
-   return progress;
 }
 
 static bool
@@ -1004,6 +954,7 @@ d3d12_disable_multisampling(nir_shader *s)
    nir_foreach_variable_with_modes_safe(var, s, nir_var_shader_out) {
       if (var->data.location == FRAG_RESULT_SAMPLE_MASK) {
          exec_node_remove(&var->node);
+         s->info.outputs_written &= ~(1ull << FRAG_RESULT_SAMPLE_MASK);
          progress = true;
       }
    }

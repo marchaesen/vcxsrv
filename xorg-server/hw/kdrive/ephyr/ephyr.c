@@ -298,7 +298,7 @@ ephyrShadowUpdate(ScreenPtr pScreen, shadowBufPtr pBuf)
      * pBuf->pDamage  regions
      */
     shadowUpdateRotatePacked(pScreen, pBuf);
-    hostx_paint_rect(screen, 0, 0, 0, 0, screen->width, screen->height);
+    hostx_paint_rect(screen, 0, 0, 0, 0, screen->width, screen->height, TRUE);
 }
 
 static void
@@ -328,7 +328,8 @@ ephyrInternalDamageRedisplay(ScreenPtr pScreen)
                 hostx_paint_rect(screen,
                                  pbox->x1, pbox->y1,
                                  pbox->x1, pbox->y1,
-                                 pbox->x2 - pbox->x1, pbox->y2 - pbox->y1);
+                                 pbox->x2 - pbox->x1, pbox->y2 - pbox->y1,
+                                 nbox == 0);
                 pbox++;
             }
         }
@@ -889,7 +890,8 @@ ephyrProcessExpose(xcb_generic_event_t *xev)
     if (scrpriv) {
         hostx_paint_rect(scrpriv->screen, 0, 0, 0, 0,
                          scrpriv->win_width,
-                         scrpriv->win_height);
+                         scrpriv->win_height,
+                         TRUE);
     } else {
         EPHYR_LOG_ERROR("failed to get host screen\n");
     }

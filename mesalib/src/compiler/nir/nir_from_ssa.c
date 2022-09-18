@@ -408,6 +408,9 @@ isolate_phi_nodes_block(nir_shader *shader, nir_block *block, void *dead_ctx)
       nir_phi_instr *phi = nir_instr_as_phi(instr);
       assert(phi->dest.is_ssa);
       nir_foreach_phi_src(src, phi) {
+         if (nir_src_is_undef(src->src))
+            continue;
+
          nir_parallel_copy_instr *pcopy =
             get_parallel_copy_at_end_of_block(src->pred);
          assert(pcopy);
@@ -460,6 +463,9 @@ coalesce_phi_nodes_block(nir_block *block, struct from_ssa_state *state)
 
       nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
+         if (nir_src_is_undef(src->src))
+            continue;
+
          merge_node *src_node = get_merge_node(src->src.ssa, state);
          if (src_node->set != dest_node->set)
             merge_merge_sets(dest_node->set, src_node->set);
@@ -638,7 +644,7 @@ emit_copy(nir_builder *b, nir_src src, nir_src dest_src)
       assert(src.reg.reg->num_components >= dest_src.reg.reg->num_components);
 
    nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_mov);
-   nir_src_copy(&mov->src[0].src, &src);
+   nir_src_copy(&mov->src[0].src, &src, &mov->instr);
    mov->dest.dest = nir_dest_for_reg(dest_src.reg.reg);
    mov->dest.write_mask = (1 << dest_src.reg.reg->num_components) - 1;
 
@@ -974,7 +980,22 @@ place_phi_read(nir_builder *b, nir_register *reg,
  * single block to convert all of its phis to a register and some movs.
  * The code that is generated, while not optimal for actual codegen in a
  * back-end, is easy to generate, correct, and will turn into the same set of
- * phis after you call regs_to_ssa and do some copy propagation.
+ * phis after you call regs_to_ssa and do some copy propagation.  For each phi
+ * node we do the following:
+ *
+ *  1. For each phi instruction in the block, create a new nir_register
+ *
+ *  2. Insert movs at the top of the destination block for each phi and
+ *     rewrite all uses of the phi to use the mov.
+ *
+ *  3. For each phi source, insert movs in the predecessor block from the phi
+ *     source to the register associated with the phi.
+ *
+ * Correctness is guaranteed by the fact that we create a new register for
+ * each phi and emit movs on both sides of the control-flow edge.  Because all
+ * the phis have SSA destinations (we assert this) and there is a separate
+ * temporary for each phi, all movs inserted in any particular block have
+ * unique destinations so the order of operations does not matter.
  *
  * The one intelligent thing this pass does is that it places the moves from
  * the phi sources as high up the predecessor tree as possible instead of in
@@ -1006,10 +1027,16 @@ nir_lower_phis_to_regs_block(nir_block *block)
       nir_ssa_def_rewrite_uses(&phi->dest.ssa, def);
 
       nir_foreach_phi_src(src, phi) {
-         assert(src->src.is_ssa);
-         _mesa_set_add(visited_blocks, src->src.ssa->parent_instr->block);
-         place_phi_read(&b, reg, src->src.ssa, src->pred, visited_blocks);
-         _mesa_set_clear(visited_blocks, NULL);
+         if (src->src.is_ssa) {
+            _mesa_set_add(visited_blocks, src->src.ssa->parent_instr->block);
+            place_phi_read(&b, reg, src->src.ssa, src->pred, visited_blocks);
+            _mesa_set_clear(visited_blocks, NULL);
+         } else {
+            b.cursor = nir_after_block_before_jump(src->pred);
+            nir_ssa_def *src_ssa =
+               nir_ssa_for_src(&b, src->src, phi->dest.ssa.num_components);
+            nir_store_reg(&b, reg, src_ssa, ~0);
+         }
       }
 
       nir_instr_remove(&phi->instr);

@@ -52,4 +52,7 @@ _mesa_update_hitflag( struct gl_context *ctx, GLfloat z );
 extern void
 _mesa_init_feedback( struct gl_context *ctx );
 
+extern void
+_mesa_free_feedback( struct gl_context *ctx );
+
 #endif /* FEEDBACK_H */

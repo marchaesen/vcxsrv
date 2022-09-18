@@ -38,16 +38,16 @@ from the two-dimensional array of keysyms for the key corresponding to
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 Xkb description of interest
 .TP
-.I \- keycode
+.I keycode
 keycode of interest 
 .TP
-.I \- shift
+.I shift
 shift level of interest
 .TP
-.I \- grp
+.I grp
 group of interest
 .SH DESCRIPTION
 .LP

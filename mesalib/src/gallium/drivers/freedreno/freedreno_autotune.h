@@ -132,9 +132,9 @@ struct fd_autotune_results {
    } result[127];
 };
 
-#define offset(base, ptr) ((uint8_t *)(ptr) - (uint8_t *)(base))
+#define __offset(base, ptr) ((uint8_t *)(ptr) - (uint8_t *)(base))
 #define results_ptr(at, member)                                                \
-   (at)->results_mem, offset((at)->results, &(at)->results->member), 0, 0
+   (at)->results_mem, __offset((at)->results, &(at)->results->member), 0, 0
 
 struct fd_batch_history;
 

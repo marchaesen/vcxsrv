@@ -32,59 +32,40 @@
 #include "nir.h"
 #include "util/set.h"
 #include "util/u_vector.h"
+#include "util/u_worklist.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** Represents a double-ended queue of unique blocks
- *
- * The worklist datastructure guarantees that eacy block is in the queue at
- * most once.  Pushing a block onto either end of the queue is a no-op if
- * the block is already in the queue.  In order for this to work, the
- * caller must ensure that the blocks are properly indexed.
- */
-typedef struct {
-   /* The total size of the worklist */
-   unsigned size;
+typedef u_worklist nir_block_worklist;
 
-   /* The number of blocks currently in the worklist */
-   unsigned count;
+#define nir_block_worklist_init(w, num_blocks, mem_ctx) \
+        u_worklist_init(w, num_blocks, mem_ctx)
 
-   /* The offset in the array of blocks at which the list starts */
-   unsigned start;
+#define nir_block_worklist_fini(w) u_worklist_fini(w)
 
-   /* A bitset of all of the blocks currently present in the worklist */
-   BITSET_WORD *blocks_present;
+#define nir_block_worklist_is_empty(w) u_worklist_is_empty(w)
 
-   /* The actual worklist */
-   nir_block **blocks;
-} nir_block_worklist;
+#define nir_block_worklist_push_head(w, block) \
+        u_worklist_push_head(w, block, index)
 
-void nir_block_worklist_init(nir_block_worklist *w, unsigned num_blocks,
-                             void *mem_ctx);
-void nir_block_worklist_fini(nir_block_worklist *w);
+#define nir_block_worklist_peek_head(w) \
+        u_worklist_peek_head(w, nir_block, index)
+
+#define nir_block_worklist_pop_head(w) \
+        u_worklist_pop_head(w, nir_block, index)
+
+#define nir_block_worklist_push_tail(w, block) \
+        u_worklist_push_tail(w, block, index)
+
+#define nir_block_worklist_peek_tail(w) \
+        u_worklist_peek_tail(w, nir_block, index)
+
+#define nir_block_worklist_pop_tail(w) \
+        u_worklist_pop_tail(w, nir_block, index)
 
 void nir_block_worklist_add_all(nir_block_worklist *w, nir_function_impl *impl);
-
-static inline bool
-nir_block_worklist_is_empty(const nir_block_worklist *w)
-{
-   return w->count == 0;
-}
-
-void nir_block_worklist_push_head(nir_block_worklist *w, nir_block *block);
-
-nir_block *nir_block_worklist_peek_head(const nir_block_worklist *w);
-
-nir_block *nir_block_worklist_pop_head(nir_block_worklist *w);
-
-void nir_block_worklist_push_tail(nir_block_worklist *w, nir_block *block);
-
-nir_block *nir_block_worklist_peek_tail(const nir_block_worklist *w);
-
-nir_block *nir_block_worklist_pop_tail(nir_block_worklist *w);
-
 
 /*
  * This worklist implementation, in contrast to the block worklist, does not

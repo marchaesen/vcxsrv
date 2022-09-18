@@ -4,7 +4,7 @@ project('xserver', 'c',
             'c_std=gnu99',
         ],
         version: '21.1.99.1',
-        meson_version: '>= 0.47.0',
+        meson_version: '>= 0.52.0',
 )
 release_date = '2021-07-05'
 
@@ -94,6 +94,7 @@ xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0', fallb
 xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1', fallback: ['xorgproto', 'ext_xorgproto'])
 applewmproto_dep = dependency('applewmproto', version: '>= 1.4', fallback: ['xorgproto', 'ext_xorgproto'], required: false)
 xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
+xwaylandproto_dep = dependency('xwaylandproto', version: '>= 1.0', fallback: ['xorgproto', 'ext_xorgproto'], required: false)
 
 pixman_dep = dependency('pixman-1')
 libbsd_dep = dependency('libbsd', required: false)
@@ -184,8 +185,7 @@ if with_dtrace
 endif
 
 build_xorg = false
-if (host_machine.system() != 'darwin' and
-    host_machine.system() != 'windows')
+if (host_machine.system() != 'windows')
     if get_option('xorg') == 'auto'
         build_xorg = (host_machine.system() != 'darwin' and
                       host_machine.system() != 'windows')
@@ -230,8 +230,7 @@ if (host_machine.system() != 'darwin' and
 endif
 
 build_xnest = false
-if (host_machine.system() != 'darwin' and
-    host_machine.system() != 'windows')
+if (host_machine.system() != 'windows')
     if get_option('xnest') != 'false'
         xnest_required = get_option('xnest') == 'true'
 
@@ -336,6 +335,21 @@ epoxy_dep = dependency('', required: false)
 if build_glamor
     gbm_dep = dependency('gbm', version: gbm_req, required: false)
     epoxy_dep = dependency('epoxy', required: false)
+endif
+
+if build_xwayland
+    libdecor_dep = dependency('libdecor-0', required: false)
+    libdecor_option = get_option('libdecor')
+    if libdecor_option == 'auto'
+        have_libdecor = libdecor_dep.found()
+    else
+        have_libdecor = libdecor_option == 'true'
+        if have_libdecor and not libdecor_dep.found()
+            error('libdecor support requested but not found')
+        endif
+    endif
+else
+    have_libdecor = false
 endif
 
 eglstream_option = get_option('xwayland_eglstream')

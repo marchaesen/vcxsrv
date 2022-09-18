@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Raspberry Pi
+ * Copyright © 2019 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -255,7 +255,7 @@ v3dv_CreateRenderPass2(VkDevice _device,
          }
 
          /* VK_KHR_depth_stencil_resolve */
-         const VkSubpassDescriptionDepthStencilResolveKHR *resolve_desc =
+         const VkSubpassDescriptionDepthStencilResolve *resolve_desc =
             vk_find_struct_const(desc->pNext, SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE);
          const VkAttachmentReference2 *resolve_att =
             resolve_desc && resolve_desc->pDepthStencilResolveAttachment &&
@@ -341,10 +341,12 @@ subpass_get_granularity(struct v3dv_device *device,
          msaa = true;
    }
 
+   /* If requested, double-buffer may or may not be enabled depending on
+    * heuristics so we choose a conservative granularity here, with it disabled.
+    */
    uint32_t width, height;
-   bool double_buffer = (V3D_DEBUG & V3D_DEBUG_DOUBLE_BUFFER) && !msaa;
    v3d_choose_tile_size(color_attachment_count, max_bpp, msaa,
-                        double_buffer, &width, &height);
+                        false /* double-buffer */, &width, &height);
    *granularity = (VkExtent2D) {
       .width = width,
       .height = height

@@ -34,16 +34,16 @@ XkbChangeEnabledControls \- Manipulates the EnabledControls control
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device_spec
- keyboard device to modify
+.I device_spec
+keyboard device to modify
 .TP
-.I \- mask
+.I mask
 1 bit -> controls to enable / disable
 .TP
-.I \- values
+.I values
 1 bit => enable, 0 bit => disable 
 .SH DESCRIPTION
 .LP

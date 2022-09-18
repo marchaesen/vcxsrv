@@ -37,6 +37,7 @@
 static const char *stw_extension_string = 
    "WGL_ARB_create_context "
    "WGL_ARB_create_context_profile "
+   "WGL_ARB_create_context_robustness "
    "WGL_ARB_extensions_string "
    "WGL_ARB_make_current_read "
    "WGL_ARB_multisample "

@@ -808,7 +808,6 @@ qir_SF(struct vc4_compile *c, struct qreg src)
             !c->defs[src.index] ||
             last_inst != c->defs[src.index]) {
                 last_inst = qir_MOV_dest(c, qir_reg(QFILE_NULL, 0), src);
-                last_inst = (struct qinst *)c->cur_block->instructions.prev;
         }
         last_inst->sf = true;
 }

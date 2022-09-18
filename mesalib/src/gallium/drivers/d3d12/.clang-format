@@ -1,0 +1,150 @@
+BasedOnStyle: LLVM
+ColumnLimit: 120
+ContinuationIndentWidth: 3
+IndentWidth: 3
+UseTab: Never
+SortIncludes: false
+
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: true
+AlignTrailingComments: true
+PointerAlignment: Right
+
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyExcessCharacter: 75
+
+AlwaysBreakTemplateDeclarations: Yes
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerIndentWidth: 3
+IndentCaseLabels: true
+
+BreakBeforeTernaryOperators: false 
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: false
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+FixNamespaceComments: true
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+AllowAllArgumentsOnNextLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AlwaysBreakAfterReturnType: TopLevel
+
+BinPackArguments: false
+BinPackParameters: false
+Cpp11BracedListStyle: false
+
+SpaceAfterCStyleCast: true
+SpaceBeforeCpp11BracedList: true
+SpaceBeforeCtorInitializerColon: true
+SpacesInContainerLiterals: true
+SpaceBeforeParens: ControlStatements
+SpacesBeforeTrailingComments: 3
+SpacesInAngles: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInCStyleCastParentheses: false
+SpaceAfterLogicalNot: false
+SpaceBeforeAssignmentOperators: true
+SpaceInEmptyParentheses: false
+SpaceInEmptyBlock: true
+
+MaxEmptyLinesToKeep: 3
+
+ForEachMacros:
+  - LIST_FOR_EACH_ENTRY
+  - LIST_FOR_EACH_ENTRY_SAFE
+  - LIST_FOR_EACH_ENTRY_SAFE_REV
+  - list_for_each_entry
+  - list_for_each_entry_safe
+  - foreach_list_typed
+  - u_foreach_bit
+  - util_dynarray_foreach
+  - nir_foreach_variable
+  - nir_foreach_variable_safe
+  - nir_foreach_register
+  - nir_foreach_register_safe
+  - nir_foreach_use
+  - nir_foreach_use_safe
+  - nir_foreach_if_use
+  - nir_foreach_if_use_safe
+  - nir_foreach_def
+  - nir_foreach_def_safe
+  - nir_foreach_phi_src
+  - nir_foreach_phi_src_safe
+  - nir_foreach_parallel_copy_entry
+  - nir_foreach_instr
+  - nir_foreach_instr_reverse
+  - nir_foreach_instr_safe
+  - nir_foreach_instr_reverse_safe
+  - nir_foreach_function
+  - nir_foreach_block
+  - nir_foreach_block_safe
+  - nir_foreach_block_reverse
+  - nir_foreach_block_reverse_safe
+  - nir_foreach_block_in_cf_node
+  - nir_foreach_shader_in_variable
+  - nir_foreach_shader_out_variable_safe
+  - nir_foreach_variable_in_list
+  - nir_foreach_src
+  - nir_foreach_variable_with_modes_safe
+  - nir_foreach_variable_with_modes
+  - nir_foreach_shader_out_variable
+  - ir2_foreach_instr
+  - ir2_foreach_live_reg
+  - ir2_foreach_avail
+  - ir2_foreach_src
+  - foreach_two_lists
+  - foreach_bit
+  - foreach_sched_node
+  - foreach_src
+  - foreach_src_n
+  - foreach_ssa_use
+  - foreach_ssa_srcp_n
+  - foreach_ssa_srcp
+  - foreach_ssa_src_n
+  - foreach_ssa_src
+  - foreach_input_n
+  - foreach_input
+  - foreach_output_n
+  - foreach_output
+  - foreach_instr
+  - foreach_instr_rev
+  - foreach_instr_safe
+  - foreach_block
+  - foreach_block_safe
+  - foreach_block_rev
+  - foreach_array
+  - foreach_array_safe
+  - foreach_name_n
+  - foreach_name
+  - foreach_def
+  - foreach_use
+  - foreach_batch
+  - hash_table_foreach
+  - set_foreach
+  - foreach_line_in_section
+  - perf_time
+  - perf_time_ctx
+  - foreach_submit
+  - foreach_submit_safe

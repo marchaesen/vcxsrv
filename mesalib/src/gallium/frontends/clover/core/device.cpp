@@ -227,7 +227,7 @@ device::max_images_write() const {
 
 size_t
 device::max_image_buffer_size() const {
-   return pipe->get_param(pipe, PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE);
+   return pipe->get_param(pipe, PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT);
 }
 
 cl_uint
@@ -272,7 +272,7 @@ device::max_mem_input() const {
 cl_ulong
 device::max_const_buffer_size() const {
    return pipe->get_shader_param(pipe, PIPE_SHADER_COMPUTE,
-                                 PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE);
+                                 PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE);
 }
 
 cl_uint

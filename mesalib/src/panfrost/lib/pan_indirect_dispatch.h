@@ -34,7 +34,7 @@ struct pan_indirect_dispatch_info {
         mali_ptr job;
         mali_ptr indirect_dim;
         mali_ptr num_wg_sysval[3];
-};
+} PACKED;
 
 unsigned
 GENX(pan_indirect_dispatch_emit)(struct pan_pool *pool,

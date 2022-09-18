@@ -1570,7 +1570,7 @@ cp_load_state(uint32_t *dwords, uint32_t sizedwords, int level)
             dump_domain(ssboconst, 4, level + 2, "A5XX_SSBO_0");
          } else if (600 <= options->gpu_id && options->gpu_id < 700) {
             sz = 16;
-            dump_domain(ssboconst, 16, level + 2, "A6XX_IBO");
+            dump_domain(ssboconst, 16, level + 2, "A6XX_TEX_CONST");
          }
          dump_hex(ssboconst, sz, level + 1);
          ssboconst += sz;

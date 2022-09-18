@@ -34,16 +34,16 @@ XkbAllocNames \- Allocate symbolic names structures
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description for which names are to be allocated
 .TP
-.I \- which
+.I which
 mask of names to be allocated
 .TP
-.I \- num_rg
+.I num_rg
 total number of radio group names needed
 .TP
-.I \- num_key_aliases
+.I num_key_aliases
 total number of key aliases needed
 .SH DESCRIPTION
 .LP

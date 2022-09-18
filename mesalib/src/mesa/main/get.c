@@ -230,6 +230,7 @@ union value {
    GLdouble value_double_2[2];
    GLmatrix *value_matrix;
    GLint value_int;
+   GLint value_int_2[2];
    GLint value_int_4[4];
    GLint64 value_int64;
    GLenum value_enum;
@@ -977,6 +978,14 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
    case GL_DEVICE_UUID_EXT:
       _mesa_get_device_uuid(ctx, v->value_int_4);
+      break;
+
+   /* GL_EXT_memory_object_win32 */
+   case GL_DEVICE_LUID_EXT:
+      _mesa_get_device_luid(ctx, v->value_int_2);
+      break;
+   case GL_DEVICE_NODE_MASK_EXT:
+      v->value_int = ctx->pipe->screen->get_device_node_mask(ctx->pipe->screen);
       break;
 
    /* GL_EXT_packed_float */
@@ -2033,22 +2042,31 @@ _mesa_GetIntegerv(GLenum pname, GLint *params)
       break;
 
    case TYPE_INT_4:
-   case TYPE_UINT_4:
       params[3] = ((GLint *) p)[3];
       FALLTHROUGH;
    case TYPE_INT_3:
-   case TYPE_UINT_3:
       params[2] = ((GLint *) p)[2];
       FALLTHROUGH;
    case TYPE_INT_2:
-   case TYPE_UINT_2:
    case TYPE_ENUM_2:
       params[1] = ((GLint *) p)[1];
       FALLTHROUGH;
    case TYPE_INT:
-   case TYPE_UINT:
    case TYPE_ENUM:
       params[0] = ((GLint *) p)[0];
+      break;
+
+   case TYPE_UINT_4:
+      params[3] = MIN2(((GLuint *) p)[3], INT_MAX);
+      FALLTHROUGH;
+   case TYPE_UINT_3:
+      params[2] = MIN2(((GLuint *) p)[2], INT_MAX);
+      FALLTHROUGH;
+   case TYPE_UINT_2:
+      params[1] = MIN2(((GLuint *) p)[1], INT_MAX);
+      FALLTHROUGH;
+   case TYPE_UINT:
+      params[0] = MIN2(((GLuint *) p)[0], INT_MAX);
       break;
 
    case TYPE_ENUM16:
@@ -2446,7 +2464,9 @@ tex_binding_to_index(const struct gl_context *ctx, GLenum binding)
    case GL_TEXTURE_BINDING_2D:
       return TEXTURE_2D_INDEX;
    case GL_TEXTURE_BINDING_3D:
-      return ctx->API != API_OPENGLES ? TEXTURE_3D_INDEX : -1;
+      return (ctx->API != API_OPENGLES &&
+              !(ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D))
+         ? TEXTURE_3D_INDEX : -1;
    case GL_TEXTURE_BINDING_CUBE_MAP:
       return TEXTURE_CUBE_INDEX;
    case GL_TEXTURE_BINDING_RECTANGLE:
@@ -2838,8 +2858,8 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_enum;
       if (index >= 3)
          goto invalid_value;
-      v->value_int = ctx->Const.MaxComputeWorkGroupCount[index];
-      return TYPE_INT;
+      v->value_uint = ctx->Const.MaxComputeWorkGroupCount[index];
+      return TYPE_UINT;
 
    case GL_MAX_COMPUTE_WORK_GROUP_SIZE:
       if (!_mesa_has_compute_shaders(ctx))
@@ -2872,6 +2892,17 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_value;
       _mesa_get_device_uuid(ctx, v->value_int_4);
       return TYPE_INT_4;
+   /* GL_EXT_memory_object_win32 */
+   case GL_DEVICE_LUID_EXT:
+      if (index >= 1)
+         goto invalid_value;
+      _mesa_get_device_luid(ctx, v->value_int_2);
+      return TYPE_INT_2;
+   case GL_DEVICE_NODE_MASK_EXT:
+      if (index >= 1)
+         goto invalid_value;
+      v->value_int = ctx->pipe->screen->get_device_node_mask(ctx->pipe->screen);
+      return TYPE_INT;
    /* GL_EXT_direct_state_access */
    case GL_TEXTURE_1D:
    case GL_TEXTURE_2D:
@@ -3012,15 +3043,22 @@ _mesa_GetIntegeri_v( GLenum pname, GLuint index, GLint *params )
       break;
 
    case TYPE_INT:
-   case TYPE_UINT:
       params[0] = v.value_int;
       break;
+   case TYPE_UINT:
+      params[0] = MIN2(v.value_uint, INT_MAX);
+      break;
    case TYPE_INT_4:
-   case TYPE_UINT_4:
       params[0] = v.value_int_4[0];
       params[1] = v.value_int_4[1];
       params[2] = v.value_int_4[2];
       params[3] = v.value_int_4[3];
+      break;
+   case TYPE_UINT_4:
+      params[0] = MIN2((GLuint)v.value_int_4[0], INT_MAX);
+      params[1] = MIN2((GLuint)v.value_int_4[1], INT_MAX);
+      params[2] = MIN2((GLuint)v.value_int_4[2], INT_MAX);
+      params[3] = MIN2((GLuint)v.value_int_4[3], INT_MAX);
       break;
    case TYPE_INT64:
       params[0] = INT64_TO_INT(v.value_int64);
@@ -3048,7 +3086,7 @@ _mesa_GetInteger64i_v( GLenum pname, GLuint index, GLint64 *params )
       params[3] = v.value_int_4[3];
       break;
    case TYPE_UINT:
-      params[0] = (GLuint) v.value_int;
+      params[0] = v.value_uint;
       break;
    case TYPE_UINT_4:
       params[0] = (GLuint) v.value_int_4[0];
@@ -3365,22 +3403,31 @@ _mesa_GetFixedv(GLenum pname, GLfixed *params)
       break;
 
    case TYPE_INT_4:
-   case TYPE_UINT_4:
       params[3] = INT_TO_FIXED(((GLint *) p)[3]);
       FALLTHROUGH;
    case TYPE_INT_3:
-   case TYPE_UINT_3:
       params[2] = INT_TO_FIXED(((GLint *) p)[2]);
       FALLTHROUGH;
    case TYPE_INT_2:
-   case TYPE_UINT_2:
    case TYPE_ENUM_2:
       params[1] = INT_TO_FIXED(((GLint *) p)[1]);
       FALLTHROUGH;
    case TYPE_INT:
-   case TYPE_UINT:
    case TYPE_ENUM:
       params[0] = INT_TO_FIXED(((GLint *) p)[0]);
+      break;
+
+   case TYPE_UINT_4:
+      params[3] = INT_TO_FIXED(((GLuint *) p)[3]);
+      FALLTHROUGH;
+   case TYPE_UINT_3:
+      params[2] = INT_TO_FIXED(((GLuint *) p)[2]);
+      FALLTHROUGH;
+   case TYPE_UINT_2:
+      params[1] = INT_TO_FIXED(((GLuint *) p)[1]);
+      FALLTHROUGH;
+   case TYPE_UINT:
+      params[0] = INT_TO_FIXED(((GLuint *) p)[0]);
       break;
 
    case TYPE_ENUM16:

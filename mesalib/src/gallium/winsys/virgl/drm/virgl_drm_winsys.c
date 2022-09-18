@@ -455,8 +455,15 @@ alloc:
       res = virgl_drm_winsys_resource_create(qws, target, format, bind, width,
                                              height, depth, array_size,
                                              last_level, nr_samples, size,
-                                             false);
+                                             true);
    return res;
+}
+
+static uint32_t
+virgl_drm_winsys_resource_get_storage_size(struct virgl_winsys *qws,
+                                           struct virgl_hw_res *res)
+{
+   return res->size;
 }
 
 static struct virgl_hw_res *
@@ -579,7 +586,7 @@ virgl_drm_winsys_resource_set_type(struct virgl_winsys *qws,
                                    const uint32_t *plane_offsets)
 {
    struct virgl_drm_winsys *qdws = virgl_drm_winsys(qws);
-   uint32_t cmd[VIRGL_PIPE_RES_SET_TYPE_SIZE(VIRGL_MAX_PLANE_COUNT)];
+   uint32_t cmd[VIRGL_PIPE_RES_SET_TYPE_SIZE(VIRGL_MAX_PLANE_COUNT) + 1];
    struct drm_virtgpu_execbuffer eb;
    int ret;
 
@@ -1250,6 +1257,7 @@ virgl_drm_winsys_create(int drmFD)
    qdws->base.resource_create_from_handle = virgl_drm_winsys_resource_create_handle;
    qdws->base.resource_set_type = virgl_drm_winsys_resource_set_type;
    qdws->base.resource_get_handle = virgl_drm_winsys_resource_get_handle;
+   qdws->base.resource_get_storage_size = virgl_drm_winsys_resource_get_storage_size;
    qdws->base.resource_map = virgl_drm_resource_map;
    qdws->base.resource_wait = virgl_drm_resource_wait;
    qdws->base.resource_is_busy = virgl_drm_resource_is_busy;
@@ -1298,6 +1306,43 @@ virgl_drm_screen_destroy(struct pipe_screen *pscreen)
    }
 }
 
+static uint32_t
+hash_fd(const void *key)
+{
+   int fd = pointer_to_intptr(key);
+
+   return _mesa_hash_int(&fd);
+}
+
+static bool
+equal_fd(const void *key1, const void *key2)
+{
+   int ret;
+   int fd1 = pointer_to_intptr(key1);
+   int fd2 = pointer_to_intptr(key2);
+
+   /* Since the scope of prime handle is limited to drm_file,
+    * virgl_screen is only shared at the drm_file level,
+    * not at the device (/dev/dri/cardX) level.
+    */
+   ret = os_same_file_description(fd1, fd2);
+   if (ret == 0) {
+       return true;
+   } else if (ret < 0) {
+      static bool logged;
+
+      if (!logged) {
+         _debug_printf("virgl: os_same_file_description couldn't "
+                       "determine if two DRM fds reference the same "
+                       "file description.\n"
+                       "If they do, bad things may happen!\n");
+         logged = true;
+      }
+   }
+
+   return false;
+}
+
 struct pipe_screen *
 virgl_drm_screen_create(int fd, const struct pipe_screen_config *config)
 {
@@ -1305,7 +1350,7 @@ virgl_drm_screen_create(int fd, const struct pipe_screen_config *config)
 
    mtx_lock(&virgl_screen_mutex);
    if (!fd_tab) {
-      fd_tab = util_hash_table_create_fd_keys();
+      fd_tab = _mesa_hash_table_create(NULL, hash_fd, equal_fd);
       if (!fd_tab)
          goto unlock;
    }

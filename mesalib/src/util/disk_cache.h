@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include "util/mesa-sha1.h"
+#include "util/detect_os.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +45,7 @@ extern "C" {
 
 #define CACHE_DIR_NAME "mesa_shader_cache"
 #define CACHE_DIR_NAME_SF "mesa_shader_cache_sf"
+#define CACHE_DIR_NAME_DB "mesa_shader_cache_db"
 
 typedef uint8_t cache_key[CACHE_KEY_SIZE];
 
@@ -133,6 +135,9 @@ disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx)
       return false;
    return true;
 }
+#elif DETECT_OS_WINDOWS
+bool
+disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx);
 #else
 static inline bool
 disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx)

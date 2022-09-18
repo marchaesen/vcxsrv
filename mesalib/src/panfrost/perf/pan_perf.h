@@ -60,10 +60,9 @@ struct panfrost_perf_counter {
    const char *desc;
    const char *symbol_name;
    enum panfrost_perf_counter_units units;
-   // Offset of this counter's value within the counters memory block
+   // Offset of this counter's value within the category
    uint32_t offset;
-
-   const struct panfrost_perf_category *category;
+   unsigned category_index;
 };
 
 struct panfrost_perf_category {
@@ -71,6 +70,9 @@ struct panfrost_perf_category {
 
    struct panfrost_perf_counter counters[PAN_PERF_MAX_COUNTERS];
    uint32_t n_counters;
+
+   /* Offset of this category within the counters memory block */
+   unsigned offset;
 };
 
 struct panfrost_perf_config {
@@ -88,6 +90,9 @@ struct panfrost_perf {
    // Memory where to dump counter values
    uint32_t *counter_values;
    uint32_t n_counter_values;
+
+   /* Offsets of categories */
+   unsigned category_offset[PAN_PERF_MAX_CATEGORIES];
 };
 
 uint32_t

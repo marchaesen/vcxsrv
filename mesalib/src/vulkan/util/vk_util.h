@@ -37,13 +37,83 @@ extern "C" {
 
 #include <vulkan/vulkan.h>
 
-#define vk_foreach_struct(__iter, __start) \
-   for (struct VkBaseOutStructure *__iter = (struct VkBaseOutStructure *)(__start); \
-        __iter; __iter = __iter->pNext)
+struct vk_pnext_iterator {
+   VkBaseOutStructure *pos;
+#ifndef NDEBUG
+   VkBaseOutStructure *half_pos;
+   unsigned idx;
+#endif
+   bool done;
+};
 
-#define vk_foreach_struct_const(__iter, __start) \
-   for (const struct VkBaseInStructure *__iter = (const struct VkBaseInStructure *)(__start); \
-        __iter; __iter = __iter->pNext)
+static inline struct vk_pnext_iterator
+vk_pnext_iterator_init(void *start)
+{
+   struct vk_pnext_iterator iter;
+
+   iter.pos = (VkBaseOutStructure *)start;
+#ifndef NDEBUG
+   iter.half_pos = (VkBaseOutStructure *)start;
+   iter.idx = 0;
+#endif
+   iter.done = false;
+
+   return iter;
+}
+
+static inline struct vk_pnext_iterator
+vk_pnext_iterator_init_const(const void *start)
+{
+   return vk_pnext_iterator_init((void *)start);
+}
+
+static inline VkBaseOutStructure *
+vk_pnext_iterator_next(struct vk_pnext_iterator *iter)
+{
+   iter->pos = iter->pos->pNext;
+
+#ifndef NDEBUG
+   if (iter->idx++ & 1) {
+      /** This the "tortoise and the hare" algorithm.  We increment
+       * chaser->pNext every other time *iter gets incremented.  Because *iter
+       * is incrementing twice as fast as chaser->pNext, the distance between
+       * them in the list increases by one for each time we get here.  If we
+       * have a loop, eventually, both iterators will be inside the loop and
+       * this distance will be an integer multiple of the loop length, at
+       * which point the two pointers will be equal.
+       */
+      iter->half_pos = iter->half_pos->pNext;
+      if (iter->half_pos == iter->pos)
+         assert(!"Vulkan input pNext chain has a loop!");
+   }
+#endif
+
+   return iter->pos;
+}
+
+/* Because the outer loop only executes once, independently of what happens in
+ * the inner loop, breaks and continues should work exactly the same as if
+ * there were only one for loop.
+ */
+#define vk_foreach_struct(__e, __start) \
+   for (struct vk_pnext_iterator __iter = vk_pnext_iterator_init(__start); \
+        !__iter.done; __iter.done = true) \
+      for (VkBaseOutStructure *__e = __iter.pos; \
+           __e; __e = vk_pnext_iterator_next(&__iter))
+
+#define vk_foreach_struct_const(__e, __start) \
+   for (struct vk_pnext_iterator __iter = \
+            vk_pnext_iterator_init_const(__start); \
+        !__iter.done; __iter.done = true) \
+      for (const VkBaseInStructure *__e = (VkBaseInStructure *)__iter.pos; \
+           __e; __e = (VkBaseInStructure *)vk_pnext_iterator_next(&__iter))
+
+static inline void
+vk_copy_struct_guts(VkBaseOutStructure *dst, VkBaseInStructure *src, size_t struct_size)
+{
+   STATIC_ASSERT(sizeof(*dst) == sizeof(*src));
+   memcpy(dst + 1, src + 1, struct_size - sizeof(VkBaseOutStructure));
+}
 
 /**
  * A wrapper for a Vulkan output array. A Vulkan output array is one that
@@ -58,15 +128,16 @@ extern "C" {
  *       uint32_t*                  pQueueFamilyPropertyCount,
  *       VkQueueFamilyProperties*   pQueueFamilyProperties)
  *    {
- *       VK_OUTARRAY_MAKE(props, pQueueFamilyProperties,
- *                         pQueueFamilyPropertyCount);
+ *       VK_OUTARRAY_MAKE_TYPED(VkQueueFamilyProperties, props,
+ *                              pQueueFamilyProperties,
+ *                              pQueueFamilyPropertyCount);
  *
- *       vk_outarray_append(&props, p) {
+ *       vk_outarray_append_typed(VkQueueFamilyProperties, &props, p) {
  *          p->queueFlags = ...;
  *          p->queueCount = ...;
  *       }
  *
- *       vk_outarray_append(&props, p) {
+ *       vk_outarray_append_typed(VkQueueFamilyProperties, &props, p) {
  *          p->queueFlags = ...;
  *          p->queueCount = ...;
  *       }
@@ -151,8 +222,6 @@ __vk_outarray_next(struct __vk_outarray *a, size_t elem_size)
 #define vk_outarray_init(a, data, len) \
    __vk_outarray_init(&(a)->base, (data), (len))
 
-#define VK_OUTARRAY_MAKE(name, data, len) \
-   VK_OUTARRAY_MAKE_TYPED(__typeof__((data)[0]), name, data, len)
 #define VK_OUTARRAY_MAKE_TYPED(type, name, data, len) \
    vk_outarray(type) name; \
    vk_outarray_init(&name, (data), (len))
@@ -171,13 +240,13 @@ __vk_outarray_next(struct __vk_outarray *a, size_t elem_size)
  *
  * This is a block-based macro. For example:
  *
- *    vk_outarray_append(&a, elem) {
+ *    vk_outarray_append_typed(T, &a, elem) {
  *       elem->foo = ...;
  *       elem->bar = ...;
  *    }
  *
  * The array `a` has type `vk_outarray(elem_t) *`. It is usually declared with
- * VK_OUTARRAY_MAKE(). The variable `elem` is block-scoped and has type
+ * VK_OUTARRAY_MAKE_TYPED(). The variable `elem` is block-scoped and has type
  * `elem_t *`.
  *
  * The macro unconditionally increments the array's `wanted_len`. If the array
@@ -185,8 +254,6 @@ __vk_outarray_next(struct __vk_outarray *a, size_t elem_size)
  * executes the block. When the block is executed, `elem` is non-null and
  * points to the newly appended element.
  */
-#define vk_outarray_append(a, elem) \
-   vk_outarray_append_typed(vk_outarray_typeof_elem(a), a, elem)
 #define vk_outarray_append_typed(type, a, elem) \
    for (type *elem = vk_outarray_next_typed(type, a); \
         elem != NULL; elem = NULL)
@@ -281,9 +348,16 @@ vk_spec_info_to_nir_spirv(const VkSpecializationInfo *spec_info,
 
 #define STACK_ARRAY_SIZE 8
 
+#ifdef __cplusplus
+#define STACK_ARRAY_ZERO_INIT {}
+#else
+#define STACK_ARRAY_ZERO_INIT {0}
+#endif
+
 #define STACK_ARRAY(type, name, size) \
-   type _stack_##name[STACK_ARRAY_SIZE] = {0}, *const name = \
-      (size) <= STACK_ARRAY_SIZE ? _stack_##name : malloc((size) * sizeof(type))
+   type _stack_##name[STACK_ARRAY_SIZE] = STACK_ARRAY_ZERO_INIT; \
+   type *const name = \
+     ((size) <= STACK_ARRAY_SIZE ? _stack_##name : (type *)malloc((size) * sizeof(type)))
 
 #define STACK_ARRAY_FINISH(name) \
    if (name != _stack_##name) free(name)

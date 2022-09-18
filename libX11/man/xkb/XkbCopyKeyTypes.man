@@ -32,13 +32,13 @@ XkbCopyKeyTypes \- Copy more than one XkbKeyTypeRec structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- from
+.I from
 pointer to array of XkbKeyTypeRecs to copy
 .TP
-.I \- into
+.I into
 pointer to array of XkbKeyTypeRecs to change
 .TP
-.I \- num_types
+.I num_types
 number of types to copy
 .SH DESCRIPTION
 .LP

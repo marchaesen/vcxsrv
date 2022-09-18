@@ -68,7 +68,10 @@ linear_fallback(const struct lp_rast_state *state,
 }
 
 
-/* Run our configurable linear shader pipeline:
+/*
+ * Run our configurable linear shader pipeline:
+ * x,y is the surface position of the linear region, width, height is the size.
+ * Return TRUE for success, FALSE otherwise.
  */
 static boolean
 lp_fs_linear_run(const struct lp_rast_state *state,
@@ -82,20 +85,7 @@ lp_fs_linear_run(const struct lp_rast_state *state,
 {
    const struct lp_fragment_shader_variant *variant = state->variant;
    const struct lp_tgsi_info *info = &variant->shader->info;
-   struct lp_jit_linear_context jit;
-   lp_jit_linear_llvm_func jit_func = variant->jit_linear_llvm;
-
-   struct lp_linear_sampler samp[LP_MAX_LINEAR_TEXTURES];
-   struct lp_linear_interp interp[LP_MAX_LINEAR_INPUTS];
-   uint8_t constants[LP_MAX_LINEAR_CONSTANTS][4];
-
-   const float w0 = a0[0][3];
-   float oow = 1.0f/w0;
-
-   unsigned input_mask = variant->linear_input_mask;
-   int nr_consts = info->base.file_max[TGSI_FILE_CONSTANT]+1;
-   int nr_tex = info->num_texs;
-   int i, j;
+   uint8_t constants[LP_MAX_LINEAR_CONSTANTS * 4];
 
    LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
 
@@ -110,17 +100,23 @@ lp_fs_linear_run(const struct lp_rast_state *state,
 
    /* XXX: Per statechange:
     */
-   for (i = 0; i < nr_consts; i++) {
-      for (j = 0; j < 4; j++) {
-         float val = state->jit_context.constants[0][i*4+j];
-         if (val < 0.0f || val > 1.0f) {
-            if (LP_DEBUG & DEBUG_LINEAR2)
-               debug_printf("  -- const[%d] out of range\n", i);
-            goto fail;
-         }
-         constants[i][j] = (uint8_t)(val * 255.0f);
-      }
+   int nr_consts; // in floats, not float[4]
+   if (variant->shader->base.type == PIPE_SHADER_IR_TGSI) {
+      nr_consts = (info->base.file_max[TGSI_FILE_CONSTANT] + 1) * 4;
+   } else {
+      nr_consts = state->jit_context.constants[0].num_elements;
    }
+   for (int i = 0; i < nr_consts; i++){
+      float val = state->jit_context.constants[0].f[i];
+      if (val < 0.0f || val > 1.0f) {
+         if (LP_DEBUG & DEBUG_LINEAR2)
+            debug_printf("  -- const[%d] out of range %f\n", i, val);
+         goto fail;
+      }
+      constants[i] = (uint8_t)(val * 255.0f);
+   }
+
+   struct lp_jit_linear_context jit;
    jit.constants = (const uint8_t (*)[4])constants;
 
    /* We assume BGRA ordering */
@@ -137,6 +133,9 @@ lp_fs_linear_run(const struct lp_rast_state *state,
 
    /* XXX: Per primitive:
     */
+   struct lp_linear_interp interp[LP_MAX_LINEAR_INPUTS];
+   const float oow = 1.0f / a0[0][3];
+   unsigned input_mask = variant->linear_input_mask;
    while (input_mask) {
       int i = u_bit_scan(&input_mask);
       unsigned usage_mask = info->base.input_usage_mask[i];
@@ -144,7 +143,6 @@ lp_fs_linear_run(const struct lp_rast_state *state,
             info->base.input_interpolate[i] == TGSI_INTERPOLATE_PERSPECTIVE ||
             (info->base.input_interpolate[i] == TGSI_INTERPOLATE_COLOR &&
              !variant->key.flatshade);
-
       if (!lp_linear_init_interp(&interp[i],
                                  x, y, width, height,
                                  usage_mask,
@@ -161,24 +159,30 @@ lp_fs_linear_run(const struct lp_rast_state *state,
       jit.inputs[i] = &interp[i].base;
    }
 
-
    /* XXX: Per primitive: Initialize linear or nearest samplers:
     */
-   for (i = 0; i < nr_tex; i++) {
+   struct lp_linear_sampler samp[LP_MAX_LINEAR_TEXTURES];
+   const int nr_tex = info->num_texs;
+   for (int i = 0; i < nr_tex; i++) {
       const struct lp_tgsi_texture_info *tex_info = &info->tex[i];
-      unsigned unit = tex_info->sampler_unit;
+      const unsigned tex_unit = tex_info->texture_unit;
+      const unsigned samp_unit = tex_info->sampler_unit;
+      //const unsigned fs_s_input = tex_info->coord[0].u.index;
+      //const unsigned fs_t_input = tex_info->coord[1].u.index;
+
+      // xxx investigate why these fail in deqp-vk
+      //assert(variant->linear_input_mask & (1 << fs_s_input));
+      //assert(variant->linear_input_mask & (1 << fs_t_input));
 
       /* XXX: some texture coordinates are linear!
        */
       //boolean perspective = (info->base.input_interpolate[i] ==
       //                       TGSI_INTERPOLATE_PERSPECTIVE);
 
-      if (!lp_linear_init_sampler(&samp[i],
-                                  tex_info,
-                                  lp_fs_variant_key_sampler_idx(&variant->key, unit),
-                                  &state->jit_context.textures[unit],
-                                  x, y, width, height,
-                                  a0, dadx, dady)) {
+      if (!lp_linear_init_sampler(&samp[i], tex_info,
+                  lp_fs_variant_key_sampler_idx(&variant->key, samp_unit),
+                  &state->jit_context.textures[tex_unit],
+                  x, y, width, height, a0, dadx, dady)) {
          if (LP_DEBUG & DEBUG_LINEAR2)
             debug_printf("  -- init_sampler(%d) failed\n", i);
          goto fail;
@@ -189,8 +193,10 @@ lp_fs_linear_run(const struct lp_rast_state *state,
 
    /* JIT function already does blending */
    jit.color0 = color + x * 4 + y * stride;
-   for (y = 0; y < height; y++) {
-      jit_func(&jit, 0, 0, width);
+   lp_jit_linear_llvm_func jit_func = variant->jit_linear_llvm;
+
+   for (unsigned iy = 0; iy < height; iy++) {
+      jit_func(&jit, 0, 0, width);  // x=0, y=0
       jit.color0 += stride;
    }
 
@@ -216,22 +222,21 @@ check_linear_interp_mask_a(struct lp_fragment_shader_variant *variant)
    struct lp_linear_sampler samp[LP_MAX_LINEAR_TEXTURES];
    struct lp_linear_interp interp[LP_MAX_LINEAR_INPUTS];
    uint8_t constants[LP_MAX_LINEAR_CONSTANTS][4];
-   PIPE_ALIGN_VAR(16) uint8_t color0[TILE_SIZE*4];
+   alignas(16) uint8_t color0[TILE_SIZE*4];
 
-   int nr_inputs = info->base.file_max[TGSI_FILE_INPUT]+1;
-   int nr_tex = info->num_texs;
-   int i;
+   const int nr_inputs = info->base.file_max[TGSI_FILE_INPUT]+1;
+   const int nr_tex = info->num_texs;
 
    LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
 
    jit.constants = (const uint8_t (*)[4])constants;
 
-   for (i = 0; i < nr_tex; i++) {
+   for (int i = 0; i < nr_tex; i++) {
       lp_linear_init_noop_sampler(&samp[i]);
       jit.tex[i] = &samp[i].base;
    }
 
-   for (i = 0; i < nr_inputs; i++) {
+   for (int i = 0; i < nr_inputs; i++) {
       lp_linear_init_noop_interp(&interp[i]);
       jit.inputs[i] = &interp[i].base;
    }
@@ -243,8 +248,9 @@ check_linear_interp_mask_a(struct lp_fragment_shader_variant *variant)
    /* Find out which interpolators were called, and store this as a
     * mask:
     */
-   for (i = 0; i < nr_inputs; i++)
+   for (int i = 0; i < nr_inputs; i++) {
       variant->linear_input_mask |= (interp[i].row[0] << i);
+   }
 }
 
 
@@ -281,7 +287,6 @@ lp_linear_check_variant(struct lp_fragment_shader_variant *variant)
    const struct lp_fragment_shader_variant_key *key = &variant->key;
    const struct lp_fragment_shader *shader = variant->shader;
    const struct lp_tgsi_info *info = &shader->info;
-   int i;
 
    if (info->base.file_max[TGSI_FILE_CONSTANT] >= LP_MAX_LINEAR_CONSTANTS ||
        info->base.file_max[TGSI_FILE_INPUT] >= LP_MAX_LINEAR_INPUTS) {
@@ -290,7 +295,7 @@ lp_linear_check_variant(struct lp_fragment_shader_variant *variant)
       goto fail;
    }
 
-   /* If we have a fastpath which implements the entire varient, use
+   /* If we have a fastpath which implements the entire variant, use
     * that.
     */
    if (lp_linear_check_fastpath(variant)) {
@@ -303,9 +308,9 @@ lp_linear_check_variant(struct lp_fragment_shader_variant *variant)
 
    /* Check static sampler state.
     */
-   for (i = 0; i < info->num_texs; i++) {
+   for (unsigned i = 0; i < info->num_texs; i++) {
       const struct lp_tgsi_texture_info *tex_info = &info->tex[i];
-      unsigned unit = tex_info->sampler_unit;
+      const unsigned unit = tex_info->sampler_unit;
 
       /* XXX: Relax this once setup premultiplies by oow:
        */
@@ -315,7 +320,8 @@ lp_linear_check_variant(struct lp_fragment_shader_variant *variant)
          goto fail;
       }
 
-      struct lp_sampler_static_state *samp = lp_fs_variant_key_sampler_idx(key, unit);
+      struct lp_sampler_static_state *samp =
+         lp_fs_variant_key_sampler_idx(key, unit);
       if (!lp_linear_check_sampler(samp, tex_info)) {
          if (LP_DEBUG & DEBUG_LINEAR)
             debug_printf(" -- samp[%d]: check_sampler failed\n", i);

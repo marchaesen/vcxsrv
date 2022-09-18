@@ -27,8 +27,8 @@
 
 #include "drm-uapi/drm_fourcc.h"
 
-#include "fd6_format.h"
 #include "fd6_resource.h"
+#include "fdl/fd6_format_table.h"
 
 #include "a6xx.xml.h"
 
@@ -220,7 +220,7 @@ setup_lrz(struct fd_resource *rsc)
    rsc->lrz_height = lrz_height;
    rsc->lrz_width = lrz_pitch;
    rsc->lrz_pitch = lrz_pitch;
-   rsc->lrz = fd_bo_new(screen->dev, size, 0, "lrz");
+   rsc->lrz = fd_bo_new(screen->dev, size, FD_BO_NOMAP, "lrz");
 }
 
 static uint32_t

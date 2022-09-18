@@ -106,7 +106,7 @@ fd3_emit_const_ptrs(struct fd_ringbuffer *ring, gl_shader_stage type,
    uint32_t anum = align(num, 4);
    uint32_t i;
 
-   debug_assert((regid % 4) == 0);
+   assert((regid % 4) == 0);
 
    OUT_PKT3(ring, CP_LOAD_STATE, 2 + anum);
    OUT_RING(ring, CP_LOAD_STATE_0_DST_OFF(regid / 2) |
@@ -330,7 +330,7 @@ fd3_emit_gmem_restore_tex(struct fd_ringbuffer *ring,
       /* note: PIPE_BUFFER disallowed for surfaces */
       unsigned lvl = psurf[i]->u.tex.level;
 
-      debug_assert(psurf[i]->u.tex.first_layer == psurf[i]->u.tex.last_layer);
+      assert(psurf[i]->u.tex.first_layer == psurf[i]->u.tex.last_layer);
 
       OUT_RING(ring, A3XX_TEX_CONST_0_TILE_MODE(rsc->layout.tile_mode) |
                         A3XX_TEX_CONST_0_FMT(fd3_pipe2tex(format)) |
@@ -424,16 +424,7 @@ fd3_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd3_emit *emit)
          uint32_t off = vb->buffer_offset + elem->src_offset;
          uint32_t fs = util_format_get_blocksize(pfmt);
 
-#ifdef DEBUG
-         /* see
-          * dEQP-GLES31.stress.vertex_attribute_binding.buffer_bounds.bind_vertex_buffer_offset_near_wrap_10
-          * should mesa/st be protecting us from this?
-          */
-         if (off > fd_bo_size(rsc->bo))
-            continue;
-#endif
-
-         debug_assert(fmt != VFMT_NONE);
+         assert(fmt != VFMT_NONE);
 
          OUT_PKT0(ring, REG_A3XX_VFD_FETCH(j), 2);
          OUT_RING(ring, A3XX_VFD_FETCH_INSTR_0_FETCHSIZE(fs - 1) |

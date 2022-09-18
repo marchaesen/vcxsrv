@@ -34,7 +34,7 @@
 namespace aco {
 
 static void
-aco_log(Program* program, enum radv_compiler_debug_level level, const char* prefix,
+aco_log(Program* program, enum aco_compiler_debug_level level, const char* prefix,
         const char* file, unsigned line, const char* fmt, va_list args)
 {
    char* msg;
@@ -62,7 +62,7 @@ _aco_perfwarn(Program* program, const char* file, unsigned line, const char* fmt
    va_list args;
 
    va_start(args, fmt);
-   aco_log(program, RADV_COMPILER_DEBUG_LEVEL_PERFWARN, "ACO PERFWARN:\n", file, line, fmt, args);
+   aco_log(program, ACO_COMPILER_DEBUG_LEVEL_PERFWARN, "ACO PERFWARN:\n", file, line, fmt, args);
    va_end(args);
 }
 
@@ -72,7 +72,7 @@ _aco_err(Program* program, const char* file, unsigned line, const char* fmt, ...
    va_list args;
 
    va_start(args, fmt);
-   aco_log(program, RADV_COMPILER_DEBUG_LEVEL_ERROR, "ACO ERROR:\n", file, line, fmt, args);
+   aco_log(program, ACO_COMPILER_DEBUG_LEVEL_ERROR, "ACO ERROR:\n", file, line, fmt, args);
    va_end(args);
 }
 
@@ -153,16 +153,17 @@ validate_ir(Program* program)
                      base_format == Format::VOPC,
                   "Format cannot have SDWA applied", instr.get());
 
-            check(program->chip_class >= GFX8, "SDWA is GFX8+ only", instr.get());
+            check(program->gfx_level >= GFX8, "SDWA is GFX8 to GFX10.3 only", instr.get());
+            check(program->gfx_level < GFX11, "SDWA is GFX8 to GFX10.3 only", instr.get());
 
             SDWA_instruction& sdwa = instr->sdwa();
-            check(sdwa.omod == 0 || program->chip_class >= GFX9,
-                  "SDWA omod only supported on GFX9+", instr.get());
+            check(sdwa.omod == 0 || program->gfx_level >= GFX9, "SDWA omod only supported on GFX9+",
+                  instr.get());
             if (base_format == Format::VOPC) {
-               check(sdwa.clamp == false || program->chip_class == GFX8,
+               check(sdwa.clamp == false || program->gfx_level == GFX8,
                      "SDWA VOPC clamp only supported on GFX8", instr.get());
                check((instr->definitions[0].isFixed() && instr->definitions[0].physReg() == vcc) ||
-                        program->chip_class >= GFX9,
+                        program->gfx_level >= GFX9,
                      "SDWA+VOPC definition must be fixed to vcc on GFX8", instr.get());
             } else {
                const Definition& def = instr->definitions[0];
@@ -215,7 +216,7 @@ validate_ir(Program* program)
                instr->opcode != aco_opcode::v_clrexcp && instr->opcode != aco_opcode::v_swap_b32;
 
             const bool feature_mac =
-               program->chip_class == GFX8 &&
+               program->gfx_level == GFX8 &&
                (instr->opcode == aco_opcode::v_mac_f32 && instr->opcode == aco_opcode::v_mac_f16);
 
             check(sdwa_opcodes || feature_mac, "SDWA can't be used with this opcode", instr.get());
@@ -224,8 +225,8 @@ validate_ir(Program* program)
          /* check opsel */
          if (instr->isVOP3()) {
             VOP3_instruction& vop3 = instr->vop3();
-            check(vop3.opsel == 0 || program->chip_class >= GFX9,
-                  "Opsel is only supported on GFX9+", instr.get());
+            check(vop3.opsel == 0 || program->gfx_level >= GFX9, "Opsel is only supported on GFX9+",
+                  instr.get());
 
             for (unsigned i = 0; i < 3; i++) {
                if (i >= instr->operands.size() ||
@@ -236,6 +237,12 @@ validate_ir(Program* program)
             if (instr->definitions[0].regClass().is_subdword() && !instr->definitions[0].isFixed())
                check((vop3.opsel & (1 << 3)) == 0, "Unexpected opsel for sub-dword definition",
                      instr.get());
+         } else if (instr->opcode == aco_opcode::v_fma_mixlo_f16 ||
+                    instr->opcode == aco_opcode::v_fma_mixhi_f16 ||
+                    instr->opcode == aco_opcode::v_fma_mix_f32) {
+            check(instr->definitions[0].regClass() ==
+                     (instr->opcode == aco_opcode::v_fma_mix_f32 ? v1 : v2b),
+                  "v_fma_mix_f32/v_fma_mix_f16 must have v1/v2b definition", instr.get());
          } else if (instr->isVOP3P()) {
             VOP3P_instruction& vop3p = instr->vop3p();
             for (unsigned i = 0; i < instr->operands.size(); i++) {
@@ -254,8 +261,10 @@ validate_ir(Program* program)
                bool flat = instr->isFlatLike();
                bool can_be_undef = is_phi(instr) || instr->isEXP() || instr->isReduction() ||
                                    instr->opcode == aco_opcode::p_create_vector ||
+                                   instr->opcode == aco_opcode::p_jump_to_epilog ||
                                    (flat && i == 1) || (instr->isMIMG() && (i == 1 || i == 2)) ||
-                                   ((instr->isMUBUF() || instr->isMTBUF()) && i == 1);
+                                   ((instr->isMUBUF() || instr->isMTBUF()) && i == 1) ||
+                                   (instr->isScratch() && i == 0);
                check(can_be_undef, "Undefs can only be used in certain operands", instr.get());
             } else {
                check(instr->operands[i].isFixed() || instr->operands[i].isTemp() ||
@@ -281,8 +290,8 @@ validate_ir(Program* program)
                   continue;
 
                check(!instr->isDPP() && !instr->isSDWA() &&
-                        (!instr->isVOP3() || program->chip_class >= GFX10) &&
-                        (!instr->isVOP3P() || program->chip_class >= GFX10),
+                        (!instr->isVOP3() || program->gfx_level >= GFX10) &&
+                        (!instr->isVOP3P() || program->gfx_level >= GFX10),
                      "Literal applied on wrong instruction format", instr.get());
 
                check(literal.isUndefined() || (literal.size() == op.size() &&
@@ -299,12 +308,12 @@ validate_ir(Program* program)
                                  instr->opcode == aco_opcode::v_lshrrev_b64 ||
                                  instr->opcode == aco_opcode::v_ashrrev_i64;
                unsigned const_bus_limit = 1;
-               if (program->chip_class >= GFX10 && !is_shift64)
+               if (program->gfx_level >= GFX10 && !is_shift64)
                   const_bus_limit = 2;
 
                uint32_t scalar_mask = instr->isVOP3() || instr->isVOP3P() ? 0x7 : 0x5;
                if (instr->isSDWA())
-                  scalar_mask = program->chip_class >= GFX9 ? 0x7 : 0x4;
+                  scalar_mask = program->gfx_level >= GFX9 ? 0x7 : 0x4;
                else if (instr->isDPP())
                   scalar_mask = 0x4;
 
@@ -372,8 +381,9 @@ validate_ir(Program* program)
             }
 
             if (instr->isSOP1() || instr->isSOP2()) {
-               check(instr->definitions[0].getTemp().type() == RegType::sgpr,
-                     "Wrong Definition type for SALU instruction", instr.get());
+               if (!instr->definitions.empty())
+                  check(instr->definitions[0].getTemp().type() == RegType::sgpr,
+                        "Wrong Definition type for SALU instruction", instr.get());
                for (const Operand& op : instr->operands) {
                   check(op.isConstant() || op.regClass().type() <= RegType::sgpr,
                         "Wrong Operand type for SALU instruction", instr.get());
@@ -406,7 +416,7 @@ validate_ir(Program* program)
                check(instr->definitions[0].getTemp().type() == RegType::vgpr ||
                         instr->operands[0].regClass().type() == RegType::sgpr,
                      "Cannot extract SGPR value from VGPR vector", instr.get());
-               check(program->chip_class >= GFX9 ||
+               check(program->gfx_level >= GFX9 ||
                         !instr->definitions[0].regClass().is_subdword() ||
                         instr->operands[0].regClass().type() == RegType::vgpr,
                      "Cannot extract subdword from SGPR before GFX9+", instr.get());
@@ -424,7 +434,7 @@ validate_ir(Program* program)
                            "Wrong Definition type for VGPR split_vector", instr.get());
                } else {
                   for (const Definition& def : instr->definitions)
-                     check(program->chip_class >= GFX9 || !def.regClass().is_subdword(),
+                     check(program->gfx_level >= GFX9 || !def.regClass().is_subdword(),
                            "Cannot split SGPR into subdword VGPRs before GFX9+", instr.get());
                }
             } else if (instr->opcode == aco_opcode::p_parallelcopy) {
@@ -502,6 +512,18 @@ validate_ir(Program* program)
                unsigned comp = data_bits / MAX2(op_bits, 1);
                check(instr->operands[1].constantValue() < comp, "Index must be in-bounds",
                      instr.get());
+            } else if (instr->opcode == aco_opcode::p_jump_to_epilog) {
+               check(instr->definitions.size() == 0, "p_jump_to_epilog must have 0 definitions",
+                     instr.get());
+               check(instr->operands.size() > 0 &&
+                        instr->operands[0].getTemp().type() == RegType::sgpr &&
+                        instr->operands[0].getTemp().size() == 2,
+                     "First operand of p_jump_to_epilog must be a SGPR", instr.get());
+               for (unsigned i = 1; i < instr->operands.size(); i++) {
+                  check(instr->operands[i].getTemp().type() == RegType::vgpr ||
+                           instr->operands[i].isUndefined(),
+                        "Other operands of p_jump_to_epilog must be VGPRs or undef", instr.get());
+               }
             }
             break;
          }
@@ -604,7 +626,7 @@ validate_ir(Program* program)
                      "TFE/LWE loads",
                      instr.get());
             }
-            check(instr->operands.size() == 4 || program->chip_class >= GFX10,
+            check(instr->operands.size() == 4 || program->gfx_level >= GFX10,
                   "NSA is only supported on GFX10+", instr.get());
             for (unsigned i = 3; i < instr->operands.size(); i++) {
                if (instr->operands.size() == 4) {
@@ -650,13 +672,20 @@ validate_ir(Program* program)
                   instr.get());
             FALLTHROUGH;
          case Format::GLOBAL:
-         case Format::SCRATCH: {
             check(
                instr->operands[0].isTemp() && instr->operands[0].regClass().type() == RegType::vgpr,
-               "FLAT/GLOBAL/SCRATCH address must be vgpr", instr.get());
+               "FLAT/GLOBAL address must be vgpr", instr.get());
+            FALLTHROUGH;
+         case Format::SCRATCH: {
+            check(instr->operands[0].hasRegClass() &&
+                     instr->operands[0].regClass().type() == RegType::vgpr,
+                  "FLAT/GLOBAL/SCRATCH address must be undefined or vgpr", instr.get());
             check(instr->operands[1].hasRegClass() &&
                      instr->operands[1].regClass().type() == RegType::sgpr,
                   "FLAT/GLOBAL/SCRATCH sgpr address must be undefined or sgpr", instr.get());
+            if (instr->format == Format::SCRATCH && program->gfx_level < GFX10_3)
+               check(instr->operands[0].isTemp() || instr->operands[1].isTemp(),
+                     "SCRATCH must have either SADDR or ADDR operand", instr.get());
             if (!instr->definitions.empty())
                check(instr->definitions[0].getTemp().type() == RegType::vgpr,
                      "FLAT/GLOBAL/SCRATCH result must be vgpr", instr.get());
@@ -756,22 +785,27 @@ ra_fail(Program* program, Location loc, Location loc2, const char* fmt, ...)
 }
 
 bool
-validate_subdword_operand(chip_class chip, const aco_ptr<Instruction>& instr, unsigned index)
+validate_subdword_operand(amd_gfx_level gfx_level, const aco_ptr<Instruction>& instr,
+                          unsigned index)
 {
    Operand op = instr->operands[index];
    unsigned byte = op.physReg().byte();
 
    if (instr->opcode == aco_opcode::p_as_uniform)
       return byte == 0;
-   if (instr->isPseudo() && chip >= GFX8)
+   if (instr->isPseudo() && gfx_level >= GFX8)
       return true;
    if (instr->isSDWA())
       return byte + instr->sdwa().sel[index].offset() + instr->sdwa().sel[index].size() <= 4 &&
              byte % instr->sdwa().sel[index].size() == 0;
-   if (instr->isVOP3P())
+   if (instr->isVOP3P()) {
+      bool fma_mix = instr->opcode == aco_opcode::v_fma_mixlo_f16 ||
+                     instr->opcode == aco_opcode::v_fma_mixhi_f16 ||
+                     instr->opcode == aco_opcode::v_fma_mix_f32;
       return ((instr->vop3p().opsel_lo >> index) & 1) == (byte >> 1) &&
-             ((instr->vop3p().opsel_hi >> index) & 1) == (byte >> 1);
-   if (byte == 2 && can_use_opsel(chip, instr->opcode, index, 1))
+             ((instr->vop3p().opsel_hi >> index) & 1) == (fma_mix || (byte >> 1));
+   }
+   if (byte == 2 && can_use_opsel(gfx_level, instr->opcode, index))
       return true;
 
    switch (instr->opcode) {
@@ -814,20 +848,21 @@ validate_subdword_operand(chip_class chip, const aco_ptr<Instruction>& instr, un
 }
 
 bool
-validate_subdword_definition(chip_class chip, const aco_ptr<Instruction>& instr)
+validate_subdword_definition(amd_gfx_level gfx_level, const aco_ptr<Instruction>& instr)
 {
    Definition def = instr->definitions[0];
    unsigned byte = def.physReg().byte();
 
-   if (instr->isPseudo() && chip >= GFX8)
+   if (instr->isPseudo() && gfx_level >= GFX8)
       return true;
    if (instr->isSDWA())
       return byte + instr->sdwa().dst_sel.offset() + instr->sdwa().dst_sel.size() <= 4 &&
              byte % instr->sdwa().dst_sel.size() == 0;
-   if (byte == 2 && can_use_opsel(chip, instr->opcode, -1, 1))
+   if (byte == 2 && can_use_opsel(gfx_level, instr->opcode, -1))
       return true;
 
    switch (instr->opcode) {
+   case aco_opcode::v_fma_mixhi_f16:
    case aco_opcode::buffer_load_ubyte_d16_hi:
    case aco_opcode::buffer_load_sbyte_d16_hi:
    case aco_opcode::buffer_load_short_d16_hi:
@@ -849,17 +884,17 @@ validate_subdword_definition(chip_class chip, const aco_ptr<Instruction>& instr)
 unsigned
 get_subdword_bytes_written(Program* program, const aco_ptr<Instruction>& instr, unsigned index)
 {
-   chip_class chip = program->chip_class;
+   amd_gfx_level gfx_level = program->gfx_level;
    Definition def = instr->definitions[index];
 
    if (instr->isPseudo())
-      return chip >= GFX8 ? def.bytes() : def.size() * 4u;
+      return gfx_level >= GFX8 ? def.bytes() : def.size() * 4u;
    if (instr->isVALU()) {
       assert(def.bytes() <= 2);
       if (instr->isSDWA())
          return instr->sdwa().dst_sel.size();
 
-      if (instr_is_16bit(chip, instr->opcode))
+      if (instr_is_16bit(gfx_level, instr->opcode))
          return 2;
 
       return 4;
@@ -900,6 +935,54 @@ get_subdword_bytes_written(Program* program, const aco_ptr<Instruction>& instr, 
    case aco_opcode::tbuffer_load_format_d16_xyz: return program->dev.sram_ecc_enabled ? 8 : 6;
    default: return def.size() * 4;
    }
+}
+
+bool
+validate_instr_defs(Program* program, std::array<unsigned, 2048>& regs,
+                    const std::vector<Assignment>& assignments, const Location& loc,
+                    aco_ptr<Instruction>& instr)
+{
+   bool err = false;
+
+   for (unsigned i = 0; i < instr->definitions.size(); i++) {
+      Definition& def = instr->definitions[i];
+      if (!def.isTemp())
+         continue;
+      Temp tmp = def.getTemp();
+      PhysReg reg = assignments[tmp.id()].reg;
+      for (unsigned j = 0; j < tmp.bytes(); j++) {
+         if (regs[reg.reg_b + j])
+            err |=
+               ra_fail(program, loc, assignments[regs[reg.reg_b + j]].defloc,
+                       "Assignment of element %d of %%%d already taken by %%%d from instruction", i,
+                       tmp.id(), regs[reg.reg_b + j]);
+         regs[reg.reg_b + j] = tmp.id();
+      }
+      if (def.regClass().is_subdword() && def.bytes() < 4) {
+         unsigned written = get_subdword_bytes_written(program, instr, i);
+         /* If written=4, the instruction still might write the upper half. In that case, it's
+          * the lower half that isn't preserved */
+         for (unsigned j = reg.byte() & ~(written - 1); j < written; j++) {
+            unsigned written_reg = reg.reg() * 4u + j;
+            if (regs[written_reg] && regs[written_reg] != def.tempId())
+               err |= ra_fail(program, loc, assignments[regs[written_reg]].defloc,
+                              "Assignment of element %d of %%%d overwrites the full register "
+                              "taken by %%%d from instruction",
+                              i, tmp.id(), regs[written_reg]);
+         }
+      }
+   }
+
+   for (const Definition& def : instr->definitions) {
+      if (!def.isTemp())
+         continue;
+      if (def.isKill()) {
+         for (unsigned j = 0; j < def.getTemp().bytes(); j++)
+            regs[def.physReg().reg_b + j] = 0;
+      }
+   }
+
+   return err;
 }
 
 } /* end namespace */
@@ -951,7 +1034,7 @@ validate_ra(Program* program)
                err |= ra_fail(program, loc, Location(),
                               "Operand %d fixed to vcc but needs_vcc=false", i);
             if (op.regClass().is_subdword() &&
-                !validate_subdword_operand(program->chip_class, instr, i))
+                !validate_subdword_operand(program->gfx_level, instr, i))
                err |= ra_fail(program, loc, Location(), "Operand %d not aligned correctly", i);
             if (!assignments[op.tempId()].firstloc.block)
                assignments[op.tempId()].firstloc = loc;
@@ -982,7 +1065,7 @@ validate_ra(Program* program)
                err |= ra_fail(program, loc, Location(),
                               "Definition %d fixed to vcc but needs_vcc=false", i);
             if (def.regClass().is_subdword() &&
-                !validate_subdword_definition(program->chip_class, instr))
+                !validate_subdword_definition(program->gfx_level, instr))
                err |= ra_fail(program, loc, Location(), "Definition %d not aligned correctly", i);
             if (!assignments[def.tempId()].firstloc.block)
                assignments[def.tempId()].firstloc = loc;
@@ -1085,45 +1168,10 @@ validate_ra(Program* program)
             }
          }
 
-         for (unsigned i = 0; i < instr->definitions.size(); i++) {
-            Definition& def = instr->definitions[i];
-            if (!def.isTemp())
-               continue;
-            Temp tmp = def.getTemp();
-            PhysReg reg = assignments[tmp.id()].reg;
-            for (unsigned j = 0; j < tmp.bytes(); j++) {
-               if (regs[reg.reg_b + j])
-                  err |= ra_fail(
-                     program, loc, assignments[regs[reg.reg_b + j]].defloc,
-                     "Assignment of element %d of %%%d already taken by %%%d from instruction", i,
-                     tmp.id(), regs[reg.reg_b + j]);
-               regs[reg.reg_b + j] = tmp.id();
-            }
-            if (def.regClass().is_subdword() && def.bytes() < 4) {
-               unsigned written = get_subdword_bytes_written(program, instr, i);
-               /* If written=4, the instruction still might write the upper half. In that case, it's
-                * the lower half that isn't preserved */
-               for (unsigned j = reg.byte() & ~(written - 1); j < written; j++) {
-                  unsigned written_reg = reg.reg() * 4u + j;
-                  if (regs[written_reg] && regs[written_reg] != def.tempId())
-                     err |= ra_fail(program, loc, assignments[regs[written_reg]].defloc,
-                                    "Assignment of element %d of %%%d overwrites the full register "
-                                    "taken by %%%d from instruction",
-                                    i, tmp.id(), regs[written_reg]);
-               }
-            }
-         }
+         if (!instr->isBranch() || block.linear_succs.size() != 1)
+            err |= validate_instr_defs(program, regs, assignments, loc, instr);
 
-         for (const Definition& def : instr->definitions) {
-            if (!def.isTemp())
-               continue;
-            if (def.isKill()) {
-               for (unsigned j = 0; j < def.getTemp().bytes(); j++)
-                  regs[def.physReg().reg_b + j] = 0;
-            }
-         }
-
-         if (instr->opcode != aco_opcode::p_phi && instr->opcode != aco_opcode::p_linear_phi) {
+         if (!is_phi(instr)) {
             for (const Operand& op : instr->operands) {
                if (!op.isTemp())
                   continue;
@@ -1131,6 +1179,13 @@ validate_ra(Program* program)
                   for (unsigned j = 0; j < op.getTemp().bytes(); j++)
                      regs[op.physReg().reg_b + j] = 0;
                }
+            }
+         } else if (block.linear_preds.size() != 1 ||
+                    program->blocks[block.linear_preds[0]].linear_succs.size() == 1) {
+            for (unsigned pred : block.linear_preds) {
+               aco_ptr<Instruction>& br = program->blocks[pred].instructions.back();
+               assert(br->isBranch());
+               err |= validate_instr_defs(program, regs, assignments, loc, br);
             }
          }
       }

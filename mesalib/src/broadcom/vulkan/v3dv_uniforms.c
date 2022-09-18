@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Raspberry Pi
+ * Copyright © 2019 Raspberry Pi Ltd
  *
  * Based in part on v3d driver which is:
  *
@@ -56,7 +56,8 @@ struct state_bo_list {
    struct v3dv_bo *states[MAX_TOTAL_STATES];
 };
 
-#define MAX_TOTAL_UNIFORM_BUFFERS (1 + MAX_UNIFORM_BUFFERS * MAX_STAGES)
+#define MAX_TOTAL_UNIFORM_BUFFERS ((MAX_UNIFORM_BUFFERS + \
+                                    MAX_INLINE_UNIFORM_BUFFERS) * MAX_STAGES)
 #define MAX_TOTAL_STORAGE_BUFFERS (MAX_STORAGE_BUFFERS * MAX_STAGES)
 struct buffer_bo_list {
    struct v3dv_bo *ubo[MAX_TOTAL_UNIFORM_BUFFERS];
@@ -73,29 +74,36 @@ state_bo_in_list(struct state_bo_list *list, struct v3dv_bo *bo)
    return false;
 }
 
+static void
+push_constants_bo_free(VkDevice _device,
+                       uint64_t bo_ptr,
+                       VkAllocationCallbacks *alloc)
+{
+   V3DV_FROM_HANDLE(v3dv_device, device, _device);
+   v3dv_bo_free(device, (struct v3dv_bo *)(uintptr_t) bo_ptr);
+}
+
 /*
  * This method checks if the ubo used for push constants is needed to be
  * updated or not.
  *
  * push contants ubo is only used for push constants accessed by a non-const
  * index.
- *
- * FIXME: right now for this cases we are uploading the full
- * push_constants_data. An improvement would be to upload only the data that
- * we need to rely on a UBO.
  */
 static void
 check_push_constants_ubo(struct v3dv_cmd_buffer *cmd_buffer,
                          struct v3dv_pipeline *pipeline)
 {
-   if (!(cmd_buffer->state.dirty & V3DV_CMD_DIRTY_PUSH_CONSTANTS) ||
+   if (!(cmd_buffer->state.dirty & V3DV_CMD_DIRTY_PUSH_CONSTANTS_UBO) ||
        pipeline->layout->push_constant_size == 0)
       return;
 
    if (cmd_buffer->push_constants_resource.bo == NULL) {
       cmd_buffer->push_constants_resource.bo =
-         v3dv_bo_alloc(cmd_buffer->device, MAX_PUSH_CONSTANTS_SIZE,
-                       "push constants", true);
+         v3dv_bo_alloc(cmd_buffer->device, 4096, "push constants", true);
+
+      v3dv_job_add_bo(cmd_buffer->state.job,
+                      cmd_buffer->push_constants_resource.bo);
 
       if (!cmd_buffer->push_constants_resource.bo) {
          fprintf(stderr, "Failed to allocate memory for push constants\n");
@@ -104,28 +112,41 @@ check_push_constants_ubo(struct v3dv_cmd_buffer *cmd_buffer,
 
       bool ok = v3dv_bo_map(cmd_buffer->device,
                             cmd_buffer->push_constants_resource.bo,
-                            MAX_PUSH_CONSTANTS_SIZE);
+                            cmd_buffer->push_constants_resource.bo->size);
       if (!ok) {
          fprintf(stderr, "failed to map push constants buffer\n");
          abort();
       }
    } else {
-      if (cmd_buffer->push_constants_resource.offset + MAX_PUSH_CONSTANTS_SIZE <=
+      if (cmd_buffer->push_constants_resource.offset +
+          cmd_buffer->state.push_constants_size <=
           cmd_buffer->push_constants_resource.bo->size) {
-         cmd_buffer->push_constants_resource.offset += MAX_PUSH_CONSTANTS_SIZE;
+         cmd_buffer->push_constants_resource.offset +=
+            cmd_buffer->state.push_constants_size;
       } else {
-         /* FIXME: we got out of space for push descriptors. Should we create
-          * a new bo? This could be easier with a uploader
+         /* We ran out of space so we'll have to allocate a new buffer but we
+          * need to ensure the old one is preserved until the end of the command
+          * buffer life and make sure it is eventually freed. We use the
+          * private object machinery in the command buffer for this.
           */
+         v3dv_cmd_buffer_add_private_obj(
+            cmd_buffer, (uintptr_t) cmd_buffer->push_constants_resource.bo,
+            (v3dv_cmd_buffer_private_obj_destroy_cb) push_constants_bo_free);
+
+         /* Now call back so we create a new BO */
+         cmd_buffer->push_constants_resource.bo = NULL;
+         check_push_constants_ubo(cmd_buffer, pipeline);
+         return;
       }
    }
 
+   assert(cmd_buffer->state.push_constants_size <= MAX_PUSH_CONSTANTS_SIZE);
    memcpy(cmd_buffer->push_constants_resource.bo->map +
           cmd_buffer->push_constants_resource.offset,
-          cmd_buffer->push_constants_data,
-          MAX_PUSH_CONSTANTS_SIZE);
+          cmd_buffer->state.push_constants_data,
+          cmd_buffer->state.push_constants_size);
 
-   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_PUSH_CONSTANTS;
+   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_PUSH_CONSTANTS_UBO;
 }
 
 /** V3D 4.x TMU configuration parameter 0 (texture) */
@@ -247,13 +268,14 @@ write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
 
    uint32_t dynamic_offset = 0;
 
-   /* For ubos, index is shifted, as 0 is reserved for push constants.
+   /* For ubos, index is shifted, as 0 is reserved for push constants
+    * and 1..MAX_INLINE_UNIFORM_BUFFERS are reserved for inline uniform
+    * buffers.
     */
-   if (content == QUNIFORM_UBO_ADDR &&
-       v3d_unit_data_get_unit(data) == 0) {
-      /* This calls is to ensure that the push_constant_ubo is
-       * updated. It already take into account it is should do the
-       * update or not
+   uint32_t index = v3d_unit_data_get_unit(data);
+   if (content == QUNIFORM_UBO_ADDR && index == 0) {
+      /* Ensure the push constants UBO is created and updated. This also
+       * adds the BO to the job so we don't need to track it in buffer_bos.
        */
       check_push_constants_ubo(cmd_buffer, pipeline);
 
@@ -264,40 +286,96 @@ write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
       cl_aligned_u32(uniforms, resource->bo->offset +
                                resource->offset +
                                offset + dynamic_offset);
-      buffer_bos->ubo[0] = resource->bo;
    } else {
-      uint32_t index =
-         content == QUNIFORM_UBO_ADDR ?
-         v3d_unit_data_get_unit(data) - 1 :
-         data;
+      if (content == QUNIFORM_UBO_ADDR) {
+         /* We reserve index 0 for push constants and artificially increase our
+          * indices by one for that reason, fix that now before accessing the
+          * descriptor map.
+          */
+         assert(index > 0);
+         index--;
+      } else {
+         index = data;
+      }
 
       struct v3dv_descriptor *descriptor =
          v3dv_descriptor_map_get_descriptor(descriptor_state, map,
                                             pipeline->layout,
                                             index, &dynamic_offset);
+
+      /* Inline UBO descriptors store UBO data in descriptor pool memory,
+       * instead of an external buffer.
+       */
       assert(descriptor);
-      assert(descriptor->buffer);
-      assert(descriptor->buffer->mem);
-      assert(descriptor->buffer->mem->bo);
 
       if (content == QUNIFORM_GET_SSBO_SIZE ||
           content == QUNIFORM_GET_UBO_SIZE) {
          cl_aligned_u32(uniforms, descriptor->range);
       } else {
-         cl_aligned_u32(uniforms, descriptor->buffer->mem->bo->offset +
-                                  descriptor->buffer->mem_offset +
-                                  descriptor->offset +
-                                  offset + dynamic_offset);
+         /* Inline uniform buffers store their contents in pool memory instead
+          * of an external buffer.
+          */
+         struct v3dv_bo *bo;
+         uint32_t addr;
+         if (descriptor->type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) {
+            assert(dynamic_offset == 0);
+            struct v3dv_cl_reloc reloc =
+               v3dv_descriptor_map_get_descriptor_bo(cmd_buffer->device,
+                                                     descriptor_state, map,
+                                                     pipeline->layout, index,
+                                                     NULL);
+            bo = reloc.bo;
+            addr = reloc.bo->offset + reloc.offset + offset;
+         } else {
+            assert(descriptor->buffer);
+            assert(descriptor->buffer->mem);
+            assert(descriptor->buffer->mem->bo);
+
+            bo = descriptor->buffer->mem->bo;
+            addr = bo->offset +
+                   descriptor->buffer->mem_offset +
+                   descriptor->offset +
+                   offset + dynamic_offset;
+         }
+
+         cl_aligned_u32(uniforms, addr);
 
          if (content == QUNIFORM_UBO_ADDR) {
-            assert(index + 1 < MAX_TOTAL_UNIFORM_BUFFERS);
-            buffer_bos->ubo[index + 1] = descriptor->buffer->mem->bo;
+            assert(index < MAX_TOTAL_UNIFORM_BUFFERS);
+            buffer_bos->ubo[index] = bo;
          } else {
             assert(index < MAX_TOTAL_STORAGE_BUFFERS);
-            buffer_bos->ssbo[index] = descriptor->buffer->mem->bo;
+            buffer_bos->ssbo[index] = bo;
          }
       }
    }
+}
+
+static void
+write_inline_uniform(struct v3dv_cl_out **uniforms,
+                     uint32_t index,
+                     uint32_t offset,
+                     struct v3dv_cmd_buffer *cmd_buffer,
+                     struct v3dv_pipeline *pipeline,
+                     enum broadcom_shader_stage stage)
+{
+   assert(index < MAX_INLINE_UNIFORM_BUFFERS);
+
+   struct v3dv_descriptor_state *descriptor_state =
+      v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
+
+   struct v3dv_descriptor_map *map =
+      &pipeline->shared_data->maps[stage]->ubo_map;
+
+   struct v3dv_cl_reloc reloc =
+      v3dv_descriptor_map_get_descriptor_bo(cmd_buffer->device,
+                                            descriptor_state, map,
+                                            pipeline->layout, index,
+                                            NULL);
+
+   /* Offset comes in 32-bit units */
+   uint32_t *addr = reloc.bo->map + reloc.offset + 4 * offset;
+   cl_aligned_u32(uniforms, *addr);
 }
 
 static uint32_t
@@ -429,7 +507,16 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
          break;
 
       case QUNIFORM_UNIFORM:
-         cl_aligned_u32(&uniforms, cmd_buffer->push_constants_data[data]);
+         cl_aligned_u32(&uniforms, cmd_buffer->state.push_constants_data[data]);
+         break;
+
+      case QUNIFORM_INLINE_UBO_0:
+      case QUNIFORM_INLINE_UBO_1:
+      case QUNIFORM_INLINE_UBO_2:
+      case QUNIFORM_INLINE_UBO_3:
+         write_inline_uniform(&uniforms,
+                              uinfo->contents[i] - QUNIFORM_INLINE_UBO_0, data,
+                              cmd_buffer, pipeline, variant->stage);
          break;
 
       case QUNIFORM_VIEWPORT_X_SCALE:
@@ -440,13 +527,21 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
          cl_aligned_f(&uniforms, dynamic->viewport.scale[0][1] * 256.0f);
          break;
 
-      case QUNIFORM_VIEWPORT_Z_OFFSET:
-         cl_aligned_f(&uniforms, dynamic->viewport.translate[0][2]);
+      case QUNIFORM_VIEWPORT_Z_OFFSET: {
+         float translate_z;
+         v3dv_cmd_buffer_state_get_viewport_z_xform(&cmd_buffer->state, 0,
+                                                    &translate_z, NULL);
+         cl_aligned_f(&uniforms, translate_z);
          break;
+      }
 
-      case QUNIFORM_VIEWPORT_Z_SCALE:
-         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][2]);
+      case QUNIFORM_VIEWPORT_Z_SCALE: {
+         float scale_z;
+         v3dv_cmd_buffer_state_get_viewport_z_xform(&cmd_buffer->state, 0,
+                                                    NULL, &scale_z);
+         cl_aligned_f(&uniforms, scale_z);
          break;
+      }
 
       case QUNIFORM_SSBO_OFFSET:
       case QUNIFORM_UBO_ADDR:
@@ -526,7 +621,7 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
          } else if (cmd_buffer->state.framebuffer) {
             num_layers = cmd_buffer->state.framebuffer->layers;
          } else {
-            assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+            assert(cmd_buffer->vk.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
             num_layers = 2048;
 #if DEBUG
             fprintf(stderr, "Skipping gl_LayerID shader sanity check for "

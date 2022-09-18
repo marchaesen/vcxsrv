@@ -128,9 +128,9 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         print('#endif')
         print('')
 
-        print('#if defined( USE_ELF_TLS ) && !defined( GLX_X86_READONLY_TEXT )')
+        print('#if !defined( GLX_X86_READONLY_TEXT )')
         print('\t\t.section\twtext, "awx", @progbits')
-        print('#endif /* defined( USE_ELF_TLS ) */')
+        print('#endif /* !defined( GLX_X86_READONLY_TEXT ) */')
 
         print('')
         print('\t\tALIGNTEXT16')

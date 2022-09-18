@@ -34,16 +34,16 @@ keys in a keyboard description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- first
+.I first
 keycode of first key of interest
 .TP
-.I \- num
+.I num
 number of keys desired
 .TP
-.I \- xkb
+.I xkb
 pointer to keyboard description where result is stored
 .SH DESCRIPTION
 .LP

@@ -519,13 +519,13 @@ connector_add_prop(drmModeAtomicReq *req, drmmode_output_private_ptr drmmode_out
 }
 
 static int
-drmmode_CompareKModes(drmModeModeInfo * kmode, drmModeModeInfo * other)
+drmmode_CompareKModes(const drmModeModeInfo * kmode, const drmModeModeInfo * other)
 {
     return memcmp(kmode, other, sizeof(*kmode));
 }
 
 static int
-drm_mode_ensure_blob(xf86CrtcPtr crtc, drmModeModeInfo mode_info)
+drm_mode_ensure_blob(xf86CrtcPtr crtc, const drmModeModeInfo* mode_info)
 {
     modesettingPtr ms = modesettingPTR(crtc->scrn);
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
@@ -533,14 +533,14 @@ drm_mode_ensure_blob(xf86CrtcPtr crtc, drmModeModeInfo mode_info)
     int ret;
 
     if (drmmode_crtc->current_mode &&
-        drmmode_CompareKModes(&drmmode_crtc->current_mode->mode_info, &mode_info) == 0)
+        drmmode_CompareKModes(&drmmode_crtc->current_mode->mode_info, mode_info) == 0)
         return 0;
 
     mode = calloc(sizeof(drmmode_mode_rec), 1);
     if (!mode)
         return -1;
 
-    mode->mode_info = mode_info;
+    mode->mode_info = *mode_info;
     ret = drmModeCreatePropertyBlob(ms->fd,
                                     &mode->mode_info,
                                     sizeof(mode->mode_info),
@@ -589,7 +589,7 @@ crtc_add_dpms_props(drmModeAtomicReq *req, xf86CrtcPtr crtc,
         drmModeModeInfo kmode;
 
         drmmode_ConvertToKMode(crtc->scrn, &kmode, &crtc->mode);
-        ret |= drm_mode_ensure_blob(crtc, kmode);
+        ret |= drm_mode_ensure_blob(crtc, &kmode);
 
         ret |= crtc_add_prop(req, drmmode_crtc,
                              DRMMODE_CRTC_ACTIVE, 1);

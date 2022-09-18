@@ -88,16 +88,10 @@ bool
 d3d12_fix_io_uint_type(struct nir_shader *s, uint64_t in_mask, uint64_t out_mask);
 
 void
-d3d12_nir_invert_depth(nir_shader *s, unsigned viewport_mask);
-
-bool
-d3d12_lower_int_cubmap_to_array(nir_shader *s);
+d3d12_nir_invert_depth(nir_shader *s, unsigned viewport_mask, bool clip_halfz);
 
 bool
 nir_lower_packed_ubo_loads(struct nir_shader *nir);
-
-bool
-d3d12_nir_lower_vs_vertex_conversion(nir_shader *s, enum pipe_format target_formats[]);
 
 void
 d3d12_lower_primitive_id(nir_shader *shader);

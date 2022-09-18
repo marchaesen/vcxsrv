@@ -33,6 +33,7 @@ tgsi_add_point_sprite(const struct tgsi_token *tokens_in,
                       const unsigned point_coord_enable,
                       const bool sprite_origin_lower_left,
                       const bool stream_out_point_pos,
+                      const bool need_texcoord_semantic,
                       int *aa_point_coord_index);
 
 #endif /* TGSI_POINT_SPRITE_H */

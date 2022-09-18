@@ -688,6 +688,7 @@ static void get_readers_for_single_write(
 	unsigned int branch_depth = 0;
 	struct rc_instruction * endloop = NULL;
 	unsigned int abort_on_read_at_endloop = 0;
+	int readers_before_endloop = -1;
 	struct get_readers_callback_data * d = userdata;
 
 	d->ReaderData->Writer = writer;
@@ -695,6 +696,7 @@ static void get_readers_for_single_write(
 	d->ReaderData->AbortOnWrite = 0;
 	d->ReaderData->LoopDepth = 0;
 	d->ReaderData->InElse = 0;
+	d->ReaderData->ReadersAfterEndloop = false;
 	d->DstFile = dst_file;
 	d->DstIndex = dst_index;
 	d->DstMask = dst_mask;
@@ -780,11 +782,19 @@ static void get_readers_for_single_write(
 				get_readers_pair_read_callback, d);
 		}
 
+		/* Writer was in loop and we have some readers after it.
+		 * Set a flag so we can be extra careful in copy propagate.
+		 */
+		if (readers_before_endloop != -1 &&
+			d->ReaderData->ReaderCount > readers_before_endloop)
+			d->ReaderData->ReadersAfterEndloop = true;
+
 		/* This can happen when we jump from an ENDLOOP to BGNLOOP */
 		if (tmp == writer) {
 			tmp = endloop;
 			endloop = NULL;
 			d->ReaderData->AbortOnRead = abort_on_read_at_endloop;
+			readers_before_endloop = d->ReaderData->ReaderCount;
 			continue;
 		}
 		rc_for_all_writes_mask(tmp, get_readers_write_callback, d);

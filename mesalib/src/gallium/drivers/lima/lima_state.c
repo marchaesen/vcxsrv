@@ -420,6 +420,9 @@ static void
 lima_set_sample_mask(struct pipe_context *pctx,
                      unsigned sample_mask)
 {
+   struct lima_context *ctx = lima_context(pctx);
+   ctx->sample_mask = sample_mask & ((1 << LIMA_MAX_SAMPLES) - 1);
+   ctx->dirty |= LIMA_CONTEXT_DIRTY_SAMPLE_MASK;
 }
 
 void

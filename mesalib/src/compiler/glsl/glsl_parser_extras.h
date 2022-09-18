@@ -329,6 +329,11 @@ struct _mesa_glsl_parse_state {
              EXT_shader_framebuffer_fetch_non_coherent_enable;
    }
 
+   bool has_framebuffer_fetch_zs() const
+   {
+      return ARM_shader_framebuffer_fetch_depth_stencil_enable;
+   }
+
    bool has_texture_cube_map_array() const
    {
       return ARB_texture_cube_map_array_enable ||
@@ -827,6 +832,8 @@ struct _mesa_glsl_parse_state {
    bool AMD_vertex_shader_viewport_index_warn;
    bool ANDROID_extension_pack_es31a_enable;
    bool ANDROID_extension_pack_es31a_warn;
+   bool ARM_shader_framebuffer_fetch_depth_stencil_enable;
+   bool ARM_shader_framebuffer_fetch_depth_stencil_warn;
    bool EXT_blend_func_extended_enable;
    bool EXT_blend_func_extended_warn;
    bool EXT_clip_cull_distance_enable;
@@ -901,6 +908,8 @@ struct _mesa_glsl_parse_state {
    bool NV_shader_atomic_float_warn;
    bool NV_shader_atomic_int64_enable;
    bool NV_shader_atomic_int64_warn;
+   bool NV_shader_noperspective_interpolation_enable;
+   bool NV_shader_noperspective_interpolation_warn;
    bool NV_viewport_array2_enable;
    bool NV_viewport_array2_warn;
    /*@}*/

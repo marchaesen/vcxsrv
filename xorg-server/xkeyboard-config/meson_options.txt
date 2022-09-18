@@ -8,5 +8,5 @@ option('compat-rules',
        description: 'create compatibility rules [default=true]')
 option('xorg-rules-symlinks',
        type: 'boolean',
-       value: true,
+       value: false,
        description: 'create "xorg" symlinks to the "base" rules files [default=false]')

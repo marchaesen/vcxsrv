@@ -82,6 +82,7 @@ v3d_begin_query_pipe(struct v3d_context *v3d, struct v3d_query *query)
         case PIPE_QUERY_OCCLUSION_COUNTER:
         case PIPE_QUERY_OCCLUSION_PREDICATE:
         case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
+                v3d_bo_unreference(&pquery->bo);
                 pquery->bo = v3d_bo_alloc(v3d->screen, 4096, "query");
                 uint32_t *map = v3d_bo_map(pquery->bo);
                 *map = 0;

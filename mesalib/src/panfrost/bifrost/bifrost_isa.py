@@ -132,6 +132,8 @@ def parse_instruction(ins, include_pseudo):
             'staging': ins.attrib.get('staging', '').split('=')[0],
             'staging_count': ins.attrib.get('staging', '=0').split('=')[1],
             'dests': int(ins.attrib.get('dests', '1')),
+            'variable_dests': ins.attrib.get('variable_dests', False),
+            'variable_srcs': ins.attrib.get('variable_srcs', False),
             'unused': ins.attrib.get('unused', False),
             'pseudo': ins.attrib.get('pseudo', False),
             'message': ins.attrib.get('message', 'none'),
@@ -143,6 +145,9 @@ def parse_instruction(ins, include_pseudo):
         common['exact'] = parse_exact(ins)
 
     for src in ins.findall('src'):
+        if src.attrib.get('pseudo', False) and not include_pseudo:
+            continue
+
         mask = int(src.attrib['mask'], 0) if ('mask' in src.attrib) else 0xFF
         common['srcs'].append([int(src.attrib['start'], 0), mask])
 
@@ -240,10 +245,18 @@ def simplify_to_ir(ins):
             'staging': ins['staging'],
             'srcs': len(ins['srcs']),
             'dests': ins['dests'],
+            'variable_dests': ins['variable_dests'],
+            'variable_srcs': ins['variable_srcs'],
             'modifiers': [[m[0][0], m[2]] for m in ins['modifiers']],
             'immediates': [m[0] for m in ins['immediates']]
         }
 
+# Converstions to integers default to rounding-to-zero
+# All other opcodes default to rounding to nearest even
+def default_round_to_zero(name):
+    # 8-bit int to float is exact
+    subs = ['_TO_U', '_TO_S', '_TO_V2U', '_TO_V2S', '_TO_V4U', '_TO_V4S']
+    return any([x in name for x in subs])
 
 def combine_ir_variants(instructions, key):
     seen = [op for op in instructions.keys() if op[1:] == key]
@@ -269,13 +282,17 @@ def combine_ir_variants(instructions, key):
     # Great, we've checked srcs/immediates are consistent and we've summed over
     # modifiers
     return {
+            'key': key,
             'srcs': variants[0]['srcs'],
             'dests': variants[0]['dests'],
+            'variable_dests': variants[0]['variable_dests'],
+            'variable_srcs': variants[0]['variable_srcs'],
             'staging': variants[0]['staging'],
             'immediates': sorted(variants[0]['immediates']),
             'modifiers': modifiers,
             'v': len(variants),
-            'ir': variants
+            'ir': variants,
+            'rtz': default_round_to_zero(key)
         }
 
 # Partition instructions to mnemonics, considering units and variants

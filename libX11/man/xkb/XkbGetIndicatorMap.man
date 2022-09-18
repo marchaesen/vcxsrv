@@ -33,13 +33,13 @@ specify the indicators
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- which
+.I which
 mask of indicators for which maps should be returned
 .TP
-.I \- desc
+.I desc
 keyboard description to be updated
 .SH DESCRIPTION
 .LP

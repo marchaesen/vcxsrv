@@ -43,7 +43,7 @@ enum dxil_prog_sig_comp_type dxil_get_prog_sig_comp_type(const struct glsl_type 
    case GLSL_TYPE_UINT64: return DXIL_PROG_SIG_COMP_TYPE_UINT64;
    case GLSL_TYPE_INT64: return DXIL_PROG_SIG_COMP_TYPE_SINT64;
    case GLSL_TYPE_BOOL: return DXIL_PROG_SIG_COMP_TYPE_UINT32;
-   case GLSL_TYPE_STRUCT: return DXIL_PROG_SIG_COMP_TYPE_UINT32;
+   case GLSL_TYPE_STRUCT: return DXIL_PROG_SIG_COMP_TYPE_UNKNOWN;
    default:
       debug_printf("unexpected type: %s\n", glsl_get_type_name(type));
       return DXIL_PROG_SIG_COMP_TYPE_UNKNOWN;

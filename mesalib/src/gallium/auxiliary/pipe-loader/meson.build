@@ -33,19 +33,13 @@ if dep_libdrm.found()
   files_pipe_loader += files('pipe_loader_drm.c')
   libpipe_loader_links += libloader
 endif
-if with_dri
-  libpipe_loader_defines += '-DHAVE_PIPE_LOADER_DRI'
-endif
-if with_gallium_drisw_kms
-  libpipe_loader_defines += '-DHAVE_PIPE_LOADER_KMS'
-endif
 
 libpipe_loader_static = static_library(
   'pipe_loader_static',
   files_pipe_loader,
   include_directories : [
     inc_util, inc_loader, inc_gallium, inc_include, inc_src, inc_gallium_aux,
-    inc_gallium_winsys,
+    inc_gallium_winsys, inc_gallium_drivers,
   ],
   c_args : [libpipe_loader_defines, '-DGALLIUM_STATIC_TARGETS=1'],
   gnu_symbol_visibility : 'hidden',
@@ -59,7 +53,7 @@ libpipe_loader_dynamic = static_library(
   files_pipe_loader,
   include_directories : [
     inc_util, inc_loader, inc_gallium, inc_include, inc_src, inc_gallium_aux,
-    inc_gallium_winsys,
+    inc_gallium_winsys, inc_gallium_drivers,
   ],
   c_args : [
     libpipe_loader_defines,

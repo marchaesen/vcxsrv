@@ -1,42 +1,53 @@
 .zink-lvp-test:
   extends:
-    - .zink-rules
+    - .zink-lvp-rules
   variables:
-    ZINK_USE_LAVAPIPE: "true"
-    LIBGL_ALWAYS_SOFTWARE: "1"
+    MESA_LOADER_DRIVER_OVERRIDE: "zink"
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    LVP_POISON_MEMORY: "1"
     GPU_VERSION: zink-lvp
+    FLAKES_CHANNEL: "#zink-ci"
     # Fix non-conformant llvmpipe filter defaults
     GALLIVM_PERF: "no_quad_lod"
-    LP_NUM_THREADS: 0
 
-.zink-piglit-quick_gl:
-  extends:
-    - .test-gl
-    - .zink-lvp-test
-  variables:
-    PIGLIT_PROFILES: quick_gl
-    PIGLIT_NO_WINDOW: 1
-    PIGLIT_RUNNER_OPTIONS: "--timeout 180"
-
-zink-piglit-timelines:
-  extends:
-    - .zink-piglit-quick_gl
-  script:
-    - xvfb-run --server-args='-noreset' sh -c "GALLIUM_DRIVER=zink VK_DRIVER=lvp install/piglit/piglit-runner.sh"
-
-zink-piglit-no_timelines:
-  extends:
-    - .zink-piglit-quick_gl
-  script:
-    - xvfb-run --server-args='-noreset' sh -c "ZINK_NO_TIMELINES=1 GALLIUM_DRIVER=zink VK_DRIVER=lvp install/piglit/piglit-runner.sh"
-
-zink-lvp-deqp:
+zink:
+  tags:
+    - mesa-swrast
   extends:
     - .test-gl
     - .deqp-test
     - .zink-lvp-test
   variables:
-    GALLIUM_DRIVER: "zink" # move here due to bad xvfb-run interactions
-    VK_DRIVER: lvp # Don't move to the top level, piglit runs do funny stuff with VK_DRIVER set
     DEQP_SUITE: zink-lvp
-  parallel: 4
+    PIGLIT_NO_WINDOW: 1
+  script:
+    - xvfb-run --server-args='-noreset' sh -c "GALLIUM_DRIVER=zink VK_DRIVER=lvp install/deqp-runner.sh"
+
+zink-anv-tgl:
+  extends:
+    - .anv-tgl-test
+    - .zink-anv-rules
+  variables:
+    FLAKES_CHANNEL: "#zink-ci"
+    MESA_LOADER_DRIVER_OVERRIDE: "zink"
+    DEQP_SUITE: zink-anv-tgl
+    PIGLIT_NO_WINDOW: 1
+    VK_DRIVER: intel
+    HWCI_START_XORG: 1
+    GPU_VERSION: zink-anv-tgl
+
+zink-freedreno-a630-traces:
+  extends:
+    - a630-traces
+    - .zink-turnip-rules
+  variables:
+    PIGLIT_REPLAY_DEVICE_NAME: "zink-a630"
+    MESA_LOADER_DRIVER_OVERRIDE: zink
+    # The libX11 in the debian we use doesn't XInitThreads() by default (need
+    # 1.8.1 for that), and eglretrace's waffle GLX path doesn't call it either,
+    # which ends up causing trouble with kopper's X usage.  Use gbm for our
+    # trace replay, instead.
+    # https://gitlab.freedesktop.org/mesa/mesa/-/issues/6753
+    HWCI_START_XORG: ""
+    WAFFLE_PLATFORM: gbm
+    PIGLIT_PLATFORM: gbm

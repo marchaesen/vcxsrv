@@ -37,8 +37,8 @@
 #include "fd4_program.h"
 #include "fd4_texture.h"
 
-static void
-emit_shader(struct fd_ringbuffer *ring, const struct ir3_shader_variant *so)
+void
+fd4_emit_shader(struct fd_ringbuffer *ring, const struct ir3_shader_variant *so)
 {
    const struct ir3_info *si = &so->info;
    enum a4xx_state_block sb = fd4_stage2shadersb(so->type);
@@ -162,7 +162,7 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
    int constmode;
    int i, j;
 
-   debug_assert(nr <= ARRAY_SIZE(color_regid));
+   assert(nr <= ARRAY_SIZE(color_regid));
 
    if (emit->binning_pass)
       nr = 0;
@@ -250,26 +250,33 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
    OUT_RING(ring,
             A4XX_HLSQ_VS_CONTROL_REG_CONSTLENGTH(s[VS].constlen) |
                A4XX_HLSQ_VS_CONTROL_REG_CONSTOBJECTOFFSET(s[VS].constoff) |
+               COND(s[VS].v && s[VS].v->has_ssbo, A4XX_HLSQ_VS_CONTROL_REG_SSBO_ENABLE) |
+               COND(s[VS].v, A4XX_HLSQ_VS_CONTROL_REG_ENABLED) |
                A4XX_HLSQ_VS_CONTROL_REG_INSTRLENGTH(s[VS].instrlen) |
                A4XX_HLSQ_VS_CONTROL_REG_SHADEROBJOFFSET(s[VS].instroff));
    OUT_RING(ring,
             A4XX_HLSQ_FS_CONTROL_REG_CONSTLENGTH(s[FS].constlen) |
                A4XX_HLSQ_FS_CONTROL_REG_CONSTOBJECTOFFSET(s[FS].constoff) |
+               COND(s[FS].v && s[FS].v->has_ssbo, A4XX_HLSQ_FS_CONTROL_REG_SSBO_ENABLE) |
+               COND(s[FS].v, A4XX_HLSQ_FS_CONTROL_REG_ENABLED) |
                A4XX_HLSQ_FS_CONTROL_REG_INSTRLENGTH(s[FS].instrlen) |
                A4XX_HLSQ_FS_CONTROL_REG_SHADEROBJOFFSET(s[FS].instroff));
    OUT_RING(ring,
             A4XX_HLSQ_HS_CONTROL_REG_CONSTLENGTH(s[HS].constlen) |
                A4XX_HLSQ_HS_CONTROL_REG_CONSTOBJECTOFFSET(s[HS].constoff) |
+               COND(s[HS].v && s[HS].v->has_ssbo, A4XX_HLSQ_HS_CONTROL_REG_SSBO_ENABLE) |
                A4XX_HLSQ_HS_CONTROL_REG_INSTRLENGTH(s[HS].instrlen) |
                A4XX_HLSQ_HS_CONTROL_REG_SHADEROBJOFFSET(s[HS].instroff));
    OUT_RING(ring,
             A4XX_HLSQ_DS_CONTROL_REG_CONSTLENGTH(s[DS].constlen) |
                A4XX_HLSQ_DS_CONTROL_REG_CONSTOBJECTOFFSET(s[DS].constoff) |
+               COND(s[DS].v && s[DS].v->has_ssbo, A4XX_HLSQ_DS_CONTROL_REG_SSBO_ENABLE) |
                A4XX_HLSQ_DS_CONTROL_REG_INSTRLENGTH(s[DS].instrlen) |
                A4XX_HLSQ_DS_CONTROL_REG_SHADEROBJOFFSET(s[DS].instroff));
    OUT_RING(ring,
             A4XX_HLSQ_GS_CONTROL_REG_CONSTLENGTH(s[GS].constlen) |
                A4XX_HLSQ_GS_CONTROL_REG_CONSTOBJECTOFFSET(s[GS].constoff) |
+               COND(s[GS].v && s[GS].v->has_ssbo, A4XX_HLSQ_GS_CONTROL_REG_SSBO_ENABLE) |
                A4XX_HLSQ_GS_CONTROL_REG_INSTRLENGTH(s[GS].instrlen) |
                A4XX_HLSQ_GS_CONTROL_REG_SHADEROBJOFFSET(s[GS].instroff));
 
@@ -563,11 +570,11 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
    }
 
    if (s[VS].instrlen)
-      emit_shader(ring, s[VS].v);
+      fd4_emit_shader(ring, s[VS].v);
 
    if (!emit->binning_pass)
       if (s[FS].instrlen)
-         emit_shader(ring, s[FS].v);
+         fd4_emit_shader(ring, s[FS].v);
 }
 
 static struct ir3_program_state *

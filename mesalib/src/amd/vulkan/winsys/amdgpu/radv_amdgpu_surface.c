@@ -95,8 +95,16 @@ radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws, const struct ac_surf_
    return ac_compute_surface(ws->addrlib, &ws->info, &config, mode, surf);
 }
 
+static struct ac_addrlib *
+radv_amdgpu_get_addrlib(struct radeon_winsys *rws)
+{
+   struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(rws);
+   return ws->addrlib;
+}
+
 void
 radv_amdgpu_surface_init_functions(struct radv_amdgpu_winsys *ws)
 {
+   ws->base.get_addrlib = radv_amdgpu_get_addrlib;
    ws->base.surface_init = radv_amdgpu_winsys_surface_init;
 }

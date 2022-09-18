@@ -3,7 +3,7 @@
 
 default partial xkb_compatibility "default" {
 
-    virtual_modifiers  LevelThree,AltGr;
+    virtual_modifiers  LevelThree;
 
     interpret.repeat= False;
     setMods.clearLocks= True;
@@ -46,22 +46,17 @@ default partial xkb_compatibility "default" {
     };
 
     interpret ISO_Group_Latch {
-	useModMapMods= level1;
-	virtualModifier= AltGr;
 	action= LatchGroup(group=2);
     };
 
     interpret ISO_Next_Group {
-	useModMapMods= level1;
-	virtualModifier= AltGr;
 	action= LockGroup(group=+1);
     };
 
     interpret ISO_Prev_Group {
-	useModMapMods= level1;
-	virtualModifier= AltGr;
 	action= LockGroup(group=-1);
     };
+
     interpret ISO_First_Group {
 	action= LockGroup(group=1);
     };

@@ -29,16 +29,6 @@
 
 namespace r600 {
 
-class stderr_streambuf : public std::streambuf
-{
-public:
-   stderr_streambuf();
-protected:
-   int sync();
-   int overflow(int c);
-   std::streamsize xsputn ( const char *s, std::streamsize n );
-};
-
 stderr_streambuf::stderr_streambuf()
 {
 
@@ -71,6 +61,10 @@ static const struct debug_named_value sfn_debug_options[] = {
    {"nomerge", SfnLog::nomerge, "Skip register merge step"},
    {"tex", SfnLog::tex, "Log texture ops"},
    {"trans", SfnLog::trans, "Log generic translation messages"},
+   {"schedule", SfnLog::schedule, "Log scheduling"},
+   {"opt", SfnLog::opt, "Log optimization"},
+   {"steps", SfnLog::steps, "Log shaders at transformation steps"},
+   {"noopt", SfnLog::noopt, "Don't run backend optimizations"},
    DEBUG_NAMED_VALUE_END
 };
 
@@ -87,7 +81,8 @@ std::streamsize stderr_streambuf::xsputn ( const char *s, std::streamsize n )
 SfnLog::SfnLog():
    m_active_log_flags(0),
    m_log_mask(0),
-   m_output(new stderr_streambuf())
+   m_buf(),
+   m_output(&m_buf)
 {
    m_log_mask = debug_get_flags_option("R600_NIR_DEBUG", sfn_debug_options, 0);
    m_log_mask ^= err;

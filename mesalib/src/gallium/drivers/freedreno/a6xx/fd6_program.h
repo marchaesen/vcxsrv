@@ -50,7 +50,7 @@ struct fd6_program_state {
    struct fd_ringbuffer *streamout_stateobj;
    struct fd_ringbuffer *stateobj;
 
-   struct ir3_stream_output_info *stream_output;
+   const struct ir3_stream_output_info *stream_output;
 
    /**
     * Output components from frag shader.  It is possible to have

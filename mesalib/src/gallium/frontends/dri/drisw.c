@@ -239,6 +239,7 @@ drisw_swap_buffers(__DRIdrawable *dPriv)
 {
    struct dri_context *ctx = dri_get_current(dPriv->driScreenPriv);
    struct dri_drawable *drawable = dri_drawable(dPriv);
+   struct dri_screen *screen = dri_screen(drawable->sPriv);
    struct pipe_resource *ptex;
 
    if (!ctx)
@@ -247,13 +248,14 @@ drisw_swap_buffers(__DRIdrawable *dPriv)
    ptex = drawable->textures[ST_ATTACHMENT_BACK_LEFT];
 
    if (ptex) {
+      struct pipe_fence_handle *fence = NULL;
       if (ctx->pp)
          pp_run(ctx->pp, ptex, ptex, drawable->textures[ST_ATTACHMENT_DEPTH_STENCIL]);
 
       if (ctx->hud)
          hud_run(ctx->hud, ctx->st->cso_context, ptex);
 
-      ctx->st->flush(ctx->st, ST_FLUSH_FRONT, NULL, NULL, NULL);
+      ctx->st->flush(ctx->st, ST_FLUSH_FRONT, &fence, NULL, NULL);
 
       if (drawable->stvis.samples > 1) {
          /* Resolve the back buffer. */
@@ -262,6 +264,9 @@ drisw_swap_buffers(__DRIdrawable *dPriv)
                        drawable->msaa_textures[ST_ATTACHMENT_BACK_LEFT]);
       }
 
+      screen->base.screen->fence_finish(screen->base.screen, ctx->st->pipe,
+                                        fence, PIPE_TIMEOUT_INFINITE);
+      screen->base.screen->fence_reference(screen->base.screen, &fence, NULL);
       drisw_copy_to_front(ctx->st->pipe, dPriv, ptex);
    }
 }
@@ -272,6 +277,7 @@ drisw_copy_sub_buffer(__DRIdrawable *dPriv, int x, int y,
 {
    struct dri_context *ctx = dri_get_current(dPriv->driScreenPriv);
    struct dri_drawable *drawable = dri_drawable(dPriv);
+   struct dri_screen *screen = dri_screen(drawable->sPriv);
    struct pipe_resource *ptex;
    struct pipe_box box;
    if (!ctx)
@@ -280,10 +286,15 @@ drisw_copy_sub_buffer(__DRIdrawable *dPriv, int x, int y,
    ptex = drawable->textures[ST_ATTACHMENT_BACK_LEFT];
 
    if (ptex) {
+      struct pipe_fence_handle *fence = NULL;
       if (ctx->pp && drawable->textures[ST_ATTACHMENT_DEPTH_STENCIL])
          pp_run(ctx->pp, ptex, ptex, drawable->textures[ST_ATTACHMENT_DEPTH_STENCIL]);
 
-      ctx->st->flush(ctx->st, ST_FLUSH_FRONT, NULL, NULL, NULL);
+      ctx->st->flush(ctx->st, ST_FLUSH_FRONT, &fence, NULL, NULL);
+
+      screen->base.screen->fence_finish(screen->base.screen, ctx->st->pipe,
+                                        fence, PIPE_TIMEOUT_INFINITE);
+      screen->base.screen->fence_reference(screen->base.screen, &fence, NULL);
 
       if (drawable->stvis.samples > 1) {
          /* Resolve the back buffer. */
@@ -387,8 +398,8 @@ drisw_allocate_textures(struct dri_context *stctx,
       templ.nr_storage_samples = 0;
 
       if (statts[i] == ST_ATTACHMENT_FRONT_LEFT &&
-          screen->base.screen->resource_create_front &&
-          loader->base.version >= 3) {
+                 screen->base.screen->resource_create_front &&
+                 loader->base.version >= 3) {
          drawable->textures[statts[i]] =
             screen->base.screen->resource_create_front(screen->base.screen, &templ, (const void *)drawable);
       } else
@@ -515,7 +526,7 @@ drisw_init_screen(__DRIscreen * sPriv)
       return NULL;
 
    screen->sPriv = sPriv;
-   screen->fd = -1;
+   screen->fd = sPriv->fd;
 
    screen->swrast_no_present = debug_get_option_swrast_no_present();
 
@@ -526,7 +537,14 @@ drisw_init_screen(__DRIscreen * sPriv)
          lf = &drisw_shm_lf;
    }
 
-   if (pipe_loader_sw_probe_dri(&screen->dev, lf)) {
+   bool success = false;
+#ifdef HAVE_DRISW_KMS
+   if (screen->fd != -1)
+      success = pipe_loader_sw_probe_kms(&screen->dev, screen->fd);
+#endif
+   if (!success)
+      success = pipe_loader_sw_probe_dri(&screen->dev, lf);
+   if (success) {
       pscreen = pipe_loader_create_screen(screen->dev);
       dri_init_options(screen);
    }
@@ -592,22 +610,40 @@ drisw_create_buffer(__DRIscreen * sPriv,
 const struct __DriverAPIRec galliumsw_driver_api = {
    .InitScreen = drisw_init_screen,
    .DestroyScreen = dri_destroy_screen,
-   .CreateContext = dri_create_context,
-   .DestroyContext = dri_destroy_context,
    .CreateBuffer = drisw_create_buffer,
    .DestroyBuffer = dri_destroy_buffer,
    .SwapBuffers = drisw_swap_buffers,
-   .MakeCurrent = dri_make_current,
-   .UnbindContext = dri_unbind_context,
    .CopySubBuffer = drisw_copy_sub_buffer,
+};
+
+static const struct __DRIDriverVtableExtensionRec galliumsw_vtable = {
+   .base = { __DRI_DRIVER_VTABLE, 1 },
+   .vtable = &galliumsw_driver_api,
+};
+
+/* swrast copy sub buffer entrypoint. */
+static void driswCopySubBuffer(__DRIdrawable *pdp, int x, int y,
+                               int w, int h)
+{
+   assert(pdp->driScreenPriv->swrast_loader);
+
+   pdp->driScreenPriv->driver->CopySubBuffer(pdp, x, y, w, h);
+}
+
+/* for swrast only */
+const __DRIcopySubBufferExtension driSWCopySubBufferExtension = {
+   .base = { __DRI_COPY_SUB_BUFFER, 1 },
+
+   .copySubBuffer               = driswCopySubBuffer,
 };
 
 /* This is the table of extensions that the loader will dlsym() for. */
 const __DRIextension *galliumsw_driver_extensions[] = {
     &driCoreExtension.base,
     &driSWRastExtension.base,
-    &driCopySubBufferExtension.base,
+    &driSWCopySubBufferExtension.base,
     &gallium_config_options.base,
+    &galliumsw_vtable.base,
     NULL
 };
 

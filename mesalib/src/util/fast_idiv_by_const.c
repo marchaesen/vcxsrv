@@ -169,12 +169,6 @@ util_compute_fast_udiv_info(uint64_t D, unsigned num_bits, unsigned UINT_BITS)
    return result;
 }
 
-static inline int64_t
-sign_extend(int64_t x, unsigned SINT_BITS)
-{
-   return (int64_t)((uint64_t)x << (64 - SINT_BITS)) >> (64 - SINT_BITS);
-}
-
 struct util_fast_sdiv_info
 util_compute_fast_sdiv_info(int64_t D, unsigned SINT_BITS)
 {
@@ -236,7 +230,7 @@ util_compute_fast_sdiv_info(int64_t D, unsigned SINT_BITS)
       delta = abs_d - remainder2;
    } while (quotient1 < delta || (quotient1 == delta && remainder1 == 0));
 
-   result.multiplier = sign_extend(quotient2 + 1, SINT_BITS);
+   result.multiplier = util_sign_extend(quotient2 + 1, SINT_BITS);
    if (D < 0) result.multiplier = -result.multiplier;
    result.shift = exponent - SINT_BITS;
    return result;

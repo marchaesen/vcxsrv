@@ -21,7 +21,7 @@ lib_pps = static_library(
   sources: pps_sources,
   include_directories: [include_pps, inc_src, pps_includes],
   dependencies: pps_deps,
-  cpp_args: '-std=c++17'
+  override_options: ['cpp_std=c++17'],
 )
 
 dep_pps = declare_dependency(
@@ -39,7 +39,7 @@ executable(
   sources: producer_sources,
   include_directories: [include_pps, inc_src],
   dependencies: [dep_pps, dep_perfetto],
-  cpp_args: '-std=c++17',
+  override_options: ['cpp_std=c++17'],
   install: true
 )
 
@@ -55,7 +55,7 @@ if dep_docopt.found()
     sources: config_sources,
     include_directories: [include_pps, inc_src],
     dependencies: [dep_pps, dep_docopt],
-    cpp_args: '-std=c++17',
+    override_options: ['cpp_std=c++17'],
     install: true
   )
 endif

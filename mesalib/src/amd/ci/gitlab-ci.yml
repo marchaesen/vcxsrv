@@ -1,66 +1,10 @@
-.test-radv:
-  extends:
-    - .test-vk
-    - .radv-rules
-  variables:
-    VK_DRIVER: radeon
-    DRIVER_NAME: radv
-    ACO_DEBUG: validateir,validatera
-    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
-
-radv-navy_flounder-vkd3d-proton:
-  extends:
-    - .test-radv
-    - .vkd3d-proton-test
-    - .test-manual
-  variables:
-    VKD3D_PROTON_RESULTS: "navy_flounder"
-  tags:
-    - amdgpu:codename:NAVY_FLOUNDER
-
-radv-navy_flounder-traces:
-  extends:
-    - .test-radv
-    - .piglit-traces-test
-    - .test-manual
-  variables:
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-navy_flounder"
-    PIGLIT_REPLAY_GFXRECON_REPLAY_EXTRA_ARGS: "-m rebind"
-    PIGLIT_RESULTS: "radv-navy_flounder-replay"
-  tags:
-    - amdgpu:codename:NAVY_FLOUNDER
-
-radv-raven-traces:
-  extends:
-    - .test-radv
-    - .piglit-traces-test
-    - .test-manual
-  variables:
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-radv.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "vk-amd-raven"
-    PIGLIT_RESULTS: "radv-raven-replay"
-  tags:
-    - amdgpu:codename:RAVEN
-
-# Can only be triggered manually on personal branches because RADV is the only
-# driver that does Vulkan testing at the moment.
-radv_polaris10_vkcts:
-  extends:
-    - .deqp-test-vk
-    - .test-radv
-    - .test-manual
-  variables:
-    GPU_VERSION: radv-polaris10-aco
-  tags:
-    - polaris10
-
-# Run three jobs in parallel each running 1/30th of the test suite
+############### LAVA
+# Run four jobs in parallel each running 1/40th of the test suite
 radv_stoney_vkcts:amd64:
   extends:
     - .lava-test:amd64
     - .radv-rules
-  parallel: 3
+  parallel: 4
   variables:
     DEQP_VER: vk
     DEQP_FRACTION: 10
@@ -75,13 +19,242 @@ radv_stoney_vkcts:amd64:
     HWCI_FREQ_MAX: "true"
     VK_DRIVER: radeon
     DRIVER_NAME: radv
-  tags:
-    - mesa-ci-x86-64-lava-hp-11A-G6-EE-grunt
+    RUNNER_TAG: mesa-ci-x86-64-lava-hp-11A-G6-EE-grunt
 
-.radv-fossils:
+############### Valve Infra
+.test-radv:
   extends:
-    - .fossilize-test
+    - .radv-rules
+  variables:
+    VK_DRIVER: radeon
+    DRIVER_NAME: radv
+    # The SPIRV -> NIR code generator generates so many harmless
+    # warnings on the shaders in VK-CTS that jobs fail due to the log
+    # size getting too big. Since it's not feasible right now
+    # to fix these shaders in the CTS, instead, ignore warnings from
+    # the code generator.
+    MESA_SPIRV_LOG_LEVEL: error
+    ACO_DEBUG: validateir,validatera
+    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
+
+.b2c-test-radv-vk:
+  extends:
     - .test-radv
+    - .b2c-test-vk
+
+.b2c-test-radv-gl:
+  extends:
+    - .test-radv
+    - .b2c-test-gl
+  variables:
+    MESA_LOADER_DRIVER_OVERRIDE: zink
+
+.deqp-test-valve:
+  extends:
+    # Keep all the dEQP jobs as manual trigger jobs for now, until we
+    # have enough resources to meet the throughput requirements for
+    # automatic pre-merge in the Mesa CI.
+    - .test-manual-mr
+  variables:
+    B2C_JOB_SUCCESS_REGEX: '^\+ DEQP_EXITCODE=0\r$'
+    B2C_TEST_SCRIPT: ./install/deqp-runner.sh
+    B2C_JOB_VOLUME_EXCLUSIONS: "*.shader_cache"
+
+.kabini-test-valve:
+  variables:
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=8g'
+  tags:
+    - amdgpu:codename:KABINI
+
+.polaris10-test-valve:
+  variables:
+    FDO_CI_CONCURRENT: 16
+    B2C_TIMEOUT_BOOT_RETRIES: 4
+    # (2022-01) tsc=unstable was added in response to this message in kmsg,
+    #    TSC found unstable after boot, most likely due to broken BIOS. Use 'tsc=unstable'.
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g tsc=unstable'
+  tags:
+    - amdgpu:codename:POLARIS10
+
+.vega10-test-valve:
+  variables:
+    FDO_CI_CONCURRENT: 16
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
+  tags:
+    - amdgpu:codename:VEGA10
+
+.renoir-test-valve:
+  variables:
+    FDO_CI_CONCURRENT: 24
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
+    B2C_TIMEOUT_BOOT_MINUTES: 60
+    B2C_TIMEOUT_OVERALL_MINUTES: 120
+  tags:
+    - amdgpu:codename:RENOIR
+
+.navi10-test-valve:
+  variables:
+    FDO_CI_CONCURRENT: 24
+    # (2022-01) noapic is set because the serial adapter on this
+    # machine is using non-MSI IRQs and is generating a lot of
+    # IRQs. This tends to confuse the interrupt controller and breaks
+    # MSI IRQs leading to GPU hangs on amdgpu.
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g noapic'
+  tags:
+    - amdgpu:codename:NAVI10
+
+.navi21-test-valve:
+  variables:
+    FDO_CI_CONCURRENT: 16
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
+  tags:
+    - amdgpu:codename:NAVI21
+
+.vangogh-test-valve:
+  variables:
+    FDO_CI_CONCURRENT: 8
+    B2C_TIMEOUT_BOOT_MINUTES: 85
+    B2C_TIMEOUT_OVERALL_MINUTES: 120
+    B2C_TIMEOUT_MINUTES: 3
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
+  tags:
+    - amdgpu:codename:VANGOGH
+
+############### VKCTS tests ###############
+
+# A note on the variables to control fractional VKCTS runs
+#  parallel: N means to split the test list into chunks of 1/N lines, and
+#  DEQP_FRACTION: M means to run every Mth test from the resulting lines.
+#  So parallel: 2 and DEQP_FRACTION: 5 would imply running 1/10th of the suite.
+.vkcts-test-valve:
+  extends:
+    - .b2c-test-radv-vk
+    - .deqp-test-valve
+  variables:
+    DEQP_VER: vk
+    RADV_PERFTEST: nv_ms,ext_ms
+
+# VKCTS never finishes on gfx7 due to all the GPU resets and hangs.
+# Hence, disable it for now.
+vkcts-kabini-valve:
+  extends:
+    - .vkcts-test-valve
+    - .kabini-test-valve
+    - .test-manual-mr  # Make sure this job is *always* run manually
+  timeout: 12h
+  variables:
+    GPU_VERSION: radv-kabini-aco
+    B2C_TIMEOUT_BOOT_MINUTES: 710
+    B2C_TIMEOUT_OVERALL_MINUTES: 710
+    B2C_TIMEOUT_BOOT_RETRIES: 0
+
+# Disabled for now due to Igalia farm issues.
+.vkcts-stoney-valve:
+  extends:
+    - .vkcts-test-valve
+  parallel: 2
+  # The thin clients can't manage a full run in less than an hour
+  # currently.  Interpolation suggests four more thin clients (6
+  # total) would get the runtime under 15 minutes.
+  timeout: 4h 10m
+  variables:
+    GPU_VERSION: radv-stoney-aco
+    # Note, it only has a wee 32g disk!
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=8g'
+    B2C_TIMEOUT_BOOT_MINUTES: 240
+    B2C_TIMEOUT_OVERALL_MINUTES: 240
+    B2C_TIMEOUT_BOOT_RETRIES: 0
+  tags:
+    - amdgpu:codename:STONEY
+
+.vkcts-polaris10-valve:
+  extends:
+    - .vkcts-test-valve
+    - .polaris10-test-valve
+  variables:
+    GPU_VERSION: radv-polaris10-aco
+
+vkcts-vega10-valve:
+  extends:
+    - .vkcts-test-valve
+    - .vega10-test-valve
+  variables:
+    GPU_VERSION: radv-vega10-aco
+
+vkcts-renoir-valve:
+  extends:
+    - .vkcts-test-valve
+    - .renoir-test-valve
+  timeout: 2h 10m
+  variables:
+    GPU_VERSION: radv-renoir-aco
+
+vkcts-navi10-valve:
+  extends:
+    - .vkcts-test-valve
+    - .navi10-test-valve
+  variables:
+    GPU_VERSION: radv-navi10-aco
+
+vkcts-navi21-valve:
+  extends:
+    - .vkcts-test-valve
+    - .navi21-test-valve
+  variables:
+    GPU_VERSION: radv-navi21-aco
+
+vkcts-navi21-llvm-valve:
+  extends:
+    - .vkcts-test-valve
+    - .navi21-test-valve
+  variables:
+    GPU_VERSION: radv-navi21-llvm
+    RADV_DEBUG: llvm,checkir
+
+vkcts-vangogh-valve:
+  parallel: 2
+  extends:
+    - .vkcts-test-valve
+    - .vangogh-test-valve
+  timeout: 2h 10m
+  variables:
+    GPU_VERSION: radv-vangogh-aco
+
+############### gles/GLCTS
+.glcts-test-valve:
+  extends:
+    - .b2c-test-radv-gl
+    - .deqp-test-valve
+  variables:
+    DEQP_VER: gl46
+
+glcts-navi10-valve:
+  extends:
+    - .glcts-test-valve
+    - .navi10-test-valve
+  variables:
+    GPU_VERSION: zink-radv
+
+.gles-test-valve:
+  extends:
+    - .b2c-test-radv-gl
+    - .deqp-test-valve
+  variables:
+    DEQP_SUITE: zink-radv
+
+gles-navi10-valve:
+  extends:
+    - .gles-test-valve
+    - .navi10-test-valve
+  variables:
+    GPU_VERSION: zink-radv
+
+############### Fossilize
+radv-fossils:
+  extends:
+    - .test-vk
+    - .test-radv
+    - .fossilize-test
   script:
     # Pitcairn (GFX6)
     - export RADV_FORCE_FAMILY="PITCAIRN"
@@ -98,6 +271,70 @@ radv_stoney_vkcts:amd64:
     # Navi10 (GFX10)
     - export RADV_FORCE_FAMILY="NAVI10"
     - ./install/fossilize-runner.sh
-    # Sienna Cichlid (GFX10)
-    - export RADV_FORCE_FAMILY="SIENNA_CICHLID"
+    # Navi21 (GFX10_3)
+    - export RADV_FORCE_FAMILY="NAVI21"
     - ./install/fossilize-runner.sh
+    # RDNA3 (GFX11)
+    - export RADV_FORCE_FAMILY="GFX1100"
+    - ./install/fossilize-runner.sh
+
+############### vkd3d-proton
+.vkd3d-test-valve:
+  extends:
+    - .b2c-test-radv-vk
+    # Keep all the vkd3d-proton jobs as manual trigger jobs for now, until we
+    # have enough resources to meet the throughput requirements for
+    # automatic pre-merge in the Mesa CI.
+    - .test-manual-mr
+  variables:
+    B2C_JOB_SUCCESS_REGEX: 'SUCCESS: No changes found!\r$'
+    B2C_TEST_SCRIPT: ./install/vkd3d-proton/run.sh
+
+.vkd3d-kabini-valve:
+  extends:
+    - .vkd3d-test-valve
+    - .kabini-test-valve
+  variables:
+    VKD3D_PROTON_RESULTS: radv-kabini-vkd3d
+
+.vkd3d-polaris10-valve:
+  extends:
+    - .vkd3d-test-valve
+    - .polaris10-test-valve
+  variables:
+    VKD3D_PROTON_RESULTS: radv-polaris10-vkd3d
+
+vkd3d-vega10-valve:
+  extends:
+    - .vkd3d-test-valve
+    - .vega10-test-valve
+  variables:
+    VKD3D_PROTON_RESULTS: radv-vega10-vkd3d
+
+vkd3d-renoir-valve:
+  extends:
+    - .vkd3d-test-valve
+    - .renoir-test-valve
+  variables:
+    VKD3D_PROTON_RESULTS: radv-renoir-vkd3d
+
+vkd3d-navi10-valve:
+  extends:
+    - .vkd3d-test-valve
+    - .navi10-test-valve
+  variables:
+    VKD3D_PROTON_RESULTS: radv-navi10-vkd3d
+
+vkd3d-navi21-valve:
+  extends:
+    - .vkd3d-test-valve
+    - .navi21-test-valve
+  variables:
+    VKD3D_PROTON_RESULTS: radv-navi21-vkd3d
+
+vkd3d-vangogh-valve:
+  extends:
+    - .vkd3d-test-valve
+    - .vangogh-test-valve
+  variables:
+    VKD3D_PROTON_RESULTS: radv-vangogh-vkd3d

@@ -83,7 +83,8 @@ process_block(dce_ctx& ctx, Block& block)
 bool
 is_dead(const std::vector<uint16_t>& uses, Instruction* instr)
 {
-   if (instr->definitions.empty() || instr->isBranch())
+   if (instr->definitions.empty() || instr->isBranch() ||
+       instr->opcode == aco_opcode::p_init_scratch)
       return false;
    if (std::any_of(instr->definitions.begin(), instr->definitions.end(),
                    [&uses](const Definition& def) { return !def.isTemp() || uses[def.tempId()]; }))

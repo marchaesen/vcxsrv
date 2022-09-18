@@ -136,7 +136,7 @@ update_need_pipeline(struct svga_context *svga, uint64_t dirty)
 
    if (svga->state.sw.need_pipeline) {
       assert(reason);
-      pipe_debug_message(&svga->debug.callback, FALLBACK,
+      util_debug_message(&svga->debug.callback, FALLBACK,
                          "Using semi-fallback for %s", reason);
    }
 

@@ -43,7 +43,7 @@ _XQueryColors(
 
     GetReq(QueryColors, req);
 
-    req->cmap = cmap;
+    req->cmap = (CARD32) cmap;
     SetReqLen(req, ncolors, ncolors); /* each pixel is a CARD32 */
 
     for (i = 0; i < ncolors; i++)
@@ -51,11 +51,11 @@ _XQueryColors(
        /* XXX this isn't very efficient */
 
     if (_XReply(dpy, (xReply *) &rep, 0, xFalse) != 0) {
-	xrgb *color = Xmallocarray(ncolors, sizeof(xrgb));
+	xrgb *color = Xmallocarray((size_t) ncolors, sizeof(xrgb));
 	if (color != NULL) {
-            unsigned long nbytes = (long) ncolors * SIZEOF(xrgb);
+            unsigned long nbytes = (size_t) ncolors * SIZEOF(xrgb);
 
-	    _XRead(dpy, (char *) color, nbytes);
+	    _XRead(dpy, (char *) color, (long) nbytes);
 
 	    for (i = 0; i < ncolors; i++) {
 		register XColor *def = &defs[i];
@@ -82,9 +82,9 @@ XQueryColors(
     int n;
 
     if (dpy->bigreq_size > 0)
-	n = dpy->bigreq_size - (sizeof (xQueryColorsReq) >> 2) - 1;
+	n = (int) (dpy->bigreq_size - (sizeof (xQueryColorsReq) >> 2) - 1);
     else
-	n = dpy->max_request_size - (sizeof (xQueryColorsReq) >> 2);
+	n = (int) (dpy->max_request_size - (sizeof (xQueryColorsReq) >> 2));
 
     LockDisplay(dpy);
     while (ncolors >= n) {

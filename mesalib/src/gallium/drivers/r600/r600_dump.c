@@ -87,7 +87,6 @@ void print_shader_info(FILE *f , int id, struct r600_shader *shader)
       PRINT_UINT_ARRAY_ELM(atomics, end);
       PRINT_UINT_ARRAY_ELM(atomics, buffer_id);
       PRINT_UINT_ARRAY_ELM(atomics, hw_idx);
-      PRINT_UINT_ARRAY_ELM(atomics, array_id);
    }
 
    PRINT_UINT_MEMBER(nhwatomic_ranges);
@@ -95,10 +94,6 @@ void print_shader_info(FILE *f , int id, struct r600_shader *shader)
    PRINT_UINT_MEMBER(fs_write_all);
    PRINT_UINT_MEMBER(two_side);
    PRINT_UINT_MEMBER(needs_scratch_space);
-   /* Number of color outputs in the TGSI shader,
-    * sometimes it could be higher than nr_cbufs (bug?).
-    * Also with writes_all property on eg+ it will be set to max CB number */
-   PRINT_UINT_MEMBER(nr_ps_max_color_exports);
    /* Real number of ps color exports compiled in the bytecode */
    PRINT_UINT_MEMBER(nr_ps_color_exports);
    PRINT_UINT_MEMBER(ps_color_export_mask);

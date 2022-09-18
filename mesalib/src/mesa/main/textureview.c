@@ -701,6 +701,7 @@ texture_view(struct gl_context *ctx, struct gl_texture_object *origTexObj,
    texObj->Target = target;
    texObj->TargetIndex = _mesa_tex_target_to_index(ctx, target);
    assert(texObj->TargetIndex < NUM_TEXTURE_TARGETS);
+   _mesa_update_texture_object_swizzle(ctx, texObj);
 
    if (!st_TextureView(ctx, texObj, origTexObj)) {
       return; /* driver recorded error */

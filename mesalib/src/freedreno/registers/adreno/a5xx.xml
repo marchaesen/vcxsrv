@@ -2463,7 +2463,9 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 		<bitfield name="INSTRLEN" low="1" high="31" type="uint"/>
 	</bitset>
 	<bitset name="a5xx_sp_xs_ctrl_reg0" inline="yes">
-		<!-- bit1 + bit2 set for "buffer" mode (ie. shader small enough to fit internally) -->
+		<!-- bit1 almost always set -->
+		<!-- set for "buffer mode" (ie. shader small enough to fit internally) -->
+		<bitfield name="BUFFER" pos="2" type="boolean"/>
 		<!-- 24 or more (full size) GPRS and blob uses TWO_QUADS instead of FOUR_QUADS -->
 		<bitfield name="THREADSIZE" pos="3" type="a3xx_threadsize"/>
 		<bitfield name="HALFREGFOOTPRINT" low="4" high="9" type="uint"/>
@@ -2636,7 +2638,7 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 		<!-- SAMPLEID is loaded into a half-precision register: -->
 		<bitfield name="SAMPLEID" low="8" high="15" type="a3xx_regid"/>
 		<bitfield name="SAMPLEMASK" low="16" high="23" type="a3xx_regid"/>
-		<bitfield name="SIZE" low="24" high="31" type="a3xx_regid"/>
+		<bitfield name="CENTERRHW" low="24" high="31" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0xe787" name="HLSQ_CONTROL_3_REG">
 		<!-- register loaded with position (bary.f) -->

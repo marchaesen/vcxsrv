@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellcheck disable=SC1091 # The relative paths in this file only become valid at runtime.
+# shellcheck disable=SC2034 # Variables are used in scripts called from here
+# shellcheck disable=SC2086 # we want word splitting
 
 set -e
 set -o xtrace
@@ -25,6 +28,7 @@ check_minio "${CI_PROJECT_PATH}"
 if [[ "$DEBIAN_ARCH" = "arm64" ]]; then
     GCC_ARCH="aarch64-linux-gnu"
     KERNEL_ARCH="arm64"
+    SKQP_ARCH="arm64"
     DEFCONFIG="arch/arm64/configs/defconfig"
     DEVICE_TREES="arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dtb"
     DEVICE_TREES+=" arch/arm64/boot/dts/amlogic/meson-gxl-s805x-libretech-ac.dtb"
@@ -34,24 +38,29 @@ if [[ "$DEBIAN_ARCH" = "arm64" ]]; then
     DEVICE_TREES+=" arch/arm64/boot/dts/qcom/apq8096-db820c.dtb"
     DEVICE_TREES+=" arch/arm64/boot/dts/amlogic/meson-g12b-a311d-khadas-vim3.dtb"
     DEVICE_TREES+=" arch/arm64/boot/dts/mediatek/mt8183-kukui-jacuzzi-juniper-sku16.dtb"
-    DEVICE_TREES+=" arch/arm64/boot/dts/qcom/sc7180-trogdor-lazor-limozeen-nots.dtb"
+    DEVICE_TREES+=" arch/arm64/boot/dts/nvidia/tegra210-p3450-0000.dtb"
+    DEVICE_TREES+=" arch/arm64/boot/dts/qcom/sc7180-trogdor-lazor-limozeen-nots-r5.dtb"
     KERNEL_IMAGE_NAME="Image"
+
 elif [[ "$DEBIAN_ARCH" = "armhf" ]]; then
     GCC_ARCH="arm-linux-gnueabihf"
     KERNEL_ARCH="arm"
+    SKQP_ARCH="arm"
     DEFCONFIG="arch/arm/configs/multi_v7_defconfig"
     DEVICE_TREES="arch/arm/boot/dts/rk3288-veyron-jaq.dtb"
     DEVICE_TREES+=" arch/arm/boot/dts/sun8i-h3-libretech-all-h3-cc.dtb"
     DEVICE_TREES+=" arch/arm/boot/dts/imx6q-cubox-i.dtb"
+    DEVICE_TREES+=" arch/arm/boot/dts/tegra124-jetson-tk1.dtb"
     KERNEL_IMAGE_NAME="zImage"
     . .gitlab-ci/container/create-cross-file.sh armhf
 else
     GCC_ARCH="x86_64-linux-gnu"
     KERNEL_ARCH="x86_64"
+    SKQP_ARCH="x64"
     DEFCONFIG="arch/x86/configs/x86_64_defconfig"
     DEVICE_TREES=""
     KERNEL_IMAGE_NAME="bzImage"
-    ARCH_PACKAGES="libva-dev"
+    ARCH_PACKAGES="libasound2-dev libcap-dev libfdt-dev libva-dev wayland-protocols"
 fi
 
 # Determine if we're in a cross build.
@@ -76,12 +85,14 @@ apt-get install -y --no-remove \
                    ${ARCH_PACKAGES} \
                    automake \
                    bc \
+                   clang \
                    cmake \
                    debootstrap \
                    git \
                    glslang-tools \
                    libdrm-dev \
                    libegl1-mesa-dev \
+                   libxext-dev \
                    libfontconfig-dev \
                    libgbm-dev \
                    libgl-dev \
@@ -105,7 +116,8 @@ apt-get install -y --no-remove \
                    python3-numpy \
                    python3-serial \
                    unzip \
-                   wget
+                   wget \
+                   zstd
 
 
 if [[ "$DEBIAN_ARCH" = "armhf" ]]; then
@@ -126,7 +138,7 @@ fi
 
 ############### Building
 STRIP_CMD="${GCC_ARCH}-strip"
-mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}
+mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}/usr/lib/$GCC_ARCH
 
 
 ############### Build apitrace
@@ -149,11 +161,11 @@ mv /deqp /lava-files/rootfs-${DEBIAN_ARCH}/.
 
 
 ############### Build SKQP
-if [[ "$DEBIAN_ARCH" = "arm64" ]]; then
-    SKQP_ARCH="arm64" . .gitlab-ci/container/build-skqp.sh
+if [[ "$DEBIAN_ARCH" = "arm64" ]] \
+  || [[ "$DEBIAN_ARCH" = "amd64" ]]; then
+    . .gitlab-ci/container/build-skqp.sh
     mv /skqp /lava-files/rootfs-${DEBIAN_ARCH}/.
 fi
-
 
 ############### Build piglit
 PIGLIT_OPTS="-DPIGLIT_BUILD_DMA_BUF_TESTS=ON" . .gitlab-ci/container/build-piglit.sh
@@ -165,9 +177,25 @@ if [[ "$DEBIAN_ARCH" = "amd64" ]]; then
     mv /va/bin/* /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin/
 fi
 
+############### Build Crosvm
+if [[ ${DEBIAN_ARCH} = "amd64" ]]; then
+    . .gitlab-ci/container/build-crosvm.sh
+    mv /usr/local/bin/crosvm /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin/
+    mv /usr/local/lib/$GCC_ARCH/libvirglrenderer.* /lava-files/rootfs-${DEBIAN_ARCH}/usr/lib/$GCC_ARCH/
+fi
+
 ############### Build libdrm
 EXTRA_MESON_ARGS+=" -D prefix=/libdrm"
 . .gitlab-ci/container/build-libdrm.sh
+
+
+############### Build local stuff for use by igt and kernel testing, which
+############### will reuse most of our container build process from a specific
+############### hash of the Mesa tree.
+if [[ -e ".gitlab-ci/local/build-rootfs.sh" ]]; then
+    . .gitlab-ci/local/build-rootfs.sh
+fi
+
 
 ############### Build kernel
 . .gitlab-ci/container/build-kernel.sh
@@ -191,7 +219,9 @@ fi
 set -e
 
 cp .gitlab-ci/container/create-rootfs.sh /lava-files/rootfs-${DEBIAN_ARCH}/.
+cp .gitlab-ci/container/debian/llvm-snapshot.gpg.key /lava-files/rootfs-${DEBIAN_ARCH}/.
 chroot /lava-files/rootfs-${DEBIAN_ARCH} sh /create-rootfs.sh
+rm /lava-files/rootfs-${DEBIAN_ARCH}/llvm-snapshot.gpg.key
 rm /lava-files/rootfs-${DEBIAN_ARCH}/create-rootfs.sh
 
 
@@ -199,8 +229,8 @@ rm /lava-files/rootfs-${DEBIAN_ARCH}/create-rootfs.sh
 # Dependencies pulled during the creation of the rootfs may overwrite
 # the built libdrm. Hence, we add it after the rootfs has been already
 # created.
-mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}/usr/lib/$GCC_ARCH
-find /libdrm/ -name lib\*\.so\* | xargs cp -t /lava-files/rootfs-${DEBIAN_ARCH}/usr/lib/$GCC_ARCH/.
+find /libdrm/ -name lib\*\.so\* \
+  -exec cp -t /lava-files/rootfs-${DEBIAN_ARCH}/usr/lib/$GCC_ARCH/. {} \;
 mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}/libdrm/
 cp -Rp /libdrm/share /lava-files/rootfs-${DEBIAN_ARCH}/libdrm/share
 rm -rf /libdrm
@@ -214,14 +244,14 @@ fi
 
 du -ah /lava-files/rootfs-${DEBIAN_ARCH} | sort -h | tail -100
 pushd /lava-files/rootfs-${DEBIAN_ARCH}
-  tar czf /lava-files/lava-rootfs.tgz .
+  tar --zstd -cf /lava-files/lava-rootfs.tar.zst .
 popd
 
 . .gitlab-ci/container/container_post_build.sh
 
 ############### Upload the files!
 ci-fairy minio login --token-file "${CI_JOB_JWT_FILE}"
-FILES_TO_UPLOAD="lava-rootfs.tgz \
+FILES_TO_UPLOAD="lava-rootfs.tar.zst \
                  $KERNEL_IMAGE_NAME"
 
 if [[ -n $DEVICE_TREES ]]; then

@@ -3642,7 +3642,7 @@ SetRootClip(ScreenPtr pScreen, int enable)
     if (!pWin)
         return;
     WasViewable = (Bool) (pWin->viewable);
-    if (WasViewable) {
+    if (WasViewable && mode != ROOT_CLIP_INPUT_ONLY) {
         for (pChild = pWin->firstChild; pChild; pChild = pChild->nextSib) {
             (void) (*pScreen->MarkOverlappedWindows) (pChild,
                                                       pChild, &pLayerWin);
@@ -3696,7 +3696,7 @@ SetRootClip(ScreenPtr pScreen, int enable)
 
     ResizeChildrenWinSize(pWin, 0, 0, 0, 0);
 
-    if (WasViewable) {
+    if (WasViewable && mode != ROOT_CLIP_INPUT_ONLY) {
         if (pWin->firstChild) {
             anyMarked |= (*pScreen->MarkOverlappedWindows) (pWin->firstChild,
                                                             pWin->firstChild,

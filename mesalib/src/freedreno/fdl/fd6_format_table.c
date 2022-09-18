@@ -136,10 +136,10 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _TC(A4B4G4R4_UNORM, 4_4_4_4_UNORM,           XYZW),
 
    /* 24-bit */
-   V__(R8G8B8_UNORM,   8_8_8_UNORM,             WZYX),
-   V__(R8G8B8_SNORM,   8_8_8_SNORM,             WZYX),
-   V__(R8G8B8_UINT,    8_8_8_UINT,              WZYX),
-   V__(R8G8B8_SINT,    8_8_8_SINT,              WZYX),
+   VT_(R8G8B8_UNORM,   8_8_8_UNORM,             WZYX),
+   VT_(R8G8B8_SNORM,   8_8_8_SNORM,             WZYX),
+   VT_(R8G8B8_UINT,    8_8_8_UINT,              WZYX),
+   VT_(R8G8B8_SINT,    8_8_8_SINT,              WZYX),
    V__(R8G8B8_USCALED, 8_8_8_UINT,              WZYX),
    V__(R8G8B8_SSCALED, 8_8_8_SINT,              WZYX),
 
@@ -235,13 +235,13 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _TC(Z24_UNORM_S8_UINT_AS_R8G8B8A8, Z24_UNORM_S8_UINT_AS_R8G8B8A8, WZYX),
 
    /* 48-bit */
-   V__(R16G16B16_UNORM,   16_16_16_UNORM,       WZYX),
-   V__(R16G16B16_SNORM,   16_16_16_SNORM,       WZYX),
-   V__(R16G16B16_UINT,    16_16_16_UINT,        WZYX),
-   V__(R16G16B16_SINT,    16_16_16_SINT,        WZYX),
+   VT_(R16G16B16_UNORM,   16_16_16_UNORM,       WZYX),
+   VT_(R16G16B16_SNORM,   16_16_16_SNORM,       WZYX),
+   VT_(R16G16B16_UINT,    16_16_16_UINT,        WZYX),
+   VT_(R16G16B16_SINT,    16_16_16_SINT,        WZYX),
    V__(R16G16B16_USCALED, 16_16_16_UINT,        WZYX),
    V__(R16G16B16_SSCALED, 16_16_16_SINT,        WZYX),
-   V__(R16G16B16_FLOAT,   16_16_16_FLOAT,       WZYX),
+   VT_(R16G16B16_FLOAT,   16_16_16_FLOAT,       WZYX),
 
    /* 64-bit */
    VTC(R16G16B16A16_UNORM,   16_16_16_16_UNORM, WZYX),
@@ -374,6 +374,10 @@ fd6_pipe2swap(enum pipe_format format, enum a6xx_tile_mode tile_mode)
    if (!formats[format].present)
       return WZYX;
 
+   /* It seems CCU ignores swap and always uses WZYX when tiled.  TP, on the
+    * other hand, always respects swap.  We should return WZYX such that CCU
+    * and TP agree each other.
+    */
    if (tile_mode)
       return WZYX;
 
@@ -436,6 +440,18 @@ fd6_texture_swap(enum pipe_format format, enum a6xx_tile_mode tile_mode)
          break;
       }
    }
+
+   /* format is PIPE_FORMAT_X24S8_UINT when texturing the stencil aspect of
+    * PIPE_FORMAT_Z24_UNORM_S8_UINT.  Because we map the format to
+    * FMT6_8_8_8_8_UINT, return XYZW such that the stencil value is in X
+    * component.
+    *
+    * We used to return WZYX and apply swizzles.  That required us to
+    * un-swizzle the user-specified border color, which could not be done for
+    * turnip.
+    */
+   if (format == PIPE_FORMAT_X24S8_UINT)
+      return XYZW;
 
    return fd6_pipe2swap(format, tile_mode);
 }

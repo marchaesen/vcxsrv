@@ -34,13 +34,13 @@ structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description containing server map to free
 .TP
-.I \- which
+.I which
 mask identifying components of map to free
 .TP
-.I \- free_all
+.I free_all
 True => free all server map components and server itself
 .SH DESCRIPTION
 .LP

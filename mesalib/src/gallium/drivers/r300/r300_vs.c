@@ -99,13 +99,13 @@ static void r300_shader_read_vs_outputs(
         }
     }
 
-    /* WPOS is a straight copy of POSITION and it's always emitted. */
+    /* WPOS is a straight copy of POSITION */
     vs_outputs->wpos = i;
 }
 
 static void set_vertex_inputs_outputs(struct r300_vertex_program_compiler * c)
 {
-    struct r300_vertex_shader * vs = c->UserData;
+    struct r300_vertex_shader_code * vs = c->UserData;
     struct r300_shader_semantics* outputs = &vs->outputs;
     struct tgsi_shader_info* info = &vs->info;
     int i, reg = 0;
@@ -167,47 +167,26 @@ static void set_vertex_inputs_outputs(struct r300_vertex_program_compiler * c)
     }
 
     /* WPOS. */
-    c->code->outputs[outputs->wpos] = reg++;
+    if (vs->wpos)
+        c->code->outputs[outputs->wpos] = reg++;
 }
 
 void r300_init_vs_outputs(struct r300_context *r300,
                           struct r300_vertex_shader *vs)
 {
-    tgsi_scan_shader(vs->state.tokens, &vs->info);
-    r300_shader_read_vs_outputs(r300, &vs->info, &vs->outputs);
-}
-
-static void r300_dummy_vertex_shader(
-    struct r300_context* r300,
-    struct r300_vertex_shader* shader)
-{
-    struct ureg_program *ureg;
-    struct ureg_dst dst;
-    struct ureg_src imm;
-
-    /* Make a simple vertex shader which outputs (0, 0, 0, 1),
-     * effectively rendering nothing. */
-    ureg = ureg_create(PIPE_SHADER_VERTEX);
-    dst = ureg_DECL_output(ureg, TGSI_SEMANTIC_POSITION, 0);
-    imm = ureg_imm4f(ureg, 0, 0, 0, 1);
-
-    ureg_MOV(ureg, dst, imm);
-    ureg_END(ureg);
-
-    shader->state.tokens = tgsi_dup_tokens(ureg_finalize(ureg));
-    ureg_destroy(ureg);
-
-    shader->dummy = TRUE;
-    r300_init_vs_outputs(r300, shader);
-    r300_translate_vertex_shader(r300, shader);
+    tgsi_scan_shader(vs->state.tokens, &vs->shader->info);
+    r300_shader_read_vs_outputs(r300, &vs->shader->info, &vs->shader->outputs);
 }
 
 void r300_translate_vertex_shader(struct r300_context *r300,
-                                  struct r300_vertex_shader *vs)
+                                  struct r300_vertex_shader *shader)
 {
     struct r300_vertex_program_compiler compiler;
     struct tgsi_to_rc ttr;
     unsigned i;
+    struct r300_vertex_shader_code *vs = shader->shader;
+
+    r300_init_vs_outputs(r300, shader);
 
     /* Setup the compiler */
     memset(&compiler, 0, sizeof(compiler));
@@ -216,20 +195,20 @@ void r300_translate_vertex_shader(struct r300_context *r300,
     DBG_ON(r300, DBG_VP) ? compiler.Base.Debug |= RC_DBG_LOG : 0;
     compiler.code = &vs->code;
     compiler.UserData = vs;
-    if (!vs->dummy)
-        compiler.Base.debug = &r300->debug;
+    compiler.Base.debug = &r300->context.debug;
     compiler.Base.is_r500 = r300->screen->caps.is_r500;
     compiler.Base.disable_optimizations = DBG_ON(r300, DBG_NO_OPT);
     compiler.Base.has_half_swizzles = FALSE;
     compiler.Base.has_presub = FALSE;
     compiler.Base.has_omod = FALSE;
+    compiler.Base.needs_trig_input_transform = DBG_ON(r300, DBG_USE_TGSI);
     compiler.Base.max_temp_regs = 32;
     compiler.Base.max_constants = 256;
     compiler.Base.max_alu_insts = r300->screen->caps.is_r500 ? 1024 : 256;
 
     if (compiler.Base.Debug & RC_DBG_LOG) {
         DBG(r300, DBG_VP, "r300: Initial vertex program\n");
-        tgsi_dump(vs->state.tokens, 0);
+        tgsi_dump(shader->state.tokens, 0);
     }
 
     /* Translate TGSI to our internal representation */
@@ -237,12 +216,12 @@ void r300_translate_vertex_shader(struct r300_context *r300,
     ttr.info = &vs->info;
     ttr.use_half_swizzles = FALSE;
 
-    r300_tgsi_to_rc(&ttr, vs->state.tokens);
+    r300_tgsi_to_rc(&ttr, shader->state.tokens);
 
     if (ttr.error) {
         fprintf(stderr, "r300 VP: Cannot translate a shader. "
-                "Using a dummy shader instead.\n");
-        r300_dummy_vertex_shader(r300, vs);
+                "Corresponding draws will be skipped.\n");
+        vs->dummy = TRUE;
         return;
     }
 
@@ -250,26 +229,21 @@ void r300_translate_vertex_shader(struct r300_context *r300,
         compiler.Base.remove_unused_constants = TRUE;
     }
 
-    compiler.RequiredOutputs = ~(~0U << (vs->info.num_outputs + 1));
+    compiler.RequiredOutputs = ~(~0U << (vs->info.num_outputs + (vs->wpos ? 1 : 0)));
     compiler.SetHwInputOutput = &set_vertex_inputs_outputs;
 
     /* Insert the WPOS output. */
-    rc_copy_output(&compiler.Base, 0, vs->outputs.wpos);
+    if (vs->wpos)
+        rc_copy_output(&compiler.Base, vs->outputs.pos, vs->outputs.wpos);
 
     /* Invoke the compiler */
     r3xx_compile_vertex_program(&compiler);
     if (compiler.Base.Error) {
-        fprintf(stderr, "r300 VP: Compiler error:\n%sUsing a dummy shader"
-                " instead.\n", compiler.Base.ErrorMsg);
-
-        if (vs->dummy) {
-            fprintf(stderr, "r300 VP: Cannot compile the dummy shader! "
-                    "Giving up...\n");
-            abort();
-        }
+        fprintf(stderr, "r300 VP: Compiler error:\n%sCorresponding draws will be"
+                " skipped.\n", compiler.Base.ErrorMsg);
 
         rc_destroy(&compiler.Base);
-        r300_dummy_vertex_shader(r300, vs);
+        vs->dummy = TRUE;
         return;
     }
 

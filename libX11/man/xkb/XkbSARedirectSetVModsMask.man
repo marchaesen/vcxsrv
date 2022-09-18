@@ -33,10 +33,10 @@ from vm
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set vmods
 .TP
-.I \- vm
+.I vm
 new value for virtual modifier mask
 .SH DESCRIPTION
 .LP

@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2008 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,16 +22,16 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
  * @file
  * Cross-platform debugging helpers.
- * 
- * For now it just has assert and printf replacements, but it might be extended 
- * with stack trace reports and more advanced logging in the near future. 
- * 
+ *
+ * For now it just has assert and printf replacements, but it might be extended
+ * with stack trace reports and more advanced logging in the near future.
+ *
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
 
@@ -54,15 +54,56 @@
 #include <OS.h>
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
+enum util_debug_type
+{
+   UTIL_DEBUG_TYPE_OUT_OF_MEMORY = 1,
+   UTIL_DEBUG_TYPE_ERROR,
+   UTIL_DEBUG_TYPE_SHADER_INFO,
+   UTIL_DEBUG_TYPE_PERF_INFO,
+   UTIL_DEBUG_TYPE_INFO,
+   UTIL_DEBUG_TYPE_FALLBACK,
+   UTIL_DEBUG_TYPE_CONFORMANCE,
+};
+
+/**
+ * Structure that contains a callback for debug messages from the driver back
+ * to the gallium frontend.
+ */
+struct util_debug_callback
+{
+   /**
+    * When set to \c true, the callback may be called asynchronously from a
+    * driver-created thread.
+    */
+   bool async;
+
+   /**
+    * Callback for the driver to report debug/performance/etc information back
+    * to the gallium frontend.
+    *
+    * \param data       user-supplied data pointer
+    * \param id         message type identifier, if pointed value is 0, then a
+    *                   new id is assigned
+    * \param type       UTIL_DEBUG_TYPE_*
+    * \param format     printf-style format string
+    * \param args       args for format string
+    */
+   void (*debug_message)(void *data,
+                         unsigned *id,
+                         enum util_debug_type type,
+                         const char *fmt,
+                         va_list args);
+   void *data;
+};
 
 #define _util_printf_format(fmt, list) PRINTFLIKE(fmt, list)
 
 void _debug_vprintf(const char *format, va_list ap);
-   
+
 
 static inline void
 _debug_printf(const char *format, ...)
@@ -136,13 +177,15 @@ void debug_print_blob( const char *name, const void *blob, unsigned size );
 #endif
 
 
+#ifdef _WIN32
 /**
- * Disable interactive error message boxes.
+ * Disable Win32 interactive error message boxes.
  *
  * Should be called as soon as possible for effectiveness.
  */
 void
-debug_disable_error_message_boxes(void);
+debug_disable_win32_error_dialogs(void);
+#endif
 
 
 /**
@@ -161,41 +204,6 @@ debug_get_num_option(const char *name, long dfault);
 void
 debug_get_version_option(const char *name, unsigned *major, unsigned *minor);
 
-#ifdef _MSC_VER
-__declspec(noreturn)
-#endif
-void _debug_assert_fail(const char *expr, 
-                        const char *file, 
-                        unsigned line, 
-                        const char *function)
-#if defined(__GNUC__) && !defined(DEBUG)
-   __attribute__((noreturn))
-#endif
-;
-
-
-/** 
- * Assert macro
- * 
- * Do not expect that the assert call terminates -- errors must be handled 
- * regardless of assert behavior.
- *
- * For non debug builds the assert macro will expand to a no-op, so do not
- * call functions with side effects in the assert expression.
- */
-#ifndef NDEBUG
-#define debug_assert(expr) ((expr) ? (void)0 : _debug_assert_fail(#expr, __FILE__, __LINE__, __FUNCTION__))
-#else
-#define debug_assert(expr) (void)(0 && (expr))
-#endif
-
-
-/** Override standard assert macro */
-#ifdef assert
-#undef assert
-#endif
-#define assert(expr) debug_assert(expr)
-
 
 /**
  * Output the current function name.
@@ -205,7 +213,7 @@ void _debug_assert_fail(const char *expr,
    _debug_printf("%s\n", __FUNCTION__)
 #else
 #define debug_checkpoint() \
-   ((void)0) 
+   ((void)0)
 #endif
 
 
@@ -217,7 +225,7 @@ void _debug_assert_fail(const char *expr,
    _debug_printf("%s:%u:%s\n", __FILE__, __LINE__, __FUNCTION__)
 #else
 #define debug_checkpoint_full() \
-   ((void)0) 
+   ((void)0)
 #endif
 
 
@@ -229,7 +237,7 @@ void _debug_assert_fail(const char *expr,
    _debug_printf("%s:%u:%s: warning: %s\n", __FILE__, __LINE__, __FUNCTION__, __msg)
 #else
 #define debug_warning(__msg) \
-   ((void)0) 
+   ((void)0)
 #endif
 
 
@@ -248,7 +256,7 @@ void _debug_assert_fail(const char *expr,
    } while (0)
 #else
 #define debug_warn_once(__msg) \
-   ((void)0) 
+   ((void)0)
 #endif
 
 
@@ -257,7 +265,7 @@ void _debug_assert_fail(const char *expr,
  */
 #ifdef DEBUG
 #define debug_error(__msg) \
-   _debug_printf("%s:%u:%s: error: %s\n", __FILE__, __LINE__, __FUNCTION__, __msg) 
+   _debug_printf("%s:%u:%s: error: %s\n", __FILE__, __LINE__, __FUNCTION__, __msg)
 #else
 #define debug_error(__msg) \
    _debug_printf("error: %s\n", __msg)
@@ -266,22 +274,20 @@ void _debug_assert_fail(const char *expr,
 /**
  * Output a debug log message to the debug info callback.
  */
-#define pipe_debug_message(cb, type, fmt, ...) do { \
+#define util_debug_message(cb, type, fmt, ...) do { \
    static unsigned id = 0; \
    if ((cb) && (cb)->debug_message) { \
-      _pipe_debug_message(cb, &id, \
-                          PIPE_DEBUG_TYPE_ ## type, \
+      _util_debug_message(cb, &id, \
+                          UTIL_DEBUG_TYPE_ ## type, \
                           fmt, ##__VA_ARGS__); \
    } \
 } while (0)
 
-struct pipe_debug_callback;
-
 void
-_pipe_debug_message(
-   struct pipe_debug_callback *cb,
+_util_debug_message(
+   struct util_debug_callback *cb,
    unsigned *id,
-   enum pipe_debug_type type,
+   enum util_debug_type type,
    const char *fmt, ...) _util_printf_format(4, 5);
 
 
@@ -298,7 +304,7 @@ struct debug_named_value
 
 /**
  * Some C pre-processor magic to simplify creating named values.
- * 
+ *
  * Example:
  * @code
  * static const debug_named_value my_names[] = {
@@ -307,9 +313,9 @@ struct debug_named_value
  *    DEBUG_NAMED_VALUE(MY_ENUM_VALUE_Z),
  *    DEBUG_NAMED_VALUE_END
  * };
- * 
+ *
  *    ...
- *    debug_printf("%s = %s\n", 
+ *    debug_printf("%s = %s\n",
  *                 name,
  *                 debug_dump_enum(my_names, my_value));
  *    ...
@@ -324,11 +330,11 @@ struct debug_named_value
  * Convert a enum value to a string.
  */
 const char *
-debug_dump_enum(const struct debug_named_value *names, 
+debug_dump_enum(const struct debug_named_value *names,
                 unsigned long value);
 
 const char *
-debug_dump_enum_noprefix(const struct debug_named_value *names, 
+debug_dump_enum_noprefix(const struct debug_named_value *names,
                          const char *prefix,
                          unsigned long value);
 
@@ -337,7 +343,7 @@ debug_dump_enum_noprefix(const struct debug_named_value *names,
  * Convert binary flags value to a string.
  */
 const char *
-debug_dump_flags(const struct debug_named_value *names, 
+debug_dump_flags(const struct debug_named_value *names,
                  unsigned long value);
 
 
@@ -380,15 +386,9 @@ void debug_funclog_enter_exit(const char* f, const int line, const char* file);
 
 /**
  * Get option.
- * 
- * It is an alias for getenv on Linux. 
- * 
- * On Windows it reads C:\gallium.cfg, which is a text file with CR+LF line 
- * endings with one option per line as
- *  
- *   NAME=value
- * 
- * This file must be terminated with an extra empty line.
+ *
+ * It is an alias for getenv on Unix and Windows.
+ *
  */
 const char *
 debug_get_option(const char *name, const char *dfault);
@@ -400,7 +400,7 @@ long
 debug_get_num_option(const char *name, long dfault);
 
 uint64_t
-debug_get_flags_option(const char *name, 
+debug_get_flags_option(const char *name,
                        const struct debug_named_value *flags,
                        uint64_t dfault);
 
@@ -408,10 +408,10 @@ debug_get_flags_option(const char *name,
 static const char * \
 debug_get_option_ ## suffix (void) \
 { \
-   static bool first = true; \
+   static bool initialized = false; \
    static const char * value; \
-   if (first) { \
-      first = false; \
+   if (!initialized) { \
+      initialized = true; \
       value = debug_get_option(name, dfault); \
    } \
    return value; \
@@ -437,12 +437,12 @@ __check_suid(void)
 static FILE * \
 debug_get_option_ ## suffix (void) \
 { \
-   static bool first = true; \
+   static bool initialized = false; \
    static const char * value; \
    if (__check_suid()) \
       return NULL; \
-   if (first) { \
-      first = false; \
+   if (!initialized) { \
+      initialized = true; \
       value = debug_get_option(name, dfault); \
    } \
    if (!value) \
@@ -454,10 +454,10 @@ debug_get_option_ ## suffix (void) \
 static bool \
 debug_get_option_ ## sufix (void) \
 { \
-   static bool first = true; \
+   static bool initialized = false; \
    static bool value; \
-   if (first) { \
-      first = false; \
+   if (!initialized) { \
+      initialized = true; \
       value = debug_get_bool_option(name, dfault); \
    } \
    return value; \
@@ -467,10 +467,10 @@ debug_get_option_ ## sufix (void) \
 static long \
 debug_get_option_ ## sufix (void) \
 { \
-   static bool first = true; \
+   static bool initialized = false; \
    static long value; \
-   if (first) { \
-      first = false; \
+   if (!initialized) { \
+      initialized = true; \
       value = debug_get_num_option(name, dfault); \
    } \
    return value; \
@@ -480,17 +480,17 @@ debug_get_option_ ## sufix (void) \
 static unsigned long \
 debug_get_option_ ## sufix (void) \
 { \
-   static bool first = true; \
+   static bool initialized = false; \
    static unsigned long value; \
-   if (first) { \
-      first = false; \
+   if (!initialized) { \
+      initialized = true; \
       value = debug_get_flags_option(name, flags, dfault); \
    } \
    return value; \
 }
 
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

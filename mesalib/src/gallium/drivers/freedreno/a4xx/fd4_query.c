@@ -53,7 +53,7 @@ occlusion_get_sample(struct fd_batch *batch, struct fd_ringbuffer *ring)
    /* low bits of sample addr should be zero (since they are control
     * flags in RB_SAMPLE_COUNT_CONTROL):
     */
-   debug_assert((samp->offset & 0x3) == 0);
+   assert((samp->offset & 0x3) == 0);
 
    /* Set RB_SAMPLE_COUNT_ADDR to samp->offset plus value of
     * HW_QUERY_BASE_REG register:
@@ -135,7 +135,7 @@ time_elapsed_get_sample(struct fd_batch *batch,
    const int sample_off = 128;
    const int addr_off = sample_off + 8;
 
-   debug_assert(batch->ctx->screen->max_freq > 0);
+   assert(batch->ctx->screen->max_freq > 0);
 
    /* Basic issue is that we need to read counter value to a relative
     * destination (with per-tile offset) rather than absolute dest

@@ -77,9 +77,6 @@
 #include <memcheck.h>
 #include <valgrind.h>
 #define VG(x) x
-#ifdef DEBUG
-#define __gen_validate_value(x) VALGRIND_CHECK_MEM_IS_DEFINED(&(x), sizeof(x))
-#endif
 #else
 #define VG(x)
 #endif
@@ -1984,9 +1981,9 @@ get_line_width(const struct pipe_rasterizer_state *state)
        * "Grid Intersection Quantization" rules as specified by the
        * "Zero-Width (Cosmetic) Line Rasterization" section of the docs.
        */
-      line_width = 0.0f;
+      /* hack around this for gfx4/5 fps counters in hud. */
+      line_width = GFX_VER < 6 ? 1.5f : 0.0f;
    }
-
    return line_width;
 }
 
@@ -2745,6 +2742,10 @@ crocus_create_sampler_view(struct pipe_context *ctx,
    if (tmpl->target != PIPE_BUFFER) {
       isv->view.base_level = tmpl->u.tex.first_level;
       isv->view.levels = tmpl->u.tex.last_level - tmpl->u.tex.first_level + 1;
+
+      /* Hardware older than skylake ignores this value */
+      assert(tex->target != PIPE_TEXTURE_3D || !tmpl->u.tex.first_layer);
+
       // XXX: do I need to port f9fd0cf4790cb2a530e75d1a2206dbb9d8af7cb2?
       isv->view.base_array_layer = tmpl->u.tex.first_layer;
       isv->view.array_len =
@@ -4271,12 +4272,12 @@ static uint32_t *
 crocus_create_so_decl_list(const struct pipe_stream_output_info *info,
                            const struct brw_vue_map *vue_map)
 {
-   struct GENX(SO_DECL) so_decl[MAX_VERTEX_STREAMS][128];
-   int buffer_mask[MAX_VERTEX_STREAMS] = {0, 0, 0, 0};
-   int next_offset[MAX_VERTEX_STREAMS] = {0, 0, 0, 0};
-   int decls[MAX_VERTEX_STREAMS] = {0, 0, 0, 0};
+   struct GENX(SO_DECL) so_decl[PIPE_MAX_VERTEX_STREAMS][128];
+   int buffer_mask[PIPE_MAX_VERTEX_STREAMS] = {0, 0, 0, 0};
+   int next_offset[PIPE_MAX_VERTEX_STREAMS] = {0, 0, 0, 0};
+   int decls[PIPE_MAX_VERTEX_STREAMS] = {0, 0, 0, 0};
    int max_decls = 0;
-   STATIC_ASSERT(ARRAY_SIZE(so_decl[0]) >= MAX_PROGRAM_OUTPUTS);
+   STATIC_ASSERT(ARRAY_SIZE(so_decl[0]) >= PIPE_MAX_SO_OUTPUTS);
 
    memset(so_decl, 0, sizeof(so_decl));
 
@@ -4288,7 +4289,7 @@ crocus_create_so_decl_list(const struct pipe_stream_output_info *info,
       const int buffer = output->output_buffer;
       const int varying = output->register_index;
       const unsigned stream_id = output->stream;
-      assert(stream_id < MAX_VERTEX_STREAMS);
+      assert(stream_id < PIPE_MAX_VERTEX_STREAMS);
 
       buffer_mask[stream_id] |= 1 << buffer;
 
@@ -5967,7 +5968,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
          float vp_ymin = viewport_extent(state, 1, -1.0f);
          float vp_ymax = viewport_extent(state, 1,  1.0f);
 #endif
-         intel_calculate_guardband_size(cso_fb->width, cso_fb->height,
+         intel_calculate_guardband_size(0, cso_fb->width, 0, cso_fb->height,
                                         state->scale[0], state->scale[1],
                                         state->translate[0], state->translate[1],
                                         &gb_xmin, &gb_xmax, &gb_ymin, &gb_ymax);
@@ -6437,7 +6438,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
           * incorrect for subspans where some of the pixels are unlit.  We believe
           * the bit just didn't take effect in previous generations.
           */
-         ps.VectorMaskEnable = GFX_VER >= 8;
+         ps.VectorMaskEnable = GFX_VER >= 8 && wm_prog_data->uses_vmask;
 
          ps._8PixelDispatchEnable = wm_prog_data->dispatch_8;
          ps._16PixelDispatchEnable = wm_prog_data->dispatch_16;
@@ -6728,9 +6729,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
          cl.UserClipDistanceCullTestEnableBitmask =
             brw_vue_prog_data(ice->shaders.prog[MESA_SHADER_VERTEX]->prog_data)->cull_distance_mask;
 
-         if (wm_prog_data->barycentric_interp_modes &
-             BRW_BARYCENTRIC_NONPERSPECTIVE_BITS)
-            cl.NonPerspectiveBarycentricEnable = true;
+         cl.NonPerspectiveBarycentricEnable = wm_prog_data->uses_nonperspective_interp_modes;
 
          cl.ForceZeroRTAIndexEnable = cso_fb->layers <= 1;
          cl.MaximumVPIndex = ice->state.num_viewports - 1;

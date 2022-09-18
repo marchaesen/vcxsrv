@@ -21,18 +21,26 @@
 
 clang_resource_dir = join_paths(llvm_libdir, 'clang', dep_llvm.version(), 'include')
 
-opencl_c_h = custom_target(
-  'opencl-c.h',
-  input : [files_xxd, join_paths(clang_resource_dir, 'opencl-c.h')],
-  output : 'opencl-c.h.h',
-  command : [prog_python, '@INPUT@', '@OUTPUT@', '-n', 'opencl_c_source'],
-)
+if dep_llvm.version().version_compare('< 15.0')
+  opencl_c_h = custom_target(
+    'opencl-c.h',
+    input : [files_xxd, join_paths(clang_resource_dir, 'opencl-c.h')],
+    output : 'opencl-c.h.h',
+    command : [prog_python, '@INPUT@', '@OUTPUT@', '-n', 'opencl_c_source'],
+  )
+endif
+
 opencl_c_base_h = custom_target(
   'opencl-c-base.h',
   input : [files_xxd, join_paths(clang_resource_dir, 'opencl-c-base.h')],
   output : 'opencl-c-base.h.h',
   command : [prog_python, '@INPUT@', '@OUTPUT@', '-n', 'opencl_c_base_source'],
 )
+
+_libclc_sources = [opencl_c_base_h]
+if dep_llvm.version().version_compare('< 15.0')
+  _libclc_sources += [opencl_c_h]
+endif
 
 files_libclc = files(
   'clc.c',
@@ -52,8 +60,7 @@ endif
 _libclc = static_library(
   'libclc',
   files_libclc,
-  opencl_c_h,
-  opencl_c_base_h,
+  sources: _libclc_sources,
   include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_compiler, inc_spirv],
   cpp_args : _libclc_cpp_args,
   dependencies: [idep_nir_headers, dep_clang, dep_llvm, dep_llvmspirvlib,

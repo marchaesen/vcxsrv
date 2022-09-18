@@ -471,7 +471,7 @@ v3d_bo_wait(struct v3d_bo *bo, uint64_t timeout_ns, const char *reason)
 {
         struct v3d_screen *screen = bo->screen;
 
-        if (unlikely(V3D_DEBUG & V3D_DEBUG_PERF) && timeout_ns && reason) {
+        if (V3D_DBG(PERF) && timeout_ns && reason) {
                 if (v3d_wait_bo_ioctl(screen->fd, bo->handle, 0) == -ETIME) {
                         fprintf(stderr, "Blocking on %s BO for %s\n",
                                 bo->name, reason);

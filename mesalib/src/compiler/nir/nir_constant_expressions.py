@@ -64,6 +64,7 @@ template = """\
 #include "util/double.h"
 #include "util/softfloat.h"
 #include "util/bigmath.h"
+#include "util/format/format_utils.h"
 #include "nir_constant_expressions.h"
 
 /**

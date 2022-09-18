@@ -25,17 +25,59 @@
 #include <stdint.h>
 #include <stdexcept>
 
+#include <unknwn.h>
 #include <directx/d3d12.h>
 #include <dxgi1_4.h>
 #include <gtest/gtest.h>
 #include <wrl.h>
+#include <dxguids/dxguids.h>
 
 #include "util/u_debug.h"
 #include "clc_compiler.h"
 #include "compute_test.h"
-#include "dxcapi.h"
+#include "dxil_validator.h"
 
 #include <spirv-tools/libspirv.hpp>
+
+#if (defined(_WIN32) && defined(_MSC_VER)) || D3D12_SDK_VERSION < 606
+inline D3D12_CPU_DESCRIPTOR_HANDLE
+GetCPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
+{
+   return heap->GetCPUDescriptorHandleForHeapStart();
+}
+inline D3D12_GPU_DESCRIPTOR_HANDLE
+GetGPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
+{
+   return heap->GetGPUDescriptorHandleForHeapStart();
+}
+inline D3D12_HEAP_PROPERTIES
+GetCustomHeapProperties(ID3D12Device *dev, D3D12_HEAP_TYPE type)
+{
+   return dev->GetCustomHeapProperties(0, type);
+}
+#else
+inline D3D12_CPU_DESCRIPTOR_HANDLE
+GetCPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
+{
+   D3D12_CPU_DESCRIPTOR_HANDLE ret;
+   heap->GetCPUDescriptorHandleForHeapStart(&ret);
+   return ret;
+}
+inline D3D12_GPU_DESCRIPTOR_HANDLE
+GetGPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
+{
+   D3D12_GPU_DESCRIPTOR_HANDLE ret;
+   heap->GetGPUDescriptorHandleForHeapStart(&ret);
+   return ret;
+}
+inline D3D12_HEAP_PROPERTIES
+GetCustomHeapProperties(ID3D12Device *dev, D3D12_HEAP_TYPE type)
+{
+   D3D12_HEAP_PROPERTIES ret;
+   dev->GetCustomHeapProperties(&ret, 0, type);
+   return ret;
+}
+#endif
 
 using std::runtime_error;
 using Microsoft::WRL::ComPtr;
@@ -208,7 +250,7 @@ ComputeTest::create_root_signature(const ComputeTest::Resources &resources)
    if (FAILED(dev->CreateRootSignature(0,
        sig->GetBufferPointer(),
        sig->GetBufferSize(),
-       __uuidof(ret),
+       __uuidof(ID3D12RootSignature),
        (void **)& ret)))
       throw runtime_error("CreateRootSignature failed");
 
@@ -225,7 +267,7 @@ ComputeTest::create_pipeline_state(ComPtr<ID3D12RootSignature> &root_sig,
 
    ComPtr<ID3D12PipelineState> pipeline_state;
    if (FAILED(dev->CreateComputePipelineState(&pipeline_desc,
-                                              __uuidof(pipeline_state),
+                                              __uuidof(ID3D12PipelineState),
                                               (void **)& pipeline_state)))
       throw runtime_error("Failed to create pipeline state");
    return pipeline_state;
@@ -247,7 +289,7 @@ ComputeTest::create_buffer(int size, D3D12_HEAP_TYPE heap_type)
    desc.Flags = heap_type == D3D12_HEAP_TYPE_DEFAULT ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-   D3D12_HEAP_PROPERTIES heap_pris = dev->GetCustomHeapProperties(0, heap_type);
+   D3D12_HEAP_PROPERTIES heap_pris = GetCustomHeapProperties(dev, heap_type);
 
    ComPtr<ID3D12Resource> res;
    if (FAILED(dev->CreateCommittedResource(&heap_pris,
@@ -382,7 +424,7 @@ ComputeTest::add_uav_resource(ComputeTest::Resources &resources,
    size_t size = align(elem_size * num_elems, 4);
    D3D12_CPU_DESCRIPTOR_HANDLE handle;
    ComPtr<ID3D12Resource> res;
-   handle = uav_heap->GetCPUDescriptorHandleForHeapStart();
+   handle = GetCPUDescriptorHandleForHeapStart(uav_heap);
    handle = offset_cpu_handle(handle, resources.descs.size() * uav_heap_incr);
 
    if (size) {
@@ -407,7 +449,7 @@ ComputeTest::add_cbv_resource(ComputeTest::Resources &resources,
    unsigned aligned_size = align(size, 256);
    D3D12_CPU_DESCRIPTOR_HANDLE handle;
    ComPtr<ID3D12Resource> res;
-   handle = uav_heap->GetCPUDescriptorHandleForHeapStart();
+   handle = GetCPUDescriptorHandleForHeapStart(uav_heap);
    handle = offset_cpu_handle(handle, resources.descs.size() * uav_heap_incr);
 
    if (size) {
@@ -568,7 +610,7 @@ ComputeTest::run_shader_with_raw_args(Shader shader,
 
    cmdlist->SetDescriptorHeaps(1, &uav_heap);
    cmdlist->SetComputeRootSignature(root_sig.Get());
-   cmdlist->SetComputeRootDescriptorTable(0, uav_heap->GetGPUDescriptorHandleForHeapStart());
+   cmdlist->SetComputeRootDescriptorTable(0, GetGPUDescriptorHandleForHeapStart(uav_heap));
    cmdlist->SetPipelineState(pipeline_state.Get());
 
    cmdlist->Dispatch(compile_args.x / conf.local_size[0],
@@ -722,59 +764,15 @@ PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE ComputeTest::D3D12SerializeVersione
 bool
 validate_module(const struct clc_dxil_object &dxil)
 {
-   static HMODULE hmod = LoadLibrary("DXIL.DLL");
-   if (!hmod) {
-      /* Enabling experimental shaders allows us to run unsigned shader code,
-       * such as when under the debugger where we can't run the validator. */
-      if (debug_get_option_debug_compute() & COMPUTE_DEBUG_EXPERIMENTAL_SHADERS)
-         return true;
-      else
-         throw runtime_error("failed to load DXIL.DLL");
-   }
+   struct dxil_validator *val = dxil_create_validator(NULL);
+   char *err;
+   bool res = dxil_validate_module(val, dxil.binary.data,
+                                   dxil.binary.size, &err);
+   if (!res && err)
+      fprintf(stderr, "D3D12: validation failed: %s", err);
 
-   DxcCreateInstanceProc pfnDxcCreateInstance =
-      (DxcCreateInstanceProc)GetProcAddress(hmod, "DxcCreateInstance");
-   if (!pfnDxcCreateInstance)
-      throw runtime_error("failed to load DxcCreateInstance");
-
-   struct shader_blob : public IDxcBlob {
-      shader_blob(void *data, size_t size) : data(data), size(size) {}
-      LPVOID STDMETHODCALLTYPE GetBufferPointer() override { return data; }
-      SIZE_T STDMETHODCALLTYPE GetBufferSize() override { return size; }
-      HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void **) override { return E_NOINTERFACE; }
-      ULONG STDMETHODCALLTYPE AddRef() override { return 1; }
-      ULONG STDMETHODCALLTYPE Release() override { return 0; }
-      void *data;
-      size_t size;
-   } blob(dxil.binary.data, dxil.binary.size);
-
-   IDxcValidator *validator;
-   if (FAILED(pfnDxcCreateInstance(CLSID_DxcValidator, __uuidof(IDxcValidator),
-                                   (void **)&validator)))
-      throw runtime_error("failed to create IDxcValidator");
-
-   IDxcOperationResult *result;
-   if (FAILED(validator->Validate(&blob, DxcValidatorFlags_InPlaceEdit,
-                                  &result)))
-      throw runtime_error("Validate failed");
-
-   HRESULT hr;
-   if (FAILED(result->GetStatus(&hr)) ||
-       FAILED(hr)) {
-      IDxcBlobEncoding *message;
-      result->GetErrorBuffer(&message);
-      fprintf(stderr, "D3D12: validation failed: %*s\n",
-                   (int)message->GetBufferSize(),
-                   (char *)message->GetBufferPointer());
-      message->Release();
-      validator->Release();
-      result->Release();
-      return false;
-   }
-
-   validator->Release();
-   result->Release();
-   return true;
+   dxil_destroy_validator(val);
+   return res;
 }
 
 static void
@@ -890,13 +888,14 @@ ComputeTest::configure(Shader &shader,
          throw runtime_error("failed to parse spirv!");
    }
 
-   shader.dxil = std::shared_ptr<clc_dxil_object>(new clc_dxil_object{}, [](clc_dxil_object *dxil)
+   std::unique_ptr<clc_dxil_object> dxil(new clc_dxil_object{});
+   if (!clc_spirv_to_dxil(compiler_ctx, shader.obj.get(), shader.metadata.get(), "main_test", conf, nullptr, &logger, dxil.get()))
+      throw runtime_error("failed to compile kernel!");
+   shader.dxil = std::shared_ptr<clc_dxil_object>(dxil.release(), [](clc_dxil_object *dxil)
       {
          clc_free_dxil_object(dxil);
          delete dxil;
       });
-   if (!clc_spirv_to_dxil(compiler_ctx, shader.obj.get(), shader.metadata.get(), "main_test", conf, nullptr, &logger, shader.dxil.get()))
-      throw runtime_error("failed to compile kernel!");
 }
 
 void

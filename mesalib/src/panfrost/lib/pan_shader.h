@@ -27,6 +27,7 @@
 
 #include "compiler/nir/nir.h"
 #include "panfrost/util/pan_ir.h"
+#include "panfrost/util/pan_lower_framebuffer.h"
 
 #include "pan_device.h"
 #include "genxml/gen_macros.h"
@@ -43,6 +44,44 @@ GENX(pan_shader_compile)(nir_shader *nir,
                          struct util_dynarray *binary,
                          struct pan_shader_info *info);
 
+#if PAN_ARCH >= 6 && PAN_ARCH <= 7
+enum mali_register_file_format
+GENX(pan_fixup_blend_type)(nir_alu_type T_size, enum pipe_format format);
+#endif
+
+#if PAN_ARCH >= 9
+static inline enum mali_shader_stage
+pan_shader_stage(const struct pan_shader_info *info)
+{
+        switch (info->stage) {
+        case MESA_SHADER_VERTEX:
+                return MALI_SHADER_STAGE_VERTEX;
+        case MESA_SHADER_FRAGMENT:
+                return MALI_SHADER_STAGE_FRAGMENT;
+        default:
+                return MALI_SHADER_STAGE_COMPUTE;
+        }
+}
+#endif
+
+#if PAN_ARCH >= 7
+static inline enum mali_shader_register_allocation
+pan_register_allocation(unsigned work_reg_count)
+{
+        return (work_reg_count <= 32) ?
+                MALI_SHADER_REGISTER_ALLOCATION_32_PER_THREAD :
+                MALI_SHADER_REGISTER_ALLOCATION_64_PER_THREAD;
+}
+#endif
+
+static inline enum mali_depth_source
+pan_depth_source(const struct pan_shader_info *info)
+{
+        return info->fs.writes_depth ? MALI_DEPTH_SOURCE_SHADER :
+                                       MALI_DEPTH_SOURCE_FIXED_FUNCTION;
+}
+
+#if PAN_ARCH <= 7
 #if PAN_ARCH <= 5
 static inline void
 pan_shader_prepare_midgard_rsd(const struct pan_shader_info *info,
@@ -69,60 +108,6 @@ pan_shader_prepare_midgard_rsd(const struct pan_shader_info *info,
 }
 
 #else
-
-/* Classify a shader into the following pixel kill categories:
- *
- * (force early, strong early): no side effects/depth/stencil/coverage writes (force)
- * (weak early, weak early): no side effects/depth/stencil/coverage writes
- * (weak early, force late): no side effects/depth/stencil writes
- * (force late, weak early): side effects but no depth/stencil/coverage writes
- * (force late, force early): only run for side effects
- * (force late, force late): depth/stencil writes
- *
- * Note that discard is considered a coverage write. TODO: what about
- * alpha-to-coverage?
- * */
-
-#define SET_PIXEL_KILL(kill, update) do { \
-        rsd->properties.pixel_kill_operation = MALI_PIXEL_KILL_## kill; \
-        rsd->properties.zs_update_operation = MALI_PIXEL_KILL_## update; \
-} while(0)
-
-static inline void
-pan_shader_classify_pixel_kill_coverage(const struct pan_shader_info *info,
-                struct MALI_RENDERER_STATE *rsd)
-{
-        bool force_early = info->fs.early_fragment_tests;
-        bool sidefx = info->writes_global;
-        bool coverage = info->fs.writes_coverage || info->fs.can_discard;
-        bool depth = info->fs.writes_depth;
-        bool stencil = info->fs.writes_stencil;
-
-        rsd->properties.shader_modifies_coverage = coverage;
-
-        if (force_early)
-                SET_PIXEL_KILL(FORCE_EARLY, STRONG_EARLY);
-        else if (depth || stencil || (sidefx && coverage))
-                SET_PIXEL_KILL(FORCE_LATE, FORCE_LATE);
-        else if (sidefx)
-                SET_PIXEL_KILL(FORCE_LATE, WEAK_EARLY);
-        else if (coverage)
-                SET_PIXEL_KILL(WEAK_EARLY, FORCE_LATE);
-        else
-                SET_PIXEL_KILL(WEAK_EARLY, WEAK_EARLY);
-}
-
-#undef SET_PIXEL_KILL
-
-#if PAN_ARCH >= 7
-static enum mali_shader_register_allocation
-pan_register_allocation(unsigned work_reg_count)
-{
-        return (work_reg_count <= 32) ?
-                MALI_SHADER_REGISTER_ALLOCATION_32_PER_THREAD :
-                MALI_SHADER_REGISTER_ALLOCATION_64_PER_THREAD;
-}
-#endif
 
 #define pan_preloads(reg) (preload & BITFIELD64_BIT(reg))
 
@@ -160,6 +145,33 @@ pan_make_preload(gl_shader_stage stage,
         }
 }
 
+#if PAN_ARCH == 7
+static inline void
+pan_pack_message_preload(struct MALI_MESSAGE_PRELOAD *cfg,
+                         const struct bifrost_message_preload *msg)
+{
+        enum mali_message_preload_register_format regfmt = msg->fp16 ?
+                MALI_MESSAGE_PRELOAD_REGISTER_FORMAT_F16 :
+                MALI_MESSAGE_PRELOAD_REGISTER_FORMAT_F32;
+
+        if (msg->enabled && msg->texture) {
+                cfg->type = MALI_MESSAGE_TYPE_VAR_TEX;
+                cfg->var_tex.varying_index = msg->varying_index;
+                cfg->var_tex.texture_index = msg->texture_index;
+                cfg->var_tex.register_format = regfmt;
+                cfg->var_tex.skip = msg->skip;
+                cfg->var_tex.zero_lod = msg->zero_lod;
+        } else if (msg->enabled) {
+                cfg->type = MALI_MESSAGE_TYPE_LD_VAR;
+                cfg->ld_var.varying_index = msg->varying_index;
+                cfg->ld_var.register_format = regfmt;
+                cfg->ld_var.num_components = msg->num_components;
+        } else {
+                cfg->type = MALI_MESSAGE_TYPE_DISABLED;
+        }
+}
+#endif
+
 static inline void
 pan_shader_prepare_bifrost_rsd(const struct pan_shader_info *info,
                                struct MALI_RENDERER_STATE *rsd)
@@ -175,21 +187,18 @@ pan_shader_prepare_bifrost_rsd(const struct pan_shader_info *info,
         pan_make_preload(info->stage, info->preload, &rsd->preload);
 
         if (info->stage == MESA_SHADER_FRAGMENT) {
-                pan_shader_classify_pixel_kill_coverage(info, rsd);
-
-                /* Match the mesa/st convention. If this needs to be flipped,
-                 * nir_lower_pntc_ytransform will do so. */
-                rsd->properties.point_sprite_coord_origin_max_y = true;
+                rsd->properties.shader_modifies_coverage =
+                        info->fs.writes_coverage || info->fs.can_discard;
 
                 rsd->properties.allow_forward_pixel_to_be_killed =
-                        !info->fs.sidefx;
+                        !info->writes_global;
 
 #if PAN_ARCH >= 7
                 rsd->properties.shader_wait_dependency_6 = info->bifrost.wait_6;
                 rsd->properties.shader_wait_dependency_7 = info->bifrost.wait_7;
 
-                rsd->message_preload_1 = info->bifrost.messages[0];
-                rsd->message_preload_2 = info->bifrost.messages[1];
+                pan_pack_message_preload(&rsd->message_preload_1, &info->bifrost.messages[0]);
+                pan_pack_message_preload(&rsd->message_preload_2, &info->bifrost.messages[1]);
 #endif
         } else if (info->stage == MESA_SHADER_VERTEX && info->vs.secondary_enable) {
                 rsd->secondary_preload.uniform_count = fau_count;
@@ -228,14 +237,9 @@ pan_shader_prepare_rsd(const struct pan_shader_info *shader_info,
         rsd->properties.uniform_buffer_count = shader_info->ubo_count;
 
         if (shader_info->stage == MESA_SHADER_FRAGMENT) {
-                rsd->properties.shader_contains_barrier |=
-                        shader_info->fs.helper_invocations;
                 rsd->properties.stencil_from_shader =
                         shader_info->fs.writes_stencil;
-                rsd->properties.depth_source =
-                        shader_info->fs.writes_depth ?
-                        MALI_DEPTH_SOURCE_SHADER :
-                        MALI_DEPTH_SOURCE_FIXED_FUNCTION;
+                rsd->properties.depth_source = pan_depth_source(shader_info);
 
                 /* This also needs to be set if the API forces per-sample
                  * shading, but that'll just got ORed in */
@@ -250,5 +254,6 @@ pan_shader_prepare_rsd(const struct pan_shader_info *shader_info,
 #endif
 }
 #endif /* PAN_ARCH */
+#endif
 
 #endif

@@ -21,8 +21,8 @@ xkeyboard-config
 ----------------
 
 This project provides a consistent, well-structured, frequently
-released, open source database of keyboard configuration data. The
-project is targeted to XKB-based systems.
+released, open source database of keyboard configuration data.
+The project is targeted at XKB-based systems.
 
 For XKB configuration information, see:
 
@@ -31,11 +31,6 @@ For XKB configuration information, see:
 For information on how to enhance the database itself, see:
 
   docs/README.enhancing
-
-For information on how to replace an older XKB configuration database
-with the one provided by this project, see:
-
-  docs/HOWTO.transition
 
 For guidelines to making contributions to this project, see:
 

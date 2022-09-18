@@ -923,11 +923,16 @@ vtest_submit(struct vn_renderer *renderer,
 }
 
 static void
-vtest_get_info(struct vn_renderer *renderer, struct vn_renderer_info *info)
+vtest_init_renderer_info(struct vtest *vtest)
 {
-   struct vtest *vtest = (struct vtest *)renderer;
+   struct vn_renderer_info *info = &vtest->base.info;
 
-   memset(info, 0, sizeof(*info));
+   info->drm.has_primary = false;
+   info->drm.primary_major = 0;
+   info->drm.primary_minor = 0;
+   info->drm.has_render = false;
+   info->drm.render_major = 0;
+   info->drm.render_minor = 0;
 
    info->pci.vendor_id = VTEST_PCI_VENDOR_ID;
    info->pci.device_id = VTEST_PCI_DEVICE_ID;
@@ -947,6 +952,14 @@ vtest_get_info(struct vn_renderer *renderer, struct vn_renderer_info *info)
    info->vk_mesa_venus_protocol_spec_version =
       capset->vk_mesa_venus_protocol_spec_version;
    info->supports_blob_id_0 = capset->supports_blob_id_0;
+
+   /* ensure vk_extension_mask is large enough to hold all capset masks */
+   STATIC_ASSERT(sizeof(info->vk_extension_mask) >=
+                 sizeof(capset->vk_extension_mask1));
+   memcpy(info->vk_extension_mask, capset->vk_extension_mask1,
+          sizeof(capset->vk_extension_mask1));
+
+   info->allow_vk_wait_syncs = capset->allow_vk_wait_syncs;
 }
 
 static void
@@ -1053,8 +1066,9 @@ vtest_init(struct vtest *vtest)
 
    vtest_vcmd_context_init(vtest, vtest->capset.id);
 
+   vtest_init_renderer_info(vtest);
+
    vtest->base.ops.destroy = vtest_destroy;
-   vtest->base.ops.get_info = vtest_get_info;
    vtest->base.ops.submit = vtest_submit;
    vtest->base.ops.wait = vtest_wait;
 

@@ -35,16 +35,16 @@ keyboard mapping
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- first
+.I first
 index to first type to get, 0 => 1st type
 .TP
-.I \- num
+.I num
 number of key types to be returned
 .TP
-.I \- xkb
+.I xkb
 keyboard description containing client map to update
 .SH DESCRIPTION
 .LP

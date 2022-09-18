@@ -35,13 +35,13 @@ client map and server map
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- which
+.I which
 mask selecting subcomponents to populate
 .TP
-.I \- device_spec
+.I device_spec
 device_id, or XkbUseCoreKbd
 .SH DESCRIPTION
 .LP

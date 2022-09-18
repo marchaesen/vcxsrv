@@ -31,7 +31,7 @@ library
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- event
+.I event
 event initiating remapping
 .SH DESCRIPTION
 .LP

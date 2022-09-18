@@ -18,10 +18,10 @@ xkb_symbols "fr" {
 
     key <AD01>	{ [         q,          Q ]	};
     key <AD02>	{ [         w,          W ]	};
-    key <AD03>	{ [         e,          E ]	};
+    key <AD03>	{ [         e,          E,   EuroSign ]	};
     key <AD04>	{ [         r,          R ]	};
     key <AD05>	{ [         t,          T ]	};
-    key <AD06>	{ [         y,          Y ]	};
+    key <AD06>	{ [         y,          Y,   yen      ]	};
     key <AD07>	{ [         u,          U ]	};
     key <AD08>	{ [         i,          I ]	};
     key <AD09>	{ [         o,          O,   section ]	};
@@ -142,7 +142,7 @@ xkb_symbols "fr-legacy" {
 
     key <AD04>	{ [         r,          R,     paragraph,  registered ]	};
     key <AD06>	{ [         y,          Y,           yen ]	};
-    key <AD09>	{ [         o,          O,        oslash,      Ooblique ] };
+    key <AD09>	{ [         o,          O,        oslash,      Oslash ] };
     key <AD10>	{ [         p,          P,         thorn,       THORN ]	};
     key <AD11>	{ [dead_circumflex, dead_circumflex,           degree ]	};
     key <AD12>	{ [  ccedilla,   Ccedilla, dead_tilde, dead_diaeresis ]	};
@@ -163,102 +163,6 @@ xkb_symbols "fr-legacy" {
     key <AB08>	{ [     comma, apostrophe,         less ]	};
     key <AB09>	{ [    period,     period,      greater ]	};
     key <AB10>	{ [    eacute,     Eacute,        slash ]	};
-};
-
-partial
-xkb_symbols "multi" {
-
-    include "ca(fr)"
-
-    name[Group1] = "Canadian (intl., 1st part)";
-
-    key <TLDE>	{ [     slash,  backslash,           bar ]	};
-    key <AE01>	{ [         1,     exclam ]	};
-    key <AE02>	{ [         2,         at ]	};
-    key <AE03>	{ [         3, numbersign ]	};
-    key <AE04>	{ [         4,     dollar ]	};
-    key <AE05>	{ [         5,    percent ] 	};
-    key <AE06>	{ [         6,   question ]	};
-    key <AE07>	{ [         7,  ampersand,    braceleft ]	};
-    key <AE08>	{ [         8,   asterisk,   braceright ]	};
-    key <AE09>	{ [         9,  parenleft,  bracketleft ]	};
-    key <AE10>	{ [         0, parenright, bracketright ]	};
-    key <AE11>	{ [     minus, underscore ]	};
-    key <AE12>	{ [     equal,       plus,      notsign ]	};
-
-    key <AD09>	{ [         o,          O ]	};
-    key <AD10>	{ [         p,          P ]	};
-    key <AD11>	{ [dead_circumflex, dead_diaeresis, dead_grave  ]	};
-    key <AD12>	{ [  ccedilla,   Ccedilla,   asciitilde ]	};
-
-    key <AC10>	{ [ semicolon,      colon,     degree ]	};
-    key <AC11>	{ [    egrave,     Egrave ]	};
-    key <BKSL>	{ [    agrave,     Agrave ]	};
-
-    key <LSGT>	{ [    ugrave,     Ugrave ] 	};
-    key <AB01>	{ [         z,          Z, guillemotleft  ]	};
-    key <AB02>	{ [         x,          X, guillemotright ]	};
-    key <AB08>	{ [     comma, apostrophe,           less ]	};
-    key <AB09>	{ [    period,   quotedbl,        greater ]	};
-    key <AB10>	{ [    eacute,     Eacute ]	};
-};
-
-partial
-xkb_symbols "multi-2gr" {
-
-    name[Group1] = "Canadian (intl., 2nd part)";
-
-    key <TLDE>	{ [    NoSymbol,      hyphen ]	};
-    key <AE01>	{ [   onesuperior,  exclamdown ]	};
-    key <AE02>	{ [   twosuperior,  NoSymbol ]	};
-    key <AE03>	{ [ threesuperior,    sterling ]	};
-    key <AE04>	{ [    onequarter,    currency ]	};
-    key <AE05>	{ [       onehalf,threeeighths ]	};
-    key <AE06>	{ [ threequarters, fiveeighths ]	};
-    key <AE07>	{ [    NoSymbol,seveneighths ]	};
-    key <AE08>	{ [    NoSymbol,   trademark ]	};
-    key <AE09>	{ [    NoSymbol,   plusminus ]	};
-
-    key <AE11>	{ [    NoSymbol, questiondown]	};
-    key <AE12>	{ [  dead_cedilla, dead_ogonek ]	};
-
-    key <AD01>	{ [ NoSymbol,    Greek_OMEGA ]	};
-    key <AD02>	{ [    lstroke,        Lstroke ]	};
-    key <AD03>	{ [         oe,             OE ]	};
-    key <AD04>	{ [  paragraph,     registered ]	};
-    key <AD05>	{ [     tslash,         Tslash ]	};
-    key <AD06>	{ [  leftarrow,            yen ]	};
-    key <AD07>	{ [  downarrow,        uparrow ]	};
-    key <AD08>	{ [ rightarrow,       idotless ]	};
-    key <AD09>	{ [     oslash,       Ooblique ]	};
-    key <AD10>	{ [      thorn,          THORN ]	};
-    key <AD11>	{ [ NoSymbol, dead_abovering ]	};
-    key <AD12>	{ [ dead_tilde,    dead_macron ]	};
-
-    key <AC01>	{ [         ae,          AE ]	};
-    key <AC02>	{ [     ssharp,     section ]	};
-    key <AC03>	{ [        eth,         ETH ]	};
-    key <AC04>	{ [ NoSymbol, ordfeminine ]	};
-    key <AC05>	{ [        eng,         ENG ]	};
-    key <AC06>	{ [    hstroke,     Hstroke ]	};
-    key <AC07>	{ [      U0133,       U0132 ]	};
-    key <AC08>	{ [        kra,  NoSymbol ]	};
-    key <AC09>	{ [      U0140,       U013F ]	};
-    key <AC10>	{ [ dead_acute, dead_doubleacute ]	};
-    key <AC11>	{ [ NoSymbol,  dead_caron ]	};
-    key <BKSL>	{ [ NoSymbol,  dead_breve ]	};
-
-
-    key <LSGT>	{ [ NoSymbol,   brokenbar ]	};
-
-    key <AB03>	{ [       cent,   copyright ]	};
-    key <AB04>	{ [  leftdoublequotemark,  leftsinglequotemark ]	};
-    key <AB05>	{ [ rightdoublequotemark, rightsinglequotemark ]	};
-    key <AB06>	{ [      U0149,       U266A ]	};
-    key <AB07>	{ [         mu,   masculine ]	};
-    key <AB08>	{ [ Greek_horizbar, multiply ]	};
-    key <AB09>	{ [ periodcentered, division ]	};
-    key <AB10>	{ [ NoSymbol, dead_abovedot ]	};
 };
 
 // Inuktitut keyboard layout, by Pablo Saratxaga <pablo@mandrakesoft.com>.
@@ -324,16 +228,16 @@ xkb_symbols "ike" {
 partial
 xkb_symbols "multix" {
 
-    name[Group1] = "Canadian (intl.)";
+    name[Group1] = "Canadian (CSA)";
 
     key.type[group1]="EIGHT_LEVEL_SEMIALPHABETIC";
     key <TLDE> {[     slash,  backslash,            bar, NoSymbol,       NoSymbol,        hyphen ]};
     key <AE01> {[         1,     exclam,      plusminus, NoSymbol,    onesuperior,    exclamdown ]};
     key <AE02> {[         2,         at,             at, NoSymbol,    twosuperior,      NoSymbol ]};
     key <AE03> {[         3, numbersign,       sterling, NoSymbol,  threesuperior,      sterling ]};
-    key <AE04> {[         4,     dollar,           cent, NoSymbol,     onequarter,      currency ]};
-    key <AE05> {[         5,    percent,       currency, NoSymbol,        onehalf,  threeeighths ]};
-    key <AE06> {[         6,   question,        notsign, NoSymbol,  threequarters,   fiveeighths ]};
+    key <AE04> {[         4,     dollar,       currency, NoSymbol,     onequarter,      EuroSign ]};
+    key <AE05> {[         5,    percent,       NoSymbol, NoSymbol,        onehalf,  threeeighths ]};
+    key <AE06> {[         6,   question,       NoSymbol, NoSymbol,  threequarters,   fiveeighths ]};
     key <AE07> {[         7,  ampersand,      braceleft, NoSymbol,       NoSymbol,  seveneighths ]};
     key <AE08> {[         8,   asterisk,     braceright, NoSymbol,       NoSymbol,     trademark ]};
     key <AE09> {[         9,  parenleft,    bracketleft, NoSymbol,       NoSymbol,     plusminus ]};
@@ -341,16 +245,15 @@ xkb_symbols "multix" {
     key <AE11> {[     minus, underscore,        onehalf, NoSymbol,       NoSymbol,  questiondown ]};
     key <AE12> {[     equal,       plus,        notsign, NoSymbol,   dead_cedilla,   dead_ogonek ]};
 
-    key.type[group1]="EIGHT_LEVEL_SEMIALPHABETIC";
     key <AD01> {[         q,          Q,       NoSymbol, NoSymbol,       NoSymbol,   Greek_OMEGA ]};
-    key <AD02> {[         w,          W,       NoSymbol, NoSymbol,        Lstroke,       lstroke ]};
-    key <AD03> {[         e,          E,       NoSymbol, NoSymbol,             oe,            OE ]};
+    key <AD02> {[         w,          W,       NoSymbol, NoSymbol,        lstroke,       Lstroke ]};
+    key <AD03> {[         e,          E,       EuroSign, NoSymbol,             oe,            OE ]};
     key <AD04> {[         r,          R,       NoSymbol, NoSymbol,      paragraph,    registered ]};
     key <AD05> {[         t,          T,       NoSymbol, NoSymbol,         tslash,        Tslash ]};
     key <AD06> {[         y,          Y,       NoSymbol, NoSymbol,      leftarrow,           yen ]};
     key <AD07> {[         u,          U,       NoSymbol, NoSymbol,      downarrow,       uparrow ]};
     key <AD08> {[         i,          I,       NoSymbol, NoSymbol,     rightarrow,      idotless ]};
-    key <AD09> {[         o,          O,        section, NoSymbol,         oslash,      Ooblique ]};
+    key <AD09> {[         o,          O,        section, NoSymbol,         oslash,        Oslash ]};
     key <AD10> {[         p,          P,      paragraph, NoSymbol,          thorn,         THORN ]};
 
     key.type[group1]="EIGHT_LEVEL";
@@ -360,7 +263,7 @@ xkb_symbols "multix" {
     key <AD12> {[  ccedilla,   Ccedilla,     asciitilde, NoSymbol,     dead_tilde,   dead_macron ]};
 
     key <AC01> {[         a,          A,       NoSymbol, NoSymbol,             ae,            AE ]};
-    key <AC02> {[         s,          S,       NoSymbol, NoSymbol,         ssharp,         U1E9E ]};
+    key <AC02> {[         s,          S,       NoSymbol, NoSymbol,         ssharp,       section ]};
     key <AC03> {[         d,          D,       NoSymbol, NoSymbol,            eth,           ETH ]};
     key <AC04> {[         f,          F,       NoSymbol, NoSymbol,       NoSymbol,   ordfeminine ]};
     key <AC05> {[         g,          G,       NoSymbol, NoSymbol,            eng,           ENG ]};
@@ -377,24 +280,22 @@ xkb_symbols "multix" {
     key <BKSL> {[    agrave,     Agrave,     braceright, NoSymbol,       NoSymbol,    dead_breve ]};
 
     key <LSGT> {[    ugrave,     Ugrave,         degree, NoSymbol,       NoSymbol,     brokenbar ]};
-
-    key.type[group1]="FOUR_LEVEL_SEMIALPHABETIC";
     key <AB01> {[         z,          Z,  guillemotleft, NoSymbol ]};
     key <AB02> {[         x,          X, guillemotright, NoSymbol ]};
-
-    key.type[group1]="EIGHT_LEVEL_SEMIALPHABETIC";
     key <AB03> {[         c,          C,       NoSymbol, NoSymbol,           cent,     copyright ]};
     key <AB04> {[         v,          V,       NoSymbol, NoSymbol,  leftdoublequotemark,  leftsinglequotemark ]};
     key <AB05> {[         b,          B,       NoSymbol, NoSymbol, rightdoublequotemark, rightsinglequotemark ]};
     key <AB06> {[         n,          N,       NoSymbol, NoSymbol,          U0149,         U266A ]}; // ŉ ♪
     key <AB07> {[         m,          M,             mu, NoSymbol,             mu,     masculine ]};
+
+    key.type[group1]="EIGHT_LEVEL";
     key <AB08> {[     comma, apostrophe,           less, NoSymbol, Greek_horizbar,      multiply ]};
     key <AB09> {[    period,   quotedbl,        greater, NoSymbol, periodcentered,      division ]};
+
+    key.type[group1]="EIGHT_LEVEL_SEMIALPHABETIC";
     key <AB10> {[    eacute,     Eacute,     dead_acute, NoSymbol,       NoSymbol, dead_abovedot ]};
 
-    include "nbsp(level3s)"
-
-    modifier_map Control{ Control_L };
+    include "nbsp(level3)"
 
     include "level3(ralt_switch)"
     include "level5(rctrl_switch)"
@@ -433,23 +334,14 @@ xkb_symbols "kut" {
 
     name[Group1]= "Kutenai";
 
-    // Alveolar Click
-    key <AD05> {	[ t,	T,U01C2	,U01C2	]	};
+    key <AD05> {[          t,        T,  U01C2,  U01C2  ]}; // alveolar click
 
-    //Cent sign
-    key <AB03> {	[ c,	C,U00A2,U00A2	]	};
+    key <AB03> {[          c,        C,  cent,   cent   ]};
+    key <AB09> {[     period,  greater,  periodcentered ]};
+    key <AB10> {[      slash, question,  U0294          ]}; // glottal stop
 
-    //Mid dot
-    key <AB09> {	[ period,     greater,U00B7   	]	};
-
-    //Glottal stop
-    key <AB10> {	[ slash,	question, U0294	]	};
-
-    //COMBINING COMMA ABOVE RIGHT
-    key <AC11> {	[ apostrophe,	quotedbl, U0315,U0315	]	};
-
-    //MODIFIER LETTER RIGHT HALF RING
-    key <AC10> {	[ semicolon,	colon,U02BE,U02BE	]	};
+    key <AC10> {[  semicolon,    colon,  U02BE,  U02BE  ]}; // MODIFIER LETTER RIGHT HALF RING
+    key <AC11> {[ apostrophe, quotedbl,  U0315,  U0315  ]}; // COMBINING COMMA ABOVE RIGHT
 };
 
 // Secwepemctsin keyboard for X11

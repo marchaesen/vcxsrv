@@ -2,44 +2,33 @@
 
 This code is an attempt to implement a NIR backend for r600.
 
+Supported hardware: Cayman, Evergreen and NI (tested on CAYMAN, CEDAR and BARTS)
+
+Thanks to soft fp64 the OpenGL version is now 4.5 also for EG.
+
+sb can bee enabled for nir, it still gives some improvements, e.g. with Xonotic
+The aim is still to get rid of it.
+
+
 ## State
 
-Supported hardware: Evergreen and NI (tested on CEDAR and BARTS)
-
-Thanks to soft fp64 the OpenGL version is now 4.5
-
-sb has been enabled for nir to be able to run some more demanding work loads. The aim is
-still to get rid of it.
-
+TODO:
 
 piglits gpu passes mostly like with TGSI, there are some fixes but also a few regressions.
 
-CTS gles
- - 2 passes like with TGSI
- - 3 no regressions, a few fixes compared to TGSI
- - 31
-    * a few fixes with interpolation specifiers
-    * synchronization has some unstable tests, this might be because global synchronization is missing (in both)
-
-GL CTS:
-  * a few regressions and a hang with KHR-GL43.compute_shader.shared-max
-
 piglit:
-  * spilling arrays is broken on Barts (but it works on Cedar)
-  * a few tests fail because the register limit is exhausted, and needlessly so, because
-    with better RA it would work
+  * spilling arrays is broken on Barts and CAYMAN (but it works on Cedar)
 
 ## Needed optimizations:
 
-  - Register allocator and scheduler (Could the sb allocator and scheduler
-    be ported?)
-
   - peepholes:
-    - compare + set predicate
+    - compare + set predicate / kill
+  - use clause local registers
+  - reduce register usage
+  - don't rely on the backend to schedule addr load and Index load as well
+  - don't rely on the backend to merge some alu groups
 
-  - copy propagation:
-    - Moves from inputs are usually not required, they could be forwarded
-    - texture operations often move additional parameters in extra registers
-      but they are actually needed in the same registers they come from and
-      could just be swizzled into the right place
-      (lower in NIR like it is done in e.g. in ETNAVIV)
+## There are still some hangs
+
+
+

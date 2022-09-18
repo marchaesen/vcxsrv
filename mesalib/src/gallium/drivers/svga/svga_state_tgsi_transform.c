@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2014 VMware, Inc.  All rights reserved.
+ * Copyright 2014-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -134,7 +134,7 @@ write_vpos(struct svga_context *svga,
    struct svga_token_key key;
    boolean use_existing = FALSE;
    struct svga_shader *transform_shader;
-   const struct tgsi_shader_info *info = &shader->info;
+   const struct tgsi_shader_info *info = &shader->tgsi_info;
 
    /* Create a token key */
    memset(&key, 0, sizeof key);
@@ -181,7 +181,7 @@ transform_dynamic_indexing(struct svga_context *svga,
    struct svga_token_key key;
    boolean use_existing = FALSE;
    struct svga_shader *transform_shader;
-   const struct tgsi_shader_info *info = &shader->info;
+   const struct tgsi_shader_info *info = &shader->tgsi_info;
 
    /* Create a token key */
    memset(&key, 0, sizeof key);
@@ -241,6 +241,9 @@ emulate_point_sprite(struct svga_context *svga,
    struct svga_stream_output *streamout = NULL;
    int pos_out_index = -1;
    int aa_point_coord_index = -1;
+   struct pipe_screen *screen = svga->pipe.screen;
+   bool has_texcoord_semantic =
+      screen->get_param(screen, PIPE_CAP_TGSI_TEXCOORD);
 
    assert(tokens != NULL);
 
@@ -250,6 +253,8 @@ emulate_point_sprite(struct svga_context *svga,
    memset(&key, 0, sizeof key);
    key.gs.writes_psize = 1;
    key.gs.sprite_coord_enable = svga->curr.rast->templ.sprite_coord_enable;
+   if (has_texcoord_semantic)
+      key.gs.sprite_coord_enable |= 0x1;   /* For TGSI_SEMANTIC_PCOORD */
 
    key.gs.sprite_origin_upper_left =
       !(svga->curr.rast->templ.sprite_coord_mode == PIPE_SPRITE_COORD_LOWER_LEFT);
@@ -284,6 +289,7 @@ emulate_point_sprite(struct svga_context *svga,
                                          key.gs.sprite_coord_enable,
                                          key.gs.sprite_origin_upper_left,
                                          key.gs.point_pos_stream_out,
+					 has_texcoord_semantic,
                                          key.gs.aa_point ?
                                             &aa_point_coord_index : NULL);
 
@@ -312,7 +318,7 @@ emulate_point_sprite(struct svga_context *svga,
          if (pos_out_index != -1) {
             assert(orig_gs != NULL);
             templ.stream_output.output[pos_out_index].register_index =
-               orig_gs->base.info.num_outputs;
+               orig_gs->base.tgsi_info.num_outputs;
          }
       }
 
@@ -371,9 +377,9 @@ add_point_sprite_shader(struct svga_context *svga)
        */
       orig_gs = (struct svga_geometry_shader *)
                    util_make_geometry_passthrough_shader(
-                      &svga->pipe, vs->base.info.num_outputs,
-                      vs->base.info.output_semantic_name,
-                      vs->base.info.output_semantic_index);
+                      &svga->pipe, vs->base.tgsi_info.num_outputs,
+                      vs->base.tgsi_info.output_semantic_name,
+                      vs->base.tgsi_info.output_semantic_index);
 
       if (!orig_gs)
          return NULL;
@@ -425,23 +431,23 @@ update_tgsi_transform(struct svga_context *svga, uint64_t dirty)
 
    assert(svga_have_vgpu10(svga));
 
-   if (vs->base.info.num_outputs == 0) {
+   if (vs->base.tgsi_info.num_outputs == 0) {
       write_vpos(svga, &vs->base);
    }
 
-   if (vs && has_dynamic_indexing(&vs->base.info)) {
+   if (vs && has_dynamic_indexing(&vs->base.tgsi_info)) {
       transform_dynamic_indexing(svga, &vs->base);
    }
-   if (fs && has_dynamic_indexing(&fs->base.info)) {
+   if (fs && has_dynamic_indexing(&fs->base.tgsi_info)) {
       transform_dynamic_indexing(svga, &fs->base);
    }
-   if (gs && has_dynamic_indexing(&gs->base.info)) {
+   if (gs && has_dynamic_indexing(&gs->base.tgsi_info)) {
       transform_dynamic_indexing(svga, &gs->base);
    }
-   if (tcs && has_dynamic_indexing(&tcs->base.info)) {
+   if (tcs && has_dynamic_indexing(&tcs->base.tgsi_info)) {
       transform_dynamic_indexing(svga, &tcs->base);
    }
-   if (tes && has_dynamic_indexing(&tes->base.info)) {
+   if (tes && has_dynamic_indexing(&tes->base.tgsi_info)) {
       transform_dynamic_indexing(svga, &tes->base);
    }
 
@@ -452,7 +458,7 @@ update_tgsi_transform(struct svga_context *svga, uint64_t dirty)
        * transform feedback is enabled.
        */
       if (gs != NULL && !gs->base.stream_output &&
-          (gs->base.info.writes_psize || gs->wide_point)) {
+          (gs->base.tgsi_info.writes_psize || gs->wide_point)) {
          orig_gs = gs->base.parent ? gs->base.parent : &gs->base;
          new_gs = emulate_point_sprite(svga, orig_gs, orig_gs->tokens);
       }
@@ -463,7 +469,7 @@ update_tgsi_transform(struct svga_context *svga, uint64_t dirty)
        */
       else if (gs == NULL && !vs->base.stream_output &&
                (svga->curr.rast->pointsize > 1.0 ||
-                vs->base.info.writes_psize)) {
+                vs->base.tgsi_info.writes_psize)) {
          new_gs = add_point_sprite_shader(svga);
       }
       else {

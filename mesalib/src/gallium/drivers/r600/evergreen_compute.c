@@ -444,6 +444,13 @@ static void *evergreen_create_compute_state(struct pipe_context *ctx,
 	if (shader->ir_type == PIPE_SHADER_IR_TGSI ||
 	    shader->ir_type == PIPE_SHADER_IR_NIR) {
 		shader->sel = r600_create_shader_state_tokens(ctx, cso->prog, cso->ir_type, PIPE_SHADER_COMPUTE);
+
+		/* Precompile the shader with the expected shader key, to reduce jank at
+		 * draw time. Also produces output for shader-db.
+		 */
+		bool dirty;
+		r600_shader_select(ctx, shader->sel, &dirty, true);
+
 		return shader;
 	}
 #ifdef HAVE_OPENCL
@@ -505,8 +512,7 @@ static void evergreen_bind_compute_state(struct pipe_context *ctx, void *state)
 	if (cstate->ir_type == PIPE_SHADER_IR_TGSI ||
 	    cstate->ir_type == PIPE_SHADER_IR_NIR) {
 		bool compute_dirty;
-		cstate->sel->ir_type = cstate->ir_type;
-		if (r600_shader_select(ctx, cstate->sel, &compute_dirty))
+		if (r600_shader_select(ctx, cstate->sel, &compute_dirty, false))
 			R600_ERR("Failed to select compute shader\n");
 	}
 	
@@ -640,7 +646,7 @@ static void evergreen_emit_dispatch(struct r600_context *rctx,
 	radeon_emit(cs, info->block[1]); /* R_0286F0_SPI_COMPUTE_NUM_THREAD_Y */
 	radeon_emit(cs, info->block[2]); /* R_0286F4_SPI_COMPUTE_NUM_THREAD_Z */
 
-	if (rctx->b.chip_class < CAYMAN) {
+	if (rctx->b.gfx_level < CAYMAN) {
 		assert(lds_size <= 8192);
 	} else {
 		/* Cayman appears to have a slightly smaller limit, see the
@@ -736,7 +742,7 @@ static void compute_emit_cs(struct r600_context *rctx,
 
 	if (rctx->cs_shader_state.shader->ir_type == PIPE_SHADER_IR_TGSI||
 	    rctx->cs_shader_state.shader->ir_type == PIPE_SHADER_IR_NIR) {
-		if (r600_shader_select(&rctx->b.b, rctx->cs_shader_state.shader->sel, &compute_dirty)) {
+		if (r600_shader_select(&rctx->b.b, rctx->cs_shader_state.shader->sel, &compute_dirty, false)) {
 			R600_ERR("Failed to select compute shader\n");
 			return;
 		}
@@ -790,7 +796,7 @@ static void compute_emit_cs(struct r600_context *rctx,
 	r600_emit_command_buffer(cs, &rctx->start_compute_cs_cmd);
 
 	/* emit config state */
-	if (rctx->b.chip_class == EVERGREEN) {
+	if (rctx->b.gfx_level == EVERGREEN) {
 		if (rctx->cs_shader_state.shader->ir_type == PIPE_SHADER_IR_TGSI||
 		    rctx->cs_shader_state.shader->ir_type == PIPE_SHADER_IR_NIR) {
 			radeon_set_config_reg_seq(cs, R_008C04_SQ_GPR_RESOURCE_MGMT_1, 3);
@@ -852,7 +858,7 @@ static void compute_emit_cs(struct r600_context *rctx,
 	r600_flush_emit(rctx);
 	rctx->b.flags = 0;
 
-	if (rctx->b.chip_class >= CAYMAN) {
+	if (rctx->b.gfx_level >= CAYMAN) {
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 		radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_CS_PARTIAL_FLUSH) | EVENT_INDEX(4));
 		/* DEALLOC_STATE prevents the GPU from hanging when a
@@ -1111,7 +1117,7 @@ void evergreen_init_atom_start_compute_cs(struct r600_context *rctx)
 	r600_store_config_reg(cb, R_008958_VGT_PRIMITIVE_TYPE,
 						V_008958_DI_PT_POINTLIST);
 
-	if (rctx->b.chip_class < CAYMAN) {
+	if (rctx->b.gfx_level < CAYMAN) {
 
 		/* These registers control which simds can be used by each stage.
 		 * The default for these registers is 0xffffffff, which means
@@ -1161,7 +1167,7 @@ void evergreen_init_atom_start_compute_cs(struct r600_context *rctx)
 	 * allocate the appropriate amount of LDS dwords using the
 	 * CM_R_0288E8_SQ_LDS_ALLOC register.
 	 */
-	if (rctx->b.chip_class < CAYMAN) {
+	if (rctx->b.gfx_level < CAYMAN) {
 		r600_store_config_reg(cb, R_008E2C_SQ_LDS_RESOURCE_MGMT,
 			S_008E2C_NUM_PS_LDS(0x0000) | S_008E2C_NUM_LS_LDS(8192));
 	} else {
@@ -1172,7 +1178,7 @@ void evergreen_init_atom_start_compute_cs(struct r600_context *rctx)
 
 	/* Context Registers */
 
-	if (rctx->b.chip_class < CAYMAN) {
+	if (rctx->b.gfx_level < CAYMAN) {
 		/* workaround for hw issues with dyn gpr - must set all limits
 		 * to 240 instead of 0, 0x1e == 240 / 8
 		 */
@@ -1241,6 +1247,12 @@ void *r600_compute_global_transfer_map(struct pipe_context *ctx,
 	struct pipe_resource *dst = NULL;
 	unsigned offset = box->x;
 
+	if (usage & PIPE_MAP_READ)
+		buffer->chunk->status |= ITEM_MAPPED_FOR_READING;
+
+	if (usage & PIPE_MAP_WRITE)
+		buffer->chunk->status |= ITEM_MAPPED_FOR_WRITING;
+
 	if (is_item_in_pool(item)) {
 		compute_memory_demote_item(pool, item, ctx);
 	}
@@ -1252,9 +1264,6 @@ void *r600_compute_global_transfer_map(struct pipe_context *ctx,
 	}
 
 	dst = (struct pipe_resource*)item->real_buffer;
-
-	if (usage & PIPE_MAP_READ)
-		buffer->chunk->status |= ITEM_MAPPED_FOR_READING;
 
 	COMPUTE_DBG(rctx->screen, "* r600_compute_global_transfer_map()\n"
 			"level = %u, usage = %u, box(x = %u, y = %u, z = %u "
@@ -1271,9 +1280,12 @@ void *r600_compute_global_transfer_map(struct pipe_context *ctx,
 	assert(box->y == 0);
 	assert(box->z == 0);
 
+	if (buffer->base.b.is_user_ptr)
+		return NULL;
+
 	///TODO: do it better, mapping is not possible if the pool is too big
 	return pipe_buffer_map_range(ctx, dst,
-			offset, box->width, usage, ptransfer);
+			offset, box->width, usage & ~PIPE_MAP_READ, ptransfer);
 }
 
 void r600_compute_global_transfer_unmap(struct pipe_context *ctx,
@@ -1305,9 +1317,12 @@ void r600_compute_global_buffer_destroy(struct pipe_screen *screen,
 	rscreen = (struct r600_screen*)screen;
 
 	compute_memory_free(rscreen->global_pool, buffer->chunk->id);
-
 	buffer->chunk = NULL;
-	free(res);
+
+	if (buffer->base.b.is_user_ptr)
+		r600_buffer_destroy(screen, res);
+	else
+		free(res);
 }
 
 struct pipe_resource *r600_compute_global_buffer_create(struct pipe_screen *screen,

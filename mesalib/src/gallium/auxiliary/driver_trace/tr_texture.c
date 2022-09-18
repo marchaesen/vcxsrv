@@ -28,7 +28,6 @@
 #include "util/u_inlines.h"
 #include "util/u_hash_table.h"
 #include "util/u_memory.h"
-#include "util/simple_list.h"
 
 #include "tr_screen.h"
 #include "tr_context.h"

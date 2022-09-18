@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
  /*
@@ -47,15 +47,16 @@
 DEBUG_GET_ONCE_BOOL_OPTION(draw_fse, "DRAW_FSE", FALSE)
 DEBUG_GET_ONCE_BOOL_OPTION(draw_no_fse, "DRAW_NO_FSE", FALSE)
 
+
 /* Overall we split things into:
  *     - frontend -- prepare fetch_elts, draw_elts - eg vsplit
  *     - middle   -- fetch, shade, cliptest, viewport
- *     - pipeline -- the prim pipeline: clipping, wide lines, etc 
+ *     - pipeline -- the prim pipeline: clipping, wide lines, etc
  *     - backend  -- the vbuf_render provided by the driver.
  */
 static boolean
 draw_pt_arrays(struct draw_context *draw,
-               unsigned prim,
+               enum pipe_prim_type prim,
                bool index_bias_varies,
                const struct pipe_draw_start_count_bias *draw_info,
                unsigned num_draws)
@@ -63,8 +64,7 @@ draw_pt_arrays(struct draw_context *draw,
    struct draw_pt_front_end *frontend = NULL;
    struct draw_pt_middle_end *middle = NULL;
    unsigned opt = PT_SHADE;
-
-   unsigned out_prim = prim;
+   enum pipe_prim_type out_prim = prim;
 
    if (draw->gs.geometry_shader)
       out_prim = draw->gs.geometry_shader->output_primitive;
@@ -105,7 +105,7 @@ draw_pt_arrays(struct draw_context *draw,
           * lines are active but first drawn with triangles and then with
           * lines.
           */
-         draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+         draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
          frontend = NULL;
       } else if (draw->pt.eltSize != draw->pt.user.eltSize) {
          /* Flush draw state if eltSize changed.
@@ -113,7 +113,7 @@ draw_pt_arrays(struct draw_context *draw,
           * converts all indices to ushorts and the fetch part of the middle
           * always prepares both linear and indexed.
           */
-         frontend->flush( frontend, DRAW_FLUSH_STATE_CHANGE );
+         frontend->flush(frontend, DRAW_FLUSH_STATE_CHANGE);
          frontend = NULL;
       }
    }
@@ -121,7 +121,7 @@ draw_pt_arrays(struct draw_context *draw,
    if (!frontend) {
       frontend = draw->pt.front.vsplit;
 
-      frontend->prepare( frontend, prim, middle, opt );
+      frontend->prepare(frontend, prim, middle, opt);
 
       draw->pt.frontend = frontend;
       draw->pt.eltSize = draw->pt.user.eltSize;
@@ -134,7 +134,6 @@ draw_pt_arrays(struct draw_context *draw,
       middle->bind_parameters(middle);
       draw->pt.rebind_parameters = FALSE;
    }
-
 
    for (unsigned i = 0; i < num_draws; i++) {
       unsigned count = draw_info[i].count;
@@ -152,21 +151,23 @@ draw_pt_arrays(struct draw_context *draw,
                               (index_bias_varies ? draw_info[i].index_bias : draw_info[0].index_bias) :
                               0;
       if (count >= first)
-         frontend->run( frontend, draw_info[i].start, count );
+         frontend->run(frontend, draw_info[i].start, count);
 
-      if (draw->pt.user.increment_draw_id)
+      if (num_draws > 1 && draw->pt.user.increment_draw_id)
          draw->pt.user.drawid++;
    }
 
    return TRUE;
 }
 
-void draw_pt_flush( struct draw_context *draw, unsigned flags )
+
+void
+draw_pt_flush(struct draw_context *draw, unsigned flags)
 {
    assert(flags);
 
    if (draw->pt.frontend) {
-      draw->pt.frontend->flush( draw->pt.frontend, flags );
+      draw->pt.frontend->flush(draw->pt.frontend, flags);
 
       /* don't prepare if we only are flushing the backend */
       if (flags & DRAW_FLUSH_STATE_CHANGE)
@@ -179,8 +180,8 @@ void draw_pt_flush( struct draw_context *draw, unsigned flags )
 }
 
 
-
-boolean draw_pt_init( struct draw_context *draw )
+boolean
+draw_pt_init(struct draw_context *draw)
 {
    draw->pt.test_fse = debug_get_option_draw_fse();
    draw->pt.no_fse = debug_get_option_draw_no_fse();
@@ -189,42 +190,43 @@ boolean draw_pt_init( struct draw_context *draw )
    if (!draw->pt.front.vsplit)
       return FALSE;
 
-   draw->pt.middle.fetch_shade_emit = draw_pt_middle_fse( draw );
+   draw->pt.middle.fetch_shade_emit = draw_pt_middle_fse(draw);
    if (!draw->pt.middle.fetch_shade_emit)
       return FALSE;
 
-   draw->pt.middle.general = draw_pt_fetch_pipeline_or_emit( draw );
+   draw->pt.middle.general = draw_pt_fetch_pipeline_or_emit(draw);
    if (!draw->pt.middle.general)
       return FALSE;
 
 #ifdef DRAW_LLVM_AVAILABLE
    if (draw->llvm)
-      draw->pt.middle.llvm = draw_pt_fetch_pipeline_or_emit_llvm( draw );
+      draw->pt.middle.llvm = draw_pt_fetch_pipeline_or_emit_llvm(draw);
 #endif
 
    return TRUE;
 }
 
 
-void draw_pt_destroy( struct draw_context *draw )
+void
+draw_pt_destroy(struct draw_context *draw)
 {
    if (draw->pt.middle.llvm) {
-      draw->pt.middle.llvm->destroy( draw->pt.middle.llvm );
+      draw->pt.middle.llvm->destroy(draw->pt.middle.llvm);
       draw->pt.middle.llvm = NULL;
    }
 
    if (draw->pt.middle.general) {
-      draw->pt.middle.general->destroy( draw->pt.middle.general );
+      draw->pt.middle.general->destroy(draw->pt.middle.general);
       draw->pt.middle.general = NULL;
    }
 
    if (draw->pt.middle.fetch_shade_emit) {
-      draw->pt.middle.fetch_shade_emit->destroy( draw->pt.middle.fetch_shade_emit );
+      draw->pt.middle.fetch_shade_emit->destroy(draw->pt.middle.fetch_shade_emit);
       draw->pt.middle.fetch_shade_emit = NULL;
    }
 
    if (draw->pt.front.vsplit) {
-      draw->pt.front.vsplit->destroy( draw->pt.front.vsplit );
+      draw->pt.front.vsplit->destroy(draw->pt.front.vsplit);
       draw->pt.front.vsplit = NULL;
    }
 }
@@ -234,16 +236,14 @@ void draw_pt_destroy( struct draw_context *draw )
  * Debug- print the first 'count' vertices.
  */
 static void
-draw_print_arrays(struct draw_context *draw, uint prim, int start, uint count, int index_bias)
+draw_print_arrays(struct draw_context *draw, enum pipe_prim_type prim,
+                  int start, uint count, int index_bias)
 {
-   uint i;
-
    debug_printf("Draw arrays(prim = %u, start = %u, count = %u)\n",
                 prim, start, count);
 
-   for (i = 0; i < count; i++) {
+   for (unsigned i = 0; i < count; i++) {
       uint ii = 0;
-      uint j;
 
       if (draw->pt.user.eltSize) {
          /* indexed arrays */
@@ -281,7 +281,7 @@ draw_print_arrays(struct draw_context *draw, uint prim, int start, uint count, i
          debug_printf("Vertex %u:\n", ii);
       }
 
-      for (j = 0; j < draw->pt.nr_vertex_elements; j++) {
+      for (unsigned j = 0; j < draw->pt.nr_vertex_elements; j++) {
          uint buf = draw->pt.vertex_element[j].vertex_buffer_index;
          ubyte *ptr = (ubyte *) draw->pt.user.vbuffer[buf].map;
 
@@ -404,7 +404,7 @@ draw_pt_arrays_restart(struct draw_context *draw,
                        const struct pipe_draw_start_count_bias *draw_info,
                        unsigned num_draws)
 {
-   const unsigned prim = info->mode;
+   const enum pipe_prim_type prim = info->mode;
 
    assert(info->primitive_restart);
 
@@ -426,7 +426,7 @@ draw_pt_arrays_restart(struct draw_context *draw,
  * Resolve true values within pipe_draw_info.
  * If we're rendering from transform feedback/stream output
  * buffers both the count and max_index need to be computed
- * from the attached stream output target. 
+ * from the attached stream output target.
  */
 static void
 resolve_draw_info(const struct pipe_draw_info *raw_info,
@@ -446,9 +446,10 @@ resolve_draw_info(const struct pipe_draw_info *raw_info,
                     target->internal_offset / vertex_buffer->stride;
 
    /* Stream output draw can not be indexed */
-   debug_assert(!info->index_size);
+   assert(!info->index_size);
    info->max_index = draw->count - 1;
 }
+
 
 /*
  * Loop over all instances and execute draws for them.
@@ -460,11 +461,9 @@ draw_instances(struct draw_context *draw,
                const struct pipe_draw_start_count_bias *draws,
                unsigned num_draws)
 {
-   unsigned instance;
-
    draw->start_instance = info->start_instance;
 
-   for (instance = 0; instance < info->instance_count; instance++) {
+   for (unsigned instance = 0; instance < info->instance_count; instance++) {
       unsigned instance_idx = instance + info->start_instance;
       draw->instance_id = instance;
       /* check for overflow */
@@ -481,10 +480,12 @@ draw_instances(struct draw_context *draw,
          draw_pt_arrays_restart(draw, info, draws, num_draws);
       }
       else {
-         draw_pt_arrays(draw, info->mode, info->index_bias_varies, draws, num_draws);
+         draw_pt_arrays(draw, info->mode, info->index_bias_varies,
+                        draws, num_draws);
       }
    }
 }
+
 
 /**
  * Draw vertex arrays.
@@ -511,7 +512,7 @@ draw_vbo(struct draw_context *draw,
    if (info->instance_count == 0)
       return;
 
-   /* Make sure that denorms are treated like zeros. This is 
+   /* Make sure that denorms are treated like zeros. This is
     * the behavior required by D3D10. OpenGL doesn't care.
     */
    util_fpstate_set_denorms_to_zero(fpstate);
@@ -524,11 +525,14 @@ draw_vbo(struct draw_context *draw,
       num_draws = 1;
    }
 
-   if (info->index_size)
+   if (info->index_size) {
       assert(draw->pt.user.elts);
-
-   draw->pt.user.min_index = use_info->index_bounds_valid ? use_info->min_index : 0;
-   draw->pt.user.max_index = use_info->index_bounds_valid ? use_info->max_index : ~0;
+      draw->pt.user.min_index = use_info->index_bounds_valid ? use_info->min_index : 0;
+      draw->pt.user.max_index = use_info->index_bounds_valid ? use_info->max_index : ~0;
+   } else {
+      draw->pt.user.min_index = 0;
+      draw->pt.user.max_index = ~0;
+   }
    draw->pt.user.eltSize = use_info->index_size ? draw->pt.user.eltSizeIB : 0;
    draw->pt.user.drawid = drawid_offset;
    draw->pt.user.increment_draw_id = use_info->increment_draw_id;
@@ -545,9 +549,8 @@ draw_vbo(struct draw_context *draw,
       tgsi_dump(draw->vs.vertex_shader->state.tokens, 0);
 
    if (0) {
-      unsigned int i;
       debug_printf("Elements:\n");
-      for (i = 0; i < draw->pt.nr_vertex_elements; i++) {
+      for (unsigned i = 0; i < draw->pt.nr_vertex_elements; i++) {
          debug_printf("  %u: src_offset=%u  inst_div=%u   vbuf=%u  format=%s\n",
                       i,
                       draw->pt.vertex_element[i].src_offset,
@@ -556,7 +559,7 @@ draw_vbo(struct draw_context *draw,
                       util_format_name(draw->pt.vertex_element[i].src_format));
       }
       debug_printf("Buffers:\n");
-      for (i = 0; i < draw->pt.nr_vertex_buffers; i++) {
+      for (unsigned i = 0; i < draw->pt.nr_vertex_buffers; i++) {
          debug_printf("  %u: stride=%u offset=%u size=%d ptr=%p\n",
                       i,
                       draw->pt.vertex_buffer[i].stride,
@@ -568,8 +571,11 @@ draw_vbo(struct draw_context *draw,
 
    if (0) {
       for (unsigned i = 0; i < num_draws; i++)
-         draw_print_arrays(draw, use_info->mode, use_draws[i].start, MIN2(use_draws[i].count, 20),
-                           use_info->index_bias_varies ? use_draws[i].index_bias : use_draws[0].index_bias);
+         draw_print_arrays(draw, use_info->mode, use_draws[i].start,
+                           MIN2(use_draws[i].count, 20),
+                           use_info->index_bias_varies
+                           ? use_draws[i].index_bias
+                           : use_draws[0].index_bias);
    }
 
    index_limit = util_draw_max_index(draw->pt.vertex_buffer,
@@ -606,8 +612,9 @@ draw_vbo(struct draw_context *draw,
          draw->pt.user.viewid = i;
          draw_instances(draw, drawid_offset, use_info, use_draws, num_draws);
       }
-   } else
+   } else {
       draw_instances(draw, drawid_offset, use_info, use_draws, num_draws);
+   }
 
    /* If requested emit the pipeline statistics for this run */
    if (draw->collect_statistics) {

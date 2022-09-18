@@ -88,6 +88,21 @@ struct PhiInfo {
    uint16_t linear_phi_defs = 0;
 };
 
+bool
+instr_needs_vcc(Instruction* instr)
+{
+   if (instr->isVOPC())
+      return true;
+   if (instr->isVOP2() && !instr->isVOP3()) {
+      if (instr->operands.size() == 3 && instr->operands[2].isTemp() &&
+          instr->operands[2].regClass().type() == RegType::sgpr)
+         return true;
+      if (instr->definitions.size() == 2)
+         return true;
+   }
+   return false;
+}
+
 void
 process_live_temps_per_block(Program* program, live& lives, Block* block, unsigned& worklist,
                              std::vector<PhiInfo>& phi_info)
@@ -111,6 +126,7 @@ process_live_temps_per_block(Program* program, live& lives, Block* block, unsign
       if (is_phi(insn))
          break;
 
+      program->needs_vcc |= instr_needs_vcc(insn);
       register_demand[idx] = RegisterDemand(new_demand.vgpr, new_demand.sgpr);
 
       /* KILL */
@@ -118,7 +134,7 @@ process_live_temps_per_block(Program* program, live& lives, Block* block, unsign
          if (!definition.isTemp()) {
             continue;
          }
-         if ((definition.isFixed() || definition.hasHint()) && definition.physReg() == vcc)
+         if (definition.isFixed() && definition.physReg() == vcc)
             program->needs_vcc = true;
 
          const Temp temp = definition.getTemp();
@@ -189,7 +205,7 @@ process_live_temps_per_block(Program* program, live& lives, Block* block, unsign
          continue;
       }
       Definition& definition = insn->definitions[0];
-      if ((definition.isFixed() || definition.hasHint()) && definition.physReg() == vcc)
+      if (definition.isFixed() && definition.physReg() == vcc)
          program->needs_vcc = true;
       const Temp temp = definition.getTemp();
       const size_t n = live.erase(temp.id());
@@ -211,20 +227,36 @@ process_live_temps_per_block(Program* program, live& lives, Block* block, unsign
       phi_info[pred_idx].linear_phi_defs = linear_phi_defs;
 
    /* now, we need to merge the live-ins into the live-out sets */
-   for (unsigned t : live) {
-      RegClass rc = program->temp_rc[t];
-      std::vector<unsigned>& preds = rc.is_linear() ? block->linear_preds : block->logical_preds;
+   bool fast_merge =
+      block->logical_preds.size() == 0 || block->logical_preds == block->linear_preds;
 
 #ifndef NDEBUG
-      if (preds.empty())
-         aco_err(program, "Temporary never defined or are defined after use: %%%d in BB%d", t,
-                 block->index);
+   if ((block->linear_preds.empty() && !live.empty()) ||
+       (block->logical_preds.empty() && new_demand.vgpr > 0))
+      fast_merge = false; /* we might have errors */
 #endif
 
-      for (unsigned pred_idx : preds) {
-         auto it = lives.live_out[pred_idx].insert(t);
-         if (it.second)
+   if (fast_merge) {
+      for (unsigned pred_idx : block->linear_preds) {
+         if (lives.live_out[pred_idx].insert(live))
             worklist = std::max(worklist, pred_idx + 1);
+      }
+   } else {
+      for (unsigned t : live) {
+         RegClass rc = program->temp_rc[t];
+         std::vector<unsigned>& preds = rc.is_linear() ? block->linear_preds : block->logical_preds;
+
+#ifndef NDEBUG
+         if (preds.empty())
+            aco_err(program, "Temporary never defined or are defined after use: %%%d in BB%d", t,
+                    block->index);
+#endif
+
+         for (unsigned pred_idx : preds) {
+            auto it = lives.live_out[pred_idx].insert(t);
+            if (it.second)
+               worklist = std::max(worklist, pred_idx + 1);
+         }
       }
    }
 
@@ -277,12 +309,14 @@ calc_waves_per_workgroup(Program* program)
 uint16_t
 get_extra_sgprs(Program* program)
 {
-   if (program->chip_class >= GFX10) {
-      assert(!program->needs_flat_scr);
+   /* We don't use this register on GFX6-8 and it's removed on GFX10+. */
+   bool needs_flat_scr = program->config->scratch_bytes_per_wave && program->gfx_level == GFX9;
+
+   if (program->gfx_level >= GFX10) {
       assert(!program->dev.xnack_enabled);
       return 0;
-   } else if (program->chip_class >= GFX8) {
-      if (program->needs_flat_scr)
+   } else if (program->gfx_level >= GFX8) {
+      if (needs_flat_scr)
          return 6;
       else if (program->dev.xnack_enabled)
          return 4;
@@ -292,7 +326,7 @@ get_extra_sgprs(Program* program)
          return 0;
    } else {
       assert(!program->dev.xnack_enabled);
-      if (program->needs_flat_scr)
+      if (needs_flat_scr)
          return 4;
       else if (program->needs_vcc)
          return 2;
@@ -349,14 +383,46 @@ calc_min_waves(Program* program)
    program->min_waves = DIV_ROUND_UP(waves_per_workgroup, simd_per_cu_wgp);
 }
 
+uint16_t
+max_suitable_waves(Program* program, uint16_t waves)
+{
+   unsigned num_simd = program->dev.simd_per_cu * (program->wgp_mode ? 2 : 1);
+   unsigned waves_per_workgroup = calc_waves_per_workgroup(program);
+   unsigned num_workgroups = waves * num_simd / waves_per_workgroup;
+
+   /* Adjust #workgroups for LDS */
+   unsigned lds_per_workgroup = align(program->config->lds_size * program->dev.lds_encoding_granule,
+                                      program->dev.lds_alloc_granule);
+
+   if (program->stage == fragment_fs) {
+      /* PS inputs are moved from PC (parameter cache) to LDS before PS waves are launched.
+       * Each PS input occupies 3x vec4 of LDS space. See Figure 10.3 in GCN3 ISA manual.
+       * These limit occupancy the same way as other stages' LDS usage does.
+       */
+      unsigned lds_bytes_per_interp = 3 * 16;
+      unsigned lds_param_bytes = lds_bytes_per_interp * program->info.ps.num_interp;
+      lds_per_workgroup += align(lds_param_bytes, program->dev.lds_alloc_granule);
+   }
+   unsigned lds_limit = program->wgp_mode ? program->dev.lds_limit * 2 : program->dev.lds_limit;
+   if (lds_per_workgroup)
+      num_workgroups = std::min(num_workgroups, lds_limit / lds_per_workgroup);
+
+   /* Hardware limitation */
+   if (waves_per_workgroup > 1)
+      num_workgroups = std::min(num_workgroups, program->wgp_mode ? 32u : 16u);
+
+   /* Adjust #waves for workgroup multiples:
+    * In cases like waves_per_workgroup=3 or lds=65536 and
+    * waves_per_workgroup=1, we want the maximum possible number of waves per
+    * SIMD and not the minimum. so DIV_ROUND_UP is used
+    */
+   unsigned workgroup_waves = num_workgroups * waves_per_workgroup;
+   return DIV_ROUND_UP(workgroup_waves, num_simd);
+}
+
 void
 update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
 {
-   unsigned max_waves_per_simd = program->dev.max_wave64_per_simd * (64 / program->wave_size);
-   unsigned simd_per_cu_wgp = program->dev.simd_per_cu * (program->wgp_mode ? 2 : 1);
-   unsigned lds_limit = program->wgp_mode ? program->dev.lds_limit * 2 : program->dev.lds_limit;
-   unsigned max_workgroups_per_cu_wgp = program->wgp_mode ? 32 : 16;
-
    assert(program->min_waves >= 1);
    uint16_t sgpr_limit = get_addr_sgpr_from_waves(program, program->min_waves);
    uint16_t vgpr_limit = get_addr_vgpr_from_waves(program, program->min_waves);
@@ -371,41 +437,11 @@ update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
          get_vgpr_alloc(program, new_demand.vgpr) + program->config->num_shared_vgprs / 2;
       program->num_waves =
          std::min<uint16_t>(program->num_waves, program->dev.physical_vgprs / vgpr_demand);
-      program->max_waves = max_waves_per_simd;
+      uint16_t max_waves = program->dev.max_wave64_per_simd * (64 / program->wave_size);
+      program->num_waves = std::min(program->num_waves, max_waves);
 
-      /* adjust max_waves for workgroup and LDS limits */
-      unsigned waves_per_workgroup = calc_waves_per_workgroup(program);
-      unsigned workgroups_per_cu_wgp = max_waves_per_simd * simd_per_cu_wgp / waves_per_workgroup;
-
-      unsigned lds_per_workgroup =
-         align(program->config->lds_size * program->dev.lds_encoding_granule,
-               program->dev.lds_alloc_granule);
-
-      if (program->stage == fragment_fs) {
-         /* PS inputs are moved from PC (parameter cache) to LDS before PS waves are launched.
-          * Each PS input occupies 3x vec4 of LDS space. See Figure 10.3 in GCN3 ISA manual.
-          * These limit occupancy the same way as other stages' LDS usage does.
-          */
-         unsigned lds_bytes_per_interp = 3 * 16;
-         unsigned lds_param_bytes = lds_bytes_per_interp * program->info->ps.num_interp;
-         lds_per_workgroup += align(lds_param_bytes, program->dev.lds_alloc_granule);
-      }
-
-      if (lds_per_workgroup)
-         workgroups_per_cu_wgp = std::min(workgroups_per_cu_wgp, lds_limit / lds_per_workgroup);
-
-      if (waves_per_workgroup > 1)
-         workgroups_per_cu_wgp = std::min(workgroups_per_cu_wgp, max_workgroups_per_cu_wgp);
-
-      /* in cases like waves_per_workgroup=3 or lds=65536 and
-       * waves_per_workgroup=1, we want the maximum possible number of waves per
-       * SIMD and not the minimum. so DIV_ROUND_UP is used */
-      program->max_waves = std::min<uint16_t>(
-         program->max_waves,
-         DIV_ROUND_UP(workgroups_per_cu_wgp * waves_per_workgroup, simd_per_cu_wgp));
-
-      /* incorporate max_waves and calculate max_reg_demand */
-      program->num_waves = std::min<uint16_t>(program->num_waves, program->max_waves);
+      /* Adjust for LDS and workgroup multiples and calculate max_reg_demand */
+      program->num_waves = max_suitable_waves(program, program->num_waves);
       program->max_reg_demand.vgpr = get_addr_vgpr_from_waves(program, program->num_waves);
       program->max_reg_demand.sgpr = get_addr_sgpr_from_waves(program, program->num_waves);
    }
@@ -421,7 +457,7 @@ live_var_analysis(Program* program)
    std::vector<PhiInfo> phi_info(program->blocks.size());
    RegisterDemand new_demand;
 
-   program->needs_vcc = false;
+   program->needs_vcc = program->gfx_level >= GFX10;
 
    /* this implementation assumes that the block idx corresponds to the block's position in
     * program->blocks vector */

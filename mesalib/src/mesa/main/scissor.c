@@ -30,6 +30,7 @@
 #include "main/scissor.h"
 #include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_bitmap.h"
 #include "state_tracker/st_context.h"
 
 /**
@@ -49,6 +50,9 @@ set_scissor_no_notify(struct gl_context *ctx, unsigned idx,
        width == ctx->Scissor.ScissorArray[idx].Width &&
        height == ctx->Scissor.ScissorArray[idx].Height)
       return;
+
+   if (ctx->Scissor.EnableFlags)
+      st_flush_bitmap_cache(st_context(ctx));
 
    FLUSH_VERTICES(ctx, 0, GL_SCISSOR_BIT);
    ctx->NewDriverState |= ST_NEW_SCISSOR;
@@ -293,6 +297,8 @@ _mesa_WindowRectanglesEXT(GLenum mode, GLsizei count, const GLint *box)
       newval[i].Height = box[3];
       box += 4;
    }
+
+   st_flush_bitmap_cache(st_context(ctx));
 
    FLUSH_VERTICES(ctx, 0, GL_SCISSOR_BIT);
    ctx->NewDriverState |= ST_NEW_WINDOW_RECTANGLES;

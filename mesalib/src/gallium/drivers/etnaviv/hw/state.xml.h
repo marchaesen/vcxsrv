@@ -8,17 +8,17 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- state.xml     (  26877 bytes, from 2020-02-14 10:19:56)
-- common.xml    (  35468 bytes, from 2020-01-04 20:02:31)
-- common_3d.xml (  15058 bytes, from 2020-04-17 16:31:50)
-- state_hi.xml  (  34851 bytes, from 2020-04-17 16:25:34)
-- copyright.xml (   1597 bytes, from 2018-02-10 13:09:26)
-- state_2d.xml  (  51552 bytes, from 2018-02-10 13:09:26)
-- state_3d.xml  (  83771 bytes, from 2020-04-17 17:15:55)
-- state_blt.xml (  14252 bytes, from 2020-01-10 14:36:29)
-- state_vg.xml  (   5975 bytes, from 2018-02-10 13:09:26)
+- state.xml     (  27197 bytes, from 2022-04-19 10:41:23)
+- common.xml    (  35468 bytes, from 2020-10-28 12:56:03)
+- common_3d.xml (  15058 bytes, from 2020-10-28 12:56:03)
+- state_hi.xml  (  34803 bytes, from 2020-10-28 12:56:03)
+- copyright.xml (   1597 bytes, from 2020-10-28 12:56:03)
+- state_2d.xml  (  51552 bytes, from 2020-10-28 12:56:03)
+- state_3d.xml  (  84410 bytes, from 2022-04-18 16:27:58)
+- state_blt.xml (  14252 bytes, from 2020-10-28 12:56:03)
+- state_vg.xml  (   5975 bytes, from 2020-10-28 12:56:03)
 
-Copyright (C) 2012-2020 by the following authors:
+Copyright (C) 2012-2022 by the following authors:
 - Wladimir J. van der Laan <laanwj@gmail.com>
 - Christian Gmeiner <christian.gmeiner@gmail.com>
 - Lucas Stach <l.stach@pengutronix.de>
@@ -293,6 +293,8 @@ DEALINGS IN THE SOFTWARE.
 #define VIVS_GL_FLUSH_MMU_FLUSH_UNK4				0x00000010
 
 #define VIVS_GL_VERTEX_ELEMENT_CONFIG				0x00003814
+#define VIVS_GL_VERTEX_ELEMENT_CONFIG_UNK0			0x00000001
+#define VIVS_GL_VERTEX_ELEMENT_CONFIG_REUSE			0x00000010
 
 #define VIVS_GL_MULTI_SAMPLE_CONFIG				0x00003818
 #define VIVS_GL_MULTI_SAMPLE_CONFIG_MSAA_SAMPLES__MASK		0x00000003

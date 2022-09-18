@@ -24,13 +24,23 @@
 #ifndef GL_NIR_LINKER_H
 #define GL_NIR_LINKER_H
 
+#include <stdbool.h>
+
+#include "nir.h"
+#include "main/glheader.h"
+#include "main/menums.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct gl_constants;
 struct gl_extensions;
+struct gl_linked_shader;
 struct gl_shader_program;
+struct gl_transform_feedback_info;
+struct xfb_decl;
+struct nir_xfb_info;
 
 struct gl_nir_linker_options {
    bool fill_parameters;
@@ -50,14 +60,43 @@ bool gl_nir_link_spirv(const struct gl_constants *consts,
 
 bool gl_nir_link_glsl(const struct gl_constants *consts,
                       const struct gl_extensions *exts,
+                      gl_api api,
                       struct gl_shader_program *prog);
 
 bool gl_nir_link_uniforms(const struct gl_constants *consts,
                           struct gl_shader_program *prog,
                           bool fill_parameters);
 
+bool gl_nir_link_varyings(const struct gl_constants *consts,
+                          const struct gl_extensions *exts,
+                          gl_api api, struct gl_shader_program *prog);
+
+struct nir_xfb_info *
+gl_to_nir_xfb_info(struct gl_transform_feedback_info *info, void *mem_ctx);
+
+nir_variable * gl_nir_lower_xfb_varying(nir_shader *shader,
+                                        const char *old_var_name,
+                                        nir_variable *toplevel_var);
+
+void gl_nir_opt_dead_builtin_varyings(const struct gl_constants *consts,
+                                      gl_api api,
+                                      struct gl_shader_program *prog,
+                                      struct gl_linked_shader *producer,
+                                      struct gl_linked_shader *consumer,
+                                      unsigned num_tfeedback_decls,
+                                      struct xfb_decl *tfeedback_decls);
+
 void gl_nir_set_uniform_initializers(const struct gl_constants *consts,
                                      struct gl_shader_program *prog);
+
+bool nir_add_packed_var_to_resource_list(const struct gl_constants *consts,
+                                         struct gl_shader_program *shProg,
+                                         struct set *resource_set,
+                                         nir_variable *var,
+                                         unsigned stage, GLenum type);
+
+void
+init_program_resource_list(struct gl_shader_program *prog);
 
 void nir_build_program_resource_list(const struct gl_constants *consts,
                                      struct gl_shader_program *prog,
@@ -73,6 +112,11 @@ void gl_nir_link_assign_xfb_resources(const struct gl_constants *consts,
                                       struct gl_shader_program *prog);
 
 bool gl_nir_link_uniform_blocks(struct gl_shader_program *prog);
+
+bool lower_packed_varying_needs_lowering(nir_shader *shader, nir_variable *var,
+                                         bool xfb_enabled,
+                                         bool disable_xfb_packing,
+                                         bool disable_varying_packing);
 
 #ifdef __cplusplus
 } /* extern "C" */

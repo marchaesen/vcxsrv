@@ -13,7 +13,8 @@
 
 
 #include <stdlib.h>
-#include "c99_math.h"
+#include <math.h>
+
 #include "glheader.h"
 #include "main/get.h"
 #include "util/macros.h"

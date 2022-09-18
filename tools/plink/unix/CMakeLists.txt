@@ -19,14 +19,16 @@ add_sources_from_current_dir(utils
   utils/pollwrap.c
   utils/signal.c
   utils/x11_ignore_error.c
-  # Compiled icon pixmap files
-  putty-xpm.c
-  putty-config-xpm.c
-  pterm-xpm.c
-  pterm-config-xpm.c
   # We want the ISO C implementation of ltime(), because we don't have
   # a local better alternative
   ../utils/ltime.c)
+# Compiled icon pixmap files
+add_library(puttyxpms STATIC
+  putty-xpm.c
+  putty-config-xpm.c)
+add_library(ptermxpms STATIC
+  pterm-xpm.c
+  pterm-config-xpm.c)
 add_sources_from_current_dir(eventloop
   cliloop.c uxsel.c)
 add_sources_from_current_dir(console
@@ -51,7 +53,7 @@ add_sources_from_current_dir(agent
 add_executable(fuzzterm
   ${CMAKE_SOURCE_DIR}/test/fuzzterm.c
   ${CMAKE_SOURCE_DIR}/logging.c
-  ${CMAKE_SOURCE_DIR}/stubs/noprint.c
+  ${CMAKE_SOURCE_DIR}/stubs/no-print.c
   unicode.c
   no-gtk.c)
 be_list(fuzzterm FuZZterm)
@@ -69,7 +71,7 @@ add_sources_from_current_dir(psocks no-gtk.c)
 
 add_executable(psusan
   psusan.c
-  ${CMAKE_SOURCE_DIR}/stubs/nogss.c
+  ${CMAKE_SOURCE_DIR}/stubs/no-gss.c
   ${CMAKE_SOURCE_DIR}/ssh/scpserver.c
   no-gtk.c
   pty.c)
@@ -79,7 +81,7 @@ target_link_libraries(psusan
 installed_program(psusan)
 
 add_library(puttygen-common OBJECT
-  ${CMAKE_SOURCE_DIR}/stubs/notiming.c
+  ${CMAKE_SOURCE_DIR}/stubs/no-timing.c
   keygen-noise.c
   no-gtk.c
   noise.c
@@ -112,7 +114,7 @@ add_executable(uppity
   ${CMAKE_SOURCE_DIR}/ssh/scpserver.c
   no-gtk.c
   pty.c
-  ${CMAKE_SOURCE_DIR}/stubs/nogss.c)
+  ${CMAKE_SOURCE_DIR}/stubs/no-gss.c)
 be_list(uppity Uppity)
 target_link_libraries(uppity
   eventloop sshserver keygen settings network crypto utils)
@@ -133,12 +135,13 @@ if(GTK_FOUND)
   add_executable(pterm
     pterm.c
     main-gtk-simple.c
-    ${CMAKE_SOURCE_DIR}/stubs/nogss.c
+    ${CMAKE_SOURCE_DIR}/stubs/no-gss.c
+    ${CMAKE_SOURCE_DIR}/stubs/no-ca-config.c
     ${CMAKE_SOURCE_DIR}/proxy/nosshproxy.c
     pty.c)
   be_list(pterm pterm)
   target_link_libraries(pterm
-    guiterminal eventloop settings charset utils
+    guiterminal eventloop settings charset utils ptermxpms
     ${GTK_LIBRARIES} ${X11_LIBRARIES})
   installed_program(pterm)
 
@@ -146,13 +149,14 @@ if(GTK_FOUND)
     add_executable(ptermapp
       pterm.c
       main-gtk-application.c
-      ${CMAKE_SOURCE_DIR}/stubs/nocmdline.c
-      ${CMAKE_SOURCE_DIR}/stubs/nogss.c
+      ${CMAKE_SOURCE_DIR}/stubs/no-cmdline.c
+      ${CMAKE_SOURCE_DIR}/stubs/no-gss.c
+      ${CMAKE_SOURCE_DIR}/stubs/no-ca-config.c
       ${CMAKE_SOURCE_DIR}/proxy/nosshproxy.c
       pty.c)
     be_list(ptermapp pterm)
     target_link_libraries(ptermapp
-      guiterminal eventloop settings charset utils
+      guiterminal eventloop settings charset utils ptermxpms
       ${GTK_LIBRARIES} ${X11_LIBRARIES})
   endif()
 
@@ -162,7 +166,7 @@ if(GTK_FOUND)
   be_list(putty PuTTY SSH SERIAL OTHERBACKENDS)
   target_link_libraries(putty
     guiterminal eventloop sshclient otherbackends settings
-    network crypto charset utils
+    network crypto charset utils puttyxpms
     ${GTK_LIBRARIES} ${X11_LIBRARIES})
   set_target_properties(putty
     PROPERTIES LINK_INTERFACE_MULTIPLICITY 2)
@@ -172,24 +176,26 @@ if(GTK_FOUND)
     add_executable(puttyapp
       putty.c
       main-gtk-application.c
-      ${CMAKE_SOURCE_DIR}/stubs/nocmdline.c)
+      ${CMAKE_SOURCE_DIR}/stubs/no-cmdline.c)
     be_list(puttyapp PuTTY SSH SERIAL OTHERBACKENDS)
     target_link_libraries(puttyapp
       guiterminal eventloop sshclient otherbackends settings
-      network crypto charset utils
+      network crypto charset utils puttyxpms
       ${GTK_LIBRARIES} ${X11_LIBRARIES})
   endif()
 
   add_executable(puttytel
     putty.c
     main-gtk-simple.c
-    ${CMAKE_SOURCE_DIR}/stubs/nogss.c
-    ${CMAKE_SOURCE_DIR}/stubs/norand.c
+    ${CMAKE_SOURCE_DIR}/stubs/no-gss.c
+    ${CMAKE_SOURCE_DIR}/stubs/no-ca-config.c
+    ${CMAKE_SOURCE_DIR}/stubs/no-rand.c
     ${CMAKE_SOURCE_DIR}/proxy/nocproxy.c
     ${CMAKE_SOURCE_DIR}/proxy/nosshproxy.c)
   be_list(puttytel PuTTYtel SERIAL OTHERBACKENDS)
   target_link_libraries(puttytel
     guiterminal eventloop otherbackends settings network charset utils
+    puttyxpms
     ${GTK_LIBRARIES} ${X11_LIBRARIES})
 endif()
 
@@ -204,7 +210,7 @@ else()
 endif()
 add_executable(pageant
   pageant.c
-  ${CMAKE_SOURCE_DIR}/stubs/nogss.c
+  ${CMAKE_SOURCE_DIR}/stubs/no-gss.c
   x11.c
   noise.c
   ${CMAKE_SOURCE_DIR}/ssh/x11fwd.c

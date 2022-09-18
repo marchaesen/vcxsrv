@@ -693,7 +693,7 @@ emit_gs_vpm_output_header_prolog(struct v3d_compile *c, nir_builder *b,
         v3d_nir_store_output(b, 0, NULL, header);
 }
 
-void
+bool
 v3d_nir_lower_io(nir_shader *s, struct v3d_compile *c)
 {
         struct v3d_nir_lower_io_state state = { 0 };
@@ -745,4 +745,10 @@ v3d_nir_lower_io(nir_shader *s, struct v3d_compile *c)
             s->info.stage == MESA_SHADER_GEOMETRY) {
                 v3d_nir_lower_io_update_output_var_base(c, &state);
         }
+
+        /* It is really unlikely that we don't get progress here, and fully
+         * filtering when not would make code more complex, but we are still
+         * interested on getting this lowering going through NIR_PASS
+         */
+        return true;
 }

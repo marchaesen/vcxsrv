@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import platform
+from pathlib import PurePath
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
@@ -15,7 +16,8 @@ if __name__=='__main__':
     if os.path.isabs(args.confpath):
         destdir = os.environ.get('DESTDIR')
         if destdir:
-            confpath = os.path.join(destdir, args.confpath[1:])
+            # c:\destdir + c:\prefix must produce c:\destdir\prefix
+            confpath = str(PurePath(destdir, *PurePath(args.confpath).parts[1:]))
         else:
             confpath = args.confpath
     else:

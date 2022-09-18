@@ -1,27 +1,11 @@
 /*
  * Copyright © 2019 Google LLC
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "tu_cs.h"
+
+#include "tu_suballoc.h"
 
 /**
  * Initialize a command stream.
@@ -57,6 +41,25 @@ tu_cs_init_external(struct tu_cs *cs, struct tu_device *device,
 }
 
 /**
+ * Initialize a sub-command stream as a wrapper to an externally sub-allocated
+ * buffer.
+ */
+void
+tu_cs_init_suballoc(struct tu_cs *cs, struct tu_device *device,
+                    struct tu_suballoc_bo *suballoc_bo)
+{
+   uint32_t *start = tu_suballoc_bo_map(suballoc_bo);
+   uint32_t *end = start + (suballoc_bo->size >> 2);
+
+   memset(cs, 0, sizeof(*cs));
+   cs->device = device;
+   cs->mode = TU_CS_MODE_SUB_STREAM;
+   cs->start = cs->reserved_end = cs->cur = start;
+   cs->end = end;
+   cs->refcount_bo = tu_bo_get_ref(suballoc_bo->bo);
+}
+
+/**
  * Finish and release all resources owned by a command stream.
  */
 void
@@ -64,11 +67,24 @@ tu_cs_finish(struct tu_cs *cs)
 {
    for (uint32_t i = 0; i < cs->bo_count; ++i) {
       tu_bo_finish(cs->device, cs->bos[i]);
-      free(cs->bos[i]);
    }
+
+   if (cs->refcount_bo)
+      tu_bo_finish(cs->device, cs->refcount_bo);
 
    free(cs->entries);
    free(cs->bos);
+}
+
+static struct tu_bo *
+tu_cs_current_bo(const struct tu_cs *cs)
+{
+   if (cs->refcount_bo) {
+      return cs->refcount_bo;
+   } else {
+      assert(cs->bo_count);
+      return cs->bos[cs->bo_count - 1];
+   }
 }
 
 /**
@@ -78,8 +94,7 @@ tu_cs_finish(struct tu_cs *cs)
 static uint32_t
 tu_cs_get_offset(const struct tu_cs *cs)
 {
-   assert(cs->bo_count);
-   return cs->start - (uint32_t *) cs->bos[cs->bo_count - 1]->map;
+   return cs->start - (uint32_t *) tu_cs_current_bo(cs)->map;
 }
 
 /*
@@ -91,6 +106,8 @@ tu_cs_add_bo(struct tu_cs *cs, uint32_t size)
 {
    /* no BO for TU_CS_MODE_EXTERNAL */
    assert(cs->mode != TU_CS_MODE_EXTERNAL);
+   /* No adding more BOs if suballocating from a suballoc_bo. */
+   assert(!cs->refcount_bo);
 
    /* no dangling command packet */
    assert(tu_cs_is_empty(cs));
@@ -107,22 +124,18 @@ tu_cs_add_bo(struct tu_cs *cs, uint32_t size)
       cs->bos = new_bos;
    }
 
-   struct tu_bo *new_bo = malloc(sizeof(struct tu_bo));
-   if (!new_bo)
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   struct tu_bo *new_bo;
 
    VkResult result =
-      tu_bo_init_new(cs->device, new_bo, size * sizeof(uint32_t),
+      tu_bo_init_new(cs->device, &new_bo, size * sizeof(uint32_t),
                      TU_BO_ALLOC_GPU_READ_ONLY | TU_BO_ALLOC_ALLOW_DUMP);
    if (result != VK_SUCCESS) {
-      free(new_bo);
       return result;
    }
 
    result = tu_bo_map(cs->device, new_bo);
    if (result != VK_SUCCESS) {
       tu_bo_finish(cs->device, new_bo);
-      free(new_bo);
       return result;
    }
 
@@ -180,7 +193,7 @@ tu_cs_add_entry(struct tu_cs *cs)
 
    /* add an entry for [cs->start, cs->cur] */
    cs->entries[cs->entry_count++] = (struct tu_cs_entry) {
-      .bo = cs->bos[cs->bo_count - 1],
+      .bo = tu_cs_current_bo(cs),
       .size = tu_cs_get_size(cs) * sizeof(uint32_t),
       .offset = tu_cs_get_offset(cs) * sizeof(uint32_t),
    };
@@ -285,7 +298,7 @@ tu_cs_alloc(struct tu_cs *cs,
    if (result != VK_SUCCESS)
       return result;
 
-   struct tu_bo *bo = cs->bos[cs->bo_count - 1];
+   struct tu_bo *bo = tu_cs_current_bo(cs);
    size_t offset = align(tu_cs_get_offset(cs), size);
 
    memory->map = bo->map + offset * sizeof(uint32_t);
@@ -307,7 +320,6 @@ struct tu_cs_entry
 tu_cs_end_sub_stream(struct tu_cs *cs, struct tu_cs *sub_cs)
 {
    assert(cs->mode == TU_CS_MODE_SUB_STREAM);
-   assert(cs->bo_count);
    assert(sub_cs->start == cs->cur && sub_cs->end == cs->reserved_end);
    tu_cs_sanity_check(sub_cs);
 
@@ -316,7 +328,7 @@ tu_cs_end_sub_stream(struct tu_cs *cs, struct tu_cs *sub_cs)
    cs->cur = sub_cs->cur;
 
    struct tu_cs_entry entry = {
-      .bo = cs->bos[cs->bo_count - 1],
+      .bo = tu_cs_current_bo(cs),
       .size = tu_cs_get_size(cs) * sizeof(uint32_t),
       .offset = tu_cs_get_offset(cs) * sizeof(uint32_t),
    };
@@ -347,9 +359,9 @@ tu_cs_reserve_space(struct tu_cs *cs, uint32_t reserved_size)
          tu_cs_add_entry(cs);
       }
 
-      if (cs->cond_flags) {
+      for (uint32_t i = 0; i < cs->cond_stack_depth; i++) {
          /* Subtract one here to account for the DWORD field itself. */
-         *cs->cond_dwords = cs->cur - cs->cond_dwords - 1;
+         *cs->cond_dwords[i] = cs->cur - cs->cond_dwords[i] - 1;
 
          /* space for CP_COND_REG_EXEC in next bo */
          reserved_size += 3;
@@ -361,14 +373,16 @@ tu_cs_reserve_space(struct tu_cs *cs, uint32_t reserved_size)
       if (result != VK_SUCCESS)
          return result;
 
-      /* if inside a condition, emit a new CP_COND_REG_EXEC */
-      if (cs->cond_flags) {
+      if (cs->cond_stack_depth) {
          cs->reserved_end = cs->cur + reserved_size;
+      }
 
+      /* Re-emit CP_COND_REG_EXECs */
+      for (uint32_t i = 0; i < cs->cond_stack_depth; i++) {
          tu_cs_emit_pkt7(cs, CP_COND_REG_EXEC, 2);
-         tu_cs_emit(cs, cs->cond_flags);
+         tu_cs_emit(cs, cs->cond_flags[i]);
 
-         cs->cond_dwords = cs->cur;
+         cs->cond_dwords[i] = cs->cur;
 
          /* Emit dummy DWORD field here */
          tu_cs_emit(cs, CP_COND_REG_EXEC_1_DWORDS(0));
@@ -401,14 +415,13 @@ void
 tu_cs_reset(struct tu_cs *cs)
 {
    if (cs->mode == TU_CS_MODE_EXTERNAL) {
-      assert(!cs->bo_count && !cs->entry_count);
+      assert(!cs->bo_count && !cs->refcount_bo && !cs->entry_count);
       cs->reserved_end = cs->cur = cs->start;
       return;
    }
 
    for (uint32_t i = 0; i + 1 < cs->bo_count; ++i) {
       tu_bo_finish(cs->device, cs->bos[i]);
-      free(cs->bos[i]);
    }
 
    if (cs->bo_count) {

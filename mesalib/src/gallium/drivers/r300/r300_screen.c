@@ -136,14 +136,15 @@ static int r300_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
         case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
         case PIPE_CAP_BLEND_EQUATION_SEPARATE:
         case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
-        case PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT:
-        case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
+        case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
+        case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
         case PIPE_CAP_CONDITIONAL_RENDER:
         case PIPE_CAP_TEXTURE_BARRIER:
         case PIPE_CAP_TGSI_CAN_COMPACT_CONSTANTS:
         case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
         case PIPE_CAP_CLIP_HALFZ:
         case PIPE_CAP_ALLOW_MAPPED_BUFFERS_DURING_EXECUTION:
+        case PIPE_CAP_LEGACY_MATH_RULES:
             return 1;
 
         case PIPE_CAP_TEXTURE_TRANSFER_MODES:
@@ -173,24 +174,21 @@ static int r300_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
         case PIPE_CAP_MIXED_COLORBUFFER_FORMATS:
         case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
         case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-        case PIPE_CAP_VERTEX_SHADER_SATURATE:
             return is_r500 ? 1 : 0;
 
-        case PIPE_CAP_GLSL_OPTIMIZE_CONSERVATIVELY:
-            return 0;
         case PIPE_CAP_SHAREABLE_SHADERS:
             return 0;
 
         case PIPE_CAP_MAX_GS_INVOCATIONS:
             return 32;
-       case PIPE_CAP_MAX_SHADER_BUFFER_SIZE:
+       case PIPE_CAP_MAX_SHADER_BUFFER_SIZE_UINT:
             return 1 << 27;
 
         /* SWTCL-only features. */
         case PIPE_CAP_PRIMITIVE_RESTART:
         case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
         case PIPE_CAP_USER_VERTEX_BUFFERS:
-        case PIPE_CAP_TGSI_VS_WINDOW_SPACE_POSITION:
+        case PIPE_CAP_VS_WINDOW_SPACE_POSITION:
             return !r300screen->caps.has_tcl;
 
         /* HWTCL-only features / limitations. */
@@ -222,6 +220,9 @@ static int r300_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
         case PIPE_CAP_MAX_VARYINGS:
             return 10;
 
+	case PIPE_CAP_PREFER_IMM_ARRAYS_AS_CONSTBUF:
+	    return 0;
+
         case PIPE_CAP_VENDOR_ID:
                 return 0x1002;
         case PIPE_CAP_DEVICE_ID:
@@ -229,7 +230,7 @@ static int r300_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
         case PIPE_CAP_ACCELERATED:
                 return 1;
         case PIPE_CAP_VIDEO_MEMORY:
-                return r300screen->info.vram_size >> 20;
+                return r300screen->info.vram_size_kb >> 10;
         case PIPE_CAP_UMA:
                 return 0;
         case PIPE_CAP_PCI_GROUP:
@@ -287,7 +288,7 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
             return 10;
         case PIPE_SHADER_CAP_MAX_OUTPUTS:
             return 4;
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE:
+        case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
             return (is_r500 ? 256 : 32) * sizeof(float[4]);
         case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
         case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
@@ -297,7 +298,7 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
         case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
         case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
            return r300screen->caps.num_tex_units;
-        case PIPE_SHADER_CAP_TGSI_CONT_SUPPORTED:
+        case PIPE_SHADER_CAP_CONT_SUPPORTED:
         case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
         case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
         case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
@@ -311,19 +312,14 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
         case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
         case PIPE_SHADER_CAP_INT16:
         case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-        case PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_DFRACEXP_DLDEXP_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_LDEXP_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED:
+        case PIPE_SHADER_CAP_DROUND_SUPPORTED:
+        case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
+        case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
         case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
         case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-        case PIPE_SHADER_CAP_LOWER_IF_THRESHOLD:
-        case PIPE_SHADER_CAP_TGSI_SKIP_MERGE_REGISTERS:
         case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
         case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
             return 0;
-        case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
-            return 32;
         default:
             break;
         }
@@ -381,7 +377,7 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
             return 16;
         case PIPE_SHADER_CAP_MAX_OUTPUTS:
             return 10;
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE:
+        case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
             return 256 * sizeof(float[4]);
         case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
             return 1;
@@ -392,7 +388,7 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
             return 1;
         case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
         case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-        case PIPE_SHADER_CAP_TGSI_CONT_SUPPORTED:
+        case PIPE_SHADER_CAP_CONT_SUPPORTED:
         case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
         case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
         case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
@@ -407,19 +403,14 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
         case PIPE_SHADER_CAP_INT64_ATOMICS:
         case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
         case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-        case PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_DFRACEXP_DLDEXP_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_LDEXP_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED:
+        case PIPE_SHADER_CAP_DROUND_SUPPORTED:
+        case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
+        case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
         case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
         case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-        case PIPE_SHADER_CAP_LOWER_IF_THRESHOLD:
-        case PIPE_SHADER_CAP_TGSI_SKIP_MERGE_REGISTERS:
         case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
         case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
             return 0;
-        case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
-            return 32;
         default:
             break;
         }
@@ -500,107 +491,62 @@ static int r300_get_video_param(struct pipe_screen *screen,
    }
 }
 
+#define COMMON_NIR_OPTIONS                    \
+   .fdot_replicates = true,                   \
+   .fuse_ffma32 = true,                       \
+   .fuse_ffma64 = true,                       \
+   .lower_bitops = true,                      \
+   .lower_extract_byte = true,                \
+   .lower_extract_word = true,                \
+   .lower_fdiv = true,                        \
+   .lower_fdph = true,                        \
+   .lower_flrp32 = true,                      \
+   .lower_flrp64 = true,                      \
+   .lower_fmod = true,                        \
+   .lower_fround_even = true,                 \
+   .lower_insert_byte = true,                 \
+   .lower_insert_word = true,                 \
+   .lower_rotate = true,                      \
+   .lower_uniforms_to_ubo = true,             \
+   .lower_vector_cmp = true,                  \
+   .no_integers = true,                       \
+   .use_interpolated_input_intrinsics = true
+
 static const nir_shader_compiler_options r500_vs_compiler_options = {
-   .fdot_replicates = true,
-   .fuse_ffma32 = true,
-   .fuse_ffma64 = true,
-   .lower_bitops = true,
-   .lower_extract_byte = true,
-   .lower_extract_word = true,
-   .lower_fdiv = true,
-   .lower_insert_byte = true,
-   .lower_insert_word = true,
-   .lower_fdph = true,
-   .lower_flrp32 = true,
-   .lower_flrp64 = true,
-   .lower_fmod = true,
-   .lower_rotate = true,
-   .lower_uniforms_to_ubo = true,
-   .lower_vector_cmp = true,
+   COMMON_NIR_OPTIONS,
 
    /* Have HW loops support and 1024 max instr count, but don't unroll *too*
     * hard.
     */
    .max_unroll_iterations = 32,
-
-   .use_interpolated_input_intrinsics = true,
 };
 
 static const nir_shader_compiler_options r500_fs_compiler_options = {
-   .fdot_replicates = true,
-   .fuse_ffma32 = true,
-   .fuse_ffma64 = true,
-   .lower_bitops = true,
-   .lower_extract_byte = true,
-   .lower_extract_word = true,
-   .lower_fdiv = true,
-   .lower_insert_byte = true,
-   .lower_insert_word = true,
-   .lower_fdph = true,
+   COMMON_NIR_OPTIONS,
    .lower_fpow = true, /* POW is only in the VS */
-   .lower_flrp32 = true,
-   .lower_flrp64 = true,
-   .lower_fmod = true,
-   .lower_rotate = true,
-   .lower_uniforms_to_ubo = true,
-   .lower_vector_cmp = true,
 
    /* Have HW loops support and 512 max instr count, but don't unroll *too*
     * hard.
     */
    .max_unroll_iterations = 32,
-
-   .use_interpolated_input_intrinsics = true,
 };
 
 static const nir_shader_compiler_options r300_vs_compiler_options = {
-   .fdot_replicates = true,
-   .fuse_ffma32 = true,
-   .fuse_ffma64 = true,
-   .lower_bitops = true,
-   .lower_extract_byte = true,
-   .lower_extract_word = true,
-   .lower_fdiv = true,
-   .lower_insert_byte = true,
-   .lower_insert_word = true,
-   .lower_fdph = true,
+   COMMON_NIR_OPTIONS,
    .lower_fsat = true, /* No fsat in pre-r500 VS */
-   .lower_flrp32 = true,
-   .lower_flrp64 = true,
-   .lower_fmod = true,
-   .lower_rotate = true,
-   .lower_uniforms_to_ubo = true,
-   .lower_vector_cmp = true,
+   .lower_sincos = true,
 
    /* Note: has HW loops support, but only 256 ALU instructions. */
    .max_unroll_iterations = 32,
-
-   .use_interpolated_input_intrinsics = true,
 };
 
 static const nir_shader_compiler_options r300_fs_compiler_options = {
-   .fdot_replicates = true,
-   .fuse_ffma32 = true,
-   .fuse_ffma64 = true,
-   .lower_bitops = true,
-   .lower_extract_byte = true,
-   .lower_extract_word = true,
-   .lower_fdiv = true,
+   COMMON_NIR_OPTIONS,
    .lower_fpow = true, /* POW is only in the VS */
-   .lower_insert_byte = true,
-   .lower_insert_word = true,
-   .lower_fdph = true,
-   .lower_flrp32 = true,
-   .lower_flrp64 = true,
-   .lower_fmod = true,
-   .lower_rotate = true,
-   .lower_uniforms_to_ubo = true,
-   .lower_vector_cmp = true,
+   .lower_sincos = true,
 
     /* No HW loops support, so set it equal to ALU instr max */
    .max_unroll_iterations = 64,
-
-   .use_interpolated_input_intrinsics = true,
 };
 
 static const void *

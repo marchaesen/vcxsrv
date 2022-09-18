@@ -538,8 +538,8 @@ r600_isa_cf(unsigned op) {
 int r600_isa_init(struct r600_context *ctx, struct r600_isa *isa) {
 	unsigned i;
 
-	assert(ctx->b.chip_class >= R600 && ctx->b.chip_class <= CAYMAN);
-	isa->hw_class = ctx->b.chip_class - R600;
+	assert(ctx->b.gfx_level >= R600 && ctx->b.gfx_level <= CAYMAN);
+	isa->hw_class = ctx->b.gfx_level - R600;
 
 	/* reverse lookup maps are required for bytecode parsing */
 

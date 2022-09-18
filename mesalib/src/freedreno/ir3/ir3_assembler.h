@@ -37,6 +37,7 @@ struct ir3_kernel_info {
    /* driver-param / replaced uniforms: */
    unsigned numwg;
    unsigned wgid;
+   unsigned early_preamble;
 };
 
 struct ir3_shader;

@@ -95,7 +95,7 @@ bi_block_offset(bi_context *ctx, bi_clause *start, bi_block *target)
 
         /* Determine if the block we're branching to is strictly greater in
          * source order */
-        bool forwards = target->name > start->block->name;
+        bool forwards = target->index > start->block->index;
 
         if (forwards) {
                 /* We have to jump through this block from the start of this

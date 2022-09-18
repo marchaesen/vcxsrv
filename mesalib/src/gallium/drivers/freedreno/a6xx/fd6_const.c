@@ -47,21 +47,21 @@ fd6_emit_const_user(struct fd_ringbuffer *ring,
    uint32_t align_sz = align(sizedwords, 4);
 
    if (fd6_geom_stage(v->type)) {
-      OUT_PKTBUF(
-         ring, CP_LOAD_STATE6_GEOM, dwords, align_sz,
+      OUT_PKTBUF(ring, CP_LOAD_STATE6_GEOM, dwords, align_sz,
          CP_LOAD_STATE6_0(.dst_off = regid / 4, .state_type = ST6_CONSTANTS,
                           .state_src = SS6_DIRECT,
                           .state_block = fd6_stage2shadersb(v->type),
                           .num_unit = DIV_ROUND_UP(sizedwords, 4)),
-         CP_LOAD_STATE6_1(), CP_LOAD_STATE6_2());
+         CP_LOAD_STATE6_1(),
+         CP_LOAD_STATE6_2());
    } else {
-      OUT_PKTBUF(
-         ring, CP_LOAD_STATE6_FRAG, dwords, align_sz,
+      OUT_PKTBUF(ring, CP_LOAD_STATE6_FRAG, dwords, align_sz,
          CP_LOAD_STATE6_0(.dst_off = regid / 4, .state_type = ST6_CONSTANTS,
                           .state_src = SS6_DIRECT,
                           .state_block = fd6_stage2shadersb(v->type),
                           .num_unit = DIV_ROUND_UP(sizedwords, 4)),
-         CP_LOAD_STATE6_1(), CP_LOAD_STATE6_2());
+         CP_LOAD_STATE6_1(),
+         CP_LOAD_STATE6_2());
    }
 }
 void
@@ -131,7 +131,7 @@ fd6_build_tess_consts(struct fd6_emit *emit)
     */
    unsigned num_vertices = emit->hs
                               ? emit->patch_vertices
-                              : emit->gs->shader->nir->info.gs.vertices_in;
+                              : emit->gs->gs.vertices_in;
 
    uint32_t vs_params[4] = {
       emit->vs->output_size * num_vertices * 4, /* vs primitive stride */
@@ -150,13 +150,13 @@ fd6_build_tess_consts(struct fd6_emit *emit)
                              ARRAY_SIZE(hs_params));
 
       if (emit->gs)
-         num_vertices = emit->gs->shader->nir->info.gs.vertices_in;
+         num_vertices = emit->gs->gs.vertices_in;
 
       uint32_t ds_params[4] = {
          emit->ds->output_size * num_vertices * 4, /* ds primitive stride */
          emit->ds->output_size * 4,                /* ds vertex stride */
          emit->hs->output_size, /* hs vertex stride (dwords) */
-         emit->hs->shader->nir->info.tess.tcs_vertices_out};
+         emit->hs->tess.tcs_vertices_out};
 
       emit_stage_tess_consts(constobj, emit->ds, ds_params,
                              ARRAY_SIZE(ds_params));
@@ -176,7 +176,7 @@ fd6_build_tess_consts(struct fd6_emit *emit)
          0,
       };
 
-      num_vertices = emit->gs->shader->nir->info.gs.vertices_in;
+      num_vertices = emit->gs->gs.vertices_in;
       emit_stage_tess_consts(constobj, emit->gs, gs_params,
                              ARRAY_SIZE(gs_params));
    }
@@ -293,23 +293,48 @@ fd6_build_user_consts(struct fd6_emit *emit)
 }
 
 struct fd_ringbuffer *
-fd6_build_vs_driver_params(struct fd6_emit *emit)
+fd6_build_driver_params(struct fd6_emit *emit)
 {
    struct fd_context *ctx = emit->ctx;
    struct fd6_context *fd6_ctx = fd6_context(ctx);
-   const struct ir3_shader_variant *vs = emit->vs;
+   unsigned num_dp = 0;
 
-   if (vs->need_driver_params) {
-      struct fd_ringbuffer *dpconstobj = fd_submit_new_ringbuffer(
-         ctx->batch->submit, IR3_DP_VS_COUNT * 4, FD_RINGBUFFER_STREAMING);
-      ir3_emit_vs_driver_params(vs, dpconstobj, ctx, emit->info, emit->indirect,
-                                emit->draw);
-      fd6_ctx->has_dp_state = true;
-      return dpconstobj;
+   if (emit->vs->need_driver_params)
+      num_dp++;
+
+   if (emit->gs && emit->gs->need_driver_params)
+      num_dp++;
+
+   if (emit->ds && emit->ds->need_driver_params)
+      num_dp++;
+
+   if (!num_dp) {
+      fd6_ctx->has_dp_state = false;
+      return NULL;
    }
 
-   fd6_ctx->has_dp_state = false;
-   return NULL;
+   unsigned size_dwords = num_dp * (4 + IR3_DP_VS_COUNT);  /* 4dw PKT7 header */
+   struct fd_ringbuffer *dpconstobj = fd_submit_new_ringbuffer(
+         ctx->batch->submit, size_dwords * 4, FD_RINGBUFFER_STREAMING);
+
+   if (emit->vs->need_driver_params) {
+      ir3_emit_driver_params(emit->vs, dpconstobj, ctx, emit->info,
+                             emit->indirect, emit->draw);
+   }
+
+   if (emit->gs && emit->gs->need_driver_params) {
+      ir3_emit_driver_params(emit->gs, dpconstobj, ctx, emit->info,
+                             emit->indirect, emit->draw);
+   }
+
+   if (emit->ds && emit->ds->need_driver_params) {
+      ir3_emit_driver_params(emit->ds, dpconstobj, ctx, emit->info,
+                             emit->indirect, emit->draw);
+   }
+
+   fd6_ctx->has_dp_state = true;
+
+   return dpconstobj;
 }
 
 void

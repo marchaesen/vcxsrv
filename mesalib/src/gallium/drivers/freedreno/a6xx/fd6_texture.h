@@ -34,7 +34,7 @@
 #include "freedreno_texture.h"
 
 #include "fd6_context.h"
-#include "fd6_format.h"
+#include "fdl/fd6_format_table.h"
 
 struct fd6_sampler_stateobj {
    struct pipe_sampler_state base;

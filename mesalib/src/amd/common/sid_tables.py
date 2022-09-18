@@ -360,7 +360,7 @@ def main():
                 print('Error reading {}'.format(sys.argv[1]), file=sys.stderr)
                 raise
 
-    # The ac_debug code only distinguishes by chip_class
+    # The ac_debug code only distinguishes by gfx_level
     regdb.merge_chips(['gfx8', 'fiji', 'stoney'], 'gfx8')
 
     # Write it all out

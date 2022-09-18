@@ -91,8 +91,6 @@ typedef struct winSsh_gss_ctx {
 
 const Ssh_gss_buf gss_mech_krb5={9,"\x2A\x86\x48\x86\xF7\x12\x01\x02\x02"};
 
-const char *gsslogmsg = NULL;
-
 static void ssh_sspi_bind_fns(struct ssh_gss_library *lib);
 
 static tree234 *libraries_to_never_unload;
@@ -120,7 +118,6 @@ static void add_library_to_never_unload_tree(HMODULE module)
 struct ssh_gss_liblist *ssh_gss_setup(Conf *conf)
 {
     HMODULE module;
-    HKEY regkey;
     struct ssh_gss_liblist *list = snew(struct ssh_gss_liblist);
     char *path;
     static HMODULE kernel32_module;
@@ -139,55 +136,47 @@ struct ssh_gss_liblist *ssh_gss_setup(Conf *conf)
 
     /* MIT Kerberos GSSAPI implementation */
     module = NULL;
-    if (RegOpenKey(HKEY_LOCAL_MACHINE, "SOFTWARE\\MIT\\Kerberos", &regkey)
-        == ERROR_SUCCESS) {
-        DWORD type, size;
-        LONG ret;
-        char *buffer;
-
-        /* Find out the string length */
-        ret = RegQueryValueEx(regkey, "InstallDir", NULL, &type, NULL, &size);
-
-        if (ret == ERROR_SUCCESS && type == REG_SZ) {
-            buffer = snewn(size + 20, char);
-            ret = RegQueryValueEx(regkey, "InstallDir", NULL,
-                                  &type, (LPBYTE)buffer, &size);
-            if (ret == ERROR_SUCCESS && type == REG_SZ) {
-                strcat (buffer, "\\bin");
-                if(p_AddDllDirectory) {
-                    /* Add MIT Kerberos' path to the DLL search path,
-                     * it loads its own DLLs further down the road */
-                    wchar_t *dllPath =
-                        dup_mb_to_wc(DEFAULT_CODEPAGE, 0, buffer);
-                    p_AddDllDirectory(dllPath);
-                    sfree(dllPath);
-                }
-                strcat (buffer, "\\gssapi"MIT_KERB_SUFFIX".dll");
-                module = LoadLibraryEx (buffer, NULL,
-                                        LOAD_LIBRARY_SEARCH_SYSTEM32 |
-                                        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR |
-                                        LOAD_LIBRARY_SEARCH_USER_DIRS);
-
-                /*
-                 * The MIT Kerberos DLL suffers an internal segfault
-                 * for some reason if you unload and reload one within
-                 * the same process. So, make sure that after we load
-                 * this library, we never free it.
-                 *
-                 * Or rather: after we've loaded it once, if any
-                 * _further_ load returns the same module handle, we
-                 * immediately free it again (to prevent the Windows
-                 * API's internal reference count growing without
-                 * bound). But on the other hand we never free it in
-                 * ssh_gss_cleanup.
-                 */
-                if (library_is_in_never_unload_tree(module))
-                    FreeLibrary(module);
-                add_library_to_never_unload_tree(module);
+    HKEY regkey = open_regkey_ro(HKEY_LOCAL_MACHINE,
+                                 "SOFTWARE\\MIT\\Kerberos");
+    if (regkey) {
+        char *installdir = get_reg_sz(regkey, "InstallDir");
+        if (installdir) {
+            char *bindir = dupcat(installdir, "\\bin");
+            if(p_AddDllDirectory) {
+                /* Add MIT Kerberos' path to the DLL search path,
+                 * it loads its own DLLs further down the road */
+                wchar_t *dllPath = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, bindir);
+                p_AddDllDirectory(dllPath);
+                sfree(dllPath);
             }
-            sfree(buffer);
+
+            char *dllfile = dupcat(bindir, "\\gssapi"MIT_KERB_SUFFIX".dll");
+            module = LoadLibraryEx(dllfile, NULL,
+                                   LOAD_LIBRARY_SEARCH_SYSTEM32 |
+                                   LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR |
+                                   LOAD_LIBRARY_SEARCH_USER_DIRS);
+
+            /*
+             * The MIT Kerberos DLL suffers an internal segfault for
+             * some reason if you unload and reload one within the
+             * same process. So, make sure that after we load this
+             * library, we never free it.
+             *
+             * Or rather: after we've loaded it once, if any _further_
+             * load returns the same module handle, we immediately
+             * free it again (to prevent the Windows API's internal
+             * reference count growing without bound). But on the
+             * other hand we never free it in ssh_gss_cleanup.
+             */
+            if (library_is_in_never_unload_tree(module))
+                FreeLibrary(module);
+            add_library_to_never_unload_tree(module);
+
+            sfree(dllfile);
+            sfree(bindir);
+            sfree(installdir);
         }
-        RegCloseKey(regkey);
+        close_regkey(regkey);
     }
     if (module) {
         struct ssh_gss_library *lib =
@@ -227,7 +216,8 @@ struct ssh_gss_liblist *ssh_gss_setup(Conf *conf)
         lib->gsslogmsg = "Using SSPI from SECUR32.DLL";
         lib->handle = (void *)module;
 
-        GET_WINDOWS_FUNCTION(module, AcquireCredentialsHandleA);
+        /* No typecheck because Winelib thinks one PVOID is a PLUID */
+        GET_WINDOWS_FUNCTION_NO_TYPECHECK(module, AcquireCredentialsHandleA);
         GET_WINDOWS_FUNCTION(module, InitializeSecurityContextA);
         GET_WINDOWS_FUNCTION(module, FreeContextBuffer);
         GET_WINDOWS_FUNCTION(module, FreeCredentialsHandle);
@@ -465,7 +455,7 @@ static Ssh_gss_stat ssh_sspi_init_sec_context(struct ssh_gss_library *lib,
     SecBufferDesc input_desc ={SECBUFFER_VERSION,1,&wrecv_tok};
     unsigned long flags=ISC_REQ_MUTUAL_AUTH|ISC_REQ_REPLAY_DETECT|
         ISC_REQ_CONFIDENTIALITY|ISC_REQ_ALLOCATE_MEMORY;
-    unsigned long ret_flags=0;
+    ULONG ret_flags=0;
     TimeStamp localexp;
 
     /* check if we have to delegate ... */
@@ -664,8 +654,8 @@ static Ssh_gss_stat ssh_sspi_verify_mic(struct ssh_gss_library *lib,
     InputSecurityToken[1].pvBuffer = mic->value;
 
     winctx->maj_stat = p_VerifySignature(&winctx->context,
-                                       &InputBufferDescriptor,
-                                       0, &qop);
+                                         &InputBufferDescriptor,
+                                         0, &qop);
     return winctx->maj_stat;
 }
 

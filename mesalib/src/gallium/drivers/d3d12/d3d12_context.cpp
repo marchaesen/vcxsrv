@@ -34,7 +34,12 @@
 #include "d3d12_root_signature.h"
 #include "d3d12_screen.h"
 #include "d3d12_surface.h"
-
+#ifdef HAVE_GALLIUM_D3D12_VIDEO
+#include "d3d12_video_dec.h"
+#include "d3d12_video_enc.h"
+#include "d3d12_video_proc.h"
+#include "d3d12_video_buffer.h"
+#endif
 #include "util/u_atomic.h"
 #include "util/u_blitter.h"
 #include "util/u_dual_blend.h"
@@ -47,8 +52,6 @@
 #include "util/u_dl.h"
 #include "nir_to_dxil.h"
 
-#include "D3D12ResourceState.h"
-
 #include <dxguids/dxguids.h>
 
 extern "C" {
@@ -57,22 +60,34 @@ extern "C" {
 
 #include <string.h>
 
+#ifdef _WIN32
+#include "dxil_validator.h"
+#endif
+
 static void
 d3d12_context_destroy(struct pipe_context *pctx)
 {
    struct d3d12_context *ctx = d3d12_context(pctx);
-   if (ctx->validation_tools)
-      d3d12_validator_destroy(ctx->validation_tools);
+
+   struct d3d12_screen *screen = d3d12_screen(pctx->screen);
+   mtx_lock(&screen->submit_mutex);
+   list_del(&ctx->context_list_entry);
+   mtx_unlock(&screen->submit_mutex);
+
+#ifdef _WIN32
+   if (ctx->dxil_validator)
+      dxil_destroy_validator(ctx->dxil_validator);
+#endif
 
    if (ctx->timestamp_query)
       pctx->destroy_query(pctx, ctx->timestamp_query);
 
+   util_unreference_framebuffer_state(&ctx->fb);
    util_blitter_destroy(ctx->blitter);
    d3d12_end_batch(ctx, d3d12_current_batch(ctx));
    for (unsigned i = 0; i < ARRAY_SIZE(ctx->batches); ++i)
       d3d12_destroy_batch(ctx, &ctx->batches[i]);
    ctx->cmdlist->Release();
-   ctx->cmdqueue_fence->Release();
    d3d12_descriptor_pool_free(ctx->sampler_pool);
    util_primconvert_destroy(ctx->primconvert);
    slab_destroy_child(&ctx->transfer_pool);
@@ -83,6 +98,11 @@ d3d12_context_destroy(struct pipe_context *pctx)
    d3d12_root_signature_cache_destroy(ctx);
    d3d12_cmd_signature_cache_destroy(ctx);
    d3d12_compute_transform_cache_destroy(ctx);
+   d3d12_context_state_table_destroy(ctx);
+   pipe_resource_reference(&ctx->pstipple.texture, nullptr);
+   pipe_sampler_view_reference(&ctx->pstipple.sampler_view, nullptr);
+   util_dynarray_fini(&ctx->recently_destroyed_bos);
+   FREE(ctx->pstipple.sampler_cso);
 
    u_suballocator_destroy(&ctx->query_allocator);
 
@@ -90,8 +110,6 @@ d3d12_context_destroy(struct pipe_context *pctx)
       u_upload_destroy(pctx->stream_uploader);
    if (pctx->const_uploader)
       u_upload_destroy(pctx->const_uploader);
-
-   delete ctx->resource_state_manager;
 
    FREE(ctx);
 }
@@ -654,14 +672,13 @@ d3d12_create_sampler_state(struct pipe_context *pctx,
 
    if (state->compare_mode == PIPE_TEX_COMPARE_R_TO_TEXTURE) {
       desc.ComparisonFunc = compare_op((pipe_compare_func) state->compare_func);
-      desc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
    } else if (state->compare_mode == PIPE_TEX_COMPARE_NONE) {
       desc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-      desc.Filter = get_filter(state);
    } else
       unreachable("unexpected comparison mode");
 
    desc.MaxAnisotropy = state->max_anisotropy;
+   desc.Filter = get_filter(state);
 
    desc.AddressU = sampler_address_mode((pipe_tex_wrap) state->wrap_s,
                                         (pipe_tex_filter) state->min_img_filter);
@@ -678,9 +695,7 @@ d3d12_create_sampler_state(struct pipe_context *pctx,
 
    if (state->compare_mode == PIPE_TEX_COMPARE_R_TO_TEXTURE) {
       desc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-      struct pipe_sampler_state fake_state = *state;
-      fake_state.compare_mode = PIPE_TEX_COMPARE_NONE;
-      desc.Filter = get_filter(&fake_state);
+      desc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
 
       d3d12_descriptor_pool_alloc_handle(ctx->sampler_pool,
                                          &ss->handle_without_shadow);
@@ -1301,8 +1316,24 @@ d3d12_set_viewport_states(struct pipe_context *pctx,
       ctx->viewports[start_slot + i].TopLeftX = state[i].translate[0] - state[i].scale[0];
       ctx->viewports[start_slot + i].Width = state[i].scale[0] * 2;
 
-      float near_depth = state[i].translate[2] - state[i].scale[2];
+      float near_depth = state[i].translate[2];
       float far_depth = state[i].translate[2] + state[i].scale[2];
+
+      /* When the rasterizer is configured for "full" depth clipping ([-1, 1])
+       * the viewport that we get is set to cover the positive half of clip space.
+       * E.g. a [0, 1] viewport from the GL API will come to the driver as [0.5, 1].
+       * Since we halve clipping space from [-1, 1] to [0, 1], we need to double the
+       * viewport, treating translate as the center instead of the near plane. When
+       * the rasterizer is configured for "half" depth clipping ([0, 1]), the viewport
+       * covers the entire clip range, so no fixup is needed.
+       * 
+       * Note: If halfz mode changes, both the rasterizer and viewport are dirtied,
+       * and on the next draw we will get the rasterizer state first, and viewport
+       * second, because ST_NEW_RASTERIZER comes before ST_NEW_VIEWPORT.
+       */
+      if (ctx->gfx_pipeline_state.rast && !ctx->gfx_pipeline_state.rast->base.clip_halfz) {
+         near_depth -= state[i].scale[2];
+      }
 
       bool reverse_depth_range = near_depth > far_depth;
       if (reverse_depth_range) {
@@ -1725,7 +1756,7 @@ d3d12_set_shader_images(struct pipe_context *pctx,
    ctx->shader_dirty[shader] |= D3D12_SHADER_DIRTY_IMAGE;
 }
 
-static void
+void
 d3d12_invalidate_context_bindings(struct d3d12_context *ctx, struct d3d12_resource *res) {
    // For each shader type, if the resource is currently bound as CBV, SRV, or UAV
    // set the context shader_dirty bit.
@@ -1885,7 +1916,7 @@ d3d12_disable_fake_so_buffers(struct d3d12_context *ctx)
       cbuf.buffer = fake_target->fill_buffer;
       cbuf.buffer_offset = fake_target->fill_buffer_offset;
       cbuf.buffer_size = fake_target->fill_buffer->width0 - cbuf.buffer_offset;
-      ctx->base.set_constant_buffer(&ctx->base, PIPE_SHADER_COMPUTE, 1, true, &cbuf);
+      ctx->base.set_constant_buffer(&ctx->base, PIPE_SHADER_COMPUTE, 1, false, &cbuf);
 
       grid.indirect = fake_target->fill_buffer;
       grid.indirect_offset = fake_target->fill_buffer_offset + 4;
@@ -1933,54 +1964,6 @@ d3d12_flush_cmdlist_and_wait(struct d3d12_context *ctx)
    d3d12_reset_batch(ctx, batch, PIPE_TIMEOUT_INFINITE);
 }
 
-void
-d3d12_transition_resource_state(struct d3d12_context *ctx,
-                                struct d3d12_resource *res,
-                                D3D12_RESOURCE_STATES state,
-                                d3d12_bind_invalidate_option bind_invalidate)
-{
-   TransitionableResourceState *xres = d3d12_resource_state(res);
-   
-   if (bind_invalidate == D3D12_BIND_INVALIDATE_FULL)
-      d3d12_invalidate_context_bindings(ctx, res);
-
-   ctx->resource_state_manager->TransitionResource(xres, state);
-}
-
-void
-d3d12_transition_subresources_state(struct d3d12_context *ctx,
-                                    struct d3d12_resource *res,
-                                    uint32_t start_level, uint32_t num_levels,
-                                    uint32_t start_layer, uint32_t num_layers,
-                                    uint32_t start_plane, uint32_t num_planes,
-                                    D3D12_RESOURCE_STATES state,
-                                    d3d12_bind_invalidate_option bind_invalidate)
-{
-   TransitionableResourceState *xres = d3d12_resource_state(res);
-
-   if(bind_invalidate == D3D12_BIND_INVALIDATE_FULL)
-      d3d12_invalidate_context_bindings(ctx, res);
-
-   for (uint32_t l = 0; l < num_levels; l++) {
-      const uint32_t level = start_level + l;
-      for (uint32_t a = 0; a < num_layers; a++) {
-         const uint32_t layer = start_layer + a;
-         for( uint32_t p = 0; p < num_planes; p++) {
-            const uint32_t plane = start_plane + p;
-            uint32_t subres_id = level + (layer * res->mip_levels) + plane * (res->mip_levels * res->base.b.array_size);
-            assert(subres_id < xres->NumSubresources());
-            ctx->resource_state_manager->TransitionSubresource(xres, subres_id, state);
-         }
-      }
-   }
-}
-
-void
-d3d12_apply_resource_states(struct d3d12_context *ctx, bool is_implicit_dispatch)
-{
-   ctx->resource_state_manager->ApplyAllResourceTransitions(ctx->cmdlist, ctx->fence_value, is_implicit_dispatch);
-}
-
 static void
 d3d12_clear_render_target(struct pipe_context *pctx,
                           struct pipe_surface *psurf,
@@ -1998,7 +1981,7 @@ d3d12_clear_render_target(struct pipe_context *pctx,
    struct d3d12_resource *res = d3d12_resource(psurf->texture);
    d3d12_transition_resource_state(ctx, res,
                                    D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                   D3D12_BIND_INVALIDATE_FULL);
+                                   D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
    d3d12_apply_resource_states(ctx, false);
 
    enum pipe_format format = psurf->texture->format;
@@ -2057,7 +2040,7 @@ d3d12_clear_depth_stencil(struct pipe_context *pctx,
    struct d3d12_resource *res = d3d12_resource(ctx->fb.zsbuf->texture);
    d3d12_transition_resource_state(ctx, res,
                                    D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                                   D3D12_BIND_INVALIDATE_FULL);
+                                   D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
    d3d12_apply_resource_states(ctx, false);
 
    D3D12_RECT rect = { (int)dstx, (int)dsty,
@@ -2126,8 +2109,27 @@ d3d12_flush_resource(struct pipe_context *pctx,
 
    d3d12_transition_resource_state(ctx, res,
                                    D3D12_RESOURCE_STATE_COMMON,
-                                   D3D12_BIND_INVALIDATE_FULL);
+                                   D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
    d3d12_apply_resource_states(ctx, false);
+}
+
+static void
+d3d12_signal(struct pipe_context *pipe,
+             struct pipe_fence_handle *pfence)
+{
+   struct d3d12_screen *screen = d3d12_screen(pipe->screen);
+   struct d3d12_fence *fence = d3d12_fence(pfence);
+   d3d12_flush_cmdlist(d3d12_context(pipe));
+   screen->cmdqueue->Signal(fence->cmdqueue_fence, fence->value);
+}
+
+static void
+d3d12_wait(struct pipe_context *pipe, struct pipe_fence_handle *pfence)
+{
+   struct d3d12_screen *screen = d3d12_screen(pipe->screen);
+   struct d3d12_fence *fence = d3d12_fence(pfence);
+   d3d12_flush_cmdlist(d3d12_context(pipe));
+   screen->cmdqueue->Wait(fence->cmdqueue_fence, fence->value);
 }
 
 static void
@@ -2352,10 +2354,52 @@ d3d12_set_tess_state(struct pipe_context *pctx,
    memcpy(ctx->default_inner_tess_factor, default_inner_level, sizeof(ctx->default_inner_tess_factor));
 }
 
+static enum pipe_reset_status
+d3d12_get_reset_status(struct pipe_context *pctx)
+{
+   struct d3d12_screen *screen = d3d12_screen(pctx->screen);
+   HRESULT hr = screen->dev->GetDeviceRemovedReason();
+   switch (hr) {
+   case DXGI_ERROR_DEVICE_HUNG:
+   case DXGI_ERROR_INVALID_CALL:
+      return PIPE_GUILTY_CONTEXT_RESET;
+   case DXGI_ERROR_DEVICE_RESET:
+      return PIPE_INNOCENT_CONTEXT_RESET;
+   default:
+      return SUCCEEDED(hr) ? PIPE_NO_RESET : PIPE_UNKNOWN_CONTEXT_RESET;
+   }
+}
+
+#ifdef HAVE_GALLIUM_D3D12_VIDEO
+struct pipe_video_codec*
+d3d12_video_create_codec(struct pipe_context *context,
+                         const struct pipe_video_codec *templat)
+{
+    if (templat->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
+        return d3d12_video_encoder_create_encoder(context, templat);
+    } else if (templat->entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
+        return d3d12_video_create_decoder(context, templat);
+    } else if (templat->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING) {
+        return d3d12_video_processor_create(context, templat);
+    } else {
+        debug_printf("D3D12: Unsupported video codec entrypoint %d\n", templat->entrypoint);
+        return nullptr;
+    }
+}
+#endif
+
 struct pipe_context *
 d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 {
    struct d3d12_screen *screen = d3d12_screen(pscreen);
+   if (FAILED(screen->dev->GetDeviceRemovedReason())) {
+      /* Attempt recovery, but this may fail */
+      screen->deinit(screen);
+      if (!screen->init(screen)) {
+         debug_printf("D3D12: failed to reset screen\n");
+         return nullptr;
+      }
+   }
 
    struct d3d12_context *ctx = CALLOC_STRUCT(d3d12_context);
    if (!ctx)
@@ -2445,9 +2489,14 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    ctx->base.flush = d3d12_flush;
    ctx->base.flush_resource = d3d12_flush_resource;
 
+   ctx->base.fence_server_signal = d3d12_signal;
+   ctx->base.fence_server_sync = d3d12_wait;
+
    ctx->base.memory_barrier = d3d12_memory_barrier;
 
    ctx->base.get_sample_position = d3d12_get_sample_position;
+
+   ctx->base.get_device_reset_status = d3d12_get_reset_status;
 
    ctx->gfx_pipeline_state.sample_mask = ~0;
 
@@ -2456,7 +2505,12 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    d3d12_context_query_init(&ctx->base);
    d3d12_context_blit_init(&ctx->base);
 
-
+#ifdef HAVE_GALLIUM_D3D12_VIDEO
+   // Add d3d12 video functions entrypoints
+   ctx->base.create_video_codec = d3d12_video_create_codec;
+   ctx->base.create_video_buffer = d3d12_video_buffer_create;
+   ctx->base.video_buffer_from_handle = d3d12_video_buffer_from_handle;
+#endif
    slab_create_child(&ctx->transfer_pool, &d3d12_screen(pscreen)->transfer_pool);
    slab_create_child(&ctx->transfer_pool_unsync, &d3d12_screen(pscreen)->transfer_pool);
 
@@ -2487,6 +2541,7 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    d3d12_gs_variant_cache_init(ctx);
    d3d12_tcs_variant_cache_init(ctx);
    d3d12_compute_transform_cache_init(ctx);
+   d3d12_context_state_table_init(ctx);
 
    util_dl_library *d3d12_mod = util_dl_open(UTIL_DL_PREFIX "d3d12" UTIL_DL_EXT);
    if (!d3d12_mod) {
@@ -2496,11 +2551,7 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    ctx->D3D12SerializeVersionedRootSignature =
       (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)util_dl_get_proc_address(d3d12_mod, "D3D12SerializeVersionedRootSignature");
 
-   if (FAILED(screen->dev->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-                                       IID_PPV_ARGS(&ctx->cmdqueue_fence)))) {
-      FREE(ctx);
-      return NULL;
-   }
+   ctx->submit_id = (uint64_t)p_atomic_add_return(&screen->ctx_count, 1) << 32ull;
 
    for (unsigned i = 0; i < ARRAY_SIZE(ctx->batches); ++i) {
       if (!d3d12_init_batch(ctx, &ctx->batches[i])) {
@@ -2519,19 +2570,25 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    }
    d3d12_init_null_sampler(ctx);
 
-   ctx->validation_tools = d3d12_validator_create();
+#ifdef _WIN32
+   if (!(d3d12_debug & D3D12_DEBUG_EXPERIMENTAL) ||
+       (d3d12_debug & D3D12_DEBUG_DISASS))
+      ctx->dxil_validator = dxil_create_validator(NULL);
+#endif
 
    ctx->blitter = util_blitter_create(&ctx->base);
    if (!ctx->blitter)
       return NULL;
-
-   ctx->resource_state_manager = new ResourceStateManager();
 
    if (!d3d12_init_polygon_stipple(&ctx->base)) {
       debug_printf("D3D12: failed to initialize polygon stipple resources\n");
       FREE(ctx);
       return NULL;
    }
+
+   mtx_lock(&screen->submit_mutex);
+   list_addtail(&ctx->context_list_entry, &screen->context_list);
+   mtx_unlock(&screen->submit_mutex);
 
    if (flags & PIPE_CONTEXT_PREFER_THREADED)
       return threaded_context_create(&ctx->base,

@@ -239,7 +239,7 @@ lower_phis_to_scalar_block(nir_block *block,
                                                       nir_op_mov);
             nir_ssa_dest_init(&mov->instr, &mov->dest.dest, 1, bit_size, NULL);
             mov->dest.write_mask = 1;
-            nir_src_copy(&mov->src[0].src, &src->src);
+            nir_src_copy(&mov->src[0].src, &src->src, &mov->instr);
             mov->src[0].swizzle[0] = i;
 
             /* Insert at the end of the predecessor but before the jump */

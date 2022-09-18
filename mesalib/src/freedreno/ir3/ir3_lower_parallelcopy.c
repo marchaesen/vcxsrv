@@ -482,7 +482,7 @@ handle_copies(struct ir3_shader_variant *v, struct ir3_instruction *instr,
       if (entries[i].flags & IR3_REG_SHARED)
          ctx.entries[ctx.entry_count++] = entries[i];
    }
-   _handle_copies(v->shader->compiler, instr, &ctx);
+   _handle_copies(v->compiler, instr, &ctx);
 
    if (v->mergedregs) {
       /* Half regs and full regs are in the same file, so handle everything
@@ -493,7 +493,7 @@ handle_copies(struct ir3_shader_variant *v, struct ir3_instruction *instr,
          if (!(entries[i].flags & IR3_REG_SHARED))
             ctx.entries[ctx.entry_count++] = entries[i];
       }
-      _handle_copies(v->shader->compiler, instr, &ctx);
+      _handle_copies(v->compiler, instr, &ctx);
    } else {
       /* There may be both half copies and full copies, so we have to split
        * them up since they don't interfere.
@@ -503,14 +503,14 @@ handle_copies(struct ir3_shader_variant *v, struct ir3_instruction *instr,
          if (entries[i].flags & IR3_REG_HALF)
             ctx.entries[ctx.entry_count++] = entries[i];
       }
-      _handle_copies(v->shader->compiler, instr, &ctx);
+      _handle_copies(v->compiler, instr, &ctx);
 
       ctx.entry_count = 0;
       for (unsigned i = 0; i < entry_count; i++) {
          if (!(entries[i].flags & (IR3_REG_HALF | IR3_REG_SHARED)))
             ctx.entries[ctx.entry_count++] = entries[i];
       }
-      _handle_copies(v->shader->compiler, instr, &ctx);
+      _handle_copies(v->compiler, instr, &ctx);
    }
 }
 

@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2012 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -29,6 +29,7 @@
 #include "svga3d_reg.h"
 #include "svga_context.h"
 #include "svga_streamout.h"
+#include "compiler/shader_enums.h"
 
 
 /**
@@ -296,11 +297,70 @@ struct svga_cs_variant
 };
 
 
+struct svga_shader_info
+{
+   ubyte num_inputs;
+   ubyte num_outputs;
+
+   ubyte input_semantic_name[PIPE_MAX_SHADER_INPUTS];
+   ubyte input_semantic_index[PIPE_MAX_SHADER_INPUTS];
+   ubyte input_usage_mask[PIPE_MAX_SHADER_INPUTS];
+   ubyte output_semantic_name[PIPE_MAX_SHADER_OUTPUTS];
+   ubyte output_semantic_index[PIPE_MAX_SHADER_OUTPUTS];
+   ubyte output_usage_mask[PIPE_MAX_SHADER_OUTPUTS];
+
+   uint64_t generic_inputs_mask;
+   uint64_t generic_outputs_mask;
+
+   boolean writes_edgeflag;
+   boolean writes_layer;
+   boolean writes_position;
+   boolean writes_psize;
+   boolean writes_viewport_index;
+
+   boolean uses_grid_size;
+   boolean uses_const_buffers;
+   boolean uses_hw_atomic;
+   boolean uses_images;
+   boolean uses_image_size;
+   boolean uses_shader_buffers;
+
+   unsigned const_buffers_declared;  /* bitmask of declared const buffers */
+   unsigned constbuf0_num_uniforms;  /* number of uniforms in constbuf0 */
+
+   struct {
+      boolean color0_writes_all_cbufs;
+   } fs;
+
+  struct {
+      enum pipe_prim_type in_prim;
+      enum pipe_prim_type out_prim;
+   } gs;
+
+   struct {
+      unsigned vertices_out;        /* number of vertices in tcs patch */
+      boolean writes_tess_factor;
+   } tcs;
+
+   struct {
+      enum pipe_prim_type prim_mode;
+      boolean reads_control_point;
+      boolean reads_tess_factor;
+   } tes;
+};
+
+
 struct svga_shader
 {
+   enum pipe_shader_ir type;            /* IR type */
+   enum pipe_shader_type stage;         /* shader stage */
+
+   struct svga_shader_info info;        /* shader info */
+
+   /* TGSI */
    const struct tgsi_token *tokens;
    struct svga_token_key token_key;     /* token key for the token string */
-   struct tgsi_shader_info info;
+   struct tgsi_shader_info tgsi_info;
 
    /* List of shaders with tokens derived from the same token string */
    struct svga_shader *next;
@@ -310,6 +370,11 @@ struct svga_shader
 
    /** Head of linked list of compiled variants */
    struct svga_shader_variant *variants;
+
+   /* Get dummy shader variant */
+   struct svga_shader_variant *(*get_dummy_shader)(struct svga_context *,
+                                                   struct svga_shader *,
+                                                   const struct svga_compile_key *);
 
    unsigned id;  /**< for debugging only */
 };
@@ -421,6 +486,18 @@ svga_search_shader_key(const struct svga_shader *shader,
 struct svga_shader *
 svga_search_shader_token_key(struct svga_shader *shader,
                              const struct svga_token_key *key);
+
+struct svga_shader *
+svga_create_shader(struct pipe_context *pipe,
+                   const struct pipe_shader_state *templ,
+                   enum pipe_shader_type stage,
+                   unsigned len);
+
+enum pipe_error
+svga_compile_shader(struct svga_context *svga,
+                    struct svga_shader *shader,
+                    const struct svga_compile_key *key,
+                    struct svga_shader_variant **out_variant);
 
 enum pipe_error
 svga_define_shader(struct svga_context *svga,
@@ -538,5 +615,20 @@ svga_is_using_flat_shading(const struct svga_context *svga)
          svga_fs_variant(svga->state.hw_draw.fs)->uses_flat_interp : FALSE;
 }
 
+struct svga_shader_variant *
+svga_get_compiled_dummy_vertex_shader(struct svga_context *svga,
+                                      struct svga_shader *shader,
+                                      const struct svga_compile_key *key);
+
+
+struct svga_shader_variant *
+svga_get_compiled_dummy_fragment_shader(struct svga_context *svga,
+                                        struct svga_shader *shader,
+                                        const struct svga_compile_key *key);
+
+struct svga_shader_variant *
+svga_get_compiled_dummy_geometry_shader(struct svga_context *svga,
+                                        struct svga_shader *shader,
+                                        const struct svga_compile_key *key);
 
 #endif /* SVGA_SHADER_H */

@@ -87,7 +87,7 @@ exaCreatePixmap_driver(ScreenPtr pScreen, int w, int h, int depth,
     }
     else {
         paddedWidth = ((w * bpp + FB_MASK) >> FB_SHIFT) * sizeof(FbBits);
-        if (paddedWidth / 4 > 32767 || h > 32767)
+        if (paddedWidth / 4 > 32767)
             return NullPixmap;
 
         exaSetFbPitch(pExaScr, pExaPixmap, w, h, bpp);

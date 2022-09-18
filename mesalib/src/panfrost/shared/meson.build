@@ -36,3 +36,22 @@ libpanfrost_shared = static_library(
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )
+
+if with_tests
+  test(
+    'panfrost_tiling',
+    executable(
+      'panfrost_tiling',
+      files(
+        'test/test-tiling.cpp',
+      ),
+      c_args : [c_msvc_compat_args, no_override_init_args],
+      gnu_symbol_visibility : 'hidden',
+      include_directories : [inc_include, inc_src, inc_mesa, inc_panfrost, inc_gallium],
+      dependencies: [idep_gtest],
+      link_with : [libpanfrost_shared],
+    ),
+    suite : ['panfrost'],
+    protocol : gtest_test_protocol,
+  )
+endif

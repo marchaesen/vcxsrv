@@ -271,7 +271,8 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
                                unsigned src_width0, unsigned src_height0,
                                unsigned mask, unsigned filter,
                                const struct pipe_scissor_state *scissor,
-                               bool alpha_blend, bool sample0_only);
+                               bool alpha_blend, bool sample0_only,
+                               unsigned dst_sample);
 
 void util_blitter_blit(struct blitter_context *blitter,
 		       const struct pipe_blit_info *info);
@@ -299,17 +300,6 @@ void util_blitter_default_src_texture(struct blitter_context *blitter,
                                       struct pipe_sampler_view *src_templ,
                                       struct pipe_resource *src,
                                       unsigned srclevel);
-
-/**
- * Copy data from one buffer to another using the Stream Output functionality.
- * 4-byte alignment is required, otherwise software fallback is used.
- */
-void util_blitter_copy_buffer(struct blitter_context *blitter,
-                              struct pipe_resource *dst,
-                              unsigned dstx,
-                              struct pipe_resource *src,
-                              unsigned srcx,
-                              unsigned size);
 
 /**
  * Clear the contents of a buffer using the Stream Output functionality.

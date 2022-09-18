@@ -6,8 +6,7 @@ stages:
 before_script:
   - dnf -y upgrade --disablerepo=rawhide-modular --nogpgcheck fedora-repos fedora-repos-rawhide
   - dnf -y upgrade --disablerepo=rawhide-modular
-  - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel freetype-devel json-c-devel git docbook-utils docbook-utils-pdf bubblewrap
-  - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken mingw64-gettext mingw64-freetype mingw64-expat wine
+  - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel libxml2-devel freetype-devel json-c-devel git docbook-utils docbook-utils-pdf bubblewrap
   - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken ninja-build wget python3-pip
   - pip install meson
 
@@ -20,7 +19,7 @@ shared-build:
     - export MAKEFLAGS="-j4"
     - mkdir "$BUILDDIR" "$PREFIX"
     - cd "$BUILDDIR"
-    - ../autogen.sh --prefix="$PREFIX" --enable-shared --disable-static
+    - ../autogen.sh --prefix="$PREFIX" --enable-shared --disable-static --enable-libxml2
     - make
     - make check
     - make install
@@ -48,7 +47,7 @@ static-build:
     - export MAKEFLAGS="-j4"
     - mkdir "$BUILDDIR"
     - cd "$BUILDDIR"
-    - ../autogen.sh --prefix="$PREFIX" --disable-shared --enable-static
+    - ../autogen.sh --prefix="$PREFIX" --disable-shared --enable-static --enable-libxml2
     - make
     - make check
   artifacts:
@@ -60,7 +59,12 @@ static-build:
       - build-*/test/*.trs
       - build-*/test/out*
 mingw-build:
+  image: fedora:35
   stage: build
+  before_script:
+    - dnf -y upgrade --disablerepo=rawhide-modular
+    - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken @buildsys-build autoconf automake libtool gettext gettext-devel gperf libxml2-devel freetype-devel json-c-devel git docbook-utils docbook-utils-pdf wget
+    - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken mingw64-gettext mingw64-freetype mingw64-libxml2 wine
   script:
     - export BUILD_ID="fontconfig-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
     - export PREFIX="$(pwd)/prefix-$BUILD_ID"
@@ -69,7 +73,7 @@ mingw-build:
     - mkdir "$BUILDDIR"
     - cd "$BUILDDIR"
     - eval `rpm --eval %{mingw64_env}`
-    - ../autogen.sh --prefix="$PREFIX" --host=x86_64-mingw32 --disable-shared --enable-static
+    - ../autogen.sh --prefix="$PREFIX" --host=x86_64-mingw32 --disable-shared --enable-static --enable-libxml2
     - make
     - make check
   artifacts:

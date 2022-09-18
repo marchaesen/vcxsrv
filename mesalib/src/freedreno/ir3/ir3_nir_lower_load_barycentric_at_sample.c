@@ -43,7 +43,7 @@ lower_load_barycentric_at_sample(nir_builder *b, nir_intrinsic_instr *intr)
 {
    nir_ssa_def *pos = load_sample_pos(b, intr->src[0].ssa);
 
-   return nir_load_barycentric_at_offset(b, 32, pos);
+   return nir_load_barycentric_at_offset(b, 32, pos, .interp_mode = nir_intrinsic_interp_mode(intr));
 }
 
 static nir_ssa_def *
@@ -86,7 +86,7 @@ ir3_nir_lower_load_barycentric_at_sample_filter(const nir_instr *instr,
 bool
 ir3_nir_lower_load_barycentric_at_sample(nir_shader *shader)
 {
-   debug_assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    return nir_shader_lower_instructions(
       shader, ir3_nir_lower_load_barycentric_at_sample_filter,

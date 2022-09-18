@@ -124,7 +124,7 @@ Flags
    Hardware cursor data consists of two pieces, a source and a mask.
    The mask is a bitmap indicating which parts of the cursor are
    transparent and which parts are drawn.  The source is a bitmap
-   indicating which parts of the non-transparent portion of the the
+   indicating which parts of the non-transparent portion of the
    cursor should be painted in the foreground color and which should
    be painted in the background color.
 

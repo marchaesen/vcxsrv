@@ -25,6 +25,7 @@
 #define ZINK_BATCH_H
 
 #include <vulkan/vulkan.h>
+#include "zink_types.h"
 
 #include "util/list.h"
 #include "util/set.h"
@@ -36,95 +37,6 @@
 extern "C" {
 #endif
 
-struct pipe_reference;
-
-struct zink_buffer_view;
-struct zink_context;
-struct zink_descriptor_set;
-struct zink_image_view;
-struct zink_program;
-struct zink_render_pass;
-struct zink_resource;
-struct zink_sampler_view;
-struct zink_surface;
-
-struct zink_batch_usage {
-   uint32_t usage;
-   cnd_t flush;
-   mtx_t mtx;
-   bool unflushed;
-};
-
-/* not real api don't use */
-bool
-batch_ptr_add_usage(struct zink_batch *batch, struct set *s, void *ptr);
-
-struct zink_batch_state {
-   struct zink_fence fence;
-   struct zink_batch_state *next;
-
-   struct zink_batch_usage usage;
-   struct zink_context *ctx;
-   VkCommandPool cmdpool;
-   VkCommandBuffer cmdbuf;
-   VkCommandBuffer barrier_cmdbuf;
-   VkSemaphore signal_semaphore; //external signal semaphore
-   struct util_dynarray wait_semaphores; //external wait semaphores
-   struct util_dynarray wait_semaphore_stages; //external wait semaphores
-
-   VkQueue queue; //duplicated from batch for threading
-   VkSemaphore sem;
-
-   struct util_queue_fence flush_completed;
-
-   struct pipe_resource *flush_res;
-
-   struct set *programs;
-
-   struct set *resources;
-   struct set *surfaces;
-   struct set *bufferviews;
-
-   struct util_dynarray unref_resources;
-   struct util_dynarray bindless_releases[2];
-
-   struct util_dynarray persistent_resources;
-   struct util_dynarray zombie_samplers;
-   struct util_dynarray dead_framebuffers;
-
-   struct set *active_queries; /* zink_query objects which were active at some point in this batch */
-
-   struct zink_batch_descriptor_data *dd;
-
-   VkDeviceSize resource_size;
-
-    /* this is a monotonic int used to disambiguate internal fences from their tc fence references */
-   unsigned submit_count;
-
-   bool is_device_lost;
-   bool have_timelines;
-   bool has_barriers;
-   bool scanout_flush;
-};
-
-struct zink_batch {
-   struct zink_batch_state *state;
-
-   struct zink_batch_usage *last_batch_usage;
-
-   unsigned work_count;
-
-   bool has_work;
-   bool last_was_compute;
-   bool in_rp; //renderpass is currently active
-};
-
-
-static inline struct zink_batch_state *
-zink_batch_state(struct zink_fence *fence)
-{
-   return (struct zink_batch_state *)fence;
-}
 
 void
 zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs);
@@ -150,7 +62,7 @@ void
 zink_end_batch(struct zink_context *ctx, struct zink_batch *batch);
 
 void
-zink_batch_resource_usage_set(struct zink_batch *batch, struct zink_resource *res, bool write);
+zink_batch_add_wait_semaphore(struct zink_batch *batch, VkSemaphore sem);
 
 void
 zink_batch_reference_resource_rw(struct zink_batch *batch,

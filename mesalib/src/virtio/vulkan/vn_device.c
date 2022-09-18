@@ -22,9 +22,13 @@
 static void
 vn_queue_fini(struct vn_queue *queue)
 {
+   VkDevice dev_handle = vn_device_to_handle(queue->device);
+
    if (queue->wait_fence != VK_NULL_HANDLE) {
-      vn_DestroyFence(vn_device_to_handle(queue->device), queue->wait_fence,
-                      NULL);
+      vn_DestroyFence(dev_handle, queue->wait_fence, NULL);
+   }
+   if (queue->sync_fence != VK_NULL_HANDLE) {
+      vn_DestroyFence(dev_handle, queue->sync_fence, NULL);
    }
    vn_object_base_fini(&queue->base);
 }
@@ -53,23 +57,6 @@ vn_queue_init(struct vn_device *dev,
    queue->index = queue_index;
    queue->flags = queue_info->flags;
 
-   const VkExportFenceCreateInfo export_fence_info = {
-      .sType = VK_STRUCTURE_TYPE_EXPORT_FENCE_CREATE_INFO,
-      .pNext = NULL,
-      .handleTypes = VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT,
-   };
-   const VkFenceCreateInfo fence_info = {
-      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-      .pNext = dev->instance->experimental.globalFencing == VK_TRUE
-                  ? &export_fence_info
-                  : NULL,
-      .flags = 0,
-   };
-   VkResult result = vn_CreateFence(vn_device_to_handle(dev), &fence_info,
-                                    NULL, &queue->wait_fence);
-   if (result != VK_SUCCESS)
-      return result;
-
    return VK_SUCCESS;
 }
 
@@ -89,32 +76,71 @@ vn_device_init_queues(struct vn_device *dev,
    if (!queues)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-   VkResult result = VK_SUCCESS;
    count = 0;
    for (uint32_t i = 0; i < create_info->queueCreateInfoCount; i++) {
+      VkResult result;
+
       const VkDeviceQueueCreateInfo *queue_info =
          &create_info->pQueueCreateInfos[i];
       for (uint32_t j = 0; j < queue_info->queueCount; j++) {
          result = vn_queue_init(dev, &queues[count], queue_info, j);
-         if (result != VK_SUCCESS)
-            break;
+         if (result != VK_SUCCESS) {
+            for (uint32_t k = 0; k < count; k++)
+               vn_queue_fini(&queues[k]);
+            vk_free(alloc, queues);
+
+            return result;
+         }
 
          count++;
       }
-   }
-
-   if (result != VK_SUCCESS) {
-      for (uint32_t i = 0; i < count; i++)
-         vn_queue_fini(&queues[i]);
-      vk_free(alloc, queues);
-
-      return result;
    }
 
    dev->queues = queues;
    dev->queue_count = count;
 
    return VK_SUCCESS;
+}
+
+static bool
+vn_device_queue_family_init(struct vn_device *dev,
+                            const VkDeviceCreateInfo *create_info)
+{
+   const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
+   uint32_t *queue_families = NULL;
+   uint32_t count = 0;
+
+   queue_families = vk_zalloc(
+      alloc, sizeof(*queue_families) * create_info->queueCreateInfoCount,
+      VN_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+   if (!queue_families)
+      return false;
+
+   for (uint32_t i = 0; i < create_info->queueCreateInfoCount; i++) {
+      const uint32_t index =
+         create_info->pQueueCreateInfos[i].queueFamilyIndex;
+      bool new_index = true;
+
+      for (uint32_t j = 0; j < count; j++) {
+         if (queue_families[j] == index) {
+            new_index = false;
+            break;
+         }
+      }
+      if (new_index)
+         queue_families[count++] = index;
+   }
+
+   dev->queue_families = queue_families;
+   dev->queue_family_count = count;
+
+   return true;
+}
+
+static inline void
+vn_device_queue_family_fini(struct vn_device *dev)
+{
+   vk_free(&dev->base.base.alloc, dev->queue_families);
 }
 
 static bool
@@ -181,11 +207,7 @@ vn_device_fix_create_info(const struct vn_device *dev,
       app_exts->KHR_swapchain || app_exts->ANDROID_native_buffer ||
       app_exts->ANDROID_external_memory_android_hardware_buffer;
    if (has_wsi) {
-      /* KHR_swapchain may be advertised without the renderer support for
-       * EXT_image_drm_format_modifier
-       */
-      if (!app_exts->EXT_image_drm_format_modifier &&
-          physical_dev->renderer_extensions.EXT_image_drm_format_modifier) {
+      if (!app_exts->EXT_image_drm_format_modifier) {
          extra_exts[extra_count++] =
             VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME;
 
@@ -196,11 +218,7 @@ vn_device_fix_create_info(const struct vn_device *dev,
          }
       }
 
-      /* XXX KHR_swapchain may be advertised without the renderer support for
-       * EXT_queue_family_foreign
-       */
-      if (!app_exts->EXT_queue_family_foreign &&
-          physical_dev->renderer_extensions.EXT_queue_family_foreign) {
+      if (!app_exts->EXT_queue_family_foreign) {
          extra_exts[extra_count++] =
             VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME;
       }
@@ -214,8 +232,16 @@ vn_device_fix_create_info(const struct vn_device *dev,
             VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME;
       }
 
-      if (app_exts->ANDROID_native_buffer)
+      if (app_exts->ANDROID_native_buffer) {
+         if (!app_exts->KHR_external_fence_fd &&
+             (physical_dev->renderer_sync_fd_fence_features &
+              VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT)) {
+            extra_exts[extra_count++] =
+               VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME;
+         }
+
          block_exts[block_count++] = VK_ANDROID_NATIVE_BUFFER_EXTENSION_NAME;
+      }
 
       if (app_exts->ANDROID_external_memory_android_hardware_buffer) {
          block_exts[block_count++] =
@@ -231,17 +257,42 @@ vn_device_fix_create_info(const struct vn_device *dev,
             extra_exts[extra_count++] =
                VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME;
          }
-         FALLTHROUGH;
+         if (!app_exts->KHR_external_memory_fd) {
+            extra_exts[extra_count++] =
+               VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME;
+         }
+         break;
       case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT:
+         if (app_exts->EXT_external_memory_dma_buf) {
+            block_exts[block_count++] =
+               VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME;
+         }
          if (!app_exts->KHR_external_memory_fd) {
             extra_exts[extra_count++] =
                VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME;
          }
          break;
       default:
-         /* TODO other handle types */
+         assert(!physical_dev->instance->renderer->info.has_dma_buf_import);
          break;
       }
+   }
+
+   /* see vn_queue_submission_count_batch_semaphores */
+   if (!app_exts->KHR_external_semaphore_fd &&
+       (physical_dev->renderer_sync_fd_semaphore_features &
+        VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT)) {
+      extra_exts[extra_count++] = VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME;
+   }
+
+   if (app_exts->EXT_physical_device_drm) {
+      /* see vn_physical_device_get_native_extensions */
+      block_exts[block_count++] = VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME;
+   }
+
+   if (app_exts->EXT_tooling_info) {
+      /* see vn_physical_device_get_native_extensions */
+      block_exts[block_count++] = VK_EXT_TOOLING_INFO_EXTENSION_NAME;
    }
 
    assert(extra_count <= ARRAY_SIZE(extra_exts));
@@ -259,6 +310,31 @@ vn_device_fix_create_info(const struct vn_device *dev,
       return NULL;
 
    return local_info;
+}
+
+static inline VkResult
+vn_device_feedback_pool_init(struct vn_device *dev)
+{
+   /* The feedback pool defaults to suballocate slots of 8 bytes each. Initial
+    * pool size of 4096 corresponds to a total of 512 fences, semaphores and
+    * events, which well covers the common scenarios. Pool can grow anyway.
+    */
+   static const uint32_t pool_size = 4096;
+   const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
+
+   if (VN_PERF(NO_EVENT_FEEDBACK) && VN_PERF(NO_FENCE_FEEDBACK))
+      return VK_SUCCESS;
+
+   return vn_feedback_pool_init(dev, &dev->feedback_pool, pool_size, alloc);
+}
+
+static inline void
+vn_device_feedback_pool_fini(struct vn_device *dev)
+{
+   if (VN_PERF(NO_EVENT_FEEDBACK) && VN_PERF(NO_FENCE_FEEDBACK))
+      return;
+
+   vn_feedback_pool_fini(&dev->feedback_pool);
 }
 
 static VkResult
@@ -293,9 +369,10 @@ vn_device_init(struct vn_device *dev,
    if (result != VK_SUCCESS)
       return result;
 
-   result = vn_device_init_queues(dev, create_info);
-   if (result != VK_SUCCESS)
-      goto fail;
+   if (!vn_device_queue_family_init(dev, create_info)) {
+      result = VK_ERROR_OUT_OF_HOST_MEMORY;
+      goto out_destroy_device;
+   }
 
    for (uint32_t i = 0; i < ARRAY_SIZE(dev->memory_pools); i++) {
       struct vn_device_memory_pool *pool = &dev->memory_pools[i];
@@ -304,18 +381,38 @@ vn_device_init(struct vn_device *dev,
 
    result = vn_buffer_cache_init(dev);
    if (result != VK_SUCCESS)
-      goto fail;
+      goto out_memory_pool_fini;
+
+   result = vn_device_feedback_pool_init(dev);
+   if (result != VK_SUCCESS)
+      goto out_buffer_cache_fini;
+
+   result = vn_feedback_cmd_pools_init(dev);
+   if (result != VK_SUCCESS)
+      goto out_feedback_pool_fini;
+
+   result = vn_device_init_queues(dev, create_info);
+   if (result != VK_SUCCESS)
+      goto out_cmd_pools_fini;
 
    return VK_SUCCESS;
 
-fail:
-   if (dev->queues) {
-      for (uint32_t i = 0; i < dev->queue_count; i++)
-         vn_queue_fini(&dev->queues[i]);
+out_cmd_pools_fini:
+   vn_feedback_cmd_pools_fini(dev);
 
-      vk_free(alloc, dev->queues);
-   }
+out_feedback_pool_fini:
+   vn_device_feedback_pool_fini(dev);
 
+out_buffer_cache_fini:
+   vn_buffer_cache_fini(dev);
+
+out_memory_pool_fini:
+   for (uint32_t i = 0; i < ARRAY_SIZE(dev->memory_pools); i++)
+      vn_device_memory_pool_fini(dev, i);
+
+   vn_device_queue_family_fini(dev);
+
+out_destroy_device:
    vn_call_vkDestroyDevice(instance, dev_handle, NULL);
 
    return result;
@@ -327,6 +424,7 @@ vn_CreateDevice(VkPhysicalDevice physicalDevice,
                 const VkAllocationCallbacks *pAllocator,
                 VkDevice *pDevice)
 {
+   VN_TRACE_FUNC();
    struct vn_physical_device *physical_dev =
       vn_physical_device_from_handle(physicalDevice);
    struct vn_instance *instance = physical_dev->instance;
@@ -367,6 +465,7 @@ vn_CreateDevice(VkPhysicalDevice physicalDevice,
 void
 vn_DestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
@@ -374,13 +473,19 @@ vn_DestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
    if (!dev)
       return;
 
+   for (uint32_t i = 0; i < dev->queue_count; i++)
+      vn_queue_fini(&dev->queues[i]);
+
+   vn_feedback_cmd_pools_fini(dev);
+
+   vn_device_feedback_pool_fini(dev);
+
    vn_buffer_cache_fini(dev);
 
    for (uint32_t i = 0; i < ARRAY_SIZE(dev->memory_pools); i++)
       vn_device_memory_pool_fini(dev, i);
 
-   for (uint32_t i = 0; i < dev->queue_count; i++)
-      vn_queue_fini(&dev->queues[i]);
+   vn_device_queue_family_fini(dev);
 
    /* We must emit vkDestroyDevice before freeing dev->queues.  Otherwise,
     * another thread might reuse their object ids while they still refer to
@@ -429,6 +534,66 @@ vn_DeviceWaitIdle(VkDevice device)
       if (result != VK_SUCCESS)
          return vn_error(dev->instance, result);
    }
+
+   return VK_SUCCESS;
+}
+
+VkResult
+vn_GetCalibratedTimestampsEXT(
+   VkDevice device,
+   uint32_t timestampCount,
+   const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+   uint64_t *pTimestamps,
+   uint64_t *pMaxDeviation)
+{
+   struct vn_device *dev = vn_device_from_handle(device);
+   uint64_t begin, end, max_clock_period = 0;
+   VkResult ret;
+   int domain;
+
+#ifdef CLOCK_MONOTONIC_RAW
+   begin = vk_clock_gettime(CLOCK_MONOTONIC_RAW);
+#else
+   begin = vk_clock_gettime(CLOCK_MONOTONIC);
+#endif
+
+   for (domain = 0; domain < timestampCount; domain++) {
+      switch (pTimestampInfos[domain].timeDomain) {
+      case VK_TIME_DOMAIN_DEVICE_EXT: {
+         uint64_t device_max_deviation = 0;
+
+         ret = vn_call_vkGetCalibratedTimestampsEXT(
+            dev->instance, device, 1, &pTimestampInfos[domain],
+            &pTimestamps[domain], &device_max_deviation);
+
+         if (ret != VK_SUCCESS)
+            return vn_error(dev->instance, ret);
+
+         max_clock_period = MAX2(max_clock_period, device_max_deviation);
+         break;
+      }
+      case VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT:
+         pTimestamps[domain] = vk_clock_gettime(CLOCK_MONOTONIC);
+         max_clock_period = MAX2(max_clock_period, 1);
+         break;
+#ifdef CLOCK_MONOTONIC_RAW
+      case VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_EXT:
+         pTimestamps[domain] = begin;
+         break;
+#endif
+      default:
+         pTimestamps[domain] = 0;
+         break;
+      }
+   }
+
+#ifdef CLOCK_MONOTONIC_RAW
+   end = vk_clock_gettime(CLOCK_MONOTONIC_RAW);
+#else
+   end = vk_clock_gettime(CLOCK_MONOTONIC);
+#endif
+
+   *pMaxDeviation = vk_time_max_deviation(begin, end, max_clock_period);
 
    return VK_SUCCESS;
 }

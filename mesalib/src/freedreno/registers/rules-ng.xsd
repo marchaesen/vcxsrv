@@ -255,6 +255,7 @@
 		<attribute name="inline" type="rng:Boolean" use="optional" />
 		<attribute name="bare" type="rng:Boolean" use="optional" />
 		<attribute name="prefix" type="NMTOKENS" use="optional" />
+		<attribute name="varset" type="NMTOKEN" use="optional" />
 	</complexType>
 
 	<complexType name="valueType">

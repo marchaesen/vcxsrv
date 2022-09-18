@@ -1,3 +1,8 @@
 KHR-GL46.texture_barrier.overlapping-texels
 KHR-GL46.texture_barrier_ARB.overlapping-texels
 KHR-GL46.texture_barrier_ARB.same-texel-rw-multipass
+spec@arb_query_buffer_object@qbo
+spec@arb_shader_storage_buffer_object@execution@ssbo-atomicexchange-int
+spec@amd_performance_monitor@measure
+spec@amd_performance_monitor@measure@change counters while active
+spec@amd_performance_monitor@measure@counters in range

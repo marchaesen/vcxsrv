@@ -33,13 +33,13 @@ XkbGetControls \- Finds the current state of Xkb server controls
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- which
+.I which
 mask of controls requested
 .TP
-.I \- xkb
+.I xkb
 keyboard description for controls information
 .SH DESCRIPTION
 .LP

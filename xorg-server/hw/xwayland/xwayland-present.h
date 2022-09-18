@@ -35,6 +35,8 @@
 
 #ifdef GLAMOR_HAS_GBM
 struct xwl_present_window {
+    WindowPtr window;
+
     struct xorg_list frame_callback_list;
 
     uint64_t msc;
@@ -59,6 +61,7 @@ struct xwl_present_event {
     PixmapPtr pixmap;
 };
 
+void xwl_present_reset_timer(struct xwl_present_window *xwl_present_window);
 void xwl_present_frame_callback(struct xwl_present_window *xwl_present_window);
 Bool xwl_present_init(ScreenPtr screen);
 void xwl_present_cleanup(WindowPtr window);

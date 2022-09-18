@@ -32,22 +32,61 @@
  */
 
 #include "util/u_debug.h"
+#include "util/log.h"
 
 #include "tgsi_transform.h"
 
+/**
+ * Increments the next-token index if the tgsi_build_* succeeded, or extends the
+ * token array and returns true to request a re-emit of the tgsi_build_* by the
+ * caller.
+ */
+static bool
+need_re_emit(struct tgsi_transform_context *ctx, uint32_t emitted, struct tgsi_header orig_header)
+{
+   if (emitted > 0) {
+      ctx->ti += emitted;
+      return false;
+   } else {
+      uint32_t new_len = ctx->max_tokens_out * 2;
+      if (new_len < ctx->max_tokens_out) {
+         ctx->fail = true;
+         return false;
+      }
 
+      struct tgsi_token *new_tokens = tgsi_alloc_tokens(new_len);
+      if (!new_tokens) {
+         ctx->fail = true;
+         return false;
+      }
+      memcpy(new_tokens, ctx->tokens_out, sizeof(struct tgsi_token) * ctx->ti);
+
+      tgsi_free_tokens(ctx->tokens_out);
+      ctx->tokens_out = new_tokens;
+      ctx->max_tokens_out = new_len;
+
+      /* Point the header at the resized tokens. */
+      ctx->header = (struct tgsi_header *)new_tokens;
+      /* The failing emit may have incremented header/body size, reset it to its state before our attempt. */
+      *ctx->header = orig_header;
+
+      return true;
+   }
+}
 
 static void
 emit_instruction(struct tgsi_transform_context *ctx,
                  const struct tgsi_full_instruction *inst)
 {
-   uint ti = ctx->ti;
+   uint32_t emitted;
+   struct tgsi_header orig_header = *ctx->header;
 
-   ti += tgsi_build_full_instruction(inst,
-                                     ctx->tokens_out + ti,
-                                     ctx->header,
-                                     ctx->max_tokens_out - ti);
-   ctx->ti = ti;
+   do {
+      emitted = tgsi_build_full_instruction(inst,
+                                            ctx->tokens_out + ctx->ti,
+                                            ctx->header,
+                                            ctx->max_tokens_out - ctx->ti);
+   } while (need_re_emit(ctx, emitted, orig_header));
 }
 
 
@@ -55,13 +94,15 @@ static void
 emit_declaration(struct tgsi_transform_context *ctx,
                  const struct tgsi_full_declaration *decl)
 {
-   uint ti = ctx->ti;
+   uint32_t emitted;
+   struct tgsi_header orig_header = *ctx->header;
 
-   ti += tgsi_build_full_declaration(decl,
-                                     ctx->tokens_out + ti,
-                                     ctx->header,
-                                     ctx->max_tokens_out - ti);
-   ctx->ti = ti;
+   do {
+      emitted = tgsi_build_full_declaration(decl,
+                                            ctx->tokens_out + ctx->ti,
+                                            ctx->header,
+                                            ctx->max_tokens_out - ctx->ti);
+   } while (need_re_emit(ctx, emitted, orig_header));
 }
 
 
@@ -69,13 +110,15 @@ static void
 emit_immediate(struct tgsi_transform_context *ctx,
                const struct tgsi_full_immediate *imm)
 {
-   uint ti = ctx->ti;
+   uint32_t emitted;
+   struct tgsi_header orig_header = *ctx->header;
 
-   ti += tgsi_build_full_immediate(imm,
-                                   ctx->tokens_out + ti,
-                                   ctx->header,
-                                   ctx->max_tokens_out - ti);
-   ctx->ti = ti;
+   do {
+      emitted = tgsi_build_full_immediate(imm,
+                                          ctx->tokens_out + ctx->ti,
+                                          ctx->header,
+                                          ctx->max_tokens_out - ctx->ti);
+   } while (need_re_emit(ctx, emitted, orig_header));
 }
 
 
@@ -83,13 +126,15 @@ static void
 emit_property(struct tgsi_transform_context *ctx,
               const struct tgsi_full_property *prop)
 {
-   uint ti = ctx->ti;
+   uint32_t emitted;
+   struct tgsi_header orig_header = *ctx->header;
 
-   ti += tgsi_build_full_property(prop,
-                                  ctx->tokens_out + ti,
-                                  ctx->header,
-                                  ctx->max_tokens_out - ti);
-   ctx->ti = ti;
+   do {
+      emitted = tgsi_build_full_property(prop,
+                                         ctx->tokens_out + ctx->ti,
+                                         ctx->header,
+                                         ctx->max_tokens_out - ctx->ti);
+   } while (need_re_emit(ctx, emitted, orig_header));
 }
 
 
@@ -100,15 +145,13 @@ emit_property(struct tgsi_transform_context *ctx,
  * by defining a transform_instruction() callback that examined and changed
  * the instruction src/dest regs.
  *
- * \return number of tokens emitted
+ * \return new tgsi tokens, or NULL on failure
  */
-int
+struct tgsi_token *
 tgsi_transform_shader(const struct tgsi_token *tokens_in,
-                      struct tgsi_token *tokens_out,
-                      uint max_tokens_out,
+                      uint initial_tokens_len,
                       struct tgsi_transform_context *ctx)
 {
-   uint procType;
    boolean first_instruction = TRUE;
    boolean epilog_emitted = FALSE;
    int cond_stack = 0;
@@ -120,6 +163,8 @@ tgsi_transform_shader(const struct tgsi_token *tokens_in,
    /* output shader */
    struct tgsi_processor *processor;
 
+   /* Always include space for the header. */
+   initial_tokens_len = MAX2(initial_tokens_len, 2);
 
    /**
     ** callback context init
@@ -128,27 +173,32 @@ tgsi_transform_shader(const struct tgsi_token *tokens_in,
    ctx->emit_declaration = emit_declaration;
    ctx->emit_immediate = emit_immediate;
    ctx->emit_property = emit_property;
-   ctx->tokens_out = tokens_out;
-   ctx->max_tokens_out = max_tokens_out;
+   ctx->tokens_out = tgsi_alloc_tokens(initial_tokens_len);
+   ctx->max_tokens_out = initial_tokens_len;
+   ctx->fail = false;
 
+   if (!ctx->tokens_out) {
+      mesa_loge("failed to allocate %d tokens\n", initial_tokens_len);
+      return NULL;
+   }
 
    /**
     ** Setup to begin parsing input shader
     **/
    if (tgsi_parse_init( &parse, tokens_in ) != TGSI_PARSE_OK) {
       debug_printf("tgsi_parse_init() failed in tgsi_transform_shader()!\n");
-      return -1;
+      return NULL;
    }
-   procType = parse.FullHeader.Processor.Processor;
+   ctx->processor = parse.FullHeader.Processor.Processor;
 
    /**
     **  Setup output shader
     **/
-   ctx->header = (struct tgsi_header *)tokens_out;
+   ctx->header = (struct tgsi_header *)ctx->tokens_out;
    *ctx->header = tgsi_build_header();
 
-   processor = (struct tgsi_processor *) (tokens_out + 1);
-   *processor = tgsi_build_processor( procType, ctx->header );
+   processor = (struct tgsi_processor *) (ctx->tokens_out + 1);
+   *processor = tgsi_build_processor( ctx->processor, ctx->header );
 
    ctx->ti = 2;
 
@@ -278,7 +328,12 @@ tgsi_transform_shader(const struct tgsi_token *tokens_in,
 
    tgsi_parse_free (&parse);
 
-   return ctx->ti;
+   if (ctx->fail) {
+      tgsi_free_tokens(ctx->tokens_out);
+      return NULL;
+   }
+
+   return ctx->tokens_out;
 }
 
 

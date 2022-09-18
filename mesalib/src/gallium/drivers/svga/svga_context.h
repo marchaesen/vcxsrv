@@ -591,7 +591,7 @@ struct svga_context
       boolean force_hw_line_stipple;
 
       /** To report perf/conformance/etc issues to the gallium frontend */
-      struct pipe_debug_callback callback;
+      struct util_debug_callback callback;
    } debug;
 
    struct {

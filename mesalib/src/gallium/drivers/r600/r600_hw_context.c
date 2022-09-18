@@ -73,7 +73,7 @@ void r600_need_cs_space(struct r600_context *ctx, unsigned num_dw,
 	}
 
 	/* SX_MISC */
-	if (ctx->b.chip_class == R600) {
+	if (ctx->b.gfx_level == R600) {
 		num_dw += 3;
 	}
 
@@ -139,13 +139,13 @@ void r600_flush_emit(struct r600_context *rctx)
 		}
 	}
 
-	if (rctx->b.chip_class >= R700 &&
+	if (rctx->b.gfx_level >= R700 &&
 	    (rctx->b.flags & R600_CONTEXT_FLUSH_AND_INV_CB_META)) {
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 		radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_FLUSH_AND_INV_CB_META) | EVENT_INDEX(0));
 	}
 
-	if (rctx->b.chip_class >= R700 &&
+	if (rctx->b.gfx_level >= R700 &&
 	    (rctx->b.flags & R600_CONTEXT_FLUSH_AND_INV_DB_META)) {
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 		radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));
@@ -160,7 +160,7 @@ void r600_flush_emit(struct r600_context *rctx)
 	}
 
 	if (rctx->b.flags & R600_CONTEXT_FLUSH_AND_INV ||
-	    (rctx->b.chip_class == R600 && rctx->b.flags & R600_CONTEXT_STREAMOUT_FLUSH)) {
+	    (rctx->b.gfx_level == R600 && rctx->b.flags & R600_CONTEXT_STREAMOUT_FLUSH)) {
 		radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 		radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_CACHE_FLUSH_AND_INV_EVENT) | EVENT_INDEX(0));
 	}
@@ -186,7 +186,7 @@ void r600_flush_emit(struct r600_context *rctx)
 	/* Don't use the DB CP COHER logic on r6xx.
 	 * There are hw bugs.
 	 */
-	if (rctx->b.chip_class >= R700 &&
+	if (rctx->b.gfx_level >= R700 &&
 	    (rctx->b.flags & R600_CONTEXT_FLUSH_AND_INV_DB)) {
 		cp_coher_cntl |= S_0085F0_DB_ACTION_ENA(1) |
 				S_0085F0_DB_DEST_BASE_ENA(1) |
@@ -196,7 +196,7 @@ void r600_flush_emit(struct r600_context *rctx)
 	/* Don't use the CB CP COHER logic on r6xx.
 	 * There are hw bugs.
 	 */
-	if (rctx->b.chip_class >= R700 &&
+	if (rctx->b.gfx_level >= R700 &&
 	    (rctx->b.flags & R600_CONTEXT_FLUSH_AND_INV_CB)) {
 		cp_coher_cntl |= S_0085F0_CB_ACTION_ENA(1) |
 				S_0085F0_CB0_DEST_BASE_ENA(1) |
@@ -208,14 +208,14 @@ void r600_flush_emit(struct r600_context *rctx)
 				S_0085F0_CB6_DEST_BASE_ENA(1) |
 				S_0085F0_CB7_DEST_BASE_ENA(1) |
 				S_0085F0_SMX_ACTION_ENA(1);
-		if (rctx->b.chip_class >= EVERGREEN)
+		if (rctx->b.gfx_level >= EVERGREEN)
 			cp_coher_cntl |= S_0085F0_CB8_DEST_BASE_ENA(1) |
 					S_0085F0_CB9_DEST_BASE_ENA(1) |
 					S_0085F0_CB10_DEST_BASE_ENA(1) |
 					S_0085F0_CB11_DEST_BASE_ENA(1);
 	}
 
-	if (rctx->b.chip_class >= R700 &&
+	if (rctx->b.gfx_level >= R700 &&
 	    rctx->b.flags & R600_CONTEXT_STREAMOUT_FLUSH) {
 		cp_coher_cntl |= S_0085F0_SO0_DEST_BASE_ENA(1) |
 				S_0085F0_SO1_DEST_BASE_ENA(1) |
@@ -285,7 +285,7 @@ void r600_context_gfx_flush(void *context, unsigned flags,
 	if (ctx->trace_buf)
 		eg_trace_emit(ctx);
 	/* old kernels and userspace don't set SX_MISC, so we must reset it to 0 here */
-	if (ctx->b.chip_class == R600) {
+	if (ctx->b.gfx_level == R600) {
 		radeon_set_context_reg(cs, R_028350_SX_MISC, 0);
 	}
 
@@ -356,7 +356,7 @@ void r600_begin_new_cs(struct r600_context *ctx)
 	r600_mark_atom_dirty(ctx, &ctx->db_misc_state.atom);
 	r600_mark_atom_dirty(ctx, &ctx->db_state.atom);
 	r600_mark_atom_dirty(ctx, &ctx->framebuffer.atom);
-	if (ctx->b.chip_class >= EVERGREEN) {
+	if (ctx->b.gfx_level >= EVERGREEN) {
 		r600_mark_atom_dirty(ctx, &ctx->fragment_images.atom);
 		r600_mark_atom_dirty(ctx, &ctx->fragment_buffers.atom);
 		r600_mark_atom_dirty(ctx, &ctx->compute_images.atom);
@@ -371,7 +371,7 @@ void r600_begin_new_cs(struct r600_context *ctx)
 	ctx->b.viewports.dirty_mask = (1 << R600_MAX_VIEWPORTS) - 1;
 	ctx->b.viewports.depth_range_dirty_mask = (1 << R600_MAX_VIEWPORTS) - 1;
 	r600_mark_atom_dirty(ctx, &ctx->b.viewports.atom);
-	if (ctx->b.chip_class <= EVERGREEN) {
+	if (ctx->b.gfx_level <= EVERGREEN) {
 		r600_mark_atom_dirty(ctx, &ctx->config_state.atom);
 	}
 	r600_mark_atom_dirty(ctx, &ctx->stencil_ref.atom);
@@ -397,7 +397,7 @@ void r600_begin_new_cs(struct r600_context *ctx)
 	if (ctx->rasterizer_state.cso)
 		r600_mark_atom_dirty(ctx, &ctx->rasterizer_state.atom);
 
-	if (ctx->b.chip_class <= R700) {
+	if (ctx->b.gfx_level <= R700) {
 		r600_mark_atom_dirty(ctx, &ctx->seamless_cube_map.atom);
 	}
 
@@ -438,8 +438,7 @@ void r600_emit_pfp_sync_me(struct r600_context *rctx)
 {
 	struct radeon_cmdbuf *cs = &rctx->b.gfx.cs;
 
-	if (rctx->b.chip_class >= EVERGREEN &&
-	    rctx->b.screen->info.drm_minor >= 46) {
+	if (rctx->b.gfx_level >= EVERGREEN) {
 		radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
 		radeon_emit(cs, 0);
 	} else {
@@ -565,7 +564,7 @@ void r600_cp_dma_copy_buffer(struct r600_context *rctx,
 	}
 
 	/* CP_DMA_CP_SYNC doesn't wait for idle on R6xx, but this does. */
-	if (rctx->b.chip_class == R600)
+	if (rctx->b.gfx_level == R600)
 		radeon_set_config_reg(cs, R_008040_WAIT_UNTIL,
 				      S_008040_WAIT_CP_DMA_IDLE(1));
 

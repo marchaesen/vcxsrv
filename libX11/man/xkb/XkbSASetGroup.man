@@ -30,10 +30,10 @@ XkbSASetGroup \- Sets the group_XXX field of act from the group index grp
 .BI "int " "grp" "\^);"
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action from which to set group
 .TP
-.I \- grp
+.I grp
 group index to set in group_XXX
 .SH DESCRIPTION
 .LP

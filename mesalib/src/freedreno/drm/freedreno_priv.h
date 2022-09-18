@@ -42,6 +42,7 @@
 #include "util/list.h"
 #include "util/log.h"
 #include "util/simple_mtx.h"
+#include "util/slab.h"
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
 #include "util/u_math.h"
@@ -89,10 +90,16 @@ grow(void **ptr, uint16_t nr, uint16_t *max, uint16_t sz)
 
 
 struct fd_device_funcs {
-   int (*bo_new_handle)(struct fd_device *dev, uint32_t size, uint32_t flags,
-                        uint32_t *handle);
+   /* Create a new buffer object:
+    */
+   struct fd_bo *(*bo_new)(struct fd_device *dev, uint32_t size, uint32_t flags);
+
+   /* Create a new buffer object from existing handle (ie. dma-buf or
+    * flink import):
+    */
    struct fd_bo *(*bo_from_handle)(struct fd_device *dev, uint32_t size,
                                    uint32_t handle);
+
    struct fd_pipe *(*pipe_new)(struct fd_device *dev, enum fd_pipe_id id,
                                unsigned prio);
    void (*destroy)(struct fd_device *dev);
@@ -165,6 +172,8 @@ struct fd_device {
    struct fd_bo *suballoc_bo;
    uint32_t suballoc_offset;
    simple_mtx_t suballoc_lock;
+
+   struct util_queue submit_queue;
 };
 
 #define foreach_submit(name, list) \
@@ -198,6 +207,8 @@ struct fd_pipe_funcs {
 
    int (*get_param)(struct fd_pipe *pipe, enum fd_param_id param,
                     uint64_t *value);
+   int (*set_param)(struct fd_pipe *pipe, enum fd_param_id param,
+                    uint64_t value);
    int (*wait)(struct fd_pipe *pipe, const struct fd_fence *fence,
                uint64_t timeout);
    void (*destroy)(struct fd_pipe *pipe);
@@ -229,8 +240,18 @@ struct fd_pipe {
     */
    uint32_t last_fence;
 
+   /**
+    * The last fence seqno that was flushed to kernel (doesn't mean that it
+    * is complete, just that the kernel knows about it)
+    */
+   uint32_t last_submit_fence;
+
+   uint32_t last_enqueue_fence;   /* just for debugging */
+
    struct fd_bo *control_mem;
    volatile struct fd_pipe_control *control;
+
+   struct slab_parent_pool ring_pool;
 
    const struct fd_pipe_funcs *funcs;
 };
@@ -286,6 +307,17 @@ struct fd_bo_funcs {
    uint64_t (*iova)(struct fd_bo *bo);
    void (*set_name)(struct fd_bo *bo, const char *fmt, va_list ap);
    void (*destroy)(struct fd_bo *bo);
+
+   /**
+    * Optional, copy data into bo, falls back to mmap+memcpy.  If not
+    * implemented, it must be possible to mmap all buffers
+    */
+   void (*upload)(struct fd_bo *bo, void *src, unsigned off, unsigned len);
+
+   /**
+    * Optional, if upload is supported, should upload be preferred?
+    */
+   bool (*prefer_upload)(struct fd_bo *bo, unsigned len);
 };
 
 struct fd_bo_fence {
@@ -327,6 +359,11 @@ struct fd_bo {
     */
    bool nosync : 1;
 
+   /* Most recent index in submit's bo table, used to optimize the common
+    * case where a bo is used many times in the same submit.
+    */
+   uint32_t idx;
+
    struct list_head list; /* bucket-list entry */
    time_t free_time;      /* time when added to bucket-list */
 
@@ -347,6 +384,8 @@ enum fd_bo_state {
    FD_BO_STATE_UNKNOWN,
 };
 enum fd_bo_state fd_bo_state(struct fd_bo *bo);
+
+void fd_bo_init_common(struct fd_bo *bo, struct fd_device *dev);
 
 struct fd_bo *fd_bo_new_ring(struct fd_device *dev, uint32_t size);
 
