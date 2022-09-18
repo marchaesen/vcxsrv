@@ -171,6 +171,8 @@ GENX(panfrost_blendable_formats)[PIPE_FORMAT_COUNT] = {
 
 const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
         FMT(NONE,                    CONSTANT,        0000, L, VTR_),
+
+#if PAN_ARCH <= 7
         FMT(ETC1_RGB8,               ETC2_RGB8,       RGB1, L, _T__),
         FMT(ETC2_RGB8,               ETC2_RGB8,       RGB1, L, _T__),
         FMT(ETC2_SRGB8,              ETC2_RGB8,       RGB1, S, _T__),
@@ -246,6 +248,92 @@ const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
         FMT(ASTC_6x5x5_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
         FMT(ASTC_6x6x5_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
         FMT(ASTC_6x6x6_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
+#else
+        /* Map to interchange format, as compression is specified in the plane
+         * descriptor on Valhall.
+         */
+        FMT(ETC1_RGB8,               RGBA8_UNORM,     RGB1, L, _T__),
+        FMT(ETC2_RGB8,               RGBA8_UNORM,     RGB1, L, _T__),
+        FMT(ETC2_SRGB8,              RGBA8_UNORM,     RGB1, S, _T__),
+        FMT(ETC2_R11_UNORM,          R16_UNORM,       R001, L, _T__),
+        FMT(ETC2_RGBA8,              RGBA8_UNORM,     RGBA, L, _T__),
+        FMT(ETC2_SRGBA8,             RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ETC2_RG11_UNORM,         RG16_UNORM,      RG01, L, _T__),
+        FMT(ETC2_R11_SNORM,          R16_SNORM,       R001, L, _T__),
+        FMT(ETC2_RG11_SNORM,         RG16_SNORM,      RG01, L, _T__),
+        FMT(ETC2_RGB8A1,             RGBA8_UNORM,     RGBA, L, _T__),
+        FMT(ETC2_SRGB8A1,            RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(DXT1_RGB,                RGBA8_UNORM,     RGB1, L, _T__),
+        FMT(DXT1_RGBA,               RGBA8_UNORM,     RGBA, L, _T__),
+        FMT(DXT1_SRGB,               RGBA8_UNORM,     RGB1, S, _T__),
+        FMT(DXT1_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(DXT3_RGBA,               RGBA8_UNORM,     RGBA, L, _T__),
+        FMT(DXT3_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(DXT5_RGBA,               RGBA8_UNORM,     RGBA, L, _T__),
+        FMT(DXT5_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(RGTC1_UNORM,             R16_UNORM,       R001, L, _T__),
+        FMT(RGTC1_SNORM,             R16_SNORM,       R001, L, _T__),
+        FMT(RGTC2_UNORM,             RG16_UNORM,      RG01, L, _T__),
+        FMT(RGTC2_SNORM,             RG16_SNORM,      RG01, L, _T__),
+        FMT(BPTC_RGB_FLOAT,          RGBA16F,         RGB1, L, _T__),
+        FMT(BPTC_RGB_UFLOAT,         RGBA16F,         RGB1, L, _T__),
+        FMT(BPTC_RGBA_UNORM,         RGBA8_UNORM,     RGBA, L, _T__),
+        FMT(BPTC_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
+
+        /* Mesa does not yet support astc_decode_mode extensions, so non-sRGB
+         * formats must be assumed to be wide.
+         */
+        FMT(ASTC_4x4,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_5x4,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_5x5,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_6x5,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_6x6,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_8x5,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_8x6,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_8x8,                RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_10x5,               RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_10x6,               RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_10x8,               RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_10x10,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_12x10,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_12x12,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_3x3x3,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_4x3x3,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_4x4x3,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_4x4x4,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_5x4x4,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_5x5x4,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_5x5x5,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_6x5x5,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_6x6x5,              RGBA16F,         RGBA, L, _T__),
+        FMT(ASTC_6x6x6,              RGBA16F,         RGBA, L, _T__),
+
+        /* By definition, sRGB formats are narrow */
+        FMT(ASTC_4x4_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_5x4_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_5x5_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_6x5_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_6x6_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_8x5_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_8x6_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_8x8_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_10x5_SRGB,          RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_10x6_SRGB,          RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_10x8_SRGB,          RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_10x10_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_12x10_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_12x12_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_3x3x3_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_4x3x3_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_4x4x3_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_4x4x4_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_5x4x4_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_5x5x4_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_5x5x5_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_6x5x5_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+        FMT(ASTC_6x6x5_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
+#endif
+
         FMT(R5G6B5_UNORM,            RGB565,          RGB1, L, VTR_),
         FMT(B5G6R5_UNORM,            RGB565,          BGR1, L, VTR_),
         FMT(R5G5B5X1_UNORM,          RGB5_A1_UNORM,   RGB1, L, VT__),
@@ -466,13 +554,32 @@ const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
         FMT(Z24_UNORM_S8_UINT,       Z24X8_UNORM,     RGBA, L, _T_Z),
         FMT(Z24X8_UNORM,             Z24X8_UNORM,     RGBA, L, _T_Z),
         FMT(Z32_FLOAT,               R32F,            RGBA, L, _T_Z),
+
+#if PAN_ARCH >= 9
+        /* Specify interchange formats, the actual format for depth/stencil is
+         * determined by the plane descriptor on Valhall.
+         *
+         * On Valhall, S8 logically acts like "X8S8", so "S8 RGBA" is logically
+         * "0s00" and "S8 GRBA" is logically "s000". For Bifrost compatibility
+         * we want stencil in the red channel, so we use the GRBA swizzles.
+         */
+        FMT(Z32_FLOAT_S8X24_UINT,    R32F,            GRBA, L, _T_Z),
+        FMT(X32_S8X24_UINT,          S8,              GRBA, L, _T__),
+        FMT(X24S8_UINT,              S8,              GRBA, L, _T_Z),
+        FMT(S8_UINT,                 S8,              GRBA, L, _T__),
+
+#else
+        /* Specify real formats on Bifrost */
         FMT(Z32_FLOAT_S8X24_UINT,    Z32_X32,         RGBA, L, _T_Z),
         FMT(X32_S8X24_UINT,          X32_S8X24,       GRBA, L, _T__),
         FMT(X24S8_UINT,              X24S8,           GRBA, L, _T_Z),
         FMT(S8_UINT,                 S8,              GRBA, L, _T__),
 
+        /* Obsolete formats removed in Valhall */
         FMT(A8_UNORM,                A8_UNORM,        000A, L, VTR_),
         FMT(L8A8_UNORM,              R8A8_UNORM,      RRRA, L, VTR_),
         FMT(L8A8_SRGB,               R8A8_UNORM,      RRRA, S, VTR_),
+#endif
+
 #endif
 };

@@ -31,25 +31,36 @@
 enum agx_push_type {
    /* Array of 64-bit pointers to the base addresses (BASES) and array of
     * 16-bit sizes for optional bounds checking (SIZES) */
-   AGX_PUSH_UBO_BASES = 0,
-   AGX_PUSH_UBO_SIZES = 1,
-   AGX_PUSH_VBO_BASES = 2,
-   AGX_PUSH_VBO_SIZES = 3,
-   AGX_PUSH_SSBO_BASES = 4,
-   AGX_PUSH_SSBO_SIZES = 5,
+   AGX_PUSH_UBO_BASES,
+   AGX_PUSH_UBO_SIZES,
+   AGX_PUSH_VBO_SIZES,
+   AGX_PUSH_SSBO_BASES,
+   AGX_PUSH_SSBO_SIZES,
+
+   /* 64-bit VBO base pointer */
+   AGX_PUSH_VBO_BASE,
 
    /* Push the attached constant memory */
-   AGX_PUSH_CONSTANTS = 6,
+   AGX_PUSH_CONSTANTS,
 
    /* Push the content of a UBO */
-   AGX_PUSH_UBO_DATA = 7,
+   AGX_PUSH_UBO_DATA,
 
    /* RGBA blend constant (FP32) */
-   AGX_PUSH_BLEND_CONST = 8,
+   AGX_PUSH_BLEND_CONST,
+
+   /* Array of 16-bit (array_size - 1) for indexed array textures, used to
+    * lower access to indexed array textures
+    */
+   AGX_PUSH_ARRAY_SIZE_MINUS_1,
+
+   AGX_PUSH_TEXTURE_BASE,
 
    /* Keep last */
    AGX_PUSH_NUM_TYPES
 };
+
+static_assert(AGX_PUSH_NUM_TYPES < (1 << 8), "type overflow");
 
 struct agx_push {
    /* Contents to push */
@@ -72,6 +83,8 @@ struct agx_push {
          uint16_t ubo;
          uint16_t offset;
       } ubo_data;
+
+      uint32_t vbo;
    };
 };
 
@@ -79,9 +92,71 @@ struct agx_push {
 #define AGX_MAX_PUSH_RANGES (16)
 #define AGX_MAX_VARYINGS (32)
 
+struct agx_varyings_vs {
+   /* The first index used for FP16 varyings. Indices less than this are treated
+    * as FP32. This may require remapping slots to guarantee.
+    */
+   unsigned base_index_fp16;
+
+   /* The total number of vertex shader indices output. Must be at least
+    * base_index_fp16.
+    */
+   unsigned nr_index;
+
+   /* If the slot is written, this is the base index that the first component
+    * of the slot is written to.  The next components are found in the next
+    * indices. If less than base_index_fp16, this is a 32-bit slot (with 4
+    * indices for the 4 components), else this is a 16-bit slot (with 2
+    * indices for the 4 components). This must be less than nr_index.
+    *
+    * If the slot is not written, this must be ~0.
+    */
+   unsigned slots[VARYING_SLOT_MAX];
+};
+
+/* Conservative bound */
+#define AGX_MAX_CF_BINDINGS (VARYING_SLOT_MAX)
+
+struct agx_varyings_fs {
+   /* Number of coefficient registers used */
+   unsigned nr_cf;
+
+   /* Number of coefficient register bindings */
+   unsigned nr_bindings;
+
+   /* Whether gl_FragCoord.z is read */
+   bool reads_z;
+
+   /* Coefficient register bindings */
+   struct {
+      /* Base coefficient register */
+      unsigned cf_base;
+
+      /* Slot being bound */
+      gl_varying_slot slot;
+
+      /* First component bound.
+       *
+       * Must be 2 (Z) or 3 (W) if slot == VARYING_SLOT_POS.
+       */
+      unsigned offset : 2;
+
+      /* Number of components bound */
+      unsigned count : 3;
+
+      /* Is smooth shading enabled? If false, flat shading is used */
+      bool smooth : 1;
+
+      /* Perspective correct interpolation */
+      bool perspective : 1;
+   } bindings[AGX_MAX_CF_BINDINGS];
+};
+
 struct agx_varyings {
-   unsigned nr_descs, nr_slots;
-   struct agx_varying_packed packed[AGX_MAX_VARYINGS];
+   union {
+      struct agx_varyings_vs vs;
+      struct agx_varyings_fs fs;
+   };
 };
 
 struct agx_shader_info {
@@ -97,6 +172,9 @@ struct agx_shader_info {
 
    /* Does the shader control the sample mask? */
    bool writes_sample_mask;
+
+   /* Is colour output omitted? */
+   bool no_colour_output;
 };
 
 #define AGX_MAX_RTS (8)
@@ -169,13 +247,22 @@ struct agx_vs_shader_key {
    unsigned vbuf_strides[AGX_MAX_VBUFS];
 
    struct agx_attribute attributes[AGX_MAX_ATTRIBS];
-
-   /* Set to true for clip coordinates to range [0, 1] instead of [-1, 1] */
-   bool clip_halfz : 1;
 };
 
 struct agx_fs_shader_key {
    enum agx_format tib_formats[AGX_MAX_RTS];
+
+   /* Normally, access to the tilebuffer must be guarded by appropriate fencing
+    * instructions to ensure correct results in the presence of out-of-order
+    * hardware optimizations. However, specially dispatched clear shaders are
+    * not subject to these conditions and can omit the wait instructions.
+    *
+    * Must (only) be set for special clear shaders.
+    *
+    * Must not be used with sample mask writes (including discards) or
+    * tilebuffer loads (including blending).
+    */
+   bool ignore_tib_dependencies;
 };
 
 struct agx_shader_key {
@@ -192,40 +279,41 @@ agx_compile_shader_nir(nir_shader *nir,
       struct agx_shader_info *out);
 
 static const nir_shader_compiler_options agx_nir_options = {
-   .lower_scmp = true,
-   .lower_flrp16 = true,
-   .lower_flrp32 = true,
-   .lower_ffract = true,
-   .lower_fmod = true,
    .lower_fdiv = true,
-   .lower_isign = true,
-   .lower_iabs = true,
-   .lower_fpow = true,
-   .lower_find_lsb = true,
-   .lower_ifind_msb = true,
-   .lower_fdph = true,
-   .lower_wpos_pntc = true,
-   .lower_fsign = true,
-   .lower_rotate = true,
-   .lower_pack_split = true,
-   .lower_insert_byte = true,
-   .lower_insert_word = true,
-   .lower_uniforms_to_ubo = true,
-   .lower_cs_local_index_from_id = true,
-
-   .lower_doubles_options = nir_lower_dmod,
-   .lower_int64_options = ~(nir_lower_iadd64 | nir_lower_imul_2x32_64),
-
-   .force_indirect_unrolling = (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),
-
-   .has_fsub = true,
-   .has_isub = true,
-   .has_cs_global_id = true,
-
-   .vectorize_io = true,
    .fuse_ffma16 = true,
    .fuse_ffma32 = true,
+   .lower_flrp16 = true,
+   .lower_flrp32 = true,
+   .lower_fpow = true,
+   .lower_fmod = true,
+   .lower_ifind_msb = true,
+   .lower_find_lsb = true,
+   .lower_uadd_carry = true,
+   .lower_usub_borrow = true,
+   .lower_scmp = true,
+   .lower_isign = true,
+   .lower_fsign = true,
+   .lower_iabs = true,
+   .lower_fdph = true,
+   .lower_ffract = true,
+   .lower_pack_split = true,
+   .lower_extract_byte = true,
+   .lower_extract_word = true,
+   .lower_insert_byte = true,
+   .lower_insert_word = true,
+   .lower_cs_local_index_to_id = true,
+   .has_cs_global_id = true,
+   .vectorize_io = true,
    .use_interpolated_input_intrinsics = true,
+   .lower_rotate = true,
+   .has_fsub = true,
+   .has_isub = true,
+   .max_unroll_iterations = 32,
+   .lower_uniforms_to_ubo = true,
+   .force_indirect_unrolling_sampler = true,
+   .force_indirect_unrolling = (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),
+   .lower_int64_options = (nir_lower_int64_options) ~(nir_lower_iadd64 | nir_lower_imul_2x32_64),
+   .lower_doubles_options = nir_lower_dmod,
 };
 
 #endif

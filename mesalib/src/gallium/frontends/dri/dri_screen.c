@@ -29,8 +29,6 @@
  * Author: Jakob Bornecrantz <wallbraker@gmail.com>
  */
 
-#include "utils.h"
-
 #include "dri_screen.h"
 #include "dri_context.h"
 #include "dri_helpers.h"
@@ -84,6 +82,297 @@ dri_loader_get_cap(struct dri_screen *screen, enum dri_loader_cap cap)
 
    return 0;
 }
+
+/**
+ * Creates a set of \c struct gl_config that a driver will expose.
+ * 
+ * A set of \c struct gl_config will be created based on the supplied
+ * parameters.  The number of modes processed will be 2 *
+ * \c num_depth_stencil_bits * \c num_db_modes.
+ * 
+ * For the most part, data is just copied from \c depth_bits, \c stencil_bits,
+ * \c db_modes, and \c visType into each \c struct gl_config element.
+ * However, the meanings of \c fb_format and \c fb_type require further
+ * explanation.  The \c fb_format specifies which color components are in
+ * each pixel and what the default order is.  For example, \c GL_RGB specifies
+ * that red, green, blue are available and red is in the "most significant"
+ * position and blue is in the "least significant".  The \c fb_type specifies
+ * the bit sizes of each component and the actual ordering.  For example, if
+ * \c GL_UNSIGNED_SHORT_5_6_5_REV is specified with \c GL_RGB, bits [15:11]
+ * are the blue value, bits [10:5] are the green value, and bits [4:0] are
+ * the red value.
+ * 
+ * One sublte issue is the combination of \c GL_RGB  or \c GL_BGR and either
+ * of the \c GL_UNSIGNED_INT_8_8_8_8 modes.  The resulting mask values in the
+ * \c struct gl_config structure is \b identical to the \c GL_RGBA or
+ * \c GL_BGRA case, except the \c alphaMask is zero.  This means that, as
+ * far as this routine is concerned, \c GL_RGB with \c GL_UNSIGNED_INT_8_8_8_8
+ * still uses 32-bits.
+ *
+ * If in doubt, look at the tables used in the function.
+ * 
+ * \param ptr_to_modes  Pointer to a pointer to a linked list of
+ *                      \c struct gl_config.  Upon completion, a pointer to
+ *                      the next element to be process will be stored here.
+ *                      If the function fails and returns \c GL_FALSE, this
+ *                      value will be unmodified, but some elements in the
+ *                      linked list may be modified.
+ * \param format        Mesa mesa_format enum describing the pixel format
+ * \param depth_bits    Array of depth buffer sizes to be exposed.
+ * \param stencil_bits  Array of stencil buffer sizes to be exposed.
+ * \param num_depth_stencil_bits  Number of entries in both \c depth_bits and
+ *                      \c stencil_bits.
+ * \param db_modes      Array of buffer swap modes.  If an element has a
+ *                      value of \c __DRI_ATTRIB_SWAP_NONE, then it
+ *                      represents a single-buffered mode.  Other valid
+ *                      values are \c __DRI_ATTRIB_SWAP_EXCHANGE,
+ *                      \c __DRI_ATTRIB_SWAP_COPY, and \c __DRI_ATTRIB_SWAP_UNDEFINED.
+ *                      They represent the respective GLX values as in
+ *                      the GLX_OML_swap_method extension spec.
+ * \param num_db_modes  Number of entries in \c db_modes.
+ * \param msaa_samples  Array of msaa sample count. 0 represents a visual
+ *                      without a multisample buffer.
+ * \param num_msaa_modes Number of entries in \c msaa_samples.
+ * \param enable_accum  Add an accum buffer to the configs
+ * \param color_depth_match Whether the color depth must match the zs depth
+ *                          This forces 32-bit color to have 24-bit depth, and
+ *                          16-bit color to have 16-bit depth.
+ *
+ * \returns
+ * Pointer to any array of pointers to the \c __DRIconfig structures created
+ * for the specified formats.  If there is an error, \c NULL is returned.
+ * Currently the only cause of failure is a bad parameter (i.e., unsupported
+ * \c format).
+ */
+static __DRIconfig **
+driCreateConfigs(mesa_format format,
+		 const uint8_t * depth_bits, const uint8_t * stencil_bits,
+		 unsigned num_depth_stencil_bits,
+		 const GLenum * db_modes, unsigned num_db_modes,
+		 const uint8_t * msaa_samples, unsigned num_msaa_modes,
+		 GLboolean enable_accum, GLboolean color_depth_match)
+{
+   static const struct {
+      uint32_t masks[4];
+      int shifts[4];
+   } format_table[] = {
+      /* MESA_FORMAT_B5G6R5_UNORM */
+      {{ 0x0000F800, 0x000007E0, 0x0000001F, 0x00000000 },
+       { 11, 5, 0, -1 }},
+      /* MESA_FORMAT_B8G8R8X8_UNORM */
+      {{ 0x00FF0000, 0x0000FF00, 0x000000FF, 0x00000000 },
+       { 16, 8, 0, -1 }},
+      /* MESA_FORMAT_B8G8R8A8_UNORM */
+      {{ 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000 },
+       { 16, 8, 0, 24 }},
+      /* MESA_FORMAT_B10G10R10X2_UNORM */
+      {{ 0x3FF00000, 0x000FFC00, 0x000003FF, 0x00000000 },
+       { 20, 10, 0, -1 }},
+      /* MESA_FORMAT_B10G10R10A2_UNORM */
+      {{ 0x3FF00000, 0x000FFC00, 0x000003FF, 0xC0000000 },
+       { 20, 10, 0, 30 }},
+      /* MESA_FORMAT_R8G8B8A8_UNORM */
+      {{ 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000 },
+       { 0, 8, 16, 24 }},
+      /* MESA_FORMAT_R8G8B8X8_UNORM */
+      {{ 0x000000FF, 0x0000FF00, 0x00FF0000, 0x00000000 },
+       { 0, 8, 16, -1 }},
+      /* MESA_FORMAT_R10G10B10X2_UNORM */
+      {{ 0x000003FF, 0x000FFC00, 0x3FF00000, 0x00000000 },
+       { 0, 10, 20, -1 }},
+      /* MESA_FORMAT_R10G10B10A2_UNORM */
+      {{ 0x000003FF, 0x000FFC00, 0x3FF00000, 0xC0000000 },
+       { 0, 10, 20, 30 }},
+      /* MESA_FORMAT_RGBX_FLOAT16 */
+      {{ 0, 0, 0, 0},
+       { 0, 16, 32, -1 }},
+      /* MESA_FORMAT_RGBA_FLOAT16 */
+      {{ 0, 0, 0, 0},
+       { 0, 16, 32, 48 }},
+   };
+
+   const uint32_t * masks;
+   const int * shifts;
+   __DRIconfig **configs, **c;
+   struct gl_config *modes;
+   unsigned i, j, k, h;
+   unsigned num_modes;
+   unsigned num_accum_bits = (enable_accum) ? 2 : 1;
+   int red_bits;
+   int green_bits;
+   int blue_bits;
+   int alpha_bits;
+   bool is_srgb;
+   bool is_float;
+
+   switch (format) {
+   case MESA_FORMAT_B5G6R5_UNORM:
+      masks = format_table[0].masks;
+      shifts = format_table[0].shifts;
+      break;
+   case MESA_FORMAT_B8G8R8X8_UNORM:
+   case MESA_FORMAT_B8G8R8X8_SRGB:
+      masks = format_table[1].masks;
+      shifts = format_table[1].shifts;
+      break;
+   case MESA_FORMAT_B8G8R8A8_UNORM:
+   case MESA_FORMAT_B8G8R8A8_SRGB:
+      masks = format_table[2].masks;
+      shifts = format_table[2].shifts;
+      break;
+   case MESA_FORMAT_R8G8B8A8_UNORM:
+   case MESA_FORMAT_R8G8B8A8_SRGB:
+      masks = format_table[5].masks;
+      shifts = format_table[5].shifts;
+      break;
+   case MESA_FORMAT_R8G8B8X8_UNORM:
+   case MESA_FORMAT_R8G8B8X8_SRGB:
+      masks = format_table[6].masks;
+      shifts = format_table[6].shifts;
+      break;
+   case MESA_FORMAT_B10G10R10X2_UNORM:
+      masks = format_table[3].masks;
+      shifts = format_table[3].shifts;
+      break;
+   case MESA_FORMAT_B10G10R10A2_UNORM:
+      masks = format_table[4].masks;
+      shifts = format_table[4].shifts;
+      break;
+   case MESA_FORMAT_RGBX_FLOAT16:
+      masks = format_table[9].masks;
+      shifts = format_table[9].shifts;
+      break;
+   case MESA_FORMAT_RGBA_FLOAT16:
+      masks = format_table[10].masks;
+      shifts = format_table[10].shifts;
+      break;
+   case MESA_FORMAT_R10G10B10X2_UNORM:
+      masks = format_table[7].masks;
+      shifts = format_table[7].shifts;
+      break;
+   case MESA_FORMAT_R10G10B10A2_UNORM:
+      masks = format_table[8].masks;
+      shifts = format_table[8].shifts;
+      break;
+   default:
+      fprintf(stderr, "[%s:%u] Unknown framebuffer type %s (%d).\n",
+              __func__, __LINE__,
+              _mesa_get_format_name(format), format);
+      return NULL;
+   }
+
+   red_bits = _mesa_get_format_bits(format, GL_RED_BITS);
+   green_bits = _mesa_get_format_bits(format, GL_GREEN_BITS);
+   blue_bits = _mesa_get_format_bits(format, GL_BLUE_BITS);
+   alpha_bits = _mesa_get_format_bits(format, GL_ALPHA_BITS);
+   is_srgb = _mesa_is_format_srgb(format);
+   is_float = _mesa_get_format_datatype(format) == GL_FLOAT;
+
+   num_modes = num_depth_stencil_bits * num_db_modes * num_accum_bits * num_msaa_modes;
+   configs = calloc(num_modes + 1, sizeof *configs);
+   if (configs == NULL)
+       return NULL;
+
+    c = configs;
+    for ( k = 0 ; k < num_depth_stencil_bits ; k++ ) {
+	for ( i = 0 ; i < num_db_modes ; i++ ) {
+	    for ( h = 0 ; h < num_msaa_modes; h++ ) {
+	    	for ( j = 0 ; j < num_accum_bits ; j++ ) {
+		    if (color_depth_match &&
+			(depth_bits[k] || stencil_bits[k])) {
+			/* Depth can really only be 0, 16, 24, or 32. A 32-bit
+			 * color format still matches 24-bit depth, as there
+			 * is an implicit 8-bit stencil. So really we just
+			 * need to make sure that color/depth are both 16 or
+			 * both non-16.
+			 */
+			if ((depth_bits[k] + stencil_bits[k] == 16) !=
+			    (red_bits + green_bits + blue_bits + alpha_bits == 16))
+			    continue;
+		    }
+
+		    *c = malloc (sizeof **c);
+		    modes = &(*c)->modes;
+		    c++;
+
+		    memset(modes, 0, sizeof *modes);
+		    modes->floatMode = is_float;
+		    modes->redBits   = red_bits;
+		    modes->greenBits = green_bits;
+		    modes->blueBits  = blue_bits;
+		    modes->alphaBits = alpha_bits;
+		    modes->redMask   = masks[0];
+		    modes->greenMask = masks[1];
+		    modes->blueMask  = masks[2];
+		    modes->alphaMask = masks[3];
+		    modes->redShift   = shifts[0];
+		    modes->greenShift = shifts[1];
+		    modes->blueShift  = shifts[2];
+		    modes->alphaShift = shifts[3];
+		    modes->rgbBits   = modes->redBits + modes->greenBits
+		    	+ modes->blueBits + modes->alphaBits;
+
+		    modes->accumRedBits   = 16 * j;
+		    modes->accumGreenBits = 16 * j;
+		    modes->accumBlueBits  = 16 * j;
+		    modes->accumAlphaBits = 16 * j;
+
+		    modes->stencilBits = stencil_bits[k];
+		    modes->depthBits = depth_bits[k];
+
+		    if (db_modes[i] == __DRI_ATTRIB_SWAP_NONE) {
+		    	modes->doubleBufferMode = GL_FALSE;
+		        modes->swapMethod = __DRI_ATTRIB_SWAP_UNDEFINED;
+		    }
+		    else {
+		    	modes->doubleBufferMode = GL_TRUE;
+		    	modes->swapMethod = db_modes[i];
+		    }
+
+		    modes->samples = msaa_samples[h];
+
+		    modes->sRGBCapable = is_srgb;
+		}
+	    }
+	}
+    }
+    *c = NULL;
+
+    return configs;
+}
+
+static __DRIconfig **
+driConcatConfigs(__DRIconfig **a, __DRIconfig **b)
+{
+    __DRIconfig **all;
+    int i, j, index;
+
+    if (a == NULL || a[0] == NULL)
+       return b;
+    else if (b == NULL || b[0] == NULL)
+       return a;
+
+    i = 0;
+    while (a[i] != NULL)
+	i++;
+    j = 0;
+    while (b[j] != NULL)
+	j++;
+   
+    all = malloc((i + j + 1) * sizeof *all);
+    index = 0;
+    for (i = 0; a[i] != NULL; i++)
+	all[index++] = a[i];
+    for (j = 0; b[j] != NULL; j++)
+	all[index++] = b[j];
+    all[index++] = NULL;
+
+    free(a);
+    free(b);
+
+    return all;
+}
+
 
 static const __DRIconfig **
 dri_fill_in_modes(struct dri_screen *screen)
@@ -456,7 +745,12 @@ dri_get_egl_image(struct st_manager *smapi,
        */
       mesa_format mesa_format = driImageFormatToGLFormat(map->dri_format);
       stimg->internalformat = driGLFormatToSizedInternalGLFormat(mesa_format);
+   } else {
+      stimg->internalformat = img->internal_format;
    }
+
+   stimg->yuv_color_space = img->yuv_color_space;
+   stimg->yuv_range = img->sample_range;
 
    return TRUE;
 }
@@ -474,14 +768,7 @@ static int
 dri_get_param(struct st_manager *smapi,
               enum st_manager_param param)
 {
-   struct dri_screen *screen = (struct dri_screen *)smapi;
-
-   switch(param) {
-   case ST_MANAGER_BROKEN_INVALIDATE:
-      return screen->broken_invalidate;
-   default:
-      return 0;
-   }
+   return 0;
 }
 
 void

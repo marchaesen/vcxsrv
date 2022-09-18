@@ -41,7 +41,6 @@ rules_compat_generated = []
 if get_option('compat-rules')
   # non-generated compat parts
   parts += [
-      'compat/0003-lists.part',
       'compat/0028-lv_c.part',
       'compat/0029-l1v1_c.part',
       'compat/0030-l2v2_c.part',

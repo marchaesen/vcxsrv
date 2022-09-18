@@ -32,13 +32,13 @@ XkbNoteIndicatorChanges \- Notes the changes in a changes structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- old
+.I old
 XkbIndicatorChanges structure to be updated
 .TP
-.I \- new
+.I new
 event from which changes are to be copied
 .TP
-.I \- wanted
+.I wanted
 which changes are to be noted
 .SH DESCRIPTION
 .LP

@@ -56,8 +56,7 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
    OUT_PKT4(ring, REG_A6XX_SP_CS_CONFIG, 2);
    OUT_RING(ring, A6XX_SP_CS_CONFIG_ENABLED |
-                     A6XX_SP_CS_CONFIG_NIBO(v->shader->nir->info.num_ssbos +
-                                            v->shader->nir->info.num_images) |
+                     A6XX_SP_CS_CONFIG_NIBO(ir3_shader_nibo(v)) |
                      A6XX_SP_CS_CONFIG_NTEX(v->num_samp) |
                      A6XX_SP_CS_CONFIG_NSAMP(v->num_samp)); /* SP_VS_CONFIG */
    OUT_RING(ring, v->instrlen);                             /* SP_VS_INSTRLEN */
@@ -70,7 +69,7 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
                COND(v->mergedregs, A6XX_SP_CS_CTRL_REG0_MERGEDREGS) |
                A6XX_SP_CS_CTRL_REG0_BRANCHSTACK(ir3_shader_branchstack_hw(v)));
 
-   uint32_t shared_size = MAX2(((int)v->shader->cs.req_local_mem - 1) / 1024, 1);
+   uint32_t shared_size = MAX2(((int)v->cs.req_local_mem - 1) / 1024, 1);
    OUT_PKT4(ring, REG_A6XX_SP_CS_UNKNOWN_A9B1, 1);
    OUT_RING(ring, A6XX_SP_CS_UNKNOWN_A9B1_SHARED_SIZE(shared_size) |
                      A6XX_SP_CS_UNKNOWN_A9B1_UNK6);

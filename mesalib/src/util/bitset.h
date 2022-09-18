@@ -52,6 +52,7 @@
 #define BITSET_EQUAL(x, y) (memcmp( (x), (y), sizeof (x) ) == 0)
 #define BITSET_ZERO(x) memset( (x), 0, sizeof (x) )
 #define BITSET_ONES(x) memset( (x), 0xff, sizeof (x) )
+#define BITSET_SIZE(x) (8 * sizeof(x))  // bitset size in bits
 
 #define BITSET_BITWORD(b) ((b) / BITSET_WORDBITS)
 #define BITSET_BIT(b) (1u << ((b) % BITSET_WORDBITS))
@@ -192,7 +193,7 @@ __bitset_shl(BITSET_WORD *x, unsigned amount, unsigned n)
 
 /* bit range operations
  */
-#define BITSET_TEST_RANGE(x, b, e) \
+#define BITSET_TEST_RANGE_INSIDE_WORD(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
    (((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) != 0) : \
    (assert (!"BITSET_TEST_RANGE: bit range crosses word boundary"), 0))
@@ -200,15 +201,34 @@ __bitset_shl(BITSET_WORD *x, unsigned amount, unsigned n)
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
    ((x)[BITSET_BITWORD(b)] |= BITSET_RANGE(b, e)) : \
    (assert (!"BITSET_SET_RANGE_INSIDE_WORD: bit range crosses word boundary"), 0))
-#define BITSET_CLEAR_RANGE(x, b, e) \
+#define BITSET_CLEAR_RANGE_INSIDE_WORD(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
    ((x)[BITSET_BITWORD(b)] &= ~BITSET_RANGE(b, e)) : \
    (assert (!"BITSET_CLEAR_RANGE: bit range crosses word boundary"), 0))
 
+static inline bool
+__bitset_test_range(const BITSET_WORD *r, unsigned start, unsigned end)
+{
+   const unsigned size = end - start + 1;
+   const unsigned start_mod = start % BITSET_WORDBITS;
+
+   if (start_mod + size <= BITSET_WORDBITS) {
+      return BITSET_TEST_RANGE_INSIDE_WORD(r, start, end);
+   } else {
+      const unsigned first_size = BITSET_WORDBITS - start_mod;
+
+      return __bitset_test_range(r, start, start + first_size - 1) ||
+             __bitset_test_range(r, start + first_size, end);
+   }
+}
+
+#define BITSET_TEST_RANGE(x, b, e) \
+   __bitset_test_range(x, b, e)
+
 static inline void
 __bitset_set_range(BITSET_WORD *r, unsigned start, unsigned end)
 {
-   const unsigned size = end - start;
+   const unsigned size = end - start + 1;
    const unsigned start_mod = start % BITSET_WORDBITS;
 
    if (start_mod + size <= BITSET_WORDBITS) {
@@ -223,6 +243,25 @@ __bitset_set_range(BITSET_WORD *r, unsigned start, unsigned end)
 
 #define BITSET_SET_RANGE(x, b, e) \
    __bitset_set_range(x, b, e)
+
+static inline void
+__bitclear_clear_range(BITSET_WORD *r, unsigned start, unsigned end)
+{
+   const unsigned size = end - start + 1;
+   const unsigned start_mod = start % BITSET_WORDBITS;
+
+   if (start_mod + size <= BITSET_WORDBITS) {
+      BITSET_CLEAR_RANGE_INSIDE_WORD(r, start, end);
+   } else {
+      const unsigned first_size = BITSET_WORDBITS - start_mod;
+
+      __bitclear_clear_range(r, start, start + first_size - 1);
+      __bitclear_clear_range(r, start + first_size, end);
+   }
+}
+
+#define BITSET_CLEAR_RANGE(x, b, e) \
+   __bitclear_clear_range(x, b, e)
 
 static inline unsigned
 __bitset_prefix_sum(const BITSET_WORD *x, unsigned b, unsigned n)
@@ -262,11 +301,9 @@ __bitset_count(const BITSET_WORD *x, unsigned n)
 static inline int
 __bitset_ffs(const BITSET_WORD *x, int n)
 {
-   int i;
-
-   for (i = 0; i < n; i++) {
+   for (int i = 0; i < n; i++) {
       if (x[i])
-	 return ffs(x[i]) + BITSET_WORDBITS * i;
+         return ffs(x[i]) + BITSET_WORDBITS * i;
    }
 
    return 0;

@@ -42,11 +42,8 @@ default partial xkb_compatibility "default" {
 };
 
 partial xkb_compatibility "level5_lock" {
-    // This defines a Level5-Lock using the NumLock real modifier
-    // in order to create arbitrary level-behaviour, which would
-    // not be possible with the virtual modifier.
-    // See also: types/level5 : EIGHT_LEVEL_LEVEL_FIVE_LOCK
-    // See also: symbols/level5(lock)
+    // This defines a Level5-Lock using the NumLock virtual modifier.
+    // See also types/level5 (EIGHT_LEVEL_LEVEL_FIVE_LOCK) and symbols/level5(lock).
 
     virtual_modifiers  NumLock;
 

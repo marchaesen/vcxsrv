@@ -73,9 +73,9 @@ struct lima_pp_wb_reg {
    uint32_t downsample_factor;
    uint32_t pixel_layout;
    uint32_t pitch;
+   uint32_t flags;
    uint32_t mrt_bits;
    uint32_t mrt_pitch;
-   uint32_t zero;
    uint32_t unused0;
    uint32_t unused1;
    uint32_t unused2;

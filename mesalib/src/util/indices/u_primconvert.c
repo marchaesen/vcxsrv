@@ -105,7 +105,6 @@ util_primconvert_save_flatshade_first(struct primconvert_context *pc, bool flats
 static bool
 primconvert_init_draw(struct primconvert_context *pc,
                       const struct pipe_draw_info *info,
-                      const struct pipe_draw_indirect_info *indirect,
                       const struct pipe_draw_start_count_bias *draws,
                       struct pipe_draw_info *new_info,
                       struct pipe_draw_start_count_bias *new_draw)
@@ -258,6 +257,7 @@ primconvert_init_draw(struct primconvert_context *pc,
    else {
       gen_func(draw.start, new_draw->count, dst);
    }
+   new_info->was_line_loop = info->mode == PIPE_PRIM_LINE_LOOP;
 
    if (src_transfer)
       pipe_buffer_unmap(pc->pipe, src_transfer);
@@ -269,6 +269,23 @@ primconvert_init_draw(struct primconvert_context *pc,
    return true;
 }
 
+static void
+util_primconvert_draw_single_vbo(struct primconvert_context *pc,
+                                 const struct pipe_draw_info *info,
+                                 unsigned drawid_offset,
+                                 const struct pipe_draw_start_count_bias *draw)
+{
+   struct pipe_draw_info new_info;
+   struct pipe_draw_start_count_bias new_draw;
+
+   if (!primconvert_init_draw(pc, info, draw, &new_info, &new_draw))
+      return;
+   /* to the translated draw: */
+   pc->pipe->draw_vbo(pc->pipe, &new_info, drawid_offset, NULL, &new_draw, 1);
+
+   pipe_resource_reference(&new_info.index.resource, NULL);
+}
+
 void
 util_primconvert_draw_vbo(struct primconvert_context *pc,
                           const struct pipe_draw_info *info,
@@ -277,9 +294,6 @@ util_primconvert_draw_vbo(struct primconvert_context *pc,
                           const struct pipe_draw_start_count_bias *draws,
                           unsigned num_draws)
 {
-   struct pipe_draw_info new_info;
-   struct pipe_draw_start_count_bias new_draw;
-
    if (indirect && indirect->buffer) {
       /* this is stupid, but we're already doing a readback,
        * so this thing may as well get the rest of the job done
@@ -287,31 +301,26 @@ util_primconvert_draw_vbo(struct primconvert_context *pc,
       unsigned draw_count = 0;
       struct u_indirect_params *new_draws = util_draw_indirect_read(pc->pipe, info, indirect, &draw_count);
       if (!new_draws)
-         return;
+         goto cleanup;
 
       for (unsigned i = 0; i < draw_count; i++)
-         util_primconvert_draw_vbo(pc, &new_draws[i].info, drawid_offset + i, NULL, &new_draws[i].draw, 1);
+         util_primconvert_draw_single_vbo(pc, &new_draws[i].info, drawid_offset + i, &new_draws[i].draw);
       free(new_draws);
-      return;
-   }
-
-   if (num_draws > 1) {
+   } else {
       unsigned drawid = drawid_offset;
       for (unsigned i = 0; i < num_draws; i++) {
          if (draws[i].count && info->instance_count)
-            util_primconvert_draw_vbo(pc, info, drawid, NULL, &draws[i], 1);
+            util_primconvert_draw_single_vbo(pc, info, drawid, &draws[i]);
          if (info->increment_draw_id)
             drawid++;
       }
-      return;
    }
 
-   if (!primconvert_init_draw(pc, info, indirect, draws, &new_info, &new_draw))
-      return;
-   /* to the translated draw: */
-   pc->pipe->draw_vbo(pc->pipe, &new_info, drawid_offset, NULL, &new_draw, 1);
-
-   pipe_resource_reference(&new_info.index.resource, NULL);
+cleanup:
+   if (info->take_index_buffer_ownership) {
+      struct pipe_resource *buffer = info->index.resource;
+      pipe_resource_reference(&buffer, NULL);
+   }
 }
 
 void
@@ -343,7 +352,7 @@ util_primconvert_draw_vertex_state(struct primconvert_context *pc,
    dinfo.index_size = 4;
    dinfo.instance_count = 1;
    dinfo.index.resource = vstate->input.indexbuf;
-   if (!primconvert_init_draw(pc, &dinfo, NULL, draws, &new_info, &new_draw))
+   if (!primconvert_init_draw(pc, &dinfo, draws, &new_info, &new_draw))
       return;
 
    struct pipe_vertex_state *new_state = pc->pipe->screen->create_vertex_state(pc->pipe->screen,

@@ -59,6 +59,16 @@
     </layout>
     <layout>
       <configItem popularity="exotic">
+        <name>bqn</name>
+        <shortDescription>bqn</shortDescription>
+        <description>BQN</description>
+        <languageList>
+          <iso639Id>eng</iso639Id>
+        </languageList>
+      </configItem>
+    </layout>
+    <layout>
+      <configItem popularity="exotic">
         <name>ca</name>
         <shortDescription>fr</shortDescription>
         <description>French (Canada)</description>
@@ -526,6 +536,16 @@
         </variant>
         <variant>
           <configItem popularity="exotic">
+            <name>workman-p</name>
+            <shortDescription>workman-p</shortDescription>
+            <description>English (Workman-P)</description>
+            <languageList>
+              <iso639Id>eng</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
             <name>scn</name>
             <description>Sicilian (US keyboard)</description>
             <languageList>
@@ -812,22 +832,12 @@
               <iso639Id>neg</iso639Id>
             </languageList>
           </configItem>
-        </variant>
+        </variant>        
         <variant>
           <configItem popularity="exotic">
-            <name>ruchey_cyrillic</name>
-            <shortDescription>ru</shortDescription>
-            <description>Russian (Engineering, Cyrillic)</description>
-            <languageList>
-              <iso639Id>rus</iso639Id>
-            </languageList>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem popularity="exotic">
-            <name>ruchey_latin</name>
-            <shortDescription>us</shortDescription>
-            <description>Russian (Engineering, Latin)</description>
+            <name>winkeys-p</name>
+            <shortDescription>winkeys-p</shortDescription>
+            <description>Russian (Programmer)</description>
             <languageList>
               <iso639Id>rus</iso639Id>
             </languageList>
@@ -841,7 +851,7 @@
         <shortDescription>hy</shortDescription>
         <description>Armenian</description>
         <countryList>
-          <iso3166Id>AL</iso3166Id>
+          <iso3166Id>AM</iso3166Id>
         </countryList>
         <languageList>
           <iso639Id>hye</iso639Id>
@@ -1028,6 +1038,12 @@
           <configItem popularity="exotic">
             <name>prog_typo</name>
             <description>Czech (programming, typographic)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>colemak-ucw</name>
+            <description>Czech (US, Colemak, UCW support)</description>
           </configItem>
         </variant>
       </variantList>

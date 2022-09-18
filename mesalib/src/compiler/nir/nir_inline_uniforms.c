@@ -196,7 +196,7 @@ add_inlinable_uniforms(const nir_src *cond, nir_loop_info *info,
       /* Limit terminator condition to loop unroll support case which is a simple
        * comparison (ie. "i < count" is supported, but "i + 1 < count" is not).
        */
-      if (nir_is_supported_terminator_condition(cond_scalar)) {
+      if (nir_is_terminator_condition_with_two_inputs(cond_scalar)) {
          nir_alu_instr *alu = nir_instr_as_alu(cond->ssa->parent_instr);
 
          /* One side of comparison is induction variable, the other side is
@@ -321,7 +321,8 @@ nir_find_inlinable_uniforms(nir_shader *shader)
 
    nir_foreach_function(function, shader) {
       if (function->impl) {
-         nir_metadata_require(function->impl, nir_metadata_loop_analysis, nir_var_all);
+         nir_metadata_require(function->impl, nir_metadata_loop_analysis,
+                              nir_var_all, false);
 
          foreach_list_typed(nir_cf_node, node, node, &function->impl->body)
             process_node(node, NULL, uni_offsets, &num_offsets);

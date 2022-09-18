@@ -109,11 +109,9 @@ softpipe_find_fs_variant(struct softpipe_context *sp,
 static void
 softpipe_shader_db(struct pipe_context *pipe, const struct tgsi_token *tokens)
 {
-   struct softpipe_context *softpipe = softpipe_context(pipe);
-
    struct tgsi_shader_info info;
    tgsi_scan_shader(tokens, &info);
-   pipe_debug_message(&softpipe->debug, SHADER_INFO, "%s shader: %d inst, %d loops, %d temps, %d const, %d imm",
+   util_debug_message(&pipe->debug, SHADER_INFO, "%s shader: %d inst, %d loops, %d temps, %d const, %d imm",
                       _mesa_shader_stage_to_abbrev(tgsi_processor_to_shader_stage(info.processor)),
                       info.num_instructions,
                       info.opcode_count[TGSI_OPCODE_BGNLOOP],

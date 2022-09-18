@@ -435,7 +435,7 @@ void r300_emit_fb_state(struct r300_context* r300, unsigned size, void* state)
             OUT_CS_REG(R300_RB3D_CMASK_OFFSET0, 0);
             OUT_CS_REG(R300_RB3D_CMASK_PITCH0, surf->pitch_cmask);
             OUT_CS_REG(R300_RB3D_COLOR_CLEAR_VALUE, r300->color_clear_value);
-            if (r300->screen->caps.is_r500 && r300->screen->info.drm_minor >= 29) {
+            if (r300->screen->caps.is_r500) {
                 OUT_CS_REG_SEQ(R500_RB3D_COLOR_CLEAR_VALUE_AR, 2);
                 OUT_CS(r300->color_clear_value_ar);
                 OUT_CS(r300->color_clear_value_gb);
@@ -1103,7 +1103,7 @@ void r300_emit_vap_invariant_state(struct r300_context *r300,
 
 void r300_emit_vs_state(struct r300_context* r300, unsigned size, void* state)
 {
-    struct r300_vertex_shader* vs = (struct r300_vertex_shader*)state;
+    struct r300_vertex_shader_code* vs = ((struct r300_vertex_shader*)state)->shader;
     struct r300_vertex_program_code* code = &vs->code;
     struct r300_screen* r300screen = r300->screen;
     unsigned instruction_count = code->length / 4;
@@ -1126,9 +1126,9 @@ void r300_emit_vs_state(struct r300_context* r300, unsigned size, void* state)
      * R300_VAP_PVS_CODE_CNTL_1
      * See the r5xx docs for instructions on how to use these. */
     OUT_CS_REG(R300_VAP_PVS_CODE_CNTL_0, R300_PVS_FIRST_INST(0) |
-	       R300_PVS_XYZW_VALID_INST(instruction_count - 1) |
+	       R300_PVS_XYZW_VALID_INST(code->last_pos_write) |
 	       R300_PVS_LAST_INST(instruction_count - 1));
-    OUT_CS_REG(R300_VAP_PVS_CODE_CNTL_1, instruction_count - 1);
+    OUT_CS_REG(R300_VAP_PVS_CODE_CNTL_1, code->last_input_read);
 
     OUT_CS_REG(R300_VAP_PVS_VECTOR_INDX_REG, 0);
     OUT_CS_ONE_REG(R300_VAP_PVS_UPLOAD_DATA, code->length);
@@ -1160,10 +1160,9 @@ void r300_emit_vs_state(struct r300_context* r300, unsigned size, void* state)
 void r300_emit_vs_constants(struct r300_context* r300,
                             unsigned size, void *state)
 {
-    unsigned count =
-        ((struct r300_vertex_shader*)r300->vs_state.state)->externals_count;
+    unsigned count = r300_vs(r300)->shader->externals_count;
     struct r300_constant_buffer *buf = (struct r300_constant_buffer*)state;
-    struct r300_vertex_shader *vs = (struct r300_vertex_shader*)r300->vs_state.state;
+    struct r300_vertex_shader_code *vs = r300_vs(r300)->shader;
     unsigned i;
     int imm_first = vs->externals_count;
     int imm_end = vs->code.constants.Count;

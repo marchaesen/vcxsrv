@@ -24,63 +24,7 @@
 #ifndef _ISA_H_
 #define _ISA_H_
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include <stdio.h>
-
-struct isa_decode_value {
-	/** for {NAME} */
-	const char *str;
-	/** for all other fields */
-	uint64_t num;
-};
-
-struct isa_decode_hook {
-	const char *fieldname;
-	void (*cb)(void *data, struct isa_decode_value *val);
-};
-
-struct isa_decode_options {
-	uint32_t gpu_id;
-
-	/** show errors detected in decoding, like unexpected dontcare bits */
-	bool show_errors;
-
-	/**
-	 * If non-zero, maximum # of instructions that are unmatched before
-	 * bailing, ie. to trigger stopping if we start trying to decode
-	 * random garbage.
-	 */
-	unsigned max_errors;
-
-	/** Generate branch target labels */
-	bool branch_labels;
-
-	/**
-	 * Flag which can be set, for ex, but decode hook to trigger end of
-	 * decoding
-	 */
-	bool stop;
-
-	/**
-	 * Data passed back to decode hooks
-	 */
-	void *cbdata;
-
-	/**
-	 * Callback for field decode
-	 */
-	void (*field_cb)(void *data, const char *field_name, struct isa_decode_value *val);
-
-	/**
-	 * Callback prior to instruction decode
-	 */
-	void (*instr_cb)(void *data, unsigned n, void *instr);
-};
-
-void isa_decode(void *bin, int sz, FILE *out, const struct isa_decode_options *options);
-
+#include "compiler/isaspec/isaspec.h"
 
 struct ir3_shader_variant;
 void * isa_assemble(struct ir3_shader_variant *v);

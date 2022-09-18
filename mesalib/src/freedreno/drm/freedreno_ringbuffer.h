@@ -196,13 +196,12 @@ fd_ringbuffer_emit(struct fd_ringbuffer *ring, uint32_t data)
 struct fd_reloc {
    struct fd_bo *bo;
    uint64_t iova;
+   uint64_t orval;
 #define FD_RELOC_READ  0x0001
 #define FD_RELOC_WRITE 0x0002
 #define FD_RELOC_DUMP  0x0004
    uint32_t offset;
-   uint32_t orlo;
    int32_t shift;
-   uint32_t orhi; /* used for a5xx+ */
 };
 
 /* We always mark BOs for write, instead of tracking it across reloc
@@ -252,7 +251,7 @@ fd_ringbuffer_size(struct fd_ringbuffer *ring)
     * do what you expect for growable rb's.. so lets just restrict
     * this to stateobj's for now:
     */
-   debug_assert(!(ring->flags & FD_RINGBUFFER_GROWABLE));
+   assert(!(ring->flags & FD_RINGBUFFER_GROWABLE));
    return offset_bytes(ring->cur, ring->start);
 }
 
@@ -278,16 +277,15 @@ OUT_RING(struct fd_ringbuffer *ring, uint32_t data)
 /*
  * NOTE: OUT_RELOC() is 2 dwords (64b) on a5xx+
  */
-#ifndef __cplusplus
 static inline void
 OUT_RELOC(struct fd_ringbuffer *ring, struct fd_bo *bo, uint32_t offset,
-          uint64_t or, int32_t shift)
+          uint64_t orval, int32_t shift)
 {
    if (LOG_DWORDS) {
       fprintf(stderr, "ring[%p]: OUT_RELOC   %04x:  %p+%u << %d", ring,
               (uint32_t)(ring->cur - ring->start), bo, offset, shift);
    }
-   debug_assert(offset < fd_bo_size(bo));
+   assert(offset < fd_bo_size(bo));
 
    uint64_t iova = fd_bo_get_iova(bo) + offset;
 
@@ -296,19 +294,18 @@ OUT_RELOC(struct fd_ringbuffer *ring, struct fd_bo *bo, uint32_t offset,
    else
       iova <<= shift;
 
-   iova |= or ;
+   iova |= orval;
 
-   fd_ringbuffer_reloc(ring, &(struct fd_reloc){
-                                .bo = bo,
-                                .iova = iova,
-                                .offset = offset,
-                                .orlo = or
-                                ,
-                                .shift = shift,
-                                .orhi = or >> 32,
-                             });
+   struct fd_reloc reloc = {
+         .bo = bo,
+         .iova = iova,
+         .orval = orval,
+         .offset = offset,
+         .shift = shift,
+   };
+
+   fd_ringbuffer_reloc(ring, &reloc);
 }
-#endif
 
 static inline void
 OUT_RB(struct fd_ringbuffer *ring, struct fd_ringbuffer *target)

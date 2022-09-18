@@ -31,10 +31,10 @@ XkbComputeShapeTop \- Determines the bounding box of the top surface of a shape
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- shape
+.I shape
 shape to be examined
 .TP
-.I \- bounds_rtrn
+.I bounds_rtrn
 backfilled with the bounding box for the shape
 .SH DESCRIPTION
 .LP

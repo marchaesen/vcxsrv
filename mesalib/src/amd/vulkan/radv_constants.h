@@ -74,7 +74,10 @@
 #define RING_GSVS_GS             4
 #define RING_HS_TESS_FACTOR      5
 #define RING_HS_TESS_OFFCHIP     6
-#define RING_PS_SAMPLE_POSITIONS 7
+#define RING_TS_DRAW             7
+#define RING_TS_PAYLOAD          8
+#define RING_MS_SCRATCH          9
+#define RING_PS_SAMPLE_POSITIONS 10
 
 /* max number of descriptor sets */
 #define MAX_SETS 32
@@ -89,6 +92,28 @@
  */
 #define RADV_MAX_MEMORY_ALLOCATION_SIZE 0xFFFFFFFCull
 
+/* Number of entries in the mesh shader scratch ring.
+ * This depends on VGT_GS_MAX_WAVE_ID which is set by the kernel
+ * and is impossible to query. We leave it on its maximum value
+ * because real applications are unlikely to use it.
+ *
+ * The maximum ID on GFX10.3 is 2047 (0x7ff), so we need 2048 entries.
+ */
+#define RADV_MESH_SCRATCH_NUM_ENTRIES 2048
+
+/* Size of each entry in the mesh shader scratch ring.
+ * We must ensure that the absolute maximum mesh shader output fits here.
+ *
+ * Mesh shaders can create up to 256 vertices/primitives per workgroup,
+ * and up to the following amount of outputs:
+ * - 32 parameters
+ * - 4 positions (clip/cull distance, etc.)
+ * - 4 per-primitive built-in outputs (layer, view index, prim id, VRS rate)
+ * - primitive indices which are always kept in LDS
+ * That is a total of 32+4+4=40 output slots x 16 bytes per slot x 256 = 160K bytes.
+ */
+#define RADV_MESH_SCRATCH_ENTRY_BYTES (160 * 1024)
+
 /* Number of invocations in each subgroup. */
 #define RADV_SUBGROUP_SIZE 64
 
@@ -99,9 +124,16 @@
 
 #define RADV_SHADER_ALLOC_ALIGNMENT      256
 #define RADV_SHADER_ALLOC_MIN_ARENA_SIZE (256 * 1024)
+/* 256 KiB << 5 = 8 MiB */
+#define RADV_SHADER_ALLOC_MAX_ARENA_SIZE_SHIFT 5u
 #define RADV_SHADER_ALLOC_MIN_SIZE_CLASS 8
 #define RADV_SHADER_ALLOC_MAX_SIZE_CLASS 15
 #define RADV_SHADER_ALLOC_NUM_FREE_LISTS                                                           \
    (RADV_SHADER_ALLOC_MAX_SIZE_CLASS - RADV_SHADER_ALLOC_MIN_SIZE_CLASS + 1)
+
+#define PERF_CTR_MAX_PASSES      512
+#define PERF_CTR_BO_PASS_OFFSET  16
+#define PERF_CTR_BO_LOCK_OFFSET  0
+#define PERF_CTR_BO_FENCE_OFFSET 8
 
 #endif /* RADV_CONSTANTS_H */

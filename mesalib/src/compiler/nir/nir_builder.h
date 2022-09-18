@@ -371,6 +371,9 @@ nir_vec(nir_builder *build, nir_ssa_def **comp, unsigned num_components)
    return nir_build_alu_src_arr(build, nir_op_vec(num_components), comp);
 }
 
+nir_ssa_def *
+nir_vec_scalars(nir_builder *build, nir_ssa_scalar *comp, unsigned num_components);
+
 static inline nir_ssa_def *
 nir_mov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
 {
@@ -665,6 +668,12 @@ nir_ieq_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
    return nir_ieq(build, x, nir_imm_intN_t(build, y, x->bit_size));
 }
 
+static inline nir_ssa_def *
+nir_ine_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
+{
+  return nir_ine(build, x, nir_imm_intN_t(build, y, x->bit_size));
+}
+
 /* Use nir_iadd(x, -y) for reversing parameter ordering */
 static inline nir_ssa_def *
 nir_isub_imm(nir_builder *build, uint64_t y, nir_ssa_def *x)
@@ -732,6 +741,13 @@ nir_iand_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
 }
 
 static inline nir_ssa_def *
+nir_test_mask(nir_builder *build, nir_ssa_def *x, uint64_t mask)
+{
+   assert(mask <= BITFIELD64_MASK(x->bit_size));
+   return nir_ine_imm(build, nir_iand_imm(build, x, mask), 0);
+}
+
+static inline nir_ssa_def *
 nir_ior_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
 {
    assert(x->bit_size <= 64);
@@ -790,6 +806,18 @@ nir_udiv_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
    } else {
       return nir_udiv(build, x, nir_imm_intN_t(build, y, x->bit_size));
    }
+}
+
+static inline nir_ssa_def *
+nir_ibfe_imm(nir_builder *build, nir_ssa_def *x, uint32_t offset, uint32_t size)
+{
+   return nir_ibfe(build, x, nir_imm_int(build, offset), nir_imm_int(build, size));
+}
+
+static inline nir_ssa_def *
+nir_ubfe_imm(nir_builder *build, nir_ssa_def *x, uint32_t offset, uint32_t size)
+{
+   return nir_ubfe(build, x, nir_imm_int(build, offset), nir_imm_int(build, size));
 }
 
 static inline nir_ssa_def *
@@ -1000,6 +1028,16 @@ nir_bitcast_vector(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
    return nir_extract_bits(b, &src, 1, 0, dest_num_components, dest_bit_size);
 }
 
+static inline nir_ssa_def *
+nir_trim_vector(nir_builder *b, nir_ssa_def *src, unsigned num_components)
+{
+   assert(src->num_components >= num_components);
+   if (src->num_components == num_components)
+      return src;
+
+   return nir_channels(b, src, nir_component_mask(num_components));
+}
+
 /**
  * Pad a value to N components with undefs of matching bit size.
  * If the value already contains >= num_components, it is returned without change.
@@ -1011,15 +1049,15 @@ nir_pad_vector(nir_builder *b, nir_ssa_def *src, unsigned num_components)
    if (src->num_components == num_components)
       return src;
 
-   nir_ssa_def *components[NIR_MAX_VEC_COMPONENTS];
-   nir_ssa_def *undef = nir_ssa_undef(b, 1, src->bit_size);
+   nir_ssa_scalar components[NIR_MAX_VEC_COMPONENTS];
+   nir_ssa_scalar undef = nir_get_ssa_scalar(nir_ssa_undef(b, 1, src->bit_size), 0);
    unsigned i = 0;
    for (; i < src->num_components; i++)
-      components[i] = nir_channel(b, src, i);
+      components[i] = nir_get_ssa_scalar(src, i);
    for (; i < num_components; i++)
       components[i] = undef;
 
-   return nir_vec(b, components, num_components);
+   return nir_vec_scalars(b, components, num_components);
 }
 
 /**
@@ -1035,15 +1073,15 @@ nir_pad_vector_imm_int(nir_builder *b, nir_ssa_def *src, uint64_t imm_val,
    if (src->num_components == num_components)
       return src;
 
-   nir_ssa_def *components[NIR_MAX_VEC_COMPONENTS];
-   nir_ssa_def *imm = nir_imm_intN_t(b, imm_val, src->bit_size);
+   nir_ssa_scalar components[NIR_MAX_VEC_COMPONENTS];
+   nir_ssa_scalar imm = nir_get_ssa_scalar(nir_imm_intN_t(b, imm_val, src->bit_size), 0);
    unsigned i = 0;
    for (; i < src->num_components; i++)
-      components[i] = nir_channel(b, src, i);
+      components[i] = nir_get_ssa_scalar(src, i);
    for (; i < num_components; i++)
       components[i] = imm;
 
-   return nir_vec(b, components, num_components);
+   return nir_vec_scalars(b, components, num_components);
 }
 
 /**
@@ -1054,6 +1092,21 @@ static inline nir_ssa_def *
 nir_pad_vec4(nir_builder *b, nir_ssa_def *src)
 {
    return nir_pad_vector(b, src, 4);
+}
+
+/**
+ * Resizes a vector by either trimming off components or adding undef
+ * components, as needed.  Only use this helper if it's actually what you
+ * need.  Prefer nir_pad_vector() or nir_trim_vector() instead if you know a
+ * priori which direction you're resizing.
+ */
+static inline nir_ssa_def *
+nir_resize_vector(nir_builder *b, nir_ssa_def *src, unsigned num_components)
+{
+   if (src->num_components < num_components)
+      return nir_pad_vector(b, src, num_components);
+   else
+      return nir_trim_vector(b, src, num_components);
 }
 
 nir_ssa_def *
@@ -1406,6 +1459,40 @@ nir_copy_var(nir_builder *build, nir_variable *dest, nir_variable *src)
                          nir_build_deref_var(build, src));
 }
 
+static inline nir_ssa_def *
+nir_load_array_var(nir_builder *build, nir_variable *var, nir_ssa_def *index)
+{
+   nir_deref_instr *deref =
+      nir_build_deref_array(build, nir_build_deref_var(build, var), index);
+   return nir_load_deref(build, deref);
+}
+
+static inline nir_ssa_def *
+nir_load_array_var_imm(nir_builder *build, nir_variable *var, int64_t index)
+{
+   nir_deref_instr *deref =
+      nir_build_deref_array_imm(build, nir_build_deref_var(build, var), index);
+   return nir_load_deref(build, deref);
+}
+
+static inline void
+nir_store_array_var(nir_builder *build, nir_variable *var, nir_ssa_def *index,
+                    nir_ssa_def *value, unsigned writemask)
+{
+   nir_deref_instr *deref =
+      nir_build_deref_array(build, nir_build_deref_var(build, var), index);
+   nir_store_deref(build, deref, value, writemask);
+}
+
+static inline void
+nir_store_array_var_imm(nir_builder *build, nir_variable *var, int64_t index,
+                        nir_ssa_def *value, unsigned writemask)
+{
+   nir_deref_instr *deref =
+      nir_build_deref_array_imm(build, nir_build_deref_var(build, var), index);
+   nir_store_deref(build, deref, value, writemask);
+}
+
 #undef nir_load_global
 static inline nir_ssa_def *
 nir_load_global(nir_builder *build, nir_ssa_def *addr, unsigned align,
@@ -1461,32 +1548,6 @@ nir_load_param(nir_builder *build, uint32_t param_idx)
    assert(param_idx < build->impl->function->num_params);
    nir_parameter *param = &build->impl->function->params[param_idx];
    return nir_build_load_param(build, param->num_components, param->bit_size, param_idx);
-}
-
-/**
- * This function takes an I/O intrinsic like load/store_input,
- * and emits a sequence that calculates the full offset of that instruction,
- * including a stride to the base and component offsets.
- */
-static inline nir_ssa_def *
-nir_build_calc_io_offset(nir_builder *b,
-                         nir_intrinsic_instr *intrin,
-                         nir_ssa_def *base_stride,
-                         unsigned component_stride)
-{
-   /* base is the driver_location, which is in slots (1 slot = 4x4 bytes) */
-   nir_ssa_def *base_op = nir_imul_imm(b, base_stride, nir_intrinsic_base(intrin));
-
-   /* offset should be interpreted in relation to the base,
-    * so the instruction effectively reads/writes another input/output
-    * when it has an offset
-    */
-   nir_ssa_def *offset_op = nir_imul(b, base_stride, nir_ssa_for_src(b, *nir_get_io_offset_src(intrin), 1));
-
-   /* component is in bytes */
-   unsigned const_op = nir_intrinsic_component(intrin) * component_stride;
-
-   return nir_iadd_imm_nuw(b, nir_iadd_nuw(b, base_op, offset_op), const_op);
 }
 
 /* calculate a `(1 << value) - 1` in ssa without overflows */
@@ -1654,6 +1715,9 @@ nir_f2iN(nir_builder *b, nir_ssa_def *src, unsigned bit_size)
    return nir_type_convert(b, src, nir_type_float,
          (nir_alu_type) (nir_type_int | bit_size));
 }
+
+nir_ssa_def *
+nir_gen_rect_vertices(nir_builder *b, nir_ssa_def *z, nir_ssa_def *w);
 
 #ifdef __cplusplus
 } /* extern "C" */

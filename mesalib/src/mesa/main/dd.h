@@ -44,7 +44,6 @@
 #undef MemoryBarrier
 #endif
 
-struct gl_bitmap_atlas;
 struct gl_buffer_object;
 struct gl_context;
 struct gl_display_list;

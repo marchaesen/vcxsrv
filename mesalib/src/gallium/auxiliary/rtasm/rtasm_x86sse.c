@@ -2159,7 +2159,6 @@ struct x86_reg x86_fn_arg( struct x86_function *p,
 
 static void x86_init_func_common( struct x86_function *p )
 {
-   util_cpu_detect();
    p->caps = 0;
    if(util_get_cpu_caps()->has_mmx)
       p->caps |= X86_MMX;

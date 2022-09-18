@@ -49,7 +49,7 @@
 #include "cso_cache/cso_cache.h"
 #include "cso_cache/cso_hash.h"
 #include "cso_context.h"
-
+#include "driver_trace/tr_dump.h"
 
 /**
  * Per-shader sampler information.
@@ -68,6 +68,7 @@ struct cso_context {
    struct u_vbuf *vbuf;
    struct u_vbuf *vbuf_current;
    bool always_use_vbuf;
+   bool sampler_format;
 
    boolean has_geometry_shader;
    boolean has_tessellation;
@@ -285,6 +286,10 @@ cso_create_context(struct pipe_context *pipe, unsigned flags)
       ctx->has_streamout = TRUE;
    }
 
+   if (pipe->screen->get_param(pipe->screen, PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK) &
+       PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO)
+      ctx->sampler_format = true;
+
    ctx->max_fs_samplerviews = pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_FRAGMENT,
                                                              PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS);
 
@@ -296,6 +301,9 @@ void cso_unbind_context(struct cso_context *ctx)
 {
    unsigned i;
 
+   bool dumping = trace_dumping_enabled_locked();
+   if (dumping)
+      trace_dumping_stop_locked();
    if (ctx->pipe) {
       ctx->pipe->bind_blend_state( ctx->pipe, NULL );
       ctx->pipe->bind_rasterizer_state( ctx->pipe, NULL );
@@ -399,6 +407,8 @@ void cso_unbind_context(struct cso_context *ctx)
    ctx->pipe->set_sample_mask(ctx->pipe, ctx->sample_mask);
    if (ctx->pipe->set_min_samples)
       ctx->pipe->set_min_samples(ctx->pipe, ctx->min_samples);
+   if (dumping)
+      trace_dumping_start_locked();
 }
 
 /**
@@ -1203,11 +1213,10 @@ cso_set_vertex_buffers_and_elements(struct cso_context *ctx,
    cso_set_vertex_elements_direct(ctx, velems);
 }
 
-static bool
-cso_set_sampler(struct cso_context *ctx, enum pipe_shader_type shader_stage,
-                unsigned idx, const struct pipe_sampler_state *templ)
+ALWAYS_INLINE static struct cso_sampler *
+set_sampler(struct cso_context *ctx, enum pipe_shader_type shader_stage,
+            unsigned idx, const struct pipe_sampler_state *templ, size_t key_size)
 {
-   unsigned key_size = sizeof(struct pipe_sampler_state);
    unsigned hash_key = cso_construct_key((void*)templ, key_size);
    struct cso_sampler *cso;
    struct cso_hash_iter iter =
@@ -1232,7 +1241,14 @@ cso_set_sampler(struct cso_context *ctx, enum pipe_shader_type shader_stage,
    } else {
       cso = cso_hash_iter_data(iter);
    }
+   return cso;
+}
 
+ALWAYS_INLINE  static bool
+cso_set_sampler(struct cso_context *ctx, enum pipe_shader_type shader_stage,
+                unsigned idx, const struct pipe_sampler_state *templ, size_t size)
+{
+   struct cso_sampler *cso = set_sampler(ctx, shader_stage, idx, templ, size);
    ctx->samplers[shader_stage].cso_samplers[idx] = cso;
    ctx->samplers[shader_stage].samplers[idx] = cso->data;
    return true;
@@ -1242,7 +1258,9 @@ void
 cso_single_sampler(struct cso_context *ctx, enum pipe_shader_type shader_stage,
                    unsigned idx, const struct pipe_sampler_state *templ)
 {
-   if (cso_set_sampler(ctx, shader_stage, idx, templ))
+   size_t size = ctx->sampler_format ? sizeof(struct pipe_sampler_state) :
+                                       offsetof(struct pipe_sampler_state, border_color_format);
+   if (cso_set_sampler(ctx, shader_stage, idx, templ, size))
       ctx->max_sampler_seen = MAX2(ctx->max_sampler_seen, (int)idx);
 }
 
@@ -1264,20 +1282,14 @@ cso_single_sampler_done(struct cso_context *ctx,
    ctx->max_sampler_seen = -1;
 }
 
-
-/*
- * If the function encouters any errors it will return the
- * last one. Done to always try to set as many samplers
- * as possible.
- */
-void
-cso_set_samplers(struct cso_context *ctx,
-                 enum pipe_shader_type shader_stage,
-                 unsigned nr,
-                 const struct pipe_sampler_state **templates)
+ALWAYS_INLINE static int
+set_samplers(struct cso_context *ctx,
+             enum pipe_shader_type shader_stage,
+             unsigned nr,
+             const struct pipe_sampler_state **templates,
+             size_t key_size)
 {
    int last = -1;
-
    for (unsigned i = 0; i < nr; i++) {
       if (!templates[i])
          continue;
@@ -1297,18 +1309,38 @@ cso_set_samplers(struct cso_context *ctx,
        */
       if (last >= 0 &&
           !memcmp(templates[i], templates[last],
-                  sizeof(struct pipe_sampler_state))) {
+                  key_size)) {
          ctx->samplers[shader_stage].cso_samplers[i] =
             ctx->samplers[shader_stage].cso_samplers[last];
          ctx->samplers[shader_stage].samplers[i] =
             ctx->samplers[shader_stage].samplers[last];
       } else {
          /* Look up the sampler state CSO. */
-         cso_set_sampler(ctx, shader_stage, i, templates[i]);
+         cso_set_sampler(ctx, shader_stage, i, templates[i], key_size);
       }
 
       last = i;
    }
+   return last;
+}
+
+/*
+ * If the function encouters any errors it will return the
+ * last one. Done to always try to set as many samplers
+ * as possible.
+ */
+void
+cso_set_samplers(struct cso_context *ctx,
+                 enum pipe_shader_type shader_stage,
+                 unsigned nr,
+                 const struct pipe_sampler_state **templates)
+{
+   int last = -1;
+
+   /* ensure sampler size is a constant for memcmp */
+   size_t size = ctx->sampler_format ? sizeof(struct pipe_sampler_state) :
+                                       offsetof(struct pipe_sampler_state, border_color_format);
+   last = set_samplers(ctx, shader_stage, nr, templates, size);
 
    ctx->max_sampler_seen = MAX2(ctx->max_sampler_seen, last);
    cso_single_sampler_done(ctx, shader_stage);
@@ -1610,7 +1642,7 @@ cso_draw_vbo(struct cso_context *cso,
           indirect->count_from_stream_output == NULL);
 
    if (vbuf) {
-      u_vbuf_draw_vbo(vbuf, info, drawid_offset, indirect, draw);
+      u_vbuf_draw_vbo(vbuf, info, drawid_offset, indirect, &draw, 1);
    } else {
       struct pipe_context *pipe = cso->pipe;
       pipe->draw_vbo(pipe, info, drawid_offset, indirect, &draw, 1);
@@ -1628,19 +1660,7 @@ cso_multi_draw(struct cso_context *cso,
    struct u_vbuf *vbuf = cso->vbuf_current;
 
    if (vbuf) {
-      /* Increase refcount to be able to use take_index_buffer_ownership with
-       * all draws.
-       */
-      if (num_draws > 1 && info->take_index_buffer_ownership)
-         p_atomic_add(&info->index.resource->reference.count, num_draws - 1);
-
-      unsigned drawid = drawid_offset;
-      for (unsigned i = 0; i < num_draws; i++) {
-         u_vbuf_draw_vbo(vbuf, info, drawid, NULL, draws[i]);
-
-         if (info->increment_draw_id)
-            drawid++;
-      }
+      u_vbuf_draw_vbo(vbuf, info, drawid_offset, NULL, draws, num_draws);
    } else {
       struct pipe_context *pipe = cso->pipe;
 

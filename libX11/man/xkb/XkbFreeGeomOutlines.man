@@ -33,16 +33,16 @@ XkbFreeGeomOutlines \- Free geometry outlines
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- shape
+.I shape
 shape in which outlines should be freed
 .TP
-.I \- first
+.I first
 first outline to be freed
 .TP
-.I \- count
+.I count
 number of outlines to be freed
 .TP
-.I \- free_all
+.I free_all
 True => all outlines are freed
 .SH DESCRIPTION
 .LP

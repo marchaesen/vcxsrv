@@ -38,7 +38,9 @@
 #include "lp_flush.h"
 #include "lp_context.h"
 #include "lp_setup.h"
-
+#include "lp_fence.h"
+#include "lp_screen.h"
+#include "lp_rast.h"
 
 /**
  * \param fence  if non-null, returns pointer to a fence which can be waited on
@@ -49,11 +51,17 @@ llvmpipe_flush( struct pipe_context *pipe,
                 const char *reason)
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
-
+   struct llvmpipe_screen *screen = llvmpipe_screen(pipe->screen);
    draw_flush(llvmpipe->draw);
 
    /* ask the setup module to flush */
-   lp_setup_flush(llvmpipe->setup, fence, reason);
+   lp_setup_flush(llvmpipe->setup, reason);
+
+   mtx_lock(&screen->rast_mutex);
+   lp_rast_fence(screen->rast, (struct lp_fence **)fence);
+   mtx_unlock(&screen->rast_mutex);
+   if (fence && (!*fence))
+      *fence = (struct pipe_fence_handle *)lp_fence_create(0);
 
    /* Enable to dump BMPs of the color/depth buffers each frame */
    if (0) {
@@ -105,28 +113,23 @@ llvmpipe_flush_resource(struct pipe_context *pipe,
                         boolean do_not_block,
                         const char *reason)
 {
-   unsigned referenced;
-
-   referenced = llvmpipe_is_resource_referenced(pipe, resource, level);
-
+   unsigned referenced = 0;
+   struct llvmpipe_screen *lp_screen = llvmpipe_screen(pipe->screen);
+   mtx_lock(&lp_screen->ctx_mutex);
+   list_for_each_entry(struct llvmpipe_context, ctx, &lp_screen->ctx_list, list)
+      referenced |= llvmpipe_is_resource_referenced((struct pipe_context *)ctx, resource, level);
+   mtx_unlock(&lp_screen->ctx_mutex);
    if ((referenced & LP_REFERENCED_FOR_WRITE) ||
        ((referenced & LP_REFERENCED_FOR_READ) && !read_only)) {
 
-      if (cpu_access) {
-         /*
-          * Flush and wait.
-          */
-         if (do_not_block)
-            return FALSE;
-
-         llvmpipe_finish(pipe, reason);
-      } else {
-         /*
-          * Just flush.
-          */
-
-         llvmpipe_flush(pipe, NULL, reason);
-      }
+      if (cpu_access)
+	if (do_not_block)
+	  return FALSE;
+      /*
+       * Flush and wait.
+       * Finish so VS can use FS results.
+       */
+      llvmpipe_finish(pipe, reason);
    }
 
    return TRUE;

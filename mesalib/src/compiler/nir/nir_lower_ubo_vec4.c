@@ -142,10 +142,9 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
          BITSET_MASK(intr->num_components) << (align_chan_offset);
       nir_component_mask_t high_channels =
          low_channels << (8 / chan_size_bytes);
-      result = nir_bcsel(b,
-                         nir_i2b(b, nir_iand_imm(b, byte_offset, 8)),
-                         nir_channels(b, result, high_channels),
-                         nir_channels(b, result, low_channels));
+      result = nir_bcsel(b, nir_test_mask(b, byte_offset, 8),
+                            nir_channels(b, result, high_channels),
+                            nir_channels(b, result, low_channels));
    } else {
       /* General fallback case: Per-result-channel bcsel-based extraction
        * from two separate vec4 loads.

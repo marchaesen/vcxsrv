@@ -27,6 +27,7 @@
 #include <getopt.h>
 #include <string.h>
 #include "disassemble.h"
+#include "valhall/disassemble.h"
 #include "compiler.h"
 
 #include "main/mtypes.h"
@@ -192,6 +193,7 @@ compile_shader(int stages, char **files)
 
                 struct panfrost_compile_inputs inputs = {
                         .gpu_id = gpu_id,
+                        .fixed_sysval_ubo = -1,
                 };
                 struct pan_shader_info info = { 0 };
 
@@ -232,6 +234,8 @@ disassemble(const char *filename)
 
         fclose(fp);
 
+        void *entrypoint = code;
+
         if (filesize && code[0] == BI_FOURCC('M', 'B', 'S', '2')) {
                 for (int i = 0; i < filesize / 4; ++i) {
                         if (code[i] != BI_FOURCC('O', 'B', 'J', 'C'))
@@ -240,11 +244,15 @@ disassemble(const char *filename)
                         unsigned size = code[i + 1];
                         unsigned offset = i + 2;
 
-                        disassemble_bifrost(stdout, (uint8_t*)(code + offset), size, verbose);
+                        entrypoint = code + offset;
+                        filesize = size;
                 }
-        } else {
-                disassemble_bifrost(stdout, (uint8_t*)code, filesize, verbose);
         }
+
+        if ((gpu_id >> 12) >= 9)
+                disassemble_valhall(stdout, entrypoint, filesize, verbose);
+        else
+                disassemble_bifrost(stdout, entrypoint, filesize, verbose);
 
         free(code);
 }

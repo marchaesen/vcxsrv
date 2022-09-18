@@ -841,14 +841,14 @@ FcNameParseRange (FcChar8 **string, FcChar32 *pfirst, FcChar32 *plast)
 	char *t;
 	long first, last;
 
-	while (isspace(*s))
+	while (isspace((unsigned char) *s))
 	    s++;
 	t = s;
 	errno = 0;
 	first = last = strtol (s, &s, 16);
 	if (errno)
 	    return FcFalse;
-	while (isspace(*s))
+	while (isspace((unsigned char) *s))
 	    s++;
 	if (*s == '-')
 	{

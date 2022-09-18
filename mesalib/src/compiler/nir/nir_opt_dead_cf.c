@@ -262,6 +262,7 @@ node_is_dead(nir_cf_node *node)
                return false;
 
             case nir_intrinsic_load_shared:
+            case nir_intrinsic_load_shared2_amd:
             case nir_intrinsic_load_output:
             case nir_intrinsic_load_per_vertex_output:
                /* Same as above loads. */

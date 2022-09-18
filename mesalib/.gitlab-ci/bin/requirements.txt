@@ -1,0 +1,6 @@
+colorama==0.4.5
+filecache==0.81
+gql==3.4.0
+python-gitlab==3.5.0
+ruamel.yaml.clib==0.2.6
+ruamel.yaml==0.17.21

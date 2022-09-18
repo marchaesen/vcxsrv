@@ -70,11 +70,8 @@ lp_setup_alloc_rectangle(struct lp_scene *scene, unsigned nr_inputs)
 {
    unsigned input_array_sz = NUM_CHANNELS * (nr_inputs + 1) * sizeof(float);
    struct lp_rast_rectangle *rect;
-   unsigned bytes;
-
-   bytes = sizeof(*rect) + (3 * input_array_sz);
-
-   rect = lp_scene_alloc_aligned( scene, bytes, 16 );
+   unsigned bytes = sizeof(*rect) + (3 * input_array_sz);
+   rect = lp_scene_alloc_aligned(scene, bytes, 16);
    if (rect == NULL)
       return NULL;
 
@@ -102,45 +99,45 @@ lp_setup_whole_tile(struct lp_setup_context *setup,
    /* if variant is opaque and scissor doesn't effect the tile */
    if (opaque) {
       /* Several things prevent this optimization from working:
-       * - For layered rendering we can't determine if this covers the same layer
-       * as previous rendering (or in case of clears those actually always cover
-       * all layers so optimization is impossible). Need to use fb_max_layer and
-       * not setup->layer_slot to determine this since even if there's currently
-       * no slot assigned previous rendering could have used one.
+       * - For layered rendering we can't determine if this covers the same
+       * layer as previous rendering (or in case of clears those actually
+       * always cover all layers so optimization is impossible). Need to use
+       * fb_max_layer and not setup->layer_slot to determine this since even
+       * if there's currently no slot assigned previous rendering could have
+       * used one.
        * - If there were any Begin/End query commands in the scene then those
        * would get removed which would be very wrong. Furthermore, if queries
        * were just active we also can't do the optimization since to get
        * accurate query results we unfortunately need to execute the rendering
        * commands.
        */
-      if (!scene->fb.zsbuf && scene->fb_max_layer == 0 && !scene->had_queries) {
+      if (!scene->fb.zsbuf && scene->fb_max_layer == 0 &&
+          !scene->had_queries) {
          /*
           * All previous rendering will be overwritten so reset the bin.
           */
-         lp_scene_bin_reset( scene, tx, ty );
+         lp_scene_bin_reset(scene, tx, ty);
       }
 
       if (inputs->is_blit) {
          LP_COUNT(nr_blit_64);
-         return lp_scene_bin_cmd_with_state( scene, tx, ty,
-                                             setup->fs.stored,
-                                             LP_RAST_OP_BLIT,
-                                             lp_rast_arg_inputs(inputs) );
-      }
-      else {
+         return lp_scene_bin_cmd_with_state(scene, tx, ty,
+                                            setup->fs.stored,
+                                            LP_RAST_OP_BLIT,
+                                            lp_rast_arg_inputs(inputs));
+      } else {
          LP_COUNT(nr_shade_opaque_64);
-         return lp_scene_bin_cmd_with_state( scene, tx, ty,
-                                             setup->fs.stored,
-                                             LP_RAST_OP_SHADE_TILE_OPAQUE,
-                                             lp_rast_arg_inputs(inputs) );
+         return lp_scene_bin_cmd_with_state(scene, tx, ty,
+                                            setup->fs.stored,
+                                            LP_RAST_OP_SHADE_TILE_OPAQUE,
+                                            lp_rast_arg_inputs(inputs));
       }
-   }
-   else {
+   } else {
       LP_COUNT(nr_shade_64);
-      return lp_scene_bin_cmd_with_state( scene, tx, ty,
-                                          setup->fs.stored,
-                                          LP_RAST_OP_SHADE_TILE,
-                                          lp_rast_arg_inputs(inputs) );
+      return lp_scene_bin_cmd_with_state(scene, tx, ty,
+                                         setup->fs.stored,
+                                         LP_RAST_OP_SHADE_TILE,
+                                         lp_rast_arg_inputs(inputs));
    }
 }
 
@@ -158,14 +155,13 @@ lp_setup_is_blit(const struct lp_setup_context *setup,
        */
       const struct lp_jit_texture *texture =
          &setup->fs.current.jit_context.textures[0];
-      float dsdx, dsdy, dtdx, dtdy;
 
       /* XXX: dadx vs dady confusion below?
        */
-      dsdx = GET_DADX(inputs)[1][0]*texture->width;
-      dsdy = GET_DADX(inputs)[1][1]*texture->width;
-      dtdx = GET_DADY(inputs)[1][0]*texture->height;
-      dtdy = GET_DADY(inputs)[1][1]*texture->height;
+      const float dsdx = GET_DADX(inputs)[1][0] * texture->width;
+      const float dsdy = GET_DADX(inputs)[1][1] * texture->width;
+      const float dtdx = GET_DADY(inputs)[1][0] * texture->height;
+      const float dtdy = GET_DADY(inputs)[1][1] * texture->height;
 
       /*
        * We don't need to check s0/t0 tolerances
@@ -187,8 +183,7 @@ lp_setup_is_blit(const struct lp_setup_context *setup,
           util_is_approx(dtdx, 0.0f, 1.0f/LP_MAX_WIDTH) &&
           util_is_approx(dtdy, 1.0f, 1.0f/LP_MAX_HEIGHT)) {
          return true;
-      }
-      else {
+      } else {
 #if 0
          debug_printf("dsdx = %f\n", dsdx);
          debug_printf("dsdy = %f\n", dsdy);
@@ -209,7 +204,7 @@ partial(struct lp_setup_context *setup,
         const struct lp_rast_rectangle *rect,
         boolean opaque,
         unsigned ix, unsigned iy,
-        unsigned mask)
+        unsigned mask) // RECT_PLANE_x bits
 {
    if (mask == 0) {
       assert(rect->box.x0 <= ix * TILE_SIZE);
@@ -218,14 +213,13 @@ partial(struct lp_setup_context *setup,
       assert(rect->box.y1 >= (iy+1) * TILE_SIZE - 1);
 
       lp_setup_whole_tile(setup, &rect->inputs, ix, iy, opaque);
-   }
-   else {
+   } else {
       LP_COUNT(nr_partially_covered_64);
-      lp_scene_bin_cmd_with_state( setup->scene,
-                                   ix, iy,
-                                   setup->fs.stored,
-                                   LP_RAST_OP_RECTANGLE,
-                                   lp_rast_arg_rectangle(rect) );
+      lp_scene_bin_cmd_with_state(setup->scene,
+                                  ix, iy,
+                                  setup->fs.stored,
+                                  LP_RAST_OP_RECTANGLE,
+                                  lp_rast_arg_rectangle(rect));
    }
 }
 
@@ -256,12 +250,6 @@ try_rect_cw(struct lp_setup_context *setup,
       setup->fs.current.variant;
    const struct lp_setup_variant_key *key = &setup->setup.variant->key;
    struct lp_scene *scene = setup->scene;
-   struct lp_rast_rectangle *rect;
-   boolean cw;
-   struct u_rect bbox;
-   unsigned viewport_index = 0;
-   unsigned layer = 0;
-   const float (*pv)[4];
 
    /* x/y positions in fixed point */
    int x0 = subpixel_snap(v0[0][0] - setup->pixel_offset);
@@ -275,28 +263,33 @@ try_rect_cw(struct lp_setup_context *setup,
 
    /* Cull clockwise rects without overflowing.
     */
-   cw = (x2 < x1) ^ (y0 < y2);
+   const boolean cw = (x2 < x1) ^ (y0 < y2);
    if (cw) {
       LP_COUNT(nr_culled_rects);
       return TRUE;
    }
 
+   const float (*pv)[4];
    if (setup->flatshade_first) {
       pv = v0;
-   }
-   else {
+   } else {
       pv = v2;
    }
+
+   unsigned viewport_index = 0;
    if (setup->viewport_index_slot > 0) {
       unsigned *udata = (unsigned*)pv[setup->viewport_index_slot];
       viewport_index = lp_clamp_viewport_idx(*udata);
    }
+
+   unsigned layer = 0;
    if (setup->layer_slot > 0) {
       layer = *(unsigned*)pv[setup->layer_slot];
       layer = MIN2(layer, scene->fb_max_layer);
    }
 
    /* Bounding rectangle (in pixels) */
+   struct u_rect bbox;
    {
       /* Yes this is necessary to accurately calculate bounding boxes
        * with the two fill-conventions we support.  GL (normally) ends
@@ -324,7 +317,8 @@ try_rect_cw(struct lp_setup_context *setup,
 
    u_rect_find_intersection(&setup->draw_regions[viewport_index], &bbox);
 
-   rect = lp_setup_alloc_rectangle(scene, key->num_inputs);
+   struct lp_rast_rectangle *rect =
+      lp_setup_alloc_rectangle(scene, key->num_inputs);
    if (!rect)
       return FALSE;
 
@@ -342,14 +336,14 @@ try_rect_cw(struct lp_setup_context *setup,
 
    /* Setup parameter interpolants:
     */
-   setup->setup.variant->jit_function( v0,
-				       v1,
-				       v2,
-				       frontfacing,
-				       GET_A0(&rect->inputs),
-				       GET_DADX(&rect->inputs),
-				       GET_DADY(&rect->inputs),
-                                       &setup->setup.variant->key );
+   setup->setup.variant->jit_function(v0,
+                                      v1,
+                                      v2,
+                                      frontfacing,
+                                      GET_A0(&rect->inputs),
+                                      GET_DADX(&rect->inputs),
+                                      GET_DADY(&rect->inputs),
+                                      &setup->setup.variant->key);
 
    rect->inputs.frontfacing = frontfacing;
    rect->inputs.disable = FALSE;
@@ -368,8 +362,6 @@ lp_setup_bin_rectangle(struct lp_setup_context *setup,
                        boolean opaque)
 {
    struct lp_scene *scene = setup->scene;
-   unsigned ix0, iy0, ix1, iy1;
-   unsigned i, j;
    unsigned left_mask = 0;
    unsigned right_mask = 0;
    unsigned top_mask = 0;
@@ -382,10 +374,10 @@ lp_setup_bin_rectangle(struct lp_setup_context *setup,
 
    /* Convert to inclusive tile coordinates:
     */
-   ix0 = rect->box.x0 / TILE_SIZE;
-   iy0 = rect->box.y0 / TILE_SIZE;
-   ix1 = rect->box.x1 / TILE_SIZE;
-   iy1 = rect->box.y1 / TILE_SIZE;
+   const unsigned ix0 = rect->box.x0 / TILE_SIZE;
+   const unsigned iy0 = rect->box.y0 / TILE_SIZE;
+   const unsigned ix1 = rect->box.x1 / TILE_SIZE;
+   const unsigned iy1 = rect->box.y1 / TILE_SIZE;
 
    /*
     * Clamp to framebuffer size
@@ -412,22 +404,19 @@ lp_setup_bin_rectangle(struct lp_setup_context *setup,
    if (iy0 == iy1 && ix0 == ix1) {
       partial(setup, rect, opaque, ix0, iy0,
               (left_mask | right_mask | top_mask | bottom_mask));
-   }
-   else if (ix0 == ix1) {
+   } else if (ix0 == ix1) {
       unsigned mask = left_mask | right_mask;
       partial(setup, rect, opaque, ix0, iy0, mask | top_mask);
-      for (i = iy0 + 1; i < iy1; i++)
+      for (unsigned i = iy0 + 1; i < iy1; i++)
          partial(setup, rect, opaque, ix0, i, mask);
       partial(setup, rect, opaque, ix0, iy1, mask | bottom_mask);
-   }
-   else if (iy0 == iy1) {
+   } else if (iy0 == iy1) {
       unsigned mask = top_mask | bottom_mask;
       partial(setup, rect, opaque, ix0, iy0, mask | left_mask);
-      for (i = ix0 + 1; i < ix1; i++)
+      for (unsigned i = ix0 + 1; i < ix1; i++)
          partial(setup, rect, opaque, i, iy0, mask);
       partial(setup, rect, opaque, ix1, iy0, mask | right_mask);
-   }
-   else {
+   } else {
       partial(setup, rect, opaque, ix0, iy0, left_mask  | top_mask);
       partial(setup, rect, opaque, ix0, iy1, left_mask  | bottom_mask);
       partial(setup, rect, opaque, ix1, iy0, right_mask | top_mask);
@@ -435,22 +424,22 @@ lp_setup_bin_rectangle(struct lp_setup_context *setup,
 
       /* Top/Bottom fringes
        */
-      for (i = ix0 + 1; i < ix1; i++) {
+      for (unsigned i = ix0 + 1; i < ix1; i++) {
          partial(setup, rect, opaque, i, iy0, top_mask);
          partial(setup, rect, opaque, i, iy1, bottom_mask);
       }
 
       /* Left/Right fringes
        */
-      for (i = iy0 + 1; i < iy1; i++) {
+      for (unsigned i = iy0 + 1; i < iy1; i++) {
          partial(setup, rect, opaque, ix0, i, left_mask);
          partial(setup, rect, opaque, ix1, i, right_mask);
       }
 
       /* Full interior tiles
        */
-      for (j = iy0 + 1; j < iy1; j++) {
-         for (i = ix0 + 1; i < ix1; i++) {
+      for (unsigned j = iy0 + 1; j < iy1; j++) {
+         for (unsigned i = ix0 + 1; i < ix1; i++) {
             lp_setup_whole_tile(setup, &rect->inputs, i, j, opaque);
          }
       }
@@ -473,10 +462,10 @@ lp_setup_bin_rectangle(struct lp_setup_context *setup,
 
 void
 lp_rect_cw(struct lp_setup_context *setup,
-         const float (*v0)[4],
-         const float (*v1)[4],
-         const float (*v2)[4],
-         boolean frontfacing)
+           const float (*v0)[4],
+           const float (*v1)[4],
+           const float (*v2)[4],
+           boolean frontfacing)
 {
    if (!try_rect_cw(setup, v0, v1, v2, frontfacing)) {
       if (!lp_setup_flush_and_restart(setup))
@@ -528,8 +517,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v0;
          rv2 = v1;
          rv3 = v2;
-      }
-      else if (SAME_POS(v1, v5)) {
+      } else if (SAME_POS(v1, v5)) {
          /*
           *    v4   v3/v0
           *     +-----+
@@ -543,12 +531,10 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v1;
          rv2 = v2;
          rv3 = v0;
-      }
-      else {
+      } else {
          goto emit_triangles;
       }
-   }
-   else if (SAME_POS(v0, v5)) {
+   } else if (SAME_POS(v0, v5)) {
       if (SAME_POS(v2, v3)) {
          /*
           *    v4   v3/v2
@@ -563,8 +549,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v0;
          rv2 = v1;
          rv3 = v2;
-      }
-      else if (SAME_POS(v1, v4)) {
+      } else if (SAME_POS(v1, v4)) {
          /*
           *    v3   v5/v0
           *     +-----+
@@ -578,12 +563,10 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v1;
          rv2 = v2;
          rv3 = v0;
-      }
-      else {
+      } else {
          goto emit_triangles;
       }
-   }
-   else if (SAME_POS(v0, v4)) {
+   } else if (SAME_POS(v0, v4)) {
       if (SAME_POS(v2, v5)) {
          /*
           *    v3   v5/v2
@@ -598,8 +581,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v0;
          rv2 = v1;
          rv3 = v2;
-      }
-      else if (SAME_POS(v1, v3)) {
+      } else if (SAME_POS(v1, v3)) {
          /*
           *    v5   v4/v0
           *     +-----+
@@ -613,12 +595,10 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v1;
          rv2 = v2;
          rv3 = v0;
-      }
-      else {
+      } else {
          goto emit_triangles;
       }
-   }
-   else if (SAME_POS(v2, v3)) {
+   } else if (SAME_POS(v2, v3)) {
       if (SAME_POS(v1, v4)) {
          /*
           *    v5   v4/v1
@@ -633,12 +613,10 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v2;
          rv2 = v0;
          rv3 = v1;
-      }
-      else {
+      } else {
          goto emit_triangles;
       }
-   }
-   else if (SAME_POS(v2, v5)) {
+   } else if (SAME_POS(v2, v5)) {
       if (SAME_POS(v1, v3)) {
          /*
           *    v4   v3/v1
@@ -653,12 +631,10 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v2;
          rv2 = v0;
          rv3 = v1;
-      }
-      else {
+      } else {
          goto emit_triangles;
       }
-   }
-   else if (SAME_POS(v2, v4)) {
+   } else if (SAME_POS(v2, v4)) {
       if (SAME_POS(v1, v5)) {
          /*
           *    v3   v5/v1
@@ -673,15 +649,12 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv1 = v2;
          rv2 = v0;
          rv3 = v1;
-      }
-      else {
+      } else {
          goto emit_triangles;
       }
-   }
-   else {
+   } else {
       goto emit_triangles;
    }
-
 
 #define SAME_X(A, B)   (A[0][0] == B[0][0])
 #define SAME_Y(A, B)   (A[0][1] == B[0][1])
@@ -707,7 +680,6 @@ do_rect_ccw(struct lp_setup_context *setup,
 
    if (SAME_X(rv0, rv1) && SAME_X(rv2, rv3) &&
        SAME_Y(rv0, rv3) && SAME_Y(rv1, rv2)) {
-
       const struct lp_setup_variant_key *key = &setup->setup.variant->key;
       const unsigned n = key->num_inputs;
       unsigned i, j;
@@ -738,8 +710,7 @@ do_rect_ccw(struct lp_setup_context *setup,
        */
       lp_rect_cw(setup, rv0, rv2, rv1, front);
       return TRUE;
-   }
-   else {
+   } else {
       /* setup->quad(setup, rv0, rv1, rv2, rv3); */
    }
 
@@ -866,11 +837,9 @@ setup_rect_both(struct lp_setup_context *setup,
        * explicitly.
        */
       return FALSE;
-   }
-   else if (winding0 == WINDING_CCW) {
+   } else if (winding0 == WINDING_CCW) {
       return do_rect_ccw(setup, v0, v1, v2, v3, v4, v5, setup->ccw_is_frontface);
-   }
-   else if (winding0 == WINDING_CW) {
+   } else if (winding0 == WINDING_CW) {
       return do_rect_ccw(setup, v0, v2, v1, v3, v5, v4, !setup->ccw_is_frontface);
    } else {
       return TRUE;
@@ -879,7 +848,7 @@ setup_rect_both(struct lp_setup_context *setup,
 
 
 void
-lp_setup_choose_rect( struct lp_setup_context *setup )
+lp_setup_choose_rect(struct lp_setup_context *setup)
 {
    if (setup->rasterizer_discard) {
       setup->rect = setup_rect_noop;

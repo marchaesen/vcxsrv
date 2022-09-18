@@ -60,7 +60,8 @@ cs_program_emit(struct fd_ringbuffer *ring, struct ir3_shader_variant *v)
                A5XX_SP_CS_CTRL_REG0_HALFREGFOOTPRINT(i->max_half_reg + 1) |
                A5XX_SP_CS_CTRL_REG0_FULLREGFOOTPRINT(i->max_reg + 1) |
                A5XX_SP_CS_CTRL_REG0_BRANCHSTACK(ir3_shader_branchstack_hw(v)) |
-               0x6 /* XXX */);
+               COND(instrlen != 0, A5XX_SP_CS_CTRL_REG0_BUFFER) |
+               0x2 /* XXX */);
 
    OUT_PKT4(ring, REG_A5XX_HLSQ_CS_CONFIG, 1);
    OUT_RING(ring, A5XX_HLSQ_CS_CONFIG_CONSTOBJECTOFFSET(0) |

@@ -29,20 +29,20 @@ FIRST, LAST = 'first', 'last'
 
 INTYPES = (GENERATE, UBYTE, USHORT, UINT)
 OUTTYPES = (USHORT, UINT)
-PRIMS=('tris', 
-       'trifan', 
-       'tristrip', 
-       'quads', 
-       'quadstrip', 
+PRIMS=('tris',
+       'trifan',
+       'tristrip',
+       'quads',
+       'quadstrip',
        'polygon',
        'trisadj',
        'tristripadj')
 
-LONGPRIMS=('PIPE_PRIM_TRIANGLES', 
-           'PIPE_PRIM_TRIANGLE_FAN', 
-           'PIPE_PRIM_TRIANGLE_STRIP', 
-           'PIPE_PRIM_QUADS', 
-           'PIPE_PRIM_QUAD_STRIP', 
+LONGPRIMS=('PIPE_PRIM_TRIANGLES',
+           'PIPE_PRIM_TRIANGLE_FAN',
+           'PIPE_PRIM_TRIANGLE_STRIP',
+           'PIPE_PRIM_QUADS',
+           'PIPE_PRIM_QUAD_STRIP',
            'PIPE_PRIM_POLYGON',
            'PIPE_PRIM_TRIANGLES_ADJACENCY',
            'PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY')
@@ -108,7 +108,7 @@ def line( intype, outtype, ptr, v0, v1 ):
 # XXX: have the opportunity here to avoid over-drawing shared lines in
 # tristrips, fans, etc, by integrating this into the calling functions
 # and only emitting each line at most once.
-# 
+#
 def do_tri( intype, outtype, ptr, v0, v1, v2 ):
     line( intype, outtype, ptr, v0, v1 )
     line( intype, outtype, ptr + '+2', v1, v2 )
@@ -227,15 +227,15 @@ def emit_funcs():
 
 def init(intype, outtype, prim):
     if intype == GENERATE:
-        print(('generate_line[' + 
-               outtype_idx[outtype] + 
-               '][' + longprim[prim] + 
+        print(('generate_line[' +
+               outtype_idx[outtype] +
+               '][' + longprim[prim] +
                '] = ' + name( intype, outtype, prim ) + ';'))
     else:
-        print(('translate_line[' + 
-               intype_idx[intype] + 
-               '][' + outtype_idx[outtype] + 
-               '][' + longprim[prim] + 
+        print(('translate_line[' +
+               intype_idx[intype] +
+               '][' + outtype_idx[outtype] +
+               '][' + longprim[prim] +
                '] = ' + name( intype, outtype, prim ) + ';'))
 
 
@@ -255,7 +255,7 @@ def emit_init():
     print('}')
 
 
-    
+
 
 def epilog():
     print('#include "indices/u_unfilled_indices.c"')

@@ -14,8 +14,14 @@
 
 SeatPromptResult filexfer_get_userpass_input(Seat *seat, prompts_t *p)
 {
+    /* The file transfer tools don't support Restart Session, so we
+     * can just have a single static cmdline_get_passwd_input_state
+     * that's never reset */
+    static cmdline_get_passwd_input_state cmdline_state =
+        CMDLINE_GET_PASSWD_INPUT_STATE_INIT;
+
     SeatPromptResult spr;
-    spr = cmdline_get_passwd_input(p);
+    spr = cmdline_get_passwd_input(p, &cmdline_state, false);
     if (spr.kind == SPRK_INCOMPLETE)
         spr = console_get_userpass_input(p);
     return spr;
@@ -98,15 +104,15 @@ RFile *open_existing_file(const char *name, uint64_t *size,
                           long *perms)
 {
     HANDLE h;
-    RFile *ret;
+    RFile *f;
 
     h = CreateFile(name, GENERIC_READ, FILE_SHARE_READ, NULL,
                    OPEN_EXISTING, 0, 0);
     if (h == INVALID_HANDLE_VALUE)
         return NULL;
 
-    ret = snew(RFile);
-    ret->h = h;
+    f = snew(RFile);
+    f->h = h;
 
     if (size) {
         DWORD lo, hi;
@@ -126,7 +132,7 @@ RFile *open_existing_file(const char *name, uint64_t *size,
     if (perms)
         *perms = -1;
 
-    return ret;
+    return f;
 }
 
 int read_from_file(RFile *f, void *buffer, int length)
@@ -151,31 +157,31 @@ struct WFile {
 WFile *open_new_file(const char *name, long perms)
 {
     HANDLE h;
-    WFile *ret;
+    WFile *f;
 
     h = CreateFile(name, GENERIC_WRITE, 0, NULL,
                    CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
     if (h == INVALID_HANDLE_VALUE)
         return NULL;
 
-    ret = snew(WFile);
-    ret->h = h;
+    f = snew(WFile);
+    f->h = h;
 
-    return ret;
+    return f;
 }
 
 WFile *open_existing_wfile(const char *name, uint64_t *size)
 {
     HANDLE h;
-    WFile *ret;
+    WFile *f;
 
     h = CreateFile(name, GENERIC_WRITE, FILE_SHARE_READ, NULL,
                    OPEN_EXISTING, 0, 0);
     if (h == INVALID_HANDLE_VALUE)
         return NULL;
 
-    ret = snew(WFile);
-    ret->h = h;
+    f = snew(WFile);
+    f->h = h;
 
     if (size) {
         DWORD lo, hi;
@@ -183,7 +189,7 @@ WFile *open_existing_wfile(const char *name, uint64_t *size)
         *size = uint64_from_words(hi, lo);
     }
 
-    return ret;
+    return f;
 }
 
 int write_to_file(WFile *f, void *buffer, int length)
@@ -216,16 +222,16 @@ int seek_file(WFile *f, uint64_t offset, int whence)
     DWORD movemethod;
 
     switch (whence) {
-    case FROM_START:
+      case FROM_START:
         movemethod = FILE_BEGIN;
         break;
-    case FROM_CURRENT:
+      case FROM_CURRENT:
         movemethod = FILE_CURRENT;
         break;
-    case FROM_END:
+      case FROM_END:
         movemethod = FILE_END;
         break;
-    default:
+      default:
         return -1;
     }
 
@@ -271,7 +277,7 @@ DirHandle *open_directory(const char *name, const char **errmsg)
     HANDLE h;
     WIN32_FIND_DATA fdat;
     char *findfile;
-    DirHandle *ret;
+    DirHandle *dir;
 
     /* Enumerate files in dir `foo'. */
     findfile = dupcat(name, "/*");
@@ -282,10 +288,10 @@ DirHandle *open_directory(const char *name, const char **errmsg)
     }
     sfree(findfile);
 
-    ret = snew(DirHandle);
-    ret->h = h;
-    ret->name = dupstr(fdat.cFileName);
-    return ret;
+    dir = snew(DirHandle);
+    dir->h = h;
+    dir->name = dupstr(fdat.cFileName);
+    return dir;
 }
 
 char *read_filename(DirHandle *dir)
@@ -378,26 +384,26 @@ WildcardMatcher *begin_wildcard_matching(const char *name)
 {
     HANDLE h;
     WIN32_FIND_DATA fdat;
-    WildcardMatcher *ret;
+    WildcardMatcher *dir;
     char *last;
 
     h = FindFirstFile(name, &fdat);
     if (h == INVALID_HANDLE_VALUE)
         return NULL;
 
-    ret = snew(WildcardMatcher);
-    ret->h = h;
-    ret->srcpath = dupstr(name);
-    last = stripslashes(ret->srcpath, true);
+    dir = snew(WildcardMatcher);
+    dir->h = h;
+    dir->srcpath = dupstr(name);
+    last = stripslashes(dir->srcpath, true);
     *last = '\0';
     if (fdat.cFileName[0] == '.' &&
         (fdat.cFileName[1] == '\0' ||
          (fdat.cFileName[1] == '.' && fdat.cFileName[2] == '\0')))
-        ret->name = NULL;
+        dir->name = NULL;
     else
-        ret->name = dupcat(ret->srcpath, fdat.cFileName);
+        dir->name = dupcat(dir->srcpath, fdat.cFileName);
 
-    return ret;
+    return dir;
 }
 
 char *wildcard_get_filename(WildcardMatcher *dir)

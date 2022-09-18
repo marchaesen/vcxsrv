@@ -66,6 +66,7 @@ xwl_present_window_get_priv(WindowPtr window)
         if (!xwl_present_window)
             return NULL;
 
+        xwl_present_window->window = window;
         xwl_present_window->msc = 1;
         xwl_present_window->ust = GetTimeInMicros();
 
@@ -127,14 +128,16 @@ xwl_present_has_pending_events(struct xwl_present_window *xwl_present_window)
            !xorg_list_is_empty(&xwl_present_window->wait_list);
 }
 
-static void
+void
 xwl_present_reset_timer(struct xwl_present_window *xwl_present_window)
 {
     if (xwl_present_has_pending_events(xwl_present_window)) {
+        struct xwl_window *xwl_window = xwl_window_from_window(xwl_present_window->window);
         CARD32 now = GetTimeInMillis();
         CARD32 timeout;
 
-        if (!xorg_list_is_empty(&xwl_present_window->frame_callback_list))
+        if (xwl_window && xwl_window->frame_callback &&
+            !xorg_list_is_empty(&xwl_present_window->frame_callback_list))
             timeout = TIMER_LEN_FLIP;
         else
             timeout = TIMER_LEN_COPY;
@@ -273,7 +276,15 @@ xwl_present_flips_stop(WindowPtr window)
         xwl_present_free_idle_vblank(vblank);
 
     if (xwl_present_window->flip_active) {
-        xwl_present_free_idle_vblank(xwl_present_window->flip_active);
+        struct xwl_present_event *event;
+
+        vblank = xwl_present_window->flip_active;
+        event = xwl_present_event_from_id((uintptr_t)vblank);
+        if (event->pixmap)
+            xwl_present_free_idle_vblank(vblank);
+        else
+            xwl_present_free_event(event);
+
         xwl_present_window->flip_active = NULL;
     }
 
@@ -505,8 +516,8 @@ xwl_present_queue_vblank(ScreenPtr screen,
     xorg_list_del(&event->vblank.event_queue);
     xorg_list_append(&event->vblank.event_queue, &xwl_present_window->wait_list);
 
-    /* If there's a pending frame callback, use that */
-    if (xwl_window && xwl_window->frame_callback &&
+    /* Hook up to frame callback */
+    if (xwl_window &&
         xorg_list_is_empty(&xwl_present_window->frame_callback_list)) {
         xorg_list_add(&xwl_present_window->frame_callback_list,
                       &xwl_window->frame_callback_list);
@@ -700,13 +711,13 @@ xwl_present_flip(WindowPtr present_window,
     /* We can flip directly to the main surface (full screen window without clips) */
     wl_surface_attach(xwl_window->surface, buffer, 0, 0);
 
-    if (!xwl_window->frame_callback)
-        xwl_window_create_frame_callback(xwl_window);
-
     if (xorg_list_is_empty(&xwl_present_window->frame_callback_list)) {
         xorg_list_add(&xwl_present_window->frame_callback_list,
                       &xwl_window->frame_callback_list);
     }
+
+    if (!xwl_window->frame_callback)
+        xwl_window_create_frame_callback(xwl_window);
 
     xwl_surface_damage(xwl_window->xwl_screen, xwl_window->surface,
                        damage_box->x1 - present_window->drawable.x,
@@ -942,6 +953,9 @@ xwl_present_unrealize_window(struct xwl_present_window *xwl_present_window)
      * the frame timer interval.
      */
     xorg_list_del(&xwl_present_window->frame_callback_list);
+
+    /* Make sure the timer callback doesn't get called */
+    xwl_present_window->timer_armed = 0;
     xwl_present_reset_timer(xwl_present_window);
 }
 

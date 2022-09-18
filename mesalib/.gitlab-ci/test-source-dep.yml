@@ -1,19 +1,25 @@
 # This file list source dependencies to avoid creating/running jobs
 # those outcome cannot be changed by the modifications from a branch.
 
-# Generic rule to not run the job during scheduled pipelines
-# ----------------------------------------------------------
-.scheduled_pipelines-rules:
-  rules: &ignore_scheduled_pipelines
-    if: '$CI_PIPELINE_SOURCE == "schedule"'
-    when: never
-
-# Mesa core source file dependencies
-# ----------------------------------
-.mesa-rules:
+# Rule to filter for only scheduled pipelines.
+.scheduled_pipeline-rules:
   rules:
-    - *ignore_scheduled_pipelines
-    - changes: &mesa_core_file_list
+    - if: &is-scheduled-pipeline '$CI_PIPELINE_SOURCE == "schedule"'
+      when: on_success
+
+# Generic rule to not run the job during scheduled pipelines. Jobs that aren't
+# something like a nightly run should include this rule.
+.no_scheduled_pipelines-rules:
+  rules:
+    - if: *is-scheduled-pipeline
+      when: never
+
+# Mesa core source file dependencies that may impact any test job
+# ---------------------------------------------------------------
+.core-rules:
+  rules:
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - changes: &core_file_list
       - .gitlab-ci.yml
       - .gitlab-ci/**/*
       - include/**/*
@@ -22,12 +28,24 @@
       - src/*
       - src/compiler/**/*
       - src/drm-shim/**/*
-      - src/egl/**/*
       - src/gbm/**/*
-      - src/glx/**/*
       - src/gtest/**/*
       - src/hgl/**/*
       - src/include/**/*
+      # Some src/util and src/compiler files use headers from mesa/ (e.g.
+      # mtypes.h).  We should clean that up.
+      - src/mesa/**/*.h
+      - src/tool/**/*
+      - src/util/**/*
+      when: on_success
+
+# Mesa source file dependencies that may impact any GL driver test job.
+.gl-rules:
+  rules:
+    - !reference [.core-rules, rules]
+    - changes: &mesa_core_file_list
+      - src/egl/**/*
+      - src/glx/**/*
       - src/loader/**/*
       - src/mapi/**/*
       - src/mesa/*
@@ -41,22 +59,7 @@
       - src/mesa/vbo/**/*
       - src/mesa/x86/**/*
       - src/mesa/x86-64/**/*
-      - src/tool/**/*
-      - src/util/**/*
-
-.vulkan-rules:
-  rules:
-    - *ignore_scheduled_pipelines
-    - changes: &vulkan_file_list
-      - src/vulkan/**/*
       when: on_success
-    - when: never
-
-# Gallium core source file dependencies
-# -------------------------------------
-.gallium-rules:
-  rules:
-    - *ignore_scheduled_pipelines
     - changes: &gallium_core_file_list
       - src/gallium/*
       - src/gallium/auxiliary/**/*
@@ -67,64 +70,51 @@
       - src/gallium/targets/**/*
       - src/gallium/tests/**/*
       - src/gallium/winsys/*
+      when: on_success
+
+# Source file dependencies that may impact any Vulkan driver build or test
+.vulkan-rules:
+  rules:
+    - !reference [.core-rules, rules]
+    - changes: &vulkan_file_list
+      - src/vulkan/**/*
+      when: on_success
 
 .softpipe-rules:
   stage: software-renderer
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.gl-rules, rules]
     - changes: &softpipe_file_list
       - src/gallium/drivers/softpipe/**/*
       - src/gallium/winsys/sw/**/*
       when: on_success
-    - when: never
 
 .llvmpipe-rules:
   stage: software-renderer
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.gl-rules, rules]
     - changes: &llvmpipe_file_list
       - src/gallium/drivers/llvmpipe/**/*
       - src/gallium/winsys/sw/**/*
       when: on_success
-    - when: never
 
 .lavapipe-rules:
   stage: software-renderer
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.vulkan-rules, rules]
+    # One could probably be a little more clever here and skip non-gallium Mesa changes (see also .llvmpipe-cl-rules).
+    - !reference [.gl-rules, rules]
     - changes: &lavapipe_file_list
       - src/gallium/drivers/llvmpipe/**/*
       - src/gallium/frontends/lavapipe/**/*
       - src/gallium/winsys/sw/**/*
       when: on_success
-    - changes:
-        *vulkan_file_list
-      when: on_success
-    - when: never
 
 .llvmpipe-cl-rules:
   stage: software-renderer
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - changes: &llvmpipe_cl_files
       - .gitlab-ci.yml
       - .gitlab-ci/**/*
       - meson.build
@@ -140,97 +130,140 @@
     - changes:
         *llvmpipe_file_list
       when: on_success
-    - changes: &clover_file_list
+
+.llvmpipe-clover-rules:
+  rules:
+    - !reference [.llvmpipe-cl-rules, rules]
+    - changes:
       - src/gallium/frontends/clover/**/*
       when: on_success
-    - when: never
+
+.llvmpipe-rusticl-rules:
+  rules:
+    - !reference [.llvmpipe-cl-rules, rules]
+    - changes:
+      - src/gallium/frontends/rusticl/**/*
+      when: on_success
+
+.collabora-farm-rules:
+  rules:
+    - if: '$COLLABORA_FARM == "offline" && $RUNNER_TAG =~ /^mesa-ci-x86-64-lava-/'
+      when: never
+
+.igalia-farm-rules:
+  rules:
+    - if: '$IGALIA_FARM == "offline"'
+      when: never
+
+.anholt-farm-rules:
+  rules:
+    - if: '$ANHOLT_FARM == "offline"'
+      when: never
+
+# Skips freedreno jobs if either of the farms we use are offline.
+.freedreno-farm-rules:
+  rules:
+    - if: '$FD_FARM == "offline"'
+      when: never
+    - !reference [.collabora-farm-rules, rules]
+
+# Rules for changes that impact either freedreno or turnip.
+.freedreno-common-rules:
+  rules:
+    - !reference [.freedreno-farm-rules, rules]
+    - changes: &freedreno_core_file_list
+      - src/freedreno/ci/**/*
+      - src/freedreno/common/**/*
+      - src/freedreno/drm/**/*
+      - src/freedreno/fdl/**/*
+      - src/freedreno/ir3/**/*
+      - src/freedreno/isa/**/*
+      - src/freedreno/registers/**/*
+      when: on_success
 
 .freedreno-rules:
   stage: freedreno
   rules:
-    - if: '$FD_FARM == "offline"'
-      when: never
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
-    - changes:
-        *vulkan_file_list
-      when: on_success
-    - changes: &freedreno_file_list
-      # Note: when https://gitlab.com/gitlab-org/gitlab/-/issues/198688
-      # is supported, we can change the src/freedreno/ rule to explicitly
-      # exclude tools
-      - src/freedreno/**/*
+    - !reference [.freedreno-common-rules, rules]
+    - !reference [.gl-rules, rules]
+    - changes: &freedreno_gl_file_list
+      - src/freedreno/ir2/**/*
       - src/gallium/drivers/freedreno/**/*
       - src/gallium/winsys/freedreno/**/*
       when: on_success
-    - when: never
 
-# Unfortunately YAML doesn't let us concatenate arrays, so we have to do the
-# rules duplication manually
+.turnip-rules:
+  stage: freedreno
+  rules:
+    - !reference [.freedreno-common-rules, rules]
+    - !reference [.vulkan-rules, rules]
+    - changes:
+      - src/freedreno/vulkan/**/*
+      when: on_success
+
+# For piglit and skqp test jobs that run both GL and VK tests.
+.freedreno-turnip-rules:
+  rules:
+    - !reference [.freedreno-rules, rules]
+    - !reference [.turnip-rules, rules]
+
 .freedreno-rules-restricted:
   stage: freedreno
   rules:
-    - if: '$FD_FARM == "offline"'
-      when: never
     # If the triggerer has access to the restricted traces and if it is pre-merge
-    - if: '($GITLAB_USER_LOGIN !~ "/^(robclark|anholt|flto|cwabbott0|Danil|tomeu)$/") &&
-           ($GITLAB_USER_LOGIN != "marge-bot" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME)'
+    - if: '($GITLAB_USER_LOGIN !~ "/^(robclark|anholt|flto|cwabbott0|Danil|tomeu|okias)$/") &&
+           ($GITLAB_USER_LOGIN != "marge-bot" || $CI_COMMIT_BRANCH)'
       when: never
-    - *ignore_scheduled_pipelines
+    - !reference [.freedreno-rules, rules]
+
+# Rules for GL driver performance tracking.  We want them to run as code is
+# merged to main, but we don't want them to block marge.  So, they need to have
+# only when: never or when: manual, and a separate script maintained by
+# Collabora triggers the manual job after merge to main.
+.gl-rules-performance:
+  rules:
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    # Run only on pre-merge pipelines from Marge
+    - if: '$GITLAB_USER_LOGIN != "marge-bot" || $CI_COMMIT_BRANCH'
+      when: never
     - changes:
         *mesa_core_file_list
-      when: on_success
+      when: manual
     - changes:
         *gallium_core_file_list
-      when: on_success
-    - changes:
-        *vulkan_file_list
-      when: on_success
-    - changes:
-        *freedreno_file_list
-      when: on_success
-    - when: never
+      when: manual
 
 # Unfortunately YAML doesn't let us concatenate arrays, so we have to do the
 # rules duplication manually
 .freedreno-rules-performance:
   stage: freedreno
   rules:
-    - if: '$FD_FARM == "offline"'
-      when: never
-    - *ignore_scheduled_pipelines
-    # Run only on pre-merge pipelines from Marge
-    - if: '$GITLAB_USER_LOGIN != "marge-bot" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME'
-      when: never
+    - !reference [.freedreno-farm-rules, rules]
+    - !reference [.gl-rules-performance, rules]
     - changes:
-        *mesa_core_file_list
+        *freedreno_core_file_list
       when: manual
     - changes:
-        *gallium_core_file_list
+        *freedreno_gl_file_list
       when: manual
+
+.nouveau-rules:
+  stage: nouveau
+  rules:
+    - !reference [.anholt-farm-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes:
-        *vulkan_file_list
-      when: manual
-    - changes:
-        *freedreno_file_list
-      when: manual
-    - when: never
+      - src/nouveau/**/*
+      - src/gallium/drivers/nouveau/**/*
+      - src/gallium/winsys/kmsro/**/*
+      - src/gallium/winsys/nouveau/**/*
+      when: on_success
 
 .panfrost-midgard-rules:
   stage: arm
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes: &panfrost_gallium_file_list
       - src/gallium/drivers/panfrost/**/*
       - src/gallium/winsys/panfrost/**/*
@@ -245,26 +278,18 @@
     - changes:
       - src/panfrost/midgard/**/*
       when: on_success
-    - when: never
 
 .panfrost-bifrost-rules:
   stage: arm
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.vulkan-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes:
         *panfrost_common_file_list
       when: on_success
     - changes:
         *panfrost_gallium_file_list
-      when: on_success
-    - changes:
-        *vulkan_file_list
       when: on_success
     - changes: &panfrost_vulkan_file_list
       - src/panfrost/vulkan/*
@@ -272,99 +297,66 @@
     - changes:
       - src/panfrost/bifrost/**/*
       when: on_success
-    - when: never
 
 .vc4-rules:
   stage: broadcom
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.igalia-farm-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes:
       - src/broadcom/**/*
       - src/gallium/drivers/vc4/**/*
       - src/gallium/winsys/kmsro/**/*
       - src/gallium/winsys/vc4/**/*
       when: on_success
-    - when: never
 
 .v3d-rules:
   stage: broadcom
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.igalia-farm-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes:
       - src/broadcom/**/*
       - src/gallium/drivers/v3d/**/*
       - src/gallium/winsys/kmsro/**/*
       - src/gallium/winsys/v3d/**/*
       when: on_success
-    - when: never
 
 .v3dv-rules:
   stage: broadcom
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *vulkan_file_list
-      when: on_success
+    - !reference [.igalia-farm-rules, rules]
+    - !reference [.vulkan-rules, rules]
     - changes:
       - src/broadcom/**/*
       when: on_success
-    - when: never
 
 .lima-rules:
   stage: arm
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - if: '$LIMA_FARM == "offline"'
+      when: never
+    - !reference [.gl-rules, rules]
     - changes:
       - src/gallium/drivers/lima/**/*
       - src/gallium/winsys/lima/**/*
       - src/lima/**/*
       when: on_success
-    - when: never
 
 .radv-rules:
   stage: amd
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.vulkan-rules, rules]
     - changes: &radv_file_list
       - src/amd/**/*
       - src/vulkan/**/*
       when: on_success
-    - when: never
 
 .virgl-rules:
   stage: layered-backends
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.gl-rules, rules]
     - changes:
         *llvmpipe_file_list
       when: on_success
@@ -372,20 +364,39 @@
       - src/gallium/drivers/virgl/**/*
       - src/gallium/winsys/virgl/**/*
       when: on_success
+
+# Unfortunately we can't sed the on_success from another rules set, so we have
+# to do duplicate the files lists to set the job to manual (see
+# .gl-rules-performance)
+.virgl-iris-rules-performance:
+  stage: layered-backends
+  rules:
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.gl-rules-performance, rules]
+    - changes:
+        *llvmpipe_file_list
+      when: manual
+    - changes:
+        *virgl_file_list
+      when: manual
+
+.venus-rules:
+  stage: layered-backends
+  rules:
+    - !reference [.lavapipe-rules, rules]
+    - changes: &venus_file_list
+      - src/virtio/**/*
+      when: on_success
     - when: never
 
 .radeonsi-rules:
   stage: amd
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes: &radeonsi_file_list
       - src/gallium/drivers/radeonsi/**/*
+      - src/gallium/include/winsys/**/*
       - src/gallium/winsys/amdgpu/**/*
       - src/amd/*
       - src/amd/addrlib/**/*
@@ -393,196 +404,190 @@
       - src/amd/llvm/**/*
       - src/amd/registers/**/*
       when: on_success
-    - when: never
+
+.radeonsi+radv-rules:
+  stage: amd
+  rules:
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.gl-rules, rules]
+    - changes:
+        *radeonsi_file_list
+      when: on_success
+    - changes:
+        *radv_file_list
+      when: on_success
 
 .radeonsi-vaapi-rules:
   stage: amd
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes:
         *radeonsi_file_list
       when: on_success
     - changes: &radeon_vcn_file_list
       - src/gallium/frontends/va/**/*
-      - src/gallium/drivers/radeon/**/*
       when: on_success
-    - when: never
 
 .i915g-rules:
   stage: intel
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.gl-rules, rules]
     - changes:
       - src/gallium/drivers/i915/**/*
       - src/gallium/winsys/i915/**/*
       - src/intel/**/*
       when: on_success
-    - when: never
 
 .crocus-rules:
   stage: intel
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.gl-rules, rules]
     - changes:
       - src/gallium/drivers/crocus/**/*
       - src/gallium/winsys/crocus/**/*
       - src/intel/**/*
       when: on_success
-    - when: never
 
 .iris-rules:
   stage: intel
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.gl-rules, rules]
     - changes: &iris_file_list
       - src/gallium/drivers/iris/**/*
       - src/gallium/winsys/iris/**/*
       - src/intel/**/*
       when: on_success
-    - when: never
 
-# Unfortunately YAML doesn't let us concatenate arrays, so we have to do the
-# rules duplication manually
+# Unfortunately we can't sed the on_success from another rules set, so we have
+# to do duplicate the files lists to set the job to manual (see
+# .gl-rules-performance)
 .iris-rules-performance:
   stage: intel
   rules:
-    - *ignore_scheduled_pipelines
-    # Run only on pre-merge pipelines from Marge
-    - if: '$GITLAB_USER_LOGIN != "marge-bot" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME'
-      when: never
-    - changes:
-        *mesa_core_file_list
-      when: manual
-    - changes:
-        *gallium_core_file_list
-      when: manual
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.gl-rules-performance, rules]
     - changes:
         *iris_file_list
       when: manual
-    - when: never
 
 .anv-rules:
   stage: intel
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *vulkan_file_list
-      when: on_success
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - !reference [.collabora-farm-rules, rules]
+    - !reference [.vulkan-rules, rules]
     - changes:
       - src/intel/**/*
       when: on_success
-    - when: never
 
-.zink-rules:
-  stage: layered-backends
+.intel-rules:
+  stage: intel
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
+    - !reference [.collabora-farm-rules, rules]
+    # Note that we trigger on changes both anv and iris, because piglit and skqp jobs test both.
+    - !reference [.vulkan-rules, rules]
+    - !reference [.gl-rules, rules]
+    - changes: &iris_file_list
+      - src/gallium/drivers/iris/**/*
+      - src/gallium/winsys/iris/**/*
+      - src/intel/**/*
       when: on_success
+
+.zink-common-rules:
+  rules:
+    - !reference [.gl-rules, rules]
     - changes:
-        *gallium_core_file_list
-      when: on_success
-    - changes:
-        *lavapipe_file_list
-      when: on_success
-    - changes: &zink_file_list
       - src/gallium/drivers/zink/**/*
       when: on_success
-    - when: never
+
+.zink-lvp-rules:
+  stage: layered-backends
+  rules:
+    - !reference [.lavapipe-rules, rules]
+    - !reference [.zink-common-rules, rules]
+
+.zink-anv-rules:
+  stage: layered-backends
+  rules:
+    - !reference [.anv-rules, rules]
+    - !reference [.zink-common-rules, rules]
+
+.zink-turnip-rules:
+  stage: layered-backends
+  rules:
+    - !reference [.turnip-rules, rules]
+    - !reference [.zink-common-rules, rules]
 
 # Unfortunately YAML doesn't let us concatenate arrays, so we have to do the
 # rules duplication manually
 .windows-build-rules:
   rules:
-    - *ignore_scheduled_pipelines
-    - changes: 
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - if: '$MICROSOFT_FARM == "offline"'
+      when: never
+    - !reference [.zink-common-rules, rules]
+    - !reference [.vulkan-rules, rules]
     - changes:
         *softpipe_file_list
       when: on_success
     - changes:
         *lavapipe_file_list
       when: on_success
-    - changes:
-        *vulkan_file_list
-      when: on_success
     - changes: &d3d12_file_list
       - src/gallium/drivers/d3d12/**/*
-      - src/microsoft/**/*
       - src/gallium/frontends/wgl/*
       - src/gallium/winsys/d3d12/wgl/*
       - src/gallium/targets/libgl-gdi/*
       - src/gallium/targets/libgl-d3d12/*
       when: on_success
     - changes:
-        *zink_file_list
+      - src/microsoft/**/*
       when: on_success
     - changes:
         *radv_file_list
       when: on_success
-    - when: never
 
-.windows-test-rules:
+.glon12-test-rules:
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
-    - changes:
-        *lavapipe_file_list
-      when: on_success
-    - changes:
-        *vulkan_file_list
-      when: on_success
+    - if: '$MICROSOFT_FARM == "offline"'
+      when: never
+    - !reference [.gl-rules, rules]
     - changes: *d3d12_file_list
       when: on_success
-    - when: never
+    - changes:
+      - src/microsoft/compiler/*
+      when: on_success
+
+.spirv2dxil-test-rules:
+  rules:
+    - if: '$MICROSOFT_FARM == "offline"'
+      when: never
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - !reference [.core-rules, rules]
+    - changes: &spirv2dxil_file_list
+      - src/microsoft/ci/*
+      - src/microsoft/compiler/*
+      - src/microsoft/spirv_to_dxil/*
+      when: on_success
+
+.dozen-test-rules:
+  rules:
+    - if: '$MICROSOFT_FARM == "offline"'
+      when: never
+    - !reference [.vulkan-rules, rules]
+    - changes:
+        *spirv2dxil_file_list
+      when: on_success
+    - changes:
+      - src/microsoft/vulkan/*
+      when: on_success
 
 .etnaviv-rules:
   stage: etnaviv
   rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.gl-rules, rules]
     - changes:
       - src/etnaviv/**/*
       - src/gallium/drivers/etnaviv/**/*
@@ -591,18 +596,12 @@
       - src/gallium/winsys/kmsro/**/*
       - src/gallium/winsys/etnaviv/**/*
       when: on_success
-    - when: never
 
 # Rules for unusual architectures that only build a subset of drivers
 .ppc64el-rules:
    rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - !reference [.zink-common-rules, rules]
     - changes:
         *softpipe_file_list
       when: on_success
@@ -619,26 +618,17 @@
         *radeonsi_file_list
       when: on_success
     - changes:
-        *zink_file_list
-      when: on_success
-    - changes:
         *virgl_file_list
       when: on_success
     - changes:
       - src/gallium/drivers/nouveau/**/*
       - src/gallium/winsys/nouveau/**/*
       when: on_success
-    - when: never
 
 .s390x-rules:
    rules:
-    - *ignore_scheduled_pipelines
-    - changes:
-        *mesa_core_file_list
-      when: on_success
-    - changes:
-        *gallium_core_file_list
-      when: on_success
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - !reference [.zink-common-rules, rules]
     - changes:
         *softpipe_file_list
       when: on_success
@@ -648,7 +638,12 @@
     - changes:
         *lavapipe_file_list
       when: on_success
+
+# Rules for linters
+.lint-rustfmt-rules:
+   rules:
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - !reference [.core-rules, rules]
     - changes:
-        *zink_file_list
+      - src/**/*.rs
       when: on_success
-    - when: never

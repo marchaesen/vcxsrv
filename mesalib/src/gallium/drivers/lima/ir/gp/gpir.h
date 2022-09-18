@@ -32,6 +32,7 @@
 
 /* list of operations that a node can do. */
 typedef enum {
+   gpir_op_unsupported = 0,
    gpir_op_mov,
 
    /* mul ops */

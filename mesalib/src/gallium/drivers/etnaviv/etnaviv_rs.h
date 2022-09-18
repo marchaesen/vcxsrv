@@ -34,6 +34,7 @@ struct rs_state {
    uint8_t downsample_x : 1; /* Downsample in x direction */
    uint8_t downsample_y : 1; /* Downsample in y direction */
    uint8_t source_ts_valid : 1;
+   uint8_t source_ts_mode : 1;
    uint8_t source_ts_compressed : 1;
 
    uint8_t source_format; /* RS_FORMAT_XXX */

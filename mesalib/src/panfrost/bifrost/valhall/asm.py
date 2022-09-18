@@ -33,53 +33,37 @@ class ParseError(Exception):
         self.error = error
 
 class FAUState:
-    def __init__(self, mode, single_uniform_slot = True):
-        self.mode = mode
-        self.single_uniform_slot = single_uniform_slot
-        self.uniform_slot = None
-        self.special = None
+    def __init__(self, message = False):
+        self.message = message
+        self.page = None
+        self.words = set()
         self.buffer = set()
 
-    def push(self, s):
-        self.buffer.add(s)
+    def set_page(self, page):
+        assert(page <= 3)
+        die_if(self.page is not None and self.page != page, 'Mismatched pages')
+        self.page = page
+
+    def push(self, source):
+        if not (source & (1 << 7)):
+            # Skip registers
+            return
+
+        self.buffer.add(source)
         die_if(len(self.buffer) > 2, "Overflowed FAU buffer")
 
-    def push_special(self, s):
-        die_if(self.special is not None and self.special != s,
-                'Multiple special immediates')
-        self.special = s
-        self.push(s)
+        if (source >> 5) == 0b110:
+            # Small constants need to check if the buffer overflows but no else
+            return
 
-    def descriptor(self, s):
-        die_if(self.mode != 'none', f'Expected no modifier with {s}')
-        self.push_special(s)
+        slot = (source >> 1)
 
-    def uniform(self, v):
-        slot = v >> 1
+        self.words.add(source)
 
-        die_if(self.mode != 'none',
-                'Expected uniform with default immediate mode')
-        die_if(self.uniform_slot is not None and self.uniform_slot != slot,
-                'Overflowed uniform slots')
-
-        if self.single_uniform_slot:
-            self.uniform_slot = slot
-
-        self.push(f'uniform{v}')
-
-    def id(self, s):
-        die_if(self.mode != 'id',
-                'Expected .id modifier with thread storage pointer')
-
-        self.push_special(f'id{s}')
-
-    def ts(self, s):
-        die_if(self.mode != 'ts',
-                'Expected .ts modifier with thread pointer')
-        self.push_special(f'ts{s}')
-
-    def constant(self, cons):
-        self.push(cons)
+        # Check the encoded slots
+        slots = set([(x >> 1) for x in self.words])
+        die_if(len(slots) > (2 if self.message else 1), 'Too many FAU slots')
+        die_if(len(self.words) > (3 if self.message else 2), 'Too many FAU words')
 
 # When running standalone, exit with the error since we're dealing with a
 # human. Otherwise raise a Python exception so the test harness can handle it.
@@ -107,38 +91,17 @@ def parse_int(s, minimum, maximum):
     return number
 
 def encode_source(op, fau):
-    if op == 'atest_datum':
-        fau.descriptor(op)
-        return 0x2A | 0xC0
-    elif op.startswith('blend_descriptor_'):
-        fau.descriptor(op)
-        fin = op[len('blend_descriptor_'):]
-        die_if(len(fin) != 3, 'Bad syntax')
-        die_if(fin[1] != '_', 'Bad syntax')
-        die_if(fin[2] not in ['x', 'y'], 'Bad component')
-
-        rt = parse_int(fin[0], 0, 7)
-        hi = 1 if (fin[2] == 'y') else 0
-        return (0x30 | (2*rt) + hi) | 0xC0
-    elif op[0] == '`':
+    if op[0] == '^':
         die_if(op[1] != 'r', f"Expected register after discard {op}")
         return parse_int(op[2:], 0, 63) | 0x40
     elif op[0] == 'r':
         return parse_int(op[1:], 0, 63)
     elif op[0] == 'u':
-        val = parse_int(op[1:], 0, 63)
-        fau.uniform(val)
-        return val | 0x80
+        val = parse_int(op[1:], 0, 127)
+        fau.set_page(val >> 6)
+        return (val & 0x3F) | 0x80
     elif op[0] == 'i':
         return int(op[3:]) | 0xC0
-    elif op in enums['thread_storage_pointers'].bare_values:
-        fau.ts(op)
-        idx = 32 + enums['thread_storage_pointers'].bare_values.index(op)
-        return idx | 0xC0
-    elif op in enums['thread_identification'].bare_values:
-        fau.id(op)
-        idx = 32 + enums['thread_identification'].bare_values.index(op)
-        return idx | 0xC0
     elif op.startswith('0x'):
         try:
             val = int(op, base=0)
@@ -146,10 +109,16 @@ def encode_source(op, fau):
             die('Expected value')
 
         die_if(val not in immediates, 'Unexpected immediate value')
-        fau.constant(val)
         return immediates.index(val) | 0xC0
     else:
+        for i in [0, 1, 3]:
+            if op in enums[f'fau_special_page_{i}'].bare_values:
+                idx = 32 + (enums[f'fau_special_page_{i}'].bare_values.index(op) << 1)
+                fau.set_page(i)
+                return idx | 0xC0
+
         die('Invalid operand')
+
 
 def encode_dest(op):
     die_if(op[0] != 'r', f"Expected register destination {op}")
@@ -197,12 +166,6 @@ def parse_asm(line):
 
     mods = head[len(ins.name) + 1:].split(".")
     modifier_map = {}
-    immediate_mode = 'none'
-
-    for mod in mods:
-        if mod in enums['immediate_mode'].bare_values:
-            die_if(immediate_mode != 'none', 'Multiple immediate modes specified')
-            immediate_mode = mod
 
     tail = line[(len(head) + 1):]
     operands = [x.strip() for x in tail.split(",") if len(x.strip()) > 0]
@@ -215,23 +178,32 @@ def parse_asm(line):
         die_if(op[0] != '@', f'Expected staging register, got {op}')
         parts = op[1:].split(':')
 
+        if op == '@':
+            parts = []
+
         die_if(any([x[0] != 'r' for x in parts]), f'Expected registers, got {op}')
         regs = [parse_int(x[1:], 0, 63) for x in parts]
 
-        sr_count = len(regs)
-        die_if(sr_count < 1, f'Expected staging register, got {op}')
-        die_if(sr_count > 7, f'Too many staging registers {sr_count}')
+        extended_write = "staging_register_write_count" in [x.name for x in ins.modifiers] and sr.write
+        max_sr_count = 8 if extended_write else 7
 
-        base = regs[0]
+        sr_count = len(regs)
+        die_if(sr_count > max_sr_count, f'Too many staging registers {sr_count}')
+
+        base = regs[0] if len(regs) > 0 else 0
         die_if(any([reg != (base + i) for i, reg in enumerate(regs)]),
                 'Expected consecutive staging registers, got {op}')
         die_if(sr_count > 1 and (base % 2) != 0,
                 'Consecutive staging registers must be aligned to a register pair')
 
         if sr.count == 0:
-            modifier_map["staging_register_count"] = sr_count
+            if "staging_register_write_count" in [x.name for x in ins.modifiers] and sr.write:
+                modifier_map["staging_register_write_count"] = sr_count - 1
+            else:
+                assert "staging_register_count" in [x.name for x in ins.modifiers]
+                modifier_map["staging_register_count"] = sr_count
         else:
-            die_if(sr_count != sr.count, f"Expected 4 staging registers, got {sr_count}")
+            die_if(sr_count != sr.count, f"Expected {sr.count} staging registers, got {sr_count}")
 
         encoded |= ((sr.encoded_flags | base) << sr.start)
     operands = operands[len(ins.staging):]
@@ -244,14 +216,14 @@ def parse_asm(line):
         # Set a placeholder writemask to prevent encoding faults
         encoded |= (0xC0 << 40)
 
-    # TODO: Determine which instructions can only have address a single uniform
-    single_uniform_slot = not ins.name.startswith('LD_BUFFER')
-
-    fau = FAUState(immediate_mode, single_uniform_slot = single_uniform_slot)
+    fau = FAUState(message = ins.message)
 
     for i, (op, src) in enumerate(zip(operands, ins.srcs)):
         parts = op.split('.')
-        encoded |= encode_source(parts[0], fau) << (i * 8)
+        encoded_src = encode_source(parts[0], fau)
+
+        # Require a word selection for special FAU values
+        needs_word_select = ((encoded_src >> 5) == 0b111)
 
         # Has a swizzle been applied yet?
         swizzled = False
@@ -275,6 +247,11 @@ def parse_asm(line):
                 swizzled = True
                 val = enums[f'lane_{src.size}_bit'].bare_values.index(mod)
                 encoded |= (val << src.offset['lane'])
+            elif src.combine and mod in enums['combine'].bare_values:
+                die_if(swizzled, "Multiple swizzles specified")
+                swizzled = True
+                val = enums['combine'].bare_values.index(mod)
+                encoded |= (val << src.offset['combine'])
             elif src.size == 32 and mod in enums['widen'].bare_values:
                 die_if(not src.swizzle, "Instruction doesn't take widens")
                 die_if(swizzled, "Multiple swizzles specified")
@@ -299,6 +276,14 @@ def parse_asm(line):
                 swizzled = True
                 val = enums['lanes_8_bit'].bare_values.index(mod)
                 encoded |= (val << src.offset['widen'])
+            elif mod in ['w0', 'w1']:
+                # Chck for special
+                die_if(not needs_word_select, 'Unexpected word select')
+
+                if mod == 'w1':
+                    encoded_src |= 0x1
+
+                needs_word_select = False
             else:
                 die(f"Unknown modifier {mod}")
 
@@ -312,6 +297,9 @@ def parse_asm(line):
             mod = enums['swizzles_16_bit'].default
             val = enums['swizzles_16_bit'].bare_values.index(mod)
             encoded |= (val << src.offset['widen'])
+
+        encoded |= encoded_src << src.start
+        fau.push(encoded_src)
 
     operands = operands[len(ins.srcs):]
 
@@ -345,38 +333,20 @@ def parse_asm(line):
     encoded |= (ins.opcode << 48)
     encoded |= (ins.opcode2 << ins.secondary_shift)
 
+    # Encode FAU page
+    if fau.page:
+        encoded |= (fau.page << 57)
+
     # Encode modifiers
-    has_action = False
+    has_flow = False
     for mod in mods:
         if len(mod) == 0:
             continue
 
-        if mod in enums['action'].bare_values:
-            die_if(has_action, "Multiple actions specified")
-            has_action = True
-            encoded |= (enums['action'].bare_values.index(mod) << 59)
-            encoded |= (1 << 62) # Action, not wait
-        elif mod.startswith('wait'):
-            die_if(has_action, "Multiple actions specified")
-            has_action = True
-
-            slots = mod[len('wait'):]
-            try:
-                slots = set([int(x) for x in slots])
-            except ValueError:
-                die(f"Expected slots in {mod}")
-
-            known_slots = set([0, 1, 2])
-            die_if(not slots.issubset(known_slots), f"Unknown slots in {mod}")
-
-            if 0 in slots:
-                encoded |= (1 << 59)
-            if 1 in slots:
-                encoded |= (1 << 60)
-            if 2 in slots:
-                encoded |= (1 << 61)
-        elif mod in enums['immediate_mode'].bare_values:
-            pass # handled specially
+        if mod in enums['flow'].bare_values:
+            die_if(has_flow, "Multiple flow control modifiers specified")
+            has_flow = True
+            encoded |= (enums['flow'].bare_values.index(mod) << 59)
         else:
             candidates = [c for c in ins.modifiers if mod in c.bare_values]
 
@@ -397,7 +367,6 @@ def parse_asm(line):
         assert(value < (1 << mod.size))
         encoded |= (value << mod.start)
 
-    encoded |= (enums['immediate_mode'].bare_values.index(immediate_mode) << 57)
     return encoded
 
 if __name__ == "__main__":

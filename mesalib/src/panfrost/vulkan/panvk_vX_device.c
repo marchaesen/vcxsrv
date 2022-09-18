@@ -33,6 +33,8 @@
 #include "panvk_private.h"
 #include "panvk_cs.h"
 
+#include "vk_drm_syncobj.h"
+
 static void
 panvk_queue_submit_batch(struct panvk_queue *queue,
                          struct panvk_batch *batch,
@@ -51,19 +53,10 @@ panvk_queue_submit_batch(struct panvk_queue *queue,
          memset((*job), 0, 4 * 4);
 
       /* Reset the tiler before re-issuing the batch */
-#if PAN_ARCH >= 6
       if (batch->tiler.descs.cpu) {
          memcpy(batch->tiler.descs.cpu, batch->tiler.templ,
                 pan_size(TILER_CONTEXT) + pan_size(TILER_HEAP));
       }
-#else
-      if (batch->fb.desc.cpu) {
-         void *tiler = pan_section_ptr(batch->fb.desc.cpu, FRAMEBUFFER, TILER);
-         memcpy(tiler, batch->tiler.templ, pan_size(TILER_CONTEXT));
-         /* All weights set to 0, nothing to do here */
-         pan_section_pack(batch->fb.desc.cpu, FRAMEBUFFER, TILER_WEIGHTS, w);
-      }
-#endif
    }
 
    if (batch->scoreboard.first_job) {
@@ -86,6 +79,9 @@ panvk_queue_submit_batch(struct panvk_queue *queue,
 
       if (debug & PANVK_DEBUG_TRACE)
          GENX(pandecode_jc)(batch->scoreboard.first_job, pdev->gpu_id);
+      
+      if (debug & PANVK_DEBUG_DUMP)
+         pandecode_dump_mappings();
    }
 
    if (batch->fragment_job) {
@@ -114,6 +110,9 @@ panvk_queue_submit_batch(struct panvk_queue *queue,
 
       if (debug & PANVK_DEBUG_TRACE)
          GENX(pandecode_jc)(batch->fragment_job, pdev->gpu_id);
+
+      if (debug & PANVK_DEBUG_DUMP)
+         pandecode_dump_mappings();
    }
 
    if (debug & PANVK_DEBUG_TRACE)
@@ -198,106 +197,102 @@ panvk_signal_event_syncobjs(struct panvk_queue *queue, struct panvk_batch *batch
 }
 
 VkResult
-panvk_per_arch(QueueSubmit)(VkQueue _queue,
-                            uint32_t submitCount,
-                            const VkSubmitInfo *pSubmits,
-                            VkFence _fence)
+panvk_per_arch(queue_submit)(struct vk_queue *vk_queue,
+                             struct vk_queue_submit *submit)
 {
-   VK_FROM_HANDLE(panvk_queue, queue, _queue);
-   VK_FROM_HANDLE(panvk_fence, fence, _fence);
+   struct panvk_queue *queue =
+      container_of(vk_queue, struct panvk_queue, vk);
    const struct panfrost_device *pdev = &queue->device->physical_device->pdev;
 
-   for (uint32_t i = 0; i < submitCount; ++i) {
-      const VkSubmitInfo *submit = pSubmits + i;
-      unsigned nr_semaphores = submit->waitSemaphoreCount + 1;
-      uint32_t semaphores[nr_semaphores];
-      
-      semaphores[0] = queue->sync;
-      for (unsigned i = 0; i < submit->waitSemaphoreCount; i++) {
-         VK_FROM_HANDLE(panvk_semaphore, sem, submit->pWaitSemaphores[i]);
+   unsigned nr_semaphores = submit->wait_count + 1;
+   uint32_t semaphores[nr_semaphores];
 
-         semaphores[i + 1] = sem->syncobj.temporary ? : sem->syncobj.permanent;
-      }
+   semaphores[0] = queue->sync;
+   for (unsigned i = 0; i < submit->wait_count; i++) {
+      assert(vk_sync_type_is_drm_syncobj(submit->waits[i].sync->type));
+      struct vk_drm_syncobj *syncobj =
+         vk_sync_as_drm_syncobj(submit->waits[i].sync);
 
-      for (uint32_t j = 0; j < submit->commandBufferCount; ++j) {
-         VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, (submit->pCommandBuffers[j]));
+      semaphores[i + 1] = syncobj->syncobj;
+   }
 
-         list_for_each_entry(struct panvk_batch, batch, &cmdbuf->batches, node) {
-            /* FIXME: should be done at the batch level */
-            unsigned nr_bos =
-               panvk_pool_num_bos(&cmdbuf->desc_pool) +
-               panvk_pool_num_bos(&cmdbuf->varying_pool) +
-               panvk_pool_num_bos(&cmdbuf->tls_pool) +
-               (batch->fb.info ? batch->fb.info->attachment_count : 0) +
-               (batch->blit.src ? 1 : 0) +
-               (batch->blit.dst ? 1 : 0) +
-               (batch->scoreboard.first_tiler ? 1 : 0) + 1;
-            unsigned bo_idx = 0;
-            uint32_t bos[nr_bos];
+   for (uint32_t j = 0; j < submit->command_buffer_count; ++j) {
+      struct panvk_cmd_buffer *cmdbuf =
+         container_of(submit->command_buffers[j], struct panvk_cmd_buffer, vk);
 
-            panvk_pool_get_bo_handles(&cmdbuf->desc_pool, &bos[bo_idx]);
-            bo_idx += panvk_pool_num_bos(&cmdbuf->desc_pool);
+      list_for_each_entry(struct panvk_batch, batch, &cmdbuf->batches, node) {
+         /* FIXME: should be done at the batch level */
+         unsigned nr_bos =
+            panvk_pool_num_bos(&cmdbuf->desc_pool) +
+            panvk_pool_num_bos(&cmdbuf->varying_pool) +
+            panvk_pool_num_bos(&cmdbuf->tls_pool) +
+            (batch->fb.info ? batch->fb.info->attachment_count : 0) +
+            (batch->blit.src ? 1 : 0) +
+            (batch->blit.dst ? 1 : 0) +
+            (batch->scoreboard.first_tiler ? 1 : 0) + 1;
+         unsigned bo_idx = 0;
+         uint32_t bos[nr_bos];
 
-            panvk_pool_get_bo_handles(&cmdbuf->varying_pool, &bos[bo_idx]);
-            bo_idx += panvk_pool_num_bos(&cmdbuf->varying_pool);
+         panvk_pool_get_bo_handles(&cmdbuf->desc_pool, &bos[bo_idx]);
+         bo_idx += panvk_pool_num_bos(&cmdbuf->desc_pool);
 
-            panvk_pool_get_bo_handles(&cmdbuf->tls_pool, &bos[bo_idx]);
-            bo_idx += panvk_pool_num_bos(&cmdbuf->tls_pool);
+         panvk_pool_get_bo_handles(&cmdbuf->varying_pool, &bos[bo_idx]);
+         bo_idx += panvk_pool_num_bos(&cmdbuf->varying_pool);
 
-            if (batch->fb.info) {
-               for (unsigned i = 0; i < batch->fb.info->attachment_count; i++) {
-                  bos[bo_idx++] = batch->fb.info->attachments[i].iview->pview.image->data.bo->gem_handle;
-               }
+         panvk_pool_get_bo_handles(&cmdbuf->tls_pool, &bos[bo_idx]);
+         bo_idx += panvk_pool_num_bos(&cmdbuf->tls_pool);
+
+         if (batch->fb.info) {
+            for (unsigned i = 0; i < batch->fb.info->attachment_count; i++) {
+               bos[bo_idx++] = batch->fb.info->attachments[i].iview->pview.image->data.bo->gem_handle;
             }
-
-            if (batch->blit.src)
-               bos[bo_idx++] = batch->blit.src->gem_handle;
-
-            if (batch->blit.dst)
-               bos[bo_idx++] = batch->blit.dst->gem_handle;
-
-            if (batch->scoreboard.first_tiler)
-               bos[bo_idx++] = pdev->tiler_heap->gem_handle;
-
-            bos[bo_idx++] = pdev->sample_positions->gem_handle;
-            assert(bo_idx == nr_bos);
-
-            /* Merge identical BO entries. */
-            for (unsigned x = 0; x < nr_bos; x++) {
-               for (unsigned y = x + 1; y < nr_bos; ) {
-                  if (bos[x] == bos[y])
-                     bos[y] = bos[--nr_bos];
-                  else
-                     y++;
-               }
-            }
-
-            unsigned nr_in_fences = 0;
-            unsigned max_wait_event_syncobjs =
-               util_dynarray_num_elements(&batch->event_ops,
-                                          struct panvk_event_op);
-            uint32_t in_fences[nr_semaphores + max_wait_event_syncobjs];
-            memcpy(in_fences, semaphores, nr_semaphores * sizeof(*in_fences));
-            nr_in_fences += nr_semaphores;
-
-            panvk_add_wait_event_syncobjs(batch, in_fences, &nr_in_fences);
-
-            panvk_queue_submit_batch(queue, batch, bos, nr_bos, in_fences, nr_in_fences);
-
-            panvk_signal_event_syncobjs(queue, batch);
          }
-      }
 
-      /* Transfer the out fence to signal semaphores */
-      for (unsigned i = 0; i < submit->signalSemaphoreCount; i++) {
-         VK_FROM_HANDLE(panvk_semaphore, sem, submit->pSignalSemaphores[i]);
-         panvk_queue_transfer_sync(queue, sem->syncobj.temporary ? : sem->syncobj.permanent);
+         if (batch->blit.src)
+            bos[bo_idx++] = batch->blit.src->gem_handle;
+
+         if (batch->blit.dst)
+            bos[bo_idx++] = batch->blit.dst->gem_handle;
+
+         if (batch->scoreboard.first_tiler)
+            bos[bo_idx++] = pdev->tiler_heap->gem_handle;
+
+         bos[bo_idx++] = pdev->sample_positions->gem_handle;
+         assert(bo_idx == nr_bos);
+
+         /* Merge identical BO entries. */
+         for (unsigned x = 0; x < nr_bos; x++) {
+            for (unsigned y = x + 1; y < nr_bos; ) {
+               if (bos[x] == bos[y])
+                  bos[y] = bos[--nr_bos];
+               else
+                  y++;
+            }
+         }
+
+         unsigned nr_in_fences = 0;
+         unsigned max_wait_event_syncobjs =
+            util_dynarray_num_elements(&batch->event_ops,
+                                       struct panvk_event_op);
+         uint32_t in_fences[nr_semaphores + max_wait_event_syncobjs];
+         memcpy(in_fences, semaphores, nr_semaphores * sizeof(*in_fences));
+         nr_in_fences += nr_semaphores;
+
+         panvk_add_wait_event_syncobjs(batch, in_fences, &nr_in_fences);
+
+         panvk_queue_submit_batch(queue, batch, bos, nr_bos, in_fences, nr_in_fences);
+
+         panvk_signal_event_syncobjs(queue, batch);
       }
    }
 
-   if (fence) {
-      /* Transfer the last out fence to the fence object */
-      panvk_queue_transfer_sync(queue, fence->syncobj.temporary ? : fence->syncobj.permanent);
+   /* Transfer the out fence to signal semaphores */
+   for (unsigned i = 0; i < submit->signal_count; i++) {
+      assert(vk_sync_type_is_drm_syncobj(submit->signals[i].sync->type));
+      struct vk_drm_syncobj *syncobj =
+         vk_sync_as_drm_syncobj(submit->signals[i].sync);
+
+      panvk_queue_transfer_sync(queue, syncobj->syncobj);
    }
 
    return VK_SUCCESS;

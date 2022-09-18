@@ -31,10 +31,10 @@ XkbAllocGeomRows \- Allocate rows in a section
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- section
+.I section
 section for which rows should be allocated
 .TP
-.I \- num_needed
+.I num_needed
 number of new rows required
 .SH DESCRIPTION
 .LP

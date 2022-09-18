@@ -85,10 +85,10 @@ panvk_per_arch(translate_sampler_compare_func)(const VkSamplerCreateInfo *pCreat
 
 void
 panvk_sysval_upload_viewport_scale(const VkViewport *viewport,
-                                   union panvk_sysval_data *data);
+                                   union panvk_sysval_vec4 *data);
 
 void
 panvk_sysval_upload_viewport_offset(const VkViewport *viewport,
-                                    union panvk_sysval_data *data);
+                                    union panvk_sysval_vec4 *data);
 
 #endif

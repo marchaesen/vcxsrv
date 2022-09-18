@@ -223,6 +223,10 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
          "hevcencode"
    };
 
+   const char *derive_progressive_disallowlist[] = {
+         "ffmpeg"
+   };
+
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
 
@@ -251,6 +255,13 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
                                    PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
                                    PIPE_VIDEO_CAP_SUPPORTS_PROGRESSIVE))
          return VA_STATUS_ERROR_OPERATION_FAILED;
+   } else {
+         if(!screen->get_video_param(screen, PIPE_VIDEO_PROFILE_UNKNOWN,
+                                   PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
+                                   PIPE_VIDEO_CAP_SUPPORTS_CONTIGUOUS_PLANES_MAP))
+            for (i = 0; i < ARRAY_SIZE(derive_progressive_disallowlist); i++)
+               if ((strcmp(derive_progressive_disallowlist[i], proc) == 0))
+                  return VA_STATUS_ERROR_OPERATION_FAILED;
    }
 
    surfaces = surf->buffer->get_surfaces(surf->buffer);
@@ -310,6 +321,23 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    case VA_FOURCC('N','V','1','2'):
    case VA_FOURCC('P','0','1','0'):
    case VA_FOURCC('P','0','1','6'):
+   {
+      /* In some gallium platforms, the stride and offset are different*/
+      /* for the Y and UV planes, query them independently.*/
+      if (screen->resource_get_info) {
+         /* resource_get_info is called above for surfaces[0]->texture and */
+         /* saved results in stride, offset, reuse those values to avoid a new call to: */
+         /* screen->resource_get_info(screen, surfaces[0]->texture, &img->pitches[0],*/
+         /*                         &img->offsets[0]);*/
+         img->pitches[0] = stride;
+         img->offsets[0] = offset;
+
+         screen->resource_get_info(screen, surfaces[1]->texture, &img->pitches[1],
+                                 &img->offsets[1]);
+         if (!img->pitches[1])
+               img->offsets[1] = 0;
+      }
+
       if (surf->buffer->interlaced) {
          struct u_rect src_rect, dst_rect;
          struct pipe_video_buffer new_template;
@@ -338,10 +366,15 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
          /* recalculate the values now that we have a new surface */
          surfaces = surf->buffer->get_surfaces(new_buffer);
          if (screen->resource_get_info) {
-            screen->resource_get_info(screen, surfaces[0]->texture, &stride,
-                                    &offset);
-            if (!stride)
-               offset = 0;
+            screen->resource_get_info(screen, surfaces[0]->texture, &img->pitches[0],
+                                    &img->offsets[0]);
+            if (!img->pitches[0])
+               img->offsets[0] = 0;
+
+            screen->resource_get_info(screen, surfaces[1]->texture, &img->pitches[1],
+                                    &img->offsets[1]);
+            if (!img->pitches[1])
+               img->offsets[1] = 0;
          }
 
          w = align(new_buffer->width, 2);
@@ -349,12 +382,18 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
       }
 
       img->num_planes = 2;
-      img->pitches[0] = stride > 0 ? stride : w;
-      img->pitches[1] = stride > 0 ? stride : w;
-      img->offsets[1] = (stride > 0 ? stride : w) * h;
-      img->data_size  = (stride > 0 ? stride : w) * h * 3 / 2;
-      break;
-
+      if(screen->resource_get_info) {
+         /* Note this block might use h and w from the recalculated size if it entered
+            the interlaced branch above.*/
+         img->data_size  = (img->pitches[0] * h) + (img->pitches[1] * h / 2);
+      } else {
+         /* Use stride = w as default if screen->resource_get_info was not available */
+         img->pitches[0] = w;
+         img->pitches[1] = w;
+         img->offsets[1] = w * h;
+         img->data_size  = w * h * 3 / 2;
+      }
+   } break;
    default:
       /* VaDeriveImage only supports contiguous planes. But there is now a
          more generic api vlVaExportSurfaceHandle. */

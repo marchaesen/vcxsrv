@@ -406,7 +406,7 @@ static void si_emit_dpbb_disable(struct si_context *sctx)
 {
    radeon_begin(&sctx->gfx_cs);
 
-   if (sctx->chip_class >= GFX10) {
+   if (sctx->gfx_level >= GFX10) {
       struct uvec2 bin_size = {};
       struct uvec2 bin_size_extend = {};
 
@@ -424,20 +424,19 @@ static void si_emit_dpbb_disable(struct si_context *sctx)
             S_028C44_BIN_SIZE_X(bin_size.x == 16) | S_028C44_BIN_SIZE_Y(bin_size.y == 16) |
             S_028C44_BIN_SIZE_X_EXTEND(bin_size_extend.x) |
             S_028C44_BIN_SIZE_Y_EXTEND(bin_size_extend.y) | S_028C44_DISABLE_START_OF_PRIM(1) |
-            S_028C44_FLUSH_ON_BINNING_TRANSITION(sctx->last_binning_enabled != 0));
+            S_028C44_FPOVS_PER_BATCH(63) |
+            S_028C44_OPTIMAL_BIN_SELECTION(1) |
+            S_028C44_FLUSH_ON_BINNING_TRANSITION(1));
    } else {
       radeon_opt_set_context_reg(
          sctx, R_028C44_PA_SC_BINNER_CNTL_0, SI_TRACKED_PA_SC_BINNER_CNTL_0,
          S_028C44_BINNING_MODE(V_028C44_DISABLE_BINNING_USE_LEGACY_SC) |
             S_028C44_DISABLE_START_OF_PRIM(1) |
-            S_028C44_FLUSH_ON_BINNING_TRANSITION((sctx->family == CHIP_VEGA12 ||
-                                                  sctx->family == CHIP_VEGA20 ||
-                                                  sctx->family >= CHIP_RAVEN2) &&
-                                                 sctx->last_binning_enabled != 0));
+            S_028C44_FLUSH_ON_BINNING_TRANSITION(sctx->family == CHIP_VEGA12 ||
+                                                 sctx->family == CHIP_VEGA20 ||
+                                                 sctx->family >= CHIP_RAVEN2));
    }
    radeon_end_update_context_roll(sctx);
-
-   sctx->last_binning_enabled = false;
 }
 
 void si_emit_dpbb_state(struct si_context *sctx)
@@ -447,7 +446,7 @@ void si_emit_dpbb_state(struct si_context *sctx)
    struct si_state_dsa *dsa = sctx->queued.named.dsa;
    unsigned db_shader_control = sctx->ps_db_shader_control;
 
-   assert(sctx->chip_class >= GFX9);
+   assert(sctx->gfx_level >= GFX9);
 
    if (!sscreen->dpbb_allowed || sctx->dpbb_force_off ||
        sctx->dpbb_force_off_profile_vs || sctx->dpbb_force_off_profile_ps) {
@@ -476,7 +475,7 @@ void si_emit_dpbb_state(struct si_context *sctx)
       sctx->framebuffer.colorbuf_enabled_4bit & blend->cb_target_enabled_4bit;
    struct uvec2 color_bin_size, depth_bin_size;
 
-   if (sctx->chip_class >= GFX10) {
+   if (sctx->gfx_level >= GFX10) {
       gfx10_get_bin_sizes(sctx, cb_target_enabled_4bit, &color_bin_size, &depth_bin_size);
    } else {
       color_bin_size = si_get_color_bin_size(sctx, cb_target_enabled_4bit);
@@ -494,7 +493,11 @@ void si_emit_dpbb_state(struct si_context *sctx)
    }
 
    /* Tunable parameters. */
-   unsigned fpovs_per_batch = 63; /* allowed range: [0, 255], 0 = unlimited */
+   /* Allowed range:
+    *    gfx9-10: [0, 255] (0 = unlimited)
+    *    gfx11: [1, 255] (255 = unlimited)
+    */
+   unsigned fpovs_per_batch = 63;
 
    /* Emit registers. */
    struct uvec2 bin_size_extend = {};
@@ -513,11 +516,8 @@ void si_emit_dpbb_state(struct si_context *sctx)
          S_028C44_PERSISTENT_STATES_PER_BIN(sscreen->pbb_persistent_states_per_bin - 1) |
          S_028C44_DISABLE_START_OF_PRIM(1) |
          S_028C44_FPOVS_PER_BATCH(fpovs_per_batch) | S_028C44_OPTIMAL_BIN_SELECTION(1) |
-         S_028C44_FLUSH_ON_BINNING_TRANSITION((sctx->family == CHIP_VEGA12 ||
-                                               sctx->family == CHIP_VEGA20 ||
-                                               sctx->family >= CHIP_RAVEN2) &&
-                                              sctx->last_binning_enabled != 1));
+         S_028C44_FLUSH_ON_BINNING_TRANSITION(sctx->family == CHIP_VEGA12 ||
+                                              sctx->family == CHIP_VEGA20 ||
+                                              sctx->family >= CHIP_RAVEN2));
    radeon_end_update_context_roll(sctx);
-
-   sctx->last_binning_enabled = true;
 }

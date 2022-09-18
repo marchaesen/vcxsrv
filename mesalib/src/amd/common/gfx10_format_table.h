@@ -28,6 +28,7 @@
 #define GFX10_FORMAT_TABLE_H
 
 #include "pipe/p_format.h"
+#include "ac_gpu_info.h"
 
 #include <stdbool.h>
 
@@ -41,5 +42,15 @@ struct gfx10_format {
 };
 
 extern const struct gfx10_format gfx10_format_table[PIPE_FORMAT_COUNT];
+extern const struct gfx10_format gfx11_format_table[PIPE_FORMAT_COUNT];
+
+static inline
+const struct gfx10_format* ac_get_gfx10_format_table(struct radeon_info *info)
+{
+   if (info->gfx_level >= GFX11)
+      return gfx11_format_table;
+   else
+      return gfx10_format_table;
+}
 
 #endif /* GFX10_FORMAT_TABLE_H */

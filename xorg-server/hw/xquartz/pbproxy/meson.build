@@ -8,9 +8,11 @@ endif
 libapplewm_dep = dependency('applewm', version: '>=1.4')
 
 libxpbproxy = static_library('xpbproxy',
-    ['main.m',
+    ['../NSUserDefaults+XQuartzDefaults.m',
+     'main.m',
      'x-input.m',
      'x-selection.m'],
+    include_directories: ['..'],
     dependencies: [applewmproto_dep, libapplewm_dep, dependency('xfixes'), dependency('x11')],
     objc_args: pbproxy_defs,
 )

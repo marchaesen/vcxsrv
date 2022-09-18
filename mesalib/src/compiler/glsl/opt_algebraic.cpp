@@ -398,7 +398,7 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
          return op_expr[0]->operands[0];
       }
 
-      if (!options->EmitNoPow && op_expr[0]->operation == ir_binop_mul) {
+      if (op_expr[0]->operation == ir_binop_mul) {
          for (int log2_pos = 0; log2_pos < 2; log2_pos++) {
             ir_expression *log2_expr =
                op_expr[0]->operands[log2_pos]->as_expression();
@@ -430,36 +430,6 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
                                            op_expr[0]->operands[0]);
       }
       break;
-
-   case ir_unop_logic_not: {
-      enum ir_expression_operation new_op = ir_unop_logic_not;
-
-      if (op_expr[0] == NULL)
-	 break;
-
-      switch (op_expr[0]->operation) {
-      case ir_binop_less:    new_op = ir_binop_gequal;  break;
-      case ir_binop_gequal:  new_op = ir_binop_less;    break;
-      case ir_binop_equal:   new_op = ir_binop_nequal;  break;
-      case ir_binop_nequal:  new_op = ir_binop_equal;   break;
-      case ir_binop_all_equal:   new_op = ir_binop_any_nequal;  break;
-      case ir_binop_any_nequal:  new_op = ir_binop_all_equal;   break;
-
-      default:
-	 /* The default case handler is here to silence a warning from GCC.
-	  */
-	 break;
-      }
-
-      if (new_op != ir_unop_logic_not) {
-	 return new(mem_ctx) ir_expression(new_op,
-					   ir->type,
-					   op_expr[0]->operands[0],
-					   op_expr[0]->operands[1]);
-      }
-
-      break;
-   }
 
    case ir_unop_saturate:
       if (op_expr[0] && op_expr[0]->operation == ir_binop_add) {
@@ -860,7 +830,7 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
 
    case ir_binop_min:
    case ir_binop_max:
-      if (!ir->type->is_float() || options->EmitNoSat)
+      if (!ir->type->is_float())
          break;
 
       /* Replace min(max) operations and its commutative combinations with

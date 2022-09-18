@@ -275,8 +275,8 @@ Increment the version contained in the file ``VERSION`` at Mesa's top-level,
 then commit this change and **push the branch** (if you forget to do
 this, ``release.sh`` below will fail).
 
-Use the release.sh script from xorg `util-modular <https://cgit.freedesktop.org/xorg/util/modular/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use the release.sh script from xorg `util-modular <https://gitlab.freedesktop.org/xorg/util/modular>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Start the release process.
 

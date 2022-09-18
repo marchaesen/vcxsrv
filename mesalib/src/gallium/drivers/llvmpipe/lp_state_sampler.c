@@ -231,6 +231,7 @@ llvmpipe_create_sampler_view(struct pipe_context *pipe,
             assert(texture->target == PIPE_TEXTURE_1D);
          else if (view->target == PIPE_TEXTURE_2D)
             assert(texture->target == PIPE_TEXTURE_2D_ARRAY ||
+                   texture->target == PIPE_TEXTURE_3D ||
                    texture->target == PIPE_TEXTURE_CUBE ||
                    texture->target == PIPE_TEXTURE_CUBE_ARRAY);
          else if (view->target == PIPE_TEXTURE_2D_ARRAY)

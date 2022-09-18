@@ -51,34 +51,6 @@ agx_liveness_ins_update(BITSET_WORD *live, agx_instr *I)
    }
 }
 
-static bool
-liveness_block_update(agx_block *blk, unsigned words)
-{
-   bool progress = false;
-
-   /* live_out[s] = sum { p in succ[s] } ( live_in[p] ) */
-   agx_foreach_successor(blk, succ) {
-      for (unsigned i = 0; i < words; ++i)
-         blk->live_out[i] |= succ->live_in[i];
-   }
-
-   /* live_in is live_out after iteration */
-   BITSET_WORD *live = ralloc_array(blk, BITSET_WORD, words);
-   memcpy(live, blk->live_out, words * sizeof(BITSET_WORD));
-
-   agx_foreach_instr_in_block_rev(blk, I)
-      agx_liveness_ins_update(live, I);
-
-   /* To figure out progress, diff live_in */
-   for (unsigned i = 0; i < words; ++i)
-      progress |= (blk->live_in[i] != live[i]);
-
-   ralloc_free(blk->live_in);
-   blk->live_in = live;
-
-   return progress;
-}
-
 /* Globally, liveness analysis uses a fixed-point algorithm based on a
  * worklist. We initialize a work list with the exit block. We iterate the work
  * list to compute live_in from live_out for each block on the work list,
@@ -88,12 +60,8 @@ liveness_block_update(agx_block *blk, unsigned words)
 void
 agx_compute_liveness(agx_context *ctx)
 {
-   if (ctx->has_liveness)
-      return;
-
-   /* Set of agx_block */
-   struct set *work_list = _mesa_set_create(NULL, _mesa_hash_pointer,
-                                                  _mesa_key_pointer_equal);
+   u_worklist worklist;
+   u_worklist_init(&worklist, ctx->num_blocks, NULL);
 
    /* Free any previous liveness, and allocate */
    unsigned words = BITSET_WORDS(ctx->alloc);
@@ -105,35 +73,70 @@ agx_compute_liveness(agx_context *ctx)
       if (block->live_out)
          ralloc_free(block->live_out);
 
-      block->pass_flags = false;
       block->live_in = rzalloc_array(block, BITSET_WORD, words);
       block->live_out = rzalloc_array(block, BITSET_WORD, words);
+
+      agx_worklist_push_head(&worklist, block);
    }
 
-   /* Initialize the work list with the exit block */
-   struct set_entry *cur = _mesa_set_add(work_list, agx_exit_block(ctx));
-
    /* Iterate the work list */
-   do {
-      /* Pop off a block */
-      agx_block *blk = (struct agx_block *) cur->key;
-      _mesa_set_remove(work_list, cur);
+   while(!u_worklist_is_empty(&worklist)) {
+      /* Pop in reverse order since liveness is a backwards pass */
+      agx_block *blk = agx_worklist_pop_head(&worklist);
 
       /* Update its liveness information */
-      bool progress = liveness_block_update(blk, words);
+      memcpy(blk->live_in, blk->live_out, words * sizeof(BITSET_WORD));
 
-      /* If we made progress, we need to process the predecessors */
+      agx_foreach_instr_in_block_rev(blk, I) {
+         /* Phi nodes are handled separately, so we skip them. As phi nodes are at
+          * the beginning and we're iterating backwards, we stop as soon as we hit
+          * a phi node.
+          */
+         if (I->op == AGX_OPCODE_PHI)
+            break;
 
-      if (progress || !blk->pass_flags) {
-         agx_foreach_predecessor(blk, pred)
-            _mesa_set_add(work_list, pred);
+         agx_liveness_ins_update(blk->live_in, I);
       }
 
-      /* Use pass flags to communicate that we've visited this block */
-      blk->pass_flags = true;
-   } while((cur = _mesa_set_next_entry(work_list, NULL)) != NULL);
+      /* Propagate the live in of the successor (blk) to the live out of
+       * predecessors.
+       *
+       * Phi nodes are logically on the control flow edge and act in parallel. To
+       * handle when propagating, we kill writes from phis and make live the
+       * corresponding sources.
+       */
+      agx_foreach_predecessor(blk, pred) {
+         BITSET_WORD *live = ralloc_array(blk, BITSET_WORD, words);
+         memcpy(live, blk->live_in, words * sizeof(BITSET_WORD));
 
-   _mesa_set_destroy(work_list, NULL);
+         /* Kill write */
+         agx_foreach_instr_in_block(blk, I) {
+            if (I->op != AGX_OPCODE_PHI) break;
 
-   ctx->has_liveness = true;
+            assert(I->dest[0].type == AGX_INDEX_NORMAL);
+            BITSET_CLEAR(live, I->dest[0].value);
+         }
+
+         /* Make live the corresponding source */
+         agx_foreach_instr_in_block(blk, I) {
+            if (I->op != AGX_OPCODE_PHI) break;
+
+            agx_index operand = I->src[agx_predecessor_index(blk, *pred)];
+            assert(operand.type == AGX_INDEX_NORMAL);
+            BITSET_SET(live, operand.value);
+         }
+
+         bool progress = false;
+
+         for (unsigned i = 0; i < words; ++i) {
+            progress |= live[i] & ~((*pred)->live_out[i]);
+            (*pred)->live_out[i] |= live[i];
+         }
+
+         if (progress)
+            agx_worklist_push_tail(&worklist, *pred);
+      }
+   }
+
+   u_worklist_fini(&worklist);
 }

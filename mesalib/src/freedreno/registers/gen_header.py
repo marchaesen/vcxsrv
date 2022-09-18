@@ -133,7 +133,7 @@ class Bitset(object):
 				tab_to("    __bo_type", "bo;")
 				tab_to("    uint32_t", "bo_offset;")
 				if bit_size == 64:
-                                    value_name = "qword"
+					value_name = "qword"
 				continue
 			name = field_name(prefix, f.name)
 

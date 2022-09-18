@@ -37,8 +37,6 @@ xkb_symbols "sun_type6" {
     // A few keys are different
     key <ALGR> { [ Hangul                       ] };
     key <COMP> { [ Hangul_Hanja                 ] };
-    key <KANA> { [ Hangul                       ] };
-    key <EISU> { [ Hangul_Hanja                 ] };
     key <BKSL> { [ backslash, bar,  brokenbar   ] };
 
 };

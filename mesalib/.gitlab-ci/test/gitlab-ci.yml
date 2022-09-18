@@ -1,0 +1,351 @@
+.test:
+  # Cancel job if a newer commit is pushed to the same branch
+  interruptible: true
+  variables:
+    GIT_STRATEGY: none # testing doesn't build anything from source
+  before_script:
+    - !reference [default, before_script]
+    # Note: Build dir (and thus install) may be dirty due to GIT_STRATEGY
+    - rm -rf install
+    - tar -xf artifacts/install.tar
+    - echo -e "\e[0Ksection_start:$(date +%s):ldd_section[collapsed=true]\r\e[0KChecking ldd on driver build"
+    - LD_LIBRARY_PATH=install/lib find install/lib -name "*.so" -print -exec ldd {} \;
+    - echo -e "\e[0Ksection_end:$(date +%s):ldd_section\r\e[0K"
+  artifacts:
+    when: always
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - results/
+
+rustfmt:
+  # Cancel job if a newer commit is pushed to the same branch
+  interruptible: true
+  stage: lint
+  extends:
+    - .use-debian/x86_build
+    - .lint-rustfmt-rules
+  variables:
+    GIT_STRATEGY: fetch
+  script:
+    - git ls-files */{lib,app}.rs | xargs rustfmt --check
+
+.test-gl:
+  extends:
+    - .test
+    - .use-debian/x86_test-gl
+  needs:
+    - debian/x86_test-gl
+    - debian-testing
+
+.test-vk:
+  extends:
+    - .test
+    - .use-debian/x86_test-vk
+  needs:
+    - debian-testing
+    - debian/x86_test-vk
+
+.test-cl:
+  extends:
+    - .test
+    - .use-debian/x86_test-gl
+  needs:
+    - debian/x86_test-gl
+
+.vkd3d-proton-test:
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - results/vkd3d-proton.log
+  script:
+    - ./install/vkd3d-proton/run.sh
+
+.piglit-test:
+  artifacts:
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - results
+    reports:
+      junit: results/junit.xml
+  variables:
+    PIGLIT_NO_WINDOW: 1
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
+  script:
+    - install/piglit/piglit-runner.sh
+
+.piglit-traces-test:
+  extends:
+    - .piglit-test
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    reports:
+      junit: results/junit.xml
+    paths:
+      - results/
+    exclude:
+      - results/*.shader_cache
+  variables:
+    PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_host=minio-packet.freedesktop.org --minio_bucket=mesa-tracie-public --role-session-name=${CI_PROJECT_PATH}:${CI_JOB_ID} --jwt-file=${CI_JOB_JWT_FILE}
+  script:
+    - echo -e "\e[0Ksection_start:$(date +%s):variables[collapsed=true]\r\e[0KVariables passed through:"
+    - install/common/generate-env.sh
+    - echo -e "\e[0Ksection_end:$(date +%s):variables\r\e[0K"
+    - install/piglit/piglit-traces.sh
+
+.deqp-test:
+  script:
+    - ./install/deqp-runner.sh
+  artifacts:
+    exclude:
+      - results/*.shader_cache
+    reports:
+      junit: results/junit.xml
+
+.deqp-test-vk:
+  extends:
+    - .deqp-test
+  variables:
+    DEQP_VER: vk
+
+.skqp-test:
+  variables:
+    HWCI_START_XORG: 1
+    HWCI_TEST_SCRIPT: "/install/skqp-runner.sh"
+
+.fossilize-test:
+  script:
+    - ./install/fossilize-runner.sh
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - results/
+
+.baremetal-test:
+  extends:
+    - .test
+  # Cancel job if a newer commit is pushed to the same branch
+  interruptible: true
+  before_script:
+    - !reference [default, before_script]
+    # Use this instead of gitlab's artifacts download because it hits packet.net
+    # instead of fd.o.  Set FDO_HTTP_CACHE_URI to an http cache for your test lab to
+    # improve it even more (see https://docs.mesa3d.org/ci/bare-metal.html for
+    # setup).
+    - echo -e "\e[0Ksection_start:$(date +%s):artifacts_download[collapsed=true]\r\e[0KDownloading artifacts from minio"
+    - wget ${FDO_HTTP_CACHE_URI:-}https://${PIPELINE_ARTIFACTS_BASE}/${MINIO_ARTIFACT_NAME}.tar.zst -S --progress=dot:giga -O- | tar --zstd -x
+    - echo -e "\e[0Ksection_end:$(date +%s):artifacts_download\r\e[0K"
+  artifacts:
+    when: always
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - results/
+      - serial*.txt
+    exclude:
+      - results/*.shader_cache
+    reports:
+      junit: results/junit.xml
+
+# ARM testing of bare-metal boards attached to an x86 gitlab-runner system
+.baremetal-test-armhf:
+  extends:
+    - .baremetal-test
+    - .use-debian/arm_test
+  variables:
+    BM_ROOTFS: /rootfs-armhf
+    MINIO_ARTIFACT_NAME: mesa-armhf
+  needs:
+    - debian/arm_test
+    - job: debian-armhf
+      artifacts: false
+
+# ARM64 testing of bare-metal boards attached to an x86 gitlab-runner system
+.baremetal-test-arm64:
+  extends:
+    - .baremetal-test
+    - .use-debian/arm_test
+  variables:
+    BM_ROOTFS: /rootfs-arm64
+    MINIO_ARTIFACT_NAME: mesa-arm64
+  needs:
+    - debian/arm_test
+    - job: debian-arm64
+      artifacts: false
+
+# ARM64 testing of bare-metal boards attached to an x86 gitlab-runner system, using an asan mesa build
+.baremetal-arm64-asan-test:
+  extends:
+    - .baremetal-test
+    - .use-debian/arm_test
+  variables:
+    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.6:/install/lib/libdlclose-skip.so"
+    MINIO_ARTIFACT_NAME: mesa-arm64-asan
+  needs:
+    - debian/arm_test
+    - job: debian-arm64-asan
+      artifacts: false
+
+.baremetal-deqp-test:
+  variables:
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    FDO_CI_CONCURRENT: 0 # Default to number of CPUs
+
+# For Valve's bare-metal testing farm jobs.
+.b2c-test:
+  # It would be nice to use ci-templates within Mesa CI for this job's
+  # image:, but the integration is not possible for the current
+  # use-case. Within this job, two containers are managed. 1) the
+  # gitlab runner container from which the job is submitted to the
+  # DUT, and 2) the test container (e.g. debian/x86_test-vk) within
+  # which the test cases will run on the DUT. Since ci-templates and
+  # the associated image setting macros in this file rely on variables
+  # like FDO_DISTRIBUTION_TAG for *the* image, there is no way to
+  # depend on more than one image per job. So, the job container is
+  # built as part of the CI in the boot2container project.
+  image: registry.freedesktop.org/mupuf/valve-infra/mesa-trigger:2022-03-03.2
+  timeout: 1h 40m
+  variables:
+    # No need by default to pull the whole repo
+    GIT_STRATEGY: none
+    # boot2container initrd configuration parameters.
+    B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/mupuf/valve-infra/-/package_files/144/download'  # 5.17.1
+    B2C_INITRAMFS_URL: 'https://gitlab.freedesktop.org/mupuf/boot2container/-/releases/v0.9.8/downloads/initramfs.linux_amd64.cpio.xz'
+    B2C_JOB_SUCCESS_REGEX: '\[.*\]: Execution is over, pipeline status: 0\r$'
+    B2C_JOB_WARN_REGEX: '\*ERROR\* ring .* timeout, but soft recovered'
+    B2C_LOG_LEVEL: 6
+    B2C_POWEROFF_DELAY: 15
+    B2C_SESSION_END_REGEX: '^.*It''s now safe to turn off your computer\r$'
+    B2C_SESSION_REBOOT_REGEX: '(GPU hang detected!|\*ERROR\* ring [^\s]+ timeout(?!, but soft recovered)|The CS has been cancelled because the context is lost)'
+    B2C_TIMEOUT_BOOT_MINUTES: 45
+    B2C_TIMEOUT_BOOT_RETRIES: 1
+    B2C_TIMEOUT_FIRST_MINUTES: 5
+    B2C_TIMEOUT_FIRST_RETRIES: 3
+    B2C_TIMEOUT_MINUTES: 2
+    B2C_TIMEOUT_OVERALL_MINUTES: 90
+    B2C_TIMEOUT_RETRIES: 0
+
+    # As noted in the top description, we make a distinction between the
+    # container used by gitlab-runner to queue the work, and the container
+    # used by the DUTs/test machines. To make this distinction quite clear,
+    # we rename the MESA_IMAGE variable into IMAGE_UNDER_TEST.
+    IMAGE_UNDER_TEST: "$MESA_IMAGE"
+
+    INSTALL_TARBALL_NAME: "install.tar"
+    INSTALL_TARBALL: "./artifacts/${INSTALL_TARBALL_NAME}"
+    CI_B2C_ARTIFACTS: "./artifacts/b2c"
+    CI_COMMON_SCRIPTS: "./artifacts/ci-common"
+    GENERATE_ENV_SCRIPT: "${CI_COMMON_SCRIPTS}/generate-env.sh"
+    B2C_JOB_TEMPLATE: "${CI_B2C_ARTIFACTS}/b2c.yml.jinja2.jinja2"
+    JOB_FOLDER: "job_folder"
+  before_script:
+    # We don't want the tarball unpacking of .test, but will take the JWT bits.
+    - !reference [default, before_script]
+    - |
+      set -x
+
+      # Useful as a hook point for runner admins. You may edit the
+      # config.toml for the Gitlab runner and use a bind-mount to
+      # populate the hook script with some executable commands. This
+      # allows quicker feedback than resubmitting pipelines and
+      # potentially having to wait for a debug build of Mesa to
+      # complete.
+      if [ -x /runner-before-script.sh ]; then
+         echo "Executing runner before-script hook..."
+         sh /runner-before-script.sh
+         if [ $? -ne 0 ]; then
+            echo "Runner hook failed, goodbye"
+            exit $?
+         fi
+      fi
+
+      [ -s "$INSTALL_TARBALL" ] || exit 1
+      [ -d "$CI_B2C_ARTIFACTS" ] || exit 1
+      [ -d "$CI_COMMON_SCRIPTS" ] || exit 1
+
+
+      B2C_TEST_SCRIPT="bash -c 'source ./set-job-env-vars.sh; tar xf ${INSTALL_TARBALL_NAME}; ${B2C_TEST_SCRIPT}'"
+
+      # The Valve CI gateway receives jobs in a YAML format. Create a
+      # job description from the CI environment.
+      python3 "$CI_B2C_ARTIFACTS"/generate_b2c.py \
+        --ci-job-id "${CI_JOB_ID}" \
+        --container-cmd "${B2C_TEST_SCRIPT}" \
+        --initramfs-url "${B2C_INITRAMFS_URL}" \
+        --job-success-regex "${B2C_JOB_SUCCESS_REGEX}" \
+        --job-warn-regex "${B2C_JOB_WARN_REGEX}" \
+        --kernel-url "${B2C_KERNEL_URL}" \
+        --log-level "${B2C_LOG_LEVEL}" \
+        --poweroff-delay "${B2C_POWEROFF_DELAY}" \
+        --session-end-regex "${B2C_SESSION_END_REGEX}" \
+        --session-reboot-regex "${B2C_SESSION_REBOOT_REGEX}" \
+        --tags "${CI_RUNNER_TAGS}" \
+        --template "${B2C_JOB_TEMPLATE}" \
+        --timeout-boot-minutes "${B2C_TIMEOUT_BOOT_MINUTES}" \
+        --timeout-boot-retries "${B2C_TIMEOUT_BOOT_RETRIES}" \
+        --timeout-first-minutes "${B2C_TIMEOUT_FIRST_MINUTES}" \
+        --timeout-first-retries "${B2C_TIMEOUT_FIRST_RETRIES}" \
+        --timeout-minutes "${B2C_TIMEOUT_MINUTES}" \
+        --timeout-overall-minutes "${B2C_TIMEOUT_OVERALL_MINUTES}" \
+        --timeout-retries "${B2C_TIMEOUT_RETRIES}" \
+        --job-volume-exclusions "${B2C_JOB_VOLUME_EXCLUSIONS}" \
+        --local-container "${IMAGE_UNDER_TEST}" \
+        ${B2C_EXTRA_VOLUME_ARGS} \
+        --working-dir "$CI_PROJECT_DIR"
+
+      cat b2c.yml.jinja2
+
+      rm -rf ${JOB_FOLDER} || true
+      mkdir -v ${JOB_FOLDER}
+      # Create a script to regenerate the CI environment when this job
+      # begins running on the remote DUT.
+      set +x
+      "$CI_COMMON_SCRIPTS"/generate-env.sh > ${JOB_FOLDER}/set-job-env-vars.sh
+      chmod +x ${JOB_FOLDER}/set-job-env-vars.sh
+      echo "Variables passed through:"
+      cat ${JOB_FOLDER}/set-job-env-vars.sh
+      echo "export CI_JOB_JWT=${CI_JOB_JWT}" >> ${JOB_FOLDER}/set-job-env-vars.sh
+      set -x
+
+      # Copy the mesa install tarball to the job folder, for later extraction
+      mv "${INSTALL_TARBALL}" "${JOB_FOLDER}"
+
+  script: |
+      slugify () {
+          echo "$1" | sed -r s/[~\^]+//g | sed -r s/[^a-zA-Z0-9]+/-/g | sed -r s/^-+\|-+$//g | tr A-Z a-z
+      }
+
+      # Submit the job to Valve's CI gateway service with the CI
+      # provisioned job_folder.
+      env PYTHONUNBUFFERED=1 executorctl \
+          run -w b2c.yml.jinja2 -j $(slugify "$CI_JOB_NAME") -s ${JOB_FOLDER}
+
+      ls -l
+      # Anything our job places in results/ will be collected by the
+      # Gitlab coordinator for status presentation. results/junit.xml
+      # will be parsed by the UI for more detailed explanations of
+      # test execution.
+  artifacts:
+    when: always
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - ${JOB_FOLDER}/results
+    reports:
+      junit: ${JOB_FOLDER}/results/junit.xml
+
+.b2c-test-vk:
+  extends:
+    - .use-debian/x86_test-vk
+    - .b2c-test
+  needs:
+    - debian/x86_test-vk
+    - debian-testing
+
+.b2c-test-gl:
+  extends:
+    - .use-debian/x86_test-gl
+    - .b2c-test
+  needs:
+    - debian/x86_test-gl
+    - debian-testing

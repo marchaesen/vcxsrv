@@ -135,39 +135,6 @@ static inline void u_print_ps(const char *name, __m128 r)
 #define U_DUMP_EPI8(a)  u_print_epi8(#a, a)
 #define U_DUMP_PS(a)    u_print_ps(#a, a)
 
-
-
-#if defined(PIPE_ARCH_SSSE3)
-
-#include <tmmintrin.h>
-
-#else /* !PIPE_ARCH_SSSE3 */
-
-/**
- * Describe _mm_shuffle_epi8() with gcc extended inline assembly, for cases
- * where -mssse3 is not supported/enabled.
- *
- * MSVC will never get in here as its intrinsics support do not rely on
- * compiler command line options.
- */
-static __inline __m128i
-#ifdef __clang__
-   __attribute__((__always_inline__, __nodebug__))
-#else
-   __attribute__((__gnu_inline__, __always_inline__, __artificial__))
-#endif
-_mm_shuffle_epi8(__m128i a, __m128i mask)
-{
-    __m128i result;
-    __asm__("pshufb %1, %0"
-            : "=x" (result)
-            : "xm" (mask), "0" (a));
-    return result;
-}
-
-#endif /* !PIPE_ARCH_SSSE3 */
-
-
 /*
  * Provide an SSE implementation of _mm_mul_epi32() in terms of
  * _mm_mul_epu32().

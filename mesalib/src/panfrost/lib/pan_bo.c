@@ -165,13 +165,8 @@ pan_bucket_index(unsigned size)
         /* Clamp the bucket index; all huge allocations will be
          * sorted into the largest bucket */
 
-        bucket_index = MIN2(bucket_index, MAX_BO_CACHE_BUCKET);
-
-        /* The minimum bucket size must equal the minimum allocation
-         * size; the maximum we clamped */
-
-        assert(bucket_index >= MIN_BO_CACHE_BUCKET);
-        assert(bucket_index <= MAX_BO_CACHE_BUCKET);
+        bucket_index = CLAMP(bucket_index, MIN_BO_CACHE_BUCKET,
+                             MAX_BO_CACHE_BUCKET);
 
         /* Reindex from 0 */
         return (bucket_index - MIN_BO_CACHE_BUCKET);
@@ -397,10 +392,12 @@ panfrost_bo_create(struct panfrost_device *dev, size_t size,
         if (!bo)
                 bo = panfrost_bo_cache_fetch(dev, size, flags, label, false);
 
-        if (!bo)
-                fprintf(stderr, "BO creation failed\n");
-
         assert(bo);
+
+        if (!bo) {
+                fprintf(stderr, "BO creation failed\n");
+                return NULL;
+        }
 
         /* Only mmap now if we know we need to. For CPU-invisible buffers, we
          * never map since we don't care about their contents; they're purely
@@ -497,8 +494,6 @@ panfrost_bo_import(struct panfrost_device *dev, int fd)
                 bo->flags = PAN_BO_SHARED;
                 bo->gem_handle = gem_handle;
                 p_atomic_set(&bo->refcnt, 1);
-                // TODO map and unmap on demand?
-                panfrost_bo_mmap(bo);
         } else {
                 /* bo->refcnt == 0 can happen if the BO
                  * was being released but panfrost_bo_import() acquired the
@@ -514,7 +509,6 @@ panfrost_bo_import(struct panfrost_device *dev, int fd)
                         p_atomic_set(&bo->refcnt, 1);
                 else
                         panfrost_bo_reference(bo);
-                assert(bo->ptr.cpu);
         }
         pthread_mutex_unlock(&dev->bo_map_lock);
 

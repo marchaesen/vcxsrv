@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <limits.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -53,6 +54,8 @@
 #include "frontend/sw_winsys.h"
 #include "frontend/drm_driver.h"
 #include "kms_dri_sw_winsys.h"
+
+#include "util/simple_mtx.h"
 
 #ifdef DEBUG
 #define DEBUG_PRINT(msg, ...) fprintf(stderr, msg, __VA_ARGS__)
@@ -85,6 +88,7 @@ struct kms_sw_displaytarget
    int map_count;
    struct list_head link;
    struct list_head planes;
+   mtx_t map_lock;
 };
 
 struct kms_sw_winsys
@@ -182,13 +186,17 @@ kms_sw_displaytarget_create(struct sw_winsys *ws,
 
    kms_sw_dt->format = format;
 
+   mtx_init(&kms_sw_dt->map_lock, mtx_plain);
+
    memset(&create_req, 0, sizeof(create_req));
    create_req.bpp = util_format_get_blocksizebits(format);
    create_req.width = width;
    create_req.height = height;
    ret = drmIoctl(kms_sw->fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_req);
-   if (ret)
+   if (ret) {
+      fprintf(stderr, "KMS: DRM_IOCTL_MODE_CREATE_DUMB failed: %s\n", strerror(errno));
       goto free_bo;
+   }
 
    kms_sw_dt->size = create_req.size;
    kms_sw_dt->handle = create_req.handle;
@@ -236,6 +244,7 @@ kms_sw_displaytarget_destroy(struct sw_winsys *ws,
 
    list_del(&kms_sw_dt->link);
 
+   mtx_destroy(&kms_sw_dt->map_lock);
    DEBUG_PRINT("KMS-DEBUG: destroyed buffer %u\n", kms_sw_dt->handle);
 
    struct kms_sw_plane *tmp;
@@ -257,11 +266,12 @@ kms_sw_displaytarget_map(struct sw_winsys *ws,
    struct drm_mode_map_dumb map_req;
    int prot, ret;
 
+   mtx_lock(&kms_sw_dt->map_lock);
    memset(&map_req, 0, sizeof map_req);
    map_req.handle = kms_sw_dt->handle;
    ret = drmIoctl(kms_sw->fd, DRM_IOCTL_MODE_MAP_DUMB, &map_req);
    if (ret)
-      return NULL;
+      goto fail_locked;
 
    prot = (flags == PIPE_MAP_READ) ? PROT_READ : (PROT_READ | PROT_WRITE);
    void **ptr = (flags == PIPE_MAP_READ) ? &kms_sw_dt->ro_mapped : &kms_sw_dt->mapped;
@@ -269,7 +279,7 @@ kms_sw_displaytarget_map(struct sw_winsys *ws,
       void *tmp = mmap(NULL, kms_sw_dt->size, prot, MAP_SHARED,
                        kms_sw->fd, map_req.offset);
       if (tmp == MAP_FAILED)
-         return NULL;
+         goto fail_locked;
       *ptr = tmp;
    }
 
@@ -278,7 +288,12 @@ kms_sw_displaytarget_map(struct sw_winsys *ws,
 
    kms_sw_dt->map_count++;
 
+   mtx_unlock(&kms_sw_dt->map_lock);
+
    return *ptr + plane->offset;
+fail_locked:
+   mtx_unlock(&kms_sw_dt->map_lock);
+   return NULL;
 }
 
 static struct kms_sw_displaytarget *
@@ -360,13 +375,16 @@ kms_sw_displaytarget_unmap(struct sw_winsys *ws,
    struct kms_sw_plane *plane = kms_sw_plane(dt);
    struct kms_sw_displaytarget *kms_sw_dt = plane->dt;
 
+   mtx_lock(&kms_sw_dt->map_lock);
    if (!kms_sw_dt->map_count)  {
       DEBUG_PRINT("KMS-DEBUG: ignore duplicated unmap %u", kms_sw_dt->handle);
+      mtx_unlock(&kms_sw_dt->map_lock);
       return;
    }
    kms_sw_dt->map_count--;
    if (kms_sw_dt->map_count) {
       DEBUG_PRINT("KMS-DEBUG: ignore unmap for busy buffer %u", kms_sw_dt->handle);
+      mtx_unlock(&kms_sw_dt->map_lock);
       return;
    }
 
@@ -381,6 +399,7 @@ kms_sw_displaytarget_unmap(struct sw_winsys *ws,
       munmap(kms_sw_dt->ro_mapped, kms_sw_dt->size);
       kms_sw_dt->ro_mapped = MAP_FAILED;
    }
+   mtx_unlock(&kms_sw_dt->map_lock);
 }
 
 static struct sw_displaytarget *

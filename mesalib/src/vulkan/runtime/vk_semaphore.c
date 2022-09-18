@@ -156,7 +156,7 @@ vk_common_CreateSemaphore(VkDevice _device,
     * operation which is much trickier to assert early.
     */
    if (semaphore_type == VK_SEMAPHORE_TYPE_BINARY &&
-       device->timeline_mode == VK_DEVICE_TIMELINE_MODE_ASSISTED)
+       vk_device_supports_threaded_submit(device))
       assert(sync_type->move);
 
    /* Allocate a vk_semaphore + vk_sync implementation. Because the permanent
@@ -313,7 +313,7 @@ vk_common_WaitSemaphores(VkDevice _device,
 
       waits[i] = (struct vk_sync_wait) {
          .sync = vk_semaphore_get_active_sync(semaphore),
-         .stage_mask = ~(VkPipelineStageFlags2KHR)0,
+         .stage_mask = ~(VkPipelineStageFlags2)0,
          .wait_value = pWaitInfo->pValues[i],
       };
    }
@@ -371,7 +371,7 @@ vk_common_SignalSemaphore(VkDevice _device,
    if (unlikely(result != VK_SUCCESS))
       return result;
 
-   if (device->timeline_mode == VK_DEVICE_TIMELINE_MODE_EMULATED) {
+   if (device->submit_mode == VK_QUEUE_SUBMIT_MODE_DEFERRED) {
       result = vk_device_flush(device);
       if (unlikely(result != VK_SUCCESS))
          return result;
@@ -521,7 +521,7 @@ vk_common_GetSemaphoreFdKHR(VkDevice _device,
        * However, thanks to the above bit of spec text, that wait should never
        * block for long.
        */
-      if (device->timeline_mode == VK_DEVICE_TIMELINE_MODE_ASSISTED) {
+      if (vk_device_supports_threaded_submit(device)) {
          result = vk_sync_wait(device, sync, 0,
                                VK_SYNC_WAIT_PENDING,
                                UINT64_MAX);

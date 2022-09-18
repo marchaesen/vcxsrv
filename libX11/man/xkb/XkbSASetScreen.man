@@ -32,10 +32,10 @@ XkbSASetScreen \- Sets the screenXXX field of act from s
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set screenXXX
 .TP
-.I \- s
+.I s
 value to set in screenXXX
 .SH DESCRIPTION
 .LP

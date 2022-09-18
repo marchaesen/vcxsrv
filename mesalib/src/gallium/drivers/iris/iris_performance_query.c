@@ -176,6 +176,9 @@ iris_get_perf_counter_info(struct pipe_context *pipe,
    const struct intel_perf_query_info *info = &perf_cfg->queries[query_index];
    const struct intel_perf_query_counter *counter =
       &info->counters[counter_index];
+   struct intel_perf_query_result results;
+
+   intel_perf_query_result_clear(&results);
 
    *name = counter->name;
    *desc = counter->desc;
@@ -183,7 +186,16 @@ iris_get_perf_counter_info(struct pipe_context *pipe,
    *data_size = intel_perf_query_counter_get_size(counter);
    *type_enum = counter->type;
    *data_type_enum = counter->data_type;
-   *raw_max = counter->raw_max;
+
+   if (counter->oa_counter_max_uint64) {
+      if (counter->data_type == INTEL_PERF_COUNTER_DATA_TYPE_FLOAT ||
+          counter->data_type == INTEL_PERF_COUNTER_DATA_TYPE_DOUBLE)
+         *raw_max = counter->oa_counter_max_float(perf_cfg, info, &results);
+      else
+         *raw_max = counter->oa_counter_max_uint64(perf_cfg, info, &results);
+   } else {
+      *raw_max = 0;
+   }
 }
 
 static void

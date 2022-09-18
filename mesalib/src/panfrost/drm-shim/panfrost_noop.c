@@ -30,6 +30,9 @@
 
 #include "util/u_math.h"
 
+/* Default GPU ID if PAN_GPU_ID is not set. This defaults to Mali-G52. */
+#define PAN_GPU_ID_DEFAULT (0x7212)
+
 bool drm_shim_driver_prefers_first_render_node = true;
 
 static int
@@ -45,9 +48,17 @@ pan_ioctl_get_param(int fd, unsigned long request, void *arg)
 
    switch (gp->param) {
    case DRM_PANFROST_PARAM_GPU_PROD_ID:
-      /* Other GPUs can be set using PAN_GPU_ID */
-      gp->value = 0x860;
+   {
+      char *override_version = getenv("PAN_GPU_ID");
+
+      if (override_version)
+         gp->value = strtol(override_version, NULL, 16);
+      else
+         gp->value = PAN_GPU_ID_DEFAULT;
+
       return 0;
+   }
+
    case DRM_PANFROST_PARAM_SHADER_PRESENT:
       /* Assume an MP4 GPU */
       gp->value = 0xF;
@@ -55,8 +66,12 @@ pan_ioctl_get_param(int fd, unsigned long request, void *arg)
    case DRM_PANFROST_PARAM_TILER_FEATURES:
       gp->value = 0x809;
       return 0;
-   case DRM_PANFROST_PARAM_GPU_REVISION:
    case DRM_PANFROST_PARAM_TEXTURE_FEATURES0:
+   case DRM_PANFROST_PARAM_TEXTURE_FEATURES1:
+      /* Allow all compressed textures */
+      gp->value = ~0;
+      return 0;
+   case DRM_PANFROST_PARAM_GPU_REVISION:
    case DRM_PANFROST_PARAM_THREAD_TLS_ALLOC:
    case DRM_PANFROST_PARAM_AFBC_FEATURES:
       gp->value = 0;

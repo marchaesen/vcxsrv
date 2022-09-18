@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -80,31 +80,16 @@ get_dummy_fragment_shader(void)
 }
 
 
-static struct svga_shader_variant *
-translate_fragment_program(struct svga_context *svga,
-                           const struct svga_fragment_shader *fs,
-                           const struct svga_compile_key *key)
-{
-   if (svga_have_vgpu10(svga)) {
-      return svga_tgsi_vgpu10_translate(svga, &fs->base, key,
-                                        PIPE_SHADER_FRAGMENT);
-   }
-   else {
-      return svga_tgsi_vgpu9_translate(svga, &fs->base, key,
-                                       PIPE_SHADER_FRAGMENT);
-   }
-}
-
-
 /**
  * Replace the given shader's instruction with a simple constant-color
  * shader.  We use this when normal shader translation fails.
  */
-static struct svga_shader_variant *
-get_compiled_dummy_shader(struct svga_context *svga,
-                          struct svga_fragment_shader *fs,
-                          const struct svga_compile_key *key)
+struct svga_shader_variant *
+svga_get_compiled_dummy_fragment_shader(struct svga_context *svga,
+                                        struct svga_shader *shader,
+                                        const struct svga_compile_key *key)
 {
+   struct svga_fragment_shader *fs = (struct svga_fragment_shader *)shader;
    const struct tgsi_token *dummy = get_dummy_fragment_shader();
    struct svga_shader_variant *variant;
 
@@ -115,62 +100,12 @@ get_compiled_dummy_shader(struct svga_context *svga,
    FREE((void *) fs->base.tokens);
    fs->base.tokens = dummy;
 
-   tgsi_scan_shader(fs->base.tokens, &fs->base.info);
-   fs->generic_inputs = svga_get_generic_inputs_mask(&fs->base.info);
-   svga_remap_generics(fs->generic_inputs, fs->generic_remap_table);
+   svga_tgsi_scan_shader(&fs->base);
+   svga_remap_generics(fs->base.info.generic_inputs_mask,
+                       fs->generic_remap_table);
 
-   variant = translate_fragment_program(svga, fs, key);
+   variant = svga_tgsi_compile_shader(svga, shader, key);
    return variant;
-}
-
-
-/**
- * Translate TGSI shader into an svga shader variant.
- */
-static enum pipe_error
-compile_fs(struct svga_context *svga,
-           struct svga_fragment_shader *fs,
-           const struct svga_compile_key *key,
-           struct svga_shader_variant **out_variant)
-{
-   struct svga_shader_variant *variant;
-   enum pipe_error ret = PIPE_ERROR;
-
-   variant = translate_fragment_program(svga, fs, key);
-   if (variant == NULL) {
-      debug_printf("Failed to compile fragment shader,"
-                   " using dummy shader instead.\n");
-      variant = get_compiled_dummy_shader(svga, fs, key);
-   }
-   else if (svga_shader_too_large(svga, variant)) {
-      /* too big, use dummy shader */
-      debug_printf("Shader too large (%u bytes),"
-                   " using dummy shader instead.\n",
-                   (unsigned) (variant->nr_tokens
-                               * sizeof(variant->tokens[0])));
-      /* Free the too-large variant */
-      svga_destroy_shader_variant(svga, variant);
-      /* Use simple pass-through shader instead */
-      variant = get_compiled_dummy_shader(svga, fs, key);
-   }
-
-   if (!variant) {
-      return PIPE_ERROR;
-   }
-
-   ret = svga_define_shader(svga, variant);
-   if (ret != PIPE_OK) {
-      svga_destroy_shader_variant(svga, variant);
-      return ret;
-   }
-
-   *out_variant = variant;
-
-   /* insert variant at head of linked list */
-   variant->next = fs->base.variants;
-   fs->base.variants = variant;
-
-   return PIPE_OK;
 }
 
 
@@ -194,11 +129,13 @@ make_fs_key(const struct svga_context *svga,
 
    /* SVGA_NEW_GS, SVGA_NEW_VS
     */
-   if (svga->curr.gs) {
-      key->fs.gs_generic_outputs = svga->curr.gs->generic_outputs;
-      key->fs.layer_to_zero = !svga->curr.gs->base.info.writes_layer;
+   struct svga_geometry_shader *gs = svga->curr.gs;
+   struct svga_vertex_shader *vs = svga->curr.vs;
+   if (gs) {
+      key->fs.gs_generic_outputs = gs->base.info.generic_outputs_mask;
+      key->fs.layer_to_zero = !gs->base.info.writes_layer;
    } else {
-      key->fs.vs_generic_outputs = svga->curr.vs->generic_outputs;
+      key->fs.vs_generic_outputs = vs->base.info.generic_outputs_mask;
       key->fs.layer_to_zero = 1;
    }
 
@@ -218,10 +155,10 @@ make_fs_key(const struct svga_context *svga,
        */
       if (svga->curr.tes) {
          shader = &svga->curr.tes->base;
-         prim_mode = shader->info.properties[TGSI_PROPERTY_TES_PRIM_MODE];
+         prim_mode = shader->info.tes.prim_mode;
       } else if (svga->curr.gs) {
          shader = &svga->curr.gs->base;
-         prim_mode = shader->info.properties[TGSI_PROPERTY_GS_OUTPUT_PRIM];
+         prim_mode = shader->info.gs.out_prim;
       } else {
          shader = &svga->curr.vs->base;
          prim_mode = svga->curr.reduced_prim;
@@ -232,14 +169,16 @@ make_fs_key(const struct svga_context *svga,
       key->fs.pstipple = (svga->curr.rast->templ.poly_stipple_enable &&
                           prim_mode == PIPE_PRIM_TRIANGLES);
 
-      key->fs.aa_point = (svga->curr.rast->templ.point_smooth &&
-                          prim_mode == PIPE_PRIM_POINTS &&
-                          (svga->curr.rast->pointsize > 1.0 ||
-                           shader->info.writes_psize));
+      if (svga->curr.gs) {
+         key->fs.aa_point = (svga->curr.rast->templ.point_smooth &&
+			     shader->info.gs.in_prim == PIPE_PRIM_POINTS &&
+                             (svga->curr.rast->pointsize > 1.0 ||
+                              shader->info.writes_psize));
 
-      if (key->fs.aa_point && svga->curr.gs) {
-         assert(svga->curr.gs->aa_point_coord_index != -1);
-         key->fs.aa_point_coord_index = svga->curr.gs->aa_point_coord_index;
+         if (key->fs.aa_point) {
+            assert(svga->curr.gs->aa_point_coord_index != -1);
+            key->fs.aa_point_coord_index = svga->curr.gs->aa_point_coord_index;
+	 }
       }
    }
 
@@ -363,14 +302,11 @@ make_fs_key(const struct svga_context *svga,
    }
 
    /* SVGA_NEW_FRAME_BUFFER | SVGA_NEW_BLEND */
-   if (fs->base.info.properties[TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS] ||
+   if (fs->base.info.fs.color0_writes_all_cbufs ||
        svga->curr.blend->need_white_fragments) {
       /* Replicate color0 output (or white) to N colorbuffers */
       key->fs.write_color0_to_n_cbufs = svga->curr.framebuffer.nr_cbufs;
    }
-
-   if (svga_have_gl43(svga))
-      key->image_size_used = fs->base.info.opcode_count[TGSI_OPCODE_RESQ] ? 1 : 0;
 
    return PIPE_OK;
 }
@@ -464,7 +400,7 @@ emit_hw_fs(struct svga_context *svga, uint64_t dirty)
 
    variant = svga_search_shader_key(&fs->base, &key);
    if (!variant) {
-      ret = compile_fs(svga, fs, &key, &variant);
+      ret = svga_compile_shader(svga, &fs->base, &key, &variant);
       if (ret != PIPE_OK)
          goto done;
    }

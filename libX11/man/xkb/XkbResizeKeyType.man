@@ -35,19 +35,19 @@ XkbResizeKeyType \- Change the number of levels in a key type
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description containing client map to update
 .TP
-.I \- type_ndx
+.I type_ndx
 index in xkb->map->types of type to change
 .TP
-.I \- map_count
+.I map_count
 total # of map entries needed for the type
 .TP
-.I \- want_preserve
+.I want_preserve
 True => list of preserved modifiers is necessary
 .TP
-.I \- new_num_lvls
+.I new_num_lvls
 new max # of levels for type
 .SH DESCRIPTION
 .LP

@@ -32,6 +32,7 @@
 
 #include "pipe/p_compiler.h"
 
+#include "c99_compat.h"
 
 void
 util_format_r9g9b9e5_float_unpack_rgba_float(void *restrict dst_row,

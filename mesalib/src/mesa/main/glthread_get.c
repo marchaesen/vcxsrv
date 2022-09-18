@@ -65,8 +65,11 @@ _mesa_marshal_GetIntegerv(GLenum pname, GLint *p)
    case GL_DRAW_INDIRECT_BUFFER_BINDING:
       *p = ctx->GLThread.CurrentDrawIndirectBufferName;
       return;
-   case GL_DRAW_FRAMEBUFFER_BINDING: /* == GL_FRAMEBUFFER_BINDING */
+   case GL_DRAW_FRAMEBUFFER_BINDING:
       *p = ctx->GLThread.CurrentDrawFramebuffer;
+      return;
+   case GL_READ_FRAMEBUFFER_BINDING:
+      *p = ctx->GLThread.CurrentReadFramebuffer;
       return;
    case GL_PIXEL_PACK_BUFFER_BINDING:
       *p = ctx->GLThread.CurrentPixelPackBufferName;

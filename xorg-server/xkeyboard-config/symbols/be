@@ -5,6 +5,7 @@ xkb_symbols "basic" {
 
     name[Group1]="Belgian";
 
+    key <TLDE>	{ [twosuperior, threesuperior,  notsign,      notsign ]	};
     key <AE01>	{ [ ampersand,          1,          bar,   exclamdown ]	};
     key <AE02>	{ [    eacute,          2,           at,    oneeighth ]	};
     key <AE03>	{ [  quotedbl,          3,   numbersign,     sterling ]	};
@@ -28,15 +29,14 @@ xkb_symbols "basic" {
     key <AC01>	{ [         q,          Q,           ae,           AE ]	};
     key <AC10>	{ [         m,          M,   dead_acute, dead_doubleacute ] };
     key <AC11>	{ [    ugrave,    percent,   dead_acute,   dead_caron ]	};
-    key <TLDE>	{ [twosuperior, threesuperior,  notsign,      notsign ]	};
-
     key <BKSL>	{ [        mu,   sterling,   dead_grave,   dead_breve ]	};
+
+    key <LSGT>  { [      less,    greater,    backslash,    backslash ]	};
     key <AB01>	{ [         w,          W, guillemotleft,        less ]	};
     key <AB07>	{ [     comma,   question, dead_cedilla,    masculine ]	};
     key <AB08>	{ [ semicolon,     period,        U2022,     multiply ]	}; // bullet
     key <AB09>	{ [     colon,      slash, periodcentered,   division ]	};
     key <AB10>	{ [     equal,       plus,   dead_tilde, dead_abovedot]	};
-    key <LSGT>  { [      less,    greater,    backslash,    backslash ]	};
 
     include "level3(ralt_switch)"
 };
@@ -82,7 +82,7 @@ xkb_symbols "oss_frbe" {
     key <AE08>	{ [           exclam,                8,           asciitilde,            exclamdown ] }; // ! 8 ~ ¡
     key <AE09>	{ [         ccedilla,                9,            braceleft,              Ccedilla ] }; // ç 9 { Ç
     key <AE10>	{ [           agrave,                0,           braceright,                Agrave ] }; // à 0 } À
-    key <AE11>	{ [       parenright,           degree,               oslash,              Ooblique ] }; // ) ° ø Ø 
+    key <AE11>	{ [       parenright,           degree,               oslash,                Oslash ] }; // ) ° ø Ø
     key <AE12>	{ [            minus,       underscore,            0x1002011,             plusminus ] }; // - _ - (tiret insécable) ±
 
     // Second row

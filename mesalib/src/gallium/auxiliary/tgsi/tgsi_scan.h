@@ -72,9 +72,7 @@ struct tgsi_shader_info
    ubyte num_stream_output_components[4];
 
    ubyte input_array_first[PIPE_MAX_SHADER_INPUTS];
-   ubyte input_array_last[PIPE_MAX_SHADER_INPUTS];
    ubyte output_array_first[PIPE_MAX_SHADER_OUTPUTS];
-   ubyte output_array_last[PIPE_MAX_SHADER_OUTPUTS];
    unsigned array_max[TGSI_FILE_COUNT];  /**< highest index array per register file */
 
    uint immediate_count; /**< number of immediates declared */

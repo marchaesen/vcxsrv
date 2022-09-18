@@ -75,7 +75,7 @@ gl_nir_opts(nir_shader *nir)
          NIR_PASS(progress, nir, nir_copy_prop);
          NIR_PASS(progress, nir, nir_opt_dce);
       }
-      NIR_PASS(progress, nir, nir_opt_if, false);
+      NIR_PASS(progress, nir, nir_opt_if, 0);
       NIR_PASS(progress, nir, nir_opt_dead_cf);
       NIR_PASS(progress, nir, nir_opt_cse);
       NIR_PASS(progress, nir, nir_opt_peephole_select, 8, true, true);
@@ -117,6 +117,45 @@ gl_nir_opts(nir_shader *nir)
    } while (progress);
 }
 
+static void
+gl_nir_link_opts(nir_shader *producer, nir_shader *consumer)
+{
+   if (producer->options->lower_to_scalar) {
+      NIR_PASS_V(producer, nir_lower_io_to_scalar_early, nir_var_shader_out);
+      NIR_PASS_V(consumer, nir_lower_io_to_scalar_early, nir_var_shader_in);
+   }
+
+   nir_lower_io_arrays_to_elements(producer, consumer);
+
+   gl_nir_opts(producer);
+   gl_nir_opts(consumer);
+
+   if (nir_link_opt_varyings(producer, consumer))
+      gl_nir_opts(consumer);
+
+   NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out, NULL);
+   NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in, NULL);
+
+   if (nir_remove_unused_varyings(producer, consumer)) {
+      NIR_PASS_V(producer, nir_lower_global_vars_to_local);
+      NIR_PASS_V(consumer, nir_lower_global_vars_to_local);
+
+      gl_nir_opts(producer);
+      gl_nir_opts(consumer);
+
+      /* Optimizations can cause varyings to become unused.
+       * nir_compact_varyings() depends on all dead varyings being removed so
+       * we need to call nir_remove_dead_variables() again here.
+       */
+      NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out,
+                 NULL);
+      NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in,
+                 NULL);
+   }
+
+   nir_link_varying_precision(producer, consumer);
+}
+
 static bool
 can_remove_uniform(nir_variable *var, UNUSED void *data)
 {
@@ -142,8 +181,11 @@ can_remove_uniform(nir_variable *var, UNUSED void *data)
        GLSL_TYPE_SUBROUTINE)
       return false;
 
-   /* Uniform initializers could get used by another stage */
-   if (var->constant_initializer)
+   /* Uniform initializers could get used by another stage. However if its a
+    * hidden uniform then it should be safe to remove as this was a constant
+    * variable that has been lowered to a uniform.
+    */
+   if (var->constant_initializer && var->data.how_declared != nir_var_hidden)
       return false;
 
    return true;
@@ -507,6 +549,36 @@ add_interface_variables(const struct gl_constants *consts,
    return false;
 }
 
+bool
+nir_add_packed_var_to_resource_list(const struct gl_constants *consts,
+                                    struct gl_shader_program *shProg,
+                                    struct set *resource_set,
+                                    nir_variable *var,
+                                    unsigned stage, GLenum type)
+{
+   if (!add_shader_variable(consts, shProg, resource_set, 1 << stage,
+                            type, var, var->name, var->type, false,
+                            var->data.location - VARYING_SLOT_VAR0,
+                            inout_has_same_location(var, stage), NULL))
+      return false;
+
+   return true;
+}
+
+/**
+ * Initilise list of program resources that point to resource data.
+ */
+void
+init_program_resource_list(struct gl_shader_program *prog)
+{
+   /* Rebuild resource list. */
+   if (prog->data->ProgramResourceList) {
+      ralloc_free(prog->data->ProgramResourceList);
+      prog->data->ProgramResourceList = NULL;
+      prog->data->NumProgramResourceList = 0;
+   }
+}
+
 /* TODO: as we keep adding features, this method is becoming more and more
  * similar to its GLSL counterpart at linker.cpp. Eventually it would be good
  * to check if they could be refactored, and reduce code duplication somehow
@@ -517,11 +589,8 @@ nir_build_program_resource_list(const struct gl_constants *consts,
                                 bool rebuild_resourse_list)
 {
    /* Rebuild resource list. */
-   if (prog->data->ProgramResourceList && rebuild_resourse_list) {
-      ralloc_free(prog->data->ProgramResourceList);
-      prog->data->ProgramResourceList = NULL;
-      prog->data->NumProgramResourceList = 0;
-   }
+   if (rebuild_resourse_list)
+      init_program_resource_list(prog);
 
    int input_stage = MESA_SHADER_STAGES, output_stage = 0;
 
@@ -687,6 +756,24 @@ gl_nir_link_spirv(const struct gl_constants *consts,
                   struct gl_shader_program *prog,
                   const struct gl_nir_linker_options *options)
 {
+   struct gl_linked_shader *linked_shader[MESA_SHADER_STAGES];
+   unsigned num_shaders = 0;
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (prog->_LinkedShaders[i])
+         linked_shader[num_shaders++] = prog->_LinkedShaders[i];
+   }
+
+   /* Linking the stages in the opposite order (from fragment to vertex)
+    * ensures that inter-shader outputs written to in an earlier stage
+    * are eliminated if they are (transitively) not used in a later
+    * stage.
+    */
+   for (int i = num_shaders - 2; i >= 0; i--) {
+      gl_nir_link_opts(linked_shader[i]->Program->nir,
+                       linked_shader[i + 1]->Program->nir);
+   }
+
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
       if (shader) {
@@ -751,14 +838,141 @@ check_image_resources(const struct gl_constants *consts,
                          " buffers and fragment outputs\n");
 }
 
+static bool
+is_sampler_array_accessed_indirectly(nir_deref_instr *deref)
+{
+   for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
+      if (d->deref_type != nir_deref_type_array)
+         continue;
+
+      if (nir_src_is_const(d->arr.index))
+         continue;
+
+      return true;
+   }
+
+   return false;
+}
+
+/**
+ * This check is done to make sure we allow only constant expression
+ * indexing and "constant-index-expression" (indexing with an expression
+ * that includes loop induction variable).
+ */
+static bool
+validate_sampler_array_indexing(const struct gl_constants *consts,
+                                struct gl_shader_program *prog)
+{
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (prog->_LinkedShaders[i] == NULL)
+         continue;
+
+      bool no_dynamic_indexing =
+         consts->ShaderCompilerOptions[i].NirOptions->force_indirect_unrolling_sampler;
+
+      bool uses_indirect_sampler_array_indexing = false;
+      nir_foreach_function(function, prog->_LinkedShaders[i]->Program->nir) {
+         nir_foreach_block(block, function->impl) {
+            nir_foreach_instr(instr, block) {
+               /* Check if a sampler array is accessed indirectly */
+               if (instr->type == nir_instr_type_tex) {
+                  nir_tex_instr *tex_instr = nir_instr_as_tex(instr);
+                  int sampler_idx =
+                     nir_tex_instr_src_index(tex_instr, nir_tex_src_sampler_deref);
+                  if (sampler_idx >= 0) {
+                     nir_deref_instr *deref =
+                        nir_instr_as_deref(tex_instr->src[sampler_idx].src.ssa->parent_instr);
+                     if (is_sampler_array_accessed_indirectly(deref)) {
+                        uses_indirect_sampler_array_indexing = true;
+                        break;
+                     }
+                  }
+               }
+            }
+
+            if (uses_indirect_sampler_array_indexing)
+               break;
+         }
+         if (uses_indirect_sampler_array_indexing)
+            break;
+      }
+
+      if (uses_indirect_sampler_array_indexing) {
+         const char *msg = "sampler arrays indexed with non-constant "
+                           "expressions is forbidden in GLSL %s %u";
+         /* Backend has indicated that it has no dynamic indexing support. */
+         if (no_dynamic_indexing) {
+            linker_error(prog, msg, prog->IsES ? "ES" : "",
+                         prog->data->Version);
+            return false;
+         } else {
+            linker_warning(prog, msg, prog->IsES ? "ES" : "",
+                           prog->data->Version);
+         }
+      }
+   }
+
+   return true;
+}
+
 bool
 gl_nir_link_glsl(const struct gl_constants *consts,
                  const struct gl_extensions *exts,
+                 gl_api api,
                  struct gl_shader_program *prog)
 {
+   if (prog->NumShaders == 0)
+      return true;
+
+   if (!gl_nir_link_varyings(consts, exts, api, prog))
+      return false;
+
+   /* Validation for special cases where we allow sampler array indexing
+    * with loop induction variable. This check emits a warning or error
+    * depending if backend can handle dynamic indexing.
+    */
+   if ((!prog->IsES && prog->data->Version < 130) ||
+       (prog->IsES && prog->data->Version < 300)) {
+      if (!validate_sampler_array_indexing(consts, prog))
+         return false;
+   }
+
+   if (prog->data->LinkStatus == LINKING_FAILURE)
+      return false;
+
+   struct gl_linked_shader *linked_shader[MESA_SHADER_STAGES];
+   unsigned num_shaders = 0;
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (prog->_LinkedShaders[i])
+         linked_shader[num_shaders++] = prog->_LinkedShaders[i];
+   }
+
+   /* Linking the stages in the opposite order (from fragment to vertex)
+    * ensures that inter-shader outputs written to in an earlier stage
+    * are eliminated if they are (transitively) not used in a later
+    * stage.
+    */
+   for (int i = num_shaders - 2; i >= 0; i--) {
+      gl_nir_link_opts(linked_shader[i]->Program->nir,
+                       linked_shader[i + 1]->Program->nir);
+   }
+
+   /* Tidy up any left overs from the linking process for single shaders.
+    * For example varying arrays that get packed may have dead elements that
+    * can be now be eliminated now that array access has been lowered.
+    */
+   if (num_shaders == 1)
+      gl_nir_opts(linked_shader[0]->Program->nir);
+
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
       if (shader) {
+         if (consts->GLSLLowerConstArrays) {
+            nir_lower_const_arrays_to_uniforms(shader->Program->nir,
+                                               consts->Program[i].MaxUniformComponents);
+         }
+
          const nir_remove_dead_variables_options opts = {
             .can_remove_var = can_remove_uniform,
          };

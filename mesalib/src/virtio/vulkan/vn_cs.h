@@ -8,8 +8,13 @@
 
 #include "vn_common.h"
 
+#include "venus-protocol/vn_protocol_driver_info.h"
+
 #define VN_CS_ENCODER_BUFFER_INITIALIZER(storage)                            \
-   (struct vn_cs_encoder_buffer) { .base = storage, }
+   (struct vn_cs_encoder_buffer)                                             \
+   {                                                                         \
+      .base = storage,                                                       \
+   }
 
 /* note that buffers points to an unamed local variable */
 #define VN_CS_ENCODER_INITIALIZER_LOCAL(storage, size)                       \
@@ -65,6 +70,8 @@ struct vn_cs_encoder {
 
    /* the current buffer is buffers[buffer_count - 1].shmem */
    size_t current_buffer_size;
+
+   /* TODO remove when blob_id_0 support gets required */
    uint32_t current_buffer_roundtrip;
 
    /* cur is the write pointer.  When cur passes end, the slow path is
@@ -78,6 +85,31 @@ struct vn_cs_decoder {
    const void *cur;
    const void *end;
 };
+
+struct vn_cs_renderer_protocol_info {
+   simple_mtx_t mutex;
+   bool init_once;
+   uint32_t api_version;
+   BITSET_DECLARE(extension_bitset, VN_INFO_EXTENSION_MAX_NUMBER + 1);
+};
+
+extern struct vn_cs_renderer_protocol_info _vn_cs_renderer_protocol_info;
+
+static inline bool
+vn_cs_renderer_protocol_has_api_version(uint32_t api_version)
+{
+   return _vn_cs_renderer_protocol_info.api_version >= api_version;
+}
+
+static inline bool
+vn_cs_renderer_protocol_has_extension(uint32_t ext_number)
+{
+   return BITSET_TEST(_vn_cs_renderer_protocol_info.extension_bitset,
+                      ext_number);
+}
+
+void
+vn_cs_renderer_protocol_info_init(struct vn_instance *instance);
 
 void
 vn_cs_encoder_init(struct vn_cs_encoder *enc,

@@ -270,9 +270,10 @@
   },
   "FLOAT_MODE": {
    "entries": [
+    {"name": "FP_32_ROUND_TOWARDS_ZERO", "value": 3},
+    {"name": "FP_16_64_ROUND_TOWARDS_ZERO", "value": 12},
     {"name": "FP_32_DENORMS", "value": 48},
-    {"name": "FP_64_DENORMS", "value": 192},
-    {"name": "FP_ALL_DENORMS", "value": 240}
+    {"name": "FP_16_64_DENORMS", "value": 192}
    ]
   },
   "ForceControl": {

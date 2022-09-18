@@ -85,7 +85,7 @@ TEST_F(DualTexture, FuseDualTexFragment)
          bi_texs_2d_f32_to(b, x, u, v, false, 0, 0);
          bi_texs_2d_f32_to(b, y, u, v, false, 1, 1);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F00144), false, 4, 4);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F00144), false, 4, 4);
    });
 }
 
@@ -95,7 +95,7 @@ TEST_F(DualTexture, FuseDualTexKernel)
          bi_texs_2d_f32_to(b, x, u, v, true, 0, 0);
          bi_texs_2d_f32_to(b, y, u, v, true, 1, 1);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F00144), true, 4, 4);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F00144), true, 4, 4);
    });
 }
 
@@ -105,7 +105,7 @@ TEST_F(DualTexture, FuseDualTexVertex)
          bi_texs_2d_f32_to(b, x, u, v, true, 0, 0);
          bi_texs_2d_f32_to(b, y, u, v, true, 1, 1);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F00144), true, 4, 4);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F00144), true, 4, 4);
    });
 }
 
@@ -133,7 +133,7 @@ TEST_F(DualTexture, FuseDualTexMaximumIndex)
          bi_texs_2d_f32_to(b, x, u, v, false, 2, 2);
          bi_texs_2d_f32_to(b, y, u, v, false, 3, 3);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F003E6), false, 4, 4);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F003E6), false, 4, 4);
    });
 }
 
@@ -143,7 +143,7 @@ TEST_F(DualTexture, FuseDualTexMixedIndex)
          bi_texs_2d_f32_to(b, x, u, v, false, 3, 2);
          bi_texs_2d_f32_to(b, y, u, v, false, 2, 3);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F003A7), false, 4, 4);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF9F003A7), false, 4, 4);
    });
 }
 
@@ -176,7 +176,7 @@ TEST_F(DualTexture, FuseDualTexFP16)
          bi_texs_2d_f16_to(b, x, u, v, false, 0, 0);
          bi_texs_2d_f16_to(b, y, u, v, false, 1, 1);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF1E00144), false, 2, 2);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF1E00144), false, 2, 2);
    });
 }
 
@@ -186,14 +186,14 @@ TEST_F(DualTexture, FuseDualTexMixedSize)
          bi_texs_2d_f32_to(b, x, u, v, false, 0, 0);
          bi_texs_2d_f16_to(b, y, u, v, false, 1, 1);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0XF9E00144), false, 4, 2);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0XF9E00144), false, 4, 2);
    });
 
    CASE(FRAGMENT, {
          bi_texs_2d_f16_to(b, x, u, v, false, 0, 0);
          bi_texs_2d_f32_to(b, y, u, v, false, 1, 1);
    }, {
-         bi_texc_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF1F00144), false, 2, 4);
+         bi_texc_dual_to(b, x, y, bi_null(), u, v, bi_imm_u32(0xF1F00144), false, 2, 4);
    });
 }
 

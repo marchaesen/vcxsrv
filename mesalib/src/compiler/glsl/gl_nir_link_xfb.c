@@ -74,7 +74,8 @@ gl_nir_link_assign_xfb_resources(const struct gl_constants *consts,
       struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
 
       if (sh && stage != MESA_SHADER_TESS_CTRL) {
-         xfb_info = nir_gather_xfb_info_with_varyings(sh->Program->nir, NULL, &varyings_info);
+         nir_gather_xfb_info_with_varyings(sh->Program->nir, NULL, &varyings_info);
+         xfb_info = sh->Program->nir->xfb_info;
          break;
       }
    }
@@ -192,5 +193,37 @@ gl_nir_link_assign_xfb_resources(const struct gl_constants *consts,
 
    linked_xfb->ActiveBuffers = buffers;
 
-   ralloc_free(xfb_info);
+   ralloc_free(varyings_info);
+}
+
+struct nir_xfb_info *
+gl_to_nir_xfb_info(struct gl_transform_feedback_info *info, void *mem_ctx)
+{
+   if (info == NULL || info->NumOutputs == 0)
+      return NULL;
+
+   nir_xfb_info *xfb =
+      rzalloc_size(mem_ctx, nir_xfb_info_size(info->NumOutputs));
+
+   xfb->output_count = info->NumOutputs;
+
+   for (unsigned i = 0; i < MAX_FEEDBACK_BUFFERS; i++) {
+      xfb->buffers[i].stride = info->Buffers[i].Stride * 4;
+      xfb->buffers[i].varying_count = info->Buffers[i].NumVaryings;
+      xfb->buffer_to_stream[i] = info->Buffers[i].Stream;
+   }
+
+   for (unsigned i = 0; i < info->NumOutputs; i++) {
+      xfb->outputs[i].buffer = info->Outputs[i].OutputBuffer;
+      xfb->outputs[i].offset = info->Outputs[i].DstOffset * 4;
+      xfb->outputs[i].location = info->Outputs[i].OutputRegister;
+      xfb->outputs[i].component_offset = info->Outputs[i].ComponentOffset;
+      xfb->outputs[i].component_mask =
+         BITFIELD_RANGE(info->Outputs[i].ComponentOffset,
+                        info->Outputs[i].NumComponents);
+      xfb->buffers_written |= BITFIELD_BIT(info->Outputs[i].OutputBuffer);
+      xfb->streams_written |= BITFIELD_BIT(info->Outputs[i].StreamId);
+   }
+
+   return xfb;
 }

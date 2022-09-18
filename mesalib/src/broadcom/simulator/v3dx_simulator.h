@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Raspberry Pi
+ * Copyright © 2019 Raspberry Pi Ltd
  * Copyright © 2014-2017 Broadcom
  * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
  *

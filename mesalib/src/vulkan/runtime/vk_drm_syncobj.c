@@ -23,9 +23,12 @@
 
 #include "vk_drm_syncobj.h"
 
+#include <sched.h>
 #include <xf86drm.h>
 
 #include "drm-uapi/drm.h"
+
+#include "util/os_time.h"
 
 #include "vk_device.h"
 #include "vk_log.h"
@@ -135,12 +138,89 @@ vk_drm_syncobj_reset(struct vk_device *device,
 }
 
 static VkResult
+sync_has_sync_file(struct vk_device *device, struct vk_sync *sync)
+{
+   uint32_t handle = to_drm_syncobj(sync)->syncobj;
+
+   int fd = -1;
+   int err = drmSyncobjExportSyncFile(device->drm_fd, handle, &fd);
+   if (!err) {
+      close(fd);
+      return VK_SUCCESS;
+   }
+
+   /* On the off chance the sync_file export repeatedly fails for some
+    * unexpected reason, we want to ensure this function will return success
+    * eventually.  Do a zero-time syncobj wait if the export failed.
+    */
+   err = drmSyncobjWait(device->drm_fd, &handle, 1, 0 /* timeout */,
+                        DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT,
+                        NULL /* first_signaled */);
+   if (!err) {
+      return VK_SUCCESS;
+   } else if (errno == ETIME) {
+      return VK_TIMEOUT;
+   } else {
+      return vk_errorf(device, VK_ERROR_UNKNOWN,
+                       "DRM_IOCTL_SYNCOBJ_WAIT failed: %m");
+   }
+}
+
+static VkResult
+spin_wait_for_sync_file(struct vk_device *device,
+                        uint32_t wait_count,
+                        const struct vk_sync_wait *waits,
+                        enum vk_sync_wait_flags wait_flags,
+                        uint64_t abs_timeout_ns)
+{
+   if (wait_flags & VK_SYNC_WAIT_ANY) {
+      while (1) {
+         for (uint32_t i = 0; i < wait_count; i++) {
+            VkResult result = sync_has_sync_file(device, waits[i].sync);
+            if (result != VK_TIMEOUT)
+               return result;
+         }
+
+         if (os_time_get_nano() >= abs_timeout_ns)
+            return VK_TIMEOUT;
+
+         sched_yield();
+      }
+   } else {
+      for (uint32_t i = 0; i < wait_count; i++) {
+         while (1) {
+            VkResult result = sync_has_sync_file(device, waits[i].sync);
+            if (result != VK_TIMEOUT)
+               return result;
+
+            if (os_time_get_nano() >= abs_timeout_ns)
+               return VK_TIMEOUT;
+
+            sched_yield();
+         }
+      }
+   }
+
+   return VK_SUCCESS;
+}
+
+static VkResult
 vk_drm_syncobj_wait_many(struct vk_device *device,
                          uint32_t wait_count,
                          const struct vk_sync_wait *waits,
                          enum vk_sync_wait_flags wait_flags,
                          uint64_t abs_timeout_ns)
 {
+   if ((wait_flags & VK_SYNC_WAIT_PENDING) &&
+       !(waits[0].sync->type->features & VK_SYNC_FEATURE_TIMELINE)) {
+      /* Sadly, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE was never implemented
+       * for drivers that don't support timelines.  Instead, we have to spin
+       * on DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE until it succeeds.
+       */
+      return spin_wait_for_sync_file(device, wait_count, waits,
+                                     wait_flags, abs_timeout_ns);
+   }
+
    /* Syncobj timeouts are signed */
    abs_timeout_ns = MIN2(abs_timeout_ns, (uint64_t)INT64_MAX);
 
@@ -333,7 +413,8 @@ vk_drm_syncobj_get_type(int drm_fd)
       .features = VK_SYNC_FEATURE_BINARY |
                   VK_SYNC_FEATURE_GPU_WAIT |
                   VK_SYNC_FEATURE_CPU_RESET |
-                  VK_SYNC_FEATURE_CPU_SIGNAL,
+                  VK_SYNC_FEATURE_CPU_SIGNAL |
+                  VK_SYNC_FEATURE_WAIT_PENDING,
       .init = vk_drm_syncobj_init,
       .finish = vk_drm_syncobj_finish,
       .signal = vk_drm_syncobj_signal,
@@ -358,8 +439,7 @@ vk_drm_syncobj_get_type(int drm_fd)
    err = drmGetCap(drm_fd, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
    if (err == 0 && cap != 0) {
       type.get_value = vk_drm_syncobj_get_value;
-      type.features |= VK_SYNC_FEATURE_TIMELINE |
-                       VK_SYNC_FEATURE_WAIT_PENDING;
+      type.features |= VK_SYNC_FEATURE_TIMELINE;
    }
 
    err = drmSyncobjDestroy(drm_fd, syncobj);

@@ -30,7 +30,7 @@ XkbComputeShapeBounds \- Updates the bounding box of a shape
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- shape
+.I shape
 shape to be examined
 .SH DESCRIPTION
 .LP

@@ -51,8 +51,10 @@ struct pan_blendable_format {
 
 extern const struct pan_blendable_format panfrost_blendable_formats_v6[PIPE_FORMAT_COUNT];
 extern const struct pan_blendable_format panfrost_blendable_formats_v7[PIPE_FORMAT_COUNT];
+extern const struct pan_blendable_format panfrost_blendable_formats_v9[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v6[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v7[PIPE_FORMAT_COUNT];
+extern const struct panfrost_format panfrost_pipe_format_v9[PIPE_FORMAT_COUNT];
 
 /* Helpers to construct swizzles */
 

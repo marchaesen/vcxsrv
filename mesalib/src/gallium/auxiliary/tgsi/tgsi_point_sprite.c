@@ -95,6 +95,7 @@ struct psprite_transform_context
    unsigned point_coord_k;          // aa point coord threshold distance
    unsigned stream_out_point_pos:1; // set if to stream out original point pos
    unsigned aa_point:1;             // set if doing aa point
+   unsigned need_texcoord_semantic:1;   // set if need texcoord semantic
    unsigned out_tmp_index[PIPE_MAX_SHADER_OUTPUTS];
    int max_generic;                 // max generic semantic index
 };
@@ -131,10 +132,15 @@ psprite_decl(struct tgsi_transform_context *ctx,
       else if (decl->Semantic.Name == TGSI_SEMANTIC_POSITION) {
          ts->point_pos_out = decl->Range.First;
       }
-      else if (decl->Semantic.Name == TGSI_SEMANTIC_GENERIC &&
+      else if (!ts->need_texcoord_semantic &&
+	       decl->Semantic.Name == TGSI_SEMANTIC_GENERIC &&
                decl->Semantic.Index < 32) {
          ts->point_coord_decl |= 1 << decl->Semantic.Index;
          ts->max_generic = MAX2(ts->max_generic, (int)decl->Semantic.Index);
+      }
+      else if (ts->need_texcoord_semantic &&
+               decl->Semantic.Name == TGSI_SEMANTIC_TEXCOORD) {
+         ts->point_coord_decl |= 1 << decl->Semantic.Index;
       }
       ts->num_out = MAX2(ts->num_out, range_end);
    }
@@ -213,22 +219,35 @@ psprite_prolog(struct tgsi_transform_context *ctx)
     */
    ts->point_coord_out = ts->num_out;
    if (point_coord_enable) {
-      for (i = 0, en = point_coord_enable; en; en>>=1, i++) {
-         if (en & 0x1) {
-            tgsi_transform_output_decl(ctx, ts->num_out++,
-                                       TGSI_SEMANTIC_GENERIC, i, 0);
-            ts->max_generic = MAX2(ts->max_generic, (int)i);
+      if (ts->need_texcoord_semantic) {
+         for (i = 0, en = point_coord_enable; en; en>>=1, i++) {
+            if (en & 0x1) {
+               tgsi_transform_output_decl(ctx, ts->num_out++,
+                                          TGSI_SEMANTIC_TEXCOORD, i, 0);
+            }
+         }
+      } else {
+         for (i = 0, en = point_coord_enable; en; en>>=1, i++) {
+            if (en & 0x1) {
+               tgsi_transform_output_decl(ctx, ts->num_out++,
+                                          TGSI_SEMANTIC_GENERIC, i, 0);
+               ts->max_generic = MAX2(ts->max_generic, (int)i);
+            }
          }
       }
    }
 
    /* add an extra generic output for aa point texcoord */
    if (ts->aa_point) {
-      ts->point_coord_aa = ts->max_generic + 1;
-      assert((ts->point_coord_enable & (1 << ts->point_coord_aa)) == 0);
-      ts->point_coord_enable |= 1 << (ts->point_coord_aa);
-      tgsi_transform_output_decl(ctx, ts->num_out++, TGSI_SEMANTIC_GENERIC,
-                                 ts->point_coord_aa, 0);
+      if (ts->need_texcoord_semantic) {
+         ts->point_coord_aa = 0;
+      } else {
+         ts->point_coord_aa = ts->max_generic + 1;
+         assert((ts->point_coord_enable & (1 << ts->point_coord_aa)) == 0);
+         ts->point_coord_enable |= 1 << (ts->point_coord_aa);
+         tgsi_transform_output_decl(ctx, ts->num_out++, TGSI_SEMANTIC_GENERIC,
+                                    ts->point_coord_aa, 0);
+      }
    }
 
    /* Declare extra immediates */
@@ -503,6 +522,7 @@ tgsi_add_point_sprite(const struct tgsi_token *tokens_in,
                       const unsigned point_coord_enable,
                       const bool sprite_origin_lower_left,
                       const bool stream_out_point_pos,
+		      const bool need_texcoord_semantic,
                       int *aa_point_coord_index)
 {
    struct psprite_transform_context transform;
@@ -533,6 +553,7 @@ tgsi_add_point_sprite(const struct tgsi_token *tokens_in,
    transform.stream_out_point_pos = stream_out_point_pos;
    transform.point_coord_enable = point_coord_enable;
    transform.aa_point = aa_point_coord_index != NULL;
+   transform.need_texcoord_semantic = need_texcoord_semantic;
    transform.max_generic = -1;
 
    /* point sprite directions based on the immediates (0, 1, 0.5, -1) */
@@ -568,13 +589,7 @@ tgsi_add_point_sprite(const struct tgsi_token *tokens_in,
    }
 
 
-   /* allocate new tokens buffer */
-   new_tokens = tgsi_alloc_tokens(new_len);
-   if (!new_tokens)
-      return NULL;
-
-   /* transform the shader */
-   tgsi_transform_shader(tokens_in, new_tokens, new_len, &transform.base);
+   new_tokens = tgsi_transform_shader(tokens_in, new_len, &transform.base);
 
    if (aa_point_coord_index)
       *aa_point_coord_index = transform.point_coord_aa;

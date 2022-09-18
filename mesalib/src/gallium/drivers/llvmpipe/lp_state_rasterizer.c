@@ -108,28 +108,7 @@ llvmpipe_bind_rasterizer_state(struct pipe_context *pipe, void *handle)
    if (state) {
       llvmpipe->rasterizer = &state->lp_state;
       draw_set_rasterizer_state(llvmpipe->draw, &state->draw_state, handle);
-
-      /* XXX: just pass lp_state directly to setup.
-       */
-      lp_setup_set_triangle_state( llvmpipe->setup,
-                                  state->lp_state.cull_face,
-                                  state->lp_state.front_ccw,
-                                  state->lp_state.scissor,
-                                  state->lp_state.half_pixel_center,
-                                  state->lp_state.bottom_edge_rule,
-                                  state->lp_state.multisample);
-      lp_setup_set_flatshade_first( llvmpipe->setup,
-				    state->lp_state.flatshade_first);
-      lp_setup_set_line_state( llvmpipe->setup,
-                              state->lp_state.line_width,
-                              state->lp_state.line_rectangular);
-      lp_setup_set_point_state( llvmpipe->setup,
-                               state->lp_state.point_size,
-                               state->lp_state.point_tri_clip,
-                               state->lp_state.point_size_per_vertex,
-                               state->lp_state.sprite_coord_enable,
-                               state->lp_state.sprite_coord_mode,
-                               state->lp_state.point_quad_rasterization);
+      lp_setup_bind_rasterizer( llvmpipe->setup, &state->lp_state);
    }
    else {
       llvmpipe->rasterizer = NULL;

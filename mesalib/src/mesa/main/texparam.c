@@ -248,12 +248,6 @@ _mesa_target_allows_setting_sampler_parameters(GLenum target)
 }
 
 
-static inline GLboolean
-is_wrap_gl_clamp(GLint param)
-{
-   return param == GL_CLAMP || param == GL_MIRROR_CLAMP_EXT;
-}
-
 /**
  * Set an integer-valued texture parameter
  * \return GL_TRUE if legal AND the value changed, GL_FALSE otherwise
@@ -340,8 +334,7 @@ set_tex_parameteri(struct gl_context *ctx,
          return GL_FALSE;
       if (validate_texture_wrap_mode(ctx, texObj->Target, params[0])) {
          flush(ctx);
-         if (is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapS) != is_wrap_gl_clamp(params[0]))
-            ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
+         update_sampler_gl_clamp(ctx, &texObj->Sampler, is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapS), is_wrap_gl_clamp(params[0]), WRAP_S);
          texObj->Sampler.Attrib.WrapS = params[0];
          texObj->Sampler.Attrib.state.wrap_s = wrap_to_gallium(params[0]);
          _mesa_lower_gl_clamp(ctx, &texObj->Sampler);
@@ -357,8 +350,7 @@ set_tex_parameteri(struct gl_context *ctx,
          return GL_FALSE;
       if (validate_texture_wrap_mode(ctx, texObj->Target, params[0])) {
          flush(ctx);
-         if (is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapT) != is_wrap_gl_clamp(params[0]))
-            ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
+         update_sampler_gl_clamp(ctx, &texObj->Sampler, is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapT), is_wrap_gl_clamp(params[0]), WRAP_T);
          texObj->Sampler.Attrib.WrapT = params[0];
          texObj->Sampler.Attrib.state.wrap_t = wrap_to_gallium(params[0]);
          _mesa_lower_gl_clamp(ctx, &texObj->Sampler);
@@ -374,8 +366,7 @@ set_tex_parameteri(struct gl_context *ctx,
          return GL_FALSE;
       if (validate_texture_wrap_mode(ctx, texObj->Target, params[0])) {
          flush(ctx);
-         if (is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapR) != is_wrap_gl_clamp(params[0]))
-            ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
+         update_sampler_gl_clamp(ctx, &texObj->Sampler, is_wrap_gl_clamp(texObj->Sampler.Attrib.WrapR), is_wrap_gl_clamp(params[0]), WRAP_R);
          texObj->Sampler.Attrib.WrapR = params[0];
          texObj->Sampler.Attrib.state.wrap_r = wrap_to_gallium(params[0]);
          _mesa_lower_gl_clamp(ctx, &texObj->Sampler);
@@ -424,6 +415,10 @@ set_tex_parameteri(struct gl_context *ctx,
          texObj->Attrib.BaseLevel = MIN2(texObj->Attrib.ImmutableLevels - 1, params[0]);
       else
          texObj->Attrib.BaseLevel = params[0];
+      if (texObj->Attrib.BaseLevel < MAX_TEXTURE_LEVELS) {
+         _mesa_update_teximage_format_swizzle(ctx, texObj->Image[0][texObj->Attrib.BaseLevel], texObj->Attrib.DepthMode);
+         _mesa_update_texture_object_swizzle(ctx, texObj);
+      }
 
       return GL_TRUE;
 
@@ -527,6 +522,10 @@ set_tex_parameteri(struct gl_context *ctx,
              (ctx->Extensions.ARB_texture_rg && params[0] == GL_RED)) {
             flush(ctx);
             texObj->Attrib.DepthMode = params[0];
+            if (texObj->Attrib.BaseLevel < MAX_TEXTURE_LEVELS) {
+               _mesa_update_teximage_format_swizzle(ctx, texObj->Image[0][texObj->Attrib.BaseLevel], texObj->Attrib.DepthMode);
+               _mesa_update_texture_object_swizzle(ctx, texObj);
+            }
             return GL_TRUE;
          }
          goto invalid_param;
@@ -577,6 +576,7 @@ set_tex_parameteri(struct gl_context *ctx,
          flush(ctx);
          texObj->Attrib.Swizzle[comp] = params[0];
          set_swizzle_component(&texObj->Attrib._Swizzle, comp, swz);
+         _mesa_update_texture_object_swizzle(ctx, texObj);
          return GL_TRUE;
       }
       goto invalid_pname;
@@ -591,6 +591,7 @@ set_tex_parameteri(struct gl_context *ctx,
             if (swz >= 0) {
                texObj->Attrib.Swizzle[comp] = params[comp];
                set_swizzle_component(&texObj->Attrib._Swizzle, comp, swz);
+               _mesa_update_texture_object_swizzle(ctx, texObj);
             }
             else {
                _mesa_error(ctx, GL_INVALID_ENUM,

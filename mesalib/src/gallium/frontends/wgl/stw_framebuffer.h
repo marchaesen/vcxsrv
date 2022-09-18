@@ -40,6 +40,7 @@
 struct pipe_resource;
 struct st_framebuffer_iface;
 struct stw_pixelformat_info;
+struct st_manager;
 
 enum stw_framebuffer_owner
 {
@@ -83,7 +84,6 @@ struct stw_framebuffer
    
    HWND hWnd;
 
-   int iPixelFormat;
    const struct stw_pixelformat_info *pfi;
 
    /* A pixel format that can be used by GDI */
@@ -129,6 +129,7 @@ struct stw_framebuffer
    struct stw_winsys_framebuffer *winsys_framebuffer;
 
    /* For WGL_EXT_swap_control */
+   int swap_interval;
    int64_t prev_swap_time;
 
    /** 
@@ -152,7 +153,11 @@ struct stw_framebuffer
  * must be called when done 
  */
 struct stw_framebuffer *
-stw_framebuffer_create(HWND hwnd, int iPixelFormat, enum stw_framebuffer_owner owner);
+stw_framebuffer_create(HWND hwnd, const struct stw_pixelformat_info *pfi, enum stw_framebuffer_owner owner,
+                       struct st_manager *smapi);
+
+struct stw_framebuffer *
+stw_pbuffer_create(const struct stw_pixelformat_info *pfi, int iWidth, int iHeight, struct st_manager *smapi);
 
 
 /**

@@ -43,6 +43,7 @@ struct xwl_window {
     struct wp_viewport *viewport;
     float scale_x, scale_y;
     struct xdg_surface *xdg_surface;
+    struct xdg_toplevel *xdg_toplevel;
     WindowPtr window;
     struct xorg_list link_damage;
     struct xorg_list link_window;
@@ -51,22 +52,31 @@ struct xwl_window {
     struct xorg_list window_buffers_available;
     struct xorg_list window_buffers_unavailable;
     OsTimerPtr window_buffers_timer;
+    struct wl_output *wl_output;
+    struct wl_output *wl_output_fullscreen;
 #ifdef GLAMOR_HAS_GBM
     struct xorg_list frame_callback_list;
     Bool present_flipped;
+#endif
+#ifdef XWL_HAS_LIBDECOR
+    struct libdecor_frame *libdecor_frame;
 #endif
 };
 
 struct xwl_window *xwl_window_get(WindowPtr window);
 struct xwl_window *xwl_window_from_window(WindowPtr window);
 
+Bool is_surface_from_xwl_window(struct wl_surface *surface);
+
 void xwl_window_update_property(struct xwl_window *xwl_window,
                                 PropertyStateRec *propstate);
 Bool xwl_window_has_viewport_enabled(struct xwl_window *xwl_window);
 Bool xwl_window_is_toplevel(WindowPtr window);
 void xwl_window_check_resolution_change_emulation(struct xwl_window *xwl_window);
+void xwl_window_rootful_update_title(struct xwl_window *xwl_window);
 
 void xwl_window_set_window_pixmap(WindowPtr window, PixmapPtr pixmap);
+
 Bool xwl_realize_window(WindowPtr window);
 Bool xwl_unrealize_window(WindowPtr window);
 Bool xwl_change_window_attributes(WindowPtr window, unsigned long mask);

@@ -15,11 +15,11 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * FELIX KUEHLING, OR ANY OTHER CONTRIBUTORS BE LIABLE FOR ANY CLAIM, 
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
+ * FELIX KUEHLING, OR ANY OTHER CONTRIBUTORS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 /**
  * \file driconf.h
@@ -250,12 +250,19 @@
    DRI_CONF_OPT_B(allow_invalid_glx_destroy_window, def, \
                   "Allow passing an invalid window into glXDestroyWindow")
 
+#define DRI_CONF_KEEP_NATIVE_WINDOW_GLX_DRAWABLE(def) \
+   DRI_CONF_OPT_B(keep_native_window_glx_drawable, def, \
+                  "Keep GLX drawable created from native window when switch context")
+
 #define DRI_CONF_OVERRIDE_VRAM_SIZE() \
    DRI_CONF_OPT_I(override_vram_size, -1, -1, 2147483647, \
                   "Override the VRAM size advertised to the application in MiB (-1 = default)")
 
 #define DRI_CONF_FORCE_GL_NAMES_REUSE(def) \
    DRI_CONF_OPT_B(force_gl_names_reuse, def, "Force GL names reuse")
+
+#define DRI_CONF_FORCE_GL_MAP_BUFFER_SYNCHRONIZED(def) \
+   DRI_CONF_OPT_B(force_gl_map_buffer_synchronized, def, "Override GL_MAP_UNSYNCHRONIZED_BIT.")
 
 #define DRI_CONF_TRANSCODE_ETC(def) \
    DRI_CONF_OPT_B(transcode_etc, def, "Transcode ETC formats to DXTC if unsupported")
@@ -275,9 +282,9 @@
    DRI_CONF_OPT_S_NODEF(indirect_gl_extension_override, \
                   "Allow enabling/disabling a list of indirect-GL extensions")
 
-#define DRI_CONF_DISABLE_PROTECTED_CONTENT_CHECK(def) \
-   DRI_CONF_OPT_B(disable_protected_content_check, def, \
-                  "Don't reject image import if protected_content attribute doesn't match")
+#define DRI_CONF_FORCE_PROTECTED_CONTENT_CHECK(def) \
+   DRI_CONF_OPT_B(force_protected_content_check, def, \
+                  "Reject image import if protected_content attribute doesn't match")
 
 #define DRI_CONF_IGNORE_MAP_UNSYNCHRONIZED(def) \
    DRI_CONF_OPT_B(ignore_map_unsynchronized, def, \
@@ -286,6 +293,10 @@
 #define DRI_CONF_VK_DONT_CARE_AS_LOAD(def) \
    DRI_CONF_OPT_B(vk_dont_care_as_load, def, \
                   "Treat VK_ATTACHMENT_LOAD_OP_DONT_CARE as LOAD_OP_LOAD, workaround on tiler GPUs for games that confuse these two load ops")
+
+#define DRI_CONF_LIMIT_TRIG_INPUT_RANGE(def) \
+   DRI_CONF_OPT_B(limit_trig_input_range, def, \
+                  "Limit trig input range to [-2p : 2p] to improve sin/cos calculation precision on Intel")
 
 /**
  * \brief Image quality-related options
@@ -468,14 +479,6 @@
  * \brief radeonsi specific configuration options
  */
 
-#define DRI_CONF_RADEONSI_ASSUME_NO_Z_FIGHTS(def) \
-   DRI_CONF_OPT_B(radeonsi_assume_no_z_fights, def, \
-                  "Assume no Z fights (enables aggressive out-of-order rasterization to improve performance; may cause rendering errors)")
-
-#define DRI_CONF_RADEONSI_COMMUTATIVE_BLEND_ADD(def) \
-   DRI_CONF_OPT_B(radeonsi_commutative_blend_add, def, \
-                  "Commutative additive blending optimizations (may cause rendering errors)")
-
 #define DRI_CONF_RADEONSI_ZERO_ALL_VRAM_ALLOCS(def) \
    DRI_CONF_OPT_B(radeonsi_zerovram, def, \
                   "Zero all vram allocations")
@@ -503,6 +506,13 @@
 #define DRI_CONF_FORMAT_L8_SRGB_ENABLE_READBACK(def) \
    DRI_CONF_OPT_B(format_l8_srgb_enable_readback, def, \
                   "Force-enable reading back L8_SRGB textures")
+
+/**
+ * \brief venus specific configuration options
+ */
+#define DRI_CONF_VENUS_IMPLICIT_FENCING(def) \
+   DRI_CONF_OPT_B(venus_implicit_fencing, def, \
+                  "Assume the virtio-gpu kernel driver supports implicit fencing")
 
 /**
  * \brief RADV specific configuration options
@@ -556,20 +566,37 @@
    DRI_CONF_OPT_B(radv_disable_dcc, def, \
                   "Disable DCC for color images")
 
-#define DRI_CONF_RADV_REPORT_APU_AS_DGPU(def) \
-   DRI_CONF_OPT_B(radv_report_apu_as_dgpu, def, \
-                  "Report APUs as discrete GPUs instead of integrated GPUs")
-
 #define DRI_CONF_RADV_REQUIRE_ETC2(def)                                        \
   DRI_CONF_OPT_B(radv_require_etc2, def,                                       \
                  "Implement emulated ETC2 on HW that does not support it")
 
-#define DRI_CONF_RADV_DISABLE_HTILE_LAYERS(def) \
-   DRI_CONF_OPT_B(radv_disable_htile_layers, def, \
-                  "Disable HTILE for layered depth/stencil formats")
-
 #define DRI_CONF_RADV_DISABLE_ANISO_SINGLE_LEVEL(def) \
   DRI_CONF_OPT_B(radv_disable_aniso_single_level, def, \
                  "Disable anisotropic filtering for single level images")
+
+#define DRI_CONF_RADV_DISABLE_SINKING_LOAD_INPUT_FS(def) \
+   DRI_CONF_OPT_B(radv_disable_sinking_load_input_fs, def, \
+                  "Disable sinking load inputs for fragment shaders")
+
+#define DRI_CONF_RADV_DGC(def) \
+   DRI_CONF_OPT_B(radv_dgc, def, \
+                  "Expose an experimental implementation of VK_NV_device_generated_commands")
+
+#define DRI_CONF_RADV_FLUSH_BEFORE_QUERY_COPY(def) \
+  DRI_CONF_OPT_B( \
+      radv_flush_before_query_copy, def, \
+      "Wait for timestamps to be written before a query copy command")
+
+/**
+ * \brief ANV specific configuration options
+ */
+
+#define DRI_CONF_ANV_ASSUME_FULL_SUBGROUPS(def) \
+   DRI_CONF_OPT_B(anv_assume_full_subgroups, def, \
+                  "Allow assuming full subgroups requirement even when it's not specified explicitly")
+
+#define DRI_CONF_ANV_SAMPLE_MASK_OUT_OPENGL_BEHAVIOUR(def) \
+   DRI_CONF_OPT_B(anv_sample_mask_out_opengl_behaviour, def, \
+                  "Ignore sample mask out when having single sampled target")
 
 #endif

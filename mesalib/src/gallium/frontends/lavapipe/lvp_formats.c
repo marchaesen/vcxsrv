@@ -27,6 +27,7 @@
 #include "util/format/u_format.h"
 #include "util/u_math.h"
 #include "vk_util.h"
+#include "vk_enum_defines.h"
 
 static bool lvp_is_filter_minmax_format_supported(VkFormat format)
 {
@@ -60,10 +61,10 @@ static bool lvp_is_filter_minmax_format_supported(VkFormat format)
 static void
 lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_device,
                                           VkFormat format,
-                                          VkFormatProperties *out_properties)
+                                          VkFormatProperties3 *out_properties)
 {
    enum pipe_format pformat = lvp_vk_format_to_pipe_format(format);
-   unsigned features = 0, buffer_features = 0;
+   VkFormatFeatureFlags2 features = 0, buffer_features = 0;
    if (pformat == PIPE_FORMAT_NONE) {
      out_properties->linearTilingFeatures = 0;
      out_properties->optimalTilingFeatures = 0;
@@ -74,12 +75,13 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_DEPTH_STENCIL)) {
       out_properties->linearTilingFeatures = 0;
-      out_properties->optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
-         VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT |
-         VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
+      out_properties->optimalTilingFeatures = VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT |
+         VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT |
+         VK_FORMAT_FEATURE_2_BLIT_SRC_BIT | VK_FORMAT_FEATURE_2_BLIT_DST_BIT |
+         VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT;
 
       if (lvp_is_filter_minmax_format_supported(format))
-         out_properties->optimalTilingFeatures |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
+         out_properties->optimalTilingFeatures |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
       out_properties->bufferFeatures = 0;
       return;
    }
@@ -87,10 +89,10 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
    if (util_format_is_compressed(pformat)) {
       if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                         PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW)) {
-         features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-         features |= VK_FORMAT_FEATURE_BLIT_SRC_BIT;
-         features |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-         features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+         features |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT;
+         features |= VK_FORMAT_FEATURE_2_BLIT_SRC_BIT;
+         features |= VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT;
+         features |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
       }
       out_properties->linearTilingFeatures = features;
       out_properties->optimalTilingFeatures = features;
@@ -101,58 +103,69 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
    if (!util_format_is_srgb(pformat) &&
        physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_BUFFER, 0, 0, PIPE_BIND_VERTEX_BUFFER)) {
-      buffer_features |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+      buffer_features |= VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT;
    }
 
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_BUFFER, 0, 0, PIPE_BIND_CONSTANT_BUFFER)) {
-      buffer_features |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+      buffer_features |= VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT;
    }
 
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_BUFFER, 0, 0, PIPE_BIND_SHADER_IMAGE)) {
-      buffer_features |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+      buffer_features |= VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT;
+      if (physical_device->pscreen->get_param(physical_device->pscreen, PIPE_CAP_IMAGE_LOAD_FORMATTED))
+         buffer_features |= VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT;
+      if (physical_device->pscreen->get_param(physical_device->pscreen, PIPE_CAP_IMAGE_STORE_FORMATTED))
+         buffer_features |= VK_FORMAT_FEATURE_2_STORAGE_WRITE_WITHOUT_FORMAT_BIT;
    }
 
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW)) {
-      features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+      features |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT;
+      if (util_format_has_depth(util_format_description(pformat)))
+         features |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT;
       if (!util_format_is_pure_integer(pformat))
-         features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+         features |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
       if (lvp_is_filter_minmax_format_supported(format))
-         features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
+         features |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
    }
 
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_RENDER_TARGET)) {
-      features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+      features |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT;
       /* SNORM blending on llvmpipe fails CTS - disable for now */
       if (!util_format_is_snorm(pformat))
-         features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+         features |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT;
    }
 
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SHADER_IMAGE)) {
-      features |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+      features |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT;
+      if (physical_device->pscreen->get_param(physical_device->pscreen, PIPE_CAP_IMAGE_LOAD_FORMATTED))
+         features |= VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT;
+      if (physical_device->pscreen->get_param(physical_device->pscreen, PIPE_CAP_IMAGE_STORE_FORMATTED))
+         features |= VK_FORMAT_FEATURE_2_STORAGE_WRITE_WITHOUT_FORMAT_BIT;
    }
 
    if (pformat == PIPE_FORMAT_R32_UINT || pformat == PIPE_FORMAT_R32_SINT) {
-      features |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
-      buffer_features |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
+      features |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT;
+      buffer_features |= VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
    }
 
    if (pformat == PIPE_FORMAT_R11G11B10_FLOAT || pformat == PIPE_FORMAT_R9G9B9E5_FLOAT)
-     features |= VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+     features |= VK_FORMAT_FEATURE_2_BLIT_SRC_BIT;
 
-   if (features && buffer_features != VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT)
-      features |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+   if (features && buffer_features != VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT)
+      features |= VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT;
    if (pformat == PIPE_FORMAT_B5G6R5_UNORM)
-     features |= VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
+     features |= VK_FORMAT_FEATURE_2_BLIT_SRC_BIT | VK_FORMAT_FEATURE_2_BLIT_DST_BIT;
    if ((pformat != PIPE_FORMAT_R9G9B9E5_FLOAT) && util_format_get_nr_components(pformat) != 3 &&
        pformat != PIPE_FORMAT_R10G10B10A2_SNORM && pformat != PIPE_FORMAT_B10G10R10A2_SNORM &&
        pformat != PIPE_FORMAT_B10G10R10A2_UNORM) {
-      features |= VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
+      features |= VK_FORMAT_FEATURE_2_BLIT_SRC_BIT | VK_FORMAT_FEATURE_2_BLIT_DST_BIT;
    }
+
    out_properties->linearTilingFeatures = features;
    out_properties->optimalTilingFeatures = features;
    out_properties->bufferFeatures = buffer_features;
@@ -166,16 +179,29 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceFormatProperties2(
 {
    LVP_FROM_HANDLE(lvp_physical_device, physical_device, physicalDevice);
 
+   VkFormatProperties3 format_props;
    lvp_physical_device_get_format_properties(physical_device,
                                              format,
-                                             &pFormatProperties->formatProperties);
+                                             &format_props);
+   pFormatProperties->formatProperties.linearTilingFeatures = format_props.linearTilingFeatures & VK_ALL_FORMAT_FEATURE_FLAG_BITS;
+   pFormatProperties->formatProperties.optimalTilingFeatures = format_props.optimalTilingFeatures & VK_ALL_FORMAT_FEATURE_FLAG_BITS;
+   pFormatProperties->formatProperties.bufferFeatures = format_props.bufferFeatures & VK_ALL_FORMAT_FEATURE_FLAG_BITS;
+   VkFormatProperties3 *prop3 = (void*)vk_find_struct_const(pFormatProperties->pNext, FORMAT_PROPERTIES_3);
+   if (prop3) {
+      prop3->linearTilingFeatures = format_props.linearTilingFeatures;
+      prop3->optimalTilingFeatures = format_props.optimalTilingFeatures;
+      prop3->bufferFeatures = format_props.bufferFeatures;
+   }
+   VkSubpassResolvePerformanceQueryEXT *perf = (void*)vk_find_struct_const(pFormatProperties->pNext, SUBPASS_RESOLVE_PERFORMANCE_QUERY_EXT);
+   if (perf)
+      perf->optimal = VK_FALSE;
 }
 static VkResult lvp_get_image_format_properties(struct lvp_physical_device *physical_device,
                                                  const VkPhysicalDeviceImageFormatInfo2 *info,
                                                  VkImageFormatProperties *pImageFormatProperties)
 {
-   VkFormatProperties format_props;
-   VkFormatFeatureFlags format_feature_flags;
+   VkFormatProperties3 format_props;
+   VkFormatFeatureFlags2 format_feature_flags;
    VkExtent3D maxExtent;
    uint32_t maxMipLevels;
    uint32_t maxArraySize;
@@ -218,7 +244,7 @@ static VkResult lvp_get_image_format_properties(struct lvp_physical_device *phys
       if (info->tiling == VK_IMAGE_TILING_OPTIMAL &&
           !(info->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) &&
           !util_format_is_compressed(pformat) &&
-          (format_feature_flags & (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)))
+          (format_feature_flags & (VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT)))
          sampleCounts |= VK_SAMPLE_COUNT_4_BIT;
       break;
    case VK_IMAGE_TYPE_3D:
@@ -230,49 +256,53 @@ static VkResult lvp_get_image_format_properties(struct lvp_physical_device *phys
       break;
    }
 
+   if (info->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT)
+      goto skip_checks;
+
    if (info->usage & VK_IMAGE_USAGE_SAMPLED_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT)) {
          goto unsupported;
       }
    }
 
    if (info->usage & VK_IMAGE_USAGE_STORAGE_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT)) {
          goto unsupported;
       }
    }
 
    if (info->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT)) {
          goto unsupported;
       }
    }
 
    if (info->usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT)) {
          goto unsupported;
       }
    }
 
    if (info->usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT)) {
          goto unsupported;
       }
    }
 
    if (info->usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT)) {
          goto unsupported;
       }
    }
 
    if (info->usage & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT) {
-      if (!(format_feature_flags & (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-                                    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))) {
+      if (!(format_feature_flags & (VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
+                                    VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT))) {
          goto unsupported;
       }
    }
 
+skip_checks:
    *pImageFormatProperties = (VkImageFormatProperties) {
       .maxExtent = maxExtent,
       .maxMipLevels = maxMipLevels,

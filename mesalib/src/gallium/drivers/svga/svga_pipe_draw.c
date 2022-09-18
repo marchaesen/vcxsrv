@@ -318,7 +318,7 @@ svga_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
       if (!svga_update_state_retry(svga, SVGA_STATE_HW_DRAW)) {
          static const char *msg = "State update failed, skipping draw call";
          debug_printf("%s\n", msg);
-         pipe_debug_message(&svga->debug.callback, INFO, "%s", msg);
+         util_debug_message(&svga->debug.callback, INFO, "%s", msg);
          goto done;
       }
       svga_hwtnl_set_fillmode(svga->hwtnl, svga->curr.rast->hw_fillmode);

@@ -148,7 +148,7 @@ xkb_symbols "ber" {
     key <AD09>  { [ 0x1002D44,  0x1002D67   ] }; // ⵄ ⵧ
     key <AD10>  { [ 0x1002D43   ] }; // ⵃ
     key <AD11>  { [ 0x1002D6F   ] }; // ⵯ
-    key <AD12>  { [ dollar, sterling,   oslash, Ooblique ] }; // $ £ ø Ø
+    key <AD12>  { [ dollar, sterling,   oslash, Oslash ] }; // $ £ ø Ø
 
     // Third row
     key <AC01>  { [ 0x1002D47,  0x1002D48   ] }; // ⵇ ⵈ 

@@ -221,18 +221,12 @@ bool expr_handler::fold_setcc(alu_node &n) {
 	} else if (isc1) {
 		if (cmp_type == AF_FLOAT_CMP) {
 			if (n.bc.src[0].abs && !n.bc.src[0].neg) {
-				if (cv1.f < 0.0f && (cc == AF_CC_GT || cc == AF_CC_NE)) {
-					cond_result = true;
-					have_result = true;
-				} else if (cv1.f <= 0.0f && cc == AF_CC_GE) {
+				if (cv1.f < 0.0f && cc == AF_CC_NE) {
 					cond_result = true;
 					have_result = true;
 				}
 			} else if (n.bc.src[0].abs && n.bc.src[0].neg) {
-				if (cv1.f > 0.0f && (cc == AF_CC_GE || cc == AF_CC_E)) {
-					cond_result = false;
-					have_result = true;
-				} else if (cv1.f >= 0.0f && cc == AF_CC_GT) {
+				if (cv1.f > 0.0f && cc == AF_CC_E) {
 					cond_result = false;
 					have_result = true;
 				}
@@ -244,18 +238,12 @@ bool expr_handler::fold_setcc(alu_node &n) {
 	} else if (isc0) {
 		if (cmp_type == AF_FLOAT_CMP) {
 			if (n.bc.src[1].abs && !n.bc.src[1].neg) {
-				if (cv0.f <= 0.0f && cc == AF_CC_GT) {
-					cond_result = false;
-					have_result = true;
-				} else if (cv0.f < 0.0f && (cc == AF_CC_GE || cc == AF_CC_E)) {
+				if (cv0.f < 0.0f && (cc == AF_CC_E)) {
 					cond_result = false;
 					have_result = true;
 				}
 			} else if (n.bc.src[1].abs && n.bc.src[1].neg) {
-				if (cv0.f >= 0.0f && cc == AF_CC_GE) {
-					cond_result = true;
-					have_result = true;
-				} else if (cv0.f > 0.0f && (cc == AF_CC_GT || cc == AF_CC_NE)) {
+				if (cv0.f > 0.0f && cc == AF_CC_NE) {
 					cond_result = true;
 					have_result = true;
 				}
@@ -459,8 +447,13 @@ bool expr_handler::fold_alu_op1(alu_node& n) {
 	case ALU_OP1_RECIP_FF:
 	case ALU_OP1_RECIP_IEEE: dv = 1.0f / cv.f; break;
 //	case ALU_OP1_RECIP_INT:
-	case ALU_OP1_RECIP_UINT: dv.u = (1ull << 32) / cv.u; break;
-//	case ALU_OP1_RNDNE: dv = floor(cv.f + 0.5f); break;
+	case ALU_OP1_RECIP_UINT: {
+		if (!cv.u)
+			return false;
+		dv.u = (1ull << 32) / cv.u;
+		break;
+	}
+	//	case ALU_OP1_RNDNE: dv = floor(cv.f + 0.5f); break;
 	case ALU_OP1_SIN: dv = sin(cv.f * 2.0f * M_PI); break;
 	case ALU_OP1_SQRT_IEEE: dv = sqrtf(cv.f); break;
 	case ALU_OP1_TRUNC: dv = truncf(cv.f); break;

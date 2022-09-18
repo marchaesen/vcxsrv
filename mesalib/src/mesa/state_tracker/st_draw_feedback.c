@@ -234,6 +234,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    if (st->prefer_real_buffer_in_constbuf0 && params->StateFlags)
       _mesa_load_state_parameters(st->ctx, params);
 
+   draw_set_constant_buffer_stride(draw, sizeof(float));
    draw_set_mapped_constant_buffer(draw, PIPE_SHADER_VERTEX, 0,
                                    params->ParameterValues,
                                    params->NumParameterValues * 4);

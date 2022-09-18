@@ -131,7 +131,7 @@ struct call_draw_info {
 struct call_get_query_result_resource {
    struct pipe_query *query;
    enum pipe_query_type query_type;
-   bool wait;
+   enum pipe_query_flags flags;
    enum pipe_query_value_type result_type;
    int index;
    struct pipe_resource *resource;

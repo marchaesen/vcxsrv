@@ -192,6 +192,8 @@ static const struct opc_info {
    OPC(1, OPC_READ_COND_MACRO, read_cond.macro),
    OPC(1, OPC_READ_FIRST_MACRO, read_first.macro),
    OPC(1, OPC_SWZ_SHARED_MACRO, swz_shared.macro),
+   OPC(1, OPC_SCAN_MACRO, scan.macro),
+   OPC(1, OPC_SHPS_MACRO, shps.macro),
 
    /* category 2: */
    OPC(2, OPC_ADD_F,        add.f),
@@ -392,6 +394,8 @@ static const struct opc_info {
    OPC(6, OPC_GETSPID,      getspid),
    OPC(6, OPC_GETWID,       getwid),
    OPC(6, OPC_GETFIBERID,   getfiberid),
+   OPC(6, OPC_STC,          stc),
+   OPC(6, OPC_LDC_K,        ldc.k),
 
    OPC(6, OPC_SPILL_MACRO,  spill.macro),
    OPC(6, OPC_RELOAD_MACRO, reload.macro),

@@ -155,10 +155,12 @@ vn_device_memory_pool_suballocate(struct vn_device *dev,
                                   uint32_t mem_type_index)
 {
    const VkDeviceSize pool_size = 16 * 1024 * 1024;
-   /* XXX We don't know the alignment requirement.  We should probably use 64K
-    * because some GPUs have 64K pages.
+   /* XXX We don't know the alignment requirement.  Use 64K because some GPUs
+    * have 64K pages.  It is also required by newer Intel GPUs.  But really we
+    * should require kernel 5.12+, where there is no KVM memslot limit, and
+    * remove this whole thing.
     */
-   const VkDeviceSize pool_align = 4096;
+   const VkDeviceSize pool_align = 64 * 1024;
    struct vn_device_memory_pool *pool = &dev->memory_pools[mem_type_index];
 
    assert(mem->size <= pool_size);
@@ -187,9 +189,16 @@ vn_device_memory_pool_suballocate(struct vn_device *dev,
 }
 
 static bool
-vn_device_memory_should_suballocate(const VkMemoryAllocateInfo *alloc_info,
+vn_device_memory_should_suballocate(const struct vn_device *dev,
+                                    const VkMemoryAllocateInfo *alloc_info,
                                     const VkMemoryPropertyFlags flags)
 {
+   const struct vn_instance *instance = dev->physical_device->instance;
+   const struct vn_renderer_info *renderer = &instance->renderer->info;
+
+   if (renderer->has_guest_vram)
+      return false;
+
    /* We should not support suballocations because apps can do better.  But
     * each BO takes up a KVM memslot currently and some CTS tests exhausts
     * them.  This might not be needed on newer (host) kernels where there are
@@ -283,15 +292,71 @@ vn_device_memory_import_dma_buf(struct vn_device *dev,
 }
 
 static VkResult
-vn_device_memory_alloc(struct vn_device *dev,
-                       struct vn_device_memory *mem,
-                       const VkMemoryAllocateInfo *alloc_info,
-                       VkExternalMemoryHandleTypeFlags external_handles)
+vn_device_memory_alloc_guest_vram(
+   struct vn_device *dev,
+   struct vn_device_memory *mem,
+   const VkMemoryAllocateInfo *alloc_info,
+   VkExternalMemoryHandleTypeFlags external_handles)
 {
    VkDevice dev_handle = vn_device_to_handle(dev);
    VkDeviceMemory mem_handle = vn_device_memory_to_handle(mem);
-   VkResult result = vn_call_vkAllocateMemory(dev->instance, dev_handle,
-                                              alloc_info, NULL, &mem_handle);
+   VkResult result = VK_SUCCESS;
+
+   result = vn_renderer_bo_create_from_device_memory(
+      dev->renderer, mem->size, 0, mem->flags, external_handles,
+      &mem->base_bo);
+   if (result != VK_SUCCESS) {
+      return result;
+   }
+
+   const VkImportMemoryResourceInfoMESA import_memory_resource_info = {
+      .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_RESOURCE_INFO_MESA,
+      .pNext = alloc_info->pNext,
+      .resourceId = mem->base_bo->res_id,
+   };
+
+   const VkMemoryAllocateInfo memory_allocate_info = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      .pNext = &import_memory_resource_info,
+      .allocationSize = alloc_info->allocationSize,
+      .memoryTypeIndex = alloc_info->memoryTypeIndex,
+   };
+
+   vn_instance_roundtrip(dev->instance);
+
+   result = vn_call_vkAllocateMemory(
+      dev->instance, dev_handle, &memory_allocate_info, NULL, &mem_handle);
+   if (result != VK_SUCCESS) {
+      vn_renderer_bo_unref(dev->renderer, mem->base_bo);
+      return result;
+   }
+
+   result =
+      vn_instance_submit_roundtrip(dev->instance, &mem->bo_roundtrip_seqno);
+   if (result != VK_SUCCESS) {
+      vn_renderer_bo_unref(dev->renderer, mem->base_bo);
+      vn_async_vkFreeMemory(dev->instance, dev_handle, mem_handle, NULL);
+      return result;
+   }
+
+   mem->bo_roundtrip_seqno_valid = true;
+
+   return VK_SUCCESS;
+}
+
+static VkResult
+vn_device_memory_alloc_generic(
+   struct vn_device *dev,
+   struct vn_device_memory *mem,
+   const VkMemoryAllocateInfo *alloc_info,
+   VkExternalMemoryHandleTypeFlags external_handles)
+{
+   VkDevice dev_handle = vn_device_to_handle(dev);
+   VkDeviceMemory mem_handle = vn_device_memory_to_handle(mem);
+   VkResult result = VK_SUCCESS;
+
+   result = vn_call_vkAllocateMemory(dev->instance, dev_handle, alloc_info,
+                                     NULL, &mem_handle);
    if (result != VK_SUCCESS || !external_handles)
       return result;
 
@@ -316,12 +381,31 @@ vn_device_memory_alloc(struct vn_device *dev,
    return VK_SUCCESS;
 }
 
+static VkResult
+vn_device_memory_alloc(struct vn_device *dev,
+                       struct vn_device_memory *mem,
+                       const VkMemoryAllocateInfo *alloc_info,
+                       VkExternalMemoryHandleTypeFlags external_handles)
+{
+   const struct vn_instance *instance = dev->physical_device->instance;
+   const struct vn_renderer_info *renderer_info = &instance->renderer->info;
+
+   if (renderer_info->has_guest_vram) {
+      return vn_device_memory_alloc_guest_vram(dev, mem, alloc_info,
+                                               external_handles);
+   }
+
+   return vn_device_memory_alloc_generic(dev, mem, alloc_info,
+                                         external_handles);
+}
+
 VkResult
 vn_AllocateMemory(VkDevice device,
                   const VkMemoryAllocateInfo *pAllocateInfo,
                   const VkAllocationCallbacks *pAllocator,
                   VkDeviceMemory *pMemory)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
@@ -380,7 +464,8 @@ vn_AllocateMemory(VkDevice device,
    } else if (export_info) {
       result = vn_device_memory_alloc(dev, mem, pAllocateInfo,
                                       export_info->handleTypes);
-   } else if (vn_device_memory_should_suballocate(pAllocateInfo, mem_flags)) {
+   } else if (vn_device_memory_should_suballocate(dev, pAllocateInfo,
+                                                  mem_flags)) {
       result = vn_device_memory_pool_suballocate(
          dev, mem, pAllocateInfo->memoryTypeIndex);
    } else {
@@ -402,6 +487,7 @@ vn_FreeMemory(VkDevice device,
               VkDeviceMemory memory,
               const VkAllocationCallbacks *pAllocator)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_device_memory *mem = vn_device_memory_from_handle(memory);
    const VkAllocationCallbacks *alloc =
@@ -450,6 +536,7 @@ vn_MapMemory(VkDevice device,
              VkMemoryMapFlags flags,
              void **ppData)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_device_memory *mem = vn_device_memory_from_handle(memory);
    const bool need_bo = !mem->base_bo;
@@ -497,6 +584,7 @@ vn_MapMemory(VkDevice device,
 void
 vn_UnmapMemory(VkDevice device, VkDeviceMemory memory)
 {
+   VN_TRACE_FUNC();
 }
 
 VkResult
@@ -504,6 +592,7 @@ vn_FlushMappedMemoryRanges(VkDevice device,
                            uint32_t memoryRangeCount,
                            const VkMappedMemoryRange *pMemoryRanges)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
 
    for (uint32_t i = 0; i < memoryRangeCount; i++) {
@@ -526,6 +615,7 @@ vn_InvalidateMappedMemoryRanges(VkDevice device,
                                 uint32_t memoryRangeCount,
                                 const VkMappedMemoryRange *pMemoryRanges)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
 
    for (uint32_t i = 0; i < memoryRangeCount; i++) {
@@ -562,6 +652,7 @@ vn_GetMemoryFdKHR(VkDevice device,
                   const VkMemoryGetFdInfoKHR *pGetFdInfo,
                   int *pFd)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_device_memory *mem =
       vn_device_memory_from_handle(pGetFdInfo->memory);
@@ -627,6 +718,7 @@ vn_GetMemoryFdPropertiesKHR(VkDevice device,
                             int fd,
                             VkMemoryFdPropertiesKHR *pMemoryFdProperties)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    uint64_t alloc_size = 0;
    uint32_t mem_type_bits = 0;

@@ -1,3 +1,29 @@
+/* -*- mesa-c++  -*-
+ *
+ * Copyright (c) 2022 Collabora LTD
+ *
+ * Author: Gert Wollny <gert.wollny@collabora.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * on the rights to use, copy, modify, merge, publish, distribute, sub
+ * license, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include "sfn_nir.h"
 
 bool r600_lower_tess_io_filter(const nir_instr *instr, gl_shader_stage stage)
@@ -95,13 +121,14 @@ emil_lsd_in_addr(nir_builder *b, nir_ssa_def *base, nir_ssa_def *patch_id, nir_i
 
    auto idx2 = nir_src_as_const_value(op->src[1]);
    if (!idx2 || idx2->u32 != 0)
-      offset = nir_iadd(b, offset, nir_ishl(b, op->src[1].ssa, nir_imm_int(b, 4)));
+      offset = nir_iadd(b, nir_ishl(b, op->src[1].ssa, nir_imm_int(b, 4)), offset);
 
    return nir_iadd(b, addr, offset);
 }
 
 static nir_ssa_def *
-emil_lsd_out_addr(nir_builder *b, nir_ssa_def *base, nir_ssa_def *patch_id, nir_intrinsic_instr *op, nir_variable_mode mode, int src_offset)
+emil_lsd_out_addr(nir_builder *b, nir_ssa_def *base, nir_ssa_def *patch_id, nir_intrinsic_instr *op,
+                  UNUSED nir_variable_mode mode, int src_offset)
 {
 
    nir_ssa_def *addr1 = r600_umad_24(b, nir_channel(b, base, 0),
@@ -244,10 +271,11 @@ emit_store_lds(nir_builder *b, nir_intrinsic_instr *op, nir_ssa_def *addr)
 
    for (int i = 0; i < 2; ++i) {
       unsigned test_mask = (0x3 << 2 * i);
-      if (!(orig_writemask & test_mask))
+      unsigned wmask = orig_writemask & test_mask;
+      if (!(wmask))
          continue;
 
-      uint32_t writemask =  test_mask >> nir_intrinsic_component(op);
+      uint32_t writemask =  wmask >> nir_intrinsic_component(op);
 
       auto store_tcs_out = nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_local_shared_r600);
       nir_intrinsic_set_write_mask(store_tcs_out, writemask);
@@ -551,7 +579,7 @@ r600_lower_tess_coord_filter(const nir_instr *instr, UNUSED const void *_options
 }
 
 static nir_ssa_def *
-r600_lower_tess_coord_impl(nir_builder *b, nir_instr *instr, void *_options)
+r600_lower_tess_coord_impl(nir_builder *b, UNUSED nir_instr *instr, void *_options)
 {
    pipe_prim_type prim_type = *(pipe_prim_type *)_options;
 

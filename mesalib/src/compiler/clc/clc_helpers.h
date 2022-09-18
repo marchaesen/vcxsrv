@@ -38,6 +38,9 @@
 extern "C" {
 #endif
 
+void
+clc_initialize_llvm(void);
+
 bool
 clc_spirv_get_kernels_info(const struct clc_binary *spvbin,
                            const struct clc_kernel_info **kernels,

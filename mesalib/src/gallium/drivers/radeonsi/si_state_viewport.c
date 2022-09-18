@@ -83,21 +83,6 @@ static void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small
       info.translate[i] *= num_samples;
    }
 
-   /* Better subpixel precision increases the efficiency of small
-    * primitive culling. (more precision means a tighter bounding box
-    * around primitives and more accurate elimination)
-    */
-   unsigned quant_mode = sctx->viewports.as_scissor[0].quant_mode;
-
-   if (quant_mode == SI_QUANT_MODE_12_12_FIXED_POINT_1_4096TH)
-      info.small_prim_precision_no_aa = 1.0 / 4096.0;
-   else if (quant_mode == SI_QUANT_MODE_14_10_FIXED_POINT_1_1024TH)
-      info.small_prim_precision_no_aa = 1.0 / 1024.0;
-   else
-      info.small_prim_precision_no_aa = 1.0 / 256.0;
-
-   info.small_prim_precision = num_samples * info.small_prim_precision_no_aa;
-
    *out = info;
 }
 
@@ -105,7 +90,6 @@ static void si_emit_cull_state(struct si_context *sctx)
 {
    assert(sctx->screen->use_ngg_culling);
 
-   const unsigned upload_size = offsetof(struct si_small_prim_cull_info, small_prim_precision);
    struct si_small_prim_cull_info info;
    si_get_small_prim_cull_info(sctx, &info);
 
@@ -113,8 +97,8 @@ static void si_emit_cull_state(struct si_context *sctx)
        memcmp(&info, &sctx->last_small_prim_cull_info, sizeof(info))) {
       unsigned offset = 0;
 
-      u_upload_data(sctx->b.const_uploader, 0, upload_size,
-                    si_optimal_tcc_alignment(sctx, upload_size), &info, &offset,
+      u_upload_data(sctx->b.const_uploader, 0, sizeof(info),
+                    si_optimal_tcc_alignment(sctx, sizeof(info)), &info, &offset,
                     (struct pipe_resource **)&sctx->small_prim_cull_info_buf);
 
       sctx->small_prim_cull_info_address = sctx->small_prim_cull_info_buf->gpu_address + offset;
@@ -129,6 +113,23 @@ static void si_emit_cull_state(struct si_context *sctx)
                      sctx->small_prim_cull_info_address);
    radeon_end();
 
+   /* Better subpixel precision increases the efficiency of small
+    * primitive culling. (more precision means a tighter bounding box
+    * around primitives and more accurate elimination)
+    */
+   unsigned quant_mode = sctx->viewports.as_scissor[0].quant_mode;
+   float small_prim_precision_no_aa = 0;
+   unsigned num_samples = si_get_num_coverage_samples(sctx);
+
+   if (quant_mode == SI_QUANT_MODE_12_12_FIXED_POINT_1_4096TH)
+      small_prim_precision_no_aa = 1.0 / 4096.0;
+   else if (quant_mode == SI_QUANT_MODE_14_10_FIXED_POINT_1_1024TH)
+      small_prim_precision_no_aa = 1.0 / 1024.0;
+   else
+      small_prim_precision_no_aa = 1.0 / 256.0;
+
+   float small_prim_precision = num_samples * small_prim_precision_no_aa;
+
    /* Set VS_STATE.SMALL_PRIM_PRECISION for NGG culling.
     *
     * small_prim_precision is 1 / 2^n. We only need n between 5 (1/32) and 12 (1/4096).
@@ -141,8 +142,10 @@ static void si_emit_cull_state(struct si_context *sctx)
     *
     * So pass only the first 4 bits of the float exponent to the shader.
     */
-   sctx->current_vs_state &= C_VS_STATE_SMALL_PRIM_PRECISION;
-   sctx->current_vs_state |= S_VS_STATE_SMALL_PRIM_PRECISION(fui(info.small_prim_precision) >> 23);
+   SET_FIELD(sctx->current_gs_state, GS_STATE_SMALL_PRIM_PRECISION_NO_AA,
+             (fui(small_prim_precision_no_aa) >> 23) & 0xf);
+   SET_FIELD(sctx->current_gs_state, GS_STATE_SMALL_PRIM_PRECISION,
+             (fui(small_prim_precision) >> 23) & 0xf);
 }
 
 static void si_set_scissor_states(struct pipe_context *pctx, unsigned start_slot,
@@ -241,7 +244,7 @@ static void si_emit_one_scissor(struct si_context *ctx, struct radeon_cmdbuf *cs
    /* Workaround for a hw bug on GFX6 that occurs when PA_SU_HARDWARE_-
     * SCREEN_OFFSET != 0 and any_scissor.BR_X/Y <= 0.
     */
-   if (ctx->chip_class == GFX6 && (final.maxx == 0 || final.maxy == 0)) {
+   if (ctx->gfx_level == GFX6 && (final.maxx == 0 || final.maxy == 0)) {
       radeon_emit(S_028250_TL_X(1) | S_028250_TL_Y(1) | S_028250_WINDOW_OFFSET_DISABLE(1));
       radeon_emit(S_028254_BR_X(1) | S_028254_BR_Y(1));
       radeon_end();
@@ -290,7 +293,8 @@ static void si_emit_guardband(struct si_context *ctx)
 
    /* GFX6-GFX7 need to align the offset to an ubertile consisting of all SEs. */
    const unsigned hw_screen_offset_alignment =
-      ctx->chip_class >= GFX8 ? 16 : MAX2(ctx->screen->se_tile_repeat, 16);
+      ctx->gfx_level >= GFX11 ? 32 :
+      ctx->gfx_level >= GFX8 ? 16 : MAX2(ctx->screen->se_tile_repeat, 16);
 
    /* Indexed by quantization modes */
    static int max_viewport_size[] = {65535, 16383, 4095};
@@ -387,7 +391,7 @@ static void si_emit_guardband(struct si_context *ctx)
                                  S_028234_HW_SCREEN_OFFSET_Y(hw_screen_offset_y >> 4));
    radeon_opt_set_context_reg(
       ctx, R_028BE4_PA_SU_VTX_CNTL, SI_TRACKED_PA_SU_VTX_CNTL,
-      S_028BE4_PIX_CENTER(rs->half_pixel_center) |
+      S_028BE4_PIX_CENTER(rs->half_pixel_center) | S_028BE4_ROUND_MODE(V_028BE4_X_ROUND_TO_EVEN) |
          S_028BE4_QUANT_MODE(V_028BE4_X_16_8_FIXED_POINT_1_256TH + vp_as_scissor.quant_mode));
    radeon_end_update_context_roll(ctx);
 }
@@ -590,14 +594,15 @@ static void si_emit_viewport_states(struct si_context *ctx)
  */
 void si_update_vs_viewport_state(struct si_context *ctx)
 {
-   struct si_shader_info *info = si_get_vs_info(ctx);
+   struct si_shader_ctx_state *vs = si_get_vs(ctx);
+   struct si_shader_info *info = vs->cso ? &vs->cso->info : NULL;
    bool vs_window_space;
 
    if (!info)
       return;
 
    /* When the VS disables clipping and viewport transformation. */
-   vs_window_space = info->stage == MESA_SHADER_VERTEX && info->base.vs.window_space_position;
+   vs_window_space = vs->cso->stage == MESA_SHADER_VERTEX && info->base.vs.window_space_position;
 
    if (ctx->vs_disables_clipping_viewport != vs_window_space) {
       ctx->vs_disables_clipping_viewport = vs_window_space;

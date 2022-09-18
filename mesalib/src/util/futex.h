@@ -34,6 +34,10 @@
 #include <sys/syscall.h>
 #include <sys/time.h>
 
+#ifndef SYS_futex
+#define SYS_futex SYS_futex_time64
+#endif
+
 static inline long sys_futex(void *addr1, int op, int val1, const struct timespec *timeout, void *addr2, int val3)
 {
    return syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3);
@@ -111,6 +115,45 @@ static inline int futex_wait(uint32_t *addr, int32_t value, const struct timespe
    else
       timespecclear(&tsrel);
    return futex(addr, FUTEX_WAIT, value, &tsrel, NULL);
+}
+
+#elif defined(_WIN32) && !defined(WINDOWS_NO_FUTEX)
+#define UTIL_FUTEX_SUPPORTED 1
+
+#include <windows.h>
+#include <stdint.h>
+#include <c11/time.h>
+#include <limits.h>
+#include <assert.h>
+#include <errno.h>
+
+static inline int futex_wake(uint32_t *addr, int count)
+{
+   /* All current callers fall into one of these buckets, and we'll get the semantics
+    * wrong if someone tries to be more clever.
+    */
+   assert(count == 1 || count == INT_MAX);
+   if (count == 1)
+      WakeByAddressSingle(addr);
+   else
+      WakeByAddressAll(addr);
+   return count;
+}
+
+static inline int futex_wait(uint32_t *addr, int32_t value, const struct timespec *timeout)
+{
+   DWORD timeout_ms = INFINITE;
+   if (timeout != NULL) {
+      struct timespec tsnow;
+      timespec_get(&tsnow, TIME_UTC);
+
+      timeout_ms = (timeout->tv_sec - tsnow.tv_nsec) * 1000 +
+                   (timeout->tv_nsec - tsnow.tv_nsec) / 1000000;
+   }
+
+   if (WaitOnAddress(addr, &value, sizeof(value), timeout_ms))
+      return 0;
+   return GetLastError() == ERROR_TIMEOUT ? ETIMEDOUT : -1;
 }
 
 #else

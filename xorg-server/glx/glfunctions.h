@@ -1692,5 +1692,9 @@
 #define glVertexAttribs4hvNV(a1, a2, a3) CALL_VertexAttribs4hvNV(GET_DISPATCH(), (a1, a2, a3))
 #define glTexPageCommitmentARB(a1, a2, a3, a4, a5, a6, a7, a8, a9) CALL_TexPageCommitmentARB(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9))
 #define glTexturePageCommitmentEXT(a1, a2, a3, a4, a5, a6, a7, a8, a9) CALL_TexturePageCommitmentEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9))
+#define glImportMemoryWin32HandleEXT(a1, a2, a3, a4) CALL_ImportMemoryWin32HandleEXT(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glImportSemaphoreWin32HandleEXT(a1, a2, a3) CALL_ImportSemaphoreWin32HandleEXT(GET_DISPATCH(), (a1, a2, a3))
+#define glImportMemoryWin32NameEXT(a1, a2, a3, a4) CALL_ImportMemoryWin32NameEXT(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glImportSemaphoreWin32NameEXT(a1, a2, a3) CALL_ImportSemaphoreWin32NameEXT(GET_DISPATCH(), (a1, a2, a3))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

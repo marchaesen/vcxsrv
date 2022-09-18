@@ -218,6 +218,9 @@ $(MESA_DIR)/main/api_save_init.h: api_save_init_h.py apiexec.py $(COMMON)
 $(MESA_DIR)/main/api_vtxfmt_init.h: api_vtxfmt_init_h.py apiexec.py $(COMMON)
 	$(PYTHON_GEN) $(srcdir)/api_vtxfmt_init_h.py -f $(srcdir)/gl_and_es_API.xml > $@
 
+$(MESA_DIR)/main/api_hw_select_init.h: api_hw_select_init_h.py apiexec.py $(COMMON)
+	$(PYTHON_GEN) $(srcdir)/api_hw_select_init_h.py -f $(srcdir)/gl_API.xml > $@
+
 $(MESA_DIR)/main/marshal_generated0.c: gl_marshal.py marshal_XML.py $(COMMON)
 	$(PYTHON_GEN) $(srcdir)/gl_marshal.py -f $(srcdir)/gl_and_es_API.xml -i 0 -n 8 > $@
 

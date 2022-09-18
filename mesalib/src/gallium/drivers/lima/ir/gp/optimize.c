@@ -80,7 +80,7 @@ optimize_branches(gpir_compiler *comp)
       if (block->list.prev == &comp->block_list)
          continue;
 
-      gpir_block *prev_block = LIST_ENTRY(gpir_block, block->list.prev, list);
+      gpir_block *prev_block = list_entry(block->list.prev, gpir_block, list);
       if (list_is_empty(&prev_block->node_list))
          continue;
 
@@ -109,7 +109,7 @@ optimize_branches(gpir_compiler *comp)
 
       /* Delete the branch */
       list_del(&node->list);
-      block->successors[0] = LIST_ENTRY(gpir_block, block->list.next, list);
+      block->successors[0] = list_entry(block->list.next, gpir_block, list);
    }
 }
 

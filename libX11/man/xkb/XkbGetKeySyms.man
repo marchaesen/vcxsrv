@@ -34,16 +34,16 @@ description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- first
+.I first
 keycode of first key to get
 .TP
-.I \- num
+.I num
 number of keycodes for which syms desired 
 .TP
-.I \- xkb
+.I xkb
 Xkb description to be updated
 .SH DESCRIPTION
 .LP

@@ -179,7 +179,7 @@ iris_upload_shader(struct iris_screen *screen,
          .value = shader_data_addr >> 32,
       },
    };
-   brw_write_shader_relocs(&screen->devinfo, shader->map,
+   brw_write_shader_relocs(&screen->compiler->isa, shader->map,
                            shader->prog_data, reloc_values,
                            ARRAY_SIZE(reloc_values));
 

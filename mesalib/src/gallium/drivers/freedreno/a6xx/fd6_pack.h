@@ -74,8 +74,8 @@ struct fd_reg_pair {
       const struct fd_reg_pair regs[] = {__VA_ARGS__};                         \
       unsigned count = ARRAY_SIZE(regs);                                       \
                                                                                \
-      STATIC_ASSERT(count > 0);                                                \
-      STATIC_ASSERT(count <= 16);                                              \
+      STATIC_ASSERT(ARRAY_SIZE(regs) > 0);                                     \
+      STATIC_ASSERT(ARRAY_SIZE(regs) <= 16);                                   \
                                                                                \
       BEGIN_RING(ring, count + 1);                                             \
       uint32_t *p = ring->cur;                                                 \
@@ -105,7 +105,7 @@ struct fd_reg_pair {
       const struct fd_reg_pair regs[] = {__VA_ARGS__};                         \
       unsigned count = ARRAY_SIZE(regs);                                       \
                                                                                \
-      STATIC_ASSERT(count <= 16);                                              \
+      STATIC_ASSERT(ARRAY_SIZE(regs) <= 16);                                   \
                                                                                \
       BEGIN_RING(ring, count + 1);                                             \
       uint32_t *p = ring->cur;                                                 \
@@ -139,7 +139,7 @@ struct fd_reg_pair {
       const struct fd_reg_pair regs[] = {__VA_ARGS__};                         \
       unsigned count = ARRAY_SIZE(regs);                                       \
                                                                                \
-      STATIC_ASSERT(count <= 16);                                              \
+      STATIC_ASSERT(ARRAY_SIZE(regs) <= 16);                                   \
       count += sizedwords;                                                     \
                                                                                \
       BEGIN_RING(ring, count + 1);                                             \

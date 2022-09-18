@@ -615,12 +615,10 @@ scan_declaration(struct tgsi_shader_info *info,
       case TGSI_FILE_INPUT:
          assert(array_id < ARRAY_SIZE(info->input_array_first));
          info->input_array_first[array_id] = fulldecl->Range.First;
-         info->input_array_last[array_id] = fulldecl->Range.Last;
          break;
       case TGSI_FILE_OUTPUT:
          assert(array_id < ARRAY_SIZE(info->output_array_first));
          info->output_array_first[array_id] = fulldecl->Range.First;
-         info->output_array_last[array_id] = fulldecl->Range.Last;
          break;
       }
       info->array_max[file] = MAX2(info->array_max[file], array_id);

@@ -391,6 +391,7 @@ nir_schedule_intrinsic_deps(nir_deps_state *state,
       break;
 
    case nir_intrinsic_load_shared:
+   case nir_intrinsic_load_shared2_amd:
       /* Don't move load_shared beyond a following store_shared, as it could
        * change their value
        */
@@ -398,11 +399,17 @@ nir_schedule_intrinsic_deps(nir_deps_state *state,
       break;
 
    case nir_intrinsic_store_shared:
+   case nir_intrinsic_store_shared2_amd:
       add_write_dep(state, &state->store_shared, n);
       break;
 
    case nir_intrinsic_control_barrier:
    case nir_intrinsic_memory_barrier_shared:
+   case nir_intrinsic_group_memory_barrier:
+   /* A generic memory barrier can be emitted when multiple synchronization
+    * semantics are involved, including shared memory.
+    */
+   case nir_intrinsic_memory_barrier:
       add_write_dep(state, &state->store_shared, n);
 
       /* Serialize against ssbos/atomics/etc. */
@@ -997,8 +1004,13 @@ nir_schedule_instructions(nir_schedule_scoreboard *scoreboard, nir_block *block)
 }
 
 static uint32_t
-nir_schedule_get_delay(nir_instr *instr)
+nir_schedule_get_delay(nir_schedule_scoreboard *scoreboard, nir_instr *instr)
 {
+   if (scoreboard->options->instr_delay_cb) {
+      void *cb_data = scoreboard->options->instr_delay_cb_data;
+      return scoreboard->options->instr_delay_cb(instr, cb_data);
+   }
+
    switch (instr->type) {
    case nir_instr_type_ssa_undef:
    case nir_instr_type_load_const:
@@ -1011,8 +1023,17 @@ nir_schedule_get_delay(nir_instr *instr)
       return 1;
 
    case nir_instr_type_intrinsic:
-      /* XXX: Pick a large number for UBO/SSBO/image/shared loads */
-      return 1;
+      switch (nir_instr_as_intrinsic(instr)->intrinsic) {
+      case nir_intrinsic_load_ubo:
+      case nir_intrinsic_load_ssbo:
+      case nir_intrinsic_load_scratch:
+      case nir_intrinsic_load_shared:
+      case nir_intrinsic_image_load:
+         return 50;
+      default:
+         return 1;
+      }
+      break;
 
    case nir_instr_type_tex:
       /* Pick some large number to try to fetch textures early and sample them
@@ -1051,7 +1072,7 @@ nir_schedule_block(nir_schedule_scoreboard *scoreboard, nir_block *block)
          rzalloc(mem_ctx, nir_schedule_node);
 
       n->instr = instr;
-      n->delay = nir_schedule_get_delay(instr);
+      n->delay = nir_schedule_get_delay(scoreboard, instr);
       dag_init_node(scoreboard->dag, &n->dag);
 
       _mesa_hash_table_insert(scoreboard->instr_map, instr, n);

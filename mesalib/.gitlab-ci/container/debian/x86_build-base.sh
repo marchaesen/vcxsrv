@@ -1,11 +1,16 @@
 #!/bin/bash
+# shellcheck disable=SC2086 # we want word splitting
 
 set -e
 set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get install -y ca-certificates
+apt-get install -y ca-certificates gnupg2 software-properties-common
+
+# Add llvm 13 to the build image
+apt-key add .gitlab-ci/container/debian/llvm-snapshot.gpg.key
+add-apt-repository "deb https://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-13 main"
 
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list
 
@@ -23,22 +28,23 @@ apt-get install -y --no-remove \
         bison \
         ccache \
         dpkg-cross \
+        findutils \
         flex \
         g++ \
-        g++-mingw-w64-x86-64 \
+        cmake \
         gcc \
         git \
         glslang-tools \
         kmod \
+        libclang-13-dev \
         libclang-11-dev \
-        libclang-9-dev \
         libclc-dev \
         libelf-dev \
         libepoxy-dev \
         libexpat1-dev \
         libgtk-3-dev \
+        libllvm13 \
         libllvm11 \
-        libllvm9 \
         libomxil-bellagio-dev \
         libpciaccess-dev \
         libunwind-dev \
@@ -54,7 +60,6 @@ apt-get install -y --no-remove \
         libxshmfence-dev \
         libxvmc-dev \
         libxxf86vm-dev \
-        libz-mingw-w64-dev \
         make \
         meson \
         pkg-config \
@@ -64,15 +69,22 @@ apt-get install -y --no-remove \
         qemu-user \
         valgrind \
         wget \
-        wine64 \
         x11proto-dri2-dev \
         x11proto-gl-dev \
         x11proto-randr-dev \
         xz-utils \
-        zlib1g-dev
+        zlib1g-dev \
+	zstd
 
 # Needed for ci-fairy, this revision is able to upload files to MinIO
 pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@34f4ade99434043f88e164933f570301fd18b125
+
+# We need at least 0.61.4 for proper Rust
+pip3 install meson==0.61.5
+
+. .gitlab-ci/container/build-rust.sh
+
+. .gitlab-ci/container/debian/x86_build-base-wine.sh
 
 ############### Uninstall ephemeral packages
 

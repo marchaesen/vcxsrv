@@ -136,31 +136,11 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         print('')
         print('\t.text')
         print('')
-        print('#ifdef USE_ELF_TLS')
-        print('')
         print('_x86_64_get_dispatch:')
         print('\tmovq\t_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax')
         print('\tmovq\t%fs:(%rax), %rax')
         print('\tret')
         print('\t.size\t_x86_64_get_dispatch, .-_x86_64_get_dispatch')
-        print('')
-        print('#elif defined(HAVE_PTHREAD)')
-        print('')
-        print('\t.extern\t_glapi_Dispatch')
-        print('\t.extern\t_gl_DispatchTSD')
-        print('\t.extern\tpthread_getspecific')
-        print('')
-        print('\t.p2align\t4,,15')
-        print('_x86_64_get_dispatch:')
-        print('\tmovq\t_gl_DispatchTSD@GOTPCREL(%rip), %rax')
-        print('\tmovl\t(%rax), %edi')
-        print('\tjmp\tpthread_getspecific@PLT')
-        print('')
-        print('#else')
-        print('')
-        print('\t.extern\t_glapi_get_dispatch')
-        print('')
-        print('#endif')
         print('')
         return
 
@@ -220,38 +200,9 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         if not f.is_static_entry_point(f.name):
             print('\tHIDDEN(GL_PREFIX(%s))' % (name))
         print('GL_PREFIX(%s):' % (name))
-        print('#if defined(USE_ELF_TLS)')
         print('\tcall\t_x86_64_get_dispatch@PLT')
         print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
         print('\tjmp\t*%r11')
-        print('#elif defined(HAVE_PTHREAD)')
-
-        save_all_regs(registers)
-        print('\tcall\t_x86_64_get_dispatch@PLT')
-        restore_all_regs(registers)
-
-        if f.offset == 0:
-            print('\tmovq\t(%rax), %r11')
-        else:
-            print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
-
-        print('\tjmp\t*%r11')
-
-        print('#else')
-        print('\tmovq\t_glapi_Dispatch(%rip), %rax')
-        print('\ttestq\t%rax, %rax')
-        print('\tje\t1f')
-        print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
-        print('\tjmp\t*%r11')
-        print('1:')
-
-        save_all_regs(registers)
-        print('\tcall\t_glapi_get_dispatch')
-        restore_all_regs(registers)
-
-        print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
-        print('\tjmp\t*%r11')
-        print('#endif /* defined(USE_ELF_TLS) */')
 
         print('\t.size\tGL_PREFIX(%s), .-GL_PREFIX(%s)' % (name, name))
         print('')

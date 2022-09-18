@@ -31,10 +31,10 @@ XkbAddGeomRow \- Add a row to a section
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- section
+.I section
 section to be updated 
 .TP
-.I \- sz_keys
+.I sz_keys
 number of keys to be reserved
 .SH DESCRIPTION
 .LP

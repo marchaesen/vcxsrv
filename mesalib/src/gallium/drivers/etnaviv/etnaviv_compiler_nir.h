@@ -342,7 +342,7 @@ etna_emit_alu(struct etna_compile *c, nir_op op, struct etna_inst_dst dst,
 void
 etna_emit_tex(struct etna_compile *c, nir_texop op, unsigned texid, unsigned dst_swiz,
               struct etna_inst_dst dst, struct etna_inst_src coord,
-              struct etna_inst_src lod_bias, struct etna_inst_src compare);
+              struct etna_inst_src src1, struct etna_inst_src src2);
 
 void
 etna_emit_jump(struct etna_compile *c, unsigned block, struct etna_inst_src condition);

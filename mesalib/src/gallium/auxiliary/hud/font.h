@@ -37,7 +37,7 @@ enum util_font_name {
    UTIL_FONT_FIXED_8X13
 };
 
-/* The font is stored in a RECT texture. There are 256 glyphs
+/* The font is stored in a 2D texture. There are 256 glyphs
  * drawn in a 16x16 matrix. The texture coordinates of a glyph
  * within the matrix should be calculated as follows:
  *

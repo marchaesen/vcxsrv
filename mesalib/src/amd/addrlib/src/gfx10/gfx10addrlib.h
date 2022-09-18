@@ -1,8 +1,7 @@
-/**
+/*
 ************************************************************************************************************************
 *
-* Copyright © 2007-2021 Advanced Micro Devices, Inc.
-* All Rights Reserved.
+*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -22,8 +21,7 @@
 * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE
 *
-************************************************************************************************************************
-*/
+***********************************************************************************************************************/
 
 /**
 ************************************************************************************************************************
@@ -60,8 +58,8 @@ struct Gfx10ChipSettings
         UINT_32 supportRbPlus       : 1;
         UINT_32 dsMipmapHtileFix    : 1;
         UINT_32 dccUnsup3DSwDis     : 1;
-        UINT_32                     : 2;
-        UINT_32 reserved2           : 26;
+        UINT_32                     : 3;
+        UINT_32 reserved2           : 25;
     };
 };
 
@@ -399,6 +397,12 @@ private:
         UINT_32          log2Elem,
         UINT_32          numFrag) const;
 
+    /**
+     * Will use the indices, "nibbles", to build an index equation inside pSwizzle
+     *
+     * @param pPatInfo Pointer to a patInfo. Contains indices mapping to the 2D nibble arrays which will be used to build an index equation.
+     * @param pSwizzle Array to write the index equation to.
+     */
     VOID GetSwizzlePatternFromPatternInfo(
         const ADDR_SW_PATINFO* pPatInfo,
         ADDR_BIT_SETTING       (&pSwizzle)[20]) const

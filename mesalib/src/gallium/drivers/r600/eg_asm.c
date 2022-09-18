@@ -75,7 +75,7 @@ int eg_bytecode_cf_build(struct r600_bytecode *bc, struct r600_bytecode_cf *cf)
 					S_SQ_CF_WORD1_BARRIER(1) |
 					S_SQ_CF_WORD1_VALID_PIXEL_MODE(cf->vpm) |
 					S_SQ_CF_WORD1_COUNT((cf->ndw / 4) - 1);
-			if (bc->chip_class == EVERGREEN) /* no EOP on cayman */
+			if (bc->gfx_level == EVERGREEN) /* no EOP on cayman */
 				bc->bytecode[id] |= S_SQ_CF_ALLOC_EXPORT_WORD1_END_OF_PROGRAM(cf->end_of_program);
 			id++;
 		} else if (cfop->flags & CF_EXP) {
@@ -95,7 +95,7 @@ int eg_bytecode_cf_build(struct r600_bytecode *bc, struct r600_bytecode_cf *cf)
 					S_SQ_CF_ALLOC_EXPORT_WORD1_MARK(cf->mark) |
 					S_SQ_CF_ALLOC_EXPORT_WORD1_CF_INST(opcode);
 
-			if (bc->chip_class == EVERGREEN) /* no EOP on cayman */
+			if (bc->gfx_level == EVERGREEN) /* no EOP on cayman */
 				bc->bytecode[id] |= S_SQ_CF_ALLOC_EXPORT_WORD1_END_OF_PROGRAM(cf->end_of_program);
 			id++;
 		} else if (cfop->flags & CF_RAT) {
@@ -114,7 +114,7 @@ int eg_bytecode_cf_build(struct r600_bytecode *bc, struct r600_bytecode_cf *cf)
 					S_SQ_CF_ALLOC_EXPORT_WORD1_BUF_COMP_MASK(cf->output.comp_mask) |
 					S_SQ_CF_ALLOC_EXPORT_WORD1_BUF_ARRAY_SIZE(cf->output.array_size) |
 					S_SQ_CF_ALLOC_EXPORT_WORD1_MARK(cf->output.mark);
-			if (bc->chip_class == EVERGREEN) /* no EOP on cayman */
+			if (bc->gfx_level == EVERGREEN) /* no EOP on cayman */
 				bc->bytecode[id] |= S_SQ_CF_ALLOC_EXPORT_WORD1_END_OF_PROGRAM(cf->end_of_program);
 			id++;
 
@@ -131,7 +131,7 @@ int eg_bytecode_cf_build(struct r600_bytecode *bc, struct r600_bytecode_cf *cf)
 					S_SQ_CF_ALLOC_EXPORT_WORD1_CF_INST(opcode) |
 					S_SQ_CF_ALLOC_EXPORT_WORD1_BUF_COMP_MASK(cf->output.comp_mask) |
 					S_SQ_CF_ALLOC_EXPORT_WORD1_BUF_ARRAY_SIZE(cf->output.array_size);
-			if (bc->chip_class == EVERGREEN) /* no EOP on cayman */
+			if (bc->gfx_level == EVERGREEN) /* no EOP on cayman */
 				bc->bytecode[id] |= S_SQ_CF_ALLOC_EXPORT_WORD1_END_OF_PROGRAM(cf->end_of_program);
 			id++;
 		} else {
@@ -143,7 +143,7 @@ int eg_bytecode_cf_build(struct r600_bytecode *bc, struct r600_bytecode_cf *cf)
 					S_SQ_CF_WORD1_COND(cf->cond) |
 					S_SQ_CF_WORD1_POP_COUNT(cf->pop_count) |
 					S_SQ_CF_WORD1_COUNT(cf->count);
-			if (bc->chip_class == EVERGREEN) /* no EOP on cayman */
+			if (bc->gfx_level == EVERGREEN) /* no EOP on cayman */
 				bc->bytecode[id] |= S_SQ_CF_ALLOC_EXPORT_WORD1_END_OF_PROGRAM(cf->end_of_program);
 			id++;
 		}
@@ -181,7 +181,7 @@ int egcm_load_index_reg(struct r600_bytecode *bc, unsigned id, bool inside_alu_c
 	unsigned type;
 
 	assert(id < 2);
-	assert(bc->chip_class >= EVERGREEN);
+	assert(bc->gfx_level >= EVERGREEN);
 
 	if (bc->index_loaded[id])
 		return 0;
@@ -190,7 +190,7 @@ int egcm_load_index_reg(struct r600_bytecode *bc, unsigned id, bool inside_alu_c
 	alu.op = ALU_OP1_MOVA_INT;
 	alu.src[0].sel = bc->index_reg[id];
 	alu.src[0].chan = bc->index_reg_chan[id];
-	if (bc->chip_class == CAYMAN)
+	if (bc->gfx_level == CAYMAN)
 		alu.dst.sel = id == 0 ? CM_V_SQ_MOVA_DST_CF_IDX0 : CM_V_SQ_MOVA_DST_CF_IDX1;
 
 	alu.last = 1;
@@ -200,7 +200,7 @@ int egcm_load_index_reg(struct r600_bytecode *bc, unsigned id, bool inside_alu_c
 
 	bc->ar_loaded = 0; /* clobbered */
 
-	if (bc->chip_class == EVERGREEN) {
+	if (bc->gfx_level == EVERGREEN) {
 		memset(&alu, 0, sizeof(alu));
 		alu.op = id == 0 ? ALU_OP0_SET_CF_IDX0 : ALU_OP0_SET_CF_IDX1;
 		alu.last = 1;

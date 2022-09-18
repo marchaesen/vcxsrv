@@ -87,7 +87,7 @@ ir3_cache_destroy(struct ir3_cache *cache)
 
 struct ir3_program_state *
 ir3_cache_lookup(struct ir3_cache *cache, const struct ir3_cache_key *key,
-                 struct pipe_debug_callback *debug)
+                 struct util_debug_callback *debug)
 {
    uint32_t hash = key_hash(key);
    struct hash_entry *entry =
@@ -98,7 +98,7 @@ ir3_cache_lookup(struct ir3_cache *cache, const struct ir3_cache_key *key,
    }
 
    if (key->hs)
-      debug_assert(key->ds);
+      assert(key->ds);
 
    struct ir3_shader *shaders[MESA_SHADER_STAGES] = {
       [MESA_SHADER_VERTEX] = ir3_get_shader(key->vs),

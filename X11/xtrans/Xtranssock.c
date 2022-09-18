@@ -224,6 +224,20 @@ static Sockettrans2dev Sockettrans2devtab[] = {
 static int TRANS(SocketINETClose) (XtransConnInfo ciptr);
 #endif
 
+#if defined(TCPCONN) || defined(TRANS_REOPEN)
+static int
+is_numeric (const char *str)
+{
+    int i;
+
+    for (i = 0; i < (int) strlen (str); i++)
+	if (!isdigit (str[i]))
+	    return (0);
+
+    return (1);
+}
+#endif
+
 #ifdef UNIXCONN
 
 
@@ -1050,12 +1064,19 @@ TRANS(SocketOpenCOTSServer) (Xtransport *thistrans, const char *protocol,
 	    break;
     }
     if (i < 0) {
-	if (i == -1)
-	    prmsg (1,"SocketOpenCOTSServer: Unable to open socket for %s\n",
-		   thistrans->TransName);
-	else
+	if (i == -1) {
+		if (errno == EAFNOSUPPORT) {
+			thistrans->flags |= TRANS_NOLISTEN;
+			prmsg (1,"SocketOpenCOTSServer: Socket for %s unsupported on this system.\n",
+			       thistrans->TransName);
+		} else {
+			prmsg (1,"SocketOpenCOTSServer: Unable to open socket for %s\n",
+			       thistrans->TransName);
+		}
+	} else {
 	    prmsg (1,"SocketOpenCOTSServer: Unable to determine socket type for %s\n",
 		   thistrans->TransName);
+	}
 	return NULL;
     }
 

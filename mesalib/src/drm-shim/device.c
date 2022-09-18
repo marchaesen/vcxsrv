@@ -82,6 +82,8 @@ drm_shim_device_init(void)
                                                 uint_key_hash,
                                                 uint_key_compare);
 
+   shim_device.offset_map = _mesa_hash_table_u64_create(NULL);
+
    mtx_init(&shim_device.mem_lock, mtx_plain);
 
    shim_device.mem_fd = memfd_create("shim mem", MFD_CLOEXEC);
@@ -115,6 +117,7 @@ drm_shim_file_create(int fd)
    struct shim_fd *shim_fd = calloc(1, sizeof(*shim_fd));
 
    shim_fd->fd = fd;
+   p_atomic_set(&shim_fd->refcount, 1);
    mtx_init(&shim_fd->handle_lock, mtx_plain);
    shim_fd->handles = _mesa_hash_table_create(NULL,
                                               uint_key_hash,
@@ -131,8 +134,31 @@ void drm_shim_fd_register(int fd, struct shim_fd *shim_fd)
 {
    if (!shim_fd)
       shim_fd = drm_shim_file_create(fd);
+   else
+      p_atomic_inc(&shim_fd->refcount);
 
    _mesa_hash_table_insert(shim_device.fd_map, (void *)(uintptr_t)(fd + 1), shim_fd);
+}
+
+static void handle_delete_fxn(struct hash_entry *entry)
+{
+   drm_shim_bo_put(entry->data);
+}
+
+void drm_shim_fd_unregister(int fd)
+{
+   struct hash_entry *entry =
+         _mesa_hash_table_search(shim_device.fd_map, (void *)(uintptr_t)(fd + 1));
+   if (!entry)
+      return;
+   struct shim_fd *shim_fd = entry->data;
+   _mesa_hash_table_remove(shim_device.fd_map, entry);
+
+   if (!p_atomic_dec_zero(&shim_fd->refcount))
+      return;
+
+   _mesa_hash_table_destroy(shim_fd->handles, handle_delete_fxn);
+   free(shim_fd);
 }
 
 struct shim_fd *
@@ -170,6 +196,18 @@ drm_shim_ioctl_version(int fd, unsigned long request, void *arg)
    args->name_len = strlen(shim_device.driver_name);
    args->date_len = strlen(date);
    args->desc_len = strlen(desc);
+
+   return 0;
+}
+
+static int
+drm_shim_ioctl_get_unique(int fd, unsigned long request, void *arg)
+{
+   struct drm_unique *gu = arg;
+
+   if (gu->unique && shim_device.unique)
+      strncpy(gu->unique, shim_device.unique, gu->unique_len);
+   gu->unique_len = shim_device.unique ? strlen(shim_device.unique) : 0;
 
    return 0;
 }
@@ -235,6 +273,7 @@ drm_shim_ioctl_stub(int fd, unsigned long request, void *arg)
 
 ioctl_fn_t core_ioctls[] = {
    [_IOC_NR(DRM_IOCTL_VERSION)] = drm_shim_ioctl_version,
+   [_IOC_NR(DRM_IOCTL_GET_UNIQUE)] = drm_shim_ioctl_get_unique,
    [_IOC_NR(DRM_IOCTL_GET_CAP)] = drm_shim_ioctl_get_cap,
    [_IOC_NR(DRM_IOCTL_GEM_CLOSE)] = drm_shim_ioctl_gem_close,
    [_IOC_NR(DRM_IOCTL_SYNCOBJ_CREATE)] = drm_shim_ioctl_syncobj_create,
@@ -281,16 +320,20 @@ drm_shim_ioctl(int fd, unsigned long request, void *arg)
    return -EINVAL;
 }
 
-void
+int
 drm_shim_bo_init(struct shim_bo *bo, size_t size)
 {
 
    mtx_lock(&shim_device.mem_lock);
    bo->mem_addr = util_vma_heap_alloc(&shim_device.mem_heap, size, shim_page_size);
    mtx_unlock(&shim_device.mem_lock);
-   assert(bo->mem_addr);
+
+   if (!bo->mem_addr)
+      return -ENOMEM;
 
    bo->size = size;
+
+   return 0;
 }
 
 struct shim_bo *
@@ -354,18 +397,16 @@ drm_shim_bo_get_handle(struct shim_fd *shim_fd, struct shim_bo *bo)
 }
 
 /* Creates an mmap offset for the BO in the DRM fd.
- *
- * XXX: We should be maintaining a u_mm allocator where the mmap offsets
- * allocate the size of the BO and it can be used to look the BO back up.
- * Instead, we just stuff the shim's pointer as the return value, and treat
- * the incoming mmap offset on the DRM fd as a BO pointer.  This doesn't work
- * if someone tries to map a subset of the BO, but it's enough to get V3D
- * working for now.
  */
 uint64_t
 drm_shim_bo_get_mmap_offset(struct shim_fd *shim_fd, struct shim_bo *bo)
 {
-   return (uintptr_t)bo;
+   mtx_lock(&shim_device.mem_lock);
+   _mesa_hash_table_u64_insert(shim_device.offset_map, bo->mem_addr, bo);
+   mtx_unlock(&shim_device.mem_lock);
+
+   /* reuse the buffer address as the mmap offset: */
+   return bo->mem_addr;
 }
 
 /* For mmap() on the DRM fd, look up the BO from the "offset" and map the BO's
@@ -373,9 +414,17 @@ drm_shim_bo_get_mmap_offset(struct shim_fd *shim_fd, struct shim_bo *bo)
  */
 void *
 drm_shim_mmap(struct shim_fd *shim_fd, size_t length, int prot, int flags,
-              int fd, off_t offset)
+              int fd, off64_t offset)
 {
-   struct shim_bo *bo = (void *)(uintptr_t)offset;
+   mtx_lock(&shim_device.mem_lock);
+   struct shim_bo *bo = _mesa_hash_table_u64_search(shim_device.offset_map, offset);
+   mtx_unlock(&shim_device.mem_lock);
+
+   if (!bo)
+      return MAP_FAILED;
+
+   if (length > bo->size)
+      return MAP_FAILED;
 
    /* The offset we pass to mmap must be aligned to the page size */
    assert((bo->mem_addr & (shim_page_size - 1)) == 0);

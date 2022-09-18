@@ -589,13 +589,21 @@ parse_rsw(FILE *fp, uint32_t *value, int i, uint32_t *helper)
          fprintf(fp, ": unknown");
 
       if ((*value & 0x00000078) == 0x00000068)
-         fprintf(fp, ", fb_samples */\n");
+         fprintf(fp, ", msaa */\n");
       else if ((*value & 0x00000078) == 0x00000000)
          fprintf(fp, " */\n");
       else
-         fprintf(fp, ", UNKNOWN\n");
+         fprintf(fp, ", UNKNOWN */\n");
 
       fprintf(fp, "\t\t\t\t\t\t/* %s(3)", render_state_infos[i].info);
+      fprintf(fp, ": sample_mask: 0x%.x", ((*value & 0xf000) >> 12));
+      if ((*value & (1 << 7)))
+         fprintf(fp, ", alpha_to_coverage");
+      if ((*value & (1 << 8)))
+         fprintf(fp, ", alpha_to_one");
+      fprintf(fp, " */\n");
+
+      fprintf(fp, "\t\t\t\t\t\t/* %s(4)", render_state_infos[i].info);
       fprintf(fp, ", register for gl_FragColor: $%d $%d $%d $%d */\n",
               (*value & 0xf0000000) >> 28,
               (*value & 0x0f000000) >> 24,

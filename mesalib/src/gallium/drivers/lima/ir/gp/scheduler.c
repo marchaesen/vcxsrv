@@ -1297,9 +1297,9 @@ static bool try_node(sched_ctx *ctx)
     * the list at all. We know better here, so we have to open-code
     * list_for_each_entry() without the check in order to not assert.
     */
-   for (gpir_node *node = LIST_ENTRY(gpir_node, ctx->ready_list.next, list);
+   for (gpir_node *node = list_entry(ctx->ready_list.next, gpir_node, list);
         &node->list != &ctx->ready_list;
-        node = LIST_ENTRY(gpir_node, node->list.next, list)) {
+        node = list_entry(node->list.next, gpir_node, list)) {
       if (best_score != INT_MIN) {
          if (node->sched.dist < best_node->sched.dist)
             break;

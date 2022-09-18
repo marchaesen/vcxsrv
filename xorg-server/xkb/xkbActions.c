@@ -38,7 +38,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "exevents.h"
 #include "eventstr.h"
 #include <xkbsrv.h>
-#include "xkb.h"
 #include <ctype.h>
 #include "mi.h"
 #include "mipointer.h"

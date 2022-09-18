@@ -48,6 +48,7 @@
 
 static DevPrivateKeyRec xwl_window_private_key;
 static DevPrivateKeyRec xwl_damage_private_key;
+static const char *xwl_surface_tag = "xwl-surface";
 
 static void
 xwl_window_set_allow_commits(struct xwl_window *xwl_window, Bool allow,
@@ -110,6 +111,18 @@ xwl_window_from_window(WindowPtr window)
     }
 
     return NULL;
+}
+
+static void
+xwl_window_set_xwayland_tag(struct xwl_window *xwl_window)
+{
+    wl_proxy_set_tag((struct wl_proxy *)xwl_window->surface, &xwl_surface_tag);
+}
+
+Bool
+is_surface_from_xwl_window(struct wl_surface *surface)
+{
+    return wl_proxy_get_tag((struct wl_proxy *) surface) == &xwl_surface_tag;
 }
 
 void
@@ -267,10 +280,45 @@ window_get_client_toplevel(WindowPtr window)
     return window;
 }
 
+static struct xwl_output *
+xwl_window_get_output(struct xwl_window *xwl_window)
+{
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+    struct xwl_output *xwl_output;
+
+    xwl_output = xwl_output_from_wl_output(xwl_screen, xwl_window->wl_output);
+
+    if (xwl_output)
+        return xwl_output;
+
+    return xwl_screen_get_first_output(xwl_screen);
+}
+
+static Bool
+xwl_window_should_enable_viewport_fullscreen(struct xwl_window *xwl_window,
+                                             struct xwl_output **xwl_output_ret,
+                                             struct xwl_emulated_mode *emulated_mode_ret)
+{
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+    struct xwl_output *xwl_output;
+
+    xwl_output = xwl_window_get_output(xwl_window);
+    if (!xwl_output)
+        return FALSE;
+
+    *xwl_output_ret = xwl_output;
+    emulated_mode_ret->server_output_id = 0;
+    emulated_mode_ret->width = xwl_screen->width;
+    emulated_mode_ret->height = xwl_screen->height;
+    emulated_mode_ret->from_vidmode = FALSE;
+
+    return TRUE;
+}
+
 static Bool
 xwl_window_should_enable_viewport(struct xwl_window *xwl_window,
                                   struct xwl_output **xwl_output_ret,
-                                  struct xwl_emulated_mode **emulated_mode_ret)
+                                  struct xwl_emulated_mode *emulated_mode_ret)
 {
     struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
     struct xwl_emulated_mode *emulated_mode;
@@ -279,7 +327,15 @@ xwl_window_should_enable_viewport(struct xwl_window *xwl_window,
     WindowPtr window;
     DrawablePtr drawable;
 
-    if (!xwl_screen_has_resolution_change_emulation(xwl_screen))
+    if (!xwl_screen_has_viewport_support(xwl_screen))
+        return FALSE;
+
+    if (xwl_screen->fullscreen)
+        return xwl_window_should_enable_viewport_fullscreen(xwl_window,
+                                                            xwl_output_ret,
+                                                            emulated_mode_ret);
+
+    if (!xwl_screen->rootless)
         return FALSE;
 
     window = window_get_client_toplevel(xwl_window->window);
@@ -302,7 +358,7 @@ xwl_window_should_enable_viewport(struct xwl_window *xwl_window,
             drawable->width  == emulated_mode->width &&
             drawable->height == emulated_mode->height) {
 
-            *emulated_mode_ret = emulated_mode;
+            memcpy(emulated_mode_ret, emulated_mode, sizeof(struct xwl_emulated_mode));
             *xwl_output_ret = xwl_output;
             return TRUE;
         }
@@ -320,7 +376,7 @@ xwl_window_should_enable_viewport(struct xwl_window *xwl_window,
         drawable->width  == xwl_screen->width &&
         drawable->height == xwl_screen->height) {
 
-        *emulated_mode_ret = emulated_mode;
+        memcpy(emulated_mode_ret, emulated_mode, sizeof(struct xwl_emulated_mode));
         *xwl_output_ret = xwl_output;
         return TRUE;
     }
@@ -331,11 +387,11 @@ xwl_window_should_enable_viewport(struct xwl_window *xwl_window,
 void
 xwl_window_check_resolution_change_emulation(struct xwl_window *xwl_window)
 {
-    struct xwl_emulated_mode *emulated_mode;
+    struct xwl_emulated_mode emulated_mode;
     struct xwl_output *xwl_output;
 
     if (xwl_window_should_enable_viewport(xwl_window, &xwl_output, &emulated_mode))
-        xwl_window_enable_viewport(xwl_window, xwl_output, emulated_mode);
+        xwl_window_enable_viewport(xwl_window, xwl_output, &emulated_mode);
     else if (xwl_window_has_viewport_enabled(xwl_window))
         xwl_window_disable_viewport(xwl_window);
 }
@@ -401,17 +457,278 @@ send_surface_id_event(struct xwl_window *xwl_window)
                           &e, 1, SubstructureRedirectMask, NullGrab);
 }
 
+static Bool
+xwl_window_set_fullscreen(struct xwl_window *xwl_window)
+{
+    struct xwl_output *xwl_output;
+    struct wl_output *wl_output = NULL;
+
+    if (!xwl_window->xdg_toplevel)
+        return FALSE;
+
+    xwl_output = xwl_window_get_output(xwl_window);
+    if (xwl_output)
+        wl_output = xwl_output->output;
+
+    if (wl_output && xwl_window->wl_output_fullscreen == wl_output)
+        return FALSE;
+
+    xdg_toplevel_set_fullscreen(xwl_window->xdg_toplevel, wl_output);
+    xwl_window_check_resolution_change_emulation(xwl_window);
+    wl_surface_commit(xwl_window->surface);
+
+    xwl_window->wl_output_fullscreen = wl_output;
+
+    return TRUE;
+}
+
+void
+xwl_window_rootful_update_title(struct xwl_window *xwl_window)
+{
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+    char title[128];
+    const char *grab_message = "";
+
+    if (xwl_screen->host_grab) {
+        if (xwl_screen->has_grab)
+            grab_message = " - ([ctrl]+[shift] releases mouse and keyboard)";
+        else
+            grab_message = " - ([ctrl]+[shift] grabs mouse and keyboard)";
+    }
+
+    snprintf(title, sizeof(title), "Xwayland on :%s%s", display, grab_message);
+
+#ifdef XWL_HAS_LIBDECOR
+    if (xwl_window->libdecor_frame)
+        libdecor_frame_set_title(xwl_window->libdecor_frame, title);
+    else
+#endif
+    if (xwl_window->xdg_toplevel)
+        xdg_toplevel_set_title(xwl_window->xdg_toplevel, title);
+}
+
+static void
+xwl_window_rootful_set_app_id(struct xwl_window *xwl_window)
+{
+    const char *app_id = "org.freedesktop.Xwayland";
+
+#ifdef XWL_HAS_LIBDECOR
+    if (xwl_window->libdecor_frame)
+        libdecor_frame_set_app_id(xwl_window->libdecor_frame, app_id);
+    else
+#endif
+    if (xwl_window->xdg_toplevel)
+        xdg_toplevel_set_app_id(xwl_window->xdg_toplevel, app_id);
+}
+
+#ifdef XWL_HAS_LIBDECOR
+static void
+xwl_window_update_libdecor_size(struct xwl_window *xwl_window, int width, int height)
+{
+    struct libdecor_state *state;
+
+    if (xwl_window->libdecor_frame) {
+	state = libdecor_state_new(width, height);
+	libdecor_frame_commit(xwl_window->libdecor_frame, state, NULL);
+	libdecor_state_free(state);
+    }
+}
+
+static void
+handle_libdecor_configure(struct libdecor_frame *frame,
+                          struct libdecor_configuration *configuration,
+                          void *data)
+{
+    struct xwl_window *xwl_window = data;
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+    struct libdecor_state *state;
+
+    state = libdecor_state_new(xwl_screen->width, xwl_screen->height);
+    libdecor_frame_commit(frame, state, configuration);
+    libdecor_state_free(state);
+
+    if (libdecor_frame_has_capability(frame, LIBDECOR_ACTION_RESIZE))
+        libdecor_frame_unset_capabilities(frame, LIBDECOR_ACTION_RESIZE);
+    if (libdecor_frame_has_capability(frame, LIBDECOR_ACTION_FULLSCREEN))
+        libdecor_frame_unset_capabilities(frame, LIBDECOR_ACTION_FULLSCREEN);
+}
+
+static void
+handle_libdecor_close(struct libdecor_frame *frame,
+                      void *data)
+{
+    DebugF("Terminating on compositor request");
+    GiveUp(0);
+}
+
+static void
+handle_libdecor_commit(struct libdecor_frame *frame,
+                       void *data)
+{
+    struct xwl_window *xwl_window = data;
+    wl_surface_commit(xwl_window->surface);
+}
+
+static void
+handle_libdecor_dismiss_popup(struct libdecor_frame *frame,
+                              const char *seat_name,
+                              void *data)
+{
+}
+
+static struct libdecor_frame_interface libdecor_frame_iface = {
+    handle_libdecor_configure,
+    handle_libdecor_close,
+    handle_libdecor_commit,
+    handle_libdecor_dismiss_popup,
+};
+#endif
+
 static void
 xdg_surface_handle_configure(void *data,
                              struct xdg_surface *xdg_surface,
                              uint32_t serial)
 {
+    struct xwl_window *xwl_window = data;
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+
+    if (xwl_screen->fullscreen)
+        xwl_window_set_fullscreen(xwl_window);
+
     xdg_surface_ack_configure(xdg_surface, serial);
+    wl_surface_commit(xwl_window->surface);
 }
 
 static const struct xdg_surface_listener xdg_surface_listener = {
     xdg_surface_handle_configure,
 };
+
+static void
+xwl_window_surface_enter(void *data,
+                         struct wl_surface *wl_surface,
+                         struct wl_output *wl_output)
+{
+    struct xwl_window *xwl_window = data;
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+
+    if (xwl_window->wl_output != wl_output) {
+        xwl_window->wl_output = wl_output;
+
+        if (xwl_screen->fullscreen)
+            xwl_window_set_fullscreen(xwl_window);
+    }
+}
+
+static void
+xwl_window_surface_leave(void *data,
+                         struct wl_surface *wl_surface,
+                         struct wl_output *wl_output)
+{
+    struct xwl_window *xwl_window = data;
+
+    if (xwl_window->wl_output == wl_output)
+        xwl_window->wl_output = NULL;
+}
+
+static const struct wl_surface_listener surface_listener = {
+    xwl_window_surface_enter,
+    xwl_window_surface_leave
+};
+
+static void
+xdg_toplevel_handle_configure(void *data,
+                              struct xdg_toplevel *xdg_toplevel,
+                              int32_t width,
+                              int32_t height,
+                              struct wl_array *states)
+{
+}
+
+static void
+xdg_toplevel_handle_close(void *data,
+                          struct xdg_toplevel *xdg_toplevel)
+{
+    DebugF("Terminating on compositor request");
+    GiveUp(0);
+}
+
+static const struct xdg_toplevel_listener xdg_toplevel_listener = {
+    xdg_toplevel_handle_configure,
+    xdg_toplevel_handle_close,
+};
+
+static Bool
+xwl_create_root_surface(struct xwl_window *xwl_window)
+{
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+    WindowPtr window = xwl_window->window;
+    struct wl_region *region;
+
+
+#ifdef XWL_HAS_LIBDECOR
+    if (xwl_screen->decorate) {
+        xwl_window->libdecor_frame =
+            libdecor_decorate(xwl_screen->libdecor_context,
+                              xwl_window->surface,
+                              &libdecor_frame_iface,
+                              xwl_window);
+        libdecor_frame_map(xwl_window->libdecor_frame);
+    }
+    else
+#endif
+    {
+        xwl_window->xdg_surface =
+            xdg_wm_base_get_xdg_surface(xwl_screen->xdg_wm_base, xwl_window->surface);
+        if (xwl_window->xdg_surface == NULL) {
+            ErrorF("Failed creating xdg_wm_base xdg_surface\n");
+            goto err_surf;
+        }
+
+        xwl_window->xdg_toplevel =
+            xdg_surface_get_toplevel(xwl_window->xdg_surface);
+        if (xwl_window->xdg_surface == NULL) {
+            ErrorF("Failed creating xdg_toplevel\n");
+            goto err_surf;
+        }
+
+        wl_surface_add_listener(xwl_window->surface,
+                                &surface_listener, xwl_window);
+
+        xdg_surface_add_listener(xwl_window->xdg_surface,
+                                 &xdg_surface_listener, xwl_window);
+
+        xdg_toplevel_add_listener(xwl_window->xdg_toplevel,
+                                  &xdg_toplevel_listener,
+                                  NULL);
+    }
+
+    xwl_window_rootful_update_title(xwl_window);
+    xwl_window_rootful_set_app_id(xwl_window);
+
+    wl_surface_commit(xwl_window->surface);
+
+    region = wl_compositor_create_region(xwl_screen->compositor);
+    if (region == NULL) {
+        ErrorF("Failed creating region\n");
+        goto err_surf;
+    }
+
+    wl_region_add(region, 0, 0,
+                  window->drawable.width, window->drawable.height);
+    wl_surface_set_opaque_region(xwl_window->surface, region);
+    wl_region_destroy(region);
+
+    return TRUE;
+
+err_surf:
+    if (xwl_window->xdg_toplevel)
+        xdg_toplevel_destroy(xwl_window->xdg_toplevel);
+    if (xwl_window->xdg_surface)
+        xdg_surface_destroy(xwl_window->xdg_surface);
+    wl_surface_destroy(xwl_window->surface);
+
+    return FALSE;
+}
 
 static Bool
 ensure_surface_for_window(WindowPtr window)
@@ -419,7 +736,6 @@ ensure_surface_for_window(WindowPtr window)
     ScreenPtr screen = window->drawable.pScreen;
     struct xwl_screen *xwl_screen;
     struct xwl_window *xwl_window;
-    struct wl_region *region;
     WindowPtr toplevel;
 
     if (xwl_window_from_window(window))
@@ -448,38 +764,15 @@ ensure_surface_for_window(WindowPtr window)
         goto err;
     }
 
-    if (!xwl_screen->rootless) {
-        xwl_window->xdg_surface =
-            xdg_wm_base_get_xdg_surface(xwl_screen->xdg_wm_base, xwl_window->surface);
-        if (xwl_window->xdg_surface == NULL) {
-            ErrorF("Failed creating xdg_wm_base xdg_surface\n");
-            goto err_surf;
-        }
-
-        xdg_surface_add_listener(xwl_window->xdg_surface,
-                                 &xdg_surface_listener, xwl_window);
-
-        xdg_surface_get_toplevel(xwl_window->xdg_surface);
-
-        wl_surface_commit(xwl_window->surface);
-
-        region = wl_compositor_create_region(xwl_screen->compositor);
-        if (region == NULL) {
-            ErrorF("Failed creating region\n");
-            goto err_surf;
-        }
-
-        wl_region_add(region, 0, 0,
-                      window->drawable.width, window->drawable.height);
-        wl_surface_set_opaque_region(xwl_window->surface, region);
-        wl_region_destroy(region);
-    }
+    if (!xwl_screen->rootless && !xwl_create_root_surface(xwl_window))
+        goto err;
 
     wl_display_flush(xwl_screen->display);
 
     send_surface_id_event(xwl_window);
 
     wl_surface_set_user_data(xwl_window->surface, xwl_window);
+    xwl_window_set_xwayland_tag(xwl_window);
 
     compRedirectWindow(serverClient, window, CompositeRedirectManual);
 
@@ -498,7 +791,7 @@ ensure_surface_for_window(WindowPtr window)
     /* When a new window-manager window is realized, then the randr emulation
      * props may have not been set on the managed client window yet.
      */
-    if (window_is_wm_window(window)) {
+    if (!xwl_screen->fullscreen && window_is_wm_window(window)) {
         toplevel = window_get_client_toplevel(window);
         if (toplevel)
             xwl_output_set_window_randr_emu_props(xwl_screen, toplevel);
@@ -509,10 +802,6 @@ ensure_surface_for_window(WindowPtr window)
 
     return TRUE;
 
-err_surf:
-    if (xwl_window->xdg_surface)
-        xdg_surface_destroy(xwl_window->xdg_surface);
-    wl_surface_destroy(xwl_window->surface);
 err:
     free(xwl_window);
     return FALSE;
@@ -522,6 +811,7 @@ Bool
 xwl_realize_window(WindowPtr window)
 {
     ScreenPtr screen = window->drawable.pScreen;
+    CompScreenPtr comp_screen = GetCompScreen(screen);
     struct xwl_screen *xwl_screen;
     Bool ret;
 
@@ -535,12 +825,20 @@ xwl_realize_window(WindowPtr window)
     if (!ret)
         return FALSE;
 
-    if (xwl_screen->rootless && !window->parent) {
-        BoxRec box = { 0, 0, xwl_screen->width, xwl_screen->height };
+    if (xwl_screen->rootless) {
+        /* We do not want the COW to be mapped when rootless in Xwayland */
+        if (window == comp_screen->pOverlayWin) {
+            window->mapped = FALSE;
+            return TRUE;
+        }
 
-        RegionReset(&window->winSize, &box);
-        RegionNull(&window->clipList);
-        RegionNull(&window->borderClip);
+        if (!window->parent) {
+            BoxRec box = { 0, 0, xwl_screen->width, xwl_screen->height };
+
+            RegionReset(&window->winSize, &box);
+            RegionNull(&window->clipList);
+            RegionNull(&window->borderClip);
+        }
     }
 
     if (xwl_screen->rootless ?
@@ -596,16 +894,6 @@ xwl_unrealize_window(WindowPtr window)
     if (xwl_window_has_viewport_enabled(xwl_window))
         xwl_window_disable_viewport(xwl_window);
 
-    wl_surface_destroy(xwl_window->surface);
-    xorg_list_del(&xwl_window->link_damage);
-    xorg_list_del(&xwl_window->link_window);
-    unregister_damage(window);
-
-    xwl_window_buffers_dispose(xwl_window);
-
-    if (xwl_window->frame_callback)
-        wl_callback_destroy(xwl_window->frame_callback);
-
 #ifdef GLAMOR_HAS_GBM
     if (xwl_screen->present) {
         struct xwl_present_window *xwl_present_window, *tmp;
@@ -617,6 +905,16 @@ xwl_unrealize_window(WindowPtr window)
         }
     }
 #endif
+
+    wl_surface_destroy(xwl_window->surface);
+    xorg_list_del(&xwl_window->link_damage);
+    xorg_list_del(&xwl_window->link_window);
+    unregister_damage(window);
+
+    xwl_window_buffers_dispose(xwl_window);
+
+    if (xwl_window->frame_callback)
+        wl_callback_destroy(xwl_window->frame_callback);
 
     free(xwl_window);
     dixSetPrivate(&window->devPrivates, &xwl_window_private_key, NULL);
@@ -697,8 +995,14 @@ xwl_resize_window(WindowPtr window,
     xwl_screen->ResizeWindow = screen->ResizeWindow;
     screen->ResizeWindow = xwl_resize_window;
 
-    if (xwl_window && (xwl_window_get(window) || xwl_window_is_toplevel(window)))
-        xwl_window_check_resolution_change_emulation(xwl_window);
+    if (xwl_window) {
+        if (xwl_window_get(window) || xwl_window_is_toplevel(window))
+            xwl_window_check_resolution_change_emulation(xwl_window);
+#ifdef XWL_HAS_LIBDECOR
+        if (window == screen->root)
+            xwl_window_update_libdecor_size(xwl_window, width, height);
+#endif
+    }
 }
 
 void
@@ -756,6 +1060,18 @@ xwl_window_create_frame_callback(struct xwl_window *xwl_window)
     xwl_window->frame_callback = wl_surface_frame(xwl_window->surface);
     wl_callback_add_listener(xwl_window->frame_callback, &frame_listener,
                              xwl_window);
+
+#ifdef GLAMOR_HAS_GBM
+    if (xwl_window->xwl_screen->present) {
+        struct xwl_present_window *xwl_present_window, *tmp;
+
+        xorg_list_for_each_entry_safe(xwl_present_window, tmp,
+                                      &xwl_window->frame_callback_list,
+                                      frame_callback_list) {
+            xwl_present_reset_timer(xwl_present_window);
+        }
+    }
+#endif
 }
 
 Bool

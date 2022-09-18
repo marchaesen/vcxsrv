@@ -44,16 +44,16 @@ void _XSetClipRectangles (
     register _XExtension *ext;
 
     GetReq (SetClipRectangles, req);
-    req->gc = gc->gid;
-    req->xOrigin = gc->values.clip_x_origin = clip_x_origin;
-    req->yOrigin = gc->values.clip_y_origin = clip_y_origin;
-    req->ordering = ordering;
+    req->gc = (CARD32) gc->gid;
+    req->xOrigin = (INT16) (gc->values.clip_x_origin = clip_x_origin);
+    req->yOrigin = (INT16) (gc->values.clip_y_origin = clip_y_origin);
+    req->ordering = (BYTE) ordering;
     len = ((long)n) << 1;
     SetReqLen(req, len, 1);
     len <<= 2;
     Data16 (dpy, (short *) rectangles, len);
     gc->rects = 1;
-    dirty = gc->dirty & ~(GCClipMask | GCClipXOrigin | GCClipYOrigin);
+    dirty = (gc->dirty & (unsigned long) ~(GCClipMask | GCClipXOrigin | GCClipYOrigin));
     gc->dirty = GCClipMask | GCClipXOrigin | GCClipYOrigin;
     /* call out to any extensions interested */
     for (ext = dpy->ext_procs; ext; ext = ext->next)

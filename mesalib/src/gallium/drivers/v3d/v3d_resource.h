@@ -119,6 +119,14 @@ struct v3d_resource {
          */
         uint32_t initialized_buffers;
 
+        /**
+         * A serial ID that is incremented every time a new BO is bound to a
+         * resource. We use this to track scenarios where we might need to
+         * update other resources to point to the new BO (like sampler states
+         * when a texture BO changes).
+         */
+        uint32_t serial_id;
+
         enum pipe_format internal_format;
 
         /* Resource storing the S8 part of a Z32F_S8 resource, or NULL. */

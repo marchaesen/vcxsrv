@@ -322,6 +322,98 @@ static bool ppir_lower_sat(ppir_block *block, ppir_node *node)
    return true;
 }
 
+static bool ppir_lower_branch_merge_condition(ppir_block *block, ppir_node *node)
+{
+   /* Check if we can merge a condition with a branch instruction,
+    * removing the need for a select instruction */
+   assert(node->type == ppir_node_type_branch);
+
+   if (!ppir_node_has_single_pred(node))
+      return false;
+
+   ppir_node *pred = ppir_node_first_pred(node);
+   assert(pred);
+
+   if (pred->type != ppir_node_type_alu)
+      return false;
+
+   switch (pred->op)
+   {
+      case ppir_op_lt:
+      case ppir_op_gt:
+      case ppir_op_le:
+      case ppir_op_ge:
+      case ppir_op_eq:
+      case ppir_op_ne:
+         break;
+      default:
+         return false;
+   }
+
+   ppir_dest *dest = ppir_node_get_dest(pred);
+   if (!ppir_node_has_single_succ(pred) || dest->type != ppir_target_ssa)
+      return false;
+
+   ppir_alu_node *cond = ppir_node_to_alu(pred);
+   /* branch can't reference pipeline registers */
+   if (cond->src[0].type == ppir_target_pipeline ||
+       cond->src[1].type == ppir_target_pipeline)
+      return false;
+
+   /* branch can't use flags */
+   if (cond->src[0].negate || cond->src[0].absolute ||
+       cond->src[1].negate || cond->src[1].absolute)
+      return false;
+
+   /* at this point, it can be successfully be replaced. */
+   ppir_branch_node *branch = ppir_node_to_branch(node);
+   switch (pred->op)
+   {
+      case ppir_op_le:
+         branch->cond_gt = true;
+         break;
+      case ppir_op_lt:
+         branch->cond_eq = true;
+         branch->cond_gt = true;
+         break;
+      case ppir_op_ge:
+         branch->cond_lt = true;
+         break;
+      case ppir_op_gt:
+         branch->cond_eq = true;
+         branch->cond_lt = true;
+         break;
+      case ppir_op_eq:
+         branch->cond_lt = true;
+         branch->cond_gt = true;
+         break;
+      case ppir_op_ne:
+         branch->cond_eq = true;
+         break;
+      default:
+         assert(0);
+         break;
+   }
+
+   assert(cond->num_src == 2);
+
+   branch->num_src = 2;
+   branch->src[0] = cond->src[0];
+   branch->src[1] = cond->src[1];
+
+   /* for all nodes before the condition */
+   ppir_node_foreach_pred_safe(pred, dep) {
+      /* insert the branch node as successor */
+      ppir_node *p = dep->pred;
+      ppir_node_remove_dep(dep);
+      ppir_node_add_dep(node, p, ppir_dep_src);
+   }
+
+   ppir_node_delete(pred);
+
+   return true;
+}
+
 static bool ppir_lower_branch(ppir_block *block, ppir_node *node)
 {
    ppir_branch_node *branch = ppir_node_to_branch(node);
@@ -330,6 +422,12 @@ static bool ppir_lower_branch(ppir_block *block, ppir_node *node)
    if (branch->num_src == 0)
       return true;
 
+   /* Check if we can merge a condition with the branch */
+   if (ppir_lower_branch_merge_condition(block, node))
+      return true;
+
+   /* If the condition cannot be merged, fall back to a
+    * comparison against zero */
    ppir_const_node *zero = ppir_node_create(block, ppir_op_const, -1, 0);
 
    if (!zero)
@@ -342,11 +440,6 @@ static bool ppir_lower_branch(ppir_block *block, ppir_node *node)
    zero->dest.ssa.num_components = 1;
    zero->dest.write_mask = 0x01;
 
-   /* For now we're just comparing branch condition with 0,
-    * in future we should look whether it's possible to move
-    * comparision node into branch itself and use current
-    * way as a fallback for complex conditions.
-    */
    ppir_node_target_assign(&branch->src[1], &zero->node);
 
    if (branch->negate)

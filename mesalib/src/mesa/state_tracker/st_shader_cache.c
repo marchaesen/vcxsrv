@@ -31,7 +31,6 @@
 #include "compiler/nir/nir_serialize.h"
 #include "main/uniforms.h"
 #include "pipe/p_shader_tokens.h"
-#include "tgsi/tgsi_parse.h"
 #include "util/u_memory.h"
 
 void
@@ -62,17 +61,6 @@ copy_blob_to_driver_cache_blob(struct blob *blob, struct gl_program *prog)
 }
 
 static void
-write_tgsi_to_cache(struct blob *blob, const struct tgsi_token *tokens,
-                    struct gl_program *prog)
-{
-   unsigned num_tokens = tgsi_num_tokens(tokens);
-
-   blob_write_uint32(blob, num_tokens);
-   blob_write_bytes(blob, tokens, num_tokens * sizeof(struct tgsi_token));
-   copy_blob_to_driver_cache_blob(blob, prog);
-}
-
-static void
 write_nir_to_cache(struct blob *blob, struct gl_program *prog)
 {
    st_serialize_nir(prog);
@@ -83,9 +71,8 @@ write_nir_to_cache(struct blob *blob, struct gl_program *prog)
    copy_blob_to_driver_cache_blob(blob, prog);
 }
 
-static void
-st_serialise_ir_program(struct gl_context *ctx, struct gl_program *prog,
-                        bool nir)
+void
+st_serialise_nir_program(struct gl_context *ctx, struct gl_program *prog)
 {
    if (prog->driver_cache_blob)
       return;
@@ -107,20 +94,16 @@ st_serialise_ir_program(struct gl_context *ctx, struct gl_program *prog,
        prog->info.stage == MESA_SHADER_GEOMETRY)
       write_stream_out_to_cache(&blob, &prog->state);
 
-   if (nir)
-      write_nir_to_cache(&blob, prog);
-   else
-      write_tgsi_to_cache(&blob, prog->state.tokens, prog);
+   write_nir_to_cache(&blob, prog);
 
    blob_finish(&blob);
 }
 
 /**
- * Store TGSI or NIR and any other required state in on-disk shader cache.
+ * Store NIR and any other required state in on-disk shader cache.
  */
 void
-st_store_ir_in_disk_cache(struct st_context *st, struct gl_program *prog,
-                          bool nir)
+st_store_nir_in_disk_cache(struct st_context *st, struct gl_program *prog)
 {
    if (!st->ctx->Cache)
       return;
@@ -132,7 +115,7 @@ st_store_ir_in_disk_cache(struct st_context *st, struct gl_program *prog,
    if (memcmp(prog->sh.data->sha1, zero, sizeof(prog->sh.data->sha1)) == 0)
       return;
 
-   st_serialise_ir_program(st->ctx, prog, nir);
+   st_serialise_nir_program(st->ctx, prog);
 
    if (st->ctx->_Shader->Flags & GLSL_CACHE_INFO) {
       fprintf(stderr, "putting %s state tracker IR in cache\n",
@@ -154,20 +137,10 @@ read_stream_out_from_cache(struct blob_reader *blob_reader,
    }
 }
 
-static void
-read_tgsi_from_cache(struct blob_reader *blob_reader,
-                     const struct tgsi_token **tokens)
-{
-   unsigned num_tokens  = blob_read_uint32(blob_reader);
-   unsigned tokens_size = num_tokens * sizeof(struct tgsi_token);
-   *tokens = (const struct tgsi_token*) MALLOC(tokens_size);
-   blob_copy_bytes(blob_reader, (uint8_t *) *tokens, tokens_size);
-}
-
-static void
-st_deserialise_ir_program(struct gl_context *ctx,
+void
+st_deserialise_nir_program(struct gl_context *ctx,
                           struct gl_shader_program *shProg,
-                          struct gl_program *prog, bool nir)
+                          struct gl_program *prog)
 {
    struct st_context *st = st_context(ctx);
    size_t size = prog->driver_cache_blob_size;
@@ -201,29 +174,25 @@ st_deserialise_ir_program(struct gl_context *ctx,
        prog->info.stage == MESA_SHADER_GEOMETRY)
       read_stream_out_from_cache(&blob_reader, &prog->state);
 
-   if (nir) {
-      assert(prog->nir == NULL);
-      assert(prog->serialized_nir == NULL);
+   assert(prog->nir == NULL);
+   assert(prog->serialized_nir == NULL);
 
-      prog->state.type = PIPE_SHADER_IR_NIR;
-      prog->serialized_nir_size = blob_read_intptr(&blob_reader);
-      prog->serialized_nir = malloc(prog->serialized_nir_size);
-      blob_copy_bytes(&blob_reader, prog->serialized_nir, prog->serialized_nir_size);
-      prog->shader_program = shProg;
-   } else {
-      read_tgsi_from_cache(&blob_reader, &prog->state.tokens);
-   }
+   prog->state.type = PIPE_SHADER_IR_NIR;
+   prog->serialized_nir_size = blob_read_intptr(&blob_reader);
+   prog->serialized_nir = malloc(prog->serialized_nir_size);
+   blob_copy_bytes(&blob_reader, prog->serialized_nir, prog->serialized_nir_size);
+   prog->shader_program = shProg;
 
    /* Make sure we don't try to read more data than we wrote. This should
     * never happen in release builds but its useful to have this check to
     * catch development bugs.
     */
    if (blob_reader.current != blob_reader.end || blob_reader.overrun) {
-      assert(!"Invalid TGSI shader disk cache item!");
+      assert(!"Invalid shader disk cache item!");
 
       if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
          fprintf(stderr, "Error reading program from cache (invalid "
-                 "TGSI cache item)\n");
+                 "cache item)\n");
       }
    }
 
@@ -231,15 +200,14 @@ st_deserialise_ir_program(struct gl_context *ctx,
 }
 
 bool
-st_load_ir_from_disk_cache(struct gl_context *ctx,
-                           struct gl_shader_program *prog,
-                           bool nir)
+st_load_nir_from_disk_cache(struct gl_context *ctx,
+                            struct gl_shader_program *prog)
 {
    if (!ctx->Cache)
       return false;
 
    /* If we didn't load the GLSL metadata from cache then we could not have
-    * loaded TGSI or NIR either.
+    * loaded the NIR either.
     */
    if (prog->data->LinkStatus != LINKING_SKIPPED)
       return false;
@@ -249,7 +217,7 @@ st_load_ir_from_disk_cache(struct gl_context *ctx,
          continue;
 
       struct gl_program *glprog = prog->_LinkedShaders[i]->Program;
-      st_deserialise_ir_program(ctx, prog, glprog, nir);
+      st_deserialise_nir_program(ctx, prog, glprog);
 
       /* We don't need the cached blob anymore so free it */
       ralloc_free(glprog->driver_cache_blob);
@@ -266,45 +234,9 @@ st_load_ir_from_disk_cache(struct gl_context *ctx,
 }
 
 void
-st_serialise_tgsi_program(struct gl_context *ctx, struct gl_program *prog)
-{
-   st_serialise_ir_program(ctx, prog, false);
-}
-
-void
-st_serialise_tgsi_program_binary(struct gl_context *ctx,
-                                 struct gl_shader_program *shProg,
-                                 struct gl_program *prog)
-{
-   st_serialise_ir_program(ctx, prog, false);
-}
-
-void
-st_deserialise_tgsi_program(struct gl_context *ctx,
-                            struct gl_shader_program *shProg,
-                            struct gl_program *prog)
-{
-   st_deserialise_ir_program(ctx, shProg, prog, false);
-}
-
-void
-st_serialise_nir_program(struct gl_context *ctx, struct gl_program *prog)
-{
-   st_serialise_ir_program(ctx, prog, true);
-}
-
-void
 st_serialise_nir_program_binary(struct gl_context *ctx,
                                 struct gl_shader_program *shProg,
                                 struct gl_program *prog)
 {
-   st_serialise_ir_program(ctx, prog, true);
-}
-
-void
-st_deserialise_nir_program(struct gl_context *ctx,
-                           struct gl_shader_program *shProg,
-                           struct gl_program *prog)
-{
-   st_deserialise_ir_program(ctx, shProg, prog, true);
+   st_serialise_nir_program(ctx, prog);
 }

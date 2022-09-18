@@ -187,7 +187,7 @@ svga_create_stream_output(struct svga_context *svga,
       unsigned reg_idx = info->output[i].register_index;
       unsigned buf_idx = info->output[i].output_buffer;
       const enum tgsi_semantic sem_name =
-         shader->info.output_semantic_name[reg_idx];
+         shader->tgsi_info.output_semantic_name[reg_idx];
 
       assert(buf_idx <= PIPE_MAX_SO_BUFFERS);
 
@@ -238,7 +238,7 @@ svga_create_stream_output(struct svga_context *svga,
           * Check if streaming out POSITION. If so, replace the
           * register index with the index for NON_ADJUSTED POSITION.
           */
-         decls[numDecls].registerIndex = shader->info.num_outputs;
+         decls[numDecls].registerIndex = shader->tgsi_info.num_outputs;
 
          /* Save this output index, so we can tell later if this stream output
           * includes an output of a vertex position
@@ -253,8 +253,8 @@ svga_create_stream_output(struct svga_context *svga,
           * clip planes.
           */
          decls[numDecls].registerIndex =
-            shader->info.num_outputs + 1 +
-            shader->info.output_semantic_index[reg_idx];
+            shader->tgsi_info.num_outputs + 1 +
+            shader->tgsi_info.output_semantic_index[reg_idx];
       }
       else {
          decls[numDecls].registerIndex = reg_idx;

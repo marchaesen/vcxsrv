@@ -26,7 +26,7 @@ AC_INIT([xtrans], [1.4.0],
 AC_CONFIG_SRCDIR([Makefile.am])
 
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Require xorg-macros minimum of 1.12 for DocBook external references
 m4_ifndef([XORG_MACROS_VERSION],

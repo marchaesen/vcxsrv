@@ -1,5 +1,5 @@
 /*
- * Copyright © 2019 Raspberry Pi
+ * Copyright © 2019 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,11 +31,12 @@
 
 /* Default max size of the bo cache, in MB.
  *
- * FIXME: we got this value when testing some apps using the rpi4 with 4GB,
- * but it should depend on the total amount of RAM. But for that we would need
- * to test on real hw with different amount of RAM. Using this value for now.
+ * This value comes from testing different Vulkan application. Greater values
+ * didn't get any further performance benefit. This looks somewhat small, but
+ * from testing those applications, the main consumer of the bo cache are
+ * the bos used for the CLs, that are usually small.
  */
-#define DEFAULT_MAX_BO_CACHE_SIZE 512
+#define DEFAULT_MAX_BO_CACHE_SIZE 64
 
 /* Discarded to use a V3D_DEBUG for this, as it would mean adding a run-time
  * check for most of the calls
@@ -132,9 +133,7 @@ bo_free(struct v3dv_device *device,
       return true;
 
    assert(p_atomic_read(&bo->refcnt) == 0);
-
-   if (bo->map)
-      v3dv_bo_unmap(device, bo);
+   assert(bo->map == NULL);
 
    /* Our BO structs are stored in a sparse array in the physical device,
     * so we don't want to free the BO pointer, instead we want to reset it
@@ -459,6 +458,9 @@ v3dv_bo_free(struct v3dv_device *device,
 
    if (!p_atomic_dec_zero(&bo->refcnt))
       return true;
+
+   if (bo->map)
+      v3dv_bo_unmap(device, bo);
 
    struct timespec time;
    struct v3dv_bo_cache *cache = &device->bo_cache;

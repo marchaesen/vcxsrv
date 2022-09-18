@@ -101,6 +101,11 @@ _mesa_draw_gallium_multimode_fallback(struct gl_context *ctx,
                                      const unsigned char *mode,
                                      unsigned num_draws);
 
+void
+_mesa_bitmap(struct gl_context *ctx, GLsizei width, GLsizei height,
+             GLfloat xorig, GLfloat yorig, GLfloat xmove, GLfloat ymove,
+             const GLubyte *bitmap, struct pipe_resource *tex);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

@@ -116,12 +116,6 @@ ir_constant_variable_visitor::visit_enter(ir_assignment *ir)
    if (entry->var->constant_value)
       return visit_continue;
 
-   /* OK, now find if we actually have all the right conditions for
-    * this to be a constant value assigned to the var.
-    */
-   if (ir->condition)
-      return visit_continue;
-
    ir_variable *var = ir->whole_variable_written();
    if (!var)
       return visit_continue;

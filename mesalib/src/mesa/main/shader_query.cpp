@@ -35,7 +35,7 @@
 #include "main/uniforms.h"
 #include "compiler/glsl/glsl_symbol_table.h"
 #include "compiler/glsl/ir.h"
-#include "compiler/glsl/program.h"
+#include "compiler/glsl/linker_util.h"
 #include "compiler/glsl/string_to_uint_map.h"
 #include "util/mesa-sha1.h"
 #include "c99_alloca.h"
@@ -619,7 +619,7 @@ valid_array_index(const GLchar *name, int len, unsigned *array_index)
    long idx = 0;
    const GLchar *out_base_name_end;
 
-   idx = parse_program_resource_name(name, len, &out_base_name_end);
+   idx = link_util_parse_program_resource_name(name, len, &out_base_name_end);
    if (idx < 0)
       return false;
 
@@ -641,7 +641,7 @@ search_resource_hash(struct gl_shader_program *shProg,
       return NULL;
 
    const char *base_name_end;
-   long index = parse_program_resource_name(name, len, &base_name_end);
+   long index = link_util_parse_program_resource_name(name, len, &base_name_end);
    char *name_copy;
 
    /* If dealing with array, we need to get the basename. */

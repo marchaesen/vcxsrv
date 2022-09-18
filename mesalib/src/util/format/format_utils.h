@@ -37,7 +37,7 @@
 /* Extends an integer of size SRC_BITS to one of size DST_BITS linearly */
 #define EXTEND_NORMALIZED_INT(X, SRC_BITS, DST_BITS) \
       (((X) * (int)(u_uintN_max(DST_BITS) / u_uintN_max(SRC_BITS))) + \
-       ((DST_BITS % SRC_BITS) ? ((X) >> (SRC_BITS - DST_BITS % SRC_BITS)) : 0))
+       (((DST_BITS) % (SRC_BITS)) ? ((X) >> ((SRC_BITS) - (DST_BITS) % (SRC_BITS))) : 0))
 
 static inline float
 _mesa_unorm_to_float(unsigned x, unsigned src_bits)

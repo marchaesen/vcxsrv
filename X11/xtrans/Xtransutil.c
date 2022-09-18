@@ -50,7 +50,7 @@ from The Open Group.
 /*
  * These are some utility functions created for convenience or to provide
  * an interface that is similar to an existing interface. These are built
- * only using the Transport Independant API, and have no knowledge of
+ * only using the Transport Independent API, and have no knowledge of
  * the internal implementation.
  */
 
@@ -424,20 +424,6 @@ TRANS(WSAStartup) (void)
     return 0;
 }
 #endif
-
-#include <ctype.h>
-
-static int
-is_numeric (const char *str)
-{
-    int i;
-
-    for (i = 0; i < (int) strlen (str); i++)
-	if (!isdigit (str[i]))
-	    return (0);
-
-    return (1);
-}
 
 #ifdef TRANS_SERVER
 #include <sys/types.h>

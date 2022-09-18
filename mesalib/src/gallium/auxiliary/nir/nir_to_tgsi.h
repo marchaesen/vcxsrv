@@ -25,14 +25,17 @@
 #define NIR_TO_TGSI_H
 
 #include <stdbool.h>
+#include "pipe/p_defines.h"
 
 struct nir_shader;
 struct pipe_screen;
+struct pipe_shader_state;
 
 struct nir_to_tgsi_options {
    bool lower_cmp;
    /* Emit MAX(a,-a) instead of abs src modifier) */
    bool lower_fabs;
+   bool unoptimized_ra;
 };
 
 const void *nir_to_tgsi(struct nir_shader *s,
@@ -46,5 +49,9 @@ const void *
 nir_to_tgsi_get_compiler_options(struct pipe_screen *pscreen,
                                  enum pipe_shader_ir ir,
                                  unsigned shader);
+
+const void *
+pipe_shader_state_to_tgsi_tokens(struct pipe_screen *screen,
+                                 const struct pipe_shader_state *cso);
 
 #endif /* NIR_TO_TGSI_H */

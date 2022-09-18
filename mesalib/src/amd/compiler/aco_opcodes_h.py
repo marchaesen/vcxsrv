@@ -1,6 +1,6 @@
 
 template = """\
-/* 
+/*
  * Copyright (c) 2018 Valve Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a

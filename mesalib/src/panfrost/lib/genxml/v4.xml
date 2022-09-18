@@ -524,8 +524,8 @@
   </struct>
 
   <struct name="Draw" size="30" align="64">
-    <field name="Four Components Per Vertex" size="1" start="0:0" type="bool"/>
-    <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool"/>
+    <field name="Four Components Per Vertex" size="1" start="0:0" type="bool" default="true"/>
+    <field name="Draw Descriptor Is 64b" size="1" start="0:1" type="bool" default="true"/>
     <field name="Texture Descriptor Is 64b" size="1" start="0:2" type="bool" default="true"/>
     <field name="Occlusion query" size="2" start="0:3" type="Occlusion Mode" default="Disabled"/>
     <field name="Front face CCW" size="1" start="0:5" type="bool"/>

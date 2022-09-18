@@ -3,10 +3,81 @@
 #include "util/u_inlines.h"
 #include "frontend/drm_driver.h"
 
-#include "utils.h"
 #include "dri_screen.h"
 #include "dri_query_renderer.h"
 #include "pipe-loader/pipe_loader.h"
+
+/**
+ * Implement queries for values that are common across all Mesa drivers
+ *
+ * Currently only the following queries are supported by this function:
+ *
+ *     - \c __DRI2_RENDERER_VERSION
+ *     - \c __DRI2_RENDERER_PREFERRED_PROFILE
+ *     - \c __DRI2_RENDERER_OPENGL_CORE_PROFILE_VERSION
+ *     - \c __DRI2_RENDERER_OPENGL_COMPATIBLITY_PROFILE_VERSION
+ *     - \c __DRI2_RENDERER_ES_PROFILE_VERSION
+ *     - \c __DRI2_RENDERER_ES2_PROFILE_VERSION
+ *     - \c __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT
+ *
+ * \returns
+ * Zero if a recognized value of \c param is supplied, -1 otherwise.
+ */
+static int
+driQueryRendererIntegerCommon(__DRIscreen *psp, int param, unsigned int *value)
+{
+   switch (param) {
+   case __DRI2_RENDERER_VERSION: {
+      static const char *const ver = PACKAGE_VERSION;
+      char *endptr;
+      int v[3];
+
+      v[0] = strtol(ver, &endptr, 10);
+      assert(endptr[0] == '.');
+      if (endptr[0] != '.')
+         return -1;
+
+      v[1] = strtol(endptr + 1, &endptr, 10);
+      assert(endptr[0] == '.');
+      if (endptr[0] != '.')
+         return -1;
+
+      v[2] = strtol(endptr + 1, &endptr, 10);
+
+      value[0] = v[0];
+      value[1] = v[1];
+      value[2] = v[2];
+      return 0;
+   }
+   case __DRI2_RENDERER_PREFERRED_PROFILE:
+      value[0] = (psp->max_gl_core_version != 0)
+         ? (1U << __DRI_API_OPENGL_CORE) : (1U << __DRI_API_OPENGL);
+      return 0;
+   case __DRI2_RENDERER_OPENGL_CORE_PROFILE_VERSION:
+      value[0] = psp->max_gl_core_version / 10;
+      value[1] = psp->max_gl_core_version % 10;
+      return 0;
+   case __DRI2_RENDERER_OPENGL_COMPATIBILITY_PROFILE_VERSION:
+      value[0] = psp->max_gl_compat_version / 10;
+      value[1] = psp->max_gl_compat_version % 10;
+      return 0;
+   case __DRI2_RENDERER_OPENGL_ES_PROFILE_VERSION:
+      value[0] = psp->max_gl_es1_version / 10;
+      value[1] = psp->max_gl_es1_version % 10;
+      return 0;
+   case __DRI2_RENDERER_OPENGL_ES2_PROFILE_VERSION:
+      value[0] = psp->max_gl_es2_version / 10;
+      value[1] = psp->max_gl_es2_version % 10;
+      return 0;
+   case __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT:
+      value[0] = GL_TRUE;
+      return 0;
+   default:
+      break;
+   }
+
+   return -1;
+}
 
 static int
 dri2_query_renderer_integer(__DRIscreen *_screen, int param,
@@ -27,8 +98,8 @@ dri2_query_renderer_integer(__DRIscreen *_screen, int param,
       return 0;
    case __DRI2_RENDERER_ACCELERATED:
       value[0] =
-         (unsigned int)screen->base.screen->get_param(screen->base.screen,
-                                                      PIPE_CAP_ACCELERATED);
+         (unsigned int)!!screen->base.screen->get_param(screen->base.screen,
+                                                        PIPE_CAP_ACCELERATED);
       return 0;
 
    case __DRI2_RENDERER_VIDEO_MEMORY: {

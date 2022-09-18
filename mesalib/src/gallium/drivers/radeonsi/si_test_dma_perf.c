@@ -108,7 +108,7 @@ void si_test_dma_perf(struct si_screen *sscreen)
          unsigned cs_dwords_per_thread =
             test_cs ? cs_dwords_per_thread_list[cs_method % NUM_SHADERS] : 0;
 
-         if (sctx->chip_class == GFX6) {
+         if (sctx->gfx_level == GFX6) {
             /* GFX6 doesn't support CP DMA operations through L2. */
             if (test_cp && cache_policy != L2_BYPASS)
                continue;
@@ -117,10 +117,10 @@ void si_test_dma_perf(struct si_screen *sscreen)
                continue;
          }
 
-         /* SI_RESOURCE_FLAG_UNCACHED setting RADEON_FLAG_UNCACHED doesn't affect
+         /* SI_RESOURCE_FLAG_GL2_BYPASS setting RADEON_FLAG_GL2_BYPASS doesn't affect
           * chips before gfx9.
           */
-         if (test_cs && cache_policy && sctx->chip_class < GFX9)
+         if (test_cs && cache_policy && sctx->gfx_level < GFX9)
             continue;
 
          printf("%s ,", placement_str[placement]);
@@ -153,7 +153,7 @@ void si_test_dma_perf(struct si_screen *sscreen)
             enum pipe_resource_usage dst_usage, src_usage;
             struct pipe_resource *dst, *src;
             unsigned query_type = PIPE_QUERY_TIME_ELAPSED;
-            unsigned flags = cache_policy == L2_BYPASS ? SI_RESOURCE_FLAG_UNCACHED : 0;
+            unsigned flags = cache_policy == L2_BYPASS ? SI_RESOURCE_FLAG_GL2_BYPASS : 0;
 
             if (placement == 0 || placement == 2 || placement == 4)
                dst_usage = PIPE_USAGE_DEFAULT;
@@ -331,7 +331,7 @@ void si_test_dma_perf(struct si_screen *sscreen)
                /* Ban CP DMA clears via MC on <= GFX8. They are super slow
                 * on GTT, which we can get due to BO evictions.
                 */
-               if (sctx->chip_class <= GFX8 && placement == 1 && r->is_cp &&
+               if (sctx->gfx_level <= GFX8 && placement == 1 && r->is_cp &&
                    r->cache_policy == L2_BYPASS)
                   continue;
 

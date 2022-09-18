@@ -31,10 +31,10 @@ XkbAllocGeomColors \- Allocate geometry colors
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry for which colors should be allocated
 .TP
-.I \- num_needed
+.I num_needed
 number of new colors required
 .SH DESCRIPTION
 .LP

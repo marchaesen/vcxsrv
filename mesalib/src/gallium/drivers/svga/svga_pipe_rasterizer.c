@@ -411,7 +411,7 @@ svga_create_rasterizer_state(struct pipe_context *pipe,
    }
 
    if (templ->poly_smooth) {
-      pipe_debug_message(&svga->debug.callback, CONFORMANCE,
+      util_debug_message(&svga->debug.callback, CONFORMANCE,
                          "GL_POLYGON_SMOOTH not supported");
    }
 

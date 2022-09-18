@@ -124,7 +124,7 @@ combine_stores(struct combine_stores_state *state,
    /* Build a new vec, to be used as source for the combined store.  As it
     * gets build, remove previous stores that are not needed anymore.
     */
-   nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS] = {0};
+   nir_ssa_scalar comps[NIR_MAX_VEC_COMPONENTS] = {0};
    unsigned num_components = glsl_get_vector_elements(combo->dst->type);
    unsigned bit_size = combo->latest->src[1].ssa->bit_size;
    for (unsigned i = 0; i < num_components; i++) {
@@ -137,19 +137,17 @@ combine_stores(struct combine_stores_state *state,
           * and store->src[1] is a scalar.  Otherwise, we're a regular vector
           * load and we have to pick off a component.
           */
-         comps[i] = store->num_components == 1 ?
-            store->src[1].ssa :
-            nir_channel(&state->b, store->src[1].ssa, i);
+         comps[i] = nir_get_ssa_scalar(store->src[1].ssa, store->num_components == 1 ? 0 : i);
 
          assert(store->instr.pass_flags > 0);
          if (--store->instr.pass_flags == 0 && store != combo->latest)
             nir_instr_remove(&store->instr);
       } else {
-         comps[i] = nir_ssa_undef(&state->b, 1, bit_size);
+         comps[i] = nir_get_ssa_scalar(nir_ssa_undef(&state->b, 1, bit_size), 0);
       }
    }
    assert(combo->latest->instr.pass_flags == 0);
-   nir_ssa_def *vec = nir_vec(&state->b, comps, num_components);
+   nir_ssa_def *vec = nir_vec_scalars(&state->b, comps, num_components);
 
    /* Fix the latest store with the combined information. */
    nir_intrinsic_instr *store = combo->latest;

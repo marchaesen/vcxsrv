@@ -32,10 +32,10 @@ XkbAllocDeviceLedInfo \- Obtain an XkbDeviceLedInfoRec structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- device_info
+.I device_info
 structure in which to allocate LED space
 .TP
-.I \- num_needed
+.I num_needed
 number of indicators to allocate space for
 .SH DESCRIPTION
 .LP

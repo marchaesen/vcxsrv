@@ -22,14 +22,6 @@ dEQP-GLES2.functional.clipping.triangle_vertex.clip_two.clip_neg_y_neg_z_and_neg
 
 # RGB/RGBA half float should be incomplete, tested as complete.
 dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgb_half_float_oes,Fail
-dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgba_half_float_oes,Fail
-
-dEQP-GLES2.functional.rasterization.interpolation.basic.line_loop_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.basic.line_strip_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.basic.lines_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.line_loop_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.line_strip_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.lines_wide,Fail
 
 dEQP-GLES2.functional.shaders.texture_functions.vertex.texturecubelod,Fail
 
@@ -90,11 +82,7 @@ spec@!opengl 1.1@read-front,Fail
 spec@!opengl 1.1@read-front clear-front-first,Fail
 spec@!opengl 1.1@windowoverlap,Fail
 
-# Regression from i965
-spec@!opengl 1.1@depthstencil-default_fb-blit,Fail
-
 spec@!opengl 1.1@line-aa-width,Fail
-spec@!opengl 1.1@line-flat-clip-color,Fail
 spec@!opengl 1.1@linestipple,Fail
 spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
@@ -105,11 +93,6 @@ spec@!opengl 1.1@linestipple@Line strip,Fail
 spec@!opengl 1.1@max-texture-size,Crash
 
 spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
-
-# Regression from i965
-# "Unexpected GL error: GL_INVALID_VALUE 0x501"
-spec@!opengl 2.0@max-samplers,Fail
-spec@!opengl 2.0@max-samplers border,Fail
 
 # Regression from i965
 # "data not copied"
@@ -146,8 +129,6 @@ spec@arb_texture_cube_map@copyteximage cube,Fail
 # 16-bit so that texture filtering worked, since GL 2.1 let you do that.
 # Crocus instead decided to follow r300 and other GL2 hardware in using the
 # requested size for storage even if the HW can't filter textures with it.
-spec@arb_texture_float@fbo-blending-formats,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE32F_ARB,Fail
 spec@arb_texture_rg@fbo-blending-formats-float,Fail
 spec@arb_texture_rg@fbo-blending-formats-float@GL_RG32F,Fail
 spec@arb_texture_float@texwrap formats bordercolor,Fail
@@ -258,7 +239,7 @@ spec@ext_texture_format_bgra8888@api-errors,Fail
 spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 
 # "Unexpected GL error: GL_INVALID_ENUM 0x500
-#  (Error at /home/anholt/src/piglit/tests/spec/khr_texture_compression_astc/khr_compressed_astc-basic.c:341)
+#  (Error at tests/spec/khr_texture_compression_astc/khr_compressed_astc-basic.c:349)
 #  Expected GL error: GL_INVALID_OPERATION 0x502"
 spec@khr_texture_compression_astc@basic-gles,Fail
 

@@ -41,7 +41,7 @@ struct ir3_shader_state;
 
 struct ir3_shader_variant *
 ir3_shader_variant(struct ir3_shader *shader, struct ir3_shader_key key,
-                   bool binning_pass, struct pipe_debug_callback *debug);
+                   bool binning_pass, struct util_debug_callback *debug);
 
 void *ir3_shader_compute_state_create(struct pipe_context *pctx,
                                       const struct pipe_compute_state *cso);

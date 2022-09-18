@@ -31,10 +31,10 @@ XkbComputeSectionBounds \- Update the bounding box of a section
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry that contains the section
 .TP
-.I \- section
+.I section
 section to be examined and updated
 .SH DESCRIPTION
 .LP

@@ -43,9 +43,9 @@ XDrawLines (
     LockDisplay(dpy);
     FlushGC(dpy, gc);
     GetReq (PolyLine, req);
-    req->drawable = d;
-    req->gc = gc->gid;
-    req->coordMode = mode;
+    req->drawable = (CARD32) d;
+    req->gc = (CARD32) gc->gid;
+    req->coordMode = (BYTE) mode;
     SetReqLen(req, npoints, 65535 - req->length);
     /* each point is 2 16-bit integers */
     length = npoints << 2;		/* watch out for macros... */

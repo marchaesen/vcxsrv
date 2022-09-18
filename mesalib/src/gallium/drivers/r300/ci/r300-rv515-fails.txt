@@ -17,10 +17,6 @@ dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgba_half_float
 dEQP-GLES2.functional.fbo.render.repeated_clear.tex2d_rgb,Fail
 dEQP-GLES2.functional.fbo.render.repeated_clear.tex2d_rgba,Fail
 
-dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_depth_funcs.stencil_never_depth_equal,Fail
-dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_depth_funcs.stencil_never_no_depth,Fail
-dEQP-GLES2.functional.fragment_ops.depth_stencil.write_mask.both,Fail
-
 dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.43,Fail
 dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.74,Fail
 
@@ -45,45 +41,11 @@ dEQP-GLES2.functional.rasterization.primitives.lines_wide,Fail
 dEQP-GLES2.functional.rasterization.primitives.line_strip_wide,Fail,Fail
 dEQP-GLES2.functional.rasterization.primitives.line_loop_wide,Fail
 
-dEQP-GLES2.functional.shaders.functions.control_flow.mixed_return_break_continue_vertex,Fail
-
-# "Rewrite of inst 0 failed Can't allocate source for Inst 4 src_type=1 new_index=1 new_mask=1"
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_write_component_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_write_direct_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_write_dynamic_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_write_static_loop_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_write_static_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_component_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_direct_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_dynamic_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_static_loop_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_static_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_component_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_direct_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_dynamic_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_static_loop_subscript_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_static_subscript_read_fragment,Fail
-
-dEQP-GLES2.functional.shaders.loops.do_while_constant_iterations.mixed_break_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.conditional_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.double_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.mixed_break_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.do_while_uniform_iterations.conditional_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.do_while_uniform_iterations.double_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.do_while_uniform_iterations.mixed_break_continue_vertex,Fail
-
-dEQP-GLES2.functional.shaders.loops.for_constant_iterations.mixed_break_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.for_dynamic_iterations.mixed_break_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.loops.for_uniform_iterations.mixed_break_continue_vertex,Fail
-
-dEQP-GLES2.functional.shaders.return.return_in_dynamic_loop_dynamic_vertex,Fail
+dEQP-GLES2.functional.shaders.indexing.tmp_array.float_dynamic_write_dynamic_loop_read_fragment,Fail
 
 dEQP-GLES2.functional.shaders.random.texture.fragment.141,Fail
 
 dEQP-GLES2.functional.shaders.return.return_in_dynamic_loop_dynamic_fragment,Fail
-
-dEQP-GLES2.functional.shaders.struct.local.dynamic_loop_nested_struct_array_fragment,Fail
-dEQP-GLES2.functional.shaders.struct.uniform.dynamic_loop_nested_struct_array_fragment,Fail
 
 dEQP-GLES2.functional.texture.format.a8_cube_npot,Fail
 dEQP-GLES2.functional.texture.format.l8_cube_npot,Fail
@@ -97,6 +59,7 @@ dEQP-GLES2.functional.texture.format.etc1_cube_npot,Fail
 
 dEQP-GLES2.functional.texture.mipmap.cube.basic.nearest_nearest,Fail
 dEQP-GLES2.functional.texture.mipmap.cube.basic.linear_nearest,Fail
+dEQP-GLES2.functional.texture.mipmap.cube.projected.linear_linear,Fail
 
 # Looks like minor sampling location errors for the NPOT case.
 dEQP-GLES2.functional.texture.size.cube.15x15_l8,Fail

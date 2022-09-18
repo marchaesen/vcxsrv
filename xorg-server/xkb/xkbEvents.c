@@ -39,7 +39,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "exglobals.h"
 #include "windowstr.h"
 #include <xkbsrv.h>
-#include "xkb.h"
 
 /***====================================================================***/
 

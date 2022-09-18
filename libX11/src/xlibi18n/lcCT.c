@@ -620,7 +620,7 @@ _XlcCheckCTSequence(
             return resOK;
         case XctExtSeg:
             if (tmp_ctext_len > 2
-                && (tmp_ctext[0] & 0x80) && (tmp_ctext[0] & 0x80)) {
+                && (tmp_ctext[0] & 0x80) && (tmp_ctext[1] & 0x80)) {
                 unsigned int msb = tmp_ctext[0] & 0x7f;
                 unsigned int lsb = tmp_ctext[1] & 0x7f;
                 ext_seg_left = (msb << 7) + lsb;

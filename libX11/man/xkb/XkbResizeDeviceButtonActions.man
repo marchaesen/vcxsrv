@@ -32,10 +32,10 @@ XkbResizeDeviceButtonActions \- Allocate additional space for button actions in 
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- device_info
+.I device_info
 structure in which to allocate button actions
 .TP
-.I \- new_total
+.I new_total
 new total number of button actions needed
 .SH DESCRIPTION
 .LP

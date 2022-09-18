@@ -30,6 +30,7 @@
 #include "radv_debug.h"
 #include "radv_private.h"
 #include "radv_shader.h"
+#include "aco_interface.h"
 
 struct cache_entry {
    union {
@@ -46,7 +47,7 @@ struct cache_entry {
 static void
 radv_pipeline_cache_lock(struct radv_pipeline_cache *cache)
 {
-   if (cache->flags & VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT)
+   if (cache->flags & VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT)
       return;
 
    mtx_lock(&cache->mutex);
@@ -55,10 +56,21 @@ radv_pipeline_cache_lock(struct radv_pipeline_cache *cache)
 static void
 radv_pipeline_cache_unlock(struct radv_pipeline_cache *cache)
 {
-   if (cache->flags & VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT)
+   if (cache->flags & VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT)
       return;
 
    mtx_unlock(&cache->mutex);
+}
+
+static bool
+radv_is_cache_disabled(struct radv_device *device)
+{
+   /* Pipeline caches can be disabled with RADV_DEBUG=nocache, with MESA_GLSL_CACHE_DISABLE=1 and
+    * when ACO_DEBUG is used. MESA_GLSL_CACHE_DISABLE is done elsewhere.
+    */
+   return (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
+          (device->instance->perftest_flags & RADV_PERFTEST_GPL) ||
+          (device->physical_device->use_llvm ? 0 : aco_get_codegen_flags());
 }
 
 void
@@ -80,7 +92,7 @@ radv_pipeline_cache_init(struct radv_pipeline_cache *cache, struct radv_device *
    /* We don't consider allocation failure fatal, we just start with a 0-sized
     * cache. Disable caching when we want to keep shader debug info, since
     * we don't get the debug info on cached shaders. */
-   if (cache->hash_table == NULL || (device->instance->debug_flags & RADV_DEBUG_NO_CACHE))
+   if (cache->hash_table == NULL || radv_is_cache_disabled(device))
       cache->table_size = 0;
    else
       memset(cache->hash_table, 0, byte_size);
@@ -93,7 +105,7 @@ radv_pipeline_cache_finish(struct radv_pipeline_cache *cache)
       if (cache->hash_table[i]) {
          for (int j = 0; j < MESA_VULKAN_SHADER_STAGES; ++j) {
             if (cache->hash_table[i]->shaders[j])
-               radv_shader_destroy(cache->device, cache->hash_table[i]->shaders[j]);
+               radv_shader_unref(cache->device, cache->hash_table[i]->shaders[j]);
          }
          if (cache->hash_table[i]->slab)
             radv_pipeline_slab_destroy(cache->device, cache->hash_table[i]->slab);
@@ -118,7 +130,7 @@ entry_size(struct cache_entry *entry)
 }
 
 void
-radv_hash_shaders(unsigned char *hash, const VkPipelineShaderStageCreateInfo **stages,
+radv_hash_shaders(unsigned char *hash, const struct radv_pipeline_stage *stages,
                   const struct radv_pipeline_layout *layout, const struct radv_pipeline_key *key,
                   uint32_t flags)
 {
@@ -130,19 +142,11 @@ radv_hash_shaders(unsigned char *hash, const VkPipelineShaderStageCreateInfo **s
    if (layout)
       _mesa_sha1_update(&ctx, layout->sha1, sizeof(layout->sha1));
 
-   for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i) {
-      if (stages[i]) {
-         RADV_FROM_HANDLE(vk_shader_module, module, stages[i]->module);
-         const VkSpecializationInfo *spec_info = stages[i]->pSpecializationInfo;
+   for (unsigned s = 0; s < MESA_VULKAN_SHADER_STAGES; s++) {
+      if (!stages[s].entrypoint)
+         continue;
 
-         _mesa_sha1_update(&ctx, module->sha1, sizeof(module->sha1));
-         _mesa_sha1_update(&ctx, stages[i]->pName, strlen(stages[i]->pName));
-         if (spec_info && spec_info->mapEntryCount) {
-            _mesa_sha1_update(&ctx, spec_info->pMapEntries,
-                              spec_info->mapEntryCount * sizeof spec_info->pMapEntries[0]);
-            _mesa_sha1_update(&ctx, spec_info->pData, spec_info->dataSize);
-         }
-      }
+      _mesa_sha1_update(&ctx, stages[s].shader_sha1, sizeof(stages[s].shader_sha1));
    }
    _mesa_sha1_update(&ctx, &flags, 4);
    _mesa_sha1_final(&ctx, hash);
@@ -163,7 +167,18 @@ radv_hash_rt_shaders(unsigned char *hash, const VkRayTracingPipelineCreateInfoKH
       RADV_FROM_HANDLE(vk_shader_module, module, pCreateInfo->pStages[i].module);
       const VkSpecializationInfo *spec_info = pCreateInfo->pStages[i].pSpecializationInfo;
 
-      _mesa_sha1_update(&ctx, module->sha1, sizeof(module->sha1));
+      const VkPipelineShaderStageModuleIdentifierCreateInfoEXT *iinfo =
+         vk_find_struct_const(pCreateInfo->pStages[i].pNext,
+               PIPELINE_SHADER_STAGE_MODULE_IDENTIFIER_CREATE_INFO_EXT);
+
+      if (module) {
+         _mesa_sha1_update(&ctx, module->sha1, sizeof(module->sha1));
+      } else {
+         assert(iinfo);
+         assert(iinfo->identifierSize <= VK_MAX_SHADER_MODULE_IDENTIFIER_SIZE_EXT);
+         _mesa_sha1_update(&ctx, iinfo->pIdentifier, iinfo->identifierSize);
+      }
+
       _mesa_sha1_update(&ctx, pCreateInfo->pStages[i].pName, strlen(pCreateInfo->pStages[i].pName));
       if (spec_info && spec_info->mapEntryCount) {
          _mesa_sha1_update(&ctx, spec_info->pMapEntries,
@@ -172,8 +187,18 @@ radv_hash_rt_shaders(unsigned char *hash, const VkRayTracingPipelineCreateInfoKH
       }
    }
 
-   _mesa_sha1_update(&ctx, pCreateInfo->pGroups,
-                     pCreateInfo->groupCount * sizeof(*pCreateInfo->pGroups));
+   for (uint32_t i = 0; i < pCreateInfo->groupCount; i++) {
+      _mesa_sha1_update(&ctx, &pCreateInfo->pGroups[i].type,
+                        sizeof(pCreateInfo->pGroups[i].type));
+      _mesa_sha1_update(&ctx, &pCreateInfo->pGroups[i].generalShader,
+                        sizeof(pCreateInfo->pGroups[i].generalShader));
+      _mesa_sha1_update(&ctx, &pCreateInfo->pGroups[i].anyHitShader,
+                        sizeof(pCreateInfo->pGroups[i].anyHitShader));
+      _mesa_sha1_update(&ctx, &pCreateInfo->pGroups[i].closestHitShader,
+                        sizeof(pCreateInfo->pGroups[i].closestHitShader));
+      _mesa_sha1_update(&ctx, &pCreateInfo->pGroups[i].intersectionShader,
+                        sizeof(pCreateInfo->pGroups[i].intersectionShader));
+   }
 
    if (!radv_rt_pipeline_has_dynamic_stack_size(pCreateInfo))
       _mesa_sha1_update(&ctx, &pCreateInfo->maxPipelineRayRecursionDepth, 4);
@@ -285,15 +310,6 @@ radv_pipeline_cache_add_entry(struct radv_pipeline_cache *cache, struct cache_en
       radv_pipeline_cache_set_entry(cache, entry);
 }
 
-static bool
-radv_is_cache_disabled(struct radv_device *device)
-{
-   /* Pipeline caches can be disabled with RADV_DEBUG=nocache, with
-    * MESA_GLSL_CACHE_DISABLE=1, and when VK_AMD_shader_info is requested.
-    */
-   return (device->instance->debug_flags & RADV_DEBUG_NO_CACHE);
-}
-
 bool
 radv_create_shaders_from_pipeline_cache(
    struct radv_device *device, struct radv_pipeline_cache *cache, const unsigned char *sha1,
@@ -351,8 +367,6 @@ radv_create_shaders_from_pipeline_cache(
       }
    }
 
-   struct radv_shader_binary *binaries[MESA_VULKAN_SHADER_STAGES] = {NULL};
-   struct radv_shader_binary *gs_copy_binary = NULL;
    bool needs_upload = false;
    char *p = entry->code;
    for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i) {
@@ -364,7 +378,6 @@ radv_create_shaders_from_pipeline_cache(
          entry->shaders[i] = radv_shader_create(device, binary, false, true, NULL);
 
          needs_upload = true;
-         binaries[i] = binary;
       } else if (entry->binary_sizes[i]) {
          p += entry->binary_sizes[i];
       }
@@ -377,17 +390,22 @@ radv_create_shaders_from_pipeline_cache(
       /* For the GS copy shader, RADV uses the compute shader slot to avoid a new cache entry. */
       pipeline->gs_copy_shader = pipeline->shaders[MESA_SHADER_COMPUTE];
       pipeline->shaders[MESA_SHADER_COMPUTE] = NULL;
-      gs_copy_binary = binaries[MESA_SHADER_COMPUTE];
    }
 
    if (needs_upload) {
-      result = radv_upload_shaders(device, pipeline, binaries, gs_copy_binary);
+      result = radv_upload_shaders(device, pipeline);
 
       for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i) {
-         if (pipeline->shaders[i])
-            free(binaries[i]);
+         if (pipeline->shaders[i]) {
+            free(pipeline->shaders[i]->binary);
+            pipeline->shaders[i]->binary = NULL;
+         }
       }
-      free(gs_copy_binary);
+
+      if (pipeline->gs_copy_shader) {
+         free(pipeline->gs_copy_shader->binary);
+         pipeline->gs_copy_shader->binary = NULL;
+      }
 
       if (result != VK_SUCCESS) {
          radv_pipeline_cache_unlock(cache);
@@ -397,6 +415,7 @@ radv_create_shaders_from_pipeline_cache(
       entry->slab = pipeline->slab;
    } else {
       pipeline->slab = entry->slab;
+      pipeline->slab_bo = pipeline->slab->alloc->arena->bo;
    }
 
    if (num_stack_sizes) {
@@ -416,7 +435,7 @@ radv_create_shaders_from_pipeline_cache(
    else {
       for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i)
          if (entry->shaders[i])
-            p_atomic_inc(&entry->shaders[i]->ref_count);
+            radv_shader_ref(entry->shaders[i]);
       p_atomic_inc(&entry->slab->ref_count);
    }
 
@@ -428,7 +447,6 @@ radv_create_shaders_from_pipeline_cache(
 void
 radv_pipeline_cache_insert_shaders(struct radv_device *device, struct radv_pipeline_cache *cache,
                                    const unsigned char *sha1, struct radv_pipeline *pipeline,
-                                   struct radv_shader_binary *const *binaries,
                                    const struct radv_pipeline_shader_stack_size *stack_sizes,
                                    uint32_t num_stack_sizes)
 {
@@ -442,10 +460,10 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device, struct radv_pipel
          if (!entry->shaders[i])
             continue;
 
-         radv_shader_destroy(cache->device, pipeline->shaders[i]);
+         radv_shader_unref(cache->device, pipeline->shaders[i]);
 
          pipeline->shaders[i] = entry->shaders[i];
-         p_atomic_inc(&pipeline->shaders[i]->ref_count);
+         radv_shader_ref(pipeline->shaders[i]);
       }
 
       radv_pipeline_slab_destroy(cache->device, pipeline->slab);
@@ -466,9 +484,14 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device, struct radv_pipel
    }
 
    size_t size = sizeof(*entry) + sizeof(*stack_sizes) * num_stack_sizes;
-   for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i)
-      if (pipeline->shaders[i])
-         size += binaries[i]->total_size;
+   for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i) {
+      struct radv_shader *shader = pipeline->shaders[i];
+      if (!shader)
+         continue;
+
+      size += shader->binary->total_size;
+   }
+
    const size_t size_without_align = size;
    size = align(size_without_align, alignof(struct cache_entry));
 
@@ -484,13 +507,15 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device, struct radv_pipel
    char *p = entry->code;
 
    for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i) {
-      if (!pipeline->shaders[i])
+      struct radv_shader *shader = pipeline->shaders[i];
+
+      if (!shader)
          continue;
 
-      entry->binary_sizes[i] = binaries[i]->total_size;
+      entry->binary_sizes[i] = shader->binary->total_size;
 
-      memcpy(p, binaries[i], binaries[i]->total_size);
-      p += binaries[i]->total_size;
+      memcpy(p, shader->binary, shader->binary->total_size);
+      p += shader->binary->total_size;
    }
 
    if (num_stack_sizes) {
@@ -532,7 +557,7 @@ radv_pipeline_cache_insert_shaders(struct radv_device *device, struct radv_pipel
          continue;
 
       entry->shaders[i] = pipeline->shaders[i];
-      p_atomic_inc(&pipeline->shaders[i]->ref_count);
+      radv_shader_ref(pipeline->shaders[i]);
    }
 
    entry->slab = pipeline->slab;

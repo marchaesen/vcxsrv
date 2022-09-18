@@ -32,13 +32,13 @@ XkbFreeGeomDoodads \- Free geometry doodads
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- doodads
+.I doodads
 doodads to be freed 
 .TP
-.I \- count
+.I count
 number of doodads to be freed
 .TP
-.I \- free_all
+.I free_all
 True => all doodads are freed
 .SH DESCRIPTION
 .LP

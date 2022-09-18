@@ -67,7 +67,7 @@ ac_is_thread_trace_complete(struct radeon_info *rad_info,
                             const struct ac_thread_trace_data *data,
                             const struct ac_thread_trace_info *info)
 {
-   if (rad_info->chip_class >= GFX10) {
+   if (rad_info->gfx_level >= GFX10) {
       /* GFX10 doesn't have THREAD_TRACE_CNTR but it reports the number of
        * dropped bytes per SE via THREAD_TRACE_DROPPED_CNTR. Though, this
        * doesn't seem reliable because it might still report non-zero even if
@@ -90,7 +90,7 @@ uint32_t
 ac_get_expected_buffer_size(struct radeon_info *rad_info,
                             const struct ac_thread_trace_info *info)
 {
-   if (rad_info->chip_class >= GFX10) {
+   if (rad_info->gfx_level >= GFX10) {
       uint32_t dropped_cntr_per_se = info->gfx10_dropped_cntr / rad_info->max_se;
       return ((info->cur_offset * 32) + dropped_cntr_per_se) / 1024;
    }

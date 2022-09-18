@@ -31,7 +31,7 @@ XkbSAPtrDfltValue \- Returns the valueXXX field of act converted to a signed int
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action from which to extract group
 .SH DESCRIPTION
 .LP

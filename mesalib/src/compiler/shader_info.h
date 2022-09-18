@@ -34,6 +34,7 @@
 extern "C" {
 #endif
 
+#define MAX_XFB_BUFFERS        4
 #define MAX_INLINABLE_UNIFORMS 4
 
 struct spirv_supported_capabilities {
@@ -71,7 +72,9 @@ struct spirv_supported_capabilities {
    bool kernel;
    bool kernel_image;
    bool kernel_image_read_write;
+   bool linkage;
    bool literal_sampler;
+   bool mesh_shading;
    bool mesh_shading_nv;
    bool min_lod;
    bool multiview;
@@ -79,6 +82,7 @@ struct spirv_supported_capabilities {
    bool physical_storage_buffer_address;
    bool post_depth_coverage;
    bool printf;
+   bool ray_cull_mask;
    bool ray_tracing;
    bool ray_query;
    bool ray_traversal_primitive_culling;
@@ -169,6 +173,9 @@ typedef struct shader_info {
    uint64_t per_primitive_inputs;
    uint64_t per_primitive_outputs;
 
+   /* Which I/O is per-view */
+   uint64_t per_view_outputs;
+
    /* Which 16-bit inputs and outputs are used corresponding to
     * VARYING_SLOT_VARn_16BIT.
     */
@@ -195,17 +202,20 @@ typedef struct shader_info {
    uint64_t patch_outputs_accessed_indirectly;
 
    /** Bitfield of which textures are used */
-   BITSET_DECLARE(textures_used, 32);
+   BITSET_DECLARE(textures_used, 128);
 
    /** Bitfield of which textures are used by texelFetch() */
-   BITSET_DECLARE(textures_used_by_txf, 32);
+   BITSET_DECLARE(textures_used_by_txf, 128);
+
+   /** Bitfield of which samplers are used */
+   BITSET_DECLARE(samplers_used, 32);
 
    /** Bitfield of which images are used */
-   uint32_t images_used;
+   BITSET_DECLARE(images_used, 64);
    /** Bitfield of which images are buffers. */
-   uint32_t image_buffers;
+   BITSET_DECLARE(image_buffers, 64);
    /** Bitfield of which images are MSAA. */
-   uint32_t msaa_images;
+   BITSET_DECLARE(msaa_images, 64);
 
    /* SPV_KHR_float_controls: execution mode for floating point ops */
    uint16_t float_controls_execution_mode;
@@ -214,6 +224,11 @@ typedef struct shader_info {
     * Size of shared variables accessed by compute/task/mesh shaders.
     */
    unsigned shared_size;
+
+   /**
+    * Size of task payload variables accessed by task/mesh shaders.
+    */
+   unsigned task_payload_size;
 
    /**
     * Number of ray tracing queries in the shader (counts all elements of all
@@ -225,6 +240,11 @@ typedef struct shader_info {
     * Local workgroup size used by compute/task/mesh shaders.
     */
    uint16_t workgroup_size[3];
+
+   enum gl_subgroup_size subgroup_size;
+
+   /* Transform feedback buffer strides in dwords, max. 1K - 4. */
+   uint8_t xfb_stride[MAX_XFB_BUFFERS];
 
    uint16_t inlinable_uniform_dw_offsets[MAX_INLINABLE_UNIFORMS];
    uint8_t num_inlinable_uniforms:4;
@@ -238,12 +258,18 @@ typedef struct shader_info {
    /* Whether or not this shader ever uses textureGather() */
    bool uses_texture_gather:1;
 
+   /* Whether texture size, levels, or samples is queried. */
+   bool uses_resource_info_query:1;
+
    /**
     * True if this shader uses the fddx/fddy opcodes.
     *
     * Note that this does not include the "fine" and "coarse" variants.
     */
    bool uses_fddx_fddy:1;
+
+   /** Has divergence analysis ever been run? */
+   bool divergence_analysis_run:1;
 
    /* Bitmask of bit-sizes used with ALU instructions. */
    uint8_t bit_sizes_float;
@@ -276,6 +302,9 @@ typedef struct shader_info {
    bool uses_control_barrier : 1;
    bool uses_memory_barrier : 1;
 
+   /* Whether ARB_bindless_texture ops or variables are used */
+   bool uses_bindless : 1;
+
    /**
     * Shared memory types have explicit layout set.  Used for
     * SPV_KHR_workgroup_storage_explicit_layout.
@@ -293,9 +322,28 @@ typedef struct shader_info {
    bool workgroup_size_variable:1;
 
    /**
-     * Is this an ARB assembly-style program.
+     * Set if this shader uses legacy (DX9 or ARB assembly) math rules.
+     *
+     * From the ARB_fragment_program specification:
+     *
+     *    "The following rules apply to multiplication:
+     *
+     *      1. <x> * <y> == <y> * <x>, for all <x> and <y>.
+     *      2. +/-0.0 * <x> = +/-0.0, at least for all <x> that correspond to
+     *         *representable numbers (IEEE "not a number" and "infinity"
+     *         *encodings may be exceptions).
+     *      3. +1.0 * <x> = <x>, for all <x>.""
+     *
+     * However, in effect this was due to DX9 semantics implying that 0*x=0 even
+     * for inf/nan if the hardware generated them instead of float_min/max.  So,
+     * you should not have an exception for inf/nan to rule 2 above.
+     *
+     * One implementation of this behavior would be to flush all generated NaNs
+     * to zero, at which point 0*Inf=Nan=0.  Most DX9/ARB-asm hardware did not
+     * generate NaNs, and the only way the GPU saw one was to possibly feed it
+     * in as a uniform.
      */
-   bool is_arb_asm;
+   bool use_legacy_math_rules;
 
    union {
       struct {
@@ -446,11 +494,6 @@ typedef struct shader_info {
          enum gl_derivative_group derivative_group:2;
 
          /**
-          * Explicit subgroup size if set by the shader, otherwise 0.
-          */
-         unsigned subgroup_size;
-
-         /**
           * pointer size is:
           *   AddressingModelLogical:    0    (default)
           *   AddressingModelPhysical32: 32
@@ -489,9 +532,17 @@ typedef struct shader_info {
 
       /* Applies to MESH. */
       struct {
+         /* Bit mask of MS outputs that are used
+          * with an index that is NOT the local invocation index.
+          */
+         uint64_t ms_cross_invocation_output_access;
+
          uint16_t max_vertices_out;
          uint16_t max_primitives_out;
          uint16_t primitive_type;  /* GL_POINTS, GL_LINES or GL_TRIANGLES. */
+
+         /* TODO: remove this when we stop supporting NV_mesh_shader. */
+         bool nv;
       } mesh;
    };
 } shader_info;

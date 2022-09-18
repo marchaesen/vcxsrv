@@ -235,6 +235,7 @@ xkb_symbols "das" {
 
     name[Group1]="Finnish (DAS)";
 
+    key <TLDE> { [  backslash,       dead_tilde                                                     ] };
     key <AE01> { [  1,               exclam,           section                                      ] };
     key <AE02> { [  2,               quotedbl,         twosuperior                                  ] };
     key <AE03> { [  3,               at,               sterling                                     ] };
@@ -272,9 +273,8 @@ xkb_symbols "das" {
     key <AC09> { [  o,               O                                                              ] };
     key <AC10> { [  e,               E                                                              ] };
     key <AC11> { [  c,               C                                                              ] };
-    key <TLDE> { [  backslash,       dead_tilde                                                     ] };
-
     key <BKSL> { [  asterisk,        slash                                                          ] };
+
     key <LSGT> { [  f,               F                                                              ] };
     key <AB01> { [  x,               X                                                              ] };
     key <AB02> { [  d,               D                                                              ] };
@@ -286,6 +286,7 @@ xkb_symbols "das" {
     key <AB08> { [  comma,           semicolon                                                      ] };
     key <AB09> { [  period,          colon                                                          ] };
     key <AB10> { [  minus,           underscore,       U2013,                 dead_macron           ] };
+
     key <SPCE> { [  space,           space,            space,                 nobreakspace          ] };
 
     include "kpdl(comma)"
@@ -346,7 +347,7 @@ xkb_symbols "fidvorak" {
 
     key <LSGT> { [  adiaeresis,      Adiaeresis,       ae,                    AE                    ] };
     key <AB01> { [  odiaeresis,      Odiaeresis,       dead_diaeresis,        dead_macron           ] };
-    key <AB02> { [  q,               Q,                ooblique,              Ooblique              ] };
+    key <AB02> { [  q,               Q,                oslash,                Oslash                ] };
     key <AB03> { [  j,               J                                                              ] };
     key <AB04> { [  k,               K,                kra                                          ] };
     key <AB05> { [  x,               X,                multiply,              periodcentered        ] };

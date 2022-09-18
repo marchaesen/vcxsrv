@@ -1009,7 +1009,7 @@ nine_allocator_create(struct NineDevice9 *device, int memfd_virtualsizelimit)
     allocator->device = device;
     allocator->page_size = sysconf(_SC_PAGESIZE);
     assert(allocator->page_size == 4 << 10);
-    allocator->num_fd_max = (memfd_virtualsizelimit >= 0) ? MIN2(128, ulimit(__UL_GETOPENMAX)) : 0;
+    allocator->num_fd_max = (memfd_virtualsizelimit >= 0) ? MIN2(128, sysconf(_SC_OPEN_MAX)) : 0;
     allocator->min_file_size = DIVUP(100 * (1 << 20), allocator->page_size) * allocator->page_size; /* 100MB files */
     allocator->total_allocations = 0;
     allocator->total_locked_memory = 0;

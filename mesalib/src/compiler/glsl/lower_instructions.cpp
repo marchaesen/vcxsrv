@@ -31,16 +31,9 @@
  *
  * Currently supported transformations:
  * - SUB_TO_ADD_NEG
- * - DIV_TO_MUL_RCP
- * - INT_DIV_TO_MUL_RCP
- * - EXP_TO_EXP2
- * - POW_TO_EXP2
- * - LOG_TO_LOG2
- * - MOD_TO_FLOOR
  * - LDEXP_TO_ARITH
  * - CARRY_TO_ARITH
  * - BORROW_TO_ARITH
- * - SAT_TO_CLAMP
  * - DOPS_TO_DFRAC
  *
  * SUB_TO_ADD_NEG:
@@ -52,44 +45,6 @@
  * For backends with native subtract operations, they will probably
  * want to recognize add(op0, neg(op1)) or the other way around to
  * produce a subtract anyway.
- *
- * FDIV_TO_MUL_RCP, DDIV_TO_MUL_RCP, and INT_DIV_TO_MUL_RCP:
- * ---------------------------------------------------------
- * Breaks an ir_binop_div expression down to op0 * (rcp(op1)).
- *
- * Many GPUs don't have a divide instruction (945 and 965 included),
- * but they do have an RCP instruction to compute an approximate
- * reciprocal.  By breaking the operation down, constant reciprocals
- * can get constant folded.
- *
- * FDIV_TO_MUL_RCP lowers single-precision and half-precision
- * floating point division;
- * DDIV_TO_MUL_RCP only lowers double-precision floating point division.
- * DIV_TO_MUL_RCP is a convenience macro that sets both flags.
- * INT_DIV_TO_MUL_RCP handles the integer case, converting to and from floating
- * point so that RCP is possible.
- *
- * EXP_TO_EXP2 and LOG_TO_LOG2:
- * ----------------------------
- * Many GPUs don't have a base e log or exponent instruction, but they
- * do have base 2 versions, so this pass converts exp and log to exp2
- * and log2 operations.
- *
- * POW_TO_EXP2:
- * -----------
- * Many older GPUs don't have an x**y instruction.  For these GPUs, convert
- * x**y to 2**(y * log2(x)).
- *
- * MOD_TO_FLOOR:
- * -------------
- * Breaks an ir_binop_mod expression down to (op0 - op1 * floor(op0 / op1))
- *
- * Many GPUs don't have a MOD instruction (945 and 965 included), and
- * if we have to break it down like this anyway, it gives an
- * opportunity to do things like constant fold the (1.0 / op1) easily.
- *
- * Note: before we used to implement this as op1 * fract(op / op1) but this
- * implementation had significant precision errors.
  *
  * LDEXP_TO_ARITH:
  * -------------
@@ -108,22 +63,19 @@
  * ----------------
  * Converts ir_borrow into (x < y).
  *
- * SAT_TO_CLAMP:
- * -------------
- * Converts ir_unop_saturate into min(max(x, 0.0), 1.0)
- *
  * DOPS_TO_DFRAC:
  * --------------
  * Converts double trunc, ceil, floor, round to fract
  */
 
-#include "c99_math.h"
 #include "program/prog_instruction.h" /* for swizzle */
 #include "compiler/glsl_types.h"
 #include "ir.h"
 #include "ir_builder.h"
 #include "ir_optimization.h"
 #include "util/half_float.h"
+
+#include <math.h>
 
 using namespace ir_builder;
 
@@ -142,19 +94,12 @@ private:
    unsigned lower; /** Bitfield of which operations to lower */
 
    void sub_to_add_neg(ir_expression *);
-   void div_to_mul_rcp(ir_expression *);
-   void int_div_to_mul_rcp(ir_expression *);
-   void mod_to_floor(ir_expression *);
-   void exp_to_exp2(ir_expression *);
-   void pow_to_exp2(ir_expression *);
-   void log_to_log2(ir_expression *);
    void ldexp_to_arith(ir_expression *);
    void dldexp_to_arith(ir_expression *);
    void dfrexp_sig_to_arith(ir_expression *);
    void dfrexp_exp_to_arith(ir_expression *);
    void carry_to_arith(ir_expression *);
    void borrow_to_arith(ir_expression *);
-   void sat_to_clamp(ir_expression *);
    void double_dot_to_fma(ir_expression *);
    void double_lrp(ir_expression *);
    void dceil_to_dfrac(ir_expression *);
@@ -170,7 +115,6 @@ private:
    void find_msb_to_float_cast(ir_expression *ir);
    void imul_high_to_mul(ir_expression *ir);
    void sqrt_to_abs_sqrt(ir_expression *ir);
-   void mul64_to_mul_and_mul_high(ir_expression *ir);
 
    ir_expression *_carry(operand a, operand b);
 
@@ -203,164 +147,6 @@ lower_instructions_visitor::sub_to_add_neg(ir_expression *ir)
    ir->init_num_operands();
    ir->operands[1] = new(ir) ir_expression(ir_unop_neg, ir->operands[1]->type,
 					   ir->operands[1], NULL);
-   this->progress = true;
-}
-
-void
-lower_instructions_visitor::div_to_mul_rcp(ir_expression *ir)
-{
-   assert(ir->operands[1]->type->is_float_16_32_64());
-
-   /* New expression for the 1.0 / op1 */
-   ir_rvalue *expr;
-   expr = new(ir) ir_expression(ir_unop_rcp,
-				ir->operands[1]->type,
-				ir->operands[1]);
-
-   /* op0 / op1 -> op0 * (1.0 / op1) */
-   ir->operation = ir_binop_mul;
-   ir->init_num_operands();
-   ir->operands[1] = expr;
-
-   this->progress = true;
-}
-
-void
-lower_instructions_visitor::int_div_to_mul_rcp(ir_expression *ir)
-{
-   assert(ir->operands[1]->type->is_integer_32());
-
-   /* Be careful with integer division -- we need to do it as a
-    * float and re-truncate, since rcp(n > 1) of an integer would
-    * just be 0.
-    */
-   ir_rvalue *op0, *op1;
-   const struct glsl_type *vec_type;
-
-   vec_type = glsl_type::get_instance(GLSL_TYPE_FLOAT,
-				      ir->operands[1]->type->vector_elements,
-				      ir->operands[1]->type->matrix_columns);
-
-   if (ir->operands[1]->type->base_type == GLSL_TYPE_INT)
-      op1 = new(ir) ir_expression(ir_unop_i2f, vec_type, ir->operands[1], NULL);
-   else
-      op1 = new(ir) ir_expression(ir_unop_u2f, vec_type, ir->operands[1], NULL);
-
-   op1 = new(ir) ir_expression(ir_unop_rcp, op1->type, op1, NULL);
-
-   vec_type = glsl_type::get_instance(GLSL_TYPE_FLOAT,
-				      ir->operands[0]->type->vector_elements,
-				      ir->operands[0]->type->matrix_columns);
-
-   if (ir->operands[0]->type->base_type == GLSL_TYPE_INT)
-      op0 = new(ir) ir_expression(ir_unop_i2f, vec_type, ir->operands[0], NULL);
-   else
-      op0 = new(ir) ir_expression(ir_unop_u2f, vec_type, ir->operands[0], NULL);
-
-   vec_type = glsl_type::get_instance(GLSL_TYPE_FLOAT,
-				      ir->type->vector_elements,
-				      ir->type->matrix_columns);
-
-   op0 = new(ir) ir_expression(ir_binop_mul, vec_type, op0, op1);
-
-   if (ir->operands[1]->type->base_type == GLSL_TYPE_INT) {
-      ir->operation = ir_unop_f2i;
-      ir->operands[0] = op0;
-   } else {
-      ir->operation = ir_unop_i2u;
-      ir->operands[0] = new(ir) ir_expression(ir_unop_f2i, op0);
-   }
-   ir->init_num_operands();
-   ir->operands[1] = NULL;
-
-   this->progress = true;
-}
-
-void
-lower_instructions_visitor::exp_to_exp2(ir_expression *ir)
-{
-   ir_constant *log2_e = _imm_fp(ir, ir->type, M_LOG2E);
-
-   ir->operation = ir_unop_exp2;
-   ir->init_num_operands();
-   ir->operands[0] = new(ir) ir_expression(ir_binop_mul, ir->operands[0]->type,
-					   ir->operands[0], log2_e);
-   this->progress = true;
-}
-
-void
-lower_instructions_visitor::pow_to_exp2(ir_expression *ir)
-{
-   ir_expression *const log2_x =
-      new(ir) ir_expression(ir_unop_log2, ir->operands[0]->type,
-			    ir->operands[0]);
-
-   ir->operation = ir_unop_exp2;
-   ir->init_num_operands();
-   ir->operands[0] = new(ir) ir_expression(ir_binop_mul, ir->operands[1]->type,
-					   ir->operands[1], log2_x);
-   ir->operands[1] = NULL;
-   this->progress = true;
-}
-
-void
-lower_instructions_visitor::log_to_log2(ir_expression *ir)
-{
-   ir->operation = ir_binop_mul;
-   ir->init_num_operands();
-   ir->operands[0] = new(ir) ir_expression(ir_unop_log2, ir->operands[0]->type,
-					   ir->operands[0], NULL);
-   ir->operands[1] = _imm_fp(ir, ir->operands[0]->type, 1.0 / M_LOG2E);
-   this->progress = true;
-}
-
-void
-lower_instructions_visitor::mod_to_floor(ir_expression *ir)
-{
-   ir_variable *x = new(ir) ir_variable(ir->operands[0]->type, "mod_x",
-                                         ir_var_temporary);
-   ir_variable *y = new(ir) ir_variable(ir->operands[1]->type, "mod_y",
-                                         ir_var_temporary);
-   this->base_ir->insert_before(x);
-   this->base_ir->insert_before(y);
-
-   ir_assignment *const assign_x =
-      new(ir) ir_assignment(new(ir) ir_dereference_variable(x),
-                            ir->operands[0]);
-   ir_assignment *const assign_y =
-      new(ir) ir_assignment(new(ir) ir_dereference_variable(y),
-                            ir->operands[1]);
-
-   this->base_ir->insert_before(assign_x);
-   this->base_ir->insert_before(assign_y);
-
-   ir_expression *const div_expr =
-      new(ir) ir_expression(ir_binop_div, x->type,
-                            new(ir) ir_dereference_variable(x),
-                            new(ir) ir_dereference_variable(y));
-
-   /* Don't generate new IR that would need to be lowered in an additional
-    * pass.
-    */
-   if ((lowering(FDIV_TO_MUL_RCP) && ir->type->is_float_16_32()) ||
-       (lowering(DDIV_TO_MUL_RCP) && ir->type->is_double()))
-      div_to_mul_rcp(div_expr);
-
-   ir_expression *const floor_expr =
-      new(ir) ir_expression(ir_unop_floor, x->type, div_expr);
-
-   if (lowering(DOPS_TO_DFRAC) && ir->type->is_double())
-      dfloor_to_dfrac(floor_expr);
-
-   ir_expression *const mul_expr =
-      new(ir) ir_expression(ir_binop_mul,
-                            new(ir) ir_dereference_variable(y),
-                            floor_expr);
-
-   ir->operation = ir_binop_sub;
-   ir->init_num_operands();
-   ir->operands[0] = new(ir) ir_dereference_variable(x);
-   ir->operands[1] = mul_expr;
    this->progress = true;
 }
 
@@ -828,26 +614,6 @@ lower_instructions_visitor::borrow_to_arith(ir_expression *ir)
    ir->init_num_operands();
    ir->operands[0] = b2i(less(ir->operands[0], ir->operands[1]));
    ir->operands[1] = NULL;
-
-   this->progress = true;
-}
-
-void
-lower_instructions_visitor::sat_to_clamp(ir_expression *ir)
-{
-   /* Translates
-    *   ir_unop_saturate x
-    * into
-    *   ir_binop_min (ir_binop_max(x, 0.0), 1.0)
-    */
-
-   ir->operation = ir_binop_min;
-   ir->init_num_operands();
-
-   ir_constant *zero = _imm_fp(ir, ir->operands[0]->type, 0.0);
-   ir->operands[0] = new(ir) ir_expression(ir_binop_max, ir->operands[0]->type,
-                                           ir->operands[0], zero);
-   ir->operands[1] = _imm_fp(ir, ir->operands[0]->type, 1.0);
 
    this->progress = true;
 }
@@ -1522,25 +1288,6 @@ lower_instructions_visitor::_carry(operand a, operand b)
       return carry(a, b);
 }
 
-ir_constant *
-lower_instructions_visitor::_imm_fp(void *mem_ctx,
-                                    const glsl_type *type,
-                                    double f,
-                                    unsigned vector_elements)
-{
-   switch (type->base_type) {
-   case GLSL_TYPE_FLOAT:
-      return new(mem_ctx) ir_constant((float) f, vector_elements);
-   case GLSL_TYPE_DOUBLE:
-      return new(mem_ctx) ir_constant((double) f, vector_elements);
-   case GLSL_TYPE_FLOAT16:
-      return new(mem_ctx) ir_constant(float16_t(f), vector_elements);
-   default:
-      assert(!"unknown float type for immediate");
-      return NULL;
-   }
-}
-
 void
 lower_instructions_visitor::imul_high_to_mul(ir_expression *ir)
 {
@@ -1693,66 +1440,6 @@ lower_instructions_visitor::sqrt_to_abs_sqrt(ir_expression *ir)
    this->progress = true;
 }
 
-void
-lower_instructions_visitor::mul64_to_mul_and_mul_high(ir_expression *ir)
-{
-   /* Lower 32x32-> 64 to
-    *    msb = imul_high(x_lo, y_lo)
-    *    lsb = mul(x_lo, y_lo)
-    */
-   const unsigned elements = ir->operands[0]->type->vector_elements;
-
-   const ir_expression_operation operation =
-      ir->type->base_type == GLSL_TYPE_UINT64 ? ir_unop_pack_uint_2x32
-                                              : ir_unop_pack_int_2x32;
-
-   const glsl_type *var_type = ir->type->base_type == GLSL_TYPE_UINT64
-                               ? glsl_type::uvec(elements)
-                               : glsl_type::ivec(elements);
-
-   const glsl_type *ret_type = ir->type->base_type == GLSL_TYPE_UINT64
-                               ? glsl_type::uvec2_type
-                               : glsl_type::ivec2_type;
-
-   ir_instruction &i = *base_ir;
-
-   ir_variable *msb =
-      new(ir) ir_variable(var_type, "msb", ir_var_temporary);
-   ir_variable *lsb =
-      new(ir) ir_variable(var_type, "lsb", ir_var_temporary);
-   ir_variable *x =
-      new(ir) ir_variable(var_type, "x", ir_var_temporary);
-   ir_variable *y =
-      new(ir) ir_variable(var_type, "y", ir_var_temporary);
-
-   i.insert_before(x);
-   i.insert_before(assign(x, ir->operands[0]));
-   i.insert_before(y);
-   i.insert_before(assign(y, ir->operands[1]));
-   i.insert_before(msb);
-   i.insert_before(lsb);
-
-   i.insert_before(assign(msb, imul_high(x, y)));
-   i.insert_before(assign(lsb, mul(x, y)));
-
-   ir_rvalue *result[4] = {NULL};
-   for (unsigned elem = 0; elem < elements; elem++) {
-      ir_rvalue *val = new(ir) ir_expression(ir_quadop_vector, ret_type,
-                                             swizzle(lsb, elem, 1),
-                                             swizzle(msb, elem, 1), NULL, NULL);
-      result[elem] = expr(operation, val);
-   }
-
-   ir->operation = ir_quadop_vector;
-   ir->init_num_operands();
-   ir->operands[0] = result[0];
-   ir->operands[1] = result[1];
-   ir->operands[2] = result[2];
-   ir->operands[3] = result[3];
-
-   this->progress = true;
-}
-
 ir_visitor_status
 lower_instructions_visitor::visit_leave(ir_expression *ir)
 {
@@ -1768,34 +1455,6 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
    case ir_binop_sub:
       if (lowering(SUB_TO_ADD_NEG))
 	 sub_to_add_neg(ir);
-      break;
-
-   case ir_binop_div:
-      if (ir->operands[1]->type->is_integer_32() && lowering(INT_DIV_TO_MUL_RCP))
-	 int_div_to_mul_rcp(ir);
-      else if ((ir->operands[1]->type->is_float_16_32() && lowering(FDIV_TO_MUL_RCP)) ||
-               (ir->operands[1]->type->is_double() && lowering(DDIV_TO_MUL_RCP)))
-	 div_to_mul_rcp(ir);
-      break;
-
-   case ir_unop_exp:
-      if (lowering(EXP_TO_EXP2))
-	 exp_to_exp2(ir);
-      break;
-
-   case ir_unop_log:
-      if (lowering(LOG_TO_LOG2))
-	 log_to_log2(ir);
-      break;
-
-   case ir_binop_mod:
-      if (lowering(MOD_TO_FLOOR) && ir->type->is_float_16_32_64())
-	 mod_to_floor(ir);
-      break;
-
-   case ir_binop_pow:
-      if (lowering(POW_TO_EXP2))
-	 pow_to_exp2(ir);
       break;
 
    case ir_binop_ldexp:
@@ -1823,11 +1482,6 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
    case ir_binop_borrow:
       if (lowering(BORROW_TO_ARITH))
          borrow_to_arith(ir);
-      break;
-
-   case ir_unop_saturate:
-      if (lowering(SAT_TO_CLAMP))
-         sat_to_clamp(ir);
       break;
 
    case ir_unop_trunc:
@@ -1888,15 +1542,6 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
    case ir_binop_imul_high:
       if (lowering(IMUL_HIGH_TO_MUL))
          imul_high_to_mul(ir);
-      break;
-
-   case ir_binop_mul:
-      if (lowering(MUL64_TO_MUL_AND_MUL_HIGH) &&
-          (ir->type->base_type == GLSL_TYPE_INT64 ||
-           ir->type->base_type == GLSL_TYPE_UINT64) &&
-          (ir->operands[0]->type->base_type == GLSL_TYPE_INT ||
-           ir->operands[1]->type->base_type == GLSL_TYPE_UINT))
-         mul64_to_mul_and_mul_high(ir);
       break;
 
    case ir_unop_rsq:

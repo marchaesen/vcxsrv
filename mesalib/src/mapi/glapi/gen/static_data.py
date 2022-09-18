@@ -1691,10 +1691,10 @@ offsets = {
     "VertexAttribs4hvNV": 1655,
     "TexPageCommitmentARB": 1656,
     "TexturePageCommitmentEXT": 1657,
-    "RenderLarge": 1658,
-    "CreateContext": 1659,
-    "DestroyContext": 1660,
-    "MakeCurrent": 1661,
+    "ImportMemoryWin32HandleEXT": 1658,
+    "ImportSemaphoreWin32HandleEXT": 1659,
+    "ImportMemoryWin32NameEXT": 1660,
+    "ImportSemaphoreWin32NameEXT": 1661,
     "IsDirect": 1662,
     "QueryVersion": 1663,
     "WaitGL": 1664,
@@ -1739,6 +1739,10 @@ offsets = {
     "SetClientInfo2ARB": 1703,
     "GetVisualConfigs": 1704,
     "Render": 1705,
+    "RenderLarge": 1706,
+    "CreateContext": 1707,
+    "DestroyContext": 1708,
+    "MakeCurrent": 1709,
 }
 
 functions = [

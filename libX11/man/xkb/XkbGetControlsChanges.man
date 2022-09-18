@@ -34,13 +34,13 @@ XkbGetControlsChanges
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- xkb
+.I xkb
 xkb->ctrls will be updated
 .TP
-.I \- changes
+.I changes
 indicates which parts of xkb->ctrls to update
 .SH DESCRIPTION
 .LP

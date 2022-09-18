@@ -34,6 +34,7 @@
 #include "tr_dump.h"
 #include "tr_dump_defines.h"
 #include "tr_dump_state.h"
+#include "tr_util.h"
 
 
 void trace_dump_resource_template(const struct pipe_resource *templat)
@@ -48,7 +49,10 @@ void trace_dump_resource_template(const struct pipe_resource *templat)
 
    trace_dump_struct_begin("pipe_resource");
 
-   trace_dump_member(int, templat, target);
+   trace_dump_member_begin("target");
+   trace_dump_enum(tr_util_pipe_texture_target_name(templat->target));
+   trace_dump_member_end();
+
    trace_dump_member(format, templat, format);
 
    trace_dump_member_begin("width");
@@ -132,6 +136,8 @@ void trace_dump_rasterizer_state(const struct pipe_rasterizer_state *state)
    trace_dump_member(bool, state, point_quad_rasterization);
    trace_dump_member(bool, state, point_size_per_vertex);
    trace_dump_member(bool, state, multisample);
+   trace_dump_member(bool, state, no_ms_sample_mask_out);
+   trace_dump_member(bool, state, force_persample_interp);
    trace_dump_member(bool, state, line_smooth);
    trace_dump_member(bool, state, line_stipple_enable);
    trace_dump_member(bool, state, line_last_pixel);
@@ -270,11 +276,21 @@ void trace_dump_shader_state(const struct pipe_shader_state *state)
 
    trace_dump_struct_begin("pipe_shader_state");
 
+   trace_dump_member(uint, state, type);
+
    trace_dump_member_begin("tokens");
    if (state->tokens) {
       static char str[64 * 1024];
       tgsi_dump_str(state->tokens, 0, str, sizeof(str));
       trace_dump_string(str);
+   } else {
+      trace_dump_null();
+   }
+   trace_dump_member_end();
+
+   trace_dump_member_begin("ir");
+   if (state->type == PIPE_SHADER_IR_NIR) {
+      trace_dump_nir(state->ir.nir);
    } else {
       trace_dump_null();
    }
@@ -533,13 +549,13 @@ void trace_dump_sampler_state(const struct pipe_sampler_state *state)
    trace_dump_member(float, state, min_lod);
    trace_dump_member(float, state, max_lod);
    trace_dump_member_array(float, state, border_color.f);
+   trace_dump_member(format, state, border_color_format);
 
    trace_dump_struct_end();
 }
 
 
-void trace_dump_sampler_view_template(const struct pipe_sampler_view *state,
-                                      enum pipe_texture_target target)
+void trace_dump_sampler_view_template(const struct pipe_sampler_view *state)
 {
    if (!trace_dumping_enabled_locked())
       return;
@@ -552,11 +568,16 @@ void trace_dump_sampler_view_template(const struct pipe_sampler_view *state,
    trace_dump_struct_begin("pipe_sampler_view");
 
    trace_dump_member(format, state, format);
+
+   trace_dump_member_begin("target");
+   trace_dump_enum(tr_util_pipe_texture_target_name(state->target));
+   trace_dump_member_end();
+
    trace_dump_member(ptr, state, texture);
 
    trace_dump_member_begin("u");
    trace_dump_struct_begin(""); /* anonymous */
-   if (target == PIPE_BUFFER) {
+   if (state->target == PIPE_BUFFER) {
       trace_dump_member_begin("buf");
       trace_dump_struct_begin(""); /* anonymous */
       trace_dump_member(uint, &state->u.buf, offset);
@@ -608,6 +629,10 @@ void trace_dump_surface_template(const struct pipe_surface *state,
    trace_dump_member(ptr, state, texture);
    trace_dump_member(uint, state, width);
    trace_dump_member(uint, state, height);
+
+   trace_dump_member_begin("target");
+   trace_dump_enum(tr_util_pipe_texture_target_name(target));
+   trace_dump_member_end();
 
    trace_dump_member_begin("u");
    trace_dump_struct_begin(""); /* anonymous */
@@ -758,7 +783,7 @@ void trace_dump_image_view(const struct pipe_image_view *state)
 
    trace_dump_struct_begin("pipe_image_view");
    trace_dump_member(ptr, state, resource);
-   trace_dump_member(uint, state, format);
+   trace_dump_member(format, state, format);
    trace_dump_member(uint, state, access);
 
    trace_dump_member_begin("u");

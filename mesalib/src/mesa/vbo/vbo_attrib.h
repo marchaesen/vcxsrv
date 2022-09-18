@@ -96,6 +96,9 @@ enum vbo_attrib {
    VBO_ATTRIB_MAT_FRONT_INDEXES,
    VBO_ATTRIB_MAT_BACK_INDEXES,
 
+   /* Offset into HW GL_SELECT result buffer. */
+   VBO_ATTRIB_SELECT_RESULT_OFFSET,
+
    VBO_ATTRIB_MAX
 };
 

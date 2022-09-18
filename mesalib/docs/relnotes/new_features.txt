@@ -1,1 +1,8 @@
-d3d12 GL4.2
+GL_ARB_shader_clock on llvmpipe
+VK_KHR_shader_clock on lavapipe
+Mesa-DB, the new single file cache type
+VK_EXT_attachment_feedback_loop_layout on RADV, lavapipe
+VK_KHR_global_priority on RADV
+GL_KHR_blend_equation_advanced_coherent on zink
+VK_EXT_load_store_op_none on RADV
+VK_EXT_mutable_descriptor_type on RADV

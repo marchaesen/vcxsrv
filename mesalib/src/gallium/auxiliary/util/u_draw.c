@@ -150,20 +150,22 @@ util_draw_indirect_read(struct pipe_context *pipe,
          debug_printf("%s: failed to map indirect draw count buffer\n", __FUNCTION__);
          return NULL;
       }
-      if (dc_param[0] < draw_count)
-         draw_count = dc_param[0];
+      draw_count = dc_param[0];
       pipe_buffer_unmap(pipe, dc_transfer);
+   }
+   if (!draw_count) {
+      *num_draws = draw_count;
+      return NULL;
    }
    draws = malloc(sizeof(struct u_indirect_params) * draw_count);
    if (!draws)
       return NULL;
 
-   if (indirect->stride)
-      num_params = MIN2(indirect->stride / 4, num_params);
+   unsigned map_size = (draw_count - 1) * indirect->stride + (num_params * sizeof(uint32_t));
    params = pipe_buffer_map_range(pipe,
                                   indirect->buffer,
                                   indirect->offset,
-                                  (num_params * indirect->draw_count) * sizeof(uint32_t),
+                                  map_size,
                                   PIPE_MAP_READ,
                                   &transfer);
    if (!transfer) {

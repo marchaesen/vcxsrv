@@ -160,8 +160,7 @@ ir_structure_reference_visitor::visit_enter(ir_assignment *ir)
       return visit_continue_with_parent;
 
    if (ir->lhs->as_dereference_variable() &&
-       ir->rhs->as_dereference_variable() &&
-       !ir->condition) {
+       ir->rhs->as_dereference_variable()) {
       /* We'll split copies of a structure to copies of components, so don't
        * descend to the ir_dereference_variables.
        */
@@ -264,7 +263,7 @@ ir_structure_splitting_visitor::visit_leave(ir_assignment *ir)
    variable_entry *rhs_entry = rhs_deref ? get_splitting_entry(rhs_deref->var) : NULL;
    const glsl_type *type = ir->rhs->type;
 
-   if ((lhs_entry || rhs_entry) && !ir->condition) {
+   if (lhs_entry || rhs_entry) {
       for (unsigned int i = 0; i < type->length; i++) {
 	 ir_dereference *new_lhs, *new_rhs;
 	 void *mem_ctx = lhs_entry ? lhs_entry->mem_ctx : rhs_entry->mem_ctx;
@@ -292,8 +291,6 @@ ir_structure_splitting_visitor::visit_leave(ir_assignment *ir)
       handle_rvalue(&ir->rhs);
       split_deref(&ir->lhs);
    }
-
-   handle_rvalue(&ir->condition);
 
    return visit_continue;
 }

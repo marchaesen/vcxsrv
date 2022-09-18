@@ -52,10 +52,10 @@
 #include "util/u_memory.h"
 #include "api_exec_decl.h"
 
+#include "state_tracker/st_context.h"
 #include "state_tracker/st_cb_texture.h"
 #include "state_tracker/st_cb_bitmap.h"
-
-#define USE_BITMAP_ATLAS 1
+#include "state_tracker/st_sampler_view.h"
 
 static bool
 _mesa_glthread_should_execute_list(struct gl_context *ctx,
@@ -803,271 +803,6 @@ Node *get_list_head(struct gl_context *ctx, struct gl_display_list *dlist)
 
 
 /**
- * Does the given display list only contain a single glBitmap call?
- */
-static bool
-is_bitmap_list(struct gl_context *ctx, struct gl_display_list *dlist)
-{
-   Node *n = get_list_head(ctx, dlist);
-   if (n[0].opcode == OPCODE_BITMAP) {
-      n += n[0].InstSize;
-      if (n[0].opcode == OPCODE_END_OF_LIST)
-         return true;
-   }
-   return false;
-}
-
-
-/**
- * Is the given display list an empty list?
- */
-static bool
-is_empty_list(struct gl_context *ctx, struct gl_display_list *dlist)
-{
-   Node *n = get_list_head(ctx, dlist);
-   return n[0].opcode == OPCODE_END_OF_LIST;
-}
-
-
-/**
- * Delete/free a gl_bitmap_atlas.  Called during context tear-down.
- */
-void
-_mesa_delete_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas)
-{
-   if (atlas->texObj) {
-      _mesa_delete_texture_object(ctx, atlas->texObj);
-   }
-   free(atlas->glyphs);
-   free(atlas);
-}
-
-
-/**
- * Lookup a gl_bitmap_atlas by listBase ID.
- */
-static struct gl_bitmap_atlas *
-lookup_bitmap_atlas(struct gl_context *ctx, GLuint listBase)
-{
-   struct gl_bitmap_atlas *atlas;
-
-   assert(listBase > 0);
-   atlas = _mesa_HashLookup(ctx->Shared->BitmapAtlas, listBase);
-   return atlas;
-}
-
-
-/**
- * Create new bitmap atlas and insert into hash table.
- */
-static struct gl_bitmap_atlas *
-alloc_bitmap_atlas(struct gl_context *ctx, GLuint listBase, bool isGenName)
-{
-   struct gl_bitmap_atlas *atlas;
-
-   assert(listBase > 0);
-   assert(_mesa_HashLookup(ctx->Shared->BitmapAtlas, listBase) == NULL);
-
-   atlas = calloc(1, sizeof(*atlas));
-   if (atlas) {
-      _mesa_HashInsert(ctx->Shared->BitmapAtlas, listBase, atlas, isGenName);
-      atlas->Id = listBase;
-   }
-
-   return atlas;
-}
-
-
-/**
- * Try to build a bitmap atlas.  This involves examining a sequence of
- * display lists which contain glBitmap commands and putting the bitmap
- * images into a texture map (the atlas).
- * If we succeed, gl_bitmap_atlas::complete will be set to true.
- * If we fail, gl_bitmap_atlas::incomplete will be set to true.
- */
-static void
-build_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas,
-                   GLuint listBase)
-{
-   unsigned i, row_height = 0, xpos = 0, ypos = 0;
-   GLubyte *map;
-   GLint map_stride;
-
-   assert(atlas);
-   assert(!atlas->complete);
-   assert(atlas->numBitmaps > 0);
-
-   /* We use a rectangle texture (non-normalized coords) for the atlas */
-   assert(ctx->Extensions.NV_texture_rectangle);
-   assert(ctx->Const.MaxTextureRectSize >= 1024);
-
-   atlas->texWidth = 1024;
-   atlas->texHeight = 0;  /* determined below */
-
-   atlas->glyphs = malloc(atlas->numBitmaps * sizeof(atlas->glyphs[0]));
-   if (!atlas->glyphs) {
-      /* give up */
-      atlas->incomplete = true;
-      return;
-   }
-
-   /* Loop over the display lists.  They should all contain a single glBitmap
-    * call.  If not, bail out.  Also, compute the position and sizes of each
-    * bitmap in the atlas to determine the texture atlas size.
-    */
-   for (i = 0; i < atlas->numBitmaps; i++) {
-      struct gl_display_list *list = _mesa_lookup_list(ctx, listBase + i, true);
-      const Node *n;
-      struct gl_bitmap_glyph *g = &atlas->glyphs[i];
-      unsigned bitmap_width, bitmap_height;
-      float bitmap_xmove, bitmap_ymove, bitmap_xorig, bitmap_yorig;
-
-      if (!list || is_empty_list(ctx, list)) {
-         /* stop here */
-         atlas->numBitmaps = i;
-         break;
-      }
-
-      if (!is_bitmap_list(ctx, list)) {
-         /* This list does not contain exactly one glBitmap command. Give up. */
-         atlas->incomplete = true;
-         return;
-      }
-
-      /* get bitmap info from the display list command */
-      n = get_list_head(ctx, list);
-      assert(n[0].opcode == OPCODE_BITMAP);
-      bitmap_width = n[1].i;
-      bitmap_height = n[2].i;
-      bitmap_xorig = n[3].f;
-      bitmap_yorig = n[4].f;
-      bitmap_xmove = n[5].f;
-      bitmap_ymove = n[6].f;
-
-      if (xpos + bitmap_width > atlas->texWidth) {
-         /* advance to the next row of the texture */
-         xpos = 0;
-         ypos += row_height;
-         row_height = 0;
-      }
-
-      /* save the bitmap's position in the atlas */
-      g->x = xpos;
-      g->y = ypos;
-      g->w = bitmap_width;
-      g->h = bitmap_height;
-      g->xorig = bitmap_xorig;
-      g->yorig = bitmap_yorig;
-      g->xmove = bitmap_xmove;
-      g->ymove = bitmap_ymove;
-
-      xpos += bitmap_width;
-
-      /* keep track of tallest bitmap in the row */
-      row_height = MAX2(row_height, bitmap_height);
-   }
-
-   /* Now we know the texture height */
-   atlas->texHeight = ypos + row_height;
-
-   if (atlas->texHeight == 0) {
-      /* no glyphs found, give up */
-      goto fail;
-   }
-   else if (atlas->texHeight > ctx->Const.MaxTextureRectSize) {
-      /* too large, give up */
-      goto fail;
-   }
-
-   /* Create atlas texture (texture ID is irrelevant) */
-   atlas->texObj = _mesa_new_texture_object(ctx, 999, GL_TEXTURE_RECTANGLE);
-   if (!atlas->texObj) {
-      goto out_of_memory;
-   }
-
-   atlas->texObj->Sampler.Attrib.MinFilter = GL_NEAREST;
-   atlas->texObj->Sampler.Attrib.MagFilter = GL_NEAREST;
-   atlas->texObj->Sampler.Attrib.state.min_img_filter = PIPE_TEX_FILTER_NEAREST;
-   atlas->texObj->Sampler.Attrib.state.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
-   atlas->texObj->Sampler.Attrib.state.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
-   atlas->texObj->Attrib.MaxLevel = 0;
-   atlas->texObj->Immutable = GL_TRUE;
-
-   atlas->texImage = _mesa_get_tex_image(ctx, atlas->texObj,
-                                         GL_TEXTURE_RECTANGLE, 0);
-   if (!atlas->texImage) {
-      goto out_of_memory;
-   }
-
-   if (ctx->Const.BitmapUsesRed)
-      _mesa_init_teximage_fields(ctx, atlas->texImage,
-                                 atlas->texWidth, atlas->texHeight, 1, 0,
-                                 GL_RED, MESA_FORMAT_R_UNORM8);
-   else
-      _mesa_init_teximage_fields(ctx, atlas->texImage,
-                                 atlas->texWidth, atlas->texHeight, 1, 0,
-                                 GL_ALPHA, MESA_FORMAT_A_UNORM8);
-
-   /* alloc image storage */
-   if (!st_AllocTextureImageBuffer(ctx, atlas->texImage)) {
-      goto out_of_memory;
-   }
-
-   /* map teximage, load with bitmap glyphs */
-   st_MapTextureImage(ctx, atlas->texImage, 0,
-                      0, 0, atlas->texWidth, atlas->texHeight,
-                      GL_MAP_WRITE_BIT, &map, &map_stride);
-   if (!map) {
-      goto out_of_memory;
-   }
-
-   /* Background/clear pixels are 0xff, foreground/set pixels are 0x0 */
-   memset(map, 0xff, map_stride * atlas->texHeight);
-
-   for (i = 0; i < atlas->numBitmaps; i++) {
-      struct gl_display_list *list = _mesa_lookup_list(ctx, listBase + i, true);
-      const Node *n = get_list_head(ctx, list);
-
-      assert(n[0].opcode == OPCODE_BITMAP ||
-             n[0].opcode == OPCODE_END_OF_LIST);
-
-      if (n[0].opcode == OPCODE_BITMAP) {
-         unsigned bitmap_width = n[1].i;
-         unsigned bitmap_height = n[2].i;
-         unsigned xpos = atlas->glyphs[i].x;
-         unsigned ypos = atlas->glyphs[i].y;
-         const void *bitmap_image = get_pointer(&n[7]);
-
-         assert(atlas->glyphs[i].w == bitmap_width);
-         assert(atlas->glyphs[i].h == bitmap_height);
-
-         /* put the bitmap image into the texture image */
-         _mesa_expand_bitmap(bitmap_width, bitmap_height,
-                             &ctx->DefaultPacking, bitmap_image,
-                             map + map_stride * ypos + xpos, /* dest addr */
-                             map_stride, 0x0);
-      }
-   }
-
-   st_UnmapTextureImage(ctx, atlas->texImage, 0);
-
-   atlas->complete = true;
-
-   return;
-
-out_of_memory:
-   _mesa_error(ctx, GL_OUT_OF_MEMORY, "Display list bitmap atlas");
-fail:
-   if (atlas->texObj) {
-      _mesa_delete_texture_object(ctx, atlas->texObj);
-   }
-   free(atlas->glyphs);
-   atlas->glyphs = NULL;
-   atlas->incomplete = true;
-}
-
-
-/**
  * Allocate a gl_display_list object with an initial block of storage.
  * \param count  how many display list nodes/tokens to allocate
  */
@@ -1127,9 +862,11 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          case OPCODE_DRAW_PIXELS:
             free(get_pointer(&n[5]));
             break;
-         case OPCODE_BITMAP:
-            free(get_pointer(&n[7]));
+         case OPCODE_BITMAP: {
+            struct pipe_resource *tex = get_pointer(&n[7]);
+            pipe_resource_reference(&tex, NULL);
             break;
+         }
          case OPCODE_POLYGON_STIPPLE:
             free(get_pointer(&n[1]));
             break;
@@ -1355,31 +1092,6 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
 
 
 /**
- * Called by _mesa_HashWalk() to check if a display list which is being
- * deleted belongs to a bitmap texture atlas.
- */
-static void
-check_atlas_for_deleted_list(void *data, void *userData)
-{
-   struct gl_bitmap_atlas *atlas = (struct gl_bitmap_atlas *) data;
-   GLuint list_id = *((GLuint *) userData);  /* the list being deleted */
-   const GLuint atlas_id = atlas->Id;
-
-   /* See if the list_id falls in the range contained in this texture atlas */
-   if (atlas->complete &&
-       list_id >= atlas_id &&
-       list_id < atlas_id + atlas->numBitmaps) {
-      /* Mark the atlas as incomplete so it doesn't get used.  But don't
-       * delete it yet since we don't want to try to recreate it in the next
-       * glCallLists.
-       */
-      atlas->complete = false;
-      atlas->incomplete = true;
-   }
-}
-
-
-/**
  * Destroy a display list and remove from hash table.
  * \param list - display list number
  */
@@ -1394,16 +1106,6 @@ destroy_list(struct gl_context *ctx, GLuint list)
    dlist = _mesa_lookup_list(ctx, list, true);
    if (!dlist)
       return;
-
-   if (is_bitmap_list(ctx, dlist)) {
-      /* If we're destroying a simple glBitmap display list, there's a
-       * chance that we're destroying a bitmap image that's in a texture
-       * atlas.  Examine all atlases to see if that's the case.  There's
-       * usually few (if any) atlases so this isn't expensive.
-       */
-      _mesa_HashWalk(ctx->Shared->BitmapAtlas,
-                     check_atlas_for_deleted_list, &list);
-   }
 
    _mesa_delete_list(ctx, dlist);
    _mesa_HashRemoveLocked(ctx->Shared->DisplayList, list);
@@ -1638,21 +1340,32 @@ save_Bitmap(GLsizei width, GLsizei height,
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   n = alloc_instruction(ctx, OPCODE_BITMAP, 6 + POINTER_DWORDS);
-   if (n) {
-      n[1].i = (GLint) width;
-      n[2].i = (GLint) height;
-      n[3].f = xorig;
-      n[4].f = yorig;
-      n[5].f = xmove;
-      n[6].f = ymove;
-      save_pointer(&n[7],
-                   unpack_image(ctx, 2, width, height, 1, GL_COLOR_INDEX,
-                                GL_BITMAP, pixels, &ctx->Unpack));
+   struct pipe_resource *tex =
+      st_make_bitmap_texture(ctx, width, height, &ctx->Unpack, pixels);
+
+   if (!tex) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glNewList -> glBitmap");
+      return;
    }
+
+   n = alloc_instruction(ctx, OPCODE_BITMAP, 6 + POINTER_DWORDS);
+   if (!n) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glNewList -> glBitmap (3)");
+      pipe_resource_reference(&tex, NULL);
+      return;
+   }
+
+   n[1].i = (GLint) width;
+   n[2].i = (GLint) height;
+   n[3].f = xorig;
+   n[4].f = yorig;
+   n[5].f = xmove;
+   n[6].f = ymove;
+   save_pointer(&n[7], tex);
+
    if (ctx->ExecuteFlag) {
-      CALL_Bitmap(ctx->Exec, (width, height,
-                              xorig, yorig, xmove, ymove, pixels));
+      ASSERT_OUTSIDE_BEGIN_END(ctx);
+      _mesa_bitmap(ctx, width, height, xorig, yorig, xmove, ymove, NULL, tex);
    }
 }
 
@@ -11155,13 +10868,12 @@ execute_list(struct gl_context *ctx, GLuint list)
             CALL_BindTexture(ctx->Exec, (n[1].e, n[2].ui));
             break;
          case OPCODE_BITMAP:
-            {
-               const struct gl_pixelstore_attrib save = ctx->Unpack;
-               ctx->Unpack = ctx->DefaultPacking;
-               CALL_Bitmap(ctx->Exec, ((GLsizei) n[1].i, (GLsizei) n[2].i,
-                                       n[3].f, n[4].f, n[5].f, n[6].f,
-                                       get_pointer(&n[7])));
-               ctx->Unpack = save;      /* restore */
+            if (_mesa_inside_begin_end(ctx)) {
+               _mesa_error(ctx, GL_INVALID_OPERATION,
+                           "glCallList -> glBitmap inside Begin/End");
+            } else {
+               _mesa_bitmap(ctx, n[1].i, n[2].i, n[3].f, n[4].f, n[5].f,
+                            n[6].f, NULL, get_pointer(&n[7]));
             }
             break;
          case OPCODE_BLEND_COLOR:
@@ -13388,17 +13100,6 @@ _mesa_DeleteLists(GLuint list, GLsizei range)
       return;
    }
 
-   if (range > 1) {
-      /* We may be deleting a set of bitmap lists.  See if there's a
-       * bitmap atlas to free.
-       */
-      struct gl_bitmap_atlas *atlas = lookup_bitmap_atlas(ctx, list);
-      if (atlas) {
-         _mesa_delete_bitmap_atlas(ctx, atlas);
-         _mesa_HashRemove(ctx->Shared->BitmapAtlas, list);
-      }
-   }
-
    _mesa_HashLockMutex(ctx->Shared->DisplayList);
    for (i = list; i < list + range; i++) {
       destroy_list(ctx, i);
@@ -13439,23 +13140,6 @@ _mesa_GenLists(GLsizei range)
       for (i = 0; i < range; i++) {
          _mesa_HashInsertLocked(ctx->Shared->DisplayList, base + i,
                                 make_list(base + i, 1), true);
-      }
-   }
-
-   if (USE_BITMAP_ATLAS &&
-       range > 16) {
-      /* "range > 16" is a rough heuristic to guess when glGenLists might be
-       * used to allocate display lists for glXUseXFont or wglUseFontBitmaps.
-       * Create the empty atlas now.
-       */
-      struct gl_bitmap_atlas *atlas = lookup_bitmap_atlas(ctx, base);
-      if (!atlas) {
-         atlas = alloc_bitmap_atlas(ctx, base, true);
-      }
-      if (atlas) {
-         /* Atlas _should_ be new/empty now, but clobbering is OK */
-         assert(atlas->numBitmaps == 0);
-         atlas->numBitmaps = range;
       }
    }
 
@@ -13775,64 +13459,6 @@ _mesa_CallList(GLuint list)
 
 
 /**
- * Try to execute a glCallLists() command where the display lists contain
- * glBitmap commands with a texture atlas.
- * \return true for success, false otherwise
- */
-static bool
-render_bitmap_atlas(struct gl_context *ctx, GLsizei n, GLenum type,
-                    const void *lists)
-{
-   struct gl_bitmap_atlas *atlas;
-   int i;
-
-   if (!USE_BITMAP_ATLAS ||
-       !ctx->Current.RasterPosValid ||
-       ctx->List.ListBase == 0 ||
-       type != GL_UNSIGNED_BYTE) {
-      /* unsupported */
-      return false;
-   }
-
-   atlas = lookup_bitmap_atlas(ctx, ctx->List.ListBase);
-
-   if (!atlas) {
-      /* Even if glGenLists wasn't called, we can still try to create
-       * the atlas now.
-       */
-      atlas = alloc_bitmap_atlas(ctx, ctx->List.ListBase, false);
-   }
-
-   if (atlas && !atlas->complete && !atlas->incomplete) {
-      /* Try to build the bitmap atlas now.
-       * If the atlas was created in glGenLists, we'll have recorded the
-       * number of lists (bitmaps).  Otherwise, take a guess at 256.
-       */
-      if (atlas->numBitmaps == 0)
-         atlas->numBitmaps = 256;
-      build_bitmap_atlas(ctx, atlas, ctx->List.ListBase);
-   }
-
-   if (!atlas || !atlas->complete) {
-      return false;
-   }
-
-   /* check that all display list IDs are in the atlas */
-   for (i = 0; i < n; i++) {
-      const GLubyte *ids = (const GLubyte *) lists;
-
-      if (ids[i] >= atlas->numBitmaps) {
-         return false;
-      }
-   }
-
-   st_DrawAtlasBitmaps(ctx, atlas, n, (const GLubyte *) lists);
-
-   return true;
-}
-
-
-/**
  * Execute glCallLists:  call multiple display lists.
  */
 void GLAPIENTRY
@@ -13854,10 +13480,6 @@ _mesa_CallLists(GLsizei n, GLenum type, const GLvoid * lists)
       return;
    } else if (n == 0 || lists == NULL) {
       /* nothing to do */
-      return;
-   }
-
-   if (render_bitmap_atlas(ctx, n, type, lists)) {
       return;
    }
 

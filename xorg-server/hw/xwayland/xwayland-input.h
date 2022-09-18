@@ -93,7 +93,6 @@ struct xwl_seat {
     char *keymap;
     struct wl_surface *keyboard_focus;
 
-    struct xorg_list axis_discrete_pending;
     struct xorg_list sync_pending;
 
     struct xwl_pointer_warp_emulator *pointer_warp_emulator;
@@ -111,6 +110,15 @@ struct xwl_seat {
         double dy;
         double dx_unaccel;
         double dy_unaccel;
+
+        wl_fixed_t scroll_dy;
+        wl_fixed_t scroll_dx;
+        int32_t scroll_discrete_dy;
+        int32_t scroll_discrete_dx;
+        Bool has_vertical_scroll;
+        Bool has_horizontal_scroll;
+        Bool has_vertical_scroll_discrete;
+        Bool has_horizontal_scroll_discrete;
     } pending_pointer_event;
 
     struct xorg_list tablets;

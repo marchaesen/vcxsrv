@@ -1,17 +1,27 @@
 #!/bin/bash
+# shellcheck disable=SC2086 # we want word splitting
 
 set -ex
 
-CROSVM_VERSION=d2b6a64dd31c92a284a905c0f2483d0b222b1220
-git clone --single-branch -b for-mesa-ci --no-checkout https://gitlab.freedesktop.org/tomeu/crosvm.git /platform/crosvm
+SCRIPT_DIR="$(pwd)"
+
+git config --global user.email "mesa@example.com"
+git config --global user.name "Mesa CI"
+
+CROSVM_VERSION=c7cd0e0114c8363b884ba56d8e12adee718dcc93
+git clone --single-branch -b main --no-checkout https://chromium.googlesource.com/chromiumos/platform/crosvm /platform/crosvm
 pushd /platform/crosvm
 git checkout "$CROSVM_VERSION"
 git submodule update --init
+# Apply all crosvm patches for Mesa CI
+git am "$SCRIPT_DIR"/.gitlab-ci/container/build-crosvm_*.patch
 
-VIRGLRENDERER_VERSION=2a5fb800c6b0ce15ad37c2c698635e3e2d27b37c
+VIRGLRENDERER_VERSION=3c5a9bbb7464e0e91e446991055300f4f989f6a9
+rm -rf third_party/virglrenderer
+git clone --single-branch -b master --no-checkout https://gitlab.freedesktop.org/virgl/virglrenderer.git third_party/virglrenderer
 pushd third_party/virglrenderer
 git checkout "$VIRGLRENDERER_VERSION"
-meson build/ $EXTRA_MESON_ARGS
+meson build/ -Dvenus-experimental=true $EXTRA_MESON_ARGS
 ninja -C build install
 popd
 
@@ -31,4 +41,4 @@ RUSTFLAGS='-L native=/usr/local/lib' cargo install \
 
 popd
 
-rm -rf $PLATFORM2_ROOT $AOSP_EXTERNAL_ROOT/minijail $THIRD_PARTY_ROOT/adhd $THIRD_PARTY_ROOT/rust-vmm /platform/crosvm
+rm -rf /platform/crosvm

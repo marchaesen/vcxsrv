@@ -68,6 +68,8 @@
 /* BO is accessed by the fragment job. */
 #define PAN_BO_ACCESS_FRAGMENT        (1 << 4)
 
+typedef uint8_t pan_bo_access;
+
 struct panfrost_device;
 
 struct panfrost_ptr {

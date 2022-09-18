@@ -30,7 +30,7 @@ XkbAddGeomKey \- Add one key at the end of an existing row of keys
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- row
+.I row
 row to be updated
 .SH DESCRIPTION
 .LP

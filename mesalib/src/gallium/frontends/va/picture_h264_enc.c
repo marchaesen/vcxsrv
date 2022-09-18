@@ -36,7 +36,8 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    vlVaBuffer *coded_buf;
 
    h264 = buf->data;
-   context->desc.h264enc.frame_num = h264->frame_num;
+   if (h264->pic_fields.bits.idr_pic_flag == 1)
+      context->desc.h264enc.frame_num = 0;
    context->desc.h264enc.not_referenced = !h264->pic_fields.bits.reference_pic_flag;
    context->desc.h264enc.pic_order_cnt = h264->CurrPic.TopFieldOrderCnt;
    if (context->desc.h264enc.gop_cnt == 0)
@@ -54,12 +55,16 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
 
    _mesa_hash_table_insert(context->desc.h264enc.frame_idx,
 		       UINT_TO_PTR(h264->CurrPic.picture_id + 1),
-		       UINT_TO_PTR(h264->frame_num));
+		       UINT_TO_PTR(context->desc.h264enc.frame_num));
 
    if (h264->pic_fields.bits.idr_pic_flag == 1)
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_IDR;
    else
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_P;
+
+   /* Initialize slice descriptors for this picture */
+   context->desc.h264enc.num_slice_descriptors = 0;
+   memset(&context->desc.h264enc.slices_descriptors, 0, sizeof(context->desc.h264enc.slices_descriptors));
 
    context->desc.h264enc.quant_i_frames = h264->pic_init_qp;
    context->desc.h264enc.quant_b_frames = h264->pic_init_qp;
@@ -67,6 +72,10 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    context->desc.h264enc.gop_cnt++;
    if (context->desc.h264enc.gop_cnt == context->desc.h264enc.gop_size)
       context->desc.h264enc.gop_cnt = 0;
+
+   context->desc.h264enc.pic_ctrl.enc_cabac_enable = h264->pic_fields.bits.entropy_coding_mode_flag;
+   context->desc.h264enc.num_ref_idx_l0_active_minus1 = h264->num_ref_idx_l0_active_minus1;
+   context->desc.h264enc.num_ref_idx_l1_active_minus1 = h264->num_ref_idx_l1_active_minus1;
 
    return VA_STATUS_SUCCESS;
 }
@@ -77,33 +86,63 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
    VAEncSliceParameterBufferH264 *h264;
 
    h264 = buf->data;
-   context->desc.h264enc.ref_idx_l0 = VA_INVALID_ID;
-   context->desc.h264enc.ref_idx_l1 = VA_INVALID_ID;
+   memset(&context->desc.h264enc.ref_idx_l0_list, VA_INVALID_ID, sizeof(context->desc.h264enc.ref_idx_l0_list));
+   memset(&context->desc.h264enc.ref_idx_l1_list, VA_INVALID_ID, sizeof(context->desc.h264enc.ref_idx_l1_list));
+
+   if(h264->num_ref_idx_active_override_flag) {
+      context->desc.h264enc.num_ref_idx_l0_active_minus1 = h264->num_ref_idx_l0_active_minus1;
+      context->desc.h264enc.num_ref_idx_l1_active_minus1 = h264->num_ref_idx_l1_active_minus1;
+   }
 
    for (int i = 0; i < 32; i++) {
       if (h264->RefPicList0[i].picture_id != VA_INVALID_ID) {
-         if (context->desc.h264enc.ref_idx_l0 == VA_INVALID_ID)
-            context->desc.h264enc.ref_idx_l0 = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
-									       UINT_TO_PTR(h264->RefPicList0[i].picture_id + 1)));
+               context->desc.h264enc.ref_idx_l0_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
+                                 UINT_TO_PTR(h264->RefPicList0[i].picture_id + 1)));
       }
       if (h264->RefPicList1[i].picture_id != VA_INVALID_ID && h264->slice_type == 1) {
-         if (context->desc.h264enc.ref_idx_l1 == VA_INVALID_ID)
-            context->desc.h264enc.ref_idx_l1 = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
-									       UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
+            context->desc.h264enc.ref_idx_l1_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
+                                 UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
       }
    }
 
-   if (h264->slice_type == 1)
+   /**
+    *  VAEncSliceParameterBufferH264.slice_type
+    *  Slice type.
+    *  Range: 0..2, 5..7, i.e. no switching slices.
+   */
+   struct h264_slice_descriptor slice_descriptor = { };
+   slice_descriptor.macroblock_address = h264->macroblock_address;
+   slice_descriptor.num_macroblocks = h264->num_macroblocks;
+
+   if ((h264->slice_type == 1) || (h264->slice_type == 6)) {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_B;
-   else if (h264->slice_type == 0)
+      slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_B;
+   } else if ((h264->slice_type == 0) || (h264->slice_type == 5)) {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_P;
-   else if (h264->slice_type == 2) {
-      if (context->desc.h264enc.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
-         context->desc.h264enc.idr_pic_id++;
-	   else
+      slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_P;
+   } else if ((h264->slice_type == 2) || (h264->slice_type == 7)) {
+      if (context->desc.h264enc.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR) {
+         if (slice_descriptor.macroblock_address == 0) {
+            /* Increment it only for the first slice of the IDR frame */
+            context->desc.h264enc.idr_pic_id++;
+         }
+         slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_I;
+      } else {
          context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_I;
-   } else
+         slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_I;
+      }
+   } else {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_SKIP;
+   }
+
+   context->desc.h264enc.pic_ctrl.enc_cabac_init_idc = h264->cabac_init_idc;
+
+   /* Handle the slice control parameters */
+   if (context->desc.h264enc.num_slice_descriptors < ARRAY_SIZE(context->desc.h264enc.slices_descriptors)) {
+      context->desc.h264enc.slices_descriptors[context->desc.h264enc.num_slice_descriptors++] = slice_descriptor;
+   } else {
+      return VA_STATUS_ERROR_NOT_ENOUGH_BUFFER;
+   }
 
    return VA_STATUS_SUCCESS;
 }
@@ -118,6 +157,8 @@ vlVaHandleVAEncSequenceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *con
       context->decoder = drv->pipe->create_video_codec(drv->pipe, &context->templat);
       if (!context->decoder)
          return VA_STATUS_ERROR_ALLOCATION_FAILED;
+
+      getEncParamPresetH264(context);
    }
 
    context->gop_coeff = ((1024 + h264->intra_idr_period - 1) / h264->intra_idr_period + 1) / 2 * 2;
@@ -161,6 +202,8 @@ vlVaHandleVAEncMiscParameterTypeRateControlH264(vlVaContext *context, VAEncMiscP
        temporal_id >= context->desc.h264enc.num_temporal_layers)
       return VA_STATUS_ERROR_INVALID_PARAMETER;
 
+   context->desc.h264enc.rate_ctrl[temporal_id].fill_data_enable = !(rc->rc_flags.bits.disable_bit_stuffing);
+   context->desc.h264enc.rate_ctrl[temporal_id].skip_frame_enable = !(rc->rc_flags.bits.disable_frame_skip);
    context->desc.h264enc.rate_ctrl[temporal_id].peak_bitrate = rc->bits_per_second;
    if (context->desc.h264enc.rate_ctrl[temporal_id].target_bitrate < 2000000)
        context->desc.h264enc.rate_ctrl[temporal_id].vbv_buffer_size =
@@ -168,6 +211,9 @@ vlVaHandleVAEncMiscParameterTypeRateControlH264(vlVaContext *context, VAEncMiscP
    else
       context->desc.h264enc.rate_ctrl[temporal_id].vbv_buffer_size =
          context->desc.h264enc.rate_ctrl[0].target_bitrate;
+
+   context->desc.h264enc.rate_ctrl[temporal_id].max_qp = rc->max_qp;
+   context->desc.h264enc.rate_ctrl[temporal_id].min_qp = rc->min_qp;
 
    return VA_STATUS_SUCCESS;
 }
@@ -208,26 +254,46 @@ vlVaHandleVAEncMiscParameterTypeTemporalLayerH264(vlVaContext *context, VAEncMis
    return VA_STATUS_SUCCESS;
 }
 
+VAStatus
+vlVaHandleVAEncMiscParameterTypeQualityLevelH264(vlVaContext *context, VAEncMiscParameterBuffer *misc)
+{
+   VAEncMiscParameterBufferQualityLevel *ql = (VAEncMiscParameterBufferQualityLevel *)misc->data;
+   vlVaHandleVAEncMiscParameterTypeQualityLevel(&context->desc.h264enc.quality_modes,
+                               (vlVaQualityBits *)&ql->quality_level);
+
+   return VA_STATUS_SUCCESS;
+}
+
+VAStatus
+vlVaHandleVAEncMiscParameterTypeMaxFrameSizeH264(vlVaContext *context, VAEncMiscParameterBuffer *misc)
+{
+   VAEncMiscParameterBufferMaxFrameSize *ms = (VAEncMiscParameterBufferMaxFrameSize *)misc->data;
+   context->desc.h264enc.rate_ctrl[0].max_au_size = ms->max_frame_size;
+   return VA_STATUS_SUCCESS;
+}
+
+VAStatus
+vlVaHandleVAEncMiscParameterTypeHRDH264(vlVaContext *context, VAEncMiscParameterBuffer *misc)
+{
+   VAEncMiscParameterHRD *ms = (VAEncMiscParameterHRD *)misc->data;
+
+   if (ms->buffer_size) {
+      context->desc.h264enc.rate_ctrl[0].vbv_buffer_size = ms->buffer_size;
+      context->desc.h264enc.rate_ctrl[0].vbv_buf_lv = (ms->initial_buffer_fullness << 6 ) / ms->buffer_size;
+   }
+
+   return VA_STATUS_SUCCESS;
+}
+
 void getEncParamPresetH264(vlVaContext *context)
 {
-   //motion estimation preset
-   context->desc.h264enc.motion_est.motion_est_quarter_pixel = 0;
-   context->desc.h264enc.motion_est.lsmvert = 0;
-   context->desc.h264enc.motion_est.enc_disable_sub_mode = 254;
-   context->desc.h264enc.motion_est.enc_en_ime_overw_dis_subm = 0;
-   context->desc.h264enc.motion_est.enc_ime_overw_dis_subm_no = 0;
-   context->desc.h264enc.motion_est.enc_ime2_search_range_x = 1;
-   context->desc.h264enc.motion_est.enc_ime2_search_range_y = 1;
-
-   //pic control preset
-   context->desc.h264enc.pic_ctrl.enc_cabac_enable = 0x00000001;
-   context->desc.h264enc.pic_ctrl.enc_constraint_set_flags = 0x00000040;
-
    //rate control
    context->desc.h264enc.rate_ctrl[0].vbv_buffer_size = 20000000;
    context->desc.h264enc.rate_ctrl[0].vbv_buf_lv = 48;
    context->desc.h264enc.rate_ctrl[0].fill_data_enable = 1;
    context->desc.h264enc.rate_ctrl[0].enforce_hrd = 1;
+   context->desc.h264enc.rate_ctrl[0].max_qp = 51;
+   context->desc.h264enc.rate_ctrl[0].min_qp = 0;
    context->desc.h264enc.enable_vui = false;
    if (context->desc.h264enc.rate_ctrl[0].frame_rate_num == 0 ||
        context->desc.h264enc.rate_ctrl[0].frame_rate_den == 0) {
@@ -244,5 +310,4 @@ void getEncParamPresetH264(vlVaContext *context)
       context->desc.h264enc.rate_ctrl[0].frame_rate_num);
 
    context->desc.h264enc.rate_ctrl[0].peak_bits_picture_fraction = 0;
-   context->desc.h264enc.ref_pic_mode = 0x00000201;
 }

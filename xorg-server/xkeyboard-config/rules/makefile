@@ -39,7 +39,6 @@ parts = \
 	0044-o_t.part
 
 compat_parts = \
-	compat/0003-lists.part \
 	compat/0010-mlv_s.part \
 	compat/0012-ml_s.part \
 	compat/0014-ml1_s.part \

@@ -5,6 +5,10 @@ dEQP-GLES3.functional.shaders.texture_functions.texture.*gradoffset.*
 dEQP-GLES3.functional.texture.units.4_units.only_3d.*
 dEQP-GLES3.functional.vertex_arrays.single_attribute.*
 
+# These started UnexpectedPass'ing in an unrelated MR, let's call
+# them flakes for now
+dEQP-GLES3.functional.occlusion_query.*
+
 glx@glx-swap-event_interval
 glx@glx-swap-event_async
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero

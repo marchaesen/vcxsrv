@@ -162,7 +162,7 @@ xkb_symbols "latlevel3" {
     key <AD07> { [ any, any,   downarrow,           uparrow          ] }; // u
     key <AD08> { [ any, any,   rightarrow,          idotless         ] }; // i
     key <AD09> { type[Group1] = "FOUR_LEVEL_ALPHABETIC",
-                 [ any, any,   oslash,              Ooblique         ] }; // o
+                 [ any, any,   oslash,              Oslash           ] }; // o
     key <AD10> { type[Group1] = "FOUR_LEVEL_ALPHABETIC",
                  [ any, any,   thorn,               THORN            ] }; // p
     key <AD11> { [ any, any,   division,            dead_abovering   ] }; // [

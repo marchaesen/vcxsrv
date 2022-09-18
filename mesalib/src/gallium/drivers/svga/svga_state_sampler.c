@@ -245,7 +245,7 @@ update_sampler_resources(struct svga_context *svga, uint64_t dirty)
 
    assert(svga_have_vgpu10(svga));
 
-   for (shader = PIPE_SHADER_VERTEX; shader <= PIPE_SHADER_TESS_EVAL; shader++) {
+   for (shader = PIPE_SHADER_VERTEX; shader < PIPE_SHADER_COMPUTE; shader++) {
       SVGA3dShaderResourceViewId ids[PIPE_MAX_SAMPLERS];
       struct svga_winsys_surface *surfaces[PIPE_MAX_SAMPLERS];
       struct pipe_sampler_view *sampler_views[PIPE_MAX_SAMPLERS];
@@ -396,7 +396,7 @@ update_samplers(struct svga_context *svga, uint64_t dirty )
 
    assert(svga_have_vgpu10(svga));
 
-   for (shader = PIPE_SHADER_VERTEX; shader <= PIPE_SHADER_TESS_EVAL; shader++) {
+   for (shader = PIPE_SHADER_VERTEX; shader < PIPE_SHADER_COMPUTE; shader++) {
       const unsigned count = svga->curr.num_samplers[shader];
       SVGA3dSamplerId ids[PIPE_MAX_SAMPLERS*2];
       unsigned i;

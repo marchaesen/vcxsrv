@@ -727,12 +727,14 @@ compile_vertex_list(struct gl_context *ctx)
       }
 
       /* Duplicate the last vertex for incomplete primitives */
-      unsigned min_vert = u_prim_vertex_count(mode)->min;
-      for (unsigned j = vertex_count; j < min_vert; j++) {
-         indices[idx++] = add_vertex(save, vertex_to_index,
-                                     converted_prim ? CAST_INDEX(tmp_indices, index_size, vertex_count - 1) :
-                                                      original_prims[i].start + vertex_count - 1,
-                                     temp_vertices_buffer, &max_index);
+      if (vertex_count > 0) {
+         unsigned min_vert = u_prim_vertex_count(mode)->min;
+         for (unsigned j = vertex_count; j < min_vert; j++) {
+            indices[idx++] = add_vertex(save, vertex_to_index,
+                                       converted_prim ? CAST_INDEX(tmp_indices, index_size, vertex_count - 1) :
+                                                         original_prims[i].start + vertex_count - 1,
+                                       temp_vertices_buffer, &max_index);
+         }
       }
 
 #undef CAST_INDEX

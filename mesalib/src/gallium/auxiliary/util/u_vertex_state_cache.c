@@ -57,11 +57,6 @@ void
 util_vertex_state_cache_deinit(struct util_vertex_state_cache *cache)
 {
    if (cache->set) {
-      set_foreach(cache->set, entry) {
-         fprintf(stderr, "mesa: vertex state cache should be empty\n");
-         assert(!"vertex state cache should be empty");
-      }
-
       _mesa_set_destroy(cache->set, NULL);
       simple_mtx_destroy(&cache->lock);
    }

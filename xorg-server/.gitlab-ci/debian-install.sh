@@ -32,6 +32,7 @@ apt-get install -y \
 	libaudit-dev \
 	libbsd-dev \
 	libcairo2 \
+	libcairo2-dev \
 	libdbus-1-dev \
 	libdmx-dev \
 	libdrm-dev \
@@ -47,6 +48,8 @@ apt-get install -y \
 	libglx-mesa0 \
 	libinput10 \
 	libnvidia-egl-wayland-dev \
+	libpango1.0-0 \
+	libpango1.0-dev \
 	libpciaccess-dev \
 	libpixman-1-dev \
 	libselinux1-dev \
@@ -54,6 +57,7 @@ apt-get install -y \
 	libtool \
 	libudev-dev \
 	libunwind-dev \
+	libwayland-dev \
 	libx11-dev \
 	libx11-xcb-dev \
 	libxau-dev \
@@ -98,6 +102,8 @@ apt-get install -y \
 	python3-mako \
 	python3-numpy \
 	python3-six \
+	weston \
+	x11-xkb-utils \
 	xfonts-utils \
 	xkb-data \
 	xtrans-dev \
@@ -108,30 +114,22 @@ apt-get install -y \
 cd /root
 
 # xserver requires libxcvt
-git clone https://gitlab.freedesktop.org/xorg/lib//libxcvt.git --depth 1 --branch=libxcvt-0.1.0
+git clone https://gitlab.freedesktop.org/xorg/lib/libxcvt.git --depth 1 --branch=libxcvt-0.1.0
 cd libxcvt
 meson _build
 ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
 cd ..
 rm -rf libxcvt
 
-# xserver requires xorgproto >= 2021.4.99.2 for XI 2.3.99.1
-git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git --depth 1 --branch=xorgproto-2021.4.99.2
+# xserver requires xorgproto >= 2022.2 for XWAYLAND
+git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git --depth 1 --branch=xorgproto-2022.2
 pushd xorgproto
 ./autogen.sh
 make -j${FDO_CI_CONCURRENT:-4} install
 popd
 rm -rf xorgproto
 
-# weston 9.0 requires libwayland >= 1.18
-git clone https://gitlab.freedesktop.org/wayland/wayland.git --depth 1 --branch=1.18.0
-cd wayland
-meson _build -D{documentation,dtd_validation}=false
-ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
-cd ..
-rm -rf wayland
-
-# Xwayland requires wayland-protocols >= 1.22, but Debian buster has 1.17 only
+# Xwayland requires wayland-protocols >= 1.22, but Debian bullseye has 1.20 only
 git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.22
 cd wayland-protocols
 ./autogen.sh
@@ -139,28 +137,31 @@ make -j${FDO_CI_CONCURRENT:-4} install
 cd ..
 rm -rf wayland-protocols
 
-# Xwayland requires weston > 5.0, but Debian buster has 5.0 only
-git clone https://gitlab.freedesktop.org/wayland/weston.git --depth 1 --branch=9.0
-cd weston
-meson _build -Dbackend-{drm,drm-screencast-vaapi,fbdev,rdp,wayland,x11}=false \
-      -Dbackend-default=headless -Dcolor-management-{colord,lcms}=false \
-      -Ddemo-clients=false -Dimage-{jpeg,webp}=false \
-      -D{pipewire,remoting,screenshare,test-junit-xml,wcap-decode,weston-launch,xwayland}=false \
-      -Dshell-{fullscreen,ivi,kiosk}=false -Dsimple-clients=
+# Install libdecor for Xwayland
+git clone https://gitlab.gnome.org/jadahl/libdecor.git --depth 1 --branch=0.1.0
+cd libdecor
+meson _build -D{demo,install_demo}=false
 ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
 cd ..
-rm -rf weston
+rm -rf libdecor
 
-git clone https://gitlab.freedesktop.org/mesa/piglit.git --depth 1
+git clone https://gitlab.freedesktop.org/mesa/piglit.git
+cd piglit
+git checkout 265896c86f90cb72e8f218ba6a3617fca8b9a1e3
+cd ..
 
-git clone https://gitlab.freedesktop.org/xorg/test/xts --depth 1
+git clone https://gitlab.freedesktop.org/xorg/test/xts
 cd xts
-./autogen.sh
+git checkout dbbfa96c036e596346147081cbceda136e7c86c1
+# Using -fcommon until we get a proper fix into xtst.
+# See discussion at https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/913
+CFLAGS=-fcommon ./autogen.sh
 xvfb-run make -j${FDO_CI_CONCURRENT:-4}
 cd ..
 
-git clone https://gitlab.freedesktop.org/xorg/test/rendercheck --depth 1
+git clone https://gitlab.freedesktop.org/xorg/test/rendercheck
 cd rendercheck
+git checkout 67a820621b1475ebfcf3d4f9d7f03a5fc3b9769a
 meson build
 ninja -j${FDO_CI_CONCURRENT:-4} -C build install
 cd ..
@@ -172,14 +173,6 @@ echo 'path=/root/xts' >> piglit/piglit.conf
 
 find -name \*.a -o -name \*.o -o -name \*.c -o -name \*.h -o -name \*.la\* | xargs rm
 strip xts/xts5/*/.libs/*
-
-# Running meson dist requires xkbcomp 1.4.1 or newer, but Debian buster has 1.4.0 only
-git clone https://gitlab.freedesktop.org/xorg/app/xkbcomp.git --depth 1 --branch=xkbcomp-1.4.1
-cd xkbcomp
-./autogen.sh --datarootdir=/usr/share
-make -j${FDO_CI_CONCURRENT:-4} install
-cd ..
-rm -rf xkbcomp
 
 apt-get purge -y \
 	$EPHEMERAL

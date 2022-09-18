@@ -49,7 +49,7 @@ struct svga_winsys_screen;
 struct svga_winsys_buffer;
 struct pipe_screen;
 struct pipe_context;
-struct pipe_debug_callback;
+struct util_debug_callback;
 struct pipe_fence_handle;
 struct pipe_resource;
 struct svga_region;
@@ -477,7 +477,7 @@ struct svga_winsys_context
                       unsigned flags);
 
    /** To report perf/conformance/etc issues to the gallium frontend */
-   struct pipe_debug_callback *debug_callback;
+   struct util_debug_callback *debug_callback;
 
    /** The more recent command issued to command buffer */
    SVGAFifo3dCmdId last_command;
@@ -824,6 +824,9 @@ struct svga_winsys_screen
 
    /** Have GL43 capable device */
    boolean have_gl43;
+
+   /** SVGA device_id version we're running on */
+   uint16_t device_id;
 };
 
 

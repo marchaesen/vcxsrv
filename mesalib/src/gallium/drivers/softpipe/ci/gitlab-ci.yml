@@ -15,11 +15,14 @@
   variables:
     DEQP_EXPECTED_RENDERER: softpipe
 
-softpipe-deqp:
+softpipe:
+  tags:
+    - mesa-swrast
   variables:
     DEQP_SUITE: softpipe
-  parallel: 2
   extends: .softpipe-deqp-test
+  script:
+    - LD_LIBRARY_PATH=`pwd`/install/lib xvfb-run --server-args='-noreset' install/deqp-runner.sh
 
 softpipe-asan-gles31:
   variables:
@@ -31,16 +34,3 @@ softpipe-asan-gles31:
   needs:
     - debian/x86_test-gl
     - debian-testing-asan
-
-# We use "gpu" to skip running glslparser tests, with the assumption that
-# they're covered by the llvmpipe run.
-softpipe-piglit:
-  extends:
-    - .test-gl
-    - .piglit-test
-    - .softpipe-test
-    - .softpipe-rules
-  variables:
-    PIGLIT_PROFILES: gpu
-  script:
-    - LD_LIBRARY_PATH=`pwd`/install/lib xvfb-run --server-args='-noreset' install/piglit/piglit-runner.sh

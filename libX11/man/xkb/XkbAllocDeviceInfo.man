@@ -33,13 +33,13 @@ XkbAllocDeviceInfo \- Obtain an XkbDeviceInfoRec structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- device_spec
+.I device_spec
 device ID with which structure will be used
 .TP
-.I \- n_buttons
+.I n_buttons
 number of button actions to allocate space for
 .TP
-.I \- sz_leds
+.I sz_leds
 number of LED feedbacks to allocate space for
 .SH DESCRIPTION
 .LP

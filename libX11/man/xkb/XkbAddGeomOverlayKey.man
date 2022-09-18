@@ -27,18 +27,19 @@ XkbAddGeomOverlayKey \- Add a key to an existing overlay row
 .B XkbOverlayKeyPtr XkbAddGeomOverlayKey
 .BI "(\^XkbOverlayPtr " "overlay" "\^,"
 .BI "XkbRowPtr " "row" "\^,"
-.BI "char *" "under" "\^);"
+.BI "_Xconst char *" "over" "\^,"
+.BI "_Xconst char *" "under" "\^);"
 .if n .ti +5n
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- overlay
+.I overlay
 overlay to be updated
 .TP
-.I \- row
+.I row
 row in overlay to be updated
 .TP
-.I \- under
+.I under
 primary name of the key to be considered 
 .SH DESCRIPTION
 .LP

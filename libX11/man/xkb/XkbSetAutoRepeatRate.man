@@ -34,16 +34,16 @@ keyboard device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 device to configure, or XkbUseCoreKbd
 .TP
-.I \- timeout
+.I timeout
 initial delay, ms
 .TP
-.I \- interval
+.I interval
 delay between repeats, ms
 .SH DESCRIPTION
 .LP

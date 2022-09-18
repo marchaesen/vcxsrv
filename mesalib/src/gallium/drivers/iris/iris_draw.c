@@ -87,8 +87,8 @@ iris_update_draw_info(struct iris_context *ice,
       ice->state.vertices_per_patch = ice->state.patch_vertices;
       ice->state.dirty |= IRIS_DIRTY_VF_TOPOLOGY;
 
-      /* 8_PATCH TCS needs this for key->input_vertices */
-      if (compiler->use_tcs_8_patch)
+      /* MULTI_PATCH TCS needs this for key->input_vertices */
+      if (compiler->use_tcs_multi_patch)
          ice->state.stage_dirty |= IRIS_STAGE_DIRTY_UNCOMPILED_TCS;
 
       /* Flag constants dirty for gl_PatchVerticesIn if needed. */
@@ -305,7 +305,7 @@ iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
 
    iris_binder_reserve_3d(ice);
 
-   batch->screen->vtbl.update_surface_base_address(batch, &ice->state.binder);
+   batch->screen->vtbl.update_binder_address(batch, &ice->state.binder);
 
    iris_handle_always_flush_cache(batch);
 
@@ -411,7 +411,7 @@ iris_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info *grid)
    iris_update_grid_size_resource(ice, grid);
 
    iris_binder_reserve_compute(ice);
-   batch->screen->vtbl.update_surface_base_address(batch, &ice->state.binder);
+   batch->screen->vtbl.update_binder_address(batch, &ice->state.binder);
 
    if (ice->state.compute_predicate) {
       batch->screen->vtbl.load_register_mem64(batch, MI_PREDICATE_RESULT,

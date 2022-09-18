@@ -1024,6 +1024,8 @@ vn_sizeof_VkSubpassDependency2_pnext(const void *val)
     while (pnext) {
         switch ((int32_t)pnext->sType) {
         case VK_STRUCTURE_TYPE_MEMORY_BARRIER_2:
+            if (!vn_cs_renderer_protocol_has_extension(315 /* VK_KHR_synchronization2 */))
+                break;
             size += vn_sizeof_simple_pointer(pnext);
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkSubpassDependency2_pnext(pnext->pNext);
@@ -1075,6 +1077,8 @@ vn_encode_VkSubpassDependency2_pnext(struct vn_cs_encoder *enc, const void *val)
     while (pnext) {
         switch ((int32_t)pnext->sType) {
         case VK_STRUCTURE_TYPE_MEMORY_BARRIER_2:
+            if (!vn_cs_renderer_protocol_has_extension(315 /* VK_KHR_synchronization2 */))
+                break;
             vn_encode_simple_pointer(enc, pnext);
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkSubpassDependency2_pnext(enc, pnext->pNext);

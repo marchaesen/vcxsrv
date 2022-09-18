@@ -5,5 +5,23 @@
 # Timeouts, passes otherwise
 KHR-GL33.texture_swizzle.smoke
 
-# Crashes in RA, but slow enough to get there that CI times out sometimes
+# These generally take near 15 seconds.  The time is spent inside dEQP.
+dEQP-VK.tessellation.invariance.inner_triangle_set.quads_equal_spacing
+dEQP-VK.tessellation.invariance.inner_triangle_set.triangles_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_equal_spacing
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
+dEQP-VK.tessellation.invariance.outer_edge_symmetry.quads_fractional_even_spacing_cw
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_equal_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_odd_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_equal_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_odd_spacing
+
+# Spends its time in nir_validate, timing out in CI sometimes.
 dEQP-VK.spirv_assembly.instruction.*.spirv_ids_abuse.lots_ids.*
+
+# Spending all its time in nir_compare_deref_paths() (approximately 15 seconds)
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/5152
+dEQP-VK.ubo.random.all_shared_buffer.48

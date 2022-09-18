@@ -36,22 +36,22 @@ XkbChangeTypesOfKey \- Change the number of groups and the types bound to a key
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description to be changed
 .TP
-.I \- key
+.I key
 keycode for key of interest
 .TP
-.I \- n_groups
+.I n_groups
 new number of groups for key
 .TP
-.I \- groups
+.I groups
 mask indicating groups to change
 .TP
-.I \- new_types_in
+.I new_types_in
 indices for new groups specified in groups
 .TP
-.I \- p_changes
+.I p_changes
 notes changes made to xkb
 .SH DESCRIPTION
 .LP

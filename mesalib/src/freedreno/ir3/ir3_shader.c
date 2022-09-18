@@ -129,7 +129,7 @@ fixup_regfootprint(struct ir3_shader_variant *v)
 void *
 ir3_shader_assemble(struct ir3_shader_variant *v)
 {
-   const struct ir3_compiler *compiler = v->shader->compiler;
+   const struct ir3_compiler *compiler = v->compiler;
    struct ir3_info *info = &v->info;
    uint32_t *bin;
 
@@ -140,7 +140,7 @@ ir3_shader_assemble(struct ir3_shader_variant *v)
        * to indirectly upload from.
        */
       info->constant_data_offset =
-         align(info->size, v->shader->compiler->const_upload_unit * 16);
+         align(info->size, v->compiler->const_upload_unit * 16);
       info->size = info->constant_data_offset + v->constant_data_size;
    }
 
@@ -229,11 +229,11 @@ try_override_shader_variant(struct ir3_shader_variant *v,
 }
 
 static void
-assemble_variant(struct ir3_shader_variant *v)
+assemble_variant(struct ir3_shader_variant *v, bool internal)
 {
    v->bin = ir3_shader_assemble(v);
 
-   bool dbg_enabled = shader_debug_enabled(v->shader->type);
+   bool dbg_enabled = shader_debug_enabled(v->type, internal);
    if (dbg_enabled || ir3_shader_override_path || v->disasm_info.write_disasm) {
       unsigned char sha1[21];
       char sha1buf[41];
@@ -252,12 +252,12 @@ assemble_variant(struct ir3_shader_variant *v)
          fprintf(stream,
                  "Native code%s for unnamed %s shader %s with sha1 %s:\n",
                  shader_overridden ? " (overridden)" : "", ir3_shader_stage(v),
-                 v->shader->nir->info.name, sha1buf);
+                 v->name, sha1buf);
          ir3_shader_disasm(v, v->bin, stream);
 
          fclose(stream);
 
-         v->disasm_info.disasm = ralloc_size(v->shader, stream_size + 1);
+         v->disasm_info.disasm = ralloc_size(v, stream_size + 1);
          memcpy(v->disasm_info.disasm, stream_data, stream_size);
          v->disasm_info.disasm[stream_size] = 0;
          free(stream_data);
@@ -271,8 +271,8 @@ assemble_variant(struct ir3_shader_variant *v)
          fprintf(stream,
                  "Native code%s for unnamed %s shader %s with sha1 %s:\n",
                  shader_overridden ? " (overridden)" : "", ir3_shader_stage(v),
-                 v->shader->nir->info.name, sha1buf);
-         if (v->shader->type == MESA_SHADER_FRAGMENT)
+                 v->name, sha1buf);
+         if (v->type == MESA_SHADER_FRAGMENT)
             fprintf(stream, "SIMD0\n");
          ir3_shader_disasm(v, v->bin, stream);
          fclose(stream);
@@ -288,19 +288,19 @@ assemble_variant(struct ir3_shader_variant *v)
 }
 
 static bool
-compile_variant(struct ir3_shader_variant *v)
+compile_variant(struct ir3_shader *shader, struct ir3_shader_variant *v)
 {
-   int ret = ir3_compile_shader_nir(v->shader->compiler, v);
+   int ret = ir3_compile_shader_nir(shader->compiler, shader, v);
    if (ret) {
-      mesa_loge("compile failed! (%s:%s)", v->shader->nir->info.name,
-                v->shader->nir->info.label);
+      mesa_loge("compile failed! (%s:%s)", shader->nir->info.name,
+                shader->nir->info.label);
       return false;
    }
 
-   assemble_variant(v);
+   assemble_variant(v, shader->nir->info.internal);
    if (!v->bin) {
-      mesa_loge("assemble failed! (%s:%s)", v->shader->nir->info.name,
-                v->shader->nir->info.label);
+      mesa_loge("assemble failed! (%s:%s)", shader->nir->info.name,
+                shader->nir->info.label);
       return false;
    }
 
@@ -314,9 +314,8 @@ compile_variant(struct ir3_shader_variant *v)
  */
 static struct ir3_shader_variant *
 alloc_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
-              struct ir3_shader_variant *nonbinning)
+              struct ir3_shader_variant *nonbinning, void *mem_ctx)
 {
-   void *mem_ctx = shader;
    /* hang the binning variant off it's non-binning counterpart instead
     * of the shader, to simplify the error cleanup paths
     */
@@ -328,15 +327,60 @@ alloc_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
       return NULL;
 
    v->id = ++shader->variant_count;
-   v->shader = shader;
+   v->shader_id = shader->id;
    v->binning_pass = !!nonbinning;
    v->nonbinning = nonbinning;
    v->key = *key;
    v->type = shader->type;
+   v->compiler = shader->compiler;
    v->mergedregs = shader->compiler->gen >= 6;
+   v->stream_output = shader->stream_output;
 
-   if (!v->binning_pass)
+   v->name = ralloc_strdup(v, shader->nir->info.name);
+
+   struct shader_info *info = &shader->nir->info;
+   switch (v->type) {
+   case MESA_SHADER_TESS_CTRL:
+   case MESA_SHADER_TESS_EVAL:
+      v->tess.primitive_mode = info->tess._primitive_mode;
+      v->tess.tcs_vertices_out = info->tess.tcs_vertices_out;
+      v->tess.spacing = info->tess.spacing;
+      v->tess.ccw = info->tess.ccw;
+      v->tess.point_mode = info->tess.point_mode;
+      break;
+
+   case MESA_SHADER_GEOMETRY:
+      v->gs.output_primitive = info->gs.output_primitive;
+      v->gs.vertices_out = info->gs.vertices_out;
+      v->gs.invocations = info->gs.invocations;
+      v->gs.vertices_in = info->gs.vertices_in;
+      break;
+
+   case MESA_SHADER_FRAGMENT:
+      v->fs.early_fragment_tests = info->fs.early_fragment_tests;
+      v->fs.color_is_dual_source = info->fs.color_is_dual_source;
+      break;
+
+   case MESA_SHADER_COMPUTE:
+   case MESA_SHADER_KERNEL:
+      v->cs.req_input_mem = shader->cs.req_input_mem;
+      v->cs.req_local_mem = shader->cs.req_local_mem;
+      break;
+
+   default:
+      break;
+   }
+
+   v->num_ssbos = info->num_ssbos;
+   v->num_ibos = info->num_ssbos + info->num_images;
+   v->num_reserved_user_consts = shader->num_reserved_user_consts;
+   v->api_wavesize = shader->api_wavesize;
+   v->real_wavesize = shader->real_wavesize;
+
+   if (!v->binning_pass) {
       v->const_state = rzalloc_size(v, sizeof(*v->const_state));
+      v->const_state->shared_consts_enable = shader->shared_consts_enable;
+   }
 
    return v;
 }
@@ -351,9 +395,9 @@ needs_binning_variant(struct ir3_shader_variant *v)
 
 static struct ir3_shader_variant *
 create_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
-               bool write_disasm)
+               bool write_disasm, void *mem_ctx)
 {
-   struct ir3_shader_variant *v = alloc_variant(shader, key, NULL);
+   struct ir3_shader_variant *v = alloc_variant(shader, key, NULL, mem_ctx);
 
    if (!v)
       goto fail;
@@ -361,13 +405,13 @@ create_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
    v->disasm_info.write_disasm = write_disasm;
 
    if (needs_binning_variant(v)) {
-      v->binning = alloc_variant(shader, key, v);
+      v->binning = alloc_variant(shader, key, v, mem_ctx);
       if (!v->binning)
          goto fail;
       v->binning->disasm_info.write_disasm = write_disasm;
    }
 
-   if (ir3_disk_cache_retrieve(shader->compiler, v))
+   if (ir3_disk_cache_retrieve(shader, v))
       return v;
 
    if (!shader->nir_finalized) {
@@ -379,25 +423,33 @@ create_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
       }
 
       if (v->disasm_info.write_disasm) {
-         v->disasm_info.nir = nir_shader_as_str(shader->nir, shader);
+         v->disasm_info.nir = nir_shader_as_str(shader->nir, v);
       }
 
       shader->nir_finalized = true;
    }
 
-   if (!compile_variant(v))
+   if (!compile_variant(shader, v))
       goto fail;
 
-   if (needs_binning_variant(v) && !compile_variant(v->binning))
+   if (needs_binning_variant(v) && !compile_variant(shader, v->binning))
       goto fail;
 
-   ir3_disk_cache_store(shader->compiler, v);
+   ir3_disk_cache_store(shader, v);
 
    return v;
 
 fail:
    ralloc_free(v);
    return NULL;
+}
+
+struct ir3_shader_variant *
+ir3_shader_create_variant(struct ir3_shader *shader,
+                          const struct ir3_shader_key *key,
+                          bool keep_ir)
+{
+   return create_variant(shader, key, keep_ir, NULL);
 }
 
 static inline struct ir3_shader_variant *
@@ -422,7 +474,7 @@ ir3_shader_get_variant(struct ir3_shader *shader,
 
    if (!v) {
       /* compile new variant if it doesn't exist already: */
-      v = create_variant(shader, key, write_disasm);
+      v = create_variant(shader, key, write_disasm, shader);
       if (v) {
          v->next = shader->variants;
          shader->variants = v;
@@ -471,12 +523,13 @@ ir3_setup_used_key(struct ir3_shader *shader)
     * ucp_enables to determine whether to lower legacy clip planes to
     * gl_ClipDistance.
     */
-   if (info->stage != MESA_SHADER_FRAGMENT || !shader->compiler->has_clip_cull)
+   if (info->stage != MESA_SHADER_COMPUTE && (info->stage != MESA_SHADER_FRAGMENT || !shader->compiler->has_clip_cull))
       key->ucp_enables = 0xff;
 
    if (info->stage == MESA_SHADER_FRAGMENT) {
       key->fastc_srgb = ~0;
       key->fsamples = ~0;
+      memset(key->fsampler_swizzles, 0xff, sizeof(key->fsampler_swizzles));
 
       if (info->inputs_read & VARYING_BITS_COLOR) {
          key->rasterflat = true;
@@ -500,6 +553,10 @@ ir3_setup_used_key(struct ir3_shader *shader)
                                 SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID) ||
                     BITSET_TEST(info->system_values_read,
                                 SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID)));
+   } else if (info->stage == MESA_SHADER_COMPUTE) {
+      key->fastc_srgb = ~0;
+      key->fsamples = ~0;
+      memset(key->fsampler_swizzles, 0xff, sizeof(key->fsampler_swizzles));
    } else {
       key->tessellation = ~0;
       key->has_gs = true;
@@ -507,6 +564,7 @@ ir3_setup_used_key(struct ir3_shader *shader)
       if (info->stage == MESA_SHADER_VERTEX) {
          key->vastc_srgb = ~0;
          key->vsamples = ~0;
+         memset(key->vsampler_swizzles, 0xff, sizeof(key->vsampler_swizzles));
       }
 
       if (info->stage == MESA_SHADER_TESS_CTRL)
@@ -565,6 +623,22 @@ ir3_trim_constlen(struct ir3_shader_variant **variants,
    uint32_t trimmed = 0;
    STATIC_ASSERT(MESA_SHADER_STAGES <= 8 * sizeof(trimmed));
 
+   bool shared_consts_enable =
+      ir3_const_state(variants[MESA_SHADER_VERTEX])->shared_consts_enable;
+
+   /* Use a hw quirk for geometry shared consts, not matched with actual
+    * shared consts size (on a6xx).
+    */
+   uint32_t shared_consts_size_geom = shared_consts_enable ?
+      compiler->geom_shared_consts_size_quirk : 0;
+
+   uint32_t shared_consts_size = shared_consts_enable ?
+      compiler->shared_consts_size : 0;
+
+   uint32_t safe_shared_consts_size = shared_consts_enable  ?
+      ALIGN_POT(MAX2(DIV_ROUND_UP(shared_consts_size_geom, 4),
+                     DIV_ROUND_UP(shared_consts_size, 5)), 4) : 0;
+
    /* There are two shared limits to take into account, the geometry limit on
     * a6xx and the total limit. The frag limit on a6xx only matters for a
     * single stage, so it's always satisfied with the first variant.
@@ -572,11 +646,13 @@ ir3_trim_constlen(struct ir3_shader_variant **variants,
    if (compiler->gen >= 6) {
       trimmed |=
          trim_constlens(constlens, MESA_SHADER_VERTEX, MESA_SHADER_GEOMETRY,
-                        compiler->max_const_geom, compiler->max_const_safe);
+                        compiler->max_const_geom - shared_consts_size_geom,
+                        compiler->max_const_safe - safe_shared_consts_size);
    }
    trimmed |=
       trim_constlens(constlens, MESA_SHADER_VERTEX, MESA_SHADER_FRAGMENT,
-                     compiler->max_const_pipeline, compiler->max_const_safe);
+                     compiler->max_const_pipeline - shared_consts_size,
+                     compiler->max_const_safe - safe_shared_consts_size);
 
    return trimmed;
 }
@@ -598,6 +674,7 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir,
    shader->num_reserved_user_consts = options->reserved_user_consts;
    shader->api_wavesize = options->api_wavesize;
    shader->real_wavesize = options->real_wavesize;
+   shader->shared_consts_enable = options->shared_consts_enable;
    shader->nir = nir;
 
    ir3_disk_cache_init_shader_key(compiler, shader);
@@ -772,19 +849,19 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
    fprintf(
       out,
       "; %s prog %d/%d: %u instr, %u nops, %u non-nops, %u mov, %u cov, %u dwords\n",
-      type, so->shader->id, so->id, so->info.instrs_count, so->info.nops_count,
+      type, so->shader_id, so->id, so->info.instrs_count, so->info.nops_count,
       so->info.instrs_count - so->info.nops_count, so->info.mov_count,
       so->info.cov_count, so->info.sizedwords);
 
    fprintf(out,
            "; %s prog %d/%d: %u last-baryf, %d half, %d full, %u constlen\n",
-           type, so->shader->id, so->id, so->info.last_baryf,
+           type, so->shader_id, so->id, so->info.last_baryf,
            so->info.max_half_reg + 1, so->info.max_reg + 1, so->constlen);
 
    fprintf(
       out,
       "; %s prog %d/%d: %u cat0, %u cat1, %u cat2, %u cat3, %u cat4, %u cat5, %u cat6, %u cat7, \n",
-      type, so->shader->id, so->id, so->info.instrs_per_cat[0],
+      type, so->shader_id, so->id, so->info.instrs_per_cat[0],
       so->info.instrs_per_cat[1], so->info.instrs_per_cat[2],
       so->info.instrs_per_cat[3], so->info.instrs_per_cat[4],
       so->info.instrs_per_cat[5], so->info.instrs_per_cat[6],
@@ -793,7 +870,7 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
    fprintf(
       out,
       "; %s prog %d/%d: %u sstall, %u (ss), %u systall, %u (sy), %d loops\n",
-      type, so->shader->id, so->id, so->info.sstall, so->info.ss,
+      type, so->shader_id, so->id, so->info.sstall, so->info.ss,
       so->info.systall, so->info.sy, so->loops);
 
    /* print shader type specific info: */
@@ -808,8 +885,8 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
       dump_reg(
          out, "pos (ij_centroid)",
          ir3_find_sysval_regid(so, SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID));
-      dump_reg(out, "pos (ij_size)",
-               ir3_find_sysval_regid(so, SYSTEM_VALUE_BARYCENTRIC_PERSP_SIZE));
+      dump_reg(out, "pos (center_rhw)",
+               ir3_find_sysval_regid(so, SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTER_RHW));
       dump_output(out, so, FRAG_RESULT_DEPTH, "posz");
       if (so->color0_mrt) {
          dump_output(out, so, FRAG_RESULT_COLOR, "color");
@@ -849,7 +926,7 @@ void
 ir3_link_stream_out(struct ir3_shader_linkage *l,
                     const struct ir3_shader_variant *v)
 {
-   const struct ir3_stream_output_info *strmout = &v->shader->stream_output;
+   const struct ir3_stream_output_info *strmout = &v->stream_output;
 
    /*
     * First, any stream-out varyings not already in linkage map (ie. also

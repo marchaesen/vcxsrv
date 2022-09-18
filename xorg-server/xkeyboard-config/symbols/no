@@ -1,30 +1,29 @@
+// Keyboard layouts for Norway.
+
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
-    // Describes the differences between a very simple en_US
-    // keyboard and a Norwegian keyboard with dead key support
-    // and all of ISO-8859-1 characters available.
+    // With dead-key support and all ISO-8859-1 characters available.
 
     include "latin(type2)"
 
     name[Group1]="Norwegian";
 
-    key <AB09>	{ [    period,      colon,   ellipsis, periodcentered ]	};
-    key <AB10>	{ [     minus, underscore,       endash,       emdash ]	};
-    key <AD04>	{ [         r,          R,   registered,    trademark ]	};
-    key <AD10>	{ [         p,          P,     Greek_pi,     Greek_PI ]	};
+    key <TLDE>	{ [       bar,    section,    brokenbar,    paragraph ]	};
     key <AE05>	{ [         5,    percent,      onehalf,    0x1002030 ]	};
-
     key <AE11>	{ [      plus,   question,    plusminus, questiondown ]	};
     key <AE12>	{ [ backslash, dead_grave,   dead_acute,      notsign ]	};
 
+    key <AD04>	{ [         r,          R,   registered,    trademark ]	};
+    key <AD10>	{ [         p,          P,     Greek_pi,     Greek_PI ]	};
 
-    key <AC10>	{ [    oslash,   Ooblique,   dead_acute, dead_doubleacute ] };
+    key <AC10>	{ [    oslash,     Oslash,   dead_acute, dead_doubleacute ] };
     key <AC11>	{ [        ae,         AE, dead_circumflex, dead_caron]	};
-    key <TLDE>	{ [       bar,    section,    brokenbar,    paragraph ]	};
-
     key <BKSL>	{ [apostrophe,   asterisk, dead_doubleacute, multiply ]	};
+
     key <LSGT>	{ [      less,    greater,      onehalf, threequarters]	};
+    key <AB09>	{ [    period,      colon,   ellipsis, periodcentered ]	};
+    key <AB10>	{ [     minus, underscore,       endash,       emdash ]	};
 
     include "nbsp(level3n)"
     include "keypad(ossmath)"
@@ -36,15 +35,13 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "nodeadkeys" {
 
-    // Modifies the basic Norwegian layout to no dead keys
-
     include "no(basic)"
 
     name[Group1]="Norwegian (no dead keys)";
 
     key <AE12>	{ [ backslash,      grave,        acute,       ogonek ]	};
     key <AD12>	{ [ diaeresis, asciicircum,  asciitilde,       macron ]	};
-    key <AC10>	{ [    oslash,   Ooblique,        acute,  doubleacute ]	};
+    key <AC10>	{ [    oslash,     Oslash,        acute,  doubleacute ]	};
     key <AC11>	{ [        ae,         AE,  asciicircum,        caron ]	};
     key <AB08>	{ [     comma,  semicolon,      cedilla,       ogonek ]	};
     key <AB09>	{ [    period,      colon, periodcentered,   abovedot ]	};
@@ -54,19 +51,21 @@ partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
      include "no(basic)"
+
      name[Group1]="Norwegian (Windows)";
+
      include "eurosign(5)"
 };
 
 // Norwegian Dvorak
 partial alphanumeric_keys
 xkb_symbols "dvorak" {
+
     include "us(dvorak)"
 
     name[Group1]="Norwegian (Dvorak)";
 
     key <TLDE> { [	  bar,	section, brokenbar, paragraph	] };
-
     key <AE01> { [	    1,	exclam, exclamdown, onesuperior	] };
     key <AE02> { [	    2,	quotedbl,   at,     twosuperior	] };
     key <AE03> { [	    3,	numbersign, sterling, threesuperior ] };
@@ -96,35 +95,29 @@ xkb_symbols "dvorak" {
     key <AC06> { [	    d,	D,      eth,		ETH	 ] };
     key <AC10> { [	    s,	S,      ssharp,		U1E9E	 ] };
     key <AC11> { [	minus,	underscore, hyphen,	diaeresis] };
+    key <BKSL> { [	 less,	greater, guillemotleft, guillemotright	] };
 
-    key <AB01> { [	   ae,	AE,     braceleft,	bracketleft] };
+    key <LSGT> { [     oslash,	Oslash, bar,	       backslash ] };
+    key <AB01> { [	   ae,	AE,     braceleft,    bracketleft] };
     key <AB05> { [	    x,	X,      multiply		 ] };
     key <AB07> { [	    m,	M,	mu			 ] };
-    key <BKSL> { [	 less,	greater, guillemotleft, guillemotright	] };
 
     key <SPCE> { [	 space,	space, nobreakspace, nobreakspace] };
 
-    key <LSGT> { [	oslash,	Ooblique,  bar,	backslash	 ] };
-
-    // fixed https://bugs.freedesktop.org/show_bug.cgi?id=4397
     include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
 xkb_symbols "smi" {
 
-    // Northern Sami keyboards for Finland, Norway and Sweden
+    // Northern Sami layouts for Finland, Norway and Sweden.
     //
-    // Describes the differences between a very simple en_US
-    // keyboard and a Norwegian Northern Sami keyboard (with
-    // dead-key support) according to the spec on
-    // http://www.hum.uit.no/a/trond/se-lat9-no-keys.html
+    // From spec on http://www.hum.uit.no/a/trond/se-lat9-no-keys.html.
     // Written by Børre Gaup <boerre.gaup@pc.nu>.
-
-    include "latin"
 
     name[Group1]= "Northern Saami (Norway)";
 
+    key <TLDE>	{ [       bar,    section,    brokenbar,    paragraph ]	};
     key <AE01>	{ [         1,     exclam,    copyright,   exclamdown ]	};
     key <AE02>	{ [         2,   quotedbl,           at,   registered ]	};
     key <AE03>	{ [         3, numbersign,     sterling,         less ]	};
@@ -142,27 +135,30 @@ xkb_symbols "smi" {
     key <AD02>	{ [    scaron,     Scaron,            w,            W ]	};
     key <AD03>	{ [         e,          E,       eacute,       Eacute ]	};
     key <AD04>	{ [         r,          R,   registered,    trademark ]	};
+    key <AD05>	{ [         t,          T,       tslash,       Tslash ]	};
     key <AD06>	{ [         y,          Y,       yacute,       Yacute ]	};
     key <AD07>	{ [         u,          U,   udiaeresis,   Udiaeresis ]	};
     key <AD08>	{ [         i,          I,   idiaeresis,   Idiaeresis ]	};
     key <AD09>	{ [         o,          O,           oe,           OE ]	};
+    key <AD10>	{ [         p,          P,        thorn,        THORN ]	};
     key <AD11>	{ [     aring,      Aring,  acircumflex,  Acircumflex ]	};
     key <AD12>	{ [       eng,        ENG,     quotedbl,  asciicircum ]	};
 
     key <AC01>	{ [         a,          A,       agrave,       Agrave ]	};
     key <AC02>	{ [         s,          S,       ssharp,   apostrophe ]	};
+    key <AC03>	{ [         d,          D,          eth,          ETH ]	};
     key <AC04>	{ [         f,          F,  ordfeminine,  ordfeminine ]	};
     key <AC05>	{ [         g,          G,       gcaron,       Gcaron ]	};
     key <AC06>	{ [         h,          H,        U01E5,        U01E4 ]	};
     key <AC07>	{ [         j,          J,      notsign,     multiply ]	};
     key <AC08>	{ [         k,          K,        U01E9,        U01E8 ]	};
     key <AC09>	{ [         l,          L,       degree,       hyphen ]	};
-    key <AC10>	{ [    oslash,   Ooblique,   odiaeresis,   Odiaeresis ]	};
+    key <AC10>	{ [    oslash,     Oslash,   odiaeresis,   Odiaeresis ]	};
     key <AC11>	{ [        ae,         AE,   adiaeresis,   Adiaeresis ]	};
-    key <TLDE>	{ [       bar,    section,    brokenbar,    paragraph ]	};
-
     key <BKSL>	{ [   dstroke,    Dstroke,   apostrophe,     asterisk ]	};
-    key <AB01>	{ [         z,          Z,        U0292,        U01B7 ]	};
+
+    key <LSGT>	{ [    zcaron,     Zcaron,        U01EF,        U01EE ] }; // ǯ Ǯ
+    key <AB01>	{ [         z,          Z,          ezh,          EZH ]	}; // ʒ Ʒ
     key <AB02>	{ [    ccaron,     Ccaron,            x,            X ]	};
     key <AB03>	{ [         c,          C,     ccedilla,     Ccedilla ]	};
     key <AB04>	{ [         v,          V, lessthanequal, guillemotleft ] };
@@ -173,16 +169,11 @@ xkb_symbols "smi" {
     key <AB09>	{ [    period,      colon,     ellipsis, periodcentered ] };
     key <AB10>	{ [     minus, underscore,       endash,       emdash ]	};
 
-    key <LSGT>	{ type[Group1] = "FOUR_LEVEL",
-                  [    zcaron,     Zcaron,        U01EF,        U01EE ]	};
-
     include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
 xkb_symbols "smi_nodeadkeys" {
-
-    // Modifies the basic Norwegian layout to no dead keys
 
     include "no(smi)"
 
@@ -191,14 +182,11 @@ xkb_symbols "smi_nodeadkeys" {
     key <AE12>	{ [ backslash,      grave,        acute,       ogonek ]	};
 };
 
-// Copied from macintosh_vndr/no
 partial alphanumeric_keys
 xkb_symbols "mac" {
 
-    // Describes the differences between a very simple en_US
-    // keyboard and a very simple Norwegian keyboard.
-
     include "latin(type4)"
+
     name[Group1]= "Norwegian (Macintosh)";
 
     key <TLDE>	{ [       bar,    section     ]	};
@@ -208,20 +196,22 @@ xkb_symbols "mac" {
     key <AE07>	{ [         7,      slash,          bar,    backslash ]	};
     key <AE08>	{ [         8,  parenleft,  bracketleft,    braceleft ]	};
     key <AE09>	{ [         9, parenright, bracketright,   braceright ]	};
-    key <AC10>	{ [    oslash,   Ooblique,   odiaeresis,   Odiaeresis ]	};
     key <AE11>	{ [      plus,   question     ]	};
-    key <AC11>	{ [        ae,         AE     ]	};
+    key <AE12>	{ [dead_grave, dead_acute,        acute,  dead_ogonek ]	};
+
     key <AD11>	{ [     aring,      Aring     ]	};
-    key <AE12>	{ [ dead_grave, dead_acute,       acute,  dead_ogonek ]	};
     key <AD12>	{ [ diaeresis, asciicircum,  asciitilde,  dead_macron ]	};
+
+    key <AC10>	{ [    oslash,     Oslash,   odiaeresis,   Odiaeresis ]	};
+    key <AC11>	{ [        ae,         AE     ]	};
     key <BKSL>	{ [        at,   asterisk     ]	};
 };
 
 partial alphanumeric_keys
 xkb_symbols "mac_nodeadkeys" {
 
-    // Modifies the basic Norwegian layout to no dead keys
     include "no(mac)"
+
     name[Group1]= "Norwegian (Macintosh, no dead keys)";
 
     key <AE12>	{ [      grave,     acute,        acute,       ogonek ]	};
@@ -231,14 +221,24 @@ xkb_symbols "mac_nodeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "colemak" {
 
-    // Colemak layout - http://colemak.com/
+    include "no(basic)"
+
+    name[Group1]= "Norwegian (Colemak)";
+
+    // See https://colemak.com/.
     // Q W F P G   J L U Y Ø Å ¨
     // A R S T D   H N E I O Æ '
     // < Z X C V   B K M , . -
-    include "no(basic)"
-    name[Group1]= "Norwegian (Colemak)";
 
-    key <AB06>	{ [         k,          K,          kra,    ampersand ] };
+    key <AD03>	{ [         f,          F,      dstroke,  ordfeminine ] };
+    key <AD04>	{ [         p,          P,     Greek_pi,     Greek_PI ] };
+    key <AD05>	{ [         g,          G,          eng,          ENG ] };
+    key <AD06>	{ [         j,          J ] };
+    key <AD07>	{ [         l,          L,      lstroke,      Lstroke ] };
+    key <AD08>	{ [         u,          U,    downarrow,      uparrow ] };
+    key <AD09>	{ [         y,          Y,    leftarrow,          yen ] };
+    key <AD10>	{ [    oslash,     Oslash,   dead_acute, dead_doubleacute ] };
+
     key <AC02>	{ [         r,          R,   registered,    trademark ] };
     key <AC03>	{ [         s,          S,       ssharp,      section ] };
     key <AC04>	{ [         t,          T,        thorn,        THORN ] };
@@ -247,14 +247,8 @@ xkb_symbols "colemak" {
     key <AC08>	{ [         e,          E,     EuroSign,         cent ] };
     key <AC09>	{ [         i,          I,   rightarrow,     idotless ] };
     key <AC10>	{ [         o,          O,           oe,           OE ] };
-    key <AD03>	{ [         f,          F,      dstroke,  ordfeminine ] };
-    key <AD04>	{ [         p,          P,     Greek_pi,     Greek_PI ] };
-    key <AD05>	{ [         g,          G,          eng,          ENG ] };
-    key <AD06>	{ [         j,          J ] };
-    key <AD07>	{ [         l,          L,      lstroke,      Lstroke ] };
-    key <AD08>	{ [         u,          U,    downarrow,      uparrow ] };
-    key <AD09>	{ [         y,          Y,    leftarrow,          yen ] };
-    key <AD10>	{ [    oslash,   Ooblique,   dead_acute, dead_doubleacute ] };
+
+    key <AB06>	{ [         k,          K,          kra,    ampersand ] };
 };
 
 // EXTRAS:

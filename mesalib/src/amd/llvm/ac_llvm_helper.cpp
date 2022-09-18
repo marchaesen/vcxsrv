@@ -28,6 +28,8 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Target/TargetMachine.h>
+#include <llvm/MC/MCSubtargetInfo.h>
+#include <llvm/Support/CommandLine.h>
 #include <llvm/Transforms/IPO.h>
 
 #include <cstring>
@@ -42,6 +44,17 @@
 #include "ac_llvm_util.h"
 #include "ac_llvm_build.h"
 #include "util/macros.h"
+
+bool ac_is_llvm_processor_supported(LLVMTargetMachineRef tm, const char *processor)
+{
+   llvm::TargetMachine *TM = reinterpret_cast<llvm::TargetMachine *>(tm);
+   return TM->getMCSubtargetInfo()->isCPUStringValid(processor);
+}
+
+void ac_reset_llvm_all_options_occurences()
+{
+   llvm::cl::ResetAllOptionOccurrences();
+}
 
 void ac_add_attr_dereferenceable(LLVMValueRef val, uint64_t bytes)
 {
@@ -61,16 +74,6 @@ bool ac_is_sgpr_param(LLVMValueRef arg)
    llvm::AttributeList AS = A->getParent()->getAttributes();
    unsigned ArgNo = A->getArgNo();
    return AS.hasParamAttr(ArgNo, llvm::Attribute::InReg);
-}
-
-LLVMValueRef ac_llvm_get_called_value(LLVMValueRef call)
-{
-   return LLVMGetCalledValue(call);
-}
-
-bool ac_llvm_is_function(LLVMValueRef v)
-{
-   return LLVMGetValueKind(v) == LLVMFunctionValueKind;
 }
 
 LLVMModuleRef ac_create_module(LLVMTargetMachineRef tm, LLVMContextRef ctx)
@@ -254,11 +257,6 @@ bool ac_compile_module_to_elf(struct ac_compiler_passes *p, LLVMModuleRef module
 void ac_llvm_add_barrier_noop_pass(LLVMPassManagerRef passmgr)
 {
    llvm::unwrap(passmgr)->add(llvm::createBarrierNoopPass());
-}
-
-void ac_enable_global_isel(LLVMTargetMachineRef tm)
-{
-   reinterpret_cast<llvm::TargetMachine *>(tm)->setGlobalISel(true);
 }
 
 LLVMValueRef ac_build_atomic_rmw(struct ac_llvm_context *ctx, LLVMAtomicRMWBinOp op,

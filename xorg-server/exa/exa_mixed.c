@@ -72,7 +72,7 @@ exaCreatePixmap_mixed(ScreenPtr pScreen, int w, int h, int depth,
     bpp = pPixmap->drawable.bitsPerPixel;
 
     paddedWidth = ((w * bpp + FB_MASK) >> FB_SHIFT) * sizeof(FbBits);
-    if (paddedWidth / 4 > 32767 || h > 32767)
+    if (paddedWidth / 4 > 32767)
         return NullPixmap;
 
     /* We will allocate the system pixmap later if needed. */
@@ -326,5 +326,3 @@ exaSetSharedPixmapBacking_mixed(PixmapPtr pPixmap, void *handle)
 
     return ret;
 }
-
-

@@ -514,7 +514,7 @@ spill_ctx_init(struct ra_spill_ctx *ctx, struct ir3_shader_variant *v,
       ctx->intervals[i] = &intervals[i];
 
    ctx->intervals_count = ctx->live->definitions_count;
-   ctx->compiler = v->shader->compiler;
+   ctx->compiler = v->compiler;
    ctx->merged_regs = v->mergedregs;
 
    rb_tree_init(&ctx->reg_ctx.intervals);
@@ -854,7 +854,7 @@ split(struct ir3_register *def, unsigned offset,
    assert(!(def->flags & IR3_REG_ARRAY));
    assert(def->merge_set);
    struct ir3_instruction *split =
-      ir3_instr_create(after->block, OPC_META_SPLIT, 1, 1);
+      ir3_instr_create(block, OPC_META_SPLIT, 1, 1);
    struct ir3_register *dst = __ssa_dst(split);
    dst->flags |= def->flags & IR3_REG_HALF;
    struct ir3_register *src = ir3_src_create(split, INVALID_REG, def->flags);
@@ -874,16 +874,20 @@ extract(struct ir3_register *parent_def, unsigned offset, unsigned elems,
    if (offset == 0 && elems == reg_elems(parent_def))
       return parent_def;
 
+   struct ir3_register *srcs[elems];
+   for (unsigned i = 0; i < elems; i++) {
+      srcs[i] = split(parent_def, offset + i, after, block);
+   }
+
    struct ir3_instruction *collect =
-      ir3_instr_create(after->block, OPC_META_COLLECT, 1, elems);
+      ir3_instr_create(block, OPC_META_COLLECT, 1, elems);
    struct ir3_register *dst = __ssa_dst(collect);
    dst->flags |= parent_def->flags & IR3_REG_HALF;
    dst->wrmask = MASK(elems);
    add_to_merge_set(parent_def->merge_set, dst, parent_def->merge_set_offset);
 
    for (unsigned i = 0; i < elems; i++) {
-      ir3_src_create(collect, INVALID_REG, parent_def->flags)->def =
-         split(parent_def, offset + i, after, block);
+      ir3_src_create(collect, INVALID_REG, parent_def->flags)->def = srcs[i];
    }
 
    if (after)
@@ -905,6 +909,14 @@ reload(struct ra_spill_ctx *ctx, struct ir3_register *reg,
       ir3_instr_create(block, OPC_RELOAD_MACRO, 1, 3);
    struct ir3_register *dst = __ssa_dst(reload);
    dst->flags |= reg->flags & (IR3_REG_HALF | IR3_REG_ARRAY);
+   /* The reload may be split into multiple pieces, and if the destination
+    * overlaps with the base register then it could get clobbered before the
+    * last ldp in the sequence. Note that we always reserve space for the base
+    * register throughout the whole program, so effectively extending its live
+    * range past the end of the instruction isn't a problem for our pressure
+    * accounting.
+    */
+   dst->flags |= IR3_REG_EARLY_CLOBBER;
    ir3_src_create(reload, INVALID_REG, ctx->base_reg->flags)->def = ctx->base_reg;
    struct ir3_register *offset_reg =
       ir3_src_create(reload, INVALID_REG, IR3_REG_IMMED);
@@ -1033,15 +1045,17 @@ handle_instr(struct ra_spill_ctx *ctx, struct ir3_instruction *instr)
          insert_src(ctx, src);
    }
 
-   /* Handle tied destinations. If a destination is tied to a source and that
-    * source is live-through, then we need to allocate a new register for the
-    * destination which is live-through itself and cannot overlap the
+   /* Handle tied and early-kill destinations. If a destination is tied to a
+    * source and that source is live-through, then we need to allocate a new
+    * register for the destination which is live-through itself and cannot
+    * overlap the sources. Similarly early-kill destinations cannot overlap
     * sources.
     */
 
    ra_foreach_dst (dst, instr) {
       struct ir3_register *tied_src = dst->tied;
-      if (tied_src && !(tied_src->flags & IR3_REG_FIRST_KILL))
+      if ((tied_src && !(tied_src->flags & IR3_REG_FIRST_KILL)) ||
+          (dst->flags & IR3_REG_EARLY_CLOBBER))
          insert_dst(ctx, dst);
    }
 
@@ -1867,15 +1881,31 @@ simplify_phi_node(struct ir3_instruction *phi)
    return true;
 }
 
+static struct ir3_register *
+simplify_phi_def(struct ir3_register *def)
+{
+   if (def->instr->opc == OPC_META_PHI) {
+      struct ir3_instruction *phi = def->instr;
+
+      /* Note: this function is always called at least once after visiting the
+       * phi, so either there has been a simplified phi in the meantime, in
+       * which case we will set progress=true and visit the definition again, or
+       * phi->data already has the most up-to-date value. Therefore we don't
+       * have to recursively check phi->data.
+       */
+      if (phi->data)
+         return phi->data;
+   }
+
+   return def;
+}
+
 static void
 simplify_phi_srcs(struct ir3_instruction *instr)
 {
    foreach_src (src, instr) {
-      if (src->def && src->def->instr->opc == OPC_META_PHI) {
-         struct ir3_instruction *phi = src->def->instr;
-         if (phi->data)
-            src->def = phi->data;
-      }
+      if (src->def)
+         src->def = simplify_phi_def(src->def);
    }
 }
 
@@ -1905,6 +1935,10 @@ simplify_phi_nodes(struct ir3 *ir)
             simplify_phi_srcs(instr);
          }
 
+         /* Visit phi nodes in the sucessors to make sure that phi sources are
+          * always visited at least once after visiting the definition they
+          * point to. See note in simplify_phi_def() for why this is necessary.
+          */
          for (unsigned i = 0; i < 2; i++) {
             struct ir3_block *succ = block->successors[i];
             if (!succ)
@@ -1912,11 +1946,13 @@ simplify_phi_nodes(struct ir3 *ir)
             foreach_instr (instr, &succ->instr_list) {
                if (instr->opc != OPC_META_PHI)
                   break;
-               if (instr->flags & IR3_INSTR_UNUSED)
-                  continue;
-
-               simplify_phi_srcs(instr);
-               progress |= simplify_phi_node(instr);
+               if (instr->flags & IR3_INSTR_UNUSED) {
+                  if (instr->data)
+                     instr->data = simplify_phi_def(instr->data);
+               } else {
+                  simplify_phi_srcs(instr);
+                  progress |= simplify_phi_node(instr);
+               }
             }
          }
       }

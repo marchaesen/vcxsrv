@@ -33,10 +33,10 @@ format of an Xkb modifier description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set vmods
 .TP
-.I \- vmods
+.I vmods
 virtual mods to set
 .SH DESCRIPTION
 .LP

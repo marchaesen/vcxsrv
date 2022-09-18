@@ -1,0 +1,10 @@
+%YAML 1.2
+---
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  unigine/sanctuary-d3d9.trace-dxgi:
+    lvp:
+      label: [slow]
+      checksum: e9a05a395243c7604927daeb001f821d

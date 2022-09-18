@@ -10,6 +10,7 @@ xkb_symbols "basic" {
 
     name[Group1]="Dutch";
 
+    key <TLDE>	{ [        at,    section,      notsign,      notsign ]	};
     key <AE02>	{ [         2,   quotedbl,  twosuperior,    oneeighth ]	};
     key <AE06>	{ [         6,  ampersand, threequarters, fiveeighths ]	};
     key <AE07>	{ [         7, underscore,     sterling, seveneighths ]	};
@@ -33,9 +34,9 @@ xkb_symbols "basic" {
     key <AC04>	{ [         f,          F,  ordfeminine,  ordfeminine ]	};
     key <AC10>	{ [      plus,  plusminus,   dead_acute, dead_doubleacute ] };
     key <AC11>	{ [dead_acute, dead_grave,   apostrophe,        grave ] };
-    key <TLDE>	{ [        at,    section,      notsign,      notsign ]	};
-
     key <BKSL>	{ [      less,    greater,   dead_grave,   dead_breve ]	};
+
+    key <LSGT>	{ [bracketright, bracketleft,       bar,    brokenbar ]	};
     key <AB04>	{ [         v,          V, leftdoublequotemark, leftsinglequotemark ]	};
     key <AB05>	{ [         b,          B, rightdoublequotemark, rightsinglequotemark ] };
     key <AB06>	{ [         n,          N,       ntilde,       Ntilde ]	};
@@ -43,8 +44,6 @@ xkb_symbols "basic" {
     key <AB08>	{ [     comma,  semicolon,      cedilla, guillemotleft]	};
     key <AB09>	{ [    period,      colon, periodcentered, guillemotright ] };
     key <AB10>	{ [     minus,      equal,       hyphen, dead_abovedot]	};
-
-    key <LSGT>	{ [bracketright, bracketleft,       bar,    brokenbar ]	};
 
     include "level3(ralt_switch)"
 };

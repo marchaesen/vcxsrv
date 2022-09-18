@@ -2,7 +2,7 @@
 
 set -ex
 
-PARALLEL_DEQP_RUNNER_VERSION=6596b71cf37a7efb4d54acd48c770ed2d4ad6b7e
+PARALLEL_DEQP_RUNNER_VERSION=fe557794b5dadd8dbf0eae403296625e03bda18a
 
 git clone https://gitlab.freedesktop.org/mesa/parallel-deqp-runner --single-branch -b master --no-checkout /parallel-deqp-runner
 pushd /parallel-deqp-runner

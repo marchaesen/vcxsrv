@@ -2541,9 +2541,9 @@ _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *st
    state->prog->Target = target;
    state->prog->Parameters = _mesa_new_parameter_list();
 
-   /* Make a copy of the program string and force it to be NUL-terminated.
+   /* Make a copy of the program string and force it to be newline and NUL-terminated.
     */
-   strz = (GLubyte *) ralloc_size(state->mem_ctx, len + 1);
+   strz = (GLubyte *) ralloc_size(state->mem_ctx, len + 2);
    if (strz == NULL) {
       if (state->prog->Parameters) {
          _mesa_free_parameter_list(state->prog->Parameters);
@@ -2553,7 +2553,8 @@ _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *st
       return GL_FALSE;
    }
    memcpy (strz, str, len);
-   strz[len] = '\0';
+   strz[len]     = '\n';
+   strz[len + 1] = '\0';
 
    state->prog->String = strz;
 
@@ -2578,10 +2579,12 @@ _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *st
 
    _mesa_set_program_error(ctx, -1, NULL);
 
-   _mesa_program_lexer_ctor(& state->scanner, state, (const char *) str, len);
+   _mesa_program_lexer_ctor(& state->scanner, state, (const char *) strz, len + 1);
    yyparse(state);
    _mesa_program_lexer_dtor(state->scanner);
 
+   /* Remove the newline we added so reflection returns the original string */
+   strz[len] = '\0';
 
    if (ctx->Program.ErrorPos != -1) {
       goto error;

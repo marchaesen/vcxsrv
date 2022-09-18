@@ -679,14 +679,14 @@ vc4_generate_code(struct vc4_context *vc4, struct vc4_compile *c)
 
         cycles += c->qpu_inst_count - inst_count_at_schedule_time;
 
-        if (vc4_debug & VC4_DEBUG_SHADERDB) {
+        if (VC4_DBG(SHADERDB)) {
                 fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d estimated cycles\n",
                         qir_get_stage_name(c->stage),
                         c->program_id, c->variant_id,
                         cycles);
         }
 
-        if (vc4_debug & VC4_DEBUG_QPU)
+        if (VC4_DBG(QPU))
                 vc4_dump_program(c);
 
         vc4_qpu_validate(c->qpu_insts, c->qpu_inst_count);

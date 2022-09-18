@@ -38,22 +38,22 @@ replace an active one
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- names
+.I names
 names of components to fetch
 .TP
-.I \- want
+.I want
 desired structures in returned record
 .TP
-.I \- need
+.I need
 mandatory structures in returned record
 .TP
-.I \- load
+.I load
 True => load into 
 .I device_spec
 .SH DESCRIPTION

@@ -34,13 +34,13 @@ Extension device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- which
+.I which
 mask indicating characteristics to modify
 .TP
-.I \- device_info
+.I device_info
 structure defining the device and modifications
 .SH DESCRIPTION
 .LP

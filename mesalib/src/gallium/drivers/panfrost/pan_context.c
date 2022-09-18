@@ -45,7 +45,9 @@
 #include "util/u_prim_restart.h"
 #include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_from_mesa.h"
+#include "nir/tgsi_to_nir.h"
 #include "util/u_math.h"
+#include "util/u_debug_cb.h"
 
 #include "pan_screen.h"
 #include "pan_util.h"
@@ -61,18 +63,26 @@ panfrost_clear(
         double depth, unsigned stencil)
 {
         struct panfrost_context *ctx = pan_context(pipe);
+        struct panfrost_batch *batch = panfrost_get_batch_for_fbo(ctx);
 
         if (!panfrost_render_condition_check(ctx))
                 return;
 
-        /* TODO: panfrost_get_fresh_batch_for_fbo() instantiates a new batch if
-         * the existing batch targeting this FBO has draws. We could probably
-         * avoid that by replacing plain clears by quad-draws with a specific
-         * color/depth/stencil value, thus avoiding the generation of extra
-         * fragment jobs.
-         */
-        struct panfrost_batch *batch = panfrost_get_fresh_batch_for_fbo(ctx, "Clear");
-        panfrost_batch_clear(batch, buffers, color, depth, stencil);
+        /* At the start of the batch, we can clear for free */
+        if (!batch->scoreboard.first_job) {
+                panfrost_batch_clear(batch, buffers, color, depth, stencil);
+                return;
+        }
+
+        /* Once there is content, clear with a fullscreen quad */
+        panfrost_blitter_save(ctx, false /* render condition */);
+
+        util_blitter_clear(ctx->blitter,
+                           ctx->pipe_framebuffer.width,
+                           ctx->pipe_framebuffer.height,
+                           util_framebuffer_get_num_layers(&ctx->pipe_framebuffer),
+                           buffers, color, depth, stencil,
+                           util_framebuffer_get_num_samples(&ctx->pipe_framebuffer) > 1);
 }
 
 bool
@@ -136,7 +146,7 @@ panfrost_bind_blend_state(struct pipe_context *pipe, void *cso)
 {
         struct panfrost_context *ctx = pan_context(pipe);
         ctx->blend = cso;
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty |= PAN_DIRTY_BLEND;
 }
 
 static void
@@ -144,7 +154,7 @@ panfrost_set_blend_color(struct pipe_context *pipe,
                          const struct pipe_blend_color *blend_color)
 {
         struct panfrost_context *ctx = pan_context(pipe);
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty |= PAN_DIRTY_BLEND;
 
         if (blend_color)
                 ctx->blend_color = *blend_color;
@@ -170,6 +180,20 @@ panfrost_get_blend(struct panfrost_batch *batch, unsigned rti, struct panfrost_b
                 return 0;
         }
 
+        /* On all architectures, we can disable writes for a blend descriptor,
+         * at which point the format doesn't matter.
+         */
+        if (!info.enabled)
+                return 0;
+
+        /* On Bifrost and newer, we can also use fixed-function for opaque
+         * output regardless of the format by configuring the appropriate
+         * conversion descriptor in the internal blend descriptor. (Midgard
+         * requires a blend shader even for this case.)
+         */
+        if (dev->arch >= 6 && info.opaque)
+                return 0;
+
         /* Otherwise, we need to grab a shader */
         struct pan_blend_state pan_blend = blend->pan;
         unsigned nr_samples = surf->nr_samples ? : surf->texture->nr_samples;
@@ -192,7 +216,7 @@ panfrost_get_blend(struct panfrost_batch *batch, unsigned rti, struct panfrost_b
         nir_alu_type col1_type = nir_type_float32;
 
         /* Bifrost has per-output types, respect them */
-        if (pan_is_bifrost(dev)) {
+        if (dev->arch >= 6) {
                 col0_type = ss->info.bifrost.blend[rti].type;
                 col1_type = ss->info.bifrost.blend_src1_type;
         }
@@ -223,12 +247,11 @@ panfrost_bind_rasterizer_state(
         struct panfrost_context *ctx = pan_context(pctx);
         ctx->rasterizer = hwcso;
 
-        /* We can assume the renderer state descriptor is always dirty, the
-         * dependencies are too intricate to bother tracking in detail. However
-         * we could probably diff the renderers for viewport dirty tracking,
-         * that just cares about the scissor enable and the depth clips. */
-        ctx->dirty |= PAN_DIRTY_SCISSOR;
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        /* We can assume rasterizer is always dirty, the dependencies are
+         * too intricate to bother tracking in detail. However we could
+         * probably diff the renderers for viewport dirty tracking, that
+         * just cares about the scissor enable and the depth clips. */
+        ctx->dirty |= PAN_DIRTY_SCISSOR | PAN_DIRTY_RASTERIZER;
 }
 
 static void
@@ -287,37 +310,42 @@ panfrost_bind_vertex_elements_state(
 {
         struct panfrost_context *ctx = pan_context(pctx);
         ctx->vertex = hwcso;
+        ctx->dirty |= PAN_DIRTY_VERTEX;
 }
 
 static void *
 panfrost_create_shader_state(
         struct pipe_context *pctx,
-        const struct pipe_shader_state *cso,
-        enum pipe_shader_type stage)
+        const struct pipe_shader_state *cso)
 {
         struct panfrost_shader_variants *so = CALLOC_STRUCT(panfrost_shader_variants);
         struct panfrost_device *dev = pan_device(pctx->screen);
-        so->base = *cso;
 
         simple_mtx_init(&so->lock, mtx_plain);
 
-        /* Token deep copy to prevent memory corruption */
+        so->stream_output = cso->stream_output;
 
         if (cso->type == PIPE_SHADER_IR_TGSI)
-                so->base.tokens = tgsi_dup_tokens(so->base.tokens);
+                so->nir = tgsi_to_nir(cso->tokens, pctx->screen, false);
+        else
+                so->nir = cso->ir.nir;
+
+        /* Fix linkage early */
+        if (so->nir->info.stage == MESA_SHADER_VERTEX) {
+                so->fixed_varying_mask =
+                        (so->nir->info.outputs_written & BITFIELD_MASK(VARYING_SLOT_VAR0)) &
+                        ~VARYING_BIT_POS & ~VARYING_BIT_PSIZ;
+        }
 
         /* Precompile for shader-db if we need to */
-        if (unlikely((dev->debug & PAN_DBG_PRECOMPILE) && cso->type == PIPE_SHADER_IR_NIR)) {
+        if (unlikely(dev->debug & PAN_DBG_PRECOMPILE)) {
                 struct panfrost_context *ctx = pan_context(pctx);
 
                 struct panfrost_shader_state state = { 0 };
 
                 panfrost_shader_compile(pctx->screen,
                                         &ctx->shaders, &ctx->descs,
-                                        PIPE_SHADER_IR_NIR,
-                                        so->base.ir.nir,
-                                        tgsi_processor_to_shader_stage(stage),
-                                        &state);
+                                        so->nir, &ctx->base.debug, &state, 0);
         }
 
         return so;
@@ -330,17 +358,20 @@ panfrost_delete_shader_state(
 {
         struct panfrost_shader_variants *cso = (struct panfrost_shader_variants *) so;
 
-        if (!cso->is_compute && cso->base.type == PIPE_SHADER_IR_NIR)
-                ralloc_free(cso->base.ir.nir);
-
-        if (cso->base.type == PIPE_SHADER_IR_TGSI)
-                tgsi_free_tokens(cso->base.tokens);
+        ralloc_free(cso->nir);
 
         for (unsigned i = 0; i < cso->variant_count; ++i) {
                 struct panfrost_shader_state *shader_state = &cso->variants[i];
                 panfrost_bo_unreference(shader_state->bin.bo);
                 panfrost_bo_unreference(shader_state->state.bo);
                 panfrost_bo_unreference(shader_state->linkage.bo);
+
+                if (shader_state->xfb) {
+                        panfrost_bo_unreference(shader_state->xfb->bin.bo);
+                        panfrost_bo_unreference(shader_state->xfb->state.bo);
+                        panfrost_bo_unreference(shader_state->xfb->linkage.bo);
+                        free(shader_state->xfb);
+                }
         }
 
         simple_mtx_destroy(&cso->lock);
@@ -366,18 +397,34 @@ panfrost_bind_sampler_states(
                 memcpy(ctx->samplers[shader], sampler, num_sampler * sizeof (void *));
 }
 
-static bool
-panfrost_variant_matches(
-        struct panfrost_context *ctx,
-        struct panfrost_shader_state *variant,
-        enum pipe_shader_type type)
+static void
+panfrost_build_key(struct panfrost_context *ctx,
+                   struct panfrost_shader_key *key,
+                   nir_shader *nir)
 {
-        if (variant->info.stage == MESA_SHADER_FRAGMENT &&
-            variant->info.fs.outputs_read) {
-                struct pipe_framebuffer_state *fb = &ctx->pipe_framebuffer;
+        /* We don't currently have vertex shader variants */
+        if (nir->info.stage != MESA_SHADER_FRAGMENT)
+               return;
 
-                unsigned i;
-                BITSET_FOREACH_SET(i, &variant->info.fs.outputs_read, 8) {
+        struct panfrost_device *dev = pan_device(ctx->base.screen);
+        struct pipe_framebuffer_state *fb = &ctx->pipe_framebuffer;
+        struct pipe_rasterizer_state *rast = (void *) ctx->rasterizer;
+        struct panfrost_shader_variants *vs = ctx->shader[MESA_SHADER_VERTEX];
+
+        key->fs.nr_cbufs = fb->nr_cbufs;
+
+        /* Point sprite lowering needed on Bifrost and newer */
+        if (dev->arch >= 6 && rast && ctx->active_prim == PIPE_PRIM_POINTS) {
+                key->fs.sprite_coord_enable = rast->sprite_coord_enable;
+        }
+
+        /* User clip plane lowering needed everywhere */
+        if (rast) {
+                key->fs.clip_plane_enable = rast->clip_plane_enable;
+        }
+
+        if (dev->arch <= 5) {
+                u_foreach_bit(i, (nir->info.outputs_read >> FRAG_RESULT_DATA0)) {
                         enum pipe_format fmt = PIPE_FORMAT_R8G8B8A8_UNORM;
 
                         if ((fb->nr_cbufs > i) && fb->cbufs[i])
@@ -386,17 +433,15 @@ panfrost_variant_matches(
                         if (panfrost_blendable_formats_v6[fmt].internal)
                                 fmt = PIPE_FORMAT_NONE;
 
-                        if (variant->rt_formats[i] != fmt)
-                                return false;
+                        key->fs.rt_formats[i] = fmt;
                 }
         }
 
-        if (variant->info.stage == MESA_SHADER_FRAGMENT &&
-            variant->nr_cbufs != ctx->pipe_framebuffer.nr_cbufs)
-                return false;
-
-        /* Otherwise, we're good to go */
-        return true;
+        /* Funny desktop GL varying lowering on Valhall */
+        if (dev->arch >= 9) {
+                assert(vs != NULL && "too early");
+                key->fixed_varying_mask = vs->fixed_varying_mask;
+        }
 }
 
 /**
@@ -438,6 +483,53 @@ update_so_info(struct pipe_stream_output_info *so_info,
 	return so_outputs;
 }
 
+static unsigned
+panfrost_new_variant_locked(
+        struct panfrost_context *ctx,
+        struct panfrost_shader_variants *variants,
+        struct panfrost_shader_key *key)
+{
+        unsigned variant = variants->variant_count++;
+
+        if (variants->variant_count > variants->variant_space) {
+                unsigned old_space = variants->variant_space;
+
+                variants->variant_space *= 2;
+                if (variants->variant_space == 0)
+                        variants->variant_space = 1;
+
+                /* Arbitrary limit to stop runaway programs from
+                 * creating an unbounded number of shader variants. */
+                assert(variants->variant_space < 1024);
+
+                unsigned msize = sizeof(struct panfrost_shader_state);
+                variants->variants = realloc(variants->variants,
+                                             variants->variant_space * msize);
+
+                memset(&variants->variants[old_space], 0,
+                       (variants->variant_space - old_space) * msize);
+        }
+
+        variants->variants[variant].key = *key;
+
+        struct panfrost_shader_state *shader_state = &variants->variants[variant];
+
+        /* We finally have a variant, so compile it */
+        panfrost_shader_compile(ctx->base.screen,
+                                &ctx->shaders, &ctx->descs,
+                                variants->nir, &ctx->base.debug, shader_state, 0);
+
+        /* Fixup the stream out information */
+        shader_state->stream_output = variants->stream_output;
+        shader_state->so_mask =
+                update_so_info(&shader_state->stream_output,
+                               shader_state->info.outputs_written);
+
+        shader_state->earlyzs = pan_earlyzs_analyze(&shader_state->info);
+
+        return variant;
+}
+
 static void
 panfrost_bind_shader_state(
         struct pipe_context *pctx,
@@ -448,94 +540,51 @@ panfrost_bind_shader_state(
         ctx->shader[type] = hwcso;
 
         ctx->dirty |= PAN_DIRTY_TLS_SIZE;
-        ctx->dirty_shader[type] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty_shader[type] |= PAN_DIRTY_STAGE_SHADER;
 
-        if (!hwcso) return;
+        if (hwcso)
+                panfrost_update_shader_variant(ctx, type);
+}
+
+void
+panfrost_update_shader_variant(struct panfrost_context *ctx,
+                               enum pipe_shader_type type)
+{
+        /* No shader variants for compute */
+        if (type == PIPE_SHADER_COMPUTE)
+                return;
+
+        /* We need linking information, defer this */
+        if (type == PIPE_SHADER_FRAGMENT && !ctx->shader[PIPE_SHADER_VERTEX])
+                return;
+
+        /* Also defer, happens with GALLIUM_HUD */
+        if (!ctx->shader[type])
+                return;
 
         /* Match the appropriate variant */
-
         signed variant = -1;
-        struct panfrost_shader_variants *variants = (struct panfrost_shader_variants *) hwcso;
+        struct panfrost_shader_variants *variants = ctx->shader[type];
 
         simple_mtx_lock(&variants->lock);
 
+        struct panfrost_shader_key key = {
+                .fixed_varying_mask = variants->fixed_varying_mask
+        };
+
+        panfrost_build_key(ctx, &key, variants->nir);
+
         for (unsigned i = 0; i < variants->variant_count; ++i) {
-                if (panfrost_variant_matches(ctx, &variants->variants[i], type)) {
+                if (memcmp(&key, &variants->variants[i].key, sizeof(key)) == 0) {
                         variant = i;
                         break;
                 }
         }
 
-        if (variant == -1) {
-                /* No variant matched, so create a new one */
-                variant = variants->variant_count++;
+        if (variant == -1)
+                variant = panfrost_new_variant_locked(ctx, variants, &key);
 
-                if (variants->variant_count > variants->variant_space) {
-                        unsigned old_space = variants->variant_space;
-
-                        variants->variant_space *= 2;
-                        if (variants->variant_space == 0)
-                                variants->variant_space = 1;
-
-                        /* Arbitrary limit to stop runaway programs from
-                         * creating an unbounded number of shader variants. */
-                        assert(variants->variant_space < 1024);
-
-                        unsigned msize = sizeof(struct panfrost_shader_state);
-                        variants->variants = realloc(variants->variants,
-                                                     variants->variant_space * msize);
-
-                        memset(&variants->variants[old_space], 0,
-                               (variants->variant_space - old_space) * msize);
-                }
-
-                struct panfrost_shader_state *v =
-                                &variants->variants[variant];
-
-                if (type == PIPE_SHADER_FRAGMENT) {
-                        struct pipe_framebuffer_state *fb = &ctx->pipe_framebuffer;
-                        v->nr_cbufs = fb->nr_cbufs;
-
-                        for (unsigned i = 0; i < fb->nr_cbufs; ++i) {
-                                enum pipe_format fmt = PIPE_FORMAT_R8G8B8A8_UNORM;
-
-                                if ((fb->nr_cbufs > i) && fb->cbufs[i])
-                                        fmt = fb->cbufs[i]->format;
-
-                                if (panfrost_blendable_formats_v6[fmt].internal)
-                                        fmt = PIPE_FORMAT_NONE;
-
-                                v->rt_formats[i] = fmt;
-                        }
-                }
-        }
-
-        /* Select this variant */
         variants->active_variant = variant;
-
-        struct panfrost_shader_state *shader_state = &variants->variants[variant];
-        assert(panfrost_variant_matches(ctx, shader_state, type));
-
-        /* We finally have a variant, so compile it */
-
-        if (!shader_state->compiled) {
-                panfrost_shader_compile(ctx->base.screen,
-                                        &ctx->shaders, &ctx->descs,
-                                        variants->base.type,
-                                        variants->base.type == PIPE_SHADER_IR_NIR ?
-                                        variants->base.ir.nir :
-                                        variants->base.tokens,
-                                        tgsi_processor_to_shader_stage(type),
-                                        shader_state);
-
-                shader_state->compiled = true;
-
-                /* Fixup the stream out information */
-                shader_state->stream_output = variants->base.stream_output;
-                shader_state->so_mask =
-                        update_so_info(&shader_state->stream_output,
-                                       shader_state->info.outputs_written);
-        }
 
         /* TODO: it would be more efficient to release the lock before
          * compiling instead of after, but that can race if thread A compiles a
@@ -543,22 +592,14 @@ panfrost_bind_shader_state(
         simple_mtx_unlock(&variants->lock);
 }
 
-static void *
-panfrost_create_vs_state(struct pipe_context *pctx, const struct pipe_shader_state *hwcso)
-{
-        return panfrost_create_shader_state(pctx, hwcso, PIPE_SHADER_VERTEX);
-}
-
-static void *
-panfrost_create_fs_state(struct pipe_context *pctx, const struct pipe_shader_state *hwcso)
-{
-        return panfrost_create_shader_state(pctx, hwcso, PIPE_SHADER_FRAGMENT);
-}
-
 static void
 panfrost_bind_vs_state(struct pipe_context *pctx, void *hwcso)
 {
         panfrost_bind_shader_state(pctx, hwcso, PIPE_SHADER_VERTEX);
+
+        /* Fragment shaders are linked with vertex shaders */
+        struct panfrost_context *ctx = pan_context(pctx);
+        panfrost_update_shader_variant(ctx, PIPE_SHADER_FRAGMENT);
 }
 
 static void
@@ -581,6 +622,8 @@ panfrost_set_vertex_buffers(
         util_set_vertex_buffers_mask(ctx->vertex_buffers, &ctx->vb_mask, buffers,
                                      start_slot, num_buffers, unbind_num_trailing_slots,
                                      take_ownership);
+
+        ctx->dirty |= PAN_DIRTY_VERTEX;
 }
 
 static void
@@ -612,7 +655,7 @@ panfrost_set_stencil_ref(
 {
         struct panfrost_context *ctx = pan_context(pctx);
         ctx->stencil_ref = ref;
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty |= PAN_DIRTY_ZS;
 }
 
 static void
@@ -630,28 +673,43 @@ panfrost_set_sampler_views(
         unsigned new_nr = 0;
         unsigned i;
 
-        assert(start_slot == 0);
-
-        if (!views)
-                num_views = 0;
-
         for (i = 0; i < num_views; ++i) {
-                if (views[i])
-                        new_nr = i + 1;
+                struct pipe_sampler_view *view = views ? views[i] : NULL;
+                unsigned p = i + start_slot;
+
+                if (view)
+                        new_nr = p + 1;
+
                 if (take_ownership) {
-                        pipe_sampler_view_reference((struct pipe_sampler_view **)&ctx->sampler_views[shader][i],
+                        pipe_sampler_view_reference((struct pipe_sampler_view **)&ctx->sampler_views[shader][p],
                                                     NULL);
-                        ctx->sampler_views[shader][i] = (struct panfrost_sampler_view *)views[i];
+                        ctx->sampler_views[shader][i] = (struct panfrost_sampler_view *)view;
                 } else {
-                        pipe_sampler_view_reference((struct pipe_sampler_view **)&ctx->sampler_views[shader][i],
-                                                    views[i]);
+                        pipe_sampler_view_reference((struct pipe_sampler_view **)&ctx->sampler_views[shader][p],
+                                                    view);
                 }
         }
 
-        for (; i < ctx->sampler_view_count[shader]; i++) {
-		pipe_sampler_view_reference((struct pipe_sampler_view **)&ctx->sampler_views[shader][i],
+        for (; i < num_views + unbind_num_trailing_slots; i++) {
+                unsigned p = i + start_slot;
+		pipe_sampler_view_reference((struct pipe_sampler_view **)&ctx->sampler_views[shader][p],
 		                            NULL);
         }
+
+        /* If the sampler view count is higher than the greatest sampler view
+         * we touch, it can't change */
+        if (ctx->sampler_view_count[shader] > start_slot + num_views + unbind_num_trailing_slots)
+                return;
+
+        /* If we haven't set any sampler views here, search lower numbers for
+         * set sampler views */
+        if (new_nr == 0) {
+                for (i = 0; i < start_slot; ++i) {
+                        if (ctx->sampler_views[shader][i])
+                                new_nr = i + 1;
+                }
+        }
+
         ctx->sampler_view_count[shader] = new_nr;
 }
 
@@ -667,6 +725,8 @@ panfrost_set_shader_buffers(
 
         util_set_shader_buffers_mask(ctx->ssbo[shader], &ctx->ssbo_mask[shader],
                         buffers, start, count);
+
+        ctx->dirty_shader[shader] |= PAN_DIRTY_STAGE_SSBO;
 }
 
 static void
@@ -685,13 +745,6 @@ panfrost_set_framebuffer_state(struct pipe_context *pctx,
                 if (ctx->pipe_framebuffer.cbufs[i])
                         ctx->fb_rt_mask |= BITFIELD_BIT(i);
         }
-
-        /* We may need to generate a new variant if the fragment shader is
-         * keyed to the framebuffer format or render target count */
-        struct panfrost_shader_variants *fs = ctx->shader[PIPE_SHADER_FRAGMENT];
-
-        if (fs && fs->variant_count)
-                ctx->base.bind_fs_state(&ctx->base, fs);
 }
 
 static void
@@ -700,7 +753,7 @@ panfrost_bind_depth_stencil_state(struct pipe_context *pipe,
 {
         struct panfrost_context *ctx = pan_context(pipe);
         ctx->depth_stencil = cso;
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty |= PAN_DIRTY_ZS;
 }
 
 static void
@@ -709,7 +762,7 @@ panfrost_set_sample_mask(struct pipe_context *pipe,
 {
         struct panfrost_context *ctx = pan_context(pipe);
         ctx->sample_mask = sample_mask;
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty |= PAN_DIRTY_MSAA;
 }
 
 static void
@@ -718,7 +771,7 @@ panfrost_set_min_samples(struct pipe_context *pipe,
 {
         struct panfrost_context *ctx = pan_context(pipe);
         ctx->min_samples = min_samples;
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty |= PAN_DIRTY_MSAA;
 }
 
 static void
@@ -771,7 +824,7 @@ panfrost_set_active_query_state(struct pipe_context *pipe,
 {
         struct panfrost_context *ctx = pan_context(pipe);
         ctx->active_queries = enable;
-        ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+        ctx->dirty |= PAN_DIRTY_OQ;
 }
 
 static void
@@ -841,7 +894,7 @@ panfrost_begin_query(struct pipe_context *pipe, struct pipe_query *q)
         case PIPE_QUERY_OCCLUSION_COUNTER:
         case PIPE_QUERY_OCCLUSION_PREDICATE:
         case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE: {
-                unsigned size = sizeof(uint64_t) * dev->core_count;
+                unsigned size = sizeof(uint64_t) * dev->core_id_range;
 
                 /* Allocate a resource for the query results to be stored */
                 if (!query->rsrc) {
@@ -856,7 +909,7 @@ panfrost_begin_query(struct pipe_context *pipe, struct pipe_query *q)
 
                 query->msaa = (ctx->pipe_framebuffer.samples > 1);
                 ctx->occlusion_query = query;
-                ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+                ctx->dirty |= PAN_DIRTY_OQ;
                 break;
         }
 
@@ -889,7 +942,7 @@ panfrost_end_query(struct pipe_context *pipe, struct pipe_query *q)
         case PIPE_QUERY_OCCLUSION_PREDICATE:
         case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
                 ctx->occlusion_query = NULL;
-                ctx->dirty_shader[PIPE_SHADER_FRAGMENT] |= PAN_DIRTY_STAGE_RENDERER;
+                ctx->dirty |= PAN_DIRTY_OQ;
                 break;
         case PIPE_QUERY_PRIMITIVES_GENERATED:
                 query->end = ctx->prims_generated;
@@ -925,10 +978,10 @@ panfrost_get_query_result(struct pipe_context *pipe,
 
                 if (query->type == PIPE_QUERY_OCCLUSION_COUNTER) {
                         uint64_t passed = 0;
-                        for (int i = 0; i < dev->core_count; ++i)
+                        for (int i = 0; i < dev->core_id_range; ++i)
                                 passed += result[i];
 
-                        if (!pan_is_bifrost(dev) && !query->msaa)
+                        if (dev->arch <= 5 && !query->msaa)
                                 passed /= 4;
 
                         vresult->u64 = passed;
@@ -1016,22 +1069,23 @@ panfrost_set_stream_output_targets(struct pipe_context *pctx,
         assert(num_targets <= ARRAY_SIZE(so->targets));
 
         for (unsigned i = 0; i < num_targets; i++) {
-                if (offsets[i] != -1)
+                if (targets[i] && offsets[i] != -1)
                         pan_so_target(targets[i])->offset = offsets[i];
 
                 pipe_so_target_reference(&so->targets[i], targets[i]);
         }
 
-        for (unsigned i = 0; i < so->num_targets; i++)
+        for (unsigned i = num_targets; i < so->num_targets; i++)
                 pipe_so_target_reference(&so->targets[i], NULL);
 
         so->num_targets = num_targets;
+        ctx->dirty |= PAN_DIRTY_SO;
 }
 
 struct pipe_context *
 panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
 {
-        struct panfrost_context *ctx = rzalloc(screen, struct panfrost_context);
+        struct panfrost_context *ctx = rzalloc(NULL, struct panfrost_context);
         struct pipe_context *gallium = (struct pipe_context *) ctx;
         struct panfrost_device *dev = pan_device(screen);
 
@@ -1040,6 +1094,7 @@ panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
         gallium->destroy = panfrost_destroy;
 
         gallium->set_framebuffer_state = panfrost_set_framebuffer_state;
+        gallium->set_debug_callback = u_default_set_debug_callback;
 
         gallium->flush = panfrost_flush;
         gallium->clear = panfrost_clear;
@@ -1061,11 +1116,11 @@ panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
         gallium->bind_vertex_elements_state = panfrost_bind_vertex_elements_state;
         gallium->delete_vertex_elements_state = panfrost_generic_cso_delete;
 
-        gallium->create_fs_state = panfrost_create_fs_state;
+        gallium->create_fs_state = panfrost_create_shader_state;
         gallium->delete_fs_state = panfrost_delete_shader_state;
         gallium->bind_fs_state = panfrost_bind_fs_state;
 
-        gallium->create_vs_state = panfrost_create_vs_state;
+        gallium->create_vs_state = panfrost_create_shader_state;
         gallium->delete_vs_state = panfrost_delete_shader_state;
         gallium->bind_vs_state = panfrost_bind_vs_state;
 

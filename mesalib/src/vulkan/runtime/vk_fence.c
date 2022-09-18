@@ -151,7 +151,7 @@ vk_common_CreateFence(VkDevice _device,
                       VkFence *pFence)
 {
    VK_FROM_HANDLE(vk_device, device, _device);
-   struct vk_fence *fence;
+   struct vk_fence *fence = NULL;
 
    VkResult result = vk_fence_create(device, pCreateInfo, pAllocator, &fence);
    if (result != VK_SUCCESS)
@@ -268,7 +268,7 @@ vk_common_WaitForFences(VkDevice _device,
       VK_FROM_HANDLE(vk_fence, fence, pFences[i]);
       waits[i] = (struct vk_sync_wait) {
          .sync = vk_fence_get_active_sync(fence),
-         .stage_mask = ~(VkPipelineStageFlags2KHR)0,
+         .stage_mask = ~(VkPipelineStageFlags2)0,
       };
    }
 
@@ -438,7 +438,7 @@ vk_common_GetFenceFdKHR(VkDevice _device,
        * semaphore export apply.  We can't export a sync file from a fence
        * if the fence event hasn't been submitted to the kernel yet.
        */
-      if (device->timeline_mode == VK_DEVICE_TIMELINE_MODE_ASSISTED) {
+      if (vk_device_supports_threaded_submit(device)) {
          result = vk_sync_wait(device, sync, 0,
                                VK_SYNC_WAIT_PENDING,
                                UINT64_MAX);

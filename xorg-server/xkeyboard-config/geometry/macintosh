@@ -1203,7 +1203,7 @@ xkb_geometry "applealu_jis" {
         corner= 1,
         { [  29.5,  15 ] }
     };
-    shape "EISU" {
+    shape "HNGL" {
         corner= 1,
         { [  20,  18 ] }
     };
@@ -1223,7 +1223,7 @@ xkb_geometry "applealu_jis" {
         corner= 1,
         { [  29.5,  15 ] }
     };
-    shape "KANA" {
+    shape "HJCV" {
         corner= 1,
         { [  20,  18 ] }
     };
@@ -1335,8 +1335,8 @@ xkb_geometry "applealu_jis" {
             left= 0;
             keys {
                 { <LALT>, "LALT",   0 },   { <LMTA>, "LMTA",   3.5 },
-                { <EISU>, "EISU",   3.5 }, { <SPCE>, "SPCE",   3.5 },
-                { <KANA>, "KANA",   3.5 }, { <RMTA>, "RMTA",   3.5 },
+                { <HNGL>, "HNGL",   3.5 }, { <SPCE>, "SPCE",   3.5 },
+                { <HJCV>, "HJCV",   3.5 }, { <RMTA>, "RMTA",   3.5 },
                 { <RALT>, "RALT",   3.5 }, { <CAPS>, "CAPS",   3.5 }
             };
         };

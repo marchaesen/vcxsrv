@@ -19,7 +19,6 @@ dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.73,Fail
 dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.81,Fail
 dEQP-GLES2.functional.fragment_ops.random.43,Fail
 dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgb_half_float_oes,Fail
-dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgba_half_float_oes,Fail
 dEQP-GLES2.functional.shaders.texture_functions.vertex.texturecubelod,Fail
 dEQP-GLES2.functional.texture.mipmap.cube.basic.linear_linear,Fail
 dEQP-GLES2.functional.texture.mipmap.cube.basic.linear_nearest,Fail

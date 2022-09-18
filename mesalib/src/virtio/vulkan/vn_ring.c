@@ -101,19 +101,40 @@ vn_ring_wait_seqno(const struct vn_ring *ring, uint32_t seqno)
    } while (true);
 }
 
+static bool
+vn_ring_has_space(const struct vn_ring *ring,
+                  uint32_t size,
+                  uint32_t *out_head)
+{
+   const uint32_t head = vn_ring_load_head(ring);
+   if (likely(ring->cur + size - head <= ring->buffer_size)) {
+      *out_head = head;
+      return true;
+   }
+
+   return false;
+}
+
 static uint32_t
 vn_ring_wait_space(const struct vn_ring *ring, uint32_t size)
 {
    assert(size <= ring->buffer_size);
 
-   /* see the reasoning in vn_ring_wait_seqno */
-   uint32_t iter = 0;
-   do {
-      const uint32_t head = vn_ring_load_head(ring);
-      if (ring->cur + size - head <= ring->buffer_size)
-         return head;
-      vn_relax(&iter, "ring space");
-   } while (true);
+   uint32_t head;
+   if (likely(vn_ring_has_space(ring, size, &head)))
+      return head;
+
+   {
+      VN_TRACE_FUNC();
+
+      /* see the reasoning in vn_ring_wait_seqno */
+      uint32_t iter = 0;
+      do {
+         vn_relax(&iter, "ring space");
+         if (vn_ring_has_space(ring, size, &head))
+            return head;
+      } while (true);
+   }
 }
 
 void
@@ -237,13 +258,4 @@ void
 vn_ring_wait(const struct vn_ring *ring, uint32_t seqno)
 {
    vn_ring_wait_seqno(ring, seqno);
-}
-
-void
-vn_ring_wait_all(const struct vn_ring *ring)
-{
-   /* load from tail rather than ring->cur for atomicity */
-   const uint32_t pending_seqno =
-      atomic_load_explicit(ring->shared.tail, memory_order_relaxed);
-   vn_ring_wait(ring, pending_seqno);
 }

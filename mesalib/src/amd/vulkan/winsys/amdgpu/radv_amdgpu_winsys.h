@@ -43,7 +43,6 @@ struct radv_amdgpu_winsys {
    amdgpu_device_handle dev;
 
    struct radeon_info info;
-   struct amdgpu_gpu_info amdinfo;
    struct ac_addrlib *addrlib;
 
    bool debug_all_bos;

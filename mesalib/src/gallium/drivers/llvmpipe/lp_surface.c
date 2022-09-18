@@ -51,10 +51,10 @@ lp_resource_copy_ms(struct pipe_context *pipe,
 
    src_format = src->format;
 
-   for (unsigned i = 0; i < src->nr_samples; i++) {
+   for (unsigned i = 0; i < MAX2(src->nr_samples, dst->nr_samples); i++) {
       struct pipe_transfer *src_trans, *dst_trans;
       const uint8_t *src_map = llvmpipe_transfer_map_ms(pipe,
-                                                        src, 0, PIPE_MAP_READ, i,
+                                                        src, 0, PIPE_MAP_READ, MIN2(i, src->nr_samples - 1),
                                                         src_box,
                                                         &src_trans);
       if (!src_map)
@@ -103,7 +103,8 @@ lp_resource_copy(struct pipe_context *pipe,
                            "blit src");
 
    if (dst->nr_samples > 1 &&
-       dst->nr_samples == src->nr_samples) {
+       (dst->nr_samples == src->nr_samples ||
+       (src->nr_samples == 1 && dst->nr_samples > 1))) {
       lp_resource_copy_ms(pipe, dst, dst_level, dstx, dsty, dstz,
                           src, src_level, src_box);
       return;
@@ -126,6 +127,17 @@ static void lp_blit(struct pipe_context *pipe,
       return; /* done */
    }
 
+   if (blit_info->src.resource->format == blit_info->src.format &&
+       blit_info->dst.resource->format == blit_info->dst.format &&
+       blit_info->src.format == blit_info->dst.format &&
+       blit_info->src.resource->nr_samples > 1 &&
+       blit_info->dst.resource->nr_samples < 2 &&
+       blit_info->sample0_only) {
+      util_resource_copy_region(pipe, blit_info->dst.resource, blit_info->dst.level, blit_info->dst.box.x, blit_info->dst.box.y, blit_info->dst.box.z,
+                                blit_info->src.resource, blit_info->src.level, &blit_info->src.box);
+      return;
+   }
+
    if (!util_blitter_is_blit_supported(lp->blitter, &info)) {
       debug_printf("llvmpipe: blit unsupported %s -> %s\n",
                    util_format_short_name(info.src.resource->format),
@@ -141,8 +153,6 @@ static void lp_blit(struct pipe_context *pipe,
       info.dst.format = PIPE_FORMAT_R32_UINT;
       info.mask = PIPE_MASK_R;
    }
-
-   /* XXX turn off occlusion and streamout queries */
 
    util_blitter_save_vertex_buffer_slot(lp->blitter, lp->vertex_buffer);
    util_blitter_save_vertex_elements(lp->blitter, (void*)lp->velems);
@@ -176,6 +186,7 @@ static void lp_blit(struct pipe_context *pipe,
 static void
 lp_flush_resource(struct pipe_context *ctx, struct pipe_resource *resource)
 {
+   llvmpipe_flush_resource(ctx, resource, 0, true, true, false, "resource");
 }
 
 
@@ -311,6 +322,9 @@ llvmpipe_clear_render_target(struct pipe_context *pipe,
    if (render_condition_enabled && !llvmpipe_check_render_cond(llvmpipe))
       return;
 
+   width = MIN2(width, dst->texture->width0 - dstx);
+   height = MIN2(height, dst->texture->height0 - dsty);
+
    if (dst->texture->nr_samples > 1) {
       struct pipe_box box;
       u_box_2d(dstx, dsty, width, height, &box);
@@ -378,6 +392,9 @@ llvmpipe_clear_depth_stencil(struct pipe_context *pipe,
 
    if (render_condition_enabled && !llvmpipe_check_render_cond(llvmpipe))
       return;
+
+   width = MIN2(width, dst->texture->width0 - dstx);
+   height = MIN2(height, dst->texture->height0 - dsty);
 
    if (dst->texture->nr_samples > 1) {
       uint64_t zstencil = util_pack64_z_stencil(dst->format, depth, stencil);

@@ -34,13 +34,13 @@ array) in a keyboard description
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to server
 .TP
-.I \- which
+.I which
 mask indicating virtual modifier bindings to get
 .TP
-.I \- xkb
+.I xkb
 Xkb description where results will be placed
 .SH DESCRIPTION
 .LP

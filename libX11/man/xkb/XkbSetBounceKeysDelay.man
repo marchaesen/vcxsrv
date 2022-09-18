@@ -33,13 +33,13 @@ XkbSetBounceKeysDelay \- Sets the BounceKeys delay for a keyboard device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- delay
+.I delay
 backfilled with bounce keys delay, ms
 .SH DESCRIPTION
 .LP

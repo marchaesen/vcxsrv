@@ -46,12 +46,43 @@ Like all of the X servers, \fIXwayland\fP accepts the command line options
 described in the \fIXserver\fP(@miscmansuffix@) manual page.
 The following additional arguments are supported as well.
 .TP 8
+.B \-decorate
+Add decorations to the Xwayland root window when running rootful.
+
+This option has no effect when \fIXwayland\fP is built without libdecor
+support (optional).
+
+This option is not compatible with rootless mode (\fI-rootless\fP).
+.TP 8
 .B \-eglstream
 Use EGLStream backend for NVidia GPUs. If \fIXwayland\fP was compiled with
 EGLStream support, this option will instruct \fIXwayland\fP to try that
 backend first, then fallback to the GBM backend if EGLStream is not supported
 by the Wayland server. Without this option, \fIXwayland\fP tries the GBM
 backend first, and fallback to EGLStream if GBM is not usable.
+.TP 8
+.B \-fullscreen
+Set the Xwayland window fullscreen when running rootful.
+
+This option is not compatible with rootless mode (\fI-rootless\fP).
+.TP 8
+.B \-geometry \fIWxH\fP
+Sets the geometry of the \fIXwayland\fP window to \fIWxH\fP when running rootful.
+
+This option is not compatible with rootless mode (\fI-rootless\fP).
+.TP 8
+.B \-host-grab
+Disable host keyboard shorcuts and confine the pointer when running rootful.
+
+This feature relies on the protocol for inhibiting the compositor keyboard
+shortcuts and on the protocol for pointer locking and confinement and may
+have no effect if the Wayland compositor in use does not support these
+protocols.
+
+Use the keys [CTRL]+[SHIFT] simultaneously to release the keyboard and
+pointer devices.
+
+This option is not compatible with rootless mode (\fI-rootless\fP).
 .TP 8
 .B \-initfd \fIfd\fP
 Add the given \fIfd\fP as a listen socket for initialization of X clients.
@@ -70,6 +101,10 @@ server to pass \fIXwayland\fP the socket where X clients connect.
 Disable touch pointer emulation. This allows the Wayland compositor to
 implement its own pointer emulation mechanism for X11 clients that don't
 support touch input.
+.TP 8
+.B \-force-xrandr-emulation
+Force additional non-native modes to be exposed when viewporter is not
+supported by the Wayland compositor.
 .TP 8
 .B \-rootless
 Run \fIXwayland\fP rootless, so that X clients integrate seamlessly with

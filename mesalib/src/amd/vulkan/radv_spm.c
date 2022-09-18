@@ -187,7 +187,7 @@ bool
 radv_spm_init(struct radv_device *device)
 {
    const struct radeon_info *info = &device->physical_device->rad_info;
-   struct ac_perfcounters *pc = &device->perfcounters;
+   struct ac_perfcounters *pc = &device->physical_device->ac_perfcounters;
    struct ac_spm_counter_create_info spm_counters[] = {
       {TCP, 0, 0x9},    /* Number of L2 requests. */
       {TCP, 0, 0x12},   /* Number of L2 misses. */
@@ -200,10 +200,11 @@ radv_spm_init(struct radv_device *device)
       {GL1C, 0, 0xe},   /* Number of GL1C requests. */
       {GL1C, 0, 0x12},  /* Number of GL1C misses. */
       {GL2C, 0, 0x3},   /* Number of GL2C requests. */
-      {GL2C, 0, info->chip_class >= GFX10_3 ? 0x2b : 0x23},  /* Number of GL2C misses. */
+      {GL2C, 0, info->gfx_level >= GFX10_3 ? 0x2b : 0x23},  /* Number of GL2C misses. */
    };
 
-   if (!ac_init_perfcounters(info, false, false, pc))
+   /* We failed to initialize the performance counters. */
+   if (!pc->blocks)
       return false;
 
    if (!ac_init_spm(info, pc, ARRAY_SIZE(spm_counters), spm_counters, &device->spm_trace))
@@ -226,5 +227,4 @@ radv_spm_finish(struct radv_device *device)
    }
 
    ac_destroy_spm(&device->spm_trace);
-   ac_destroy_perfcounters(&device->perfcounters);
 }

@@ -73,7 +73,7 @@ fence_flush(struct pipe_context *pctx, struct pipe_fence_handle *fence,
 
    util_queue_fence_wait(&fence->submit_fence.ready);
 
-   debug_assert(!fence->batch);
+   assert(!fence->batch);
 
    return true;
 }

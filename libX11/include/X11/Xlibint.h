@@ -584,11 +584,11 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
 #define MakeBigReq(req,n) \
     { \
     CARD64 _BRdat; \
-    CARD32 _BRlen = req->length - 1; \
+    CARD32 _BRlen = (CARD32) (req->length - 1); \
     req->length = 0; \
     _BRdat = ((CARD32 *)req)[_BRlen]; \
     memmove(((char *)req) + 8, ((char *)req) + 4, (_BRlen - 1) << 2); \
-    ((CARD32 *)req)[1] = _BRlen + n + 2; \
+    ((CARD32 *)req)[1] = _BRlen + (CARD32) (n) + 2; \
     Data32(dpy, &_BRdat, 4); \
     }
 #else
@@ -599,7 +599,7 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
     req->length = 0; \
     _BRdat = ((CARD32 *)req)[_BRlen]; \
     memmove(((char *)req) + 8, ((char *)req) + 4, (_BRlen - 1) << 2); \
-    ((CARD32 *)req)[1] = _BRlen + n + 2; \
+    ((CARD32 *)req)[1] = _BRlen + (CARD32) (n) + 2; \
     Data32(dpy, &_BRdat, 4); \
     }
 #endif
@@ -618,10 +618,10 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
 	    MakeBigReq(req,n) \
 	} else { \
 	    n = badlen; \
-	    req->length += n; \
+	    req->length = (CARD16) (req->length + n); \
 	} \
     } else \
-	req->length += n
+	req->length = (CARD16) (req->length + n)
 #else
 #define SetReqLen(req,n,badlen) \
     req->length += n
@@ -644,10 +644,10 @@ extern void _XFlushGCCache(Display *dpy, GC gc);
 #ifndef DataRoutineIsProcedure
 #define Data(dpy, data, len) {\
 	if (dpy->bufptr + (len) <= dpy->bufmax) {\
-		memcpy(dpy->bufptr, data, (int)(len));\
-		dpy->bufptr += ((len) + 3) & ~3;\
+		memcpy(dpy->bufptr, data, (size_t)(len));\
+		dpy->bufptr += ((size_t)((len) + 3) & (size_t)~3);\
 	} else\
-		_XSend(dpy, data, len);\
+		_XSend(dpy, (_Xconst char*)(data), (long)(len));\
 }
 #endif /* DataRoutineIsProcedure */
 
@@ -670,14 +670,14 @@ extern void _XFlushGCCache(Display *dpy, GC gc);
     if (dpy->bufptr + (n) > dpy->bufmax) \
         _XFlush (dpy); \
     ptr = (type) dpy->bufptr; \
-    memset(ptr, '\0', n); \
+    memset(ptr, '\0', (size_t)(n)); \
     dpy->bufptr += (n);
 
 #define Data16(dpy, data, len) Data((dpy), (_Xconst char *)(data), (len))
 #define _XRead16Pad(dpy, data, len) _XReadPad((dpy), (char *)(data), (len))
 #define _XRead16(dpy, data, len) _XRead((dpy), (char *)(data), (len))
 #ifdef LONG64
-#define Data32(dpy, data, len) _XData32(dpy, (_Xconst long *)data, len)
+#define Data32(dpy, data, len) _XData32(dpy, (_Xconst long *)(data), (unsigned)(len))
 extern int _XData32(
 	     Display *dpy,
 	     _Xconst long *data,
@@ -689,7 +689,7 @@ extern void _XRead32(
 	     long len
 );
 #else
-#define Data32(dpy, data, len) Data((dpy), (_Xconst char *)(data), (len))
+#define Data32(dpy, data, len) Data((dpy), (_Xconst char *)(data), (long)(len))
 #define _XRead32(dpy, data, len) _XRead((dpy), (char *)(data), (len))
 #endif
 

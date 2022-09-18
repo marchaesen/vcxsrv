@@ -293,7 +293,7 @@ format_supported_with_usage(VkDevice device_h,
                             VkImageUsageFlags imageUsage)
 {
    V3DV_FROM_HANDLE(v3dv_device, device, device_h);
-   struct v3dv_physical_device *phys_dev = &device->instance->physicalDevice;
+   struct v3dv_physical_device *phys_dev = device->pdevice;
    VkPhysicalDevice phys_dev_h = v3dv_physical_device_to_handle(phys_dev);
    VkResult result;
 

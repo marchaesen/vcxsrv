@@ -47,31 +47,31 @@ indicator by name
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server 
 .TP
-.I \- dev_spec
+.I dev_spec
 keyboard device ID, or XkbUseCoreKbd
 .TP
-.I \- led_class
+.I led_class
 feedback class, or XkbDfltXIClass
 .TP
-.I \- led_id
+.I led_id
 feedback ID, or XkbDfltXIId
 .TP
-.I \- name
+.I name
 name of the indicator to be retrieved
 .TP
-.I \- ndx_rtrn
+.I ndx_rtrn
 backfilled with the index of the retrieved indicator
 .TP
-.I \- state_rtrn
+.I state_rtrn
 backfilled with the current state of the retrieved indicator
 .TP
-.I \- map_rtrn
- backfilled with the mapping for the retrieved indicator 
+.I map_rtrn
+backfilled with the mapping for the retrieved indicator 
 .TP
-.I \- real_rtrn
+.I real_rtrn
 backfilled with True if the named indicator is real (physical)
 .SH DESCRIPTION
 .LP

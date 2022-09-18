@@ -276,8 +276,6 @@ static inline uint32_t
 translate_vertex_format_normalize(enum pipe_format fmt)
 {
    const struct util_format_description *desc = util_format_description(fmt);
-   if (!desc)
-      return VIVS_FE_VERTEX_ELEMENT_CONFIG_NORMALIZE_OFF;
 
    /* assumes that normalization of channel 0 holds for all channels;
     * this holds for all vertex formats that we support */

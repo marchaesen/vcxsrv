@@ -129,5 +129,7 @@ st_init_pbo_helpers(struct st_context *st);
 
 extern void
 st_destroy_pbo_helpers(struct st_context *st);
+void
+st_pbo_compute_deinit(struct st_context *st);
 
 #endif /* ST_PBO_H */

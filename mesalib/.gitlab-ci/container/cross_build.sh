@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086 # we want word splitting
 
 set -e
 set -o xtrace
@@ -37,8 +38,9 @@ apt-get install -y --no-remove \
         wget
 
 if [[ $arch != "armhf" ]]; then
-    if [[ $arch == "s390x" ]]; then
-        LLVM=9
+    # See the list of available architectures in https://apt.llvm.org/bullseye/dists/llvm-toolchain-bullseye-13/main/
+    if [[ $arch == "s390x" ]] || [[ $arch == "i386" ]] || [[ $arch == "arm64" ]]; then
+        LLVM=13
     else
         LLVM=11
     fi
@@ -46,7 +48,7 @@ if [[ $arch != "armhf" ]]; then
     # llvm-*-tools:$arch conflicts with python3:amd64. Install dependencies only
     # with apt-get, then force-install llvm-*-{dev,tools}:$arch with dpkg to get
     # around this.
-    apt-get install -y --no-remove \
+    apt-get install -y --no-remove --no-install-recommends \
             libclang-cpp${LLVM}:$arch \
             libffi-dev:$arch \
             libgcc-s1:$arch \

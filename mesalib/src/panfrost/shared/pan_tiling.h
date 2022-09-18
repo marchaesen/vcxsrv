@@ -30,6 +30,23 @@
 #include <stdint.h>
 #include <util/format/u_format.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * Load a rectangular region from a tiled image to a linear staging image.
+ *
+ * @dst Linear destination
+ * @src Tiled source
+ * @x Region of interest of source in pixels, aligned to block size
+ * @y Region of interest of source in pixels, aligned to block size
+ * @z Region of interest of source in pixels, aligned to block size
+ * @w Region of interest of source in pixels, aligned to block size
+ * @dst_stride Stride in bytes of linear destination
+ * @src_stride Number of bytes between adjacent rows of tiles in source.
+ * @format Format of the source and destination image
+ */
 void panfrost_load_tiled_image(void *dst, const void *src,
                                unsigned x, unsigned y,
                                unsigned w, unsigned h,
@@ -37,11 +54,29 @@ void panfrost_load_tiled_image(void *dst, const void *src,
                                uint32_t src_stride,
                                enum pipe_format format);
 
+/**
+ * Store a linear staging image to a rectangular region of a tiled image.
+ *
+ * @dst Tiled destination
+ * @src Linear source
+ * @x Region of interest of destination in pixels, aligned to block size
+ * @y Region of interest of destination in pixels, aligned to block size
+ * @z Region of interest of destination in pixels, aligned to block size
+ * @w Region of interest of destination in pixels, aligned to block size
+ * @dst_stride Number of bytes between adjacent rows of tiles in destination.
+ * @src_stride Stride in bytes of linear source
+ * @format Format of the source and destination image
+ */
 void panfrost_store_tiled_image(void *dst, const void *src,
                                 unsigned x, unsigned y,
                                 unsigned w, unsigned h,
                                 uint32_t dst_stride,
                                 uint32_t src_stride,
                                 enum pipe_format format);
+
+
+#ifdef __cplusplus
+} /* extern C */
+#endif
 
 #endif

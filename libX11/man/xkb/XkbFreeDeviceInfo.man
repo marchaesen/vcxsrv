@@ -33,13 +33,13 @@ XkbFreeDeviceInfo \- Free an XkbDeviceInfoRec structure
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- device_info
+.I device_info
 pointer to XkbDeviceInfoRec in which to free items
 .TP
-.I \- which
+.I which
 mask of components of device_info to free
 .TP
-.I \- free_all
+.I free_all
 True => free everything, including device_info
 .SH DESCRIPTION
 .LP

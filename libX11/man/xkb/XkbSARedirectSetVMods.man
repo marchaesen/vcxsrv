@@ -31,10 +31,10 @@ XkbSARedirectSetVMods \- Sets the vmods0 and vmods1 of act from v
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set vmods
 .TP
-.I \- v
+.I v
 new value for virtual modifiers
 .SH DESCRIPTION
 .LP

@@ -28,7 +28,7 @@
 
 enum {
     INDEX_DIR, INDEX_HOSTKEYS, INDEX_HOSTKEYS_TMP, INDEX_RANDSEED,
-    INDEX_SESSIONDIR, INDEX_SESSION,
+    INDEX_SESSIONDIR, INDEX_SESSION, INDEX_HOSTCADIR, INDEX_HOSTCA
 };
 
 static const char hex[16] = "0123456789ABCDEF";
@@ -202,6 +202,23 @@ static char *make_filename(int index, const char *subname)
         sfree(tmp);
         return ret;
     }
+    if (index == INDEX_HOSTCADIR) {
+        env = getenv("PUTTYSSHHOSTCAS");
+        if (env)
+            return dupstr(env);
+        tmp = make_filename(INDEX_DIR, NULL);
+        ret = dupprintf("%s/sshhostcas", tmp);
+        sfree(tmp);
+        return ret;
+    }
+    if (index == INDEX_HOSTCA) {
+        strbuf *sb = strbuf_new();
+        tmp = make_filename(INDEX_HOSTCADIR, NULL);
+        put_fmt(sb, "%s/", tmp);
+        sfree(tmp);
+        make_session_filename(subname, sb);
+        return strbuf_to_str(sb);
+    }
     tmp = make_filename(INDEX_DIR, NULL);
     ret = dupprintf("%s/ERROR", tmp);
     sfree(tmp);
@@ -304,7 +321,6 @@ static int keycmp(void *av, void *bv)
 void provide_xrm_string(const char *string, const char *progname)
 {
     const char *p, *q;
-    char *key;
     struct skeyval *xrms, *ret;
 
     p = q = strchr(string, ':');
@@ -313,14 +329,13 @@ void provide_xrm_string(const char *string, const char *progname)
                 " \"%s\"\n", progname, string);
         return;
     }
-    q++;
+    xrms = snew(struct skeyval);
+
     while (p > string && p[-1] != '.' && p[-1] != '*')
         p--;
-    xrms = snew(struct skeyval);
-    key = snewn(q-p, char);
-    memcpy(key, p, q-p);
-    key[q-p-1] = '\0';
-    xrms->key = key;
+    xrms->key = mkstr(make_ptrlen(p, q-p));
+
+    q++;
     while (*q && isspace((unsigned char)*q))
         q++;
     xrms->value = dupstr(q);
@@ -545,25 +560,25 @@ settings_e *enum_settings_start(void)
     return toret;
 }
 
-bool enum_settings_next(settings_e *handle, strbuf *out)
+static bool enum_dir_next(DIR *dp, int index, strbuf *out)
 {
     struct dirent *de;
     struct stat st;
     strbuf *fullpath;
 
-    if (!handle->dp)
-        return NULL;
+    if (!dp)
+        return false;
 
     fullpath = strbuf_new();
 
-    char *sessiondir = make_filename(INDEX_SESSIONDIR, NULL);
+    char *sessiondir = make_filename(index, NULL);
     put_dataz(fullpath, sessiondir);
     sfree(sessiondir);
     put_byte(fullpath, '/');
 
     size_t baselen = fullpath->len;
 
-    while ( (de = readdir(handle->dp)) != NULL ) {
+    while ( (de = readdir(dp)) != NULL ) {
         strbuf_shrink_to(fullpath, baselen);
         put_dataz(fullpath, de->d_name);
 
@@ -579,11 +594,148 @@ bool enum_settings_next(settings_e *handle, strbuf *out)
     return false;
 }
 
+bool enum_settings_next(settings_e *handle, strbuf *out)
+{
+    return enum_dir_next(handle->dp, INDEX_SESSIONDIR, out);
+}
+
 void enum_settings_finish(settings_e *handle)
 {
     if (handle->dp)
         closedir(handle->dp);
     sfree(handle);
+}
+
+struct host_ca_enum {
+    DIR *dp;
+};
+
+host_ca_enum *enum_host_ca_start(void)
+{
+    host_ca_enum *handle = snew(host_ca_enum);
+
+    char *filename = make_filename(INDEX_HOSTCADIR, NULL);
+    handle->dp = opendir(filename);
+    sfree(filename);
+
+    return handle;
+}
+
+bool enum_host_ca_next(host_ca_enum *handle, strbuf *out)
+{
+    return enum_dir_next(handle->dp, INDEX_HOSTCADIR, out);
+}
+
+void enum_host_ca_finish(host_ca_enum *handle)
+{
+    if (handle->dp)
+        closedir(handle->dp);
+    sfree(handle);
+}
+
+host_ca *host_ca_load(const char *name)
+{
+    char *filename = make_filename(INDEX_HOSTCA, name);
+    FILE *fp = fopen(filename, "r");
+    sfree(filename);
+    if (!fp)
+        return NULL;
+
+    host_ca *hca = host_ca_new();
+    hca->name = dupstr(name);
+
+    char *line;
+    CertExprBuilder *eb = NULL;
+
+    while ( (line = fgetline(fp)) ) {
+        char *value = strchr(line, '=');
+
+        if (!value) {
+            sfree(line);
+            continue;
+        }
+        *value++ = '\0';
+        value[strcspn(value, "\r\n")] = '\0';   /* trim trailing NL */
+
+        if (!strcmp(line, "PublicKey")) {
+            hca->ca_public_key = base64_decode_sb(ptrlen_from_asciz(value));
+        } else if (!strcmp(line, "MatchHosts")) {
+            if (!eb)
+                eb = cert_expr_builder_new();
+            cert_expr_builder_add(eb, value);
+        } else if (!strcmp(line, "Validity")) {
+            hca->validity_expression = strbuf_to_str(
+                percent_decode_sb(ptrlen_from_asciz(value)));
+        } else if (!strcmp(line, "PermitRSASHA1")) {
+            hca->opts.permit_rsa_sha1 = atoi(value);
+        } else if (!strcmp(line, "PermitRSASHA256")) {
+            hca->opts.permit_rsa_sha256 = atoi(value);
+        } else if (!strcmp(line, "PermitRSASHA512")) {
+            hca->opts.permit_rsa_sha512 = atoi(value);
+        }
+
+        sfree(line);
+    }
+
+    fclose(fp);
+
+    if (eb) {
+        if (!hca->validity_expression) {
+            hca->validity_expression = cert_expr_expression(eb);
+        }
+        cert_expr_builder_free(eb);
+    }
+
+    return hca;
+}
+
+char *host_ca_save(host_ca *hca)
+{
+    if (!*hca->name)
+        return dupstr("CA record must have a name");
+
+    char *filename = make_filename(INDEX_HOSTCA, hca->name);
+    FILE *fp = fopen(filename, "w");
+    if (!fp)
+        return dupprintf("Unable to open file '%s'", filename);
+
+    fprintf(fp, "PublicKey=");
+    base64_encode_fp(fp, ptrlen_from_strbuf(hca->ca_public_key), 0);
+    fprintf(fp, "\n");
+
+    fprintf(fp, "Validity=");
+    percent_encode_fp(fp, ptrlen_from_asciz(hca->validity_expression), NULL);
+    fprintf(fp, "\n");
+
+    fprintf(fp, "PermitRSASHA1=%d\n", (int)hca->opts.permit_rsa_sha1);
+    fprintf(fp, "PermitRSASHA256=%d\n", (int)hca->opts.permit_rsa_sha256);
+    fprintf(fp, "PermitRSASHA512=%d\n", (int)hca->opts.permit_rsa_sha512);
+
+    bool bad = ferror(fp);
+    if (fclose(fp) < 0)
+        bad = true;
+
+    char *err = NULL;
+    if (bad)
+        err = dupprintf("Unable to write file '%s'", filename);
+
+    sfree(filename);
+    return err;
+}
+
+char *host_ca_delete(const char *name)
+{
+    if (!*name)
+        return dupstr("CA record must have a name");
+    char *filename = make_filename(INDEX_HOSTCA, name);
+    bool bad = remove(filename) < 0;
+
+    char *err = NULL;
+    if (bad)
+        err = dupprintf("Unable to delete file '%s'", filename);
+
+    sfree(filename);
+    return err;
 }
 
 /*
@@ -654,7 +806,7 @@ int check_stored_host_key(const char *hostname, int port,
         else
             ret = 2;                   /* key mismatch */
 
-        done:
+      done:
         sfree(line);
         if (ret != 1)
             break;
@@ -674,7 +826,7 @@ bool have_ssh_host_key(const char *hostname, int port,
     return check_stored_host_key(hostname, port, keytype, "") != 1;
 }
 
-void store_host_key(const char *hostname, int port,
+void store_host_key(Seat *seat, const char *hostname, int port,
                     const char *keytype, const char *key)
 {
     FILE *rfp, *wfp;
@@ -692,7 +844,7 @@ void store_host_key(const char *hostname, int port,
 
         dir = make_filename(INDEX_DIR, NULL);
         if ((errmsg = make_dir_path(dir, 0700)) != NULL) {
-            nonfatal("Unable to store host key: %s", errmsg);
+            seat_nonfatal(seat, "Unable to store host key: %s", errmsg);
             sfree(errmsg);
             sfree(dir);
             sfree(tmpfilename);
@@ -703,8 +855,8 @@ void store_host_key(const char *hostname, int port,
         wfp = fopen(tmpfilename, "w");
     }
     if (!wfp) {
-        nonfatal("Unable to store host key: open(\"%s\") "
-                 "returned '%s'", tmpfilename, strerror(errno));
+        seat_nonfatal(seat, "Unable to store host key: open(\"%s\") "
+                      "returned '%s'", tmpfilename, strerror(errno));
         sfree(tmpfilename);
         return;
     }
@@ -735,9 +887,9 @@ void store_host_key(const char *hostname, int port,
     fclose(wfp);
 
     if (rename(tmpfilename, filename) < 0) {
-        nonfatal("Unable to store host key: rename(\"%s\",\"%s\")"
-                 " returned '%s'", tmpfilename, filename,
-                 strerror(errno));
+        seat_nonfatal(seat, "Unable to store host key: rename(\"%s\",\"%s\")"
+                      " returned '%s'", tmpfilename, filename,
+                      strerror(errno));
     }
 
     sfree(tmpfilename);

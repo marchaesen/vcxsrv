@@ -25,10 +25,10 @@
  *
  **************************************************************************/
 
+#include <windows.h>
 #include "util/format/u_format.h"
 #include "util/u_memory.h"
 #include "util/hash_table.h"
-#include "util/simple_list.h"
 
 #include "tr_dump.h"
 #include "tr_dump_defines.h"
@@ -281,6 +281,27 @@ trace_screen_is_format_supported(struct pipe_screen *_screen,
 }
 
 static void
+trace_screen_driver_thread_add_job(struct pipe_screen *_screen,
+                                   void *data, struct util_queue_fence *fence,
+                                   pipe_driver_thread_func execute,
+                                   pipe_driver_thread_func cleanup,
+                                   const size_t job_size)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "driver_thread_add_job");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(ptr, data);
+   trace_dump_arg(ptr, fence);
+
+   screen->driver_thread_add_job(screen, data, fence, execute, cleanup, job_size);
+
+   trace_dump_call_end();
+}
+
+static void
 trace_context_replace_buffer_storage(struct pipe_context *_pipe,
                                      struct pipe_resource *dst,
                                      struct pipe_resource *src,
@@ -462,6 +483,37 @@ trace_screen_get_device_uuid(struct pipe_screen *_screen, char *uuid)
    trace_dump_call_end();
 }
 
+static void
+trace_screen_get_device_luid(struct pipe_screen *_screen, char *luid)
+{
+   struct pipe_screen *screen = trace_screen(_screen)->screen;
+
+   trace_dump_call_begin("pipe_screen", "get_device_luid");
+   trace_dump_arg(ptr, screen);
+
+   screen->get_device_luid(screen, luid);
+
+   trace_dump_ret(string, luid);
+   trace_dump_call_end();
+}
+
+static uint32_t
+trace_screen_get_device_node_mask(struct pipe_screen *_screen)
+{
+   struct pipe_screen *screen = trace_screen(_screen)->screen;
+   uint32_t result;
+
+   trace_dump_call_begin("pipe_screen", "get_device_node_mask");
+   trace_dump_arg(ptr, screen);
+
+   result = screen->get_device_node_mask(screen);
+
+   trace_dump_ret(uint, result);
+   trace_dump_call_end();
+
+   return result;
+}
+
 
 /********************************************************************
  * texture
@@ -529,6 +581,30 @@ trace_screen_allocate_memory(struct pipe_screen *_screen,
    return result;
 }
 
+static struct pipe_memory_allocation *
+trace_screen_allocate_memory_fd(struct pipe_screen *_screen,
+                                uint64_t size,
+                                int *fd)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+   struct pipe_memory_allocation *result;
+
+   trace_dump_call_begin("pipe_screen", "allocate_memory_fd");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(uint, size);
+   trace_dump_arg(ptr, fd);
+
+   result = screen->allocate_memory_fd(screen, size, fd);
+
+   trace_dump_ret(ptr, result);
+
+   trace_dump_call_end();
+
+   return result;
+}
+
 static void
 trace_screen_free_memory(struct pipe_screen *_screen,
                          struct pipe_memory_allocation *pmem)
@@ -542,6 +618,24 @@ trace_screen_free_memory(struct pipe_screen *_screen,
    trace_dump_arg(ptr, pmem);
 
    screen->free_memory(screen, pmem);
+
+
+   trace_dump_call_end();
+}
+
+static void
+trace_screen_free_memory_fd(struct pipe_screen *_screen,
+                         struct pipe_memory_allocation *pmem)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "free_memory_fd");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(ptr, pmem);
+
+   screen->free_memory_fd(screen, pmem);
 
 
    trace_dump_call_end();
@@ -615,6 +709,32 @@ trace_screen_resource_create(struct pipe_screen *_screen,
    trace_dump_arg(resource_template, templat);
 
    result = screen->resource_create(screen, templat);
+
+   trace_dump_ret(ptr, result);
+
+   trace_dump_call_end();
+
+   if (result)
+      result->screen = _screen;
+   return result;
+}
+
+static struct pipe_resource *
+trace_screen_resource_create_drawable(struct pipe_screen *_screen,
+                                      const struct pipe_resource *templat,
+                                      const void *loader_data)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+   struct pipe_resource *result;
+
+   trace_dump_call_begin("pipe_screen", "resource_create_drawable");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(resource_template, templat);
+   trace_dump_arg(ptr, loader_data);
+
+   result = screen->resource_create_drawable(screen, templat, loader_data);
 
    trace_dump_ret(ptr, result);
 
@@ -885,6 +1005,30 @@ trace_screen_fence_get_fd(struct pipe_screen *_screen,
    return result;
 }
 
+static void
+trace_screen_create_fence_win32(struct pipe_screen *_screen,
+                                struct pipe_fence_handle **fence,
+                                void *handle,
+                                const void *name,
+                                enum pipe_fd_type type)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "create_fence_win32");
+
+   trace_dump_arg(ptr, screen);
+   if (fence)
+      trace_dump_arg(ptr, *fence);
+   trace_dump_arg(ptr, handle);
+   trace_dump_arg(ptr, name);
+   trace_dump_arg_enum(type, tr_util_pipe_fd_type_name(type));
+
+   trace_dump_call_end();
+
+   screen->create_fence_win32(screen, fence, handle, name, type);
+}
+
 
 static bool
 trace_screen_fence_finish(struct pipe_screen *_screen,
@@ -1055,6 +1199,32 @@ trace_screen_query_dmabuf_modifiers(struct pipe_screen *_screen, enum pipe_forma
 }
 
 static bool
+trace_screen_is_compute_copy_faster(struct pipe_screen *_screen, enum pipe_format src_format,
+                                    enum pipe_format dst_format, unsigned width, unsigned height,
+                                    unsigned depth, bool cpu)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "is_compute_copy_faster");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(format, src_format);
+   trace_dump_arg(format, dst_format);
+   trace_dump_arg(uint, width);
+   trace_dump_arg(uint, height);
+   trace_dump_arg(uint, depth);
+   trace_dump_arg(bool, cpu);
+
+   bool ret = screen->is_compute_copy_faster(screen, src_format, dst_format, width, height, depth, cpu);
+
+   trace_dump_ret(bool, ret);
+
+   trace_dump_call_end();
+   return ret;
+}
+
+static bool
 trace_screen_is_dmabuf_modifier_supported(struct pipe_screen *_screen, uint64_t modifier, enum pipe_format format, bool *external_only)
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
@@ -1112,16 +1282,26 @@ trace_screen_get_sparse_texture_virtual_page_size(struct pipe_screen *_screen,
    trace_dump_call_begin("pipe_screen", "get_sparse_texture_virtual_page_size");
 
    trace_dump_arg(ptr, screen);
-   trace_dump_arg(int, target);
+   trace_dump_arg_enum(target, tr_util_pipe_texture_target_name(target));
    trace_dump_arg(format, format);
    trace_dump_arg(uint, offset);
    trace_dump_arg(uint, size);
-   trace_dump_arg(ptr, x);
-   trace_dump_arg(ptr, y);
-   trace_dump_arg(ptr, z);
 
    int ret = screen->get_sparse_texture_virtual_page_size(screen, target, multi_sample,
                                                           format, offset, size, x, y, z);
+
+   if (x)
+      trace_dump_arg(uint, *x);
+   else
+      trace_dump_arg(ptr, x);
+   if (y)
+      trace_dump_arg(uint, *y);
+   else
+      trace_dump_arg(ptr, y);
+   if (z)
+      trace_dump_arg(uint, *z);
+   else
+      trace_dump_arg(ptr, z);
 
    trace_dump_ret(int, ret);
 
@@ -1174,6 +1354,22 @@ static void trace_screen_vertex_state_destroy(struct pipe_screen *_screen,
    screen->vertex_state_destroy(screen, state);
 }
 
+static void trace_screen_set_fence_timeline_value(struct pipe_screen *_screen,
+                                                  struct pipe_fence_handle *fence,
+                                                  uint64_t value)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "set_fence_timeline_value");
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(ptr, fence);
+   trace_dump_arg(uint, value);
+   trace_dump_call_end();
+
+   screen->set_fence_timeline_value(screen, fence, value);
+}
+
 bool
 trace_enabled(void)
 {
@@ -1196,7 +1392,6 @@ trace_screen_create(struct pipe_screen *screen)
 {
    struct trace_screen *tr_scr;
 
-#ifdef ZINK_WITH_SWRAST_VK
    /* if zink+lavapipe is enabled, ensure that only one driver is traced */
    const char *driver = debug_get_option("MESA_LOADER_DRIVER_OVERRIDE", NULL);
    if (driver && !strcmp(driver, "zink")) {
@@ -1212,7 +1407,7 @@ trace_screen_create(struct pipe_screen *screen)
             return screen;
       }
    }
-#endif
+
    if (!trace_enabled())
       goto error1;
 
@@ -1241,14 +1436,18 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.resource_create = trace_screen_resource_create;
    SCR_INIT(resource_create_with_modifiers);
    tr_scr->base.resource_create_unbacked = trace_screen_resource_create_unbacked;
+   SCR_INIT(resource_create_drawable);
    tr_scr->base.resource_bind_backing = trace_screen_resource_bind_backing;
    tr_scr->base.resource_from_handle = trace_screen_resource_from_handle;
    tr_scr->base.allocate_memory = trace_screen_allocate_memory;
+   SCR_INIT(allocate_memory_fd);
    tr_scr->base.free_memory = trace_screen_free_memory;
+   SCR_INIT(free_memory_fd);
    tr_scr->base.map_memory = trace_screen_map_memory;
    tr_scr->base.unmap_memory = trace_screen_unmap_memory;
    SCR_INIT(query_memory_info);
    SCR_INIT(query_dmabuf_modifiers);
+   SCR_INIT(is_compute_copy_faster);
    SCR_INIT(is_dmabuf_modifier_supported);
    SCR_INIT(get_dmabuf_modifier_planes);
    SCR_INIT(check_resource_capability);
@@ -1260,6 +1459,7 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.resource_destroy = trace_screen_resource_destroy;
    tr_scr->base.fence_reference = trace_screen_fence_reference;
    SCR_INIT(fence_get_fd);
+   SCR_INIT(create_fence_win32);
    tr_scr->base.fence_finish = trace_screen_fence_finish;
    SCR_INIT(memobj_create_from_handle);
    SCR_INIT(memobj_destroy);
@@ -1267,11 +1467,15 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.get_timestamp = trace_screen_get_timestamp;
    SCR_INIT(get_driver_uuid);
    SCR_INIT(get_device_uuid);
+   SCR_INIT(get_device_luid);
+   SCR_INIT(get_device_node_mask);
    SCR_INIT(finalize_nir);
    SCR_INIT(create_vertex_state);
    SCR_INIT(vertex_state_destroy);
    tr_scr->base.transfer_helper = screen->transfer_helper;
    SCR_INIT(get_sparse_texture_virtual_page_size);
+   SCR_INIT(set_fence_timeline_value);
+   SCR_INIT(driver_thread_add_job);
 
    tr_scr->screen = screen;
 
@@ -1300,4 +1504,13 @@ trace_screen(struct pipe_screen *screen)
    assert(screen);
    assert(screen->destroy == trace_screen_destroy);
    return (struct trace_screen *)screen;
+}
+
+struct pipe_screen *
+trace_screen_unwrap(struct pipe_screen *_screen)
+{
+   if (_screen->destroy != trace_screen_destroy)
+      return _screen;
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   return tr_scr->screen;
 }

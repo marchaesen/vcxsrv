@@ -532,12 +532,6 @@ flush(struct gl_context *ctx)
 #define INVALID_PNAME 0x101
 #define INVALID_VALUE 0x102
 
-static inline GLboolean
-is_wrap_gl_clamp(GLint param)
-{
-   return param == GL_CLAMP || param == GL_MIRROR_CLAMP_EXT;
-}
-
 static GLuint
 set_sampler_wrap_s(struct gl_context *ctx, struct gl_sampler_object *samp,
                    GLint param)
@@ -546,8 +540,7 @@ set_sampler_wrap_s(struct gl_context *ctx, struct gl_sampler_object *samp,
       return GL_FALSE;
    if (validate_texture_wrap_mode(ctx, param)) {
       flush(ctx);
-      if (is_wrap_gl_clamp(samp->Attrib.WrapS) != is_wrap_gl_clamp(param))
-         ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
+      update_sampler_gl_clamp(ctx, samp, is_wrap_gl_clamp(samp->Attrib.WrapS), is_wrap_gl_clamp(param), WRAP_S);
       samp->Attrib.WrapS = param;
       samp->Attrib.state.wrap_s = wrap_to_gallium(param);
       _mesa_lower_gl_clamp(ctx, samp);
@@ -565,8 +558,7 @@ set_sampler_wrap_t(struct gl_context *ctx, struct gl_sampler_object *samp,
       return GL_FALSE;
    if (validate_texture_wrap_mode(ctx, param)) {
       flush(ctx);
-      if (is_wrap_gl_clamp(samp->Attrib.WrapT) != is_wrap_gl_clamp(param))
-         ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
+      update_sampler_gl_clamp(ctx, samp, is_wrap_gl_clamp(samp->Attrib.WrapT), is_wrap_gl_clamp(param), WRAP_T);
       samp->Attrib.WrapT = param;
       samp->Attrib.state.wrap_t = wrap_to_gallium(param);
       _mesa_lower_gl_clamp(ctx, samp);
@@ -584,8 +576,7 @@ set_sampler_wrap_r(struct gl_context *ctx, struct gl_sampler_object *samp,
       return GL_FALSE;
    if (validate_texture_wrap_mode(ctx, param)) {
       flush(ctx);
-      if (is_wrap_gl_clamp(samp->Attrib.WrapR) != is_wrap_gl_clamp(param))
-         ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
+      update_sampler_gl_clamp(ctx, samp, is_wrap_gl_clamp(samp->Attrib.WrapR), is_wrap_gl_clamp(param), WRAP_R);
       samp->Attrib.WrapR = param;
       samp->Attrib.state.wrap_r = wrap_to_gallium(param);
       _mesa_lower_gl_clamp(ctx, samp);

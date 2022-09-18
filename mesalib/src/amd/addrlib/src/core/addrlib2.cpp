@@ -1,8 +1,7 @@
-/**
+/*
 ************************************************************************************************************************
 *
-* Copyright © 2007-2021 Advanced Micro Devices, Inc.
-* All Rights Reserved.
+*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -22,8 +21,7 @@
 * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE
 *
-************************************************************************************************************************
-*/
+***********************************************************************************************************************/
 
 
 /**
@@ -2067,7 +2065,7 @@ BOOL_32 Lib::IsBlockTypeAvaiable(
 *   Lib::BlockTypeWithinMemoryBudget
 *
 *   @brief
-*       Determine whether a new block type is acceptible based on memory waste ratio
+*       Determine whether a new block type is acceptable based on memory waste ratio. Will favor larger block types.
 *
 *   @return
 *       N/A

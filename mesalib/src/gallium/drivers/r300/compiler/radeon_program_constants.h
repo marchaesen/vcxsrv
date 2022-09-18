@@ -115,6 +115,11 @@ typedef enum {
 	RC_SWIZZLE_UNUSED
 } rc_swizzle;
 
+static inline int is_swizzle_inline_constant(rc_swizzle swizzle){
+	return swizzle >= RC_SWIZZLE_ZERO;
+
+}
+
 #define RC_MAKE_SWIZZLE(a,b,c,d) (((a)<<0) | ((b)<<3) | ((c)<<6) | ((d)<<9))
 #define RC_MAKE_SWIZZLE_SMEAR(a) RC_MAKE_SWIZZLE((a),(a),(a),(a))
 #define GET_SWZ(swz, idx)      (((swz) >> ((idx)*3)) & 0x7)

@@ -61,10 +61,9 @@ do_optimization(struct exec_list *ir, const char *optimization,
    int int_1;
    int int_2;
    int int_3;
-   int int_4;
 
    if (sscanf(optimization, "do_common_optimization ( %d ) ", &int_0) == 1) {
-      return do_common_optimization(ir, int_0 != 0, false, options, true);
+      return do_common_optimization(ir, int_0 != 0, options, true);
    } else if (strcmp(optimization, "do_algebraic") == 0) {
       return do_algebraic(ir, true, options);
    } else if (strcmp(optimization, "do_constant_folding") == 0) {
@@ -78,7 +77,7 @@ do_optimization(struct exec_list *ir, const char *optimization,
    } else if (strcmp(optimization, "do_constant_propagation") == 0) {
       return do_constant_propagation(ir);
    } else if (strcmp(optimization, "do_dead_code") == 0) {
-      return do_dead_code(ir, false);
+      return do_dead_code(ir);
    } else if (strcmp(optimization, "do_dead_code_local") == 0) {
       return do_dead_code_local(ir);
    } else if (strcmp(optimization, "do_dead_code_unlinked") == 0) {
@@ -88,19 +87,14 @@ do_optimization(struct exec_list *ir, const char *optimization,
    } else if (strcmp(optimization, "do_function_inlining") == 0) {
       return do_function_inlining(ir);
    } else if (sscanf(optimization,
-                     "do_lower_jumps ( %d , %d , %d , %d , %d ) ",
-                     &int_0, &int_1, &int_2, &int_3, &int_4) == 5) {
+                     "do_lower_jumps ( %d , %d , %d , %d ) ",
+                     &int_0, &int_1, &int_2, &int_3) == 4) {
       return do_lower_jumps(ir, int_0 != 0, int_1 != 0, int_2 != 0,
-                            int_3 != 0, int_4 != 0);
+                            int_3 != 0);
    } else if (strcmp(optimization, "do_if_simplification") == 0) {
       return do_if_simplification(ir);
-   } else if (sscanf(optimization, "lower_if_to_cond_assign ( %d ) ",
-                     &int_0) == 1) {
-      return lower_if_to_cond_assign(MESA_SHADER_VERTEX, ir, int_0);
    } else if (strcmp(optimization, "do_mat_op_to_vec") == 0) {
       return do_mat_op_to_vec(ir);
-   } else if (strcmp(optimization, "optimize_swizzles") == 0) {
-      return optimize_swizzles(ir);
    } else if (strcmp(optimization, "do_structure_splitting") == 0) {
       return do_structure_splitting(ir);
    } else if (strcmp(optimization, "do_tree_grafting") == 0) {
@@ -114,15 +108,6 @@ do_optimization(struct exec_list *ir, const char *optimization,
    } else if (sscanf(optimization, "lower_instructions ( %d ) ",
                      &int_0) == 1) {
       return lower_instructions(ir, int_0);
-   } else if (sscanf(optimization, "lower_variable_index_to_cond_assign "
-                     "( %d , %d , %d , %d ) ", &int_0, &int_1, &int_2,
-                     &int_3) == 4) {
-      return lower_variable_index_to_cond_assign(MESA_SHADER_VERTEX, ir,
-                                                 int_0 != 0, int_1 != 0,
-                                                 int_2 != 0, int_3 != 0);
-   } else if (sscanf(optimization, "lower_quadop_vector ( %d ) ",
-                     &int_0) == 1) {
-      return lower_quadop_vector(ir, int_0 != 0);
    } else {
       printf("Unrecognized optimization %s\n", optimization);
       exit(EXIT_FAILURE);

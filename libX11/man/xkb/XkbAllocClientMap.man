@@ -34,13 +34,13 @@ record
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description in which to allocate client map
 .TP
-.I \- which
+.I which
 mask selecting map components to allocate
 .TP
-.I \- type_count
+.I type_count
 value of num_types field in map to be allocated 
 .SH DESCRIPTION
 .LP

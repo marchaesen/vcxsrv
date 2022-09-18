@@ -509,6 +509,12 @@ util_dump_query_value_type(FILE *stream, unsigned value)
    fprintf(stream, "%s", util_str_query_value_type(value, false));
 }
 
+void
+util_dump_query_flags(FILE *stream, unsigned value)
+{
+   fprintf(stream, "%s", util_str_query_value_type(value, false));
+}
+
 
 static const char * const
 util_transfer_usage_names[] = {

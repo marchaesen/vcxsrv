@@ -55,9 +55,9 @@ __asm__(".text\n"
    "  .localentry  " func ", .-" func "\n\t"
 
 #define STUB_ASM_CODE(slot)                                     \
-   "  addis  11, 2, " ENTRY_CURRENT_TABLE "@got@tprel@ha\n\t"   \
-   "  ld     11, " ENTRY_CURRENT_TABLE "@got@tprel@l(11)\n\t"   \
-   "  add    11, 11," ENTRY_CURRENT_TABLE "@tls\n\t"            \
+   "  addis  11, 2, _glapi_tls_Dispatch@got@tprel@ha\n\t"   \
+   "  ld     11, _glapi_tls_Dispatch@got@tprel@l(11)\n\t"   \
+   "  add    11, 11,_glapi_tls_Dispatch@tls\n\t"            \
    "  ld     11, 0(11)\n\t"                                     \
    "  ld     12, " slot "*8(11)\n\t"                            \
    "  mtctr  12\n\t"                                            \
@@ -88,8 +88,8 @@ entry_get_public(int slot)
 __asm__(".text\n");
 
 __asm__("ppc64le_dispatch_tls:\n\t"
-        "  addis  3, 2, " ENTRY_CURRENT_TABLE "@got@tprel@ha\n\t"
-        "  ld     3, " ENTRY_CURRENT_TABLE "@got@tprel@l(3)\n\t"
+        "  addis  3, 2, _glapi_tls_Dispatch@got@tprel@ha\n\t"
+        "  ld     3, _glapi_tls_Dispatch@got@tprel@l(3)\n\t"
         "  blr\n"
         );
 

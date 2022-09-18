@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2008 Dennis Smit
  * All Rights Reserved.
  *
@@ -38,10 +38,11 @@
 #include <stdbool.h>
 
 #include "pipe/p_config.h"
+#include "util/u_atomic.h"
 #include "util/u_thread.h"
 
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -119,31 +120,61 @@ struct util_cpu_caps_t {
 
    unsigned num_L3_caches;
    unsigned num_cpu_mask_bits;
+   unsigned max_vector_bits;
 
    uint16_t cpu_to_L3[UTIL_MAX_CPUS];
    /* Affinity masks for each L3 cache. */
    util_affinity_mask *L3_affinity_mask;
 };
 
+struct _util_cpu_caps_state_t {
+   once_flag once_flag;
+   /**
+    * Initialized to 0 and set to non-zero with an atomic after the entire
+    * struct has been initialized.
+    */
+   uint32_t detect_done;
+   struct util_cpu_caps_t caps;
+};
+
 #define U_CPU_INVALID_L3 0xffff
 
-static inline const struct util_cpu_caps_t *
+static inline ATTRIBUTE_CONST const struct util_cpu_caps_t *
 util_get_cpu_caps(void)
 {
-	extern struct util_cpu_caps_t util_cpu_caps;
+   extern void _util_cpu_detect_once(void);
+   extern struct _util_cpu_caps_state_t _util_cpu_caps_state;
 
-	/* If you hit this assert, it means that something is using the
-	 * cpu-caps without having first called util_cpu_detect()
-	 */
-	assert(util_cpu_caps.nr_cpus >= 1);
+   /* On most CPU architectures, an atomic read is simply a regular memory
+    * load instruction with some extra compiler magic to prevent code
+    * re-ordering around it.  The perf impact of doing this check should be
+    * negligible in most cases.
+    *
+    * Also, even though it looks like  a bit of a lie, we've declared this
+    * function with ATTRIBUTE_CONST.  The GCC docs say:
+    *
+    *    "Calls to functions whose return value is not affected by changes to
+    *    the observable state of the program and that have no observable
+    *    effects on such state other than to return a value may lend
+    *    themselves to optimizations such as common subexpression elimination.
+    *    Declaring such functions with the const attribute allows GCC to avoid
+    *    emitting some calls in repeated invocations of the function with the
+    *    same argument values."
+    *
+    * The word "observable" is important here.  With the exception of a
+    * llvmpipe debug flag behind an environment variable and a few unit tests,
+    * all of which emulate worse CPUs, this function neither affects nor is
+    * affected by any "observable" state.  It has its own internal state for
+    * sure, but that state is such that it appears to return exactly the same
+    * value with the same internal data every time.
+    */
+   if (unlikely(!p_atomic_read(&_util_cpu_caps_state.detect_done)))
+      call_once(&_util_cpu_caps_state.once_flag, _util_cpu_detect_once);
 
-	return &util_cpu_caps;
+   return &_util_cpu_caps_state.caps;
 }
 
-void util_cpu_detect(void);
-
-
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

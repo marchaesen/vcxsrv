@@ -40,6 +40,7 @@
 #include "texstore.h"
 #include "format_unpack.h"
 #include "util/format_srgb.h"
+#include "util/format/u_format_s3tc.h"
 
 
 /**
@@ -51,14 +52,16 @@ _mesa_texstore_rgb_dxt1(TEXSTORE_PARAMS)
    const GLubyte *pixels;
    GLubyte *dst;
    const GLubyte *tempImage = NULL;
+   int srccomps = srcFormat == GL_RGB ? 3 : 4;
 
    assert(dstFormat == MESA_FORMAT_RGB_DXT1 ||
           dstFormat == MESA_FORMAT_SRGB_DXT1);
 
-   if (srcFormat != GL_RGB ||
+   if (!(srcFormat == GL_RGB || srcFormat == GL_RGBA) ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
+       _mesa_image_row_stride(srcPacking, srcWidth, srcFormat, srcType) != srccomps * srcWidth * sizeof(GLubyte) ||
+       srcPacking->SkipImages ||
        srcPacking->SwapBytes) {
       /* convert image to RGB/GLubyte */
       GLubyte *tempImageSlices[1];
@@ -76,6 +79,7 @@ _mesa_texstore_rgb_dxt1(TEXSTORE_PARAMS)
                      srcPacking);
       pixels = tempImage;
       srcFormat = GL_RGB;
+      srccomps = 3;
    }
    else {
       pixels = _mesa_image_address2d(srcPacking, srcAddr, srcWidth, srcHeight,
@@ -84,9 +88,8 @@ _mesa_texstore_rgb_dxt1(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   tx_compress_dxtn(3, srcWidth, srcHeight, pixels,
-                    GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
-                    dst, dstRowStride);
+   tx_compress_dxt1(srccomps, srcWidth, srcHeight, pixels,
+                    dst, dstRowStride, 3);
 
    free((void *) tempImage);
 
@@ -103,6 +106,7 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
    const GLubyte *pixels;
    GLubyte *dst;
    const GLubyte *tempImage = NULL;
+   int rgbaRowStride = 4 * srcWidth * sizeof(GLubyte);
 
    assert(dstFormat == MESA_FORMAT_RGBA_DXT1 ||
           dstFormat == MESA_FORMAT_SRGBA_DXT1);
@@ -110,11 +114,11 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
+       _mesa_image_row_stride(srcPacking, srcWidth, srcFormat, srcType) != rgbaRowStride ||
+       srcPacking->SkipImages ||
        srcPacking->SwapBytes) {
       /* convert image to RGBA/GLubyte */
       GLubyte *tempImageSlices[1];
-      int rgbaRowStride = 4 * srcWidth * sizeof(GLubyte);
       tempImage = malloc(srcWidth * srcHeight * 4 * sizeof(GLubyte));
       if (!tempImage)
          return GL_FALSE; /* out of memory */
@@ -140,9 +144,7 @@ _mesa_texstore_rgba_dxt1(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   tx_compress_dxtn(4, srcWidth, srcHeight, pixels,
-                    GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                    dst, dstRowStride);
+   tx_compress_dxt1(4, srcWidth, srcHeight, pixels, dst, dstRowStride, 4);
 
    free((void*) tempImage);
 
@@ -159,6 +161,7 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
    const GLubyte *pixels;
    GLubyte *dst;
    const GLubyte *tempImage = NULL;
+   int rgbaRowStride = 4 * srcWidth * sizeof(GLubyte);
 
    assert(dstFormat == MESA_FORMAT_RGBA_DXT3 ||
           dstFormat == MESA_FORMAT_SRGBA_DXT3);
@@ -166,11 +169,11 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
+       _mesa_image_row_stride(srcPacking, srcWidth, srcFormat, srcType) != rgbaRowStride ||
+       srcPacking->SkipImages ||
        srcPacking->SwapBytes) {
       /* convert image to RGBA/GLubyte */
       GLubyte *tempImageSlices[1];
-      int rgbaRowStride = 4 * srcWidth * sizeof(GLubyte);
       tempImage = malloc(srcWidth * srcHeight * 4 * sizeof(GLubyte));
       if (!tempImage)
          return GL_FALSE; /* out of memory */
@@ -195,9 +198,7 @@ _mesa_texstore_rgba_dxt3(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   tx_compress_dxtn(4, srcWidth, srcHeight, pixels,
-                    GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
-                    dst, dstRowStride);
+   tx_compress_dxt3(4, srcWidth, srcHeight, pixels, dst, dstRowStride);
 
    free((void *) tempImage);
 
@@ -214,6 +215,7 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
    const GLubyte *pixels;
    GLubyte *dst;
    const GLubyte *tempImage = NULL;
+   int rgbaRowStride = 4 * srcWidth * sizeof(GLubyte);
 
    assert(dstFormat == MESA_FORMAT_RGBA_DXT5 ||
           dstFormat == MESA_FORMAT_SRGBA_DXT5);
@@ -221,11 +223,11 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
        ctx->_ImageTransferState ||
-       ALIGN(srcPacking->RowLength, srcPacking->Alignment) != srcWidth ||
+       _mesa_image_row_stride(srcPacking, srcWidth, srcFormat, srcType) != rgbaRowStride ||
+       srcPacking->SkipImages ||
        srcPacking->SwapBytes) {
       /* convert image to RGBA/GLubyte */
       GLubyte *tempImageSlices[1];
-      int rgbaRowStride = 4 * srcWidth * sizeof(GLubyte);
       tempImage = malloc(srcWidth * srcHeight * 4 * sizeof(GLubyte));
       if (!tempImage)
          return GL_FALSE; /* out of memory */
@@ -250,9 +252,7 @@ _mesa_texstore_rgba_dxt5(TEXSTORE_PARAMS)
 
    dst = dstSlices[0];
 
-   tx_compress_dxtn(4, srcWidth, srcHeight, pixels,
-                    GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
-                    dst, dstRowStride);
+   tx_compress_dxt5(4, srcWidth, srcHeight, pixels, dst, dstRowStride);
 
    free((void *) tempImage);
 
@@ -381,5 +381,51 @@ _mesa_get_dxt_fetch_func(mesa_format format)
       return fetch_srgba_dxt5;
    default:
       return NULL;
+   }
+}
+
+extern void
+_mesa_unpack_s3tc(uint8_t *dst_row,
+                  unsigned dst_stride,
+                  const uint8_t *src_row,
+                  unsigned src_stride,
+                  unsigned src_width,
+                  unsigned src_height,
+                  mesa_format format)
+{
+   /* We treat sRGB formats as RGB, because we're unpacking to another sRGB
+    * format.
+    */
+   switch (format) {
+   case MESA_FORMAT_RGB_DXT1:
+   case MESA_FORMAT_SRGB_DXT1:
+      util_format_dxt1_rgb_unpack_rgba_8unorm(dst_row, dst_stride,
+                                              src_row, src_stride,
+                                              src_width, src_height);
+      break;
+
+   case MESA_FORMAT_RGBA_DXT1:
+   case MESA_FORMAT_SRGBA_DXT1:
+      util_format_dxt1_rgba_unpack_rgba_8unorm(dst_row, dst_stride,
+                                               src_row, src_stride,
+                                               src_width, src_height);
+      break;
+
+   case MESA_FORMAT_RGBA_DXT3:
+   case MESA_FORMAT_SRGBA_DXT3:
+      util_format_dxt3_rgba_unpack_rgba_8unorm(dst_row, dst_stride,
+                                               src_row, src_stride,
+                                               src_width, src_height);
+      break;
+
+   case MESA_FORMAT_RGBA_DXT5:
+   case MESA_FORMAT_SRGBA_DXT5:
+      util_format_dxt5_rgba_unpack_rgba_8unorm(dst_row, dst_stride,
+                                               src_row, src_stride,
+                                               src_width, src_height);
+      break;
+
+   default:
+      unreachable("unexpected format");
    }
 }

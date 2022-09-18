@@ -51,7 +51,7 @@
 #include "etnaviv_drmif.h"
 #include "drm-uapi/etnaviv_drm.h"
 
-extern simple_mtx_t etna_drm_table_lock;
+extern simple_mtx_t etna_device_lock;
 
 struct etna_bo_bucket {
 	uint32_t size;
@@ -109,17 +109,8 @@ struct etna_bo {
 	uint32_t        handle;
 	uint32_t        flags;
 	uint32_t        name;           /* flink global handle (DRI2 name) */
-	uint64_t        offset;         /* offset to mmap() */
 	uint32_t        va;             /* GPU virtual address */
 	int		refcnt;
-
-	/*
-	 * To avoid excess hashtable lookups, cache the stream this bo was
-	 * last emitted on (since that will probably also be the next ring
-	 * it is emitted on).
-	 */
-	struct etna_cmd_stream *current_stream;
-	uint32_t idx;
 
 	int reuse;
 	struct list_head list;   /* bucket-list entry */

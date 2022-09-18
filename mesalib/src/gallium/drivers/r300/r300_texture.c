@@ -80,8 +80,6 @@ static unsigned r300_get_endian_swap(enum pipe_format format)
         return R300_SURF_NO_SWAP;
 
     desc = util_format_description(format);
-    if (!desc)
-        return R300_SURF_NO_SWAP;
 
     /* Compressed formats should be in the little endian format. */
     if (desc->block.width != 1 || desc->block.height != 1)
@@ -1076,12 +1074,12 @@ r300_texture_create_object(struct r300_screen *rscreen,
 
     /* Figure out the ideal placement for the texture.. */
     if (tex->domain & RADEON_DOMAIN_VRAM &&
-        tex->tex.size_in_bytes >= rscreen->info.vram_size) {
+        tex->tex.size_in_bytes >= (uint64_t)rscreen->info.vram_size_kb * 1024) {
         tex->domain &= ~RADEON_DOMAIN_VRAM;
         tex->domain |= RADEON_DOMAIN_GTT;
     }
     if (tex->domain & RADEON_DOMAIN_GTT &&
-        tex->tex.size_in_bytes >= rscreen->info.gart_size) {
+        tex->tex.size_in_bytes >= (uint64_t)rscreen->info.gart_size_kb * 1024) {
         tex->domain &= ~RADEON_DOMAIN_GTT;
     }
     /* Just fail if the texture is too large. */

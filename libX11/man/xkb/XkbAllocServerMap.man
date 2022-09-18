@@ -33,13 +33,13 @@ XkbAllocServerMap \- Allocate and initialize an empty server map description rec
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description in which to allocate server map
 .TP
-.I \- which
+.I which
 mask selecting map components to allocate
 .TP
-.I \- count_acts
+.I count_acts
 value of num_acts field in map to be allocated
 .SH DESCRIPTION
 .LP

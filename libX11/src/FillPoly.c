@@ -46,10 +46,10 @@ XFillPolygon(
     FlushGC(dpy, gc);
     GetReq(FillPoly, req);
 
-    req->drawable = d;
-    req->gc = gc->gid;
-    req->shape = shape;
-    req->coordMode = mode;
+    req->drawable = (CARD32) d;
+    req->gc = (CARD32) gc->gid;
+    req->shape = (BYTE) shape;
+    req->coordMode = (BYTE) mode;
 
     SetReqLen(req, n_points, 65535 - req->length);
 

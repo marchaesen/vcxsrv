@@ -100,9 +100,9 @@ print_constant_data(FILE* output, Program* program)
  * Determines the GPU type to use for CLRXdisasm
  */
 const char*
-to_clrx_device_name(chip_class cc, radeon_family family)
+to_clrx_device_name(amd_gfx_level gfx_level, radeon_family family)
 {
-   switch (cc) {
+   switch (gfx_level) {
    case GFX6:
       switch (family) {
       case CHIP_TAHITI: return "tahiti";
@@ -147,7 +147,7 @@ to_clrx_device_name(chip_class cc, radeon_family family)
       default: return nullptr;
       }
    case GFX10_3:
-      return nullptr;
+   case GFX11: return nullptr;
    default: unreachable("Invalid chip class!"); return nullptr;
    }
 }
@@ -182,7 +182,7 @@ print_asm_clrx(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
    FILE* p;
    int fd;
 
-   const char* gpu_type = to_clrx_device_name(program->chip_class, program->family);
+   const char* gpu_type = to_clrx_device_name(program->gfx_level, program->family);
 
    /* Dump the binary into a temporary file. */
    fd = mkstemp(path);
@@ -268,14 +268,14 @@ fail:
 
 #ifdef LLVM_AVAILABLE
 std::pair<bool, size_t>
-disasm_instr(chip_class chip, LLVMDisasmContextRef disasm, uint32_t* binary, unsigned exec_size,
-             size_t pos, char* outline, unsigned outline_size)
+disasm_instr(amd_gfx_level gfx_level, LLVMDisasmContextRef disasm, uint32_t* binary,
+             unsigned exec_size, size_t pos, char* outline, unsigned outline_size)
 {
    size_t l =
       LLVMDisasmInstruction(disasm, (uint8_t*)&binary[pos], (exec_size - pos) * sizeof(uint32_t),
                             pos * 4, outline, outline_size);
 
-   if (chip >= GFX10 && l == 8 && ((binary[pos] & 0xffff0000) == 0xd7610000) &&
+   if (gfx_level >= GFX10 && l == 8 && ((binary[pos] & 0xffff0000) == 0xd7610000) &&
        ((binary[pos + 1] & 0x1ff) == 0xff)) {
       /* v_writelane with literal uses 3 dwords but llvm consumes only 2 */
       l += 4;
@@ -284,16 +284,19 @@ disasm_instr(chip_class chip, LLVMDisasmContextRef disasm, uint32_t* binary, uns
    bool invalid = false;
    size_t size;
    if (!l &&
-       ((chip >= GFX9 && (binary[pos] & 0xffff8000) == 0xd1348000) ||  /* v_add_u32_e64 + clamp */
-        (chip >= GFX10 && (binary[pos] & 0xffff8000) == 0xd7038000) || /* v_add_u16_e64 + clamp */
-        (chip <= GFX9 && (binary[pos] & 0xffff8000) == 0xd1268000) ||  /* v_add_u16_e64 + clamp */
-        (chip >= GFX10 && (binary[pos] & 0xffff8000) == 0xd76d8000) || /* v_add3_u32 + clamp */
-        (chip == GFX9 && (binary[pos] & 0xffff8000) == 0xd1ff8000)) /* v_add3_u32 + clamp */) {
+       ((gfx_level >= GFX9 &&
+         (binary[pos] & 0xffff8000) == 0xd1348000) || /* v_add_u32_e64 + clamp */
+        (gfx_level >= GFX10 &&
+         (binary[pos] & 0xffff8000) == 0xd7038000) || /* v_add_u16_e64 + clamp */
+        (gfx_level <= GFX9 &&
+         (binary[pos] & 0xffff8000) == 0xd1268000) || /* v_add_u16_e64 + clamp */
+        (gfx_level >= GFX10 && (binary[pos] & 0xffff8000) == 0xd76d8000) || /* v_add3_u32 + clamp */
+        (gfx_level == GFX9 && (binary[pos] & 0xffff8000) == 0xd1ff8000)) /* v_add3_u32 + clamp */) {
       strcpy(outline, "\tinteger addition + clamp");
-      bool has_literal = chip >= GFX10 && (((binary[pos + 1] & 0x1ff) == 0xff) ||
-                                           (((binary[pos + 1] >> 9) & 0x1ff) == 0xff));
+      bool has_literal = gfx_level >= GFX10 && (((binary[pos + 1] & 0x1ff) == 0xff) ||
+                                                (((binary[pos + 1] >> 9) & 0x1ff) == 0xff));
       size = 2 + has_literal;
-   } else if (chip >= GFX10 && l == 4 && ((binary[pos] & 0xfe0001ff) == 0x020000f9)) {
+   } else if (gfx_level >= GFX10 && l == 4 && ((binary[pos] & 0xfe0001ff) == 0x020000f9)) {
       strcpy(outline, "\tv_cndmask_b32 + sdwa");
       size = 2;
    } else if (!l) {
@@ -304,6 +307,32 @@ disasm_instr(chip_class chip, LLVMDisasmContextRef disasm, uint32_t* binary, uns
       assert(l % 4 == 0);
       size = l / 4;
    }
+
+#if LLVM_VERSION_MAJOR <= 14
+   /* See: https://github.com/GPUOpen-Tools/radeon_gpu_profiler/issues/65 and
+    * https://github.com/llvm/llvm-project/issues/38652
+    */
+   if (invalid) {
+      /* do nothing */
+   } else if (gfx_level == GFX9 && (binary[pos] & 0xfc024000) == 0xc0024000) {
+      /* SMEM with IMM=1 and SOE=1: LLVM ignores SOFFSET */
+      size_t len = strlen(outline);
+
+      char imm[16] = {0};
+      while (outline[--len] != ' ') ;
+      strncpy(imm, outline + len + 1, sizeof(imm) - 1);
+
+      snprintf(outline + len, outline_size - len, " s%u offset:%s", binary[pos + 1] >> 25, imm);
+   } else if (gfx_level >= GFX10 && (binary[pos] & 0xfc000000) == 0xf4000000 &&
+              (binary[pos + 1] & 0xfe000000) != 0xfa000000) {
+      /* SMEM non-NULL SOFFSET: LLVM ignores OFFSET */
+      uint32_t offset = binary[pos + 1] & 0x1fffff;
+      if (offset) {
+         size_t len = strlen(outline);
+         snprintf(outline + len, outline_size - len, " offset:0x%x", offset);
+      }
+   }
+#endif
 
    return std::make_pair(invalid, size);
 }
@@ -327,7 +356,7 @@ print_asm_llvm(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
    }
 
    const char* features = "";
-   if (program->chip_class >= GFX10 && program->wave_size == 64) {
+   if (program->gfx_level >= GFX10 && program->wave_size == 64) {
       features = "+wavefrontsize64";
    }
 
@@ -359,7 +388,7 @@ print_asm_llvm(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
       print_block_markers(output, program, referenced_blocks, &next_block, pos);
 
       char outline[1024];
-      std::pair<bool, size_t> res = disasm_instr(program->chip_class, disasm, binary.data(),
+      std::pair<bool, size_t> res = disasm_instr(program->gfx_level, disasm, binary.data(),
                                                  exec_size, pos, outline, sizeof(outline));
       invalid |= res.first;
 
@@ -385,15 +414,26 @@ bool
 check_print_asm_support(Program* program)
 {
 #ifdef LLVM_AVAILABLE
-   if (program->chip_class >= GFX8) {
+   if (program->gfx_level >= GFX8) {
       /* LLVM disassembler only supports GFX8+ */
-      return true;
+      const char* name = ac_get_llvm_processor_name(program->family);
+      const char* triple = "amdgcn--";
+      LLVMTargetRef target = ac_get_llvm_target(triple);
+
+      LLVMTargetMachineRef tm = LLVMCreateTargetMachine(
+         target, triple, name, "", LLVMCodeGenLevelDefault, LLVMRelocDefault, LLVMCodeModelDefault);
+
+      bool supported = ac_is_llvm_processor_supported(tm, name);
+      LLVMDisposeTargetMachine(tm);
+
+      if (supported)
+         return true;
    }
 #endif
 
 #ifndef _WIN32
    /* Check if CLRX disassembler binary is available and can disassemble the program */
-   return to_clrx_device_name(program->chip_class, program->family) &&
+   return to_clrx_device_name(program->gfx_level, program->family) &&
           system("clrxdisasm --version") == 0;
 #else
    return false;
@@ -405,7 +445,7 @@ bool
 print_asm(Program* program, std::vector<uint32_t>& binary, unsigned exec_size, FILE* output)
 {
 #ifdef LLVM_AVAILABLE
-   if (program->chip_class >= GFX8) {
+   if (program->gfx_level >= GFX8) {
       return print_asm_llvm(program, binary, exec_size, output);
    }
 #endif

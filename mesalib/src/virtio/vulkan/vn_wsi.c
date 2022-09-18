@@ -10,6 +10,7 @@
 
 #include "vn_wsi.h"
 
+#include "drm-uapi/drm_fourcc.h"
 #include "vk_enum_to_str.h"
 #include "wsi_common_entrypoints.h"
 
@@ -84,10 +85,7 @@ vn_wsi_init(struct vn_physical_device *physical_dev)
    if (result != VK_SUCCESS)
       return result;
 
-   if (physical_dev->base.base.supported_extensions
-          .EXT_image_drm_format_modifier)
-      physical_dev->wsi_device.supports_modifiers = true;
-
+   physical_dev->wsi_device.supports_modifiers = true;
    physical_dev->base.base.wsi_device = &physical_dev->wsi_device;
 
    return VK_SUCCESS;
@@ -110,17 +108,29 @@ vn_wsi_create_image(struct vn_device *dev,
                     struct vn_image **out_img)
 {
    /* TODO This is the legacy path used by wsi_create_native_image when there
-    * is no modifier support.  Instead of forcing VK_IMAGE_TILING_LINEAR, we
-    * should ask wsi to use wsi_create_prime_image instead.
+    * is no modifier support.  Instead of forcing linear tiling, we should ask
+    * wsi to use wsi_create_prime_image instead.
     *
     * In fact, this is not enough when the image is truely used for scanout by
     * the host compositor.  There can be requirements we fail to meet.  We
     * should require modifier support at some point.
     */
+   const uint64_t modifier = DRM_FORMAT_MOD_LINEAR;
+   const VkImageDrmFormatModifierListCreateInfoEXT mod_list_info = {
+      .sType =
+         VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT,
+      .pNext = create_info->pNext,
+      .drmFormatModifierCount = 1,
+      .pDrmFormatModifiers = &modifier,
+   };
    VkImageCreateInfo local_create_info;
    if (wsi_info->scanout) {
+      assert(!vk_find_struct_const(
+         create_info->pNext, IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT));
+
       local_create_info = *create_info;
-      local_create_info.tiling = VK_IMAGE_TILING_LINEAR;
+      local_create_info.pNext = &mod_list_info;
+      local_create_info.tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
       create_info = &local_create_info;
 
       if (VN_DEBUG(WSI))
@@ -133,7 +143,7 @@ vn_wsi_create_image(struct vn_device *dev,
       return result;
 
    img->wsi.is_wsi = true;
-   img->wsi.is_prime_blit_src = wsi_info->prime_blit_src;
+   img->wsi.is_prime_blit_src = wsi_info->buffer_blit_src;
    img->wsi.tiling_override = create_info->tiling;
 
    if (create_info->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {

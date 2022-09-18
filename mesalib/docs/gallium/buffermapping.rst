@@ -403,7 +403,7 @@ Buffer mapping conclusions
 * Buffer valid range tracking doesn't need to be fancy, "number of bytes
   valid starting from 0" is sufficient for all examples found.
 
-* Use the ``pipe_debug_callback`` to report stalls on buffer mapping to ease
+* Use the ``util_debug_callback`` to report stalls on buffer mapping to ease
   debug.
 
 * Buffer binding points are not useful for tuning buffer placement (See all the

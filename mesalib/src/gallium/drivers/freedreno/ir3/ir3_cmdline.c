@@ -143,7 +143,7 @@ load_glsl(unsigned num_files, char *const *files, gl_shader_stage stage)
    nir_print_shader(nir, stdout);
    NIR_PASS_V(nir, gl_nir_lower_atomics, prog, true);
    NIR_PASS_V(nir, gl_nir_lower_buffers, prog);
-   NIR_PASS_V(nir, nir_lower_atomics_to_ssbo);
+   NIR_PASS_V(nir, nir_lower_atomics_to_ssbo, 0);
    nir_print_shader(nir, stdout);
 
    switch (stage) {
@@ -371,7 +371,8 @@ main(int argc, char **argv)
    struct fd_dev_id dev_id = {
          .gpu_id = gpu_id,
    };
-   compiler = ir3_compiler_create(NULL, &dev_id, false);
+   compiler = ir3_compiler_create(NULL, &dev_id,
+                                  &(struct ir3_compiler_options) {});
 
    if (from_tgsi) {
       struct tgsi_token toks[65536];
@@ -424,7 +425,7 @@ main(int argc, char **argv)
 
    struct ir3_shader_variant *v = rzalloc_size(shader, sizeof(*v));
    v->type = shader->type;
-   v->shader = shader;
+   v->compiler = compiler;
    v->key = key;
    v->const_state = rzalloc_size(v, sizeof(*v->const_state));
 
@@ -434,7 +435,7 @@ main(int argc, char **argv)
    ir3_nir_lower_variant(v, nir);
 
    info = "NIR compiler";
-   ret = ir3_compile_shader_nir(compiler, v);
+   ret = ir3_compile_shader_nir(compiler, shader, v);
    if (ret) {
       fprintf(stderr, "compiler failed!\n");
       return ret;

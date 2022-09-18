@@ -134,8 +134,13 @@ NineVertexShader9_dtor( struct NineVertexShader9 *This )
 
         do {
             if (var->cso) {
-                if (This->base.device->context.cso_shader.vs == var->cso)
+                if (This->base.device->context.cso_shader.vs == var->cso) {
+                    /* unbind because it is illegal to delete something bound */
                     pipe->bind_vs_state(pipe, NULL);
+                    /* This will rebind cso_shader.vs in case somehow actually
+                     * an identical shader with same cso is bound */
+                    This->base.device->context.commit |= NINE_STATE_COMMIT_VS;
+                }
                 pipe->delete_vs_state(pipe, var->cso);
                 FREE(var->const_ranges);
             }
@@ -150,8 +155,10 @@ NineVertexShader9_dtor( struct NineVertexShader9 *This )
         }
 
         if (This->ff_cso) {
-            if (This->ff_cso == This->base.device->context.cso_shader.vs)
+            if (This->ff_cso == This->base.device->context.cso_shader.vs) {
                 pipe->bind_vs_state(pipe, NULL);
+                This->base.device->context.commit |= NINE_STATE_COMMIT_VS;
+            }
             pipe->delete_vs_state(pipe, This->ff_cso);
         }
     }

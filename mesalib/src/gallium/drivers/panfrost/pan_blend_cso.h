@@ -37,7 +37,7 @@ struct panfrost_bo;
 struct pan_blend_info {
         unsigned constant_mask : 4;
         bool fixed_function : 1;
-        bool no_colour : 1;
+        bool enabled : 1;
         bool load_dest : 1;
         bool opaque : 1;
         bool alpha_zero_nop : 1;

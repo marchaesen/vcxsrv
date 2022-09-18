@@ -29,7 +29,6 @@
 #include "pipe/p_context.h"
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
-#include "util/simple_list.h"
 
 #include "rbug/rbug_context.h"
 
@@ -1287,7 +1286,7 @@ rbug_context_create(struct pipe_screen *_screen, struct pipe_context *pipe)
    cnd_init(&rb_pipe->draw_cond);
    (void) mtx_init(&rb_pipe->call_mutex, mtx_plain);
    (void) mtx_init(&rb_pipe->list_mutex, mtx_plain);
-   make_empty_list(&rb_pipe->shaders);
+   list_inithead(&rb_pipe->shaders);
 
    rb_pipe->base.screen = _screen;
    rb_pipe->base.priv = pipe->priv; /* expose wrapped data */

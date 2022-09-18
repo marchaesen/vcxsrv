@@ -31,24 +31,32 @@
 #define REPLACE_PRESENT_SRC(pass, atts, att_count, out_atts)                 \
    do {                                                                      \
       struct vn_present_src_attachment *_acquire_atts =                      \
-         pass->present_src_attachments;                                      \
+         pass->present_acquire_attachments;                                  \
       struct vn_present_src_attachment *_release_atts =                      \
-         _acquire_atts + pass->acquire_count;                                \
+         pass->present_release_attachments;                                  \
                                                                              \
       memcpy(out_atts, atts, sizeof(*atts) * att_count);                     \
       for (uint32_t i = 0; i < att_count; i++) {                             \
          if (out_atts[i].initialLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) { \
             out_atts[i].initialLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;      \
-            _acquire_atts->acquire = true;                                   \
             _acquire_atts->index = i;                                        \
             _acquire_atts++;                                                 \
          }                                                                   \
          if (out_atts[i].finalLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {   \
             out_atts[i].finalLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;        \
-            _release_atts->acquire = false;                                  \
             _release_atts->index = i;                                        \
             _release_atts++;                                                 \
          }                                                                   \
+      }                                                                      \
+   } while (false)
+
+#define INIT_SUBPASSES(_pass, _pCreateInfo)                                  \
+   do {                                                                      \
+      for (uint32_t i = 0; i < _pCreateInfo->subpassCount; i++) {            \
+         _pass->subpasses[i].has_color_attachment =                          \
+            (_pCreateInfo->pSubpasses[i].colorAttachmentCount > 0);          \
+         _pass->subpasses[i].has_depth_stencil_attachment =                  \
+            (_pCreateInfo->pSubpasses[i].pDepthStencilAttachment != NULL);   \
       }                                                                      \
    } while (false)
 
@@ -92,46 +100,70 @@ static void
 vn_render_pass_setup_present_src_barriers(struct vn_render_pass *pass)
 {
    /* TODO parse VkSubpassDependency for more accurate barriers */
-   for (uint32_t i = 0; i < pass->present_src_count; i++) {
+
+   for (uint32_t i = 0; i < pass->present_acquire_count; i++) {
       struct vn_present_src_attachment *att =
-         &pass->present_src_attachments[i];
+         &pass->present_acquire_attachments[i];
 
-      if (att->acquire) {
-         att->src_stage_mask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-         att->src_access_mask = 0;
+      att->src_stage_mask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+      att->src_access_mask = 0;
+      att->dst_stage_mask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+      att->dst_access_mask =
+         VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+   }
 
-         att->dst_stage_mask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-         att->dst_access_mask =
-            VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-      } else {
-         att->src_stage_mask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-         att->src_access_mask = VK_ACCESS_MEMORY_WRITE_BIT;
+   for (uint32_t i = 0; i < pass->present_release_count; i++) {
+      struct vn_present_src_attachment *att =
+         &pass->present_release_attachments[i];
 
-         att->dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-         att->dst_access_mask = 0;
-      }
+      att->src_stage_mask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+      att->src_access_mask = VK_ACCESS_MEMORY_WRITE_BIT;
+      att->dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+      att->dst_access_mask = 0;
    }
 }
 
 static struct vn_render_pass *
 vn_render_pass_create(struct vn_device *dev,
-                      uint32_t acquire_count,
-                      uint32_t release_count,
+                      uint32_t present_acquire_count,
+                      uint32_t present_release_count,
+                      uint32_t subpass_count,
                       const VkAllocationCallbacks *alloc)
 {
-   const uint32_t total_count = acquire_count + release_count;
-   struct vn_render_pass *pass = vk_zalloc(
-      alloc,
-      sizeof(*pass) + sizeof(pass->present_src_attachments[0]) * total_count,
-      VN_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-   if (!pass)
+   uint32_t present_count = present_acquire_count + present_release_count;
+   struct vn_render_pass *pass;
+   struct vn_present_src_attachment *present_atts;
+   struct vn_subpass *subpasses;
+
+   VK_MULTIALLOC(ma);
+   vk_multialloc_add(&ma, &pass, __typeof__(*pass), 1);
+   vk_multialloc_add(&ma, &present_atts, __typeof__(*present_atts),
+                     present_count);
+   vk_multialloc_add(&ma, &subpasses, __typeof__(*subpasses), subpass_count);
+
+   if (!vk_multialloc_zalloc(&ma, alloc, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT))
       return NULL;
 
    vn_object_base_init(&pass->base, VK_OBJECT_TYPE_RENDER_PASS, &dev->base);
 
-   pass->acquire_count = acquire_count;
-   pass->release_count = release_count;
-   pass->present_src_count = total_count;
+   pass->present_count = present_count;
+   pass->present_acquire_count = present_acquire_count;
+   pass->present_release_count = present_release_count;
+   pass->subpass_count = subpass_count;
+
+   /* For each array pointer, set it only if its count != 0. This allows code
+    * elsewhere to intuitively use either condition, `foo_atts == NULL` or
+    * `foo_count != 0`.
+    */
+   if (present_count)
+      pass->present_attachments = present_atts;
+   if (present_acquire_count)
+      pass->present_acquire_attachments = present_atts;
+   if (present_release_count)
+      pass->present_release_attachments =
+         present_atts + present_acquire_count;
+   if (subpass_count)
+      pass->subpasses = subpasses;
 
    return pass;
 }
@@ -153,13 +185,15 @@ vn_CreateRenderPass(VkDevice device,
    vn_render_pass_count_present_src(pCreateInfo, &acquire_count,
                                     &release_count);
 
-   struct vn_render_pass *pass =
-      vn_render_pass_create(dev, acquire_count, release_count, alloc);
+   struct vn_render_pass *pass = vn_render_pass_create(
+      dev, acquire_count, release_count, pCreateInfo->subpassCount, alloc);
    if (!pass)
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   INIT_SUBPASSES(pass, pCreateInfo);
+
    VkRenderPassCreateInfo local_pass_info;
-   if (pass->present_src_count) {
+   if (pass->present_count) {
       VkAttachmentDescription *temp_atts =
          vk_alloc(alloc, sizeof(*temp_atts) * pCreateInfo->attachmentCount,
                   VN_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
@@ -203,13 +237,15 @@ vn_CreateRenderPass2(VkDevice device,
    vn_render_pass_count_present_src2(pCreateInfo, &acquire_count,
                                      &release_count);
 
-   struct vn_render_pass *pass =
-      vn_render_pass_create(dev, acquire_count, release_count, alloc);
+   struct vn_render_pass *pass = vn_render_pass_create(
+      dev, acquire_count, release_count, pCreateInfo->subpassCount, alloc);
    if (!pass)
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   INIT_SUBPASSES(pass, pCreateInfo);
+
    VkRenderPassCreateInfo2 local_pass_info;
-   if (pass->present_src_count) {
+   if (pass->present_count) {
       VkAttachmentDescription2 *temp_atts =
          vk_alloc(alloc, sizeof(*temp_atts) * pCreateInfo->attachmentCount,
                   VN_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);

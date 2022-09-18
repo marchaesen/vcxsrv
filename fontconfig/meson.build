@@ -1,6 +1,6 @@
 project('fontconfig', 'c',
-  version: '2.13.96',
-  meson_version : '>= 0.56.0',
+  version: '2.14.0',
+  meson_version : '>= 0.57.0',
   default_options: [ 'buildtype=debugoptimized'],
 )
 
@@ -33,8 +33,14 @@ if not freetype_dep.found()
     fallback: ['freetype2', 'freetype_dep'])
 endif
 
-expat_dep = dependency('expat',
-  fallback: ['expat', 'expat_dep'])
+# Linking expat should not be so difficult... see: https://github.com/mesonbuild/meson/issues/10516
+expat_dep = dependency('expat', required: false)
+if not expat_dep.found()
+  expat_dep = cc.find_library('expat', required : false)
+  if not expat_dep.found()
+    expat_dep = dependency('expat', method: 'system', fallback: ['expat', 'expat_dep'])
+  endif
+endif
 
 i18n = import('i18n')
 pkgmod = import('pkgconfig')
@@ -207,23 +213,21 @@ prefix = get_option('prefix')
 
 fonts_conf = configuration_data()
 
-if host_machine.system() == 'windows'
-  fc_fonts_path = ['WINDOWSFONTDIR', 'WINDOWSUSERFONTDIR']
-  fc_cachedir = 'LOCAL_APPDATA_FONTCONFIG_CACHE'
-else
-  if host_machine.system() == 'darwin'
-    fc_fonts_path = ['/System/Library/Fonts', '/Library/Fonts', '~/Library/Fonts', '/System/Library/Assets/com_apple_MobileAsset_Font3', '/System/Library/Assets/com_apple_MobileAsset_Font4']
+default_fonts_dirs = get_option('default-fonts-dirs')
+if default_fonts_dirs == ['yes']
+  if host_machine.system() == 'windows'
+    fc_fonts_paths = ['WINDOWSFONTDIR', 'WINDOWSUSERFONTDIR']
+  elif host_machine.system() == 'darwin'
+    fc_fonts_paths = ['/System/Library/Fonts', '/Library/Fonts', '~/Library/Fonts', '/System/Library/Assets/com_apple_MobileAsset_Font3', '/System/Library/Assets/com_apple_MobileAsset_Font4']
   else
-    fc_fonts_path = ['/usr/share/fonts', '/usr/local/share/fonts']
+    fc_fonts_paths = ['/usr/share/fonts', '/usr/local/share/fonts']
   endif
-  fc_cachedir = join_paths(prefix, get_option('localstatedir'), 'cache', meson.project_name())
-  thread_dep = dependency('threads')
-  conf.set('HAVE_PTHREAD', 1)
-  deps += [thread_dep]
+else
+  fc_fonts_paths = default_fonts_dirs
 endif
 xml_path = ''
 escaped_xml_path = ''
-foreach p : fc_fonts_path
+foreach p : fc_fonts_paths
   s = '\t<dir>' + p + '</dir>\n'
   xml_path += s
   # No substitution method for string
@@ -233,11 +237,69 @@ endforeach
 conf.set_quoted('FC_DEFAULT_FONTS', escaped_xml_path)
 fonts_conf.set('FC_DEFAULT_FONTS', xml_path)
 
-fc_templatedir = join_paths(prefix, get_option('datadir'), 'fontconfig/conf.avail')
-fc_baseconfigdir = join_paths(prefix, get_option('sysconfdir'), 'fonts')
-fc_configdir = join_paths(fc_baseconfigdir, 'conf.d')
-fc_xmldir = join_paths(prefix, get_option('datadir'), 'xml/fontconfig')
+# Add more fonts if available.  By default, add only the directories
+# with outline fonts; those with bitmaps can be added as desired in
+# local.conf or ~/.fonts.conf
+fc_add_fonts = []
+additional_fonts_dirs = get_option('additional-fonts-dirs')
+if additional_fonts_dirs == ['yes']
+  fs = import('fs')
+  foreach dir : ['/usr/X11R6/lib/X11', '/usr/X11/lib/X11', '/usr/lib/X11']
+    if fs.is_dir(dir / 'fonts')
+      fc_add_fonts += [dir / 'fonts']
+    endif
+  endforeach
+elif additional_fonts_dirs == ['no']
+  # nothing to do
+else
+  fc_add_fonts = additional_fonts_dirs
+endif
+xml_path = ''
+escaped_xml_path = ''
+foreach p : fc_add_fonts
+  s = '\t<dir>' + p + '</dir>\n'
+  xml_path += s
+  # No substitution method for string
+  s = '\\t<dir>' + p + '</dir>\\n'
+  escaped_xml_path += s
+endforeach
+conf.set_quoted('FC_FONTPATH', escaped_xml_path)
+fonts_conf.set('FC_FONTPATH', xml_path)
 
+fc_cachedir = get_option('cache-dir')
+if fc_cachedir in ['yes', 'no', 'default']
+  if host_machine.system() == 'windows'
+    fc_cachedir = 'LOCAL_APPDATA_FONTCONFIG_CACHE'
+  else
+    fc_cachedir = join_paths(prefix, get_option('localstatedir'), 'cache', meson.project_name())
+  endif
+endif
+
+if host_machine.system() != 'windows'
+  thread_dep = dependency('threads')
+  conf.set('HAVE_PTHREAD', 1)
+  deps += [thread_dep]
+endif
+
+fc_templatedir = get_option('template-dir')
+if fc_templatedir in ['default', 'yes', 'no']
+  fc_templatedir = prefix / get_option('datadir') / 'fontconfig/conf.avail'
+endif
+
+fc_baseconfigdir = get_option('baseconfig-dir')
+if fc_baseconfigdir in ['default', 'yes', 'no']
+fc_baseconfigdir = prefix / get_option('sysconfdir') / 'fonts'
+endif
+
+fc_configdir = get_option('config-dir')
+if fc_configdir in ['default', 'yes', 'no']
+  fc_configdir = fc_baseconfigdir / 'conf.d'
+endif
+
+fc_xmldir = get_option('xml-dir')
+if fc_xmldir in ['default', 'yes', 'no']
+  fc_xmldir = prefix / get_option('datadir') / 'xml/fontconfig'
+endif
 
 conf.set_quoted('CONFIGDIR', fc_configdir)
 conf.set_quoted('FC_CACHEDIR', fc_cachedir)
@@ -272,7 +334,8 @@ else
   @1@
   '''
   gperf_snippet_format = 'echo foo,bar | @0@ -L ANSI-C'
-  gperf_snippet = run_command(sh, '-c', gperf_snippet_format.format(gperf.path()))
+  gperf_snippet = run_command(sh, '-c', gperf_snippet_format.format(gperf.full_path()),
+    check: true)
   gperf_test = gperf_test_format.format('size_t', gperf_snippet.stdout())
 
   if cc.compiles(gperf_test)
@@ -389,3 +452,15 @@ summary({
        'Tests': not get_option('tests').disabled(),
        'Tools': not get_option('tools').disabled(),
        }, section: 'General', bool_yn: true, list_sep: ', ')
+summary({
+       'Hinting': preferred_hinting,
+       'Font directories': fc_fonts_paths,
+       'Additional font directories': fc_add_fonts,
+       }, section: 'Defaults', bool_yn: true, list_sep: ', ')
+summary({
+       'Cache directory': fc_cachedir,
+       'Template directory': fc_templatedir,
+       'Base config directory': fc_baseconfigdir,
+       'Config directory': fc_configdir,
+       'XML directory': fc_xmldir,
+       }, section: 'Paths', bool_yn: true, list_sep: ', ')

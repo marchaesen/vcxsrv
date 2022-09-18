@@ -382,7 +382,7 @@ ProcXTestFakeInput(ClientPtr client)
             if ((flags & POINTER_ABSOLUTE) && firstValuator <= 1 && numValuators > 0) {
                 if (firstValuator == 0)
                     valuators[0] += root->drawable.pScreen->x;
-                if (firstValuator < 2 && firstValuator + numValuators > 1)
+                if (firstValuator + numValuators > 1)
                     valuators[1 - firstValuator] += root->drawable.pScreen->y;
             }
         }

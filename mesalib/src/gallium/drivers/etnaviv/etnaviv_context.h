@@ -38,6 +38,7 @@
 #include "pipe/p_shader_tokens.h"
 #include "pipe/p_state.h"
 #include "util/slab.h"
+#include <util/u_suballoc.h>
 
 struct pipe_screen;
 struct etna_shader_variant;
@@ -143,6 +144,7 @@ struct etna_context {
    } dirty;
 
    struct slab_child_pool transfer_pool;
+   struct u_suballocator tex_desc_allocator;
    struct blitter_context *blitter;
 
    /* compiled bindable state */
@@ -185,29 +187,18 @@ struct etna_context {
       uint64_t rs_operations;
    } stats;
 
-   struct pipe_debug_callback debug;
    int in_fence_fd;
 
    /* list of accumulated HW queries */
    struct list_head active_acc_queries;
 
-   struct etna_bo *dummy_rt;
-   struct etna_reloc dummy_rt_reloc;
-
-   /* Dummy texture descriptor (if needed) */
-   struct etna_bo *dummy_desc_bo;
-   struct etna_reloc DUMMY_DESC_ADDR;
-
    /* set of resources used by currently-unsubmitted renders */
-   struct set *used_resources_read;
-   struct set *used_resources_write;
+   struct hash_table *pending_resources;
 
    /* resources that must be flushed implicitly at the context flush time */
    struct set *flush_resources;
 
    bool is_noop;
-
-   mtx_t lock;
 };
 
 static inline struct etna_context *

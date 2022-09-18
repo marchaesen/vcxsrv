@@ -36,7 +36,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xkbsrv.h>
 #include "xkbstr.h"
 #include "extnsionst.h"
-#include "xkb.h"
+#include "xkb-procs.h"
 
         /*
          * REQUEST SWAPPING

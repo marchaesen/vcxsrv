@@ -1,8 +1,0 @@
-KHR-GL46.texture_buffer.texture_buffer_atomic_functions
-KHR-GLES31.core.texture_buffer.texture_buffer_atomic_functions
-
-# Sometimes crashes with no log information
-dEQP-EGL.functional.sharing.gles2.multithread.random.images.copyteximage2d.1
-dEQP-EGL.functional.sharing.gles2.multithread.random.images.copyteximage2d.4
-dEQP-EGL.functional.sharing.gles2.multithread.random.images.copyteximage2d.12
-dEQP-EGL.functional.sharing.gles2.multithread.random.images.copytexsubimage2d.1

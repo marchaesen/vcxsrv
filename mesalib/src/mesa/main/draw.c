@@ -1308,6 +1308,7 @@ _mesa_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    info.has_user_indices = false;
    info.index_bounds_valid = true;
    info.increment_draw_id = false;
+   info.was_line_loop = false;
    info.take_index_buffer_ownership = false;
    info.index_bias_varies = false;
    /* Packed section end. */
@@ -1635,6 +1636,7 @@ _mesa_MultiDrawArrays(GLenum mode, const GLint *first,
    info.has_user_indices = false;
    info.index_bounds_valid = false;
    info.increment_draw_id = primcount > 1;
+   info.was_line_loop = false;
    info.take_index_buffer_ownership = false;
    info.index_bias_varies = false;
    /* Packed section end. */
@@ -1757,6 +1759,7 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
    info.has_user_indices = index_bo == NULL;
    info.index_bounds_valid = index_bounds_valid;
    info.increment_draw_id = false;
+   info.was_line_loop = false;
    info.take_index_buffer_ownership = false;
    info.index_bias_varies = false;
    /* Packed section end. */
@@ -1769,8 +1772,15 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
       info.index.user = indices;
       draw.start = 0;
    } else {
+      uintptr_t start = (uintptr_t) indices;
+      if (unlikely(index_bo->Size < start)) {
+         _mesa_warning(ctx, "Invalid indices offset 0x%" PRIxPTR
+                            " (indices buffer size is %ld bytes)."
+                            " Draw skipped.", start, index_bo->Size);
+         return;
+      }
       info.index.gl_bo = index_bo;
-      draw.start = (uintptr_t)indices >> index_size_shift;
+      draw.start = start >> index_size_shift;
    }
    draw.index_bias = basevertex;
 
@@ -2143,6 +2153,7 @@ _mesa_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
    info.has_user_indices = index_bo == NULL;
    info.index_bounds_valid = false;
    info.increment_draw_id = primcount > 1;
+   info.was_line_loop = false;
    info.take_index_buffer_ownership = false;
    info.index_bias_varies = !!basevertex;
    /* Packed section end. */
@@ -2554,6 +2565,7 @@ _mesa_MultiDrawArraysIndirect(GLenum mode, const GLvoid *indirect,
       info.has_user_indices = false;
       info.index_bounds_valid = false;
       info.increment_draw_id = primcount > 1;
+      info.was_line_loop = false;
       info.take_index_buffer_ownership = false;
       info.index_bias_varies = false;
       /* Packed section end. */
@@ -2645,6 +2657,7 @@ _mesa_MultiDrawElementsIndirect(GLenum mode, GLenum type,
       info.has_user_indices = false;
       info.index_bounds_valid = false;
       info.increment_draw_id = primcount > 1;
+      info.was_line_loop = false;
       info.take_index_buffer_ownership = false;
       info.index_bias_varies = false;
       /* Packed section end. */

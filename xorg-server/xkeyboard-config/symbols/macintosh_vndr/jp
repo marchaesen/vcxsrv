@@ -25,11 +25,3 @@ xkb_symbols "mac" {
 
     replace key <CAPS> { [ Caps_Lock ] };
 };
-
-partial alphanumeric_keys
-xkb_symbols "alujiskeys" {
-    // On JIS USB keyboard, EISU and KANA replace Hangul and Hanja
-    // see keycodes macintosh(jisevdev)
-    replace key <HJCV> { [ Hiragana_Katakana ] };
-    replace key <HNGL> { [ Eisu_toggle ] };
-};

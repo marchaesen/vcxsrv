@@ -69,7 +69,7 @@ static void si_pc_emit_instance(struct si_context *sctx, int se, int instance)
       value |= S_030800_SE_BROADCAST_WRITES(1);
    }
 
-   if (sctx->chip_class >= GFX10) {
+   if (sctx->gfx_level >= GFX10) {
       /* TODO: Expose counters from each shader array separately if needed. */
       value |= S_030800_SA_BROADCAST_WRITES(1);
    }
@@ -85,10 +85,8 @@ static void si_pc_emit_instance(struct si_context *sctx, int se, int instance)
    radeon_end();
 }
 
-static void si_pc_emit_shaders(struct si_context *sctx, unsigned shaders)
+void si_pc_emit_shaders(struct radeon_cmdbuf *cs, unsigned shaders)
 {
-   struct radeon_cmdbuf *cs = &sctx->gfx_cs;
-
    radeon_begin(cs);
    radeon_set_uconfig_reg_seq(R_036780_SQ_PERFCOUNTER_CTRL, 2, false);
    radeon_emit(shaders & 0x7f);
@@ -154,13 +152,69 @@ static void si_pc_emit_stop(struct si_context *sctx, struct si_resource *buffer,
    radeon_begin(cs);
    radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
    radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_SAMPLE) | EVENT_INDEX(0));
-   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_STOP) | EVENT_INDEX(0));
+
+   if (!sctx->screen->info.never_send_perfcounter_stop) {
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_STOP) | EVENT_INDEX(0));
+   }
+
    radeon_set_uconfig_reg(
       R_036020_CP_PERFMON_CNTL,
-      S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_STOP_COUNTING) | S_036020_PERFMON_SAMPLE_ENABLE(1));
+      S_036020_PERFMON_STATE(sctx->screen->info.never_stop_sq_perf_counters ?
+                                V_036020_CP_PERFMON_STATE_START_COUNTING :
+                                V_036020_CP_PERFMON_STATE_STOP_COUNTING) |
+      S_036020_PERFMON_SAMPLE_ENABLE(1));
    radeon_end();
 }
+
+void si_pc_emit_spm_start(struct radeon_cmdbuf *cs)
+{
+   radeon_begin(cs);
+
+   /* Start SPM counters. */
+   radeon_set_uconfig_reg(R_036020_CP_PERFMON_CNTL,
+                          S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_DISABLE_AND_RESET) |
+                             S_036020_SPM_PERFMON_STATE(V_036020_STRM_PERFMON_STATE_START_COUNTING));
+   /* Start windowed performance counters. */
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_START) | EVENT_INDEX(0));
+   radeon_set_sh_reg(R_00B82C_COMPUTE_PERFCOUNT_ENABLE, S_00B82C_PERFCOUNT_ENABLE(1));
+
+   radeon_end();
+}
+
+void si_pc_emit_spm_stop(struct radeon_cmdbuf *cs, bool never_stop_sq_perf_counters,
+                         bool never_send_perfcounter_stop)
+{
+   radeon_begin(cs);
+
+   /* Stop windowed performance counters. */
+   if (!never_send_perfcounter_stop) {
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_STOP) | EVENT_INDEX(0));
+   }
+
+   radeon_set_sh_reg(R_00B82C_COMPUTE_PERFCOUNT_ENABLE, S_00B82C_PERFCOUNT_ENABLE(0));
+
+   /* Stop SPM counters. */
+   radeon_set_uconfig_reg(R_036020_CP_PERFMON_CNTL,
+                          S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_DISABLE_AND_RESET) |
+                          S_036020_SPM_PERFMON_STATE(never_stop_sq_perf_counters ?
+                             V_036020_STRM_PERFMON_STATE_START_COUNTING :
+                             V_036020_STRM_PERFMON_STATE_STOP_COUNTING));
+
+   radeon_end();
+}
+
+void si_pc_emit_spm_reset(struct radeon_cmdbuf *cs)
+{
+   radeon_begin(cs);
+   radeon_set_uconfig_reg(R_036020_CP_PERFMON_CNTL,
+                          S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_DISABLE_AND_RESET) |
+                          S_036020_SPM_PERFMON_STATE(V_036020_STRM_PERFMON_STATE_DISABLE_AND_RESET));
+   radeon_end();
+}
+
 
 static void si_pc_emit_read(struct si_context *sctx, struct ac_pc_block *block, unsigned count,
                             uint64_t va)
@@ -222,12 +276,15 @@ static void si_pc_query_destroy(struct si_context *sctx, struct si_query *squery
 
 void si_inhibit_clockgating(struct si_context *sctx, struct radeon_cmdbuf *cs, bool inhibit)
 {
+   if (sctx->gfx_level >= GFX11)
+      return;
+
    radeon_begin(&sctx->gfx_cs);
 
-   if (sctx->chip_class >= GFX10) {
+   if (sctx->gfx_level >= GFX10) {
       radeon_set_uconfig_reg(R_037390_RLC_PERFMON_CLK_CNTL,
                              S_037390_PERFMON_CLOCK_STATE(inhibit));
-   } else if (sctx->chip_class >= GFX8) {
+   } else if (sctx->gfx_level >= GFX8) {
       radeon_set_uconfig_reg(R_0372FC_RLC_PERFMON_CLK_CNTL,
                              S_0372FC_PERFMON_CLOCK_STATE(inhibit));
    }
@@ -248,7 +305,7 @@ static void si_pc_query_resume(struct si_context *sctx, struct si_query *squery)
    si_need_gfx_cs_space(sctx, 0);
 
    if (query->shaders)
-      si_pc_emit_shaders(sctx, query->shaders);
+      si_pc_emit_shaders(&sctx->gfx_cs, query->shaders);
 
    si_inhibit_clockgating(sctx, &sctx->gfx_cs, true);
 
@@ -665,4 +722,212 @@ void si_init_perfcounters(struct si_screen *screen)
                              &screen->perfcounters->base)) {
       si_destroy_perfcounters(screen);
    }
+}
+
+static bool
+si_spm_init_bo(struct si_context *sctx)
+{
+   struct radeon_winsys *ws = sctx->ws;
+   uint64_t size = 32 * 1024 * 1024; /* Default to 32MB. */
+
+   sctx->spm_trace.buffer_size = size;
+   sctx->spm_trace.sample_interval = 4096; /* Default to 4096 clk. */
+
+   sctx->spm_trace.bo = ws->buffer_create(
+      ws, size, 4096,
+      RADEON_DOMAIN_VRAM,
+      RADEON_FLAG_NO_INTERPROCESS_SHARING |
+         RADEON_FLAG_GTT_WC |
+         RADEON_FLAG_NO_SUBALLOC);
+
+   return sctx->spm_trace.bo != NULL;
+}
+
+
+static void
+si_emit_spm_counters(struct si_context *sctx, struct radeon_cmdbuf *cs)
+{
+   struct ac_spm_trace_data *spm_trace = &sctx->spm_trace;
+
+   radeon_begin(cs);
+
+   for (uint32_t b = 0; b < spm_trace->num_used_sq_block_sel; b++) {
+      struct ac_spm_block_select *sq_block_sel = &spm_trace->sq_block_sel[b];
+      const struct ac_spm_counter_select *cntr_sel = &sq_block_sel->counters[0];
+      uint32_t reg_base = R_036700_SQ_PERFCOUNTER0_SELECT;
+
+      radeon_set_uconfig_reg_seq(reg_base + b * 4, 1, false);
+      radeon_emit(cntr_sel->sel0 | S_036700_SQC_BANK_MASK(0xf)); /* SQC_BANK_MASK only gfx10 */
+   }
+
+   for (uint32_t b = 0; b < spm_trace->num_block_sel; b++) {
+      struct ac_spm_block_select *block_sel = &spm_trace->block_sel[b];
+      struct ac_pc_block_base *regs = block_sel->b->b->b;
+
+      radeon_set_uconfig_reg(R_030800_GRBM_GFX_INDEX, block_sel->grbm_gfx_index);
+
+      for (unsigned c = 0; c < block_sel->num_counters; c++) {
+         const struct ac_spm_counter_select *cntr_sel = &block_sel->counters[c];
+
+         if (!cntr_sel->active)
+            continue;
+
+         radeon_set_uconfig_reg_seq(regs->select0[c], 1, false);
+         radeon_emit(cntr_sel->sel0);
+
+         radeon_set_uconfig_reg_seq(regs->select1[c], 1, false);
+         radeon_emit(cntr_sel->sel1);
+      }
+   }
+
+   /* Restore global broadcasting. */
+   radeon_set_uconfig_reg(R_030800_GRBM_GFX_INDEX,
+                          S_030800_SE_BROADCAST_WRITES(1) | S_030800_SH_BROADCAST_WRITES(1) |
+                          S_030800_INSTANCE_BROADCAST_WRITES(1));
+
+   radeon_end();
+}
+
+#define SPM_RING_BASE_ALIGN 32
+
+void
+si_emit_spm_setup(struct si_context *sctx, struct radeon_cmdbuf *cs)
+{
+   struct ac_spm_trace_data *spm_trace = &sctx->spm_trace;
+   uint64_t va = sctx->screen->ws->buffer_get_virtual_address(spm_trace->bo);
+   uint64_t ring_size = spm_trace->buffer_size;
+
+   /* It's required that the ring VA and the size are correctly aligned. */
+   assert(!(va & (SPM_RING_BASE_ALIGN - 1)));
+   assert(!(ring_size & (SPM_RING_BASE_ALIGN - 1)));
+   assert(spm_trace->sample_interval >= 32);
+
+   radeon_begin(cs);
+
+   /* Configure the SPM ring buffer. */
+   radeon_set_uconfig_reg(R_037200_RLC_SPM_PERFMON_CNTL,
+                          S_037200_PERFMON_RING_MODE(0) | /* no stall and no interrupt on overflow */
+                          S_037200_PERFMON_SAMPLE_INTERVAL(spm_trace->sample_interval)); /* in sclk */
+   radeon_set_uconfig_reg(R_037204_RLC_SPM_PERFMON_RING_BASE_LO, va);
+   radeon_set_uconfig_reg(R_037208_RLC_SPM_PERFMON_RING_BASE_HI,
+                          S_037208_RING_BASE_HI(va >> 32));
+   radeon_set_uconfig_reg(R_03720C_RLC_SPM_PERFMON_RING_SIZE, ring_size);
+
+   /* Configure the muxsel. */
+   uint32_t total_muxsel_lines = 0;
+   for (unsigned s = 0; s < AC_SPM_SEGMENT_TYPE_COUNT; s++) {
+      total_muxsel_lines += spm_trace->num_muxsel_lines[s];
+   }
+
+   radeon_set_uconfig_reg(R_03726C_RLC_SPM_ACCUM_MODE, 0);
+   radeon_set_uconfig_reg(R_037210_RLC_SPM_PERFMON_SEGMENT_SIZE, 0);
+   radeon_set_uconfig_reg(R_03727C_RLC_SPM_PERFMON_SE3TO0_SEGMENT_SIZE,
+                          S_03727C_SE0_NUM_LINE(spm_trace->num_muxsel_lines[0]) |
+                          S_03727C_SE1_NUM_LINE(spm_trace->num_muxsel_lines[1]) |
+                          S_03727C_SE2_NUM_LINE(spm_trace->num_muxsel_lines[2]) |
+                          S_03727C_SE3_NUM_LINE(spm_trace->num_muxsel_lines[3]));
+   radeon_set_uconfig_reg(R_037280_RLC_SPM_PERFMON_GLB_SEGMENT_SIZE,
+                          S_037280_PERFMON_SEGMENT_SIZE(total_muxsel_lines) |
+                          S_037280_GLOBAL_NUM_LINE(spm_trace->num_muxsel_lines[4]));
+
+   /* Upload each muxsel ram to the RLC. */
+   for (unsigned s = 0; s < AC_SPM_SEGMENT_TYPE_COUNT; s++) {
+      unsigned rlc_muxsel_addr, rlc_muxsel_data;
+      unsigned grbm_gfx_index = S_030800_SH_BROADCAST_WRITES(1) |
+                                S_030800_INSTANCE_BROADCAST_WRITES(1);
+
+      if (!spm_trace->num_muxsel_lines[s])
+         continue;
+
+      if (s == AC_SPM_SEGMENT_TYPE_GLOBAL) {
+         grbm_gfx_index |= S_030800_SE_BROADCAST_WRITES(1);
+
+         rlc_muxsel_addr = R_037224_RLC_SPM_GLOBAL_MUXSEL_ADDR;
+         rlc_muxsel_data = R_037228_RLC_SPM_GLOBAL_MUXSEL_DATA;
+      } else {
+         grbm_gfx_index |= S_030800_SE_INDEX(s);
+
+         rlc_muxsel_addr = R_03721C_RLC_SPM_SE_MUXSEL_ADDR;
+         rlc_muxsel_data = R_037220_RLC_SPM_SE_MUXSEL_DATA;
+      }
+
+      radeon_set_uconfig_reg(R_030800_GRBM_GFX_INDEX, grbm_gfx_index);
+
+      for (unsigned l = 0; l < spm_trace->num_muxsel_lines[s]; l++) {
+         uint32_t *data = (uint32_t *)spm_trace->muxsel_lines[s][l].muxsel;
+
+         /* Select MUXSEL_ADDR to point to the next muxsel. */
+         radeon_set_uconfig_reg(rlc_muxsel_addr, l * AC_SPM_MUXSEL_LINE_SIZE);
+
+         /* Write the muxsel line configuration with MUXSEL_DATA. */
+         radeon_emit(PKT3(PKT3_WRITE_DATA, 2 + AC_SPM_MUXSEL_LINE_SIZE, 0));
+         radeon_emit(S_370_DST_SEL(V_370_MEM_MAPPED_REGISTER) |
+                     S_370_WR_CONFIRM(1) |
+                     S_370_ENGINE_SEL(V_370_ME) |
+                     S_370_WR_ONE_ADDR(1));
+         radeon_emit(rlc_muxsel_data >> 2);
+         radeon_emit(0);
+         radeon_emit_array(data, AC_SPM_MUXSEL_LINE_SIZE);
+      }
+   }
+   radeon_end();
+
+   /* Select SPM counters. */
+   si_emit_spm_counters(sctx, cs);
+}
+
+bool
+si_spm_init(struct si_context *sctx)
+{
+   const struct radeon_info *info = &sctx->screen->info;
+
+   sctx->screen->perfcounters = CALLOC_STRUCT(si_perfcounters);
+   sctx->screen->perfcounters->num_stop_cs_dwords = 14 + si_cp_write_fence_dwords(sctx->screen);
+   sctx->screen->perfcounters->num_instance_cs_dwords = 3;
+
+   struct ac_perfcounters *pc = &sctx->screen->perfcounters->base;
+   struct ac_spm_counter_create_info spm_counters[] = {
+
+      /* XXX: doesn't work */
+      {TCP, 0, 0x9},    /* Number of L2 requests. */
+      {TCP, 0, 0x12},   /* Number of L2 misses. */
+
+      /* Scalar cache hit */
+      {SQ, 0, 0x14f},   /* Number of SCACHE hits. */
+      {SQ, 0, 0x150},   /* Number of SCACHE misses. */
+      {SQ, 0, 0x151},   /* Number of SCACHE misses duplicate. */
+
+      /* Instruction cache hit */
+      {SQ, 0, 0x12c},   /* Number of ICACHE hits. */
+      {SQ, 0, 0x12d},   /* Number of ICACHE misses. */
+      {SQ, 0, 0x12e},   /* Number of ICACHE misses duplicate. */
+
+      /* XXX: doesn't work */
+      {GL1C, 0, 0xe},   /* Number of GL1C requests. */
+      {GL1C, 0, 0x12},  /* Number of GL1C misses. */
+
+      /* L2 cache hit */
+      {GL2C, 0, 0x3},   /* Number of GL2C requests. */
+      {GL2C, 0, info->gfx_level >= GFX10_3 ? 0x2b : 0x23},  /* Number of GL2C misses. */
+   };
+
+   if (!ac_init_perfcounters(info, false, false, pc))
+      return false;
+
+   if (!ac_init_spm(info, pc, ARRAY_SIZE(spm_counters), spm_counters, &sctx->spm_trace))
+      return false;
+
+   if (!si_spm_init_bo(sctx))
+      return false;
+
+   return true;
+}
+
+void
+si_spm_finish(struct si_context *sctx)
+{
+   struct pb_buffer *bo = sctx->spm_trace.bo;
+   radeon_bo_reference(sctx->screen->ws, &bo, NULL);
+
+   ac_destroy_spm(&sctx->spm_trace);
 }

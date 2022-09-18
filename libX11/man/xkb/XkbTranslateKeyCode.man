@@ -34,19 +34,19 @@ XkbTranslateKeyCode \-  Translate a keycode to a key symbol and modifiers
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description to use for translation
 .TP
-.I \- key
+.I key
 keycode to translate
 .TP
-.I \- mods
+.I mods
 modifiers to apply when translating key
 .TP
-.I \- mods_rtrn
+.I mods_rtrn
 backfilled with consumed modifiers
 .TP
-.I \- keysym_rtrn
+.I keysym_rtrn
 keysym resulting from translation
 .SH DESCRIPTION
 .LP

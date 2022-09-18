@@ -141,8 +141,14 @@ void bc_dump::dump(cf_node& n) {
 	} else if (n.bc.op_ptr->flags & CF_MEM) {
 		static const char *exp_type[] = {"WRITE", "WRITE_IND", "WRITE_ACK",
 				"WRITE_IND_ACK"};
+		static const char *exp_type_r600[] = {"WRITE", "WRITE_IND",
+				"READ", "READ_IND"};
+
 		fill_to(s, 18);
-		s << " " << exp_type[n.bc.type] << " ";
+		if (ctx.hw_class == HW_CLASS_R600 && n.bc.op == CF_OP_MEM_SCRATCH)
+			s << " " << exp_type_r600[n.bc.type] << " ";
+		else
+			s << " " << exp_type[n.bc.type] << " ";
 		s.print_wl(n.bc.array_base, 5);
 		s << " R" << n.bc.rw_gpr << ".";
 		for (int k = 0; k < 4; ++k)

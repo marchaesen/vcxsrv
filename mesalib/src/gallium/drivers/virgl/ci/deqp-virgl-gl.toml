@@ -11,7 +11,7 @@ deqp_args = [
 ]
 timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
 version_check = "GL ES 3.2.*git"
-renderer_check = "virgl.*llvmpipe"
+renderer_check = "virgl.*LLVMPIPE"
 
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"

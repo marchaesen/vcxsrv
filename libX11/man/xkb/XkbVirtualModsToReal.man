@@ -33,13 +33,13 @@ protocol modifiers
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description for input device
 .TP
-.I \- virtual_mask
+.I virtual_mask
 virtual modifier mask to translate
 .TP
-.I \- mask_rtrn
+.I mask_rtrn
 backfilled with real modifiers
 .SH DESCRIPTION
 .LP

@@ -36,7 +36,7 @@
 #include <io.h>
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -51,7 +51,7 @@ u_file_access(const char *path, int mode) {
 #endif
 }
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

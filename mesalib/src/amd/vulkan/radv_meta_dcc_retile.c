@@ -32,7 +32,7 @@ build_dcc_retile_compute_shader(struct radv_device *dev, struct radeon_surf *sur
 {
    enum glsl_sampler_dim dim = GLSL_SAMPLER_DIM_BUF;
    const struct glsl_type *buf_type = glsl_image_type(dim, false, GLSL_TYPE_UINT);
-   nir_builder b = radv_meta_init_shader(MESA_SHADER_COMPUTE, "dcc_retile_compute");
+   nir_builder b = radv_meta_init_shader(dev, MESA_SHADER_COMPUTE, "dcc_retile_compute");
 
    b.shader->info.workgroup_size[0] = 8;
    b.shader->info.workgroup_size[1] = 8;
@@ -91,8 +91,8 @@ radv_device_finish_meta_dcc_retile_state(struct radv_device *device)
    }
    radv_DestroyPipelineLayout(radv_device_to_handle(device), state->dcc_retile.p_layout,
                               &state->alloc);
-   radv_DestroyDescriptorSetLayout(radv_device_to_handle(device), state->dcc_retile.ds_layout,
-                                   &state->alloc);
+   device->vk.dispatch_table.DestroyDescriptorSetLayout(radv_device_to_handle(device),
+                                                        state->dcc_retile.ds_layout, &state->alloc);
 
    /* Reset for next finish. */
    memset(&state->dcc_retile, 0, sizeof(state->dcc_retile));
@@ -173,8 +173,6 @@ radv_device_init_meta_dcc_retile_state(struct radv_device *device, struct radeon
       goto cleanup;
 
 cleanup:
-   if (result != VK_SUCCESS)
-      radv_device_finish_meta_dcc_retile_state(device);
    ralloc_free(cs);
    return result;
 }
@@ -186,13 +184,13 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
    struct radv_device *device = cmd_buffer->device;
    struct radv_buffer buffer;
 
-   assert(image->type == VK_IMAGE_TYPE_2D);
+   assert(image->vk.image_type == VK_IMAGE_TYPE_2D);
    assert(image->info.array_size == 1 && image->info.levels == 1);
 
    struct radv_cmd_state *state = &cmd_buffer->state;
 
-   state->flush_bits |= radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_READ_BIT_KHR, image) |
-                        radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT_KHR, image);
+   state->flush_bits |= radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_READ_BIT, image) |
+                        radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT, image);
 
    unsigned swizzle_mode = image->planes[0].surface.u.gfx9.swizzle_mode;
 
@@ -201,7 +199,7 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
       VkResult ret =
          radv_device_init_meta_dcc_retile_state(cmd_buffer->device, &image->planes[0].surface);
       if (ret != VK_SUCCESS) {
-         cmd_buffer->record_result = ret;
+         vk_command_buffer_set_error(&cmd_buffer->vk, ret);
          return;
       }
    }
@@ -213,7 +211,7 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
                         device->meta_state.dcc_retile.pipeline[swizzle_mode]);
 
-   radv_buffer_init(&buffer, device, image->bo, image->size, image->offset);
+   radv_buffer_init(&buffer, device, image->bindings[0].bo, image->size, image->bindings[0].offset);
 
    struct radv_buffer_view views[2];
    VkBufferView view_handles[2];
@@ -258,8 +256,8 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
                                     },
                                  });
 
-   unsigned width = DIV_ROUND_UP(image->info.width, vk_format_get_blockwidth(image->vk_format));
-   unsigned height = DIV_ROUND_UP(image->info.height, vk_format_get_blockheight(image->vk_format));
+   unsigned width = DIV_ROUND_UP(image->info.width, vk_format_get_blockwidth(image->vk.format));
+   unsigned height = DIV_ROUND_UP(image->info.height, vk_format_get_blockheight(image->vk.format));
 
    unsigned dcc_width = DIV_ROUND_UP(width, image->planes[0].surface.u.gfx9.color.dcc_block_width);
    unsigned dcc_height =
@@ -284,5 +282,5 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
    radv_meta_restore(&saved_state, cmd_buffer);
 
    state->flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-                        radv_src_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT_KHR, image);
+                        radv_src_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT, image);
 }

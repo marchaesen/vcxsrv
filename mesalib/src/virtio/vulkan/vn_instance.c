@@ -63,6 +63,8 @@ static const driOptionDescription vn_dri_options[] = {
       DRI_CONF_VK_X11_ENSURE_MIN_IMAGE_COUNT(false)
       DRI_CONF_VK_X11_OVERRIDE_MIN_IMAGE_COUNT(0)
       DRI_CONF_VK_X11_STRICT_IMAGE_COUNT(false)
+      DRI_CONF_VK_XWAYLAND_WAIT_READY(true)
+      DRI_CONF_VENUS_IMPLICIT_FENCING(false)
    DRI_CONF_SECTION_END
    DRI_CONF_SECTION_DEBUG
       DRI_CONF_VK_WSI_FORCE_BGRA8_UNORM_FIRST(false)
@@ -104,7 +106,7 @@ vn_instance_init_renderer_versions(struct vn_instance *instance)
 
    /* instance version for internal use is capped */
    instance_version = MIN3(instance_version, instance->renderer_api_version,
-                           instance->renderer_info.vk_xml_version);
+                           instance->renderer->info.vk_xml_version);
    assert(instance_version >= VN_MIN_RENDERER_VERSION);
 
    instance->renderer_version = instance_version;
@@ -177,7 +179,7 @@ vn_instance_get_reply_shmem_locked(struct vn_instance *instance,
 static VkResult
 vn_instance_init_experimental_features(struct vn_instance *instance)
 {
-   if (instance->renderer_info.vk_mesa_venus_protocol_spec_version !=
+   if (instance->renderer->info.vk_mesa_venus_protocol_spec_version !=
        100000) {
       if (VN_DEBUG(INIT))
          vn_log(instance, "renderer supports no experimental features");
@@ -222,10 +224,12 @@ vn_instance_init_experimental_features(struct vn_instance *instance)
              "VkVenusExperimentalFeatures100000MESA is as below:"
              "\n\tmemoryResourceAllocationSize = %u"
              "\n\tglobalFencing = %u"
-             "\n\tlargeRing = %u",
+             "\n\tlargeRing = %u"
+             "\n\tsyncFdFencing = %u",
              instance->experimental.memoryResourceAllocationSize,
              instance->experimental.globalFencing,
-             instance->experimental.largeRing);
+             instance->experimental.largeRing,
+             instance->experimental.syncFdFencing);
    }
 
    return VK_SUCCESS;
@@ -240,26 +244,25 @@ vn_instance_init_renderer(struct vn_instance *instance)
    if (result != VK_SUCCESS)
       return result;
 
-   vn_renderer_get_info(instance->renderer, &instance->renderer_info);
-
+   struct vn_renderer_info *renderer_info = &instance->renderer->info;
    uint32_t version = vn_info_wire_format_version();
-   if (instance->renderer_info.wire_format_version != version) {
+   if (renderer_info->wire_format_version != version) {
       if (VN_DEBUG(INIT)) {
          vn_log(instance, "wire format version %d != %d",
-                instance->renderer_info.wire_format_version, version);
+                renderer_info->wire_format_version, version);
       }
       return VK_ERROR_INITIALIZATION_FAILED;
    }
 
    version = vn_info_vk_xml_version();
-   if (instance->renderer_info.vk_xml_version > version)
-      instance->renderer_info.vk_xml_version = version;
-   if (instance->renderer_info.vk_xml_version < VN_MIN_RENDERER_VERSION) {
+   if (renderer_info->vk_xml_version > version)
+      renderer_info->vk_xml_version = version;
+   if (renderer_info->vk_xml_version < VN_MIN_RENDERER_VERSION) {
       if (VN_DEBUG(INIT)) {
          vn_log(instance, "vk xml version %d.%d.%d < %d.%d.%d",
-                VK_VERSION_MAJOR(instance->renderer_info.vk_xml_version),
-                VK_VERSION_MINOR(instance->renderer_info.vk_xml_version),
-                VK_VERSION_PATCH(instance->renderer_info.vk_xml_version),
+                VK_VERSION_MAJOR(renderer_info->vk_xml_version),
+                VK_VERSION_MINOR(renderer_info->vk_xml_version),
+                VK_VERSION_PATCH(renderer_info->vk_xml_version),
                 VK_VERSION_MAJOR(VN_MIN_RENDERER_VERSION),
                 VK_VERSION_MINOR(VN_MIN_RENDERER_VERSION),
                 VK_VERSION_PATCH(VN_MIN_RENDERER_VERSION));
@@ -267,36 +270,33 @@ vn_instance_init_renderer(struct vn_instance *instance)
       return VK_ERROR_INITIALIZATION_FAILED;
    }
 
-   const struct vn_info_extension *ext =
-      vn_info_extension_get("VK_EXT_command_serialization");
-   if (instance->renderer_info.vk_ext_command_serialization_spec_version >
-       ext->spec_version) {
-      instance->renderer_info.vk_ext_command_serialization_spec_version =
-         ext->spec_version;
+   uint32_t spec_version =
+      vn_extension_get_spec_version("VK_EXT_command_serialization");
+   if (renderer_info->vk_ext_command_serialization_spec_version >
+       spec_version) {
+      renderer_info->vk_ext_command_serialization_spec_version = spec_version;
    }
 
-   ext = vn_info_extension_get("VK_MESA_venus_protocol");
-   if (instance->renderer_info.vk_mesa_venus_protocol_spec_version >
-       ext->spec_version) {
-      instance->renderer_info.vk_mesa_venus_protocol_spec_version =
-         ext->spec_version;
-   }
+   spec_version = vn_extension_get_spec_version("VK_MESA_venus_protocol");
+   if (renderer_info->vk_mesa_venus_protocol_spec_version > spec_version)
+      renderer_info->vk_mesa_venus_protocol_spec_version = spec_version;
 
    if (VN_DEBUG(INIT)) {
       vn_log(instance, "connected to renderer");
       vn_log(instance, "wire format version %d",
-             instance->renderer_info.wire_format_version);
+             renderer_info->wire_format_version);
       vn_log(instance, "vk xml version %d.%d.%d",
-             VK_VERSION_MAJOR(instance->renderer_info.vk_xml_version),
-             VK_VERSION_MINOR(instance->renderer_info.vk_xml_version),
-             VK_VERSION_PATCH(instance->renderer_info.vk_xml_version));
-      vn_log(
-         instance, "VK_EXT_command_serialization spec version %d",
-         instance->renderer_info.vk_ext_command_serialization_spec_version);
+             VK_VERSION_MAJOR(renderer_info->vk_xml_version),
+             VK_VERSION_MINOR(renderer_info->vk_xml_version),
+             VK_VERSION_PATCH(renderer_info->vk_xml_version));
+      vn_log(instance, "VK_EXT_command_serialization spec version %d",
+             renderer_info->vk_ext_command_serialization_spec_version);
       vn_log(instance, "VK_MESA_venus_protocol spec version %d",
-             instance->renderer_info.vk_mesa_venus_protocol_spec_version);
+             renderer_info->vk_mesa_venus_protocol_spec_version);
       vn_log(instance, "supports blob id 0: %d",
-             instance->renderer_info.supports_blob_id_0);
+             renderer_info->supports_blob_id_0);
+      vn_log(instance, "allow_vk_wait_syncs: %d",
+             renderer_info->allow_vk_wait_syncs);
    }
 
    return VK_SUCCESS;
@@ -496,7 +496,9 @@ vn_instance_ring_cs_upload_locked(struct vn_instance *instance,
 
    vn_cs_encoder_write(upload, cs_size, cs_data, cs_size);
    vn_cs_encoder_commit(upload);
-   vn_instance_wait_roundtrip(instance, upload->current_buffer_roundtrip);
+
+   if (unlikely(!instance->renderer->info.supports_blob_id_0))
+      vn_instance_wait_roundtrip(instance, upload->current_buffer_roundtrip);
 
    return upload;
 }
@@ -587,7 +589,9 @@ vn_instance_get_reply_shmem_locked(struct vn_instance *instance,
        * created
        */
       if (likely(instance->ring.id)) {
-         vn_instance_roundtrip(instance);
+         if (unlikely(!instance->renderer->info.supports_blob_id_0))
+            vn_instance_roundtrip(instance);
+
          vn_instance_ring_submit_locked(instance, &local_enc, NULL, NULL);
       } else {
          vn_renderer_submit_simple(instance->renderer,
@@ -689,12 +693,13 @@ vn_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
                   const VkAllocationCallbacks *pAllocator,
                   VkInstance *pInstance)
 {
+   VN_TRACE_FUNC();
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : vk_default_allocator();
    struct vn_instance *instance;
    VkResult result;
 
-   vn_debug_init();
+   vn_env_init();
    vn_trace_init();
 
    instance = vk_zalloc(alloc, sizeof(*instance), VN_DEFAULT_ALIGN,
@@ -732,6 +737,8 @@ vn_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
    result = vn_instance_init_renderer(instance);
    if (result != VK_SUCCESS)
       goto fail;
+
+   vn_cs_renderer_protocol_info_init(instance);
 
    vn_renderer_shmem_pool_init(instance->renderer,
                                &instance->reply_shmem_pool, 1u << 20);
@@ -786,6 +793,9 @@ vn_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
                        instance->base.base.app_info.engine_name,
                        instance->base.base.app_info.engine_version);
 
+   instance->renderer->info.has_implicit_fencing =
+      driQueryOptionb(&instance->dri_options, "venus_implicit_fencing");
+
    *pInstance = instance_handle;
 
    return VK_SUCCESS;
@@ -825,6 +835,7 @@ void
 vn_DestroyInstance(VkInstance _instance,
                    const VkAllocationCallbacks *pAllocator)
 {
+   VN_TRACE_FUNC();
    struct vn_instance *instance = vn_instance_from_handle(_instance);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &instance->base.base.alloc;

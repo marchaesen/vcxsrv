@@ -26,7 +26,7 @@
 
 #include "amd_family.h"
 #include "compiler/shader_enums.h"
-#include "llvm-c/Core.h"
+#include <llvm-c/Core.h>
 #include "llvm-c/TargetMachine.h"
 
 #include <stdbool.h>
@@ -47,13 +47,11 @@ static inline unsigned ac_llvm_reg_index_soa(unsigned index, unsigned chan)
    return (index * 4) + chan;
 }
 
-void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
+bool ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
                       const struct ac_shader_args *args, struct nir_shader *nir);
 
 void ac_handle_shader_output_decl(struct ac_llvm_context *ctx, struct ac_shader_abi *abi,
                                   struct nir_shader *nir, struct nir_variable *variable,
                                   gl_shader_stage stage);
-
-void ac_emit_barrier(struct ac_llvm_context *ac, gl_shader_stage stage);
 
 #endif /* AC_NIR_TO_LLVM_H */

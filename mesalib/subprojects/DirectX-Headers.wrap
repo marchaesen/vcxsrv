@@ -2,4 +2,4 @@
 directory = DirectX-Headers-1.0
 
 url = https://github.com/microsoft/DirectX-Headers.git
-revision = head
+revision = v1.606.3

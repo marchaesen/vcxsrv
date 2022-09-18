@@ -32,13 +32,13 @@ XkbGetAutoResetControls \- Gets the current values of the auto-reset controls
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
- connection to X server
+.I dpy
+connection to X server
 .TP
-.I \- auto_ctrls
- specifies which bits in auto_values are relevant
+.I auto_ctrls
+specifies which bits in auto_values are relevant
 .TP
-.I \- auto_values
+.I auto_values
 1 bit => corresponding control has auto-reset on
 .SH DESCRIPTION
 .LP

@@ -297,7 +297,7 @@ extern	Bool	XkbIgnoreExtension(
 );
 
 extern	Display *XkbOpenDisplay(
-	char *			/* name */,
+	_Xconst char *		/* name */,
 	int *			/* ev_rtrn */,
 	int *			/* err_rtrn */,
 	int *			/* major_rtrn */,

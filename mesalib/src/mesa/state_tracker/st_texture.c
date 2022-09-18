@@ -186,10 +186,7 @@ st_gl_texture_dims_to_pipe_dims(GLenum texture,
       *layersOut = util_align_npot(depthIn, 6);
       break;
    default:
-      assert(0 && "Unexpected texture in st_gl_texture_dims_to_pipe_dims()");
-#if defined(NDEBUG) || defined(DEBUG)
-      FALLTHROUGH;
-#endif
+      unreachable("Unexpected texture in st_gl_texture_dims_to_pipe_dims()");
    case GL_TEXTURE_3D:
    case GL_PROXY_TEXTURE_3D:
       *widthOut = widthIn;
@@ -241,6 +238,26 @@ st_texture_match_image(struct st_context *st,
    return GL_TRUE;
 }
 
+void
+st_texture_image_insert_transfer(struct gl_texture_image *stImage,
+                                 unsigned index,
+                                 struct pipe_transfer *transfer)
+{
+   /* Enlarge the transfer array if it's not large enough. */
+   if (index >= stImage->num_transfers) {
+      unsigned new_size = index + 1;
+
+      stImage->transfer = realloc(stImage->transfer,
+                  new_size * sizeof(struct st_texture_image_transfer));
+      memset(&stImage->transfer[stImage->num_transfers], 0,
+             (new_size - stImage->num_transfers) *
+             sizeof(struct st_texture_image_transfer));
+      stImage->num_transfers = new_size;
+   }
+
+   assert(!stImage->transfer[index].transfer);
+   stImage->transfer[index].transfer = transfer;
+}
 
 /**
  * Map a texture image and return the address for a particular 2D face/slice/
@@ -282,22 +299,10 @@ st_texture_image_map(struct st_context *st, struct gl_texture_image *stImage,
 
    map = pipe_texture_map_3d(st->pipe, stImage->pt, level, usage,
                               x, y, z, w, h, d, transfer);
-   if (map) {
-      /* Enlarge the transfer array if it's not large enough. */
-      if (z >= stImage->num_transfers) {
-         unsigned new_size = z + 1;
 
-         stImage->transfer = realloc(stImage->transfer,
-                     new_size * sizeof(struct st_texture_image_transfer));
-         memset(&stImage->transfer[stImage->num_transfers], 0,
-                (new_size - stImage->num_transfers) *
-                sizeof(struct st_texture_image_transfer));
-         stImage->num_transfers = new_size;
-      }
+   if (map)
+      st_texture_image_insert_transfer(stImage, z, *transfer);
 
-      assert(!stImage->transfer[z].transfer);
-      stImage->transfer[z].transfer = *transfer;
-   }
    return map;
 }
 
@@ -526,7 +531,8 @@ st_create_texture_handle_from_unit(struct st_context *st,
       return 0;
 
    if (view->target != PIPE_BUFFER)
-      st_convert_sampler_from_unit(st, &sampler, texUnit);
+      st_convert_sampler_from_unit(st, &sampler, texUnit,
+                                   prog->sh.data && prog->sh.data->Version >= 130);
 
    assert(st->ctx->Texture.Unit[texUnit]._Current);
 

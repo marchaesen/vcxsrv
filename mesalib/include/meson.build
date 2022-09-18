@@ -90,8 +90,8 @@ endif
 # Non-upstream headers
 if with_egl
   install_headers(
+    'EGL/eglext_angle.h',
     'EGL/eglmesaext.h',
-    'EGL/eglextchromium.h',
     subdir : 'EGL',
   )
 endif
@@ -118,27 +118,30 @@ if with_platform_haiku
   )
 endif
 
+opencl_headers = files(
+  'CL/cl.h',
+  'CL/cl.hpp',
+  'CL/cl2.hpp',
+  'CL/cl_d3d10.h',
+  'CL/cl_d3d11.h',
+  'CL/cl_dx9_media_sharing.h',
+  'CL/cl_dx9_media_sharing_intel.h',
+  'CL/cl_egl.h',
+  'CL/cl_ext.h',
+  'CL/cl_ext_intel.h',
+  'CL/cl_gl.h',
+  'CL/cl_gl_ext.h',
+  'CL/cl_icd.h',
+  'CL/cl_platform.h',
+  'CL/cl_va_api_media_sharing_intel.h',
+  'CL/cl_version.h',
+  'CL/opencl.h',
+)
 # Only install the headers if we are building a stand alone implementation and
 # not an ICD enabled implementation
 if with_gallium_opencl and not with_opencl_icd
   install_headers(
-    'CL/cl.h',
-    'CL/cl.hpp',
-    'CL/cl2.hpp',
-    'CL/cl_d3d10.h',
-    'CL/cl_d3d11.h',
-    'CL/cl_dx9_media_sharing.h',
-    'CL/cl_dx9_media_sharing_intel.h',
-    'CL/cl_egl.h',
-    'CL/cl_ext.h',
-    'CL/cl_ext_intel.h',
-    'CL/cl_gl.h',
-    'CL/cl_gl_ext.h',
-    'CL/cl_icd.h',
-    'CL/cl_platform.h',
-    'CL/cl_va_api_media_sharing_intel.h',
-    'CL/cl_version.h',
-    'CL/opencl.h',
+    opencl_headers,
     subdir: 'CL'
   )
 endif

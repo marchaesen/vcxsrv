@@ -33,13 +33,13 @@ XkbFreeControls \- Frees memory used by the ctrls member of an XkbDescRec struct
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 Xkb description in which to free controls components
 .TP
-.I \- which
+.I which
 mask of components of ctrls to free
 .TP
-.I \- free_all
+.I free_all
 True => free everything + ctrls itself
 .SH DESCRIPTION
 .LP

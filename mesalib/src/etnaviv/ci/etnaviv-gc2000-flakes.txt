@@ -53,3 +53,86 @@ spec@ext_texture_compression_s3tc@s3tc-texsubimage_gles2
 spec@ext_texture_lod_bias@lodbias
 spec@nv_copy_image@nv_copy_image-simple --tex-to-tex
 spec@oes_compressed_etc1_rgb8_texture@miptree
+
+spec@!opengl 1.0@gl-1.0-readpixsanity
+spec@!opengl 1.1@copytexsubimage
+spec@!opengl 1.1@depthstencil-default_fb-copypixels
+spec@!opengl 1.1@texwrap formats@GL_ALPHA12- NPOT
+spec@!opengl 1.1@texwrap formats@GL_ALPHA16
+spec@!opengl 1.1@texwrap formats@GL_ALPHA16- swizzled
+spec@!opengl 1.1@texwrap formats@GL_ALPHA4
+spec@!opengl 1.1@texwrap formats@GL_ALPHA4- swizzled
+spec@!opengl 1.1@texwrap formats@GL_ALPHA8
+spec@!opengl 1.1@texwrap formats@GL_ALPHA8- NPOT
+spec@!opengl 1.1@texwrap formats@GL_ALPHA8- swizzled
+spec@!opengl 1.1@texwrap formats@GL_LUMINANCE12_ALPHA12- NPOT
+spec@!opengl 1.1@texwrap formats@GL_LUMINANCE12_ALPHA4- NPOT
+spec@!opengl 1.1@texwrap formats@GL_LUMINANCE16_ALPHA16- NPOT
+spec@!opengl 1.1@texwrap formats@GL_LUMINANCE4_ALPHA4- NPOT
+spec@!opengl 1.1@texwrap formats@GL_LUMINANCE6_ALPHA2- NPOT
+spec@!opengl 1.1@texwrap formats@GL_LUMINANCE8_ALPHA8- NPOT
+spec@!opengl 1.1@texwrap formats@GL_R3_G3_B2
+spec@!opengl 1.1@texwrap formats@GL_R3_G3_B2- NPOT
+spec@!opengl 1.1@texwrap formats@GL_R3_G3_B2- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB10
+spec@!opengl 1.1@texwrap formats@GL_RGB10- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB10- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB10_A2
+spec@!opengl 1.1@texwrap formats@GL_RGB10_A2- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB10_A2- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB12
+spec@!opengl 1.1@texwrap formats@GL_RGB12- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB12- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB16
+spec@!opengl 1.1@texwrap formats@GL_RGB16- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB16- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB4
+spec@!opengl 1.1@texwrap formats@GL_RGB4- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB4- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB5
+spec@!opengl 1.1@texwrap formats@GL_RGB5- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB5- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB5_A1
+spec@!opengl 1.1@texwrap formats@GL_RGB5_A1- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB5_A1- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGB8
+spec@!opengl 1.1@texwrap formats@GL_RGB8- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGB8- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGBA12
+spec@!opengl 1.1@texwrap formats@GL_RGBA12- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGBA12- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGBA16
+spec@!opengl 1.1@texwrap formats@GL_RGBA16- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGBA16- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGBA2
+spec@!opengl 1.1@texwrap formats@GL_RGBA2- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGBA2- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGBA4
+spec@!opengl 1.1@texwrap formats@GL_RGBA4- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGBA4- swizzled
+spec@!opengl 1.1@texwrap formats@GL_RGBA8
+spec@!opengl 1.1@texwrap formats@GL_RGBA8- NPOT
+spec@!opengl 1.1@texwrap formats@GL_RGBA8- swizzled
+spec@arb_depth_texture@depth-level-clamp
+spec@arb_depth_texture@fbo-depth-gl_depth_component24-blit
+spec@arb_pixel_buffer_object@cubemap pbo
+spec@arb_pixel_buffer_object@texsubimage-depth-formats pbo
+spec@arb_texture_storage@texture-storage
+spec@arb_texture_storage@texture-storage@2D mipmap rendering 
+spec@ext_direct_state_access@textures@CopyTextureImage1DEXT
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420
+spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-copypixels
+spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture(bias) 2dshadow
+spec@nv_copy_image@nv_copy_image-simple --tex-to-tex
+
+# manually added
+shaders@glsl-fs-texturecube-2-bias
+shaders@glsl-fwidth
+spec@!opengl 1.1@texwrap formats
+spec@ext_direct_state_access@multi-texture
+spec@ext_direct_state_access@multi-texture@CopyMultiTexImage1DEXT
+spec@ext_direct_state_access@multi-texture@CopyMultiTexImage2DEXT
+spec@ext_direct_state_access@textures
+spec@ext_direct_state_access@textures@CopyTextureImage2DEXT
+spec@ext_texture_array@render-2darray
+spec@glsl-1.10@execution@samplers@glsl-fs-texture2d-bias

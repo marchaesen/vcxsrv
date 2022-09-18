@@ -26,6 +26,7 @@
 
 #include "venus_hw.h"
 #include "virgl_hw.h"
+#include "drm_hw.h"
 
 #ifdef VIRGL_RENDERER_UNSTABLE_APIS
 enum virgl_renderer_capset {
@@ -33,6 +34,8 @@ enum virgl_renderer_capset {
    VIRGL_RENDERER_CAPSET_VIRGL2                  = 2,
    /* 3 is reserved for gfxstream */
    VIRGL_RENDERER_CAPSET_VENUS                   = 4,
+   /* 5 is reserved for cross-domain */
+   VIRGL_RENDERER_CAPSET_DRM                     = 6,
 };
 #endif
 

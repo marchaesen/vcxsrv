@@ -30,6 +30,7 @@
  * \author Keith Whitwell
  */
 
+#include <windows.h>
 
 #include "pipe/p_compiler.h"
 #include "util/u_debug.h"

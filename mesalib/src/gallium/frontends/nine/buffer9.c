@@ -272,6 +272,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
     if (!(This->base.usage & D3DUSAGE_DYNAMIC) && This->base.pool == D3DPOOL_DEFAULT)
         SizeToLock = This->size - OffsetToLock;
 
+    SizeToLock = MIN2(SizeToLock, This->size - OffsetToLock); /* Do not read or track out of the buffer */
     u_box_1d(OffsetToLock, SizeToLock, &box);
 
     if (This->base.pool != D3DPOOL_DEFAULT) {
@@ -323,7 +324,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
             BASEBUF_REGISTER_UPDATE(This);
         }
 
-        *ppbData = (char *)This->managed.data + OffsetToLock;
+        *ppbData = (int8_t *)This->managed.data + OffsetToLock;
         DBG("returning pointer %p\n", *ppbData);
         This->nlocks++;
         return D3D_OK;
@@ -710,6 +711,6 @@ NineBuffer9_Upload( struct NineBuffer9 *This )
                               box_upload.x,
                               box_upload.width,
                               upload_flags,
-                              (char *)This->managed.data + box_upload.x);
+                              (int8_t *)This->managed.data + box_upload.x);
     This->managed.dirty = FALSE;
 }

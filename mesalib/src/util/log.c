@@ -87,7 +87,8 @@ mesa_log_v(enum mesa_log_level level, const char *tag, const char *format,
 #endif
    fprintf(stderr, "%s: %s: ", tag, level_to_str(level));
    vfprintf(stderr, format, va);
-   fprintf(stderr, "\n");
+   if (format[strlen(format) - 1] != '\n')
+      fprintf(stderr, "\n");
 #if !DETECT_OS_WINDOWS
    funlockfile(stderr);
 #endif

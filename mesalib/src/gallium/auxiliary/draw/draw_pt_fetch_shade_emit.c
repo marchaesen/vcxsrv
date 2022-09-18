@@ -67,7 +67,7 @@ struct fetch_shade_emit {
 
 static void
 fse_prepare(struct draw_pt_middle_end *middle,
-            unsigned prim,
+            enum pipe_prim_type prim,
             unsigned opt,
             unsigned *max_vertices)
 {
@@ -75,7 +75,6 @@ fse_prepare(struct draw_pt_middle_end *middle,
    struct draw_context *draw = fse->draw;
    unsigned num_vs_inputs = draw->vs.vertex_shader->info.num_inputs;
    const struct vertex_info *vinfo;
-   unsigned i;
    unsigned nr_vbs = 0;
 
    /* Can't support geometry shader on this path.
@@ -102,7 +101,7 @@ fse_prepare(struct draw_pt_middle_end *middle,
    memset(fse->key.element, 0,
           fse->key.nr_elements * sizeof(fse->key.element[0]));
 
-   for (i = 0; i < num_vs_inputs; i++) {
+   for (unsigned i = 0; i < num_vs_inputs; i++) {
       const struct pipe_vertex_element *src = &draw->pt.vertex_element[i];
       fse->key.element[i].in.format = src->src_format;
 
@@ -114,17 +113,18 @@ fse_prepare(struct draw_pt_middle_end *middle,
       nr_vbs = MAX2(nr_vbs, src->vertex_buffer_index + 1);
    }
 
-   for (i = 0; i < 5 && i < nr_vbs; i++) {
+   for (unsigned i = 0; i < 5 && i < nr_vbs; i++) {
       if (draw->pt.vertex_buffer[i].stride == 0)
          fse->key.const_vbuffers |= (1<<i);
    }
 
-   if (0) debug_printf("%s: lookup const_vbuffers: %x\n", __FUNCTION__, fse->key.const_vbuffers);
+   if (0) debug_printf("%s: lookup const_vbuffers: %x\n",
+                       __FUNCTION__, fse->key.const_vbuffers);
 
    {
       unsigned dst_offset = 0;
 
-      for (i = 0; i < vinfo->num_attribs; i++) {
+      for (unsigned i = 0; i < vinfo->num_attribs; i++) {
          unsigned emit_sz = draw_translate_vinfo_size(vinfo->attrib[i].emit);
 
          /* doesn't handle EMIT_OMIT */
@@ -143,8 +143,7 @@ fse_prepare(struct draw_pt_middle_end *middle,
       }
    }
 
-   fse->active = draw_vs_lookup_variant( draw->vs.vertex_shader,
-                                         &fse->key );
+   fse->active = draw_vs_lookup_variant(draw->vs.vertex_shader, &fse->key);
 
    if (!fse->active) {
       assert(0);
@@ -156,13 +155,13 @@ fse_prepare(struct draw_pt_middle_end *middle,
 
    /* Now set buffer pointers:
     */
-   for (i = 0; i < draw->pt.nr_vertex_buffers; i++) {
-      fse->active->set_buffer( fse->active,
-                               i,
-                               ((const ubyte *) draw->pt.user.vbuffer[i].map +
-                                draw->pt.vertex_buffer[i].buffer_offset),
+   for (unsigned i = 0; i < draw->pt.nr_vertex_buffers; i++) {
+      fse->active->set_buffer(fse->active,
+                              i,
+                              ((const ubyte *) draw->pt.user.vbuffer[i].map +
+                               draw->pt.vertex_buffer[i].buffer_offset),
                               draw->pt.vertex_buffer[i].stride,
-                              draw->pt.max_index );
+                              draw->pt.max_index);
    }
 
    *max_vertices = (draw->render->max_vertex_buffer_bytes /
@@ -197,14 +196,14 @@ fse_run_linear(struct draw_pt_middle_end *middle,
 
    /* XXX: need to flush to get prim_vbuf.c to release its allocation??
     */
-   draw_do_flush( draw, DRAW_FLUSH_BACKEND );
+   draw_do_flush(draw, DRAW_FLUSH_BACKEND);
 
-   if (!draw->render->allocate_vertices( draw->render,
-                                         (ushort)fse->key.output_stride,
-                                         (ushort)count ))
+   if (!draw->render->allocate_vertices(draw->render,
+                                        (ushort) fse->key.output_stride,
+                                        (ushort) count))
       goto fail;
 
-   hw_verts = draw->render->map_vertices( draw->render );
+   hw_verts = draw->render->map_vertices(draw->render);
    if (!hw_verts)
       goto fail;
 
@@ -212,32 +211,29 @@ fse_run_linear(struct draw_pt_middle_end *middle,
     * Clipping is done elsewhere -- either by the API or on hardware,
     * or for some other reason not required...
     */
-   fse->active->run_linear( fse->active,
-                            start, count,
-                            hw_verts );
+   fse->active->run_linear(fse->active, start, count, hw_verts);
 
    if (0) {
-      unsigned i;
-      for (i = 0; i < count; i++) {
-         debug_printf("\n\n%s vertex %d: (stride %d, offset %d)\n", __FUNCTION__, i,
+      for (unsigned i = 0; i < count; i++) {
+         debug_printf("\n\n%s vertex %d: (stride %d, offset %d)\n",
+                      __FUNCTION__, i,
                       fse->key.output_stride,
                       fse->key.output_stride * i);
 
-         draw_dump_emitted_vertex( fse->vinfo,
-                                   (const uint8_t *)hw_verts + fse->key.output_stride * i );
+         draw_dump_emitted_vertex(fse->vinfo,
+                                  (const uint8_t *) hw_verts
+                                  + fse->key.output_stride * i);
       }
    }
 
-   draw->render->unmap_vertices( draw->render, 0, (ushort)(count - 1) );
+   draw->render->unmap_vertices(draw->render, 0, (ushort) (count - 1));
 
    /* Draw arrays path to avoid re-emitting index list again and
     * again.
     */
-   draw->render->draw_arrays( draw->render,
-                              0,
-                              count );
+   draw->render->draw_arrays(draw->render, 0, count);
 
-   draw->render->release_vertices( draw->render );
+   draw->render->release_vertices(draw->render);
 
    return;
 
@@ -253,7 +249,7 @@ fse_run(struct draw_pt_middle_end *middle,
         unsigned fetch_count,
         const ushort *draw_elts,
         unsigned draw_count,
-        unsigned prim_flags )
+        unsigned prim_flags)
 {
    struct fetch_shade_emit *fse = (struct fetch_shade_emit *)middle;
    struct draw_context *draw = fse->draw;
@@ -261,48 +257,41 @@ fse_run(struct draw_pt_middle_end *middle,
 
    /* XXX: need to flush to get prim_vbuf.c to release its allocation??
     */
-   draw_do_flush( draw, DRAW_FLUSH_BACKEND );
+   draw_do_flush(draw, DRAW_FLUSH_BACKEND);
 
-   if (!draw->render->allocate_vertices( draw->render,
-                                         (ushort)fse->key.output_stride,
-                                         (ushort)fetch_count ))
+   if (!draw->render->allocate_vertices(draw->render,
+                                        (ushort) fse->key.output_stride,
+                                        (ushort) fetch_count))
       goto fail;
 
-   hw_verts = draw->render->map_vertices( draw->render );
+   hw_verts = draw->render->map_vertices(draw->render);
    if (!hw_verts)
       goto fail;
 
    /* Single routine to fetch vertices, run shader and emit HW verts.
     */
-   fse->active->run_elts( fse->active,
-                          fetch_elts,
-                          fetch_count,
-                          hw_verts );
+   fse->active->run_elts(fse->active, fetch_elts, fetch_count, hw_verts);
 
    if (0) {
-      unsigned i;
-      for (i = 0; i < fetch_count; i++) {
+      for (unsigned i = 0; i < fetch_count; i++) {
          debug_printf("\n\n%s vertex %d:\n", __FUNCTION__, i);
-         draw_dump_emitted_vertex( fse->vinfo,
-                                   (const uint8_t *)hw_verts +
-                                   fse->key.output_stride * i );
+         draw_dump_emitted_vertex(fse->vinfo,
+                                  (const uint8_t *)hw_verts +
+                                  fse->key.output_stride * i);
       }
    }
 
-   draw->render->unmap_vertices( draw->render, 0, (ushort)(fetch_count - 1) );
+   draw->render->unmap_vertices(draw->render, 0, (ushort)(fetch_count - 1));
 
-   draw->render->draw_elements( draw->render,
-                                draw_elts,
-                                draw_count );
+   draw->render->draw_elements(draw->render, draw_elts, draw_count);
 
-   draw->render->release_vertices( draw->render );
+   draw->render->release_vertices(draw->render);
    return;
 
 fail:
    debug_warn_once("allocate or map of vertex buffer failed (out of memory?)");
    return;
 }
-
 
 
 static boolean
@@ -319,14 +308,14 @@ fse_run_linear_elts(struct draw_pt_middle_end *middle,
 
    /* XXX: need to flush to get prim_vbuf.c to release its allocation??
     */
-   draw_do_flush( draw, DRAW_FLUSH_BACKEND );
+   draw_do_flush(draw, DRAW_FLUSH_BACKEND);
 
-   if (!draw->render->allocate_vertices( draw->render,
-                                         (ushort)fse->key.output_stride,
-                                         (ushort)count ))
+   if (!draw->render->allocate_vertices(draw->render,
+                                        (ushort) fse->key.output_stride,
+                                        (ushort) count))
       return FALSE;
 
-   hw_verts = draw->render->map_vertices( draw->render );
+   hw_verts = draw->render->map_vertices(draw->render);
    if (!hw_verts)
       return FALSE;
 
@@ -334,21 +323,16 @@ fse_run_linear_elts(struct draw_pt_middle_end *middle,
     * Clipping is done elsewhere -- either by the API or on hardware,
     * or for some other reason not required...
     */
-   fse->active->run_linear( fse->active,
-                            start, count,
-                            hw_verts );
+   fse->active->run_linear(fse->active, start, count, hw_verts);
 
-   draw->render->draw_elements( draw->render,
-                                draw_elts,
-                                draw_count );
+   draw->render->draw_elements(draw->render, draw_elts, draw_count);
 
-   draw->render->unmap_vertices( draw->render, 0, (ushort)(count - 1) );
+   draw->render->unmap_vertices(draw->render, 0, (ushort)(count - 1));
 
-   draw->render->release_vertices( draw->render );
+   draw->render->release_vertices(draw->render);
 
    return TRUE;
 }
-
 
 
 static void

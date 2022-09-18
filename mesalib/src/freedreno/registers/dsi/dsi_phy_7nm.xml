@@ -56,6 +56,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x00140" name="PHY_STATUS"/>
 	<reg32 offset="0x00148" name="LANE_STATUS0"/>
 	<reg32 offset="0x0014c" name="LANE_STATUS1"/>
+	<reg32 offset="0x001ac" name="GLBL_DIGTOP_SPARE10"/>
 </domain>
 
 <domain name="DSI_7nm_PHY" width="32">

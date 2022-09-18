@@ -48,6 +48,8 @@ agx_indexed_sysval(agx_context *ctx, enum agx_push_type type,
    /* Otherwise, push */
    assert(ctx->out->push_ranges < AGX_MAX_PUSH_RANGES);
 
+   ctx->push_base = ALIGN_POT(ctx->push_base, agx_size_align_16(size));
+
    unsigned base = ctx->push_base;
    ctx->push_base += length;
 
@@ -59,4 +61,34 @@ agx_indexed_sysval(agx_context *ctx, enum agx_push_type type,
    };
 
    return agx_uniform(base + index, size);
+}
+
+agx_index
+agx_vbo_base(agx_context *ctx, unsigned vbo)
+{
+   /* Check if we already pushed */
+   for (unsigned i = 0; i < ctx->out->push_ranges; ++i) {
+      struct agx_push push = ctx->out->push[i];
+
+      if (push.type == AGX_PUSH_VBO_BASE && push.vbo == vbo) {
+         return agx_uniform(push.base, AGX_SIZE_64);
+      }
+   }
+
+   /* Otherwise, push */
+   assert(ctx->out->push_ranges < AGX_MAX_PUSH_RANGES);
+
+   ctx->push_base = ALIGN_POT(ctx->push_base, 4);
+
+   unsigned base = ctx->push_base;
+   ctx->push_base += 4;
+
+   ctx->out->push[ctx->out->push_ranges++] = (struct agx_push) {
+      .type = AGX_PUSH_VBO_BASE,
+      .base = base,
+      .length = 4,
+      .vbo = vbo,
+   };
+
+   return agx_uniform(base, AGX_SIZE_64);
 }

@@ -9,21 +9,62 @@
 #ifndef TU_UTIL_H
 #define TU_UTIL_H
 
-#include <assert.h>
-#include <stdint.h>
+#include "tu_common.h"
 
-#include "util/macros.h"
 #include "util/u_math.h"
 #include "util/format/u_format_pack.h"
 #include "util/format/u_format_zs.h"
 #include "compiler/shader_enums.h"
 
-#include "adreno_common.xml.h"
-#include "adreno_pm4.xml.h"
-#include "a6xx.xml.h"
-
-#include <vulkan/vulkan.h>
 #include "vk_util.h"
+
+/* Whenever we generate an error, pass it through this function. Useful for
+ * debugging, where we can break on it. Only call at error site, not when
+ * propagating errors. Might be useful to plug in a stack trace here.
+ */
+
+VkResult
+__vk_startup_errorf(struct tu_instance *instance,
+                    VkResult error,
+                    bool force_print,
+                    const char *file,
+                    int line,
+                    const char *format,
+                    ...) PRINTFLIKE(6, 7);
+
+/* Prints startup errors if TU_DEBUG=startup is set or on a debug driver
+ * build.
+ */
+#define vk_startup_errorf(instance, error, format, ...) \
+   __vk_startup_errorf(instance, error, \
+                       instance->debug_flags & TU_DEBUG_STARTUP, \
+                       __FILE__, __LINE__, format, ##__VA_ARGS__)
+
+void
+__tu_finishme(const char *file, int line, const char *format, ...)
+   PRINTFLIKE(3, 4);
+
+/**
+ * Print a FINISHME message, including its source location.
+ */
+#define tu_finishme(format, ...)                                             \
+   do {                                                                      \
+      static bool reported = false;                                          \
+      if (!reported) {                                                       \
+         __tu_finishme(__FILE__, __LINE__, format, ##__VA_ARGS__);           \
+         reported = true;                                                    \
+      }                                                                      \
+   } while (0)
+
+#define tu_stub()                                                            \
+   do {                                                                      \
+      tu_finishme("stub %s", __func__);                                      \
+   } while (0)
+
+void
+tu_framebuffer_tiling_config(struct tu_framebuffer *fb,
+                             const struct tu_device *device,
+                             const struct tu_render_pass *pass);
 
 #define TU_STAGE_MASK ((1 << MESA_SHADER_STAGES) - 1)
 
@@ -97,6 +138,12 @@ tu6_primtype_line(enum pc_di_primtype type)
     default:
        return false;
     }
+}
+
+static inline bool
+tu6_primtype_patches(enum pc_di_primtype type)
+{
+   return type >= DI_PT_PATCHES0 && type <= DI_PT_PATCHES31;
 }
 
 static inline enum pc_di_primtype
@@ -320,10 +367,18 @@ tu6_pack_border_color(struct bcolor_entry *bcolor, const VkClearColorValue *val,
    PACK_F(ui8, r8g8b8a8_unorm);
    PACK_F(si8, r8g8b8a8_snorm);
    PACK_F(rgb10a2, r10g10b10a2_unorm);
-   util_format_x8z24_unorm_pack_z_float((uint8_t*) &bcolor->z24,
+   util_format_z24x8_unorm_pack_z_float((uint8_t*) &bcolor->z24,
                                         0, val->float32, 0, 1, 1);
    PACK_F(srgb, r16g16b16a16_float); /* TODO: clamp? */
 #undef PACK_F
 }
+
+void
+tu_dbg_log_gmem_load_store_skips(struct tu_device *device);
+
+#define perf_debug(device, fmt, ...) do {                               \
+   if (unlikely((device)->instance->debug_flags & TU_DEBUG_PERF))       \
+      mesa_log(MESA_LOG_WARN, (MESA_LOG_TAG), (fmt), ##__VA_ARGS__);    \
+} while(0)
 
 #endif /* TU_UTIL_H */

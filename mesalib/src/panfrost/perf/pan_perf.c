@@ -28,19 +28,22 @@
 #include <drm-uapi/panfrost_drm.h>
 
 #define PAN_COUNTERS_PER_CATEGORY 64
-#define PAN_SHADER_CORE_INDEX 2
+#define PAN_SHADER_CORE_INDEX 3
 
 uint32_t
 panfrost_perf_counter_read(const struct panfrost_perf_counter *counter,
                            const struct panfrost_perf *perf)
 {
-   assert(counter->offset < perf->n_counter_values);
-   uint32_t ret = perf->counter_values[counter->offset];
+   unsigned offset = perf->category_offset[counter->category_index];
+   offset += counter->offset;
+   assert(offset < perf->n_counter_values);
+
+   uint32_t ret = perf->counter_values[offset];
 
    // If counter belongs to shader core, accumulate values for all other cores
-   if (counter->category == &perf->cfg->categories[PAN_SHADER_CORE_INDEX]) {
-      for (uint32_t core = 1; core < perf->dev->core_count; ++core) {
-         ret += perf->counter_values[counter->offset + PAN_COUNTERS_PER_CATEGORY * core];
+   if (counter->category_index == PAN_SHADER_CORE_INDEX) {
+      for (uint32_t core = 1; core < perf->dev->core_id_range; ++core) {
+         ret += perf->counter_values[offset + PAN_COUNTERS_PER_CATEGORY * core];
       }
    }
 
@@ -72,10 +75,17 @@ panfrost_perf_init(struct panfrost_perf *perf, struct panfrost_device *dev)
            unreachable("Performance counters missing!");
 
    // Generally counter blocks are laid out in the following order:
-   // Job manager, tiler, L2 cache, and one or more shader cores.
-   uint32_t n_blocks = 3 + dev->core_count;
+   // Job manager, tiler, one or more L2 caches, and one or more shader cores.
+   unsigned l2_slices = panfrost_query_l2_slices(dev);
+   uint32_t n_blocks = 2 + l2_slices + dev->core_id_range;
    perf->n_counter_values = PAN_COUNTERS_PER_CATEGORY * n_blocks;
    perf->counter_values = ralloc_array(perf, uint32_t, perf->n_counter_values);
+
+   /* Setup the layout */
+   perf->category_offset[0] = PAN_COUNTERS_PER_CATEGORY * 0;
+   perf->category_offset[1] = PAN_COUNTERS_PER_CATEGORY * 1;
+   perf->category_offset[2] = PAN_COUNTERS_PER_CATEGORY * 2;
+   perf->category_offset[3] = PAN_COUNTERS_PER_CATEGORY * (2 + l2_slices);
 }
 
 static int

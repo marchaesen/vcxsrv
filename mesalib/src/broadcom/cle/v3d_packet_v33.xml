@@ -309,6 +309,11 @@
     <value name="tf_overflow" value="6"/>
   </enum>
 
+  <enum name="Line Rasterization" prefix="V3D_LINE_RASTERIZATION">
+    <value name="diamond exit" value="0"/>
+    <value name="perp end caps" value="1"/>
+  </enum>
+
   <packet code="0" name="Halt"/>
   <packet code="1" name="NOP"/>
   <packet code="4" name="Flush"/>
@@ -834,7 +839,7 @@
     <field name="Depth-Test Function" size="3" start="12" type="Compare Function"/>
     <field name="Direct3D Wireframe triangles mode" size="1" start="11" type="bool"/>
     <field name="Rasterizer Oversample Mode" size="2" start="6" type="uint"/>
-    <field name="Line Rasterization" size="2" start="4" type="uint"/>
+    <field name="Line Rasterization" size="2" start="4" type="Line Rasterization"/>
     <field name="Enable Depth Offset" size="1" start="3" type="bool"/>
     <field name="Clockwise Primitives" size="1" start="2" type="bool"/>
     <field name="Enable Reverse Facing Primitive" size="1" start="1" type="bool"/>

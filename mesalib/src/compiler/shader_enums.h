@@ -26,6 +26,8 @@
 #ifndef SHADER_ENUMS_H
 #define SHADER_ENUMS_H
 
+#include "util/macros.h"
+
 #include <stdbool.h>
 
 /* Project-wide (GL and Vulkan) maximum. */
@@ -42,16 +44,23 @@ extern "C" {
  * The GLSL linker assumes that if i<j, then the j-th shader is
  * executed later than the i-th shader.
  */
-typedef enum
+typedef enum pipe_shader_type
 {
    MESA_SHADER_NONE = -1,
    MESA_SHADER_VERTEX = 0,
+   PIPE_SHADER_VERTEX = MESA_SHADER_VERTEX,
    MESA_SHADER_TESS_CTRL = 1,
+   PIPE_SHADER_TESS_CTRL = MESA_SHADER_TESS_CTRL,
    MESA_SHADER_TESS_EVAL = 2,
+   PIPE_SHADER_TESS_EVAL = MESA_SHADER_TESS_EVAL,
    MESA_SHADER_GEOMETRY = 3,
+   PIPE_SHADER_GEOMETRY = MESA_SHADER_GEOMETRY,
    MESA_SHADER_FRAGMENT = 4,
+   PIPE_SHADER_FRAGMENT = MESA_SHADER_FRAGMENT,
    MESA_SHADER_COMPUTE = 5,
+   PIPE_SHADER_COMPUTE = MESA_SHADER_COMPUTE,
 
+   PIPE_SHADER_TYPES = (PIPE_SHADER_COMPUTE + 1),
    /* Vulkan-only stages. */
    MESA_SHADER_TASK         = 6,
    MESA_SHADER_MESH         = 7,
@@ -272,6 +281,9 @@ const char *gl_vert_attrib_name(gl_vert_attrib attrib);
 #define VERT_BIT_MAT(i)	         VERT_BIT(VERT_ATTRIB_MAT(i))
 #define VERT_BIT_MAT_ALL         \
    BITFIELD_RANGE(VERT_ATTRIB_MAT(0), VERT_ATTRIB_MAT_MAX)
+
+#define VERT_ATTRIB_SELECT_RESULT_OFFSET VERT_ATTRIB_GENERIC(3)
+#define VERT_BIT_SELECT_RESULT_OFFSET VERT_BIT_GENERIC(3)
 /*@}*/
 
 #define MAX_VARYING 32 /**< number of float[4] vectors */
@@ -327,6 +339,7 @@ typedef enum
    VARYING_SLOT_PRIMITIVE_COUNT = VARYING_SLOT_TESS_LEVEL_OUTER, /* Only appears in MESH. */
    VARYING_SLOT_PRIMITIVE_INDICES = VARYING_SLOT_TESS_LEVEL_INNER, /* Only appears in MESH. */
    VARYING_SLOT_TASK_COUNT = VARYING_SLOT_BOUNDING_BOX0, /* Only appears in TASK. */
+   VARYING_SLOT_CULL_PRIMITIVE = VARYING_SLOT_BOUNDING_BOX0, /* Only appears in MESH. */
 
    VARYING_SLOT_VAR0 = 32, /* First generic varying slot */
    /* the remaining are simply for the benefit of gl_varying_slot_name()
@@ -766,6 +779,7 @@ typedef enum
    SYSTEM_VALUE_BASE_GLOBAL_INVOCATION_ID,
    SYSTEM_VALUE_GLOBAL_INVOCATION_INDEX,
    SYSTEM_VALUE_WORKGROUP_ID,
+   SYSTEM_VALUE_WORKGROUP_INDEX,
    SYSTEM_VALUE_NUM_WORKGROUPS,
    SYSTEM_VALUE_WORKGROUP_SIZE,
    SYSTEM_VALUE_GLOBAL_GROUP_SIZE,
@@ -795,7 +809,7 @@ typedef enum
    SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL,
    SYSTEM_VALUE_BARYCENTRIC_PERSP_SAMPLE,
    SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID,
-   SYSTEM_VALUE_BARYCENTRIC_PERSP_SIZE,
+   SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTER_RHW,
    SYSTEM_VALUE_BARYCENTRIC_LINEAR_PIXEL,
    SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID,
    SYSTEM_VALUE_BARYCENTRIC_LINEAR_SAMPLE,
@@ -807,6 +821,7 @@ typedef enum
    /*@{*/
    SYSTEM_VALUE_RAY_LAUNCH_ID,
    SYSTEM_VALUE_RAY_LAUNCH_SIZE,
+   SYSTEM_VALUE_RAY_LAUNCH_SIZE_ADDR_AMD,
    SYSTEM_VALUE_RAY_WORLD_ORIGIN,
    SYSTEM_VALUE_RAY_WORLD_DIRECTION,
    SYSTEM_VALUE_RAY_OBJECT_ORIGIN,
@@ -819,6 +834,7 @@ typedef enum
    SYSTEM_VALUE_RAY_FLAGS,
    SYSTEM_VALUE_RAY_GEOMETRY_INDEX,
    SYSTEM_VALUE_RAY_INSTANCE_CUSTOM_INDEX,
+   SYSTEM_VALUE_CULL_MASK,
    /*@}*/
 
    /**
@@ -944,7 +960,32 @@ enum gl_access_qualifier
    /* The memory used by the access/variable is not written. */
    ACCESS_NON_WRITEABLE = (1 << 4),
 
-   /** The access may use a non-uniform buffer or image index */
+   /**
+    * The access may use a non-uniform buffer or image index.
+    *
+    * This is not allowed in either OpenGL or OpenGL ES, or Vulkan unless
+    * VK_EXT_descriptor_indexing is supported and the appropriate capability is
+    * enabled.
+    *
+    * Some GL spec archaeology justifying this:
+    *
+    * Up through at least GLSL ES 3.20 and GLSL 4.50,  "Opaque Types" says "When
+    * aggregated into arrays within a shader, opaque types can only be indexed
+    * with a dynamically uniform integral expression (see section 3.9.3) unless
+    * otherwise noted; otherwise, results are undefined."
+    *
+    * The original GL_AB_shader_image_load_store specification for desktop GL
+    * didn't have this restriction ("Images may be aggregated into arrays within
+    * a shader (using square brackets [ ]) and can be indexed with general
+    * integer expressions.")  At the same time,
+    * GL_ARB_shader_storage_buffer_objects *did* have the uniform restriction
+    * ("A uniform or shader storage block array can only be indexed with a
+    * dynamically uniform integral expression, otherwise results are
+    * undefined"), just like ARB_gpu_shader5 did when it first introduced a
+    * non-constant indexing of an opaque type with samplers.  So, we assume that
+    * this was an oversight in the original image_load_store spec, and was
+    * considered a correction in the merge to core.
+    */
    ACCESS_NON_UNIFORM   = (1 << 5),
 
    /* This has the same semantics as NIR_INTRINSIC_CAN_REORDER, only to be
@@ -1044,6 +1085,11 @@ enum shader_prim
    SHADER_PRIM_MAX = SHADER_PRIM_PATCHES,
    SHADER_PRIM_UNKNOWN = (SHADER_PRIM_MAX * 2),
 };
+
+/**
+ * Number of vertices per mesh shader primitive.
+ */
+unsigned num_mesh_vertices_per_primitive(unsigned prim);
 
 /**
  * A compare function enum for use in compiler lowering passes.  This is in
@@ -1177,6 +1223,43 @@ enum cl_sampler_filter_mode {
 #define MAT_BIT_BACK_SHININESS        (1<<MAT_ATTRIB_BACK_SHININESS)
 #define MAT_BIT_FRONT_INDEXES         (1<<MAT_ATTRIB_FRONT_INDEXES)
 #define MAT_BIT_BACK_INDEXES          (1<<MAT_ATTRIB_BACK_INDEXES)
+
+/** An enum representing what kind of input gl_SubgroupSize is. */
+enum PACKED gl_subgroup_size
+{
+   /** Actual subgroup size, whatever that happens to be */
+   SUBGROUP_SIZE_VARYING = 0,
+
+   /** Subgroup size must appear to be draw or dispatch-uniform
+    *
+    * This is the OpenGL behavior
+    */
+   SUBGROUP_SIZE_UNIFORM,
+
+   /** Subgroup size must appear to be the API advertised constant
+    *
+    * This is the default Vulkan 1.1 behavior
+    */
+   SUBGROUP_SIZE_API_CONSTANT,
+
+   /** Subgroup size must actually be the API advertised constant
+    *
+    * Not only must the subgroup size match the API advertised constant as
+    * with SUBGROUP_SIZE_API_CONSTANT but it must also be dispatched such that
+    * all the subgroups are full if there are enough invocations.
+    */
+   SUBGROUP_SIZE_FULL_SUBGROUPS,
+
+   /* These enums are specifically chosen so that the value of the enum is
+    * also the subgroup size.  If any new values are added, they must respect
+    * this invariant.
+    */
+   SUBGROUP_SIZE_REQUIRE_8   = 8,   /**< VK_EXT_subgroup_size_control */
+   SUBGROUP_SIZE_REQUIRE_16  = 16,  /**< VK_EXT_subgroup_size_control */
+   SUBGROUP_SIZE_REQUIRE_32  = 32,  /**< VK_EXT_subgroup_size_control */
+   SUBGROUP_SIZE_REQUIRE_64  = 64,  /**< VK_EXT_subgroup_size_control */
+   SUBGROUP_SIZE_REQUIRE_128 = 128, /**< VK_EXT_subgroup_size_control */
+};
 
 #ifdef __cplusplus
 } /* extern "C" */

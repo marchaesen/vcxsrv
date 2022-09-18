@@ -1182,7 +1182,7 @@ m4_if(m4_eval(pixman_minor % 2), [1], [
    echo
    echo "      or by filing a bug at "
    echo
-   echo "          https://bugs.freedesktop.org/enter_bug.cgi?product=pixman "
+   echo "          https://gitlab.freedesktop.org/pixman/pixman/-/issues/new "
    echo
    echo "      If you are looking for a stable release of pixman, please note "
    echo "      that stable releases have _even_ minor version numbers. Ie., "

@@ -177,8 +177,7 @@ ir_tree_grafting_visitor::check_graft(ir_instruction *ir, ir_variable *var)
 ir_visitor_status
 ir_tree_grafting_visitor::visit_leave(ir_assignment *ir)
 {
-   if (do_graft(&ir->rhs) ||
-       do_graft(&ir->condition))
+   if (do_graft(&ir->rhs))
       return visit_stop;
 
    /* If this assignment updates a variable used in the assignment

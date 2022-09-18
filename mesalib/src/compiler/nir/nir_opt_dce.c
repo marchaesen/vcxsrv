@@ -107,7 +107,8 @@ struct loop_state {
 };
 
 static bool
-dce_block(nir_block *block, BITSET_WORD *defs_live, struct loop_state *loop)
+dce_block(nir_block *block, BITSET_WORD *defs_live, struct loop_state *loop,
+          struct exec_list *dead_instrs)
 {
    bool progress = false;
    bool phis_changed = false;
@@ -131,6 +132,7 @@ dce_block(nir_block *block, BITSET_WORD *defs_live, struct loop_state *loop)
          instr->pass_flags = live;
       } else if (!live) {
          nir_instr_remove(instr);
+         exec_list_push_tail(dead_instrs, &instr->node);
          progress = true;
       }
    }
@@ -146,20 +148,20 @@ dce_block(nir_block *block, BITSET_WORD *defs_live, struct loop_state *loop)
 
 static bool
 dce_cf_list(struct exec_list *cf_list, BITSET_WORD *defs_live,
-            struct loop_state *parent_loop)
+            struct loop_state *parent_loop, struct exec_list *dead_instrs)
 {
    bool progress = false;
    foreach_list_typed_reverse(nir_cf_node, cf_node, node, cf_list) {
       switch (cf_node->type) {
       case nir_cf_node_block: {
          nir_block *block = nir_cf_node_as_block(cf_node);
-         progress |= dce_block(block, defs_live, parent_loop);
+         progress |= dce_block(block, defs_live, parent_loop, dead_instrs);
          break;
       }
       case nir_cf_node_if: {
          nir_if *nif = nir_cf_node_as_if(cf_node);
-         progress |= dce_cf_list(&nif->else_list, defs_live, parent_loop);
-         progress |= dce_cf_list(&nif->then_list, defs_live, parent_loop);
+         progress |= dce_cf_list(&nif->else_list, defs_live, parent_loop, dead_instrs);
+         progress |= dce_cf_list(&nif->then_list, defs_live, parent_loop, dead_instrs);
          mark_src_live(&nif->condition, defs_live);
          break;
       }
@@ -176,7 +178,7 @@ dce_cf_list(struct exec_list *cf_list, BITSET_WORD *defs_live,
          struct set *predecessors = nir_loop_first_block(loop)->predecessors;
          if (predecessors->entries == 1 &&
              _mesa_set_next_entry(predecessors, NULL)->key == inner_state.preheader) {
-            progress |= dce_cf_list(&loop->body, defs_live, parent_loop);
+            progress |= dce_cf_list(&loop->body, defs_live, parent_loop, dead_instrs);
             break;
          }
 
@@ -185,7 +187,7 @@ dce_cf_list(struct exec_list *cf_list, BITSET_WORD *defs_live,
             /* dce_cf_list() resets inner_state.header_phis_changed itself, so
              * it doesn't have to be done here.
              */
-            dce_cf_list(&loop->body, defs_live, &inner_state);
+            dce_cf_list(&loop->body, defs_live, &inner_state, dead_instrs);
          } while (inner_state.header_phis_changed);
 
          /* We don't know how many times mark_cf_list() will repeat, so
@@ -199,6 +201,7 @@ dce_cf_list(struct exec_list *cf_list, BITSET_WORD *defs_live,
                nir_foreach_instr_safe(instr, block) {
                   if (!instr->pass_flags) {
                      nir_instr_remove(instr);
+                     exec_list_push_tail(dead_instrs, &instr->node);
                      progress = true;
                   }
                }
@@ -222,11 +225,16 @@ nir_opt_dce_impl(nir_function_impl *impl)
    BITSET_WORD *defs_live = rzalloc_array(NULL, BITSET_WORD,
                                           BITSET_WORDS(impl->ssa_alloc));
 
+   struct exec_list dead_instrs;
+   exec_list_make_empty(&dead_instrs);
+
    struct loop_state loop;
    loop.preheader = NULL;
-   bool progress = dce_cf_list(&impl->body, defs_live, &loop);
+   bool progress = dce_cf_list(&impl->body, defs_live, &loop, &dead_instrs);
 
    ralloc_free(defs_live);
+
+   nir_instr_free_list(&dead_instrs);
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |

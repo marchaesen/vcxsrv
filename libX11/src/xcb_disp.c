@@ -102,6 +102,10 @@ void _XFreeX11XCBStructure(Display *dpy)
 		dpy->xcb->pending_requests = tmp->next;
 		free(tmp);
 	}
+	if (dpy->xcb->event_notify)
+		xcondition_clear(dpy->xcb->event_notify);
+	if (dpy->xcb->reply_notify)
+		xcondition_clear(dpy->xcb->reply_notify);
 	xcondition_free(dpy->xcb->event_notify);
 	xcondition_free(dpy->xcb->reply_notify);
 	Xfree(dpy->xcb);

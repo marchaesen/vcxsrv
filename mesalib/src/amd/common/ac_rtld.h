@@ -26,6 +26,7 @@
 
 #include "compiler/shader_enums.h"
 #include "util/u_dynarray.h"
+#include "amd_family.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -56,6 +57,7 @@ struct ac_rtld_options {
 /* Lightweight wrapper around underlying ELF objects. */
 struct ac_rtld_binary {
    struct ac_rtld_options options;
+   enum amd_gfx_level gfx_level;
    unsigned wave_size;
 
    /* Required buffer sizes, currently read/executable only. */
@@ -82,7 +84,8 @@ struct ac_rtld_binary {
  * \param value to be filled in by the callback
  * \return whether the symbol was found successfully
  */
-typedef bool (*ac_rtld_get_external_symbol_cb)(void *cb_data, const char *symbol, uint64_t *value);
+typedef bool (*ac_rtld_get_external_symbol_cb)(enum amd_gfx_level gfx_level, void *cb_data,
+                                               const char *symbol, uint64_t *value);
 
 /**
  * Lifetimes of \ref info, in-memory ELF objects, and the names of

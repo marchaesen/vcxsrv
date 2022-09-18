@@ -39,7 +39,7 @@ empty (or set to the default ``.gitlab-ci.yml``), and that the
 If you're having issues with the GitLab CI, your best bet is to ask
 about it on ``#freedesktop`` on OFTC and tag `Daniel Stone
 <https://gitlab.freedesktop.org/daniels>`__ (``daniels`` on IRC) or
-`Eric Anholt <https://gitlab.freedesktop.org/anholt>`__ (``anholt`` on
+`Emma Anholt <https://gitlab.freedesktop.org/anholt>`__ (``anholt`` on
 IRC).
 
 The three GitLab CI systems currently integrated are:
@@ -86,6 +86,11 @@ https://gitlab.freedesktop.org/freedesktop/helm-gitlab-config/-/commit/a3cd63274
 So the jobs are created in personal repositories, the name of the user's account needs
 to be added to the rules attribute of the Gitlab CI job that accesses the restricted
 accounts.
+
+.. toctree::
+   :maxdepth: 1
+
+   local-traces
 
 Intel CI
 --------

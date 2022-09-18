@@ -26,12 +26,12 @@
  **************************************************************************/
 
 #include "drm-uapi/drm_fourcc.h"
-#include "radeon/radeon_uvd.h"
-#include "radeon/radeon_uvd_enc.h"
-#include "radeon/radeon_vce.h"
-#include "radeon/radeon_vcn_dec.h"
-#include "radeon/radeon_vcn_enc.h"
-#include "radeon/radeon_video.h"
+#include "radeon_uvd.h"
+#include "radeon_uvd_enc.h"
+#include "radeon_vce.h"
+#include "radeon_vcn_dec.h"
+#include "radeon_vcn_enc.h"
+#include "radeon_video.h"
 #include "si_pipe.h"
 #include "util/u_video.h"
 
@@ -93,7 +93,7 @@ static struct pb_buffer *si_uvd_set_dtb(struct ruvd_msg *msg, struct vl_video_bu
    struct si_texture *luma = (struct si_texture *)buf->resources[0];
    struct si_texture *chroma = (struct si_texture *)buf->resources[1];
    enum ruvd_surface_type type =
-      (sscreen->info.chip_class >= GFX9) ? RUVD_SURFACE_TYPE_GFX9 : RUVD_SURFACE_TYPE_LEGACY;
+      (sscreen->info.gfx_level >= GFX9) ? RUVD_SURFACE_TYPE_GFX9 : RUVD_SURFACE_TYPE_LEGACY;
 
    msg->body.decode.dt_field_mode = buf->base.interlaced;
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086 # we want word splitting
 
 set -e
 set -o xtrace
@@ -8,10 +9,12 @@ EPHEMERAL="
         autoconf
         automake
         bzip2
+        cmake
         git
         libtool
         pkgconfig(epoxy)
         pkgconfig(gbm)
+        pkgconfig(openssl)
         unzip
         wget
         xz
@@ -25,8 +28,10 @@ dnf install -y --setopt=install_weak_deps=False \
     gcc \
     gcc-c++ \
     gettext \
+    glslang \
     kernel-headers \
     llvm-devel \
+    clang-devel \
     meson \
     "pkgconfig(dri2proto)" \
     "pkgconfig(expat)" \
@@ -63,6 +68,8 @@ dnf install -y --setopt=install_weak_deps=False \
     python3-devel \
     python3-mako \
     vulkan-headers \
+    spirv-tools-devel \
+    spirv-llvm-translator-devel \
     $EPHEMERAL
 
 
@@ -78,6 +85,8 @@ wget $XORG_RELEASES/util/$XORGMACROS_VERSION.tar.bz2
 tar -xvf $XORGMACROS_VERSION.tar.bz2 && rm $XORGMACROS_VERSION.tar.bz2
 cd $XORGMACROS_VERSION; ./configure; make install; cd ..
 rm -rf $XORGMACROS_VERSION
+
+. .gitlab-ci/container/build-mold.sh
 
 . .gitlab-ci/container/build-libdrm.sh
 

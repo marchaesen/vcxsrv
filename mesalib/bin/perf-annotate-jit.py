@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright 2012 VMware Inc
 # Copyright 2008-2009 Jose Fonseca
@@ -165,7 +165,7 @@ class PerfParser(LineParser):
                 sys.stdout.write('%6u' % (sample))
                 total_samples += sample
             sys.stdout.write('%6u: %s\n' % (address, instr))
-        print 'total:', total_samples
+        print('total:', total_samples)
         assert len(samples) == 0
 
         sys.exit(0)
@@ -221,7 +221,7 @@ class PerfParser(LineParser):
         start_address = lookupMap(module, function_name)
         address -= start_address
 
-        #print function_name, module, address
+        #print(function_name, module, address)
 
         samples[address] = samples.get(address, 0) + 1
 

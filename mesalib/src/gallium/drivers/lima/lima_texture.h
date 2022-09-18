@@ -101,7 +101,7 @@ typedef struct __attribute__((__packed__)) {
 void lima_texture_desc_set_res(struct lima_context *ctx, lima_tex_desc *desc,
                                struct pipe_resource *prsc,
                                unsigned first_level, unsigned last_level,
-                               unsigned first_layer);
+                               unsigned first_layer, unsigned mrt_idx);
 void lima_update_textures(struct lima_context *ctx);
 
 

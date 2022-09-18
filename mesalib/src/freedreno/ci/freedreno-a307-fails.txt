@@ -30,6 +30,14 @@ dEQP-GLES3.functional.draw.instancing.draw_arrays_instanced_grid_32x32,Fail
 dEQP-GLES3.functional.draw.instancing.draw_elements_instanced_grid_100x100,Fail
 dEQP-GLES3.functional.draw.instancing.draw_elements_instanced_grid_32x32,Fail
 dEQP-GLES3.functional.draw.random.124,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.3,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.6,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.7,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.17,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.18,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_required_draw_buffers.3,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_required_draw_buffers.11,Fail
+dEQP-GLES3.functional.draw_buffers_indexed.random.max_required_draw_buffers.19,Fail
 dEQP-GLES3.functional.fbo.blit.conversion.r8i_to_rg8i,Fail
 dEQP-GLES3.functional.fbo.blit.conversion.r8i_to_rgba8i,Fail
 dEQP-GLES3.functional.fbo.blit.conversion.r8ui_to_rg8ui,Fail
@@ -65,37 +73,6 @@ dEQP-GLES3.functional.fbo.render.shared_colorbuffer.tex2d_r8_depth_rbo_depth24_s
 dEQP-GLES3.functional.fbo.render.shared_colorbuffer.tex2d_r8_depth_stencil_rbo_depth24_stencil8,Fail
 dEQP-GLES3.functional.fbo.render.shared_colorbuffer.tex2d_r8,Fail
 dEQP-GLES3.functional.negative_api.buffer.read_pixels_fbo_format_mismatch,Fail
-dEQP-GLES3.functional.occlusion_query.all_occluders,Fail
-dEQP-GLES3.functional.occlusion_query.depth_clear,Fail
-dEQP-GLES3.functional.occlusion_query.depth_clear_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.depth_clear_stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.depth_clear_stencil_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write_depth_clear,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write_depth_clear_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write_depth_clear_stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write_depth_clear_stencil_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write_stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.depth_write_stencil_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_clear_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_clear_stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_clear_stencil_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_write_depth_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_write_depth_clear_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_write_depth_clear_stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_write,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_write_stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_depth_write_stencil_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.scissor_stencil_write_stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.stencil_clear,Fail
-dEQP-GLES3.functional.occlusion_query.stencil_write,Fail
-dEQP-GLES3.functional.occlusion_query.stencil_write_stencil_clear,Fail
 dEQP-GLES3.functional.pbo.renderbuffer.rgb10_a2ui_clears,Fail
 dEQP-GLES3.functional.pbo.renderbuffer.rgb10_a2ui_triangles,Fail
 dEQP-GLES3.functional.polygon_offset.fixed16_displacement_with_units,Fail
@@ -135,6 +112,26 @@ spec@arb_shading_language_packing@execution@built-in-functions@vs-unpackunorm2x1
 spec@ext_gpu_shader4@execution@open-coded-bitfieldreverse,Fail
 spec@glsl-1.10@execution@temp-array-indexing@glsl-fs-giant-temp-array,Fail
 spec@glsl-1.10@execution@temp-array-indexing@glsl-vs-giant-temp-array,Fail
+spec@glsl-1.10@execution@varying-packing@simple int array,Fail
+spec@glsl-1.10@execution@varying-packing@simple int arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple int separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec2 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec4 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple uint array,Fail
+spec@glsl-1.10@execution@varying-packing@simple uint arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple uint separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec2 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec4 separate,Fail
 spec@glsl-1.30@execution@fs-large-local-array,Fail
 spec@glsl-1.30@execution@fs-large-local-array-vec2,Fail
 spec@glsl-1.30@execution@fs-large-local-array-vec3,Fail
@@ -159,8 +156,6 @@ spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_frontsecon
 spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-flat-fixed,Fail
 spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-smooth-fixed,Fail
 
-glx@glx-make-current,Crash
-glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
@@ -871,3 +866,8 @@ spec@ext_packed_float@multisample-fast-clear gl_ext_packed_float,Crash
 spec@ext_texture_integer@multisample-fast-clear gl_ext_texture_integer,Crash
 spec@ext_texture_snorm@multisample-fast-clear gl_ext_texture_snorm,Crash
 spec@ext_texture_srgb@multisample-fast-clear gl_ext_texture_srgb,Crash
+
+spec@arb_texture_buffer_object@texture-buffer-size-clamp,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_sampler,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_sampler,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_sampler,Fail

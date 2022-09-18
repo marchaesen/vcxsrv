@@ -18,7 +18,7 @@ static uint32_t vn_icd_version = 5;
 VkResult
 vk_icdNegotiateLoaderICDInterfaceVersion(uint32_t *pSupportedVersion)
 {
-   vn_debug_init();
+   vn_env_init();
    vn_trace_init();
 
    vn_icd_version = MIN2(vn_icd_version, *pSupportedVersion);

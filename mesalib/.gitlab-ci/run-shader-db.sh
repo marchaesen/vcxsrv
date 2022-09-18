@@ -16,3 +16,12 @@ for driver in freedreno intel v3d; do
         ./run -j${FDO_CI_CONCURRENT:-4} ./shaders \
             > $ARTIFACTSDIR/${driver}-shader-db.txt
 done
+
+# Run shader-db over a number of supported chipsets for nouveau
+for chipset in 40 a3 c0 e4 f0 134 162; do
+    echo "Running drm-shim for nouveau - $chipset"
+    env LD_PRELOAD=$LIBDIR/libnouveau_noop_drm_shim.so \
+        NOUVEAU_CHIPSET=${chipset} \
+        ./run -j${FDO_CI_CONCURRENT:-4} ./shaders \
+            > $ARTIFACTSDIR/nouveau-${chipset}-shader-db.txt
+done

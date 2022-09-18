@@ -28,11 +28,14 @@ from serial_buffer import SerialBuffer
 import sys
 import threading
 
+
 class PoERun:
-    def __init__(self, args):
+    def __init__(self, args, test_timeout):
         self.powerup = args.powerup
         self.powerdown = args.powerdown
-        self.ser = SerialBuffer(args.dev, "results/serial-output.txt", "", args.timeout)
+        self.ser = SerialBuffer(
+            args.dev, "results/serial-output.txt", "")
+        self.test_timeout = test_timeout
 
     def print_error(self, message):
         RED = '\033[0;31m'
@@ -48,16 +51,17 @@ class PoERun:
             return 1
 
         boot_detected = False
-        for line in self.ser.lines():
+        for line in self.ser.lines(timeout=5 * 60, phase="bootloader"):
             if re.search("Booting Linux", line):
                 boot_detected = True
                 break
 
         if not boot_detected:
-            self.print_error("Something wrong; couldn't detect the boot start up sequence")
+            self.print_error(
+                "Something wrong; couldn't detect the boot start up sequence")
             return 2
 
-        for line in self.ser.lines():
+        for line in self.ser.lines(timeout=self.test_timeout, phase="test"):
             if re.search("---. end Kernel panic", line):
                 return 1
 
@@ -66,6 +70,15 @@ class PoERun:
                 self.print_error("Memory overflow in the binner; GPU hang")
                 return 1
 
+            if re.search("nouveau 57000000.gpu: bus: MMIO read of 00000000 FAULT at 137000", line):
+                self.print_error("nouveau jetson boot bug, retrying.")
+                return 2
+
+            # network fail on tk1
+            if re.search("NETDEV WATCHDOG:.* transmit queue 0 timed out", line):
+                self.print_error("nouveau jetson tk1 network fail, retrying.")
+                return 2
+
             result = re.search("hwci: mesa: (\S*)", line)
             if result:
                 if result.group(1) == "pass":
@@ -73,24 +86,30 @@ class PoERun:
                 else:
                     return 1
 
-        self.print_error("Reached the end of the CPU serial log without finding a result")
+        self.print_error(
+            "Reached the end of the CPU serial log without finding a result")
         return 2
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dev', type=str, help='Serial device to monitor', required=True)
-    parser.add_argument('--powerup', type=str, help='shell command for rebooting', required=True)
-    parser.add_argument('--powerdown', type=str, help='shell command for powering off', required=True)
-    parser.add_argument('--timeout', type=int, default=60,
-                        help='time in seconds to wait for activity', required=False)
+    parser.add_argument('--dev', type=str,
+                        help='Serial device to monitor', required=True)
+    parser.add_argument('--powerup', type=str,
+                        help='shell command for rebooting', required=True)
+    parser.add_argument('--powerdown', type=str,
+                        help='shell command for powering off', required=True)
+    parser.add_argument(
+        '--test-timeout', type=int, help='Test phase timeout (minutes)', required=True)
     args = parser.parse_args()
 
-    poe = PoERun(args)
+    poe = PoERun(args, args.test_timeout * 60)
     retval = poe.run()
 
     poe.logged_system(args.powerdown)
 
     sys.exit(retval)
+
 
 if __name__ == '__main__':
     main()

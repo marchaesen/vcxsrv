@@ -1,0 +1,112 @@
+%YAML 1.2
+---
+traces-db:
+  download-url: "http://192.168.40.131:8888/cache/?uri=https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  0ad/0ad-v2.trace:
+    broadcom-rpi4:
+      checksum: 8bdca9e63f483ee71970075842f003db
+  behdad-glyphy/glyphy-v2.trace:
+    broadcom-rpi4:
+      checksum: ea49462ff1545f21506dbd7b5028df45
+  glmark2/desktop:windows=4:effect=blur:blur-radius=5:passes=1:separable=true-v2.trace:
+    broadcom-rpi4:
+      checksum: edd73dce91341dadad11e074048329e1
+  glmark2/jellyfish-v2.trace:
+    broadcom-rpi4:
+      checksum: ab1e9d3bcbdfceb7087b2a84c8454d35
+  glxgears/glxgears-2-v2.trace:
+    broadcom-rpi4:
+      checksum: 2a9c5e35fa5693fd7d3a76f7b9746edb
+  gputest/furmark-v2.trace:
+    broadcom-rpi4:
+      checksum: 800b2be5981d7e1a6570643f7dfd9a33
+  gputest/gimark-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  gputest/pixmark-julia-fp32-v2.trace:
+    broadcom-rpi4:
+      label: [skip, flakes]
+      checksum: be70fc9e3829fff5ad1b6ecfb6fa551c
+  gputest/pixmark-julia-fp64.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  gputest/pixmark-volplosion-v2.trace:
+    broadcom-rpi4:
+      checksum: 03f6b1c064af4e7eb117b800893cdba6
+  gputest/plot3d-v2.trace:
+    broadcom-rpi4:
+      checksum: f8a9a5cd78646c89efe0df320755a3b2
+  gputest/tessmark-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  gputest/triangle-v2.trace:
+    broadcom-rpi4:
+      checksum: df6df2af5fecfa42b5c2c332b726e93c
+  humus/AmbientAperture-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  humus/CelShading-v2.trace:
+    broadcom-rpi4:
+      checksum: 1135888a0e8723bbcded5ef9f0925964
+  humus/DynamicBranching3.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  humus/HDR.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  humus/Portals-v2.trace:
+    broadcom-rpi4:
+      checksum: 269b9572113d6991cf58c96a833502bf
+  humus/RaytracedShadows-v2.trace:
+    broadcom-rpi4:
+      checksum: 6b572f241f4f9ee001ef849d10d03cc5
+  humus/VolumetricFogging2-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  neverball/neverball-v2.trace:
+    broadcom-rpi4:
+      checksum: 35ccaea492e4a865314e700b24514535
+  nheko/nheko-colors.trace:
+    broadcom-rpi4:
+      checksum: 922597b0203ff18d6e430002bcf32ef4
+  supertuxkart/supertuxkart-mansion-egl-gles-v2.trace:
+    broadcom-rpi4:
+      checksum: 66c89a3fec11e8fc1c959fc8682a691d
+  valve/counterstrike-source-v2.trace:
+    broadcom-rpi4:
+      label: [skip, timeout]
+  valve/counterstrike-v2.trace:
+    broadcom-rpi4:
+      checksum: 547f6435bf21458e518bbcb2161962ab
+  valve/half-life-2-v2.trace:
+    broadcom-rpi4:
+      label: [crash]
+  valve/portal-2-v2.trace:
+    broadcom-rpi4:
+      label: [skip, timeout]
+  paraview/pv-manyspheres.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  paraview/pv-waveletcontour-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  paraview/pv-waveletvolume-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  pathfinder/canvas_moire-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  pathfinder/canvas_text_v2-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  pathfinder/demo-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  ror/ror-default.trace:
+    broadcom-rpi4:
+      label: [unsupported]
+  xonotic/xonotic-keybench-high-v2.trace:
+    broadcom-rpi4:
+      label: [unsupported]

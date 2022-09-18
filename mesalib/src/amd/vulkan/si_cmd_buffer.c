@@ -46,7 +46,7 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
 
    for (se = 0; se < num_se; se++) {
       /* GRBM_GFX_INDEX has a different offset on GFX6 and GFX7+ */
-      if (physical_device->rad_info.chip_class < GFX7)
+      if (physical_device->rad_info.gfx_level < GFX7)
          radeon_set_config_reg(cs, R_00802C_GRBM_GFX_INDEX,
                                S_00802C_SE_INDEX(se) | S_00802C_SH_BROADCAST_WRITES(1) |
                                   S_00802C_INSTANCE_BROADCAST_WRITES(1));
@@ -58,7 +58,7 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
    }
 
    /* GRBM_GFX_INDEX has a different offset on GFX6 and GFX7+ */
-   if (physical_device->rad_info.chip_class < GFX7)
+   if (physical_device->rad_info.gfx_level < GFX7)
       radeon_set_config_reg(cs, R_00802C_GRBM_GFX_INDEX,
                             S_00802C_SE_BROADCAST_WRITES(1) | S_00802C_SH_BROADCAST_WRITES(1) |
                                S_00802C_INSTANCE_BROADCAST_WRITES(1));
@@ -67,7 +67,7 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
                              S_030800_SE_BROADCAST_WRITES(1) | S_030800_SH_BROADCAST_WRITES(1) |
                                 S_030800_INSTANCE_BROADCAST_WRITES(1));
 
-   if (physical_device->rad_info.chip_class >= GFX7)
+   if (physical_device->rad_info.gfx_level >= GFX7)
       radeon_set_context_reg(cs, R_028354_PA_SC_RASTER_CONFIG_1, raster_config_1);
 }
 
@@ -90,7 +90,7 @@ si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
    radeon_emit(cs, S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
    radeon_emit(cs, S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
 
-   if (device->physical_device->rad_info.chip_class >= GFX7) {
+   if (device->physical_device->rad_info.gfx_level >= GFX7) {
       /* Also set R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE2 / SE3 */
       radeon_set_sh_reg_seq(cs, R_00B864_COMPUTE_STATIC_THREAD_MGMT_SE2, 2);
       radeon_emit(cs, S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
@@ -105,12 +105,13 @@ si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
       }
    }
 
-   if (device->physical_device->rad_info.chip_class >= GFX9) {
+   if (device->physical_device->rad_info.gfx_level >= GFX9 &&
+       device->physical_device->rad_info.gfx_level < GFX11) {
       radeon_set_uconfig_reg(cs, R_0301EC_CP_COHER_START_DELAY,
-                             device->physical_device->rad_info.chip_class >= GFX10 ? 0x20 : 0);
+                             device->physical_device->rad_info.gfx_level >= GFX10 ? 0x20 : 0);
    }
 
-   if (device->physical_device->rad_info.chip_class >= GFX10) {
+   if (device->physical_device->rad_info.gfx_level >= GFX10) {
       radeon_set_sh_reg_seq(cs, R_00B890_COMPUTE_USER_ACCUM_0, 5);
       radeon_emit(cs, 0); /* R_00B890_COMPUTE_USER_ACCUM_0 */
       radeon_emit(cs, 0); /* R_00B894_COMPUTE_USER_ACCUM_1 */
@@ -124,7 +125,7 @@ si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
     * kernel if we want to use something other than the default value,
     * which is now 0x22f.
     */
-   if (device->physical_device->rad_info.chip_class <= GFX6) {
+   if (device->physical_device->rad_info.gfx_level <= GFX6) {
       /* XXX: This should be:
        * (number of compute units) * 4 * (waves per simd) - 1 */
 
@@ -139,9 +140,9 @@ si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
    if (device->tma_bo) {
       uint64_t tba_va, tma_va;
 
-      assert(device->physical_device->rad_info.chip_class == GFX8);
+      assert(device->physical_device->rad_info.gfx_level == GFX8);
 
-      tba_va = radv_shader_get_va(device->trap_handler_shader);
+      tba_va = radv_trap_handler_shader_get_va(device->trap_handler_shader);
       tma_va = radv_buffer_get_va(device->tma_bo);
 
       radeon_set_sh_reg_seq(cs, R_00B838_COMPUTE_TBA_LO, 4);
@@ -149,6 +150,18 @@ si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_emit(cs, tba_va >> 40);
       radeon_emit(cs, tma_va >> 8);
       radeon_emit(cs, tma_va >> 40);
+   }
+
+   if (device->physical_device->rad_info.gfx_level >= GFX11) {
+      uint32_t spi_cu_en = device->physical_device->rad_info.spi_cu_en;
+
+      radeon_set_sh_reg_seq(cs, R_00B8AC_COMPUTE_STATIC_THREAD_MGMT_SE4, 4);
+      radeon_emit(cs, S_00B8AC_SA0_CU_EN(spi_cu_en) | S_00B8AC_SA1_CU_EN(spi_cu_en)); /* SE4 */
+      radeon_emit(cs, S_00B8AC_SA0_CU_EN(spi_cu_en) | S_00B8AC_SA1_CU_EN(spi_cu_en)); /* SE5 */
+      radeon_emit(cs, S_00B8AC_SA0_CU_EN(spi_cu_en) | S_00B8AC_SA1_CU_EN(spi_cu_en)); /* SE6 */
+      radeon_emit(cs, S_00B8AC_SA0_CU_EN(spi_cu_en) | S_00B8AC_SA1_CU_EN(spi_cu_en)); /* SE7 */
+
+      radeon_set_sh_reg(cs, R_00B8BC_COMPUTE_DISPATCH_INTERLEAVE, 64);
    }
 }
 
@@ -173,7 +186,7 @@ si_set_raster_config(struct radv_physical_device *physical_device, struct radeon
     */
    if (!rb_mask || util_bitcount(rb_mask) >= num_rb) {
       radeon_set_context_reg(cs, R_028350_PA_SC_RASTER_CONFIG, raster_config);
-      if (physical_device->rad_info.chip_class >= GFX7)
+      if (physical_device->rad_info.gfx_level >= GFX7)
          radeon_set_context_reg(cs, R_028354_PA_SC_RASTER_CONFIG_1, raster_config_1);
    } else {
       si_write_harvested_raster_configs(physical_device, cs, raster_config, raster_config_1);
@@ -197,7 +210,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_emit(cs, 0);
    }
 
-   if (physical_device->rad_info.chip_class <= GFX8)
+   if (physical_device->rad_info.gfx_level <= GFX8)
       si_set_raster_config(physical_device, cs);
 
    radeon_set_context_reg(cs, R_028A18_VGT_HOS_MAX_TESS_LEVEL, fui(64));
@@ -205,22 +218,24 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_set_context_reg(cs, R_028A1C_VGT_HOS_MIN_TESS_LEVEL, fui(0));
 
    /* FIXME calculate these values somehow ??? */
-   if (physical_device->rad_info.chip_class <= GFX8) {
+   if (physical_device->rad_info.gfx_level <= GFX8) {
       radeon_set_context_reg(cs, R_028A54_VGT_GS_PER_ES, SI_GS_PER_ES);
       radeon_set_context_reg(cs, R_028A58_VGT_ES_PER_GS, 0x40);
    }
 
    if (!has_clear_state) {
-      radeon_set_context_reg(cs, R_028A5C_VGT_GS_PER_VS, 0x2);
+      if (physical_device->rad_info.gfx_level < GFX11) {
+         radeon_set_context_reg(cs, R_028A5C_VGT_GS_PER_VS, 0x2);
+         radeon_set_context_reg(cs, R_028B98_VGT_STRMOUT_BUFFER_CONFIG, 0x0);
+      }
       radeon_set_context_reg(cs, R_028A8C_VGT_PRIMITIVEID_RESET, 0x0);
-      radeon_set_context_reg(cs, R_028B98_VGT_STRMOUT_BUFFER_CONFIG, 0x0);
    }
 
-   if (physical_device->rad_info.chip_class <= GFX9)
+   if (physical_device->rad_info.gfx_level <= GFX9)
       radeon_set_context_reg(cs, R_028AA0_VGT_INSTANCE_STEP_RATE_0, 1);
-   if (!has_clear_state)
+   if (!has_clear_state && physical_device->rad_info.gfx_level < GFX11)
       radeon_set_context_reg(cs, R_028AB8_VGT_VTX_CNT_EN, 0x0);
-   if (physical_device->rad_info.chip_class < GFX7)
+   if (physical_device->rad_info.gfx_level < GFX7)
       radeon_set_config_reg(cs, R_008A14_PA_CL_ENHANCE,
                             S_008A14_NUM_CLIP_SEQ(3) | S_008A14_CLIP_VTX_REORDER_ENA(1));
 
@@ -230,7 +245,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
    /* CLEAR_STATE doesn't clear these correctly on certain generations.
     * I don't know why. Deduced by trial and error.
     */
-   if (physical_device->rad_info.chip_class <= GFX7 || !has_clear_state) {
+   if (physical_device->rad_info.gfx_level <= GFX7 || !has_clear_state) {
       radeon_set_context_reg(cs, R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET, 0);
       radeon_set_context_reg(cs, R_028204_PA_SC_WINDOW_SCISSOR_TL,
                              S_028204_WINDOW_OFFSET_DISABLE(1));
@@ -267,7 +282,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
                           S_02800C_FORCE_HIS_ENABLE0(V_02800C_FORCE_DISABLE) |
                              S_02800C_FORCE_HIS_ENABLE1(V_02800C_FORCE_DISABLE));
 
-   if (physical_device->rad_info.chip_class >= GFX10) {
+   if (physical_device->rad_info.gfx_level >= GFX10) {
       radeon_set_context_reg(cs, R_028A98_VGT_DRAW_PAYLOAD_CNTL, 0);
       radeon_set_uconfig_reg(cs, R_030964_GE_MAX_VTX_INDX, ~0);
       radeon_set_uconfig_reg(cs, R_030924_GE_MIN_VTX_INDX, 0);
@@ -275,10 +290,12 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_set_uconfig_reg(cs, R_03097C_GE_STEREO_CNTL, 0);
       radeon_set_uconfig_reg(cs, R_030988_GE_USER_VGPR_EN, 0);
 
-      radeon_set_context_reg(cs, R_028038_DB_DFSM_CONTROL,
-                             S_028038_PUNCHOUT_MODE(V_028038_FORCE_OFF) |
-                             S_028038_POPS_DRAIN_PS_ON_OVERLAP(1));
-   } else if (physical_device->rad_info.chip_class == GFX9) {
+      if (physical_device->rad_info.gfx_level < GFX11) {
+         radeon_set_context_reg(
+            cs, R_028038_DB_DFSM_CONTROL,
+            S_028038_PUNCHOUT_MODE(V_028038_FORCE_OFF) | S_028038_POPS_DRAIN_PS_ON_OVERLAP(1));
+      }
+   } else if (physical_device->rad_info.gfx_level == GFX9) {
       radeon_set_uconfig_reg(cs, R_030920_VGT_MAX_VTX_INDX, ~0);
       radeon_set_uconfig_reg(cs, R_030924_VGT_MIN_VTX_INDX, 0);
       radeon_set_uconfig_reg(cs, R_030928_VGT_INDX_OFFSET, 0);
@@ -297,12 +314,12 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_set_context_reg(cs, R_028408_VGT_INDX_OFFSET, 0);
    }
 
-   if (device->physical_device->rad_info.chip_class >= GFX10) {
+   if (device->physical_device->rad_info.gfx_level >= GFX10) {
       radeon_set_sh_reg(cs, R_00B524_SPI_SHADER_PGM_HI_LS,
                         S_00B524_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
       radeon_set_sh_reg(cs, R_00B324_SPI_SHADER_PGM_HI_ES,
                         S_00B324_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
-   } else if (device->physical_device->rad_info.chip_class == GFX9) {
+   } else if (device->physical_device->rad_info.gfx_level == GFX9) {
       radeon_set_sh_reg(cs, R_00B414_SPI_SHADER_PGM_HI_LS,
                         S_00B414_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
       radeon_set_sh_reg(cs, R_00B214_SPI_SHADER_PGM_HI_ES,
@@ -314,8 +331,9 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
                         S_00B324_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
    }
 
-   radeon_set_sh_reg(cs, R_00B124_SPI_SHADER_PGM_HI_VS,
-                     S_00B124_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
+   if (device->physical_device->rad_info.gfx_level < GFX11)
+      radeon_set_sh_reg(cs, R_00B124_SPI_SHADER_PGM_HI_VS,
+                        S_00B124_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
 
    unsigned cu_mask_ps = 0xffffffff;
 
@@ -327,11 +345,12 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
     * CUs. In the future, we might disable or enable this tweak only for
     * certain apps.
     */
-   if (physical_device->rad_info.chip_class >= GFX10_3)
+   if (physical_device->rad_info.gfx_level >= GFX10_3)
       cu_mask_ps = u_bit_consecutive(0, physical_device->rad_info.min_good_cu_per_sa);
 
-   if (physical_device->rad_info.chip_class >= GFX7) {
-      if (physical_device->rad_info.chip_class >= GFX10) {
+   if (physical_device->rad_info.gfx_level >= GFX7) {
+      if (physical_device->rad_info.gfx_level >= GFX10 &&
+          physical_device->rad_info.gfx_level < GFX11) {
          /* Logical CUs 16 - 31 */
          ac_set_reg_cu_en(cs, R_00B404_SPI_SHADER_PGM_RSRC4_HS, S_00B404_CU_EN(0xffff),
                           C_00B404_CU_EN, 16, &physical_device->rad_info,
@@ -344,12 +363,12 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
                           (void*)gfx10_set_sh_reg_idx3);
       }
 
-      if (physical_device->rad_info.chip_class >= GFX10) {
+      if (physical_device->rad_info.gfx_level >= GFX10) {
          ac_set_reg_cu_en(cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
                           S_00B41C_CU_EN(0xffff) | S_00B41C_WAVE_LIMIT(0x3F),
                           C_00B41C_CU_EN, 0, &physical_device->rad_info,
                           (void*)gfx10_set_sh_reg_idx3);
-      } else if (physical_device->rad_info.chip_class == GFX9) {
+      } else if (physical_device->rad_info.gfx_level == GFX9) {
          radeon_set_sh_reg_idx(physical_device, cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS, 3,
                                S_00B41C_CU_EN(0xffff) | S_00B41C_WAVE_LIMIT(0x3F));
       } else {
@@ -366,9 +385,10 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
                                 S_028A44_ES_VERTS_PER_SUBGRP(64) | S_028A44_GS_PRIMS_PER_SUBGRP(4));
       }
 
-      if (physical_device->rad_info.chip_class >= GFX10) {
+      if (physical_device->rad_info.gfx_level >= GFX10) {
          ac_set_reg_cu_en(cs, R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
-                          S_00B01C_CU_EN(cu_mask_ps) | S_00B01C_WAVE_LIMIT(0x3F),
+                          S_00B01C_CU_EN(cu_mask_ps) | S_00B01C_WAVE_LIMIT(0x3F) |
+                          S_00B01C_LDS_GROUP_SIZE(physical_device->rad_info.gfx_level >= GFX11),
                           C_00B01C_CU_EN, 0, &physical_device->rad_info,
                           (void*)gfx10_set_sh_reg_idx3);
       } else {
@@ -377,7 +397,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       }
    }
 
-   if (physical_device->rad_info.chip_class >= GFX10) {
+   if (physical_device->rad_info.gfx_level >= GFX10) {
       /* Break up a pixel wave if it contains deallocs for more than
        * half the parameter cache.
        *
@@ -387,20 +407,27 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
        * the size of the PC minus the largest possible allocation for
        * a single primitive shader subgroup.
        */
-      radeon_set_context_reg(cs, R_028C50_PA_SC_NGG_MODE_CNTL, S_028C50_MAX_DEALLOCS_IN_WAVE(512));
-      radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL, 14);
+      uint32_t max_deallocs_in_wave = physical_device->rad_info.gfx_level >= GFX11 ? 16 : 512;
+      radeon_set_context_reg(cs, R_028C50_PA_SC_NGG_MODE_CNTL,
+                             S_028C50_MAX_DEALLOCS_IN_WAVE(max_deallocs_in_wave));
+
+      if (physical_device->rad_info.gfx_level < GFX11)
+         radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL, 14);
 
       /* Vulkan doesn't support user edge flags and it also doesn't
        * need to prevent drawing lines on internal edges of
        * decomposed primitives (such as quads) with polygon mode = lines.
        */
-      unsigned vertex_reuse_depth = physical_device->rad_info.chip_class >= GFX10_3 ? 30 : 0;
+      unsigned vertex_reuse_depth = physical_device->rad_info.gfx_level >= GFX10_3 ? 30 : 0;
       radeon_set_context_reg(cs, R_028838_PA_CL_NGG_CNTL,
                              S_028838_INDEX_BUF_EDGE_FLAG_ENA(0) |
                              S_028838_VERTEX_REUSE_DEPTH(vertex_reuse_depth));
 
       /* Enable CMASK/FMASK/HTILE/DCC caching in L2 for small chips. */
       unsigned meta_write_policy, meta_read_policy;
+      unsigned no_alloc = device->physical_device->rad_info.gfx_level >= GFX11
+                             ? V_02807C_CACHE_NOA_GFX11
+                             : V_02807C_CACHE_NOA_GFX10;
 
       /* TODO: investigate whether LRU improves performance on other chips too */
       if (physical_device->rad_info.max_render_backends <= 4) {
@@ -408,25 +435,33 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
          meta_read_policy = V_02807C_CACHE_LRU_RD;  /* cache reads */
       } else {
          meta_write_policy = V_02807C_CACHE_STREAM; /* write combine */
-         meta_read_policy = V_02807C_CACHE_NOA;     /* don't cache reads */
+         meta_read_policy = no_alloc;               /* don't cache reads */
       }
 
       radeon_set_context_reg(
          cs, R_02807C_DB_RMI_L2_CACHE_CONTROL,
          S_02807C_Z_WR_POLICY(V_02807C_CACHE_STREAM) | S_02807C_S_WR_POLICY(V_02807C_CACHE_STREAM) |
             S_02807C_HTILE_WR_POLICY(meta_write_policy) |
-            S_02807C_ZPCPSD_WR_POLICY(V_02807C_CACHE_STREAM) |
-            S_02807C_Z_RD_POLICY(V_02807C_CACHE_NOA) | S_02807C_S_RD_POLICY(V_02807C_CACHE_NOA) |
-            S_02807C_HTILE_RD_POLICY(meta_read_policy));
+            S_02807C_ZPCPSD_WR_POLICY(V_02807C_CACHE_STREAM) | S_02807C_Z_RD_POLICY(no_alloc) |
+            S_02807C_S_RD_POLICY(no_alloc) | S_02807C_HTILE_RD_POLICY(meta_read_policy));
 
-      radeon_set_context_reg(
-         cs, R_028410_CB_RMI_GL2_CACHE_CONTROL,
-         S_028410_CMASK_WR_POLICY(meta_write_policy) | S_028410_FMASK_WR_POLICY(meta_write_policy) |
-            S_028410_DCC_WR_POLICY(meta_write_policy) |
-            S_028410_COLOR_WR_POLICY(V_028410_CACHE_STREAM) |
-            S_028410_CMASK_RD_POLICY(meta_read_policy) |
-            S_028410_FMASK_RD_POLICY(meta_read_policy) | S_028410_DCC_RD_POLICY(meta_read_policy) |
-            S_028410_COLOR_RD_POLICY(V_028410_CACHE_NOA));
+      uint32_t gl2_cc;
+      if (device->physical_device->rad_info.gfx_level >= GFX11) {
+         gl2_cc = S_028410_DCC_WR_POLICY_GFX11(meta_write_policy) |
+                  S_028410_COLOR_WR_POLICY_GFX11(V_028410_CACHE_STREAM) |
+                  S_028410_COLOR_RD_POLICY(V_028410_CACHE_NOA_GFX11);
+      } else {
+         gl2_cc = S_028410_CMASK_WR_POLICY(meta_write_policy) |
+                  S_028410_FMASK_WR_POLICY(V_028410_CACHE_STREAM) |
+                  S_028410_DCC_WR_POLICY_GFX10(meta_write_policy) |
+                  S_028410_COLOR_WR_POLICY_GFX10(V_028410_CACHE_STREAM) |
+                  S_028410_CMASK_RD_POLICY(meta_read_policy) |
+                  S_028410_FMASK_RD_POLICY(V_028410_CACHE_NOA_GFX10) |
+                  S_028410_COLOR_RD_POLICY(V_028410_CACHE_NOA_GFX10);
+      }
+
+      radeon_set_context_reg(cs, R_028410_CB_RMI_GL2_CACHE_CONTROL,
+                             gl2_cc | S_028410_DCC_RD_POLICY(meta_read_policy));
       radeon_set_context_reg(cs, R_028428_CB_COVERAGE_OUT_CONTROL, 0);
 
       radeon_set_sh_reg_seq(cs, R_00B0C8_SPI_SHADER_USER_ACCUM_PS_0, 4);
@@ -434,11 +469,15 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_emit(cs, 0); /* R_00B0CC_SPI_SHADER_USER_ACCUM_PS_1 */
       radeon_emit(cs, 0); /* R_00B0D0_SPI_SHADER_USER_ACCUM_PS_2 */
       radeon_emit(cs, 0); /* R_00B0D4_SPI_SHADER_USER_ACCUM_PS_3 */
-      radeon_set_sh_reg_seq(cs, R_00B1C8_SPI_SHADER_USER_ACCUM_VS_0, 4);
-      radeon_emit(cs, 0); /* R_00B1C8_SPI_SHADER_USER_ACCUM_VS_0 */
-      radeon_emit(cs, 0); /* R_00B1CC_SPI_SHADER_USER_ACCUM_VS_1 */
-      radeon_emit(cs, 0); /* R_00B1D0_SPI_SHADER_USER_ACCUM_VS_2 */
-      radeon_emit(cs, 0); /* R_00B1D4_SPI_SHADER_USER_ACCUM_VS_3 */
+
+      if (physical_device->rad_info.gfx_level < GFX11) {
+         radeon_set_sh_reg_seq(cs, R_00B1C8_SPI_SHADER_USER_ACCUM_VS_0, 4);
+         radeon_emit(cs, 0); /* R_00B1C8_SPI_SHADER_USER_ACCUM_VS_0 */
+         radeon_emit(cs, 0); /* R_00B1CC_SPI_SHADER_USER_ACCUM_VS_1 */
+         radeon_emit(cs, 0); /* R_00B1D0_SPI_SHADER_USER_ACCUM_VS_2 */
+         radeon_emit(cs, 0); /* R_00B1D4_SPI_SHADER_USER_ACCUM_VS_3 */
+      }
+
       radeon_set_sh_reg_seq(cs, R_00B2C8_SPI_SHADER_USER_ACCUM_ESGS_0, 4);
       radeon_emit(cs, 0); /* R_00B2C8_SPI_SHADER_USER_ACCUM_ESGS_0 */
       radeon_emit(cs, 0); /* R_00B2CC_SPI_SHADER_USER_ACCUM_ESGS_1 */
@@ -452,9 +491,11 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
 
       radeon_set_sh_reg(cs, R_00B0C0_SPI_SHADER_REQ_CTRL_PS,
                         S_00B0C0_SOFT_GROUPING_EN(1) | S_00B0C0_NUMBER_OF_REQUESTS_PER_CU(4 - 1));
-      radeon_set_sh_reg(cs, R_00B1C0_SPI_SHADER_REQ_CTRL_VS, 0);
 
-      if (physical_device->rad_info.chip_class >= GFX10_3) {
+      if (physical_device->rad_info.gfx_level < GFX11)
+         radeon_set_sh_reg(cs, R_00B1C0_SPI_SHADER_REQ_CTRL_VS, 0);
+
+      if (physical_device->rad_info.gfx_level >= GFX10_3) {
          radeon_set_context_reg(cs, R_028750_SX_PS_DOWNCONVERT_CONTROL, 0xff);
          /* This allows sample shading. */
          radeon_set_context_reg(
@@ -463,12 +504,12 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       }
    }
 
-   if (physical_device->rad_info.chip_class >= GFX9) {
+   if (physical_device->rad_info.gfx_level >= GFX9) {
       radeon_set_context_reg(cs, R_028B50_VGT_TESS_DISTRIBUTION,
                              S_028B50_ACCUM_ISOLINE(40) | S_028B50_ACCUM_TRI(30) |
                                 S_028B50_ACCUM_QUAD(24) | S_028B50_DONUT_SPLIT_GFX9(24) |
                                 S_028B50_TRAP_SPLIT(6));
-   } else if (physical_device->rad_info.chip_class >= GFX8) {
+   } else if (physical_device->rad_info.gfx_level >= GFX8) {
       uint32_t vgt_tess_distribution;
 
       vgt_tess_distribution = S_028B50_ACCUM_ISOLINE(32) | S_028B50_ACCUM_TRI(11) |
@@ -488,13 +529,13 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       uint64_t border_color_va = radv_buffer_get_va(device->border_color_data.bo);
 
       radeon_set_context_reg(cs, R_028080_TA_BC_BASE_ADDR, border_color_va >> 8);
-      if (physical_device->rad_info.chip_class >= GFX7) {
+      if (physical_device->rad_info.gfx_level >= GFX7) {
          radeon_set_context_reg(cs, R_028084_TA_BC_BASE_ADDR_HI,
                                 S_028084_ADDRESS(border_color_va >> 40));
       }
    }
 
-   if (physical_device->rad_info.chip_class >= GFX9) {
+   if (physical_device->rad_info.gfx_level >= GFX9) {
       radeon_set_context_reg(
          cs, R_028C48_PA_SC_BINNER_CNTL_1,
          S_028C48_MAX_ALLOC_COUNT(physical_device->rad_info.pbb_max_alloc_count - 1) |
@@ -551,9 +592,9 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
    if (device->tma_bo) {
       uint64_t tba_va, tma_va;
 
-      assert(device->physical_device->rad_info.chip_class == GFX8);
+      assert(device->physical_device->rad_info.gfx_level == GFX8);
 
-      tba_va = radv_shader_get_va(device->trap_handler_shader);
+      tba_va = radv_trap_handler_shader_get_va(device->trap_handler_shader);
       tma_va = radv_buffer_get_va(device->tma_bo);
 
       uint32_t regs[] = {R_00B000_SPI_SHADER_TBA_LO_PS, R_00B100_SPI_SHADER_TBA_LO_VS,
@@ -574,13 +615,22 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
     */
    radeon_set_context_reg(cs, R_028BDC_PA_SC_LINE_CNTL, 0);
 
+   if (physical_device->rad_info.gfx_level >= GFX11) {
+      radeon_set_context_reg(cs, R_028C54_PA_SC_BINNER_CNTL_2, 0);
+      radeon_set_context_reg(cs, R_028620_PA_RATE_CNTL,
+                                 S_028620_VERTEX_RATE(2) | S_028620_PRIM_RATE(1));
+
+      radeon_set_uconfig_reg(cs, R_031110_SPI_GS_THROTTLE_CNTL1, 0x12355123);
+      radeon_set_uconfig_reg(cs, R_031114_SPI_GS_THROTTLE_CNTL2, 0x1544D);
+   }
+
    si_emit_compute(device, cs);
 }
 
 void
 cik_create_gfx_config(struct radv_device *device)
 {
-   struct radeon_cmdbuf *cs = device->ws->cs_create(device->ws, RING_GFX);
+   struct radeon_cmdbuf *cs = device->ws->cs_create(device->ws, AMD_IP_GFX);
    if (!cs)
       return;
 
@@ -664,20 +714,38 @@ si_intersect_scissor(const VkRect2D *a, const VkRect2D *b)
 }
 
 void
-si_write_scissors(struct radeon_cmdbuf *cs, int first, int count, const VkRect2D *scissors,
-                  const VkViewport *viewports, bool can_use_guardband)
+si_write_scissors(struct radeon_cmdbuf *cs, int count, const VkRect2D *scissors,
+                  const VkViewport *viewports)
 {
    int i;
-   float scale[3], translate[3], guardband_x = INFINITY, guardband_y = INFINITY;
-   const float max_range = 32767.0f;
+
    if (!count)
       return;
 
-   radeon_set_context_reg_seq(cs, R_028250_PA_SC_VPORT_SCISSOR_0_TL + first * 4 * 2, count * 2);
+   radeon_set_context_reg_seq(cs, R_028250_PA_SC_VPORT_SCISSOR_0_TL, count * 2);
    for (i = 0; i < count; i++) {
       VkRect2D viewport_scissor = si_scissor_from_viewport(viewports + i);
       VkRect2D scissor = si_intersect_scissor(&scissors[i], &viewport_scissor);
 
+      radeon_emit(cs, S_028250_TL_X(scissor.offset.x) | S_028250_TL_Y(scissor.offset.y) |
+                         S_028250_WINDOW_OFFSET_DISABLE(1));
+      radeon_emit(cs, S_028254_BR_X(scissor.offset.x + scissor.extent.width) |
+                         S_028254_BR_Y(scissor.offset.y + scissor.extent.height));
+   }
+}
+
+void
+si_write_guardband(struct radeon_cmdbuf *cs, int count, const VkViewport *viewports,
+                   unsigned rast_prim, float line_width)
+{
+   int i;
+   float scale[3], translate[3], guardband_x = INFINITY, guardband_y = INFINITY;
+   float discard_x = 1.0f, discard_y = 1.0f;
+   const float max_range = 32767.0f;
+   if (!count)
+      return;
+
+   for (i = 0; i < count; i++) {
       radv_get_viewport_xform(viewports + i, scale, translate);
       scale[0] = fabsf(scale[0]);
       scale[1] = fabsf(scale[1]);
@@ -690,21 +758,32 @@ si_write_scissors(struct radeon_cmdbuf *cs, int first, int count, const VkRect2D
       guardband_x = MIN2(guardband_x, (max_range - fabsf(translate[0])) / scale[0]);
       guardband_y = MIN2(guardband_y, (max_range - fabsf(translate[1])) / scale[1]);
 
-      radeon_emit(cs, S_028250_TL_X(scissor.offset.x) | S_028250_TL_Y(scissor.offset.y) |
-                         S_028250_WINDOW_OFFSET_DISABLE(1));
-      radeon_emit(cs, S_028254_BR_X(scissor.offset.x + scissor.extent.width) |
-                         S_028254_BR_Y(scissor.offset.y + scissor.extent.height));
-   }
-   if (!can_use_guardband) {
-      guardband_x = 1.0;
-      guardband_y = 1.0;
+      if (radv_rast_prim_is_points_or_lines(rast_prim)) {
+         /* When rendering wide points or lines, we need to be more conservative about when to
+          * discard them entirely. */
+         float pixels;
+
+         if (rast_prim == V_028A6C_POINTLIST) {
+            pixels = 8191.875f;
+         } else {
+            pixels = line_width;
+         }
+
+         /* Add half the point size / line width. */
+         discard_x += pixels / (2.0 * scale[0]);
+         discard_y += pixels / (2.0 * scale[1]);
+
+         /* Discard primitives that would lie entirely outside the clip region. */
+         discard_x = MIN2(discard_x, guardband_x);
+         discard_y = MIN2(discard_y, guardband_y);
+      }
    }
 
    radeon_set_context_reg_seq(cs, R_028BE8_PA_CL_GB_VERT_CLIP_ADJ, 4);
    radeon_emit(cs, fui(guardband_y));
-   radeon_emit(cs, fui(1.0));
+   radeon_emit(cs, fui(discard_y));
    radeon_emit(cs, fui(guardband_x));
-   radeon_emit(cs, fui(1.0));
+   radeon_emit(cs, fui(discard_x));
 }
 
 static inline unsigned
@@ -736,9 +815,10 @@ static const struct radv_prim_vertex_count prim_size_table[] = {
 uint32_t
 si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_draw,
                           bool indirect_draw, bool count_from_stream_output,
-                          uint32_t draw_vertex_count, unsigned topology, bool prim_restart_enable)
+                          uint32_t draw_vertex_count, unsigned topology, bool prim_restart_enable,
+                          unsigned patch_control_points, unsigned num_tess_patches)
 {
-   enum chip_class chip_class = cmd_buffer->device->physical_device->rad_info.chip_class;
+   enum amd_gfx_level gfx_level = cmd_buffer->device->physical_device->rad_info.gfx_level;
    enum radeon_family family = cmd_buffer->device->physical_device->rad_info.family;
    struct radeon_info *info = &cmd_buffer->device->physical_device->rad_info;
    const unsigned max_primgroup_in_wave = 2;
@@ -747,13 +827,30 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
    bool ia_switch_on_eop = false;
    bool ia_switch_on_eoi = false;
    bool partial_vs_wave = false;
-   bool partial_es_wave = cmd_buffer->state.pipeline->graphics.ia_multi_vgt_param.partial_es_wave;
+   bool partial_es_wave = cmd_buffer->state.graphics_pipeline->ia_multi_vgt_param.partial_es_wave;
    bool multi_instances_smaller_than_primgroup;
    struct radv_prim_vertex_count prim_vertex_count = prim_size_table[topology];
+   unsigned primgroup_size;
 
-   if (radv_pipeline_has_tess(cmd_buffer->state.pipeline)) {
+   if (radv_pipeline_has_stage(cmd_buffer->state.graphics_pipeline, MESA_SHADER_TESS_CTRL)) {
+      primgroup_size = num_tess_patches;
+   } else if (radv_pipeline_has_stage(cmd_buffer->state.graphics_pipeline, MESA_SHADER_GEOMETRY)) {
+      primgroup_size = 64;
+   } else {
+      primgroup_size = 128; /* recommended without a GS */
+   }
+
+   /* GS requirement. */
+   if (radv_pipeline_has_stage(cmd_buffer->state.graphics_pipeline, MESA_SHADER_GEOMETRY) &&
+       gfx_level <= GFX8) {
+      unsigned gs_table_depth = cmd_buffer->device->physical_device->gs_table_depth;
+      if (SI_GS_PER_ES / primgroup_size >= gs_table_depth - 3)
+         partial_es_wave = true;
+   }
+
+   if (radv_pipeline_has_stage(cmd_buffer->state.graphics_pipeline, MESA_SHADER_TESS_CTRL)) {
       if (topology == V_008958_DI_PT_PATCH) {
-         prim_vertex_count.min = cmd_buffer->state.pipeline->graphics.tess_patch_control_points;
+         prim_vertex_count.min = patch_control_points;
          prim_vertex_count.incr = 1;
       }
    }
@@ -761,14 +858,14 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
    multi_instances_smaller_than_primgroup = indirect_draw;
    if (!multi_instances_smaller_than_primgroup && instanced_draw) {
       uint32_t num_prims = radv_prims_for_vertices(&prim_vertex_count, draw_vertex_count);
-      if (num_prims < cmd_buffer->state.pipeline->graphics.ia_multi_vgt_param.primgroup_size)
+      if (num_prims < primgroup_size)
          multi_instances_smaller_than_primgroup = true;
    }
 
-   ia_switch_on_eoi = cmd_buffer->state.pipeline->graphics.ia_multi_vgt_param.ia_switch_on_eoi;
-   partial_vs_wave = cmd_buffer->state.pipeline->graphics.ia_multi_vgt_param.partial_vs_wave;
+   ia_switch_on_eoi = cmd_buffer->state.graphics_pipeline->ia_multi_vgt_param.ia_switch_on_eoi;
+   partial_vs_wave = cmd_buffer->state.graphics_pipeline->ia_multi_vgt_param.partial_vs_wave;
 
-   if (chip_class >= GFX7) {
+   if (gfx_level >= GFX7) {
       /* WD_SWITCH_ON_EOP has no effect on GPUs with less than
        * 4 shader engines. Set 1 to pass the assertion below.
        * The other cases are hardware requirements. */
@@ -791,7 +888,7 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
        * Assume indirect draws always use small instances.
        * This is needed for good VS wave utilization.
        */
-      if (chip_class <= GFX8 && info->max_se == 4 && multi_instances_smaller_than_primgroup)
+      if (gfx_level <= GFX8 && info->max_se == 4 && multi_instances_smaller_than_primgroup)
          wd_switch_on_eop = true;
 
       /* Required on GFX7 and later. */
@@ -801,9 +898,9 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
       /* Required by Hawaii and, for some special cases, by GFX8. */
       if (ia_switch_on_eoi &&
           (family == CHIP_HAWAII ||
-           (chip_class == GFX8 &&
+           (gfx_level == GFX8 &&
             /* max primgroup in wave is always 2 - leave this for documentation */
-            (radv_pipeline_has_gs(cmd_buffer->state.pipeline) || max_primgroup_in_wave != 2))))
+            (radv_pipeline_has_stage(cmd_buffer->state.graphics_pipeline, MESA_SHADER_GEOMETRY) || max_primgroup_in_wave != 2))))
          partial_vs_wave = true;
 
       /* Instancing bug on Bonaire. */
@@ -820,10 +917,10 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
       assert(wd_switch_on_eop || !ia_switch_on_eop);
    }
    /* If SWITCH_ON_EOI is set, PARTIAL_ES_WAVE must be set too. */
-   if (chip_class <= GFX8 && ia_switch_on_eoi)
+   if (gfx_level <= GFX8 && ia_switch_on_eoi)
       partial_es_wave = true;
 
-   if (radv_pipeline_has_gs(cmd_buffer->state.pipeline)) {
+   if (radv_pipeline_has_stage(cmd_buffer->state.graphics_pipeline, MESA_SHADER_GEOMETRY)) {
       /* GS hw bug with single-primitive instances and SWITCH_ON_EOI.
        * The hw doc says all multi-SE chips are affected, but amdgpu-pro Vulkan
        * only applies it to Hawaii. Do what amdgpu-pro Vulkan does.
@@ -849,15 +946,16 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
       partial_vs_wave = true;
    }
 
-   return cmd_buffer->state.pipeline->graphics.ia_multi_vgt_param.base |
+   return cmd_buffer->state.graphics_pipeline->ia_multi_vgt_param.base |
+          S_028AA8_PRIMGROUP_SIZE(primgroup_size - 1) |
           S_028AA8_SWITCH_ON_EOP(ia_switch_on_eop) | S_028AA8_SWITCH_ON_EOI(ia_switch_on_eoi) |
           S_028AA8_PARTIAL_VS_WAVE_ON(partial_vs_wave) |
           S_028AA8_PARTIAL_ES_WAVE_ON(partial_es_wave) |
-          S_028AA8_WD_SWITCH_ON_EOP(chip_class >= GFX7 ? wd_switch_on_eop : 0);
+          S_028AA8_WD_SWITCH_ON_EOP(gfx_level >= GFX7 ? wd_switch_on_eop : 0);
 }
 
 void
-si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum chip_class chip_class, bool is_mec,
+si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level, bool is_mec,
                            unsigned event, unsigned event_flags, unsigned dst_sel,
                            unsigned data_sel, uint64_t va, uint32_t new_fence,
                            uint64_t gfx9_eop_bug_va)
@@ -865,7 +963,7 @@ si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum chip_class chip_class,
    unsigned op = EVENT_TYPE(event) |
                  EVENT_INDEX(event == V_028A90_CS_DONE || event == V_028A90_PS_DONE ? 6 : 5) |
                  event_flags;
-   unsigned is_gfx8_mec = is_mec && chip_class < GFX9;
+   unsigned is_gfx8_mec = is_mec && gfx_level < GFX9;
    unsigned sel = EOP_DST_SEL(dst_sel) | EOP_DATA_SEL(data_sel);
 
    /* Wait for write confirmation before writing data, but don't send
@@ -873,12 +971,12 @@ si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum chip_class chip_class,
    if (data_sel != EOP_DATA_SEL_DISCARD)
       sel |= EOP_INT_SEL(EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM);
 
-   if (chip_class >= GFX9 || is_gfx8_mec) {
+   if (gfx_level >= GFX9 || is_gfx8_mec) {
       /* A ZPASS_DONE or PIXEL_STAT_DUMP_EVENT (of the DB occlusion
        * counters) must immediately precede every timestamp event to
        * prevent a GPU hang on GFX9.
        */
-      if (chip_class == GFX9 && !is_mec) {
+      if (gfx_level == GFX9 && !is_mec) {
          radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
          radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_ZPASS_DONE) | EVENT_INDEX(1));
          radeon_emit(cs, gfx9_eop_bug_va);
@@ -920,7 +1018,7 @@ si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum chip_class chip_class,
             radeon_emit(cs, new_fence);
          }
       } else {
-         if (chip_class == GFX7 || chip_class == GFX8) {
+         if (gfx_level == GFX7 || gfx_level == GFX8) {
             /* Two EOP events are required to make all
              * engines go idle (and optional cache flushes
              * executed) before the timestamp is written.
@@ -981,9 +1079,10 @@ si_emit_acquire_mem(struct radeon_cmdbuf *cs, bool is_mec, bool is_gfx9, unsigne
 }
 
 static void
-gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uint32_t *flush_cnt,
-                          uint64_t flush_va, bool is_mec, enum radv_cmd_flush_bits flush_bits,
-                          enum rgp_flush_bits *sqtt_flush_bits, uint64_t gfx9_eop_bug_va)
+gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level,
+                          uint32_t *flush_cnt, uint64_t flush_va, bool is_mec,
+                          enum radv_cmd_flush_bits flush_bits, enum rgp_flush_bits *sqtt_flush_bits,
+                          uint64_t gfx9_eop_bug_va)
 {
    uint32_t gcr_cntl = 0;
    unsigned cb_db_event = 0;
@@ -1036,7 +1135,7 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, 
       }
 
       /* TODO: trigger on RADV_CMD_FLAG_FLUSH_AND_INV_DB_META ? */
-      if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB) {
+      if (gfx_level < GFX11 && (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB)) {
          /* Flush HTILE. Will wait for idle later. */
          radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
          radeon_emit(cs, EVENT_TYPE(V_028A90_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));
@@ -1053,7 +1152,11 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, 
       } else if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_CB) {
          cb_db_event = V_028A90_FLUSH_AND_INV_CB_DATA_TS;
       } else if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_DB) {
-         cb_db_event = V_028A90_FLUSH_AND_INV_DB_DATA_TS;
+         if (gfx_level == GFX11) {
+            cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
+         } else {
+            cb_db_event = V_028A90_FLUSH_AND_INV_DB_DATA_TS;
+         }
       } else {
          assert(0);
       }
@@ -1107,7 +1210,7 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, 
       (*flush_cnt)++;
 
       si_cs_emit_write_event_eop(
-         cs, chip_class, false, cb_db_event,
+         cs, gfx_level, false, cb_db_event,
          S_490_GLM_WB(glm_wb) | S_490_GLM_INV(glm_inv) | S_490_GLV_INV(glv_inv) |
             S_490_GL1_INV(gl1_inv) | S_490_GL2_INV(gl2_inv) | S_490_GL2_WB(gl2_wb) |
             S_490_SEQ(gcr_seq),
@@ -1157,7 +1260,7 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, 
 }
 
 void
-si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uint32_t *flush_cnt,
+si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level, uint32_t *flush_cnt,
                        uint64_t flush_va, bool is_mec, enum radv_cmd_flush_bits flush_bits,
                        enum rgp_flush_bits *sqtt_flush_bits, uint64_t gfx9_eop_bug_va)
 {
@@ -1165,9 +1268,9 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
    uint32_t flush_cb_db =
       flush_bits & (RADV_CMD_FLAG_FLUSH_AND_INV_CB | RADV_CMD_FLAG_FLUSH_AND_INV_DB);
 
-   if (chip_class >= GFX10) {
+   if (gfx_level >= GFX10) {
       /* GFX10 cache flush handling is quite different. */
-      gfx10_cs_emit_cache_flush(cs, chip_class, flush_cnt, flush_va, is_mec, flush_bits,
+      gfx10_cs_emit_cache_flush(cs, gfx_level, flush_cnt, flush_va, is_mec, flush_bits,
                                 sqtt_flush_bits, gfx9_eop_bug_va);
       return;
    }
@@ -1181,7 +1284,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
       *sqtt_flush_bits |= RGP_FLUSH_INVAL_SMEM_L0;
    }
 
-   if (chip_class <= GFX8) {
+   if (gfx_level <= GFX8) {
       if (flush_bits & RADV_CMD_FLAG_FLUSH_AND_INV_CB) {
          cp_coher_cntl |= S_0085F0_CB_ACTION_ENA(1) | S_0085F0_CB0_DEST_BASE_ENA(1) |
                           S_0085F0_CB1_DEST_BASE_ENA(1) | S_0085F0_CB2_DEST_BASE_ENA(1) |
@@ -1190,8 +1293,8 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
                           S_0085F0_CB7_DEST_BASE_ENA(1);
 
          /* Necessary for DCC */
-         if (chip_class >= GFX8) {
-            si_cs_emit_write_event_eop(cs, chip_class, is_mec, V_028A90_FLUSH_AND_INV_CB_DATA_TS, 0,
+         if (gfx_level >= GFX8) {
+            si_cs_emit_write_event_eop(cs, gfx_level, is_mec, V_028A90_FLUSH_AND_INV_CB_DATA_TS, 0,
                                        EOP_DST_SEL_MEM, EOP_DATA_SEL_DISCARD, 0, 0,
                                        gfx9_eop_bug_va);
          }
@@ -1238,7 +1341,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
       *sqtt_flush_bits |= RGP_FLUSH_CS_PARTIAL_FLUSH;
    }
 
-   if (chip_class == GFX9 && flush_cb_db) {
+   if (gfx_level == GFX9 && flush_cb_db) {
       unsigned cb_db_event, tc_flags;
 
       /* Set the CB/DB flush event. */
@@ -1275,7 +1378,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
       assert(flush_cnt);
       (*flush_cnt)++;
 
-      si_cs_emit_write_event_eop(cs, chip_class, false, cb_db_event, tc_flags, EOP_DST_SEL_MEM,
+      si_cs_emit_write_event_eop(cs, gfx_level, false, cb_db_event, tc_flags, EOP_DST_SEL_MEM,
                                  EOP_DATA_SEL_VALUE_32BIT, flush_va, *flush_cnt, gfx9_eop_bug_va);
       radv_cp_wait_mem(cs, WAIT_REG_MEM_EQUAL, flush_va, *flush_cnt, 0xffffffff);
    }
@@ -1305,10 +1408,10 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
    }
 
    if ((flush_bits & RADV_CMD_FLAG_INV_L2) ||
-       (chip_class <= GFX7 && (flush_bits & RADV_CMD_FLAG_WB_L2))) {
-      si_emit_acquire_mem(cs, is_mec, chip_class == GFX9,
+       (gfx_level <= GFX7 && (flush_bits & RADV_CMD_FLAG_WB_L2))) {
+      si_emit_acquire_mem(cs, is_mec, gfx_level == GFX9,
                           cp_coher_cntl | S_0085F0_TC_ACTION_ENA(1) | S_0085F0_TCL1_ACTION_ENA(1) |
-                             S_0301F0_TC_WB_ACTION_ENA(chip_class >= GFX8));
+                             S_0301F0_TC_WB_ACTION_ENA(gfx_level >= GFX8));
       cp_coher_cntl = 0;
 
       *sqtt_flush_bits |= RGP_FLUSH_INVAL_L2 | RGP_FLUSH_INVAL_VMEM_L0;
@@ -1321,14 +1424,14 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
           * WB doesn't work without NC.
           */
          si_emit_acquire_mem(
-            cs, is_mec, chip_class == GFX9,
+            cs, is_mec, gfx_level == GFX9,
             cp_coher_cntl | S_0301F0_TC_WB_ACTION_ENA(1) | S_0301F0_TC_NC_ACTION_ENA(1));
          cp_coher_cntl = 0;
 
          *sqtt_flush_bits |= RGP_FLUSH_FLUSH_L2 | RGP_FLUSH_INVAL_VMEM_L0;
       }
       if (flush_bits & RADV_CMD_FLAG_INV_VCACHE) {
-         si_emit_acquire_mem(cs, is_mec, chip_class == GFX9,
+         si_emit_acquire_mem(cs, is_mec, gfx_level == GFX9,
                              cp_coher_cntl | S_0085F0_TCL1_ACTION_ENA(1));
          cp_coher_cntl = 0;
 
@@ -1340,7 +1443,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
     * Therefore, it should be last. Done in PFP.
     */
    if (cp_coher_cntl)
-      si_emit_acquire_mem(cs, is_mec, chip_class == GFX9, cp_coher_cntl);
+      si_emit_acquire_mem(cs, is_mec, gfx_level == GFX9, cp_coher_cntl);
 
    if (flush_bits & RADV_CMD_FLAG_START_PIPELINE_STATS) {
       radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
@@ -1354,7 +1457,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum chip_class chip_class, uin
 void
 si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 {
-   bool is_compute = cmd_buffer->queue_family_index == RADV_QUEUE_COMPUTE;
+   bool is_compute = cmd_buffer->qf == RADV_QUEUE_COMPUTE;
 
    if (is_compute)
       cmd_buffer->state.flush_bits &=
@@ -1371,7 +1474,7 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 
    radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 128);
 
-   si_cs_emit_cache_flush(cmd_buffer->cs, cmd_buffer->device->physical_device->rad_info.chip_class,
+   si_cs_emit_cache_flush(cmd_buffer->cs, cmd_buffer->device->physical_device->rad_info.gfx_level,
                           &cmd_buffer->gfx9_fence_idx, cmd_buffer->gfx9_fence_va,
                           radv_cmd_buffer_uses_mec(cmd_buffer), cmd_buffer->state.flush_bits,
                           &cmd_buffer->state.sqtt_flush_bits, cmd_buffer->gfx9_eop_bug_va);
@@ -1415,7 +1518,7 @@ si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, bool draw_visi
        */
       op |= draw_visible ? PREDICATION_DRAW_VISIBLE : PREDICATION_DRAW_NOT_VISIBLE;
    }
-   if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+   if (cmd_buffer->device->physical_device->rad_info.gfx_level >= GFX9) {
       radeon_emit(cmd_buffer->cs, PKT3(PKT3_SET_PREDICATION, 2, 0));
       radeon_emit(cmd_buffer->cs, op);
       radeon_emit(cmd_buffer->cs, va);
@@ -1443,11 +1546,10 @@ si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, bool draw_visi
 
 /* The max number of bytes that can be copied per packet. */
 static inline unsigned
-cp_dma_max_byte_count(struct radv_cmd_buffer *cmd_buffer)
+cp_dma_max_byte_count(enum amd_gfx_level gfx_level)
 {
-   unsigned max = cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9
-                     ? S_415_BYTE_COUNT_GFX9(~0u)
-                     : S_415_BYTE_COUNT_GFX6(~0u);
+   unsigned max = gfx_level >= GFX11 ? 32767 :
+                  gfx_level >= GFX9 ? S_415_BYTE_COUNT_GFX9(~0u) : S_415_BYTE_COUNT_GFX6(~0u);
 
    /* make it aligned for optimal performance */
    return max & ~(SI_CPDMA_ALIGNMENT - 1);
@@ -1458,16 +1560,15 @@ cp_dma_max_byte_count(struct radv_cmd_buffer *cmd_buffer)
  * clear value.
  */
 static void
-si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src_va, unsigned size,
-               unsigned flags)
+si_cs_emit_cp_dma(struct radv_device *device, struct radeon_cmdbuf *cs, bool predicating,
+                  uint64_t dst_va, uint64_t src_va, unsigned size, unsigned flags)
 {
-   struct radeon_cmdbuf *cs = cmd_buffer->cs;
    uint32_t header = 0, command = 0;
 
-   assert(size <= cp_dma_max_byte_count(cmd_buffer));
+   assert(size <= cp_dma_max_byte_count(device->physical_device->rad_info.gfx_level));
 
-   radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 9);
-   if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9)
+   radeon_check_space(device->ws, cs, 9);
+   if (device->physical_device->rad_info.gfx_level >= GFX9)
       command |= S_415_BYTE_COUNT_GFX9(size);
    else
       command |= S_415_BYTE_COUNT_GFX6(size);
@@ -1476,7 +1577,7 @@ si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src
    if (flags & CP_DMA_SYNC)
       header |= S_411_CP_SYNC(1);
    else {
-      if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9)
+      if (device->physical_device->rad_info.gfx_level >= GFX9)
          command |= S_415_DISABLE_WR_CONFIRM_GFX9(1);
       else
          command |= S_415_DISABLE_WR_CONFIRM_GFX6(1);
@@ -1486,8 +1587,8 @@ si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src
       command |= S_415_RAW_WAIT(1);
 
    /* Src and dst flags. */
-   if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9 &&
-       !(flags & CP_DMA_CLEAR) && src_va == dst_va)
+   if (device->physical_device->rad_info.gfx_level >= GFX9 && !(flags & CP_DMA_CLEAR) &&
+       src_va == dst_va)
       header |= S_411_DST_SEL(V_411_NOWHERE); /* prefetch only */
    else if (flags & CP_DMA_USE_L2)
       header |= S_411_DST_SEL(V_411_DST_ADDR_TC_L2);
@@ -1497,8 +1598,8 @@ si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src
    else if (flags & CP_DMA_USE_L2)
       header |= S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2);
 
-   if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX7) {
-      radeon_emit(cs, PKT3(PKT3_DMA_DATA, 5, cmd_buffer->state.predicating));
+   if (device->physical_device->rad_info.gfx_level >= GFX7) {
+      radeon_emit(cs, PKT3(PKT3_DMA_DATA, 5, predicating));
       radeon_emit(cs, header);
       radeon_emit(cs, src_va);       /* SRC_ADDR_LO [31:0] */
       radeon_emit(cs, src_va >> 32); /* SRC_ADDR_HI [31:0] */
@@ -1508,13 +1609,24 @@ si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src
    } else {
       assert(!(flags & CP_DMA_USE_L2));
       header |= S_411_SRC_ADDR_HI(src_va >> 32);
-      radeon_emit(cs, PKT3(PKT3_CP_DMA, 4, cmd_buffer->state.predicating));
+      radeon_emit(cs, PKT3(PKT3_CP_DMA, 4, predicating));
       radeon_emit(cs, src_va);                  /* SRC_ADDR_LO [31:0] */
       radeon_emit(cs, header);                  /* SRC_ADDR_HI [15:0] + flags. */
       radeon_emit(cs, dst_va);                  /* DST_ADDR_LO [31:0] */
       radeon_emit(cs, (dst_va >> 32) & 0xffff); /* DST_ADDR_HI [15:0] */
       radeon_emit(cs, command);
    }
+}
+
+static void
+si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src_va, unsigned size,
+               unsigned flags)
+{
+   struct radeon_cmdbuf *cs = cmd_buffer->cs;
+   struct radv_device *device = cmd_buffer->device;
+   bool predicating = cmd_buffer->state.predicating;
+
+   si_cs_emit_cp_dma(device, cs, predicating, dst_va, src_va, size, flags);
 
    /* CP DMA is executed in ME, but index buffers are read by PFP.
     * This ensures that ME (CP DMA) is idle before PFP starts fetching
@@ -1522,7 +1634,7 @@ si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src
     * should precede it.
     */
    if (flags & CP_DMA_SYNC) {
-      if (cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
+      if (cmd_buffer->qf == RADV_QUEUE_GENERAL) {
          radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, cmd_buffer->state.predicating));
          radeon_emit(cs, 0);
       }
@@ -1536,19 +1648,25 @@ si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src
 }
 
 void
-si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va, unsigned size)
+si_cs_cp_dma_prefetch(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t va,
+                      unsigned size, bool predicating)
 {
+   struct radeon_winsys *ws = device->ws;
+   enum amd_gfx_level gfx_level = device->physical_device->rad_info.gfx_level;
+   uint32_t header = 0, command = 0;
+
+   if (gfx_level >= GFX11)
+      size = MIN2(size, 32768 - SI_CPDMA_ALIGNMENT);
+
+   assert(size <= cp_dma_max_byte_count(gfx_level));
+
+   radeon_check_space(ws, cs, 9);
+
    uint64_t aligned_va = va & ~(SI_CPDMA_ALIGNMENT - 1);
    uint64_t aligned_size =
       ((va + size + SI_CPDMA_ALIGNMENT - 1) & ~(SI_CPDMA_ALIGNMENT - 1)) - aligned_va;
-   struct radeon_cmdbuf *cs = cmd_buffer->cs;
-   uint32_t header = 0, command = 0;
 
-   assert(size <= cp_dma_max_byte_count(cmd_buffer));
-
-   radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 9);
-
-   if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+   if (gfx_level >= GFX9) {
       command |= S_415_BYTE_COUNT_GFX9(aligned_size) |
                  S_415_DISABLE_WR_CONFIRM_GFX9(1);
       header |= S_411_DST_SEL(V_411_NOWHERE);
@@ -1560,13 +1678,20 @@ si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va, unsigned siz
 
    header |= S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2);
 
-   radeon_emit(cs, PKT3(PKT3_DMA_DATA, 5, cmd_buffer->state.predicating));
+   radeon_emit(cs, PKT3(PKT3_DMA_DATA, 5, predicating));
    radeon_emit(cs, header);
    radeon_emit(cs, aligned_va);       /* SRC_ADDR_LO [31:0] */
    radeon_emit(cs, aligned_va >> 32); /* SRC_ADDR_HI [31:0] */
    radeon_emit(cs, aligned_va);       /* DST_ADDR_LO [31:0] */
    radeon_emit(cs, aligned_va >> 32); /* DST_ADDR_HI [31:0] */
    radeon_emit(cs, command);
+}
+
+void
+si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va, unsigned size)
+{
+   si_cs_cp_dma_prefetch(cmd_buffer->device, cmd_buffer->cs, va, size,
+                         cmd_buffer->state.predicating);
 
    if (unlikely(cmd_buffer->device->trace_bo))
       radv_cmd_buffer_trace_emit(cmd_buffer);
@@ -1617,6 +1742,7 @@ void
 si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t dest_va,
                       uint64_t size)
 {
+   enum amd_gfx_level gfx_level = cmd_buffer->device->physical_device->rad_info.gfx_level;
    uint64_t main_src_va, main_dest_va;
    uint64_t skipped_size = 0, realign_size = 0;
 
@@ -1648,9 +1774,9 @@ si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint6
 
    while (size) {
       unsigned dma_flags = 0;
-      unsigned byte_count = MIN2(size, cp_dma_max_byte_count(cmd_buffer));
+      unsigned byte_count = MIN2(size, cp_dma_max_byte_count(gfx_level));
 
-      if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+      if (cmd_buffer->device->physical_device->rad_info.gfx_level >= GFX9) {
          /* DMA operations via L2 are coherent and faster.
           * TODO: GFX7-GFX8 should also support this but it
           * requires tests/benchmarks.
@@ -1691,20 +1817,21 @@ void
 si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t size,
                        unsigned value)
 {
-
    if (!size)
       return;
 
    assert(va % 4 == 0 && size % 4 == 0);
 
+   enum amd_gfx_level gfx_level = cmd_buffer->device->physical_device->rad_info.gfx_level;
+
    /* Assume that we are not going to sync after the last DMA operation. */
    cmd_buffer->state.dma_is_busy = true;
 
    while (size) {
-      unsigned byte_count = MIN2(size, cp_dma_max_byte_count(cmd_buffer));
+      unsigned byte_count = MIN2(size, cp_dma_max_byte_count(gfx_level));
       unsigned dma_flags = CP_DMA_CLEAR;
 
-      if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+      if (cmd_buffer->device->physical_device->rad_info.gfx_level >= GFX9) {
          /* DMA operations via L2 are coherent and faster.
           * TODO: GFX7-GFX8 should also support this but it
           * requires tests/benchmarks.
@@ -1727,7 +1854,7 @@ si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t
 void
 si_cp_dma_wait_for_idle(struct radv_cmd_buffer *cmd_buffer)
 {
-   if (cmd_buffer->device->physical_device->rad_info.chip_class < GFX7)
+   if (cmd_buffer->device->physical_device->rad_info.gfx_level < GFX7)
       return;
 
    if (!cmd_buffer->state.dma_is_busy)

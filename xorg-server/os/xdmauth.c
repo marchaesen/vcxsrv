@@ -356,8 +356,8 @@ XdmAddCookie(unsigned short data_length, const char *data, XID id)
         return 0;
     new->next = xdmAuth;
     xdmAuth = new;
-    memmove(new->key.data, key_bits, (int) 8);
-    memmove(new->rho.data, rho_bits, (int) 8);
+    memcpy(new->key.data, key_bits, 8);
+    memcpy(new->rho.data, rho_bits, 8);
     new->id = id;
     return 1;
 }

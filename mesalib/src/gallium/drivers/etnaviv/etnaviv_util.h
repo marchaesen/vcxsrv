@@ -30,13 +30,6 @@
 /* for conditionally setting boolean flag(s): */
 #define COND(bool, val) ((bool) ? (val) : 0)
 
-/* align to a value divisable by granularity >= value, works only for powers of two */
-static inline uint32_t
-etna_align_up(uint32_t value, uint32_t granularity)
-{
-   return (value + (granularity - 1)) & (~(granularity - 1));
-}
-
 /* clamped float [0.0 .. 1.0] -> [0 .. 255] */
 static inline uint8_t
 etna_cfloat_to_uint8(float f)

@@ -49,7 +49,10 @@ struct fd4_context {
    struct pipe_resource *border_color_buf;
 
    /* bitmask of samplers which need astc srgb workaround: */
-   uint16_t vastc_srgb, fastc_srgb;
+   uint16_t vastc_srgb, fastc_srgb, castc_srgb;
+
+   /* samplers swizzles, needed for tg4 workaround: */
+   uint16_t vsampler_swizzles[16], fsampler_swizzles[16], csampler_swizzles[16];
 
    /* storage for ctx->last.key: */
    struct ir3_shader_key last_key;

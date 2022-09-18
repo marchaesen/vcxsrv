@@ -503,8 +503,8 @@
 #define     EG_V_SQ_CF_ALLOC_EXPORT_WORD1_SQ_CF_INST_MEM_EXPORT_COMBINED EG_S_SQ_CF_ALLOC_EXPORT_WORD1_CF_INST(0x0000005B)
 #define     EG_V_SQ_CF_ALLOC_EXPORT_WORD1_SQ_CF_INST_MEM_RAT_COMBINED_CACHELESS  EG_S_SQ_CF_ALLOC_EXPORT_WORD1_CF_INST(0x0000005C)
 
-#define BC_INST(bc, x) ((bc)->chip_class >= EVERGREEN ? EG_##x : x)
+#define BC_INST(bc, x) ((bc)->gfx_level >= EVERGREEN ? EG_##x : x)
 
-#define CTX_INST(x) (ctx->bc->chip_class >= EVERGREEN ? EG_##x : x)
+#define CTX_INST(x) (ctx->bc->gfx_level >= EVERGREEN ? EG_##x : x)
 
 #endif

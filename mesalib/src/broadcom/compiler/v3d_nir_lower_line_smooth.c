@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Raspberry Pi
+ * Copyright © 2020 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -54,10 +54,12 @@ lower_line_smooth_intrinsic(struct lower_line_smooth_state *state,
                               nir_src_for_ssa(new_val));
 }
 
-static void
+static bool
 lower_line_smooth_func(struct lower_line_smooth_state *state,
                        nir_function_impl *impl)
 {
+        bool progress = false;
+
         nir_builder b;
 
         nir_builder_init(&b, impl);
@@ -77,8 +79,11 @@ lower_line_smooth_func(struct lower_line_smooth_state *state,
                                 continue;
 
                         lower_line_smooth_intrinsic(state, &b, intr);
+                        progress = true;
                 }
         }
+
+        return progress;
 }
 
 static void
@@ -140,9 +145,11 @@ make_coverage_var(nir_shader *s)
         return var;
 }
 
-void
+bool
 v3d_nir_lower_line_smooth(nir_shader *s)
 {
+        bool progress = false;
+
         assert(s->info.stage == MESA_SHADER_FRAGMENT);
 
         struct lower_line_smooth_state state = {
@@ -154,6 +161,16 @@ v3d_nir_lower_line_smooth(nir_shader *s)
                 if (function->is_entrypoint)
                         initialise_coverage_var(&state, function->impl);
 
-                lower_line_smooth_func(&state, function->impl);
+                progress |= lower_line_smooth_func(&state, function->impl);
+
+                if (progress) {
+                        nir_metadata_preserve(function->impl,
+                                              nir_metadata_block_index |
+                                              nir_metadata_dominance);
+                } else {
+                        nir_metadata_preserve(function->impl, nir_metadata_all);
+                }
         }
+
+        return progress;
 }

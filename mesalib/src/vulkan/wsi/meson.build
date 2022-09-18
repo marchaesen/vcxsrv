@@ -58,18 +58,21 @@ wsi_entrypoints = custom_target(
 libvulkan_wsi = static_library(
   'vulkan_wsi',
   [files_vulkan_wsi, wsi_entrypoints],
-  include_directories : [inc_include, inc_src],
+  include_directories : [inc_include, inc_src, inc_gallium],
   dependencies : [
     vulkan_wsi_deps, dep_libdrm, dep_libudev, idep_vulkan_util_headers,
     idep_vulkan_runtime_headers, idep_xmlconfig,
   ],
-  c_args : [vulkan_wsi_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )
 
 idep_vulkan_wsi_headers = declare_dependency(
   include_directories : include_directories('.')
+)
+
+idep_vulkan_wsi_entrypoints_h = declare_dependency(
+  sources : [wsi_entrypoints[0]]
 )
 
 # This is likely a bug in the Meson VS backend, as MSVC with ninja works fine.

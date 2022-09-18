@@ -1,8 +1,6 @@
 ar	ara
 ben	in(ben)
 bs	ba
-cs	rs
-cz_qwerty	cz(qwerty)
 dev	in(deva)
 dvorak	us(dvorak)
 dzdwi	bt
@@ -15,12 +13,9 @@ lo	la
 kan	in(kan)
 mi	mao
 ogham	ie(ogam)
-ori	ie(ori)
+ori	in(ori)
 sapmi	no(smi)
-sr	srp
 syr	sy(syc)
 tel	in(tel)
 tml	in(tam)
-yu	srp
-fr-latin9	fr(latin9)
 us_intl	us(alt-intl)

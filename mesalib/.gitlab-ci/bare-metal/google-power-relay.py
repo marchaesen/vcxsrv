@@ -8,8 +8,8 @@ relay = sys.argv[2]
 
 # our relays are "off" means "board is powered".
 mode_swap = {
-     "on" : "off",
-     "off" : "on",
+    "on": "off",
+    "off": "on",
 }
 mode = mode_swap[mode]
 

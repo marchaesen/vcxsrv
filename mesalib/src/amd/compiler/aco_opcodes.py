@@ -90,8 +90,8 @@ class Format(Enum):
                  ('bool', 'dlc', 'false'),
                  ('bool', 'nv', 'false')]
       elif self == Format.DS:
-         return [('int16_t', 'offset0', '0'),
-                 ('int8_t', 'offset1', '0'),
+         return [('uint16_t', 'offset0', '0'),
+                 ('uint8_t', 'offset1', '0'),
                  ('bool', 'gds', 'false')]
       elif self == Format.MTBUF:
          return [('unsigned', 'dfmt', None),
@@ -126,7 +126,8 @@ class Format(Enum):
                  ('bool', 'slc', 'false'),
                  ('bool', 'tfe', 'false'),
                  ('bool', 'lwe', 'false'),
-                 ('bool', 'r128_a16', 'false', 'r128'),
+                 ('bool', 'r128', 'false'),
+                 ('bool', 'a16', 'false'),
                  ('bool', 'd16', 'false')]
          return [('unsigned', 'attribute', None),
                  ('unsigned', 'component', None)]
@@ -157,7 +158,7 @@ class Format(Enum):
          return [('uint8_t', 'opsel_lo', None),
                  ('uint8_t', 'opsel_hi', None)]
       elif self in [Format.FLAT, Format.GLOBAL, Format.SCRATCH]:
-         return [('uint16_t', 'offset', 0),
+         return [('int16_t', 'offset', 0),
                  ('memory_sync_info', 'sync', 'memory_sync_info()'),
                  ('bool', 'glc', 'false'),
                  ('bool', 'slc', 'false'),
@@ -317,6 +318,10 @@ opcode("p_extract") # src1=index, src2=bits, src3=signext
 # (src0 & ((1 << bits) - 1)) << (index * bits)
 opcode("p_insert") # src1=index, src2=bits
 
+opcode("p_init_scratch")
+
+# jumps to a shader epilog
+opcode("p_jump_to_epilog")
 
 # SOP2 instructions: 2 scalar inputs, 1 scalar output (+optional scc)
 SOP2 = {
@@ -385,8 +390,8 @@ for (gfx6, gfx7, gfx8, gfx9, gfx10, name, cls) in default_class(SOP2, InstrClass
 SOPK = {
   # GFX6, GFX7, GFX8, GFX9, GFX10, name
    (0x00, 0x00, 0x00, 0x00, 0x00, "s_movk_i32"),
-   (  -1,   -1,   -1,   -1, 0x01, "s_version"), # GFX10+
-   (0x02, 0x02, 0x01, 0x01, 0x02, "s_cmovk_i32"), # GFX8_GFX9
+   (  -1,   -1,   -1,   -1, 0x01, "s_version"),
+   (0x02, 0x02, 0x01, 0x01, 0x02, "s_cmovk_i32"),
    (0x03, 0x03, 0x02, 0x02, 0x03, "s_cmpk_eq_i32"),
    (0x04, 0x04, 0x03, 0x03, 0x04, "s_cmpk_lg_i32"),
    (0x05, 0x05, 0x04, 0x04, 0x05, "s_cmpk_gt_i32"),
@@ -972,7 +977,7 @@ opcode("v_dot4_i32_i8", -1, 0x28, 0x16, Format.VOP3P, InstrClass.Valu32)
 opcode("v_dot4_u32_u8", -1, 0x29, 0x17, Format.VOP3P, InstrClass.Valu32)
 
 
-# VINTERP instructions: 
+# VINTERP instructions:
 VINTRP = {
    (0x00, "v_interp_p1_f32"),
    (0x01, "v_interp_p2_f32"),
@@ -1479,6 +1484,21 @@ IMAGE_SAMPLE = {
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (code, code, code, code, code, name)
 for (code, name) in IMAGE_SAMPLE:
    opcode(name, code, code, code, Format.MIMG, InstrClass.VMem)
+
+IMAGE_SAMPLE_G16 = {
+   (0xa2, "image_sample_d_g16"),
+   (0xa3, "image_sample_d_cl_g16"),
+   (0xaa, "image_sample_c_d_g16"),
+   (0xab, "image_sample_c_d_cl_g16"),
+   (0xb2, "image_sample_d_o_g16"),
+   (0xb3, "image_sample_d_cl_o_g16"),
+   (0xba, "image_sample_c_d_o_g16"),
+   (0xbb, "image_sample_c_d_cl_o_g16"),
+}
+
+# (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (-1, -1, -1, -1, code, name)
+for (code, name) in IMAGE_SAMPLE_G16:
+   opcode(name, -1, -1, code, Format.MIMG, InstrClass.VMem)
 
 IMAGE_GATHER4 = {
    (0x40, "image_gather4"),

@@ -43,7 +43,7 @@ static bool debug = false;
  * for usage on an unlinked instruction stream.
  */
 bool
-do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
+do_dead_code(exec_list *instructions)
 {
    ir_variable_refcount_visitor v;
    bool progress = false;
@@ -122,12 +122,11 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 	  */
 
 	 /* uniform initializers are precious, and could get used by another
-	  * stage.  Also, once uniform locations have been assigned, the
-	  * declaration cannot be deleted.
+	  * stage.
 	  */
          if (entry->var->data.mode == ir_var_uniform ||
              entry->var->data.mode == ir_var_shader_storage) {
-            if (uniform_locations_assigned || entry->var->constant_initializer)
+            if (entry->var->constant_initializer)
                continue;
 
             /* Section 2.11.6 (Uniform Variables) of the OpenGL ES 3.0.3 spec
@@ -188,12 +187,7 @@ do_dead_code_unlinked(exec_list *instructions)
       ir_function *f = ir->as_function();
       if (f) {
 	 foreach_in_list(ir_function_signature, sig, &f->signatures) {
-	    /* The setting of the uniform_locations_assigned flag here is
-	     * irrelevent.  If there is a uniform declaration encountered
-	     * inside the body of the function, something has already gone
-	     * terribly, terribly wrong.
-	     */
-	    if (do_dead_code(&sig->body, false))
+	    if (do_dead_code(&sig->body))
 	       progress = true;
 	 }
       }

@@ -1,0 +1,2 @@
+dEQP-VK.dynamic_rendering.basic.*
+dEQP-VK.texture.filtering.3d.combinations.nearest.linear.mirror_clamp_to_edge.mirror_clamp_to_edge.repeat

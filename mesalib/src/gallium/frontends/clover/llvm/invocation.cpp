@@ -226,6 +226,13 @@ namespace {
       // class to recognize it as an OpenCL source file.
 #if LLVM_VERSION_MAJOR >= 12
       std::vector<const char *> copts;
+#if LLVM_VERSION_MAJOR >= 15
+      // Since LLVM commit 702d5de4 opaque pointers are enabled by default:
+      // https://gitlab.freedesktop.org/mesa/mesa/-/issues/6342
+      // A better implementation may be doable following suggestions from there:
+      // https://github.com/llvm/llvm-project/issues/54970#issuecomment-1102254254
+      copts.push_back("-no-opaque-pointers");
+#endif
       for (auto &opt : opts) {
          if (opt == "-cl-denorms-are-zero")
             copts.push_back("-fdenormal-fp-math=positive-zero");

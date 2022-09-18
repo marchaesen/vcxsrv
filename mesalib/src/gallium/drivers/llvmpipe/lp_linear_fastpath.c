@@ -41,9 +41,6 @@
 #include "lp_linear_priv.h"
 
 
-#if defined(PIPE_ARCH_SSE)
-
-
 /* This file contains various special-case fastpaths which implement
  * the entire linear pipeline in a single funciton.
  *
@@ -53,24 +50,24 @@
  * be combined with blending, interpolation or sampling routines.
  */
 
+
+#if defined(PIPE_ARCH_SSE)
+
 /* Linear shader which implements the BLIT_RGBA shader with the
  * additional constraints imposed by lp_setup_is_blit().
  */
 static boolean
 lp_linear_blit_rgba_blit(const struct lp_rast_state *state,
-               unsigned x, unsigned y,
-               unsigned width, unsigned height,
-               const float (*a0)[4],
-               const float (*dadx)[4],
-               const float (*dady)[4],
-               uint8_t *color,
-               unsigned stride)
+                         unsigned x, unsigned y,
+                         unsigned width, unsigned height,
+                         const float (*a0)[4],
+                         const float (*dadx)[4],
+                         const float (*dady)[4],
+                         uint8_t *color,
+                         unsigned stride)
 {
    const struct lp_jit_context *context = &state->jit_context;
    const struct lp_jit_texture *texture = &context->textures[0];
-   const uint8_t *src;
-   unsigned src_stride;
-   int src_x, src_y;
 
    LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
 
@@ -81,11 +78,11 @@ lp_linear_blit_rgba_blit(const struct lp_rast_state *state,
        dady[0][3] != 0.0)
       return FALSE;
 
-   src_x = x + util_iround(a0[1][0]*texture->width - 0.5f);
-   src_y = y + util_iround(a0[1][1]*texture->height - 0.5f);
+   const int src_x = x + util_iround(a0[1][0]*texture->width - 0.5f);
+   const int src_y = y + util_iround(a0[1][1]*texture->height - 0.5f);
 
-   src = texture->base;
-   src_stride = texture->row_stride[0];
+   const uint8_t *src = texture->base;
+   const unsigned src_stride = texture->row_stride[0];
 
    /* Fall back to blit_rgba() if clamping required:
     */
@@ -120,9 +117,6 @@ lp_linear_blit_rgb1_blit(const struct lp_rast_state *state,
 {
    const struct lp_jit_context *context = &state->jit_context;
    const struct lp_jit_texture *texture = &context->textures[0];
-   const uint8_t *src;
-   unsigned src_stride;
-   int src_x, src_y;
 
    LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
 
@@ -135,11 +129,11 @@ lp_linear_blit_rgb1_blit(const struct lp_rast_state *state,
 
    color += x * 4 + y * stride;
 
-   src_x = x + util_iround(a0[1][0]*texture->width - 0.5f);
-   src_y = y + util_iround(a0[1][1]*texture->height - 0.5f);
+   const int src_x = x + util_iround(a0[1][0]*texture->width - 0.5f);
+   const int src_y = y + util_iround(a0[1][1]*texture->height - 0.5f);
 
-   src = texture->base;
-   src_stride = texture->row_stride[0];
+   const uint8_t *src = texture->base;
+   const unsigned src_stride = texture->row_stride[0];
    src += src_x * 4;
    src += src_y * src_stride;
 
@@ -164,17 +158,18 @@ lp_linear_blit_rgb1_blit(const struct lp_rast_state *state,
    return TRUE;
 }
 
+
 /* Linear shader which always emits purple.  Used for debugging.
  */
 static boolean
 lp_linear_purple(const struct lp_rast_state *state,
-              unsigned x, unsigned y,
-              unsigned width, unsigned height,
-              const float (*a0)[4],
-              const float (*dadx)[4],
-              const float (*dady)[4],
-              uint8_t *color,
-              unsigned stride)
+                 unsigned x, unsigned y,
+                 unsigned width, unsigned height,
+                 const float (*a0)[4],
+                 const float (*dadx)[4],
+                 const float (*dady)[4],
+                 uint8_t *color,
+                 unsigned stride)
 {
    union util_color uc;
 
@@ -193,18 +188,20 @@ lp_linear_purple(const struct lp_rast_state *state,
    return TRUE;
 }
 
-/* Examine the fragment shader varient and determine whether we can
+
+/* Examine the fragment shader variant and determine whether we can
  * substitute a fastpath linear shader implementation.
  */
 boolean
 lp_linear_check_fastpath(struct lp_fragment_shader_variant *variant)
 {
-   struct lp_sampler_static_state *samp0 = lp_fs_variant_key_sampler_idx(&variant->key, 0);
+   struct lp_sampler_static_state *samp0 =
+      lp_fs_variant_key_sampler_idx(&variant->key, 0);
 
    if (!samp0)
       return false;
 
-   enum pipe_format tex_format = samp0->texture_state.format;
+   const enum pipe_format tex_format = samp0->texture_state.format;
    if (variant->shader->kind == LP_FS_KIND_BLIT_RGBA &&
        tex_format == PIPE_FORMAT_B8G8R8A8_UNORM &&
        is_nearest_clamp_sampler(samp0) &&
@@ -230,11 +227,13 @@ lp_linear_check_fastpath(struct lp_fragment_shader_variant *variant)
     */
    return variant->jit_linear != NULL;
 }
+
 #else
+
 boolean
 lp_linear_check_fastpath(struct lp_fragment_shader_variant *variant)
 {
    return FALSE;
 }
-#endif
 
+#endif

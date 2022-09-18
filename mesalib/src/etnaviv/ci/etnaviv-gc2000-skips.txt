@@ -4,3 +4,10 @@ spec@!opengl 1.1@max-texture-size
 
 # Can't start the X server.
 glx.*
+
+# takes too long ( > 60 s)
+shaders@glsl-uniform-interstage-limits@subdivide 5
+shaders@glsl-uniform-interstage-limits@subdivide 5- statechanges
+spec@arb_internalformat_query2@all internalformat_<x>_type pname checks
+spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture(bias) 2dshadow
+spec@!opengl 1.1@streaming-texture-leak

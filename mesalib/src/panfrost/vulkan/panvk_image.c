@@ -69,49 +69,26 @@ panvk_image_create(VkDevice _device,
                    const VkSubresourceLayout *plane_layouts)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
-   const struct panfrost_device *pdev = &device->physical_device->pdev;
    struct panvk_image *image = NULL;
-   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 
-   assert(pCreateInfo->mipLevels > 0);
-   assert(pCreateInfo->arrayLayers > 0);
-   assert(pCreateInfo->samples > 0);
-   assert(pCreateInfo->extent.width > 0);
-   assert(pCreateInfo->extent.height > 0);
-   assert(pCreateInfo->extent.depth > 0);
-
-   image = vk_object_zalloc(&device->vk, alloc, sizeof(*image),
-                            VK_OBJECT_TYPE_IMAGE);
+   image = vk_image_create(&device->vk, pCreateInfo, alloc, sizeof(*image));
    if (!image)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   image->type = pCreateInfo->imageType;
+   image->pimage.layout = (struct pan_image_layout) {
+      .modifier = modifier,
+      .format = vk_format_to_pipe_format(image->vk.format),
+      .dim = panvk_image_type_to_mali_tex_dim(image->vk.image_type),
+      .width = image->vk.extent.width,
+      .height = image->vk.extent.height,
+      .depth = image->vk.extent.depth,
+      .array_size = image->vk.array_layers,
+      .nr_samples = image->vk.samples,
+      .nr_slices = image->vk.mip_levels,
+      .crc_mode = PAN_IMAGE_CRC_NONE
+   };
 
-   image->vk_format = pCreateInfo->format;
-   image->tiling = pCreateInfo->tiling;
-   image->usage = pCreateInfo->usage;
-   image->flags = pCreateInfo->flags;
-   image->extent = pCreateInfo->extent;
-   pan_image_layout_init(pdev, &image->pimage.layout, modifier,
-                         vk_format_to_pipe_format(pCreateInfo->format),
-                         panvk_image_type_to_mali_tex_dim(pCreateInfo->imageType),
-                         pCreateInfo->extent.width, pCreateInfo->extent.height,
-                         pCreateInfo->extent.depth, pCreateInfo->arrayLayers,
-                         pCreateInfo->samples, pCreateInfo->mipLevels,
-                         PAN_IMAGE_CRC_NONE, NULL);
-
-   image->exclusive = pCreateInfo->sharingMode == VK_SHARING_MODE_EXCLUSIVE;
-   if (pCreateInfo->sharingMode == VK_SHARING_MODE_CONCURRENT) {
-      for (uint32_t i = 0; i < pCreateInfo->queueFamilyIndexCount; ++i) {
-         if (pCreateInfo->pQueueFamilyIndices[i] == VK_QUEUE_FAMILY_EXTERNAL)
-            image->queue_family_mask |= (1u << PANVK_MAX_QUEUE_FAMILIES) - 1u;
-         else
-            image->queue_family_mask |= 1u << pCreateInfo->pQueueFamilyIndices[i];
-       }
-   }
-
-   if (vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_MEMORY_IMAGE_CREATE_INFO))
-      image->shareable = true;
+   pan_image_layout_init(&image->pimage.layout, NULL);
 
    *pImage = panvk_image_to_handle(image);
    return VK_SUCCESS;
@@ -234,7 +211,7 @@ panvk_DestroyImage(VkDevice _device,
    if (!image)
       return;
 
-   vk_object_free(&device->vk, pAllocator, image);
+   vk_image_destroy(&device->vk, pAllocator, &image->vk);
 }
 
 static unsigned
@@ -260,7 +237,7 @@ panvk_GetImageSubresourceLayout(VkDevice _device,
 {
    VK_FROM_HANDLE(panvk_image, image, _image);
 
-   unsigned plane = panvk_plane_index(image->vk_format, pSubresource->aspectMask);
+   unsigned plane = panvk_plane_index(image->vk.format, pSubresource->aspectMask);
    assert(plane < PANVK_MAX_PLANES);
 
    const struct pan_image_slice_layout *slice_layout =
@@ -270,7 +247,7 @@ panvk_GetImageSubresourceLayout(VkDevice _device,
                      (pSubresource->arrayLayer *
                       image->pimage.layout.array_stride);
    pLayout->size = slice_layout->size;
-   pLayout->rowPitch = slice_layout->line_stride;
+   pLayout->rowPitch = slice_layout->row_stride;
    pLayout->arrayPitch = image->pimage.layout.array_stride;
    pLayout->depthPitch = slice_layout->surface_stride;
 }
@@ -287,17 +264,7 @@ panvk_DestroyImageView(VkDevice _device,
       return;
 
    panfrost_bo_unreference(view->bo);
-   vk_object_free(&device->vk, pAllocator, view);
-}
-
-VkResult
-panvk_CreateBufferView(VkDevice _device,
-                       const VkBufferViewCreateInfo *pCreateInfo,
-                       const VkAllocationCallbacks *pAllocator,
-                       VkBufferView *pView)
-{
-   panvk_stub();
-   return VK_SUCCESS;
+   vk_image_view_destroy(&device->vk, pAllocator, &view->vk);
 }
 
 void
@@ -305,7 +272,14 @@ panvk_DestroyBufferView(VkDevice _device,
                         VkBufferView bufferView,
                         const VkAllocationCallbacks *pAllocator)
 {
-   panvk_stub();
+   VK_FROM_HANDLE(panvk_device, device, _device);
+   VK_FROM_HANDLE(panvk_buffer_view, view, bufferView);
+
+   if (!view)
+      return;
+
+   panfrost_bo_unreference(view->bo);
+   vk_object_free(&device->vk, pAllocator, view);
 }
 
 VkResult

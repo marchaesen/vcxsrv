@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include "c99_compat.h"
 #include "sha1/sha1.h"
 
 #ifdef __cplusplus

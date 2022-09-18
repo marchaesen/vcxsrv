@@ -13,6 +13,8 @@
 
 #include "vn_common.h"
 
+#include "vn_feedback.h"
+
 struct vn_queue {
    struct vn_object_base base;
 
@@ -21,7 +23,11 @@ struct vn_queue {
    uint32_t index;
    uint32_t flags;
 
+   /* wait fence used for vn_QueueWaitIdle */
    VkFence wait_fence;
+
+   /* sync fence used for Android wsi */
+   VkFence sync_fence;
 };
 VK_DEFINE_HANDLE_CASTS(vn_queue, base.base, VkQueue, VK_OBJECT_TYPE_QUEUE)
 
@@ -32,12 +38,15 @@ enum vn_sync_type {
    /* device object */
    VN_SYNC_TYPE_DEVICE_ONLY,
 
-   /* already signaled by WSI */
-   VN_SYNC_TYPE_WSI_SIGNALED,
+   /* payload is an imported sync file */
+   VN_SYNC_TYPE_IMPORTED_SYNC_FD,
 };
 
 struct vn_sync_payload {
    enum vn_sync_type type;
+
+   /* If type is VN_SYNC_TYPE_IMPORTED_SYNC_FD, fd is a sync file. */
+   int fd;
 };
 
 struct vn_fence {
@@ -47,6 +56,12 @@ struct vn_fence {
 
    struct vn_sync_payload permanent;
    struct vn_sync_payload temporary;
+
+   struct {
+      /* non-NULL if VN_PERF_NO_FENCE_FEEDBACK is disabled */
+      struct vn_feedback_slot *slot;
+      VkCommandBuffer *commands;
+   } feedback;
 
    bool is_external;
 };
@@ -64,6 +79,8 @@ struct vn_semaphore {
 
    struct vn_sync_payload permanent;
    struct vn_sync_payload temporary;
+
+   bool is_external;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_semaphore,
                                base.base,
@@ -72,6 +89,12 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(vn_semaphore,
 
 struct vn_event {
    struct vn_object_base base;
+
+   /* non-NULL if below are satisfied:
+    * - event is created without VK_EVENT_CREATE_DEVICE_ONLY_BIT
+    * - VN_PERF_NO_EVENT_FEEDBACK is disabled
+    */
+   struct vn_feedback_slot *feedback_slot;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_event,
                                base.base,

@@ -101,7 +101,7 @@ fd5_emit_const_ptrs(struct fd_ringbuffer *ring, gl_shader_stage type,
    uint32_t anum = align(num, 2);
    uint32_t i;
 
-   debug_assert((regid % 4) == 0);
+   assert((regid % 4) == 0);
 
    OUT_PKT7(ring, CP_LOAD_STATE4, 3 + (2 * anum));
    OUT_RING(ring, CP_LOAD_STATE4_0_DST_OFF(regid / 4) |
@@ -268,7 +268,7 @@ setup_border_colors(struct fd_texture_stateobj *tex,
                   clamped = CLAMP(bc->ui[j], 0, 65535);
                break;
             default:
-               assert(!"Unexpected bit size");
+               unreachable("Unexpected bit size");
             case 32:
                clamped = 0;
                break;
@@ -487,16 +487,8 @@ fd5_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd5_emit *emit)
          enum a5xx_vtx_fmt fmt = fd5_pipe2vtx(pfmt);
          bool isint = util_format_is_pure_integer(pfmt);
          uint32_t off = vb->buffer_offset + elem->src_offset;
-         uint32_t size = fd_bo_size(rsc->bo) - off;
-         debug_assert(fmt != VFMT5_NONE);
-
-#ifdef DEBUG
-         /* see
-          * dEQP-GLES31.stress.vertex_attribute_binding.buffer_bounds.bind_vertex_buffer_offset_near_wrap_10
-          */
-         if (off > fd_bo_size(rsc->bo))
-            continue;
-#endif
+         uint32_t size = vb->buffer.resource->width0 - off;
+         assert(fmt != VFMT5_NONE);
 
          OUT_PKT4(ring, REG_A5XX_VFD_FETCH(j), 4);
          OUT_RELOC(ring, rsc->bo, off, 0, 0);
@@ -731,7 +723,7 @@ fd5_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
    if (!emit->binning_pass)
       ir3_emit_fs_consts(fp, ring, ctx);
 
-   struct ir3_stream_output_info *info = &vp->shader->stream_output;
+   const struct ir3_stream_output_info *info = &vp->stream_output;
    if (info->num_outputs) {
       struct fd_streamout_stateobj *so = &ctx->streamout;
 

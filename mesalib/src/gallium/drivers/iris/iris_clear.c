@@ -261,7 +261,8 @@ fast_clear_color(struct iris_context *ice,
                               (devinfo->verx10 == 120 ?
                                  PIPE_CONTROL_DEPTH_STALL : 0) |
                               (devinfo->verx10 == 125 ?
-                                 PIPE_CONTROL_FLUSH_HDC : 0) |
+                                 PIPE_CONTROL_FLUSH_HDC |
+                                 PIPE_CONTROL_DATA_CACHE_FLUSH : 0) |
                               PIPE_CONTROL_PSS_STALL_SYNC);
 
    iris_batch_sync_region_start(batch);
@@ -366,9 +367,7 @@ clear_color(struct iris_context *ice,
    blorp_batch_finish(&blorp_batch);
    iris_batch_sync_region_end(batch);
 
-   iris_flush_and_dirty_for_history(ice, batch, res,
-                                    PIPE_CONTROL_RENDER_TARGET_FLUSH,
-                                    "cache history: post color clear");
+   iris_dirty_for_history(ice, res);
 
    iris_resource_finish_render(ice, res, level,
                                box->z, box->depth, aux_usage);
@@ -406,7 +405,7 @@ can_fast_clear_depth(struct iris_context *ice,
       return false;
    }
 
-   if (!iris_resource_level_has_hiz(res, level))
+   if (!iris_resource_level_has_hiz(devinfo, res, level))
       return false;
 
    if (!blorp_can_hiz_clear_depth(devinfo, &res->surf, res->aux.usage,
@@ -544,8 +543,7 @@ clear_depth_stencil(struct iris_context *ice,
        can_fast_clear_depth(ice, z_res, level, box, render_condition_enabled,
                             depth)) {
       fast_clear_depth(ice, z_res, level, box, depth);
-      iris_flush_and_dirty_for_history(ice, batch, res, 0,
-                                       "cache history: post fast Z clear");
+      iris_dirty_for_history(ice, res);
       clear_depth = false;
       z_res = false;
    }
@@ -595,8 +593,7 @@ clear_depth_stencil(struct iris_context *ice,
    blorp_batch_finish(&blorp_batch);
    iris_batch_sync_region_end(batch);
 
-   iris_flush_and_dirty_for_history(ice, batch, res, 0,
-                                    "cache history: post slow ZS clear");
+   iris_dirty_for_history(ice, res);
 
    if (clear_depth && z_res) {
       iris_resource_finish_render(ice, z_res, level, box->z, box->depth,

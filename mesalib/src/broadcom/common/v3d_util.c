@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Raspberry Pi
+ * Copyright © 2021 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -121,4 +121,52 @@ v3d_choose_tile_size(uint32_t color_attachment_count, uint32_t max_color_bpp,
 
    *width = tile_sizes[idx * 2];
    *height = tile_sizes[idx * 2 + 1];
+}
+
+/* Translates a pipe swizzle to the swizzle values used in the
+ * TEXTURE_SHADER_STATE packet.
+ */
+uint32_t
+v3d_translate_pipe_swizzle(enum pipe_swizzle swizzle)
+{
+   switch (swizzle) {
+   case PIPE_SWIZZLE_0:
+      return 0;
+   case PIPE_SWIZZLE_1:
+      return 1;
+   case PIPE_SWIZZLE_X:
+   case PIPE_SWIZZLE_Y:
+   case PIPE_SWIZZLE_Z:
+   case PIPE_SWIZZLE_W:
+      return 2 + swizzle;
+   default:
+      unreachable("unknown swizzle");
+   }
+}
+
+/* Translates a pipe primitive type to a hw value we can use in the various
+ * draw packets.
+ */
+uint32_t
+v3d_hw_prim_type(enum pipe_prim_type prim_type)
+{
+   switch (prim_type) {
+   case PIPE_PRIM_POINTS:
+   case PIPE_PRIM_LINES:
+   case PIPE_PRIM_LINE_LOOP:
+   case PIPE_PRIM_LINE_STRIP:
+   case PIPE_PRIM_TRIANGLES:
+   case PIPE_PRIM_TRIANGLE_STRIP:
+   case PIPE_PRIM_TRIANGLE_FAN:
+      return prim_type;
+
+   case PIPE_PRIM_LINES_ADJACENCY:
+   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
+   case PIPE_PRIM_TRIANGLES_ADJACENCY:
+   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
+      return 8 + (prim_type - PIPE_PRIM_LINES_ADJACENCY);
+
+   default:
+      unreachable("Unsupported primitive type");
+   }
 }

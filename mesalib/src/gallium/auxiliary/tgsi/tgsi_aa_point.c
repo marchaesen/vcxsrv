@@ -47,6 +47,7 @@ struct aa_transform_context
    unsigned num_imm;       // number of immediates
    unsigned num_input;     // number of inputs
    unsigned aa_point_coord_index;
+   bool need_texcoord_semantic;
 };
 
 static inline struct aa_transform_context *
@@ -113,8 +114,15 @@ aa_prolog(struct tgsi_transform_context *ctx)
 
    /* Declare new generic input/texcoord */
    texIn = ts->num_input++;
-   tgsi_transform_input_decl(ctx, texIn, TGSI_SEMANTIC_GENERIC,
-                             ts->aa_point_coord_index, TGSI_INTERPOLATE_LINEAR);
+   if (ts->need_texcoord_semantic) {
+      tgsi_transform_input_decl(ctx, texIn, TGSI_SEMANTIC_TEXCOORD,
+                                ts->aa_point_coord_index,
+                                TGSI_INTERPOLATE_LINEAR);
+   } else {
+      tgsi_transform_input_decl(ctx, texIn, TGSI_SEMANTIC_GENERIC,
+                                ts->aa_point_coord_index,
+                                TGSI_INTERPOLATE_LINEAR);
+   }
 
    /* Declare extra immediates */
    imm = ts->num_imm++;
@@ -271,17 +279,12 @@ aa_epilog(struct tgsi_transform_context *ctx)
  */
 struct tgsi_token *
 tgsi_add_aa_point(const struct tgsi_token *tokens_in,
-                  const int aa_point_coord_index)
+                  const int aa_point_coord_index,
+                  const bool need_texcoord_semantic)
 {
    struct aa_transform_context transform;
    const uint num_new_tokens = 200; /* should be enough */
    const uint new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
-   struct tgsi_token *new_tokens;
-
-   /* allocate new tokens buffer */
-   new_tokens = tgsi_alloc_tokens(new_len);
-   if (!new_tokens)
-      return NULL;
 
    /* setup transformation context */
    memset(&transform, 0, sizeof(transform));
@@ -297,13 +300,11 @@ tgsi_add_aa_point(const struct tgsi_token *tokens_in,
 
    assert(aa_point_coord_index != -1);
    transform.aa_point_coord_index = (unsigned)aa_point_coord_index;
+   transform.need_texcoord_semantic = need_texcoord_semantic;
 
    transform.num_tmp = 0;
    transform.num_imm = 0;
    transform.num_input = 0;
 
-   /* transform the shader */
-   tgsi_transform_shader(tokens_in, new_tokens, new_len, &transform.base);
-
-   return new_tokens;
+   return tgsi_transform_shader(tokens_in, new_len, &transform.base);
 }

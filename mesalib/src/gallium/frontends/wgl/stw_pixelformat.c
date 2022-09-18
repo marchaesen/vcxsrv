@@ -36,6 +36,7 @@
 #include <GL/gl.h>
 #include "gldrv.h"
 #include "stw_device.h"
+#include "stw_framebuffer.h"
 #include "stw_pixelformat.h"
 #include "stw_tls.h"
 #include "stw_winsys.h"
@@ -252,7 +253,17 @@ add_color_format_variants(const struct stw_pf_color_info *color_formats,
     * to force all pixel formats to have a particular number of samples.
     */
    {
-      const char *samples= getenv("SVGA_FORCE_MSAA");
+      const char *samples = getenv("WGL_FORCE_MSAA");
+      if (!samples) {
+         static bool warned = false;
+         samples = getenv("SVGA_FORCE_MSAA");
+         if (samples && !warned) {
+            fprintf(stderr, "*** SVGA_FORCE_MSAA is deprecated; "
+                    "use WGL_FORCE_MSAA instead ***\n");
+            warned = true;
+         }
+      }
+
       if (samples)
          force_samples = atoi(samples);
    }
@@ -370,6 +381,52 @@ stw_pixelformat_get_info(int iPixelFormat)
    return util_dynarray_element(&stw_dev->pixelformats,
                                 struct stw_pixelformat_info,
                                 index);
+}
+
+/**
+ * Return the stw pixel format that most closely matches the pixel format
+ * on HDC.
+ * Used to get a pixel format when SetPixelFormat() hasn't been called before.
+ */
+int
+stw_pixelformat_guess(HDC hdc)
+{
+   int iPixelFormat = GetPixelFormat(hdc);
+   PIXELFORMATDESCRIPTOR pfd;
+
+   if (!iPixelFormat)
+      return 0;
+   if (!DescribePixelFormat(hdc, iPixelFormat, sizeof(pfd), &pfd))
+      return 0;
+   return stw_pixelformat_choose(hdc, &pfd);
+}
+
+const struct stw_pixelformat_info *
+stw_pixelformat_get_info_from_hdc(HDC hdc)
+{
+   /*
+    * GDI only knows about displayable pixel formats, so determine the pixel
+    * format from the framebuffer.
+    *
+    * This also allows to use a OpenGL DLL / ICD without installing.
+    */
+   struct stw_framebuffer *fb;
+   fb = stw_framebuffer_from_hdc(hdc);
+   if (fb) {
+      const struct stw_pixelformat_info *pfi = fb->pfi;
+      stw_framebuffer_unlock(fb);
+      return pfi;
+   }
+
+   /* Applications should call SetPixelFormat before creating a context,
+    * but not all do, and the opengl32 runtime seems to use a default
+    * pixel format in some cases, so use that.
+    */
+   int iPixelFormat = stw_pixelformat_guess(hdc);
+   if (!iPixelFormat)
+      return 0;
+   
+   return stw_pixelformat_get_info( iPixelFormat );
 }
 
 

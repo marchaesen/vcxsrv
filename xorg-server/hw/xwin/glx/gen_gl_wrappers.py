@@ -21,7 +21,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
-import sys, time, pdb, string, cProfile
+import sys, time
 from reg import *
 
 # debug - start header generation in debugger
@@ -216,8 +216,6 @@ if dispatchheader :
 
         if m1 :
             dispatch[prefix+m1.group(1)] = 1
-
-    del dispatch['glby_offset']
 
 def ParseCmdRettype(cmd):
     proto=noneStr(cmd.elem.find('proto'))

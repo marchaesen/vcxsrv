@@ -67,9 +67,12 @@ class Extension:
     core_since     = None
 
     # these are specific to zink_device_info.py:
-    has_properties = False
-    has_features   = False
-    guard          = False
+    has_properties      = False
+    has_features        = False
+    guard               = False
+    features_promoted   = False
+    properties_promoted = False
+    
 
     # these are specific to zink_instance.py:
     platform_guard = None
@@ -99,13 +102,39 @@ class Extension:
     # e.g.: "VK_EXT_robustness2" -> "Robustness2"
     def name_in_camel_case(self):
         return "".join([x.title() for x in self.name.split('_')[2:]])
-    
-    # e.g.: "VK_EXT_robustness2" -> "VK_EXT_ROBUSTNESS2_EXTENSION_NAME"
-    # do note that inconsistencies exist, i.e. we have
-    # VK_EXT_ROBUSTNESS_2_EXTENSION_NAME defined in the headers, but then
-    # we also have VK_KHR_MAINTENANCE1_EXTENSION_NAME
+
+    # e.g.: "VK_EXT_robustness2" -> "VK_EXT_ROBUSTNESS_2"
+    def name_in_snake_uppercase(self):
+        def replace(original):
+            # we do not split the types into two, e.g. INT_32
+            match_types = re.match(".*(int|float)(8|16|32|64)$", original)
+
+            # do not match win32
+            match_os = re.match(".*win32$", original)
+
+            # try to match extensions with alphanumeric names, like robustness2
+            match_alphanumeric = re.match("([a-z]+)(\d+)", original)
+
+            if match_types is not None or match_os is not None:
+                return original.upper()
+
+            if match_alphanumeric is not None:
+                return (match_alphanumeric[1].upper()
+                        + '_' 
+                        + match_alphanumeric[2])
+
+            return original.upper()
+
+        replaced = list(map(replace, self.name.split('_')))
+        return '_'.join(replaced)
+
+    # e.g.: "VK_EXT_robustness2" -> "ROBUSTNESS_2"
+    def pure_name_in_snake_uppercase(self):
+        return '_'.join(self.name_in_snake_uppercase().split('_')[2:])
+
+    # e.g.: "VK_EXT_robustness2" -> "VK_EXT_ROBUSTNESS_2_EXTENSION_NAME"
     def extension_name(self):
-        return self.name.upper() + "_EXTENSION_NAME"
+        return self.name_in_snake_uppercase() + "_EXTENSION_NAME"
 
     # generate a C string literal for the extension
     def extension_name_literal(self):
@@ -131,7 +160,7 @@ class Extension:
     # for VK_EXT_transform_feedback and struct="FEATURES"
     def stype(self, struct: str):
         return ("VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_" 
-                + self.pure_name().upper()
+                + self.pure_name_in_snake_uppercase()
                 + '_' + struct + '_' 
                 + self.vendor())
 
@@ -153,7 +182,11 @@ class ExtensionRegistryEntry:
     instance_commands = None
     constants         = None
     features_struct   = None
+    features_fields   = None
+    features_promoted = False
     properties_struct = None
+    properties_fields = None
+    properties_promoted = False
     # some instance extensions are locked behind certain platforms
     platform_guard    = ""
 
@@ -165,8 +198,9 @@ class ExtensionRegistry:
         vkxml = ElementTree.parse(vkxml_path)
 
         commands_type = dict()
-        aliases = dict()
+        command_aliases = dict()
         platform_guards = dict()
+        struct_aliases = dict()
 
         for cmd in vkxml.findall("commands/command"):
             name = cmd.find("./proto/name")
@@ -174,9 +208,19 @@ class ExtensionRegistry:
             if name is not None and name.text:
                 commands_type[name.text] = cmd.find("./param/type").text
             elif cmd.get("name") is not None:
-                aliases[cmd.get("name")] = cmd.get("alias")
+                command_aliases[cmd.get("name")] = cmd.get("alias")
 
-        for (cmd, alias) in aliases.items():
+        for typ in vkxml.findall("types/type"):
+            if typ.get("category") != "struct":
+                continue
+
+            name = typ.get("name")
+            alias = typ.get("alias")
+
+            if name and alias:
+                struct_aliases[name] = alias
+
+        for (cmd, alias) in command_aliases.items():
             commands_type[cmd] = commands_type[alias]
 
         for platform in vkxml.findall("platforms/platform"):
@@ -198,6 +242,8 @@ class ExtensionRegistry:
             entry.device_commands = []
             entry.pdevice_commands = []
             entry.instance_commands = []
+            entry.features_fields = []
+            entry.properties_fields = []
 
             for cmd in ext.findall("require/command"):
                 cmd_name = cmd.get("name")
@@ -223,9 +269,47 @@ class ExtensionRegistry:
                 if (self.is_features_struct(ty_name) and
                     entry.features_struct is None):
                     entry.features_struct = ty_name
+                    
                 elif (self.is_properties_struct(ty_name) and
                       entry.properties_struct is None):
                     entry.properties_struct = ty_name
+
+            if entry.features_struct:
+                struct_name = entry.features_struct
+                if entry.features_struct in struct_aliases:
+                    struct_name = struct_aliases[entry.features_struct]
+                    entry.features_promoted = True
+
+                elif entry.promoted_in is not None:
+                    # if the extension is promoted but a core-Vulkan alias is not
+                    # available for the features, then consider the features struct
+                    # non-core-promoted
+                    entry.features_promoted = False
+
+                for field in vkxml.findall("./types/type[@name='{}']/member".format(struct_name)):
+                    field_name = field.find("name").text
+                    
+                    # we ignore sType and pNext since they are irrelevant
+                    if field_name not in ["sType", "pNext"]:
+                        entry.features_fields.append(field_name)
+
+            if entry.properties_struct:
+                struct_name = entry.properties_struct
+                if entry.properties_struct in struct_aliases:
+                    struct_name = struct_aliases[entry.properties_struct]
+                    entry.properties_promoted = True
+
+                elif entry.promoted_in is not None:
+                    # if the extension is promoted but a core-Vulkan alias is not
+                    # available for the properties, then it is not promoted to core
+                    entry.properties_promoted = False
+                
+                for field in vkxml.findall("./types/type[@name='{}']/member".format(struct_name)):
+                    field_name = field.find("name").text
+
+                    # we ignore sType and pNext since they are irrelevant
+                    if field_name not in ["sType", "pNext"]:
+                        entry.properties_fields.append(field_name)
 
             if ext.get("platform") is not None:
                 entry.platform_guard = platform_guards[ext.get("platform")]

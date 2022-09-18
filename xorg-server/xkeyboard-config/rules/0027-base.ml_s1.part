@@ -1,2 +1,2 @@
 ! model		layout		=	symbols
- $inetmediakbds	jp	=	+jp(henkan)
+ $inetmediakbds	jp		=	+jp(henkan)

@@ -13,7 +13,7 @@ arch2=${5:-$2}
 # and allowing it in code generation means we get unwind symbols that break
 # the libEGL and driver symbol tests.
 
-cat >$cross_file <<EOF
+cat > "$cross_file" <<EOF
 [binaries]
 ar = '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/$arch-ar'
 c = ['ccache', '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/${arch2}29-clang', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables']

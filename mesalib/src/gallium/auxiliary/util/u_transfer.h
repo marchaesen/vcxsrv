@@ -16,6 +16,12 @@ void u_default_buffer_subdata(struct pipe_context *pipe,
                               unsigned usage, unsigned offset,
                               unsigned size, const void *data);
 
+void u_default_clear_buffer(struct pipe_context *pipe,
+                            struct pipe_resource *resource,
+                            unsigned offset, unsigned size,
+                            const void *clear_value,
+                            int clear_value_size);
+
 void u_default_texture_subdata(struct pipe_context *pipe,
                                struct pipe_resource *resource,
                                unsigned level,

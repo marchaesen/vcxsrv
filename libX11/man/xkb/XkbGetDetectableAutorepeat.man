@@ -32,10 +32,10 @@ DetectableAutoRepeat
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- supported_rtrn
+.I supported_rtrn
 backfilled True if DetectableAutoRepeat supported
 .SH DESCRIPTION
 .LP

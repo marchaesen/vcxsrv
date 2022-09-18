@@ -146,7 +146,7 @@ tex_dimension(unsigned target)
 {
    switch (target) {
    default:
-      assert(0);
+      unreachable("Unsupported target");
    case PIPE_TEXTURE_1D:
       assert(0); /* TODO */
       return SQ_TEX_DIMENSION_1D;

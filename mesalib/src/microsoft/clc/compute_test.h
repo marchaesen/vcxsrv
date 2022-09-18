@@ -82,7 +82,7 @@ protected:
             ranges.back().RegisterSpace == spaceid &&
             ranges.back().BaseShaderRegister + ranges.back().NumDescriptors == resid) {
             ranges.back().NumDescriptors++;
-	    return;
+            return;
          }
 
          D3D12_DESCRIPTOR_RANGE1 range;
@@ -245,7 +245,7 @@ protected:
       ShaderArg<T>& operator =(const T &v)
       {
          this->clear();
-	 this->push_back(v);
+         this->push_back(v);
          return *this;
       }
 
@@ -254,13 +254,13 @@ protected:
 
       ShaderArg<T>& operator =(const std::vector<T> &v)
       {
-	 *this = v;
+         *this = v;
          return *this;
       }
 
       ShaderArg<T>& operator =(std::initializer_list<T> v)
       {
-	 *this = v;
+         *this = v;
          return *this;
       }
 

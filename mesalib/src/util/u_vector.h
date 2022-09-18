@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-/* 
+/*
  * u_vector is a vector based queue for storing arbitrary
  * sized arrays of objects without using a linked list.
  */

@@ -34,13 +34,13 @@ key to get its semantics updated
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description to be updated
 .TP
-.I \- key
+.I key
 key to be updated
 .TP
-.I \- changes
+.I changes
 notes changes to the Xkb keyboard description
 .SH DESCRIPTION
 .LP

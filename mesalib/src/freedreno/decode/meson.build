@@ -56,7 +56,7 @@ libfreedreno_cffdec = static_library(
 
 if dep_libarchive.found()
   libfreedreno_io = static_library(
-    'libfreedreno_io',
+    'freedreno_io',
     [
       'io.c',
       'io.h',

@@ -37,19 +37,19 @@ extension device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- which
+.I which
 mask indicating information to return
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- ind_class
+.I ind_class
 feedback class for indicator requests
 .TP
-.I \- ind_id
+.I ind_id
 feedback ID for indicator requests
 .SH DESCRIPTION
 .LP

@@ -259,17 +259,9 @@ ir_texture::clone(void *mem_ctx, struct hash_table *ht) const
 ir_assignment *
 ir_assignment::clone(void *mem_ctx, struct hash_table *ht) const
 {
-   ir_rvalue *new_condition = NULL;
-
-   if (this->condition)
-      new_condition = this->condition->clone(mem_ctx, ht);
-
-   ir_assignment *cloned =
-      new(mem_ctx) ir_assignment(this->lhs->clone(mem_ctx, ht),
-                                 this->rhs->clone(mem_ctx, ht),
-                                 new_condition);
-   cloned->write_mask = this->write_mask;
-   return cloned;
+   return new(mem_ctx) ir_assignment(this->lhs->clone(mem_ctx, ht),
+                                     this->rhs->clone(mem_ctx, ht),
+                                     this->write_mask);
 }
 
 ir_function *

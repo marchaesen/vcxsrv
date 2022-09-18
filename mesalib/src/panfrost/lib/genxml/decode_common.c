@@ -34,6 +34,7 @@
 #include "util/macros.h"
 #include "util/u_debug.h"
 #include "util/u_dynarray.h"
+#include "util/simple_mtx.h"
 
 FILE *pandecode_dump_stream;
 
@@ -42,6 +43,8 @@ FILE *pandecode_dump_stream;
 static struct rb_tree mmap_tree;
 
 static struct util_dynarray ro_mappings;
+
+static simple_mtx_t pandecode_lock = _SIMPLE_MTX_INITIALIZER_NP;
 
 #define to_mapped_memory(x) \
 	rb_node_data(struct pandecode_mapped_memory, x, node)
@@ -72,6 +75,8 @@ pandecode_cmp(const struct rb_node *lhs, const struct rb_node *rhs)
 static struct pandecode_mapped_memory *
 pandecode_find_mapped_gpu_mem_containing_rw(uint64_t addr)
 {
+        simple_mtx_assert_locked(&pandecode_lock);
+
         struct rb_node *node = rb_tree_search(&mmap_tree, &addr, pandecode_cmp_key);
 
         return to_mapped_memory(node);
@@ -80,6 +85,8 @@ pandecode_find_mapped_gpu_mem_containing_rw(uint64_t addr)
 struct pandecode_mapped_memory *
 pandecode_find_mapped_gpu_mem_containing(uint64_t addr)
 {
+        simple_mtx_assert_locked(&pandecode_lock);
+
         struct pandecode_mapped_memory *mem = pandecode_find_mapped_gpu_mem_containing_rw(addr);
 
         if (mem && mem->addr && !mem->ro) {
@@ -94,6 +101,8 @@ pandecode_find_mapped_gpu_mem_containing(uint64_t addr)
 void
 pandecode_map_read_write(void)
 {
+        simple_mtx_assert_locked(&pandecode_lock);
+
         util_dynarray_foreach(&ro_mappings, struct pandecode_mapped_memory *, mem) {
                 (*mem)->ro = false;
                 mprotect((*mem)->addr, (*mem)->length, PROT_READ | PROT_WRITE);
@@ -104,6 +113,8 @@ pandecode_map_read_write(void)
 static void
 pandecode_add_name(struct pandecode_mapped_memory *mem, uint64_t gpu_va, const char *name)
 {
+        simple_mtx_assert_locked(&pandecode_lock);
+
         if (!name) {
                 /* If we don't have a name, assign one */
 
@@ -118,6 +129,8 @@ pandecode_add_name(struct pandecode_mapped_memory *mem, uint64_t gpu_va, const c
 void
 pandecode_inject_mmap(uint64_t gpu_va, void *cpu, unsigned sz, const char *name)
 {
+        simple_mtx_lock(&pandecode_lock);
+
         /* First, search if we already mapped this and are just updating an address */
 
         struct pandecode_mapped_memory *existing =
@@ -127,41 +140,47 @@ pandecode_inject_mmap(uint64_t gpu_va, void *cpu, unsigned sz, const char *name)
                 existing->length = sz;
                 existing->addr = cpu;
                 pandecode_add_name(existing, gpu_va, name);
-                return;
+        } else {
+                /* Otherwise, add a fresh mapping */
+                struct pandecode_mapped_memory *mapped_mem = NULL;
+
+                mapped_mem = calloc(1, sizeof(*mapped_mem));
+                mapped_mem->gpu_va = gpu_va;
+                mapped_mem->length = sz;
+                mapped_mem->addr = cpu;
+                pandecode_add_name(mapped_mem, gpu_va, name);
+
+                /* Add it to the tree */
+                rb_tree_insert(&mmap_tree, &mapped_mem->node, pandecode_cmp);
         }
 
-        /* Otherwise, add a fresh mapping */
-        struct pandecode_mapped_memory *mapped_mem = NULL;
-
-        mapped_mem = calloc(1, sizeof(*mapped_mem));
-        mapped_mem->gpu_va = gpu_va;
-        mapped_mem->length = sz;
-        mapped_mem->addr = cpu;
-        pandecode_add_name(mapped_mem, gpu_va, name);
-
-        /* Add it to the tree */
-        rb_tree_insert(&mmap_tree, &mapped_mem->node, pandecode_cmp);
+        simple_mtx_unlock(&pandecode_lock);
 }
 
 void
 pandecode_inject_free(uint64_t gpu_va, unsigned sz)
 {
+        simple_mtx_lock(&pandecode_lock);
+
         struct pandecode_mapped_memory *mem =
                 pandecode_find_mapped_gpu_mem_containing_rw(gpu_va);
 
-        if (!mem)
-                return;
+        if (mem) {
+                assert(mem->gpu_va == gpu_va);
+                assert(mem->length == sz);
 
-        assert(mem->gpu_va == gpu_va);
-        assert(mem->length == sz);
+                rb_tree_remove(&mmap_tree, &mem->node);
+                free(mem);
+        }
 
-        rb_tree_remove(&mmap_tree, &mem->node);
-        free(mem);
+        simple_mtx_unlock(&pandecode_lock);
 }
 
 char *
 pointer_as_memory_reference(uint64_t ptr)
 {
+        simple_mtx_assert_locked(&pandecode_lock);
+
         struct pandecode_mapped_memory *mapped;
         char *out = malloc(128);
 
@@ -188,6 +207,8 @@ static bool force_stderr = false;
 void
 pandecode_dump_file_open(void)
 {
+        simple_mtx_assert_locked(&pandecode_lock);
+
         if (pandecode_dump_stream)
                 return;
 
@@ -212,6 +233,8 @@ pandecode_dump_file_open(void)
 static void
 pandecode_dump_file_close(void)
 {
+        simple_mtx_assert_locked(&pandecode_lock);
+
         if (pandecode_dump_stream && pandecode_dump_stream != stderr) {
                 if (fclose(pandecode_dump_stream))
                         perror("pandecode: dump file");
@@ -231,24 +254,35 @@ pandecode_initialize(bool to_stderr)
 void
 pandecode_next_frame(void)
 {
+        simple_mtx_lock(&pandecode_lock);
+
         pandecode_dump_file_close();
         pandecode_dump_frame_count++;
+
+        simple_mtx_unlock(&pandecode_lock);
 }
 
 void
 pandecode_close(void)
 {
+        simple_mtx_lock(&pandecode_lock);
+
         rb_tree_foreach_safe(struct pandecode_mapped_memory, it, &mmap_tree, node) {
+                rb_tree_remove(&mmap_tree, &it->node);
                 free(it);
         }
 
         util_dynarray_fini(&ro_mappings);
         pandecode_dump_file_close();
+
+        simple_mtx_unlock(&pandecode_lock);
 }
 
 void
 pandecode_dump_mappings(void)
 {
+        simple_mtx_lock(&pandecode_lock);
+
         pandecode_dump_file_open();
 
         rb_tree_foreach(struct pandecode_mapped_memory, it, &mmap_tree, node) {
@@ -261,42 +295,41 @@ pandecode_dump_mappings(void)
                 pan_hexdump(pandecode_dump_stream, it->addr, it->length, false);
                 fprintf(pandecode_dump_stream, "\n");
         }
-}
 
-void pandecode_abort_on_fault_v4(mali_ptr jc_gpu_va);
-void pandecode_abort_on_fault_v5(mali_ptr jc_gpu_va);
-void pandecode_abort_on_fault_v6(mali_ptr jc_gpu_va);
-void pandecode_abort_on_fault_v7(mali_ptr jc_gpu_va);
-void pandecode_abort_on_fault_v9(mali_ptr jc_gpu_va);
+        fflush(pandecode_dump_stream);
+        simple_mtx_unlock(&pandecode_lock);
+}
 
 void
 pandecode_abort_on_fault(mali_ptr jc_gpu_va, unsigned gpu_id)
 {
+        simple_mtx_lock(&pandecode_lock);
+
         switch (pan_arch(gpu_id)) {
-        case 4: pandecode_abort_on_fault_v4(jc_gpu_va); return;
-        case 5: pandecode_abort_on_fault_v5(jc_gpu_va); return;
-        case 6: pandecode_abort_on_fault_v6(jc_gpu_va); return;
-        case 7: pandecode_abort_on_fault_v7(jc_gpu_va); return;
-        case 9: pandecode_abort_on_fault_v9(jc_gpu_va); return;
+        case 4: pandecode_abort_on_fault_v4(jc_gpu_va); break;
+        case 5: pandecode_abort_on_fault_v5(jc_gpu_va); break;
+        case 6: pandecode_abort_on_fault_v6(jc_gpu_va); break;
+        case 7: pandecode_abort_on_fault_v7(jc_gpu_va); break;
+        case 9: pandecode_abort_on_fault_v9(jc_gpu_va); break;
         default: unreachable("Unsupported architecture");
         }
-}
 
-void pandecode_jc_v4(mali_ptr jc_gpu_va, unsigned gpu_id);
-void pandecode_jc_v5(mali_ptr jc_gpu_va, unsigned gpu_id);
-void pandecode_jc_v6(mali_ptr jc_gpu_va, unsigned gpu_id);
-void pandecode_jc_v7(mali_ptr jc_gpu_va, unsigned gpu_id);
-void pandecode_jc_v9(mali_ptr jc_gpu_va, unsigned gpu_id);
+        simple_mtx_unlock(&pandecode_lock);
+}
 
 void
 pandecode_jc(mali_ptr jc_gpu_va, unsigned gpu_id)
 {
+        simple_mtx_lock(&pandecode_lock);
+
         switch (pan_arch(gpu_id)) {
-        case 4: pandecode_jc_v4(jc_gpu_va, gpu_id); return;
-        case 5: pandecode_jc_v5(jc_gpu_va, gpu_id); return;
-        case 6: pandecode_jc_v6(jc_gpu_va, gpu_id); return;
-        case 7: pandecode_jc_v7(jc_gpu_va, gpu_id); return;
-        case 9: pandecode_jc_v9(jc_gpu_va, gpu_id); return;
+        case 4: pandecode_jc_v4(jc_gpu_va, gpu_id); break;
+        case 5: pandecode_jc_v5(jc_gpu_va, gpu_id); break;
+        case 6: pandecode_jc_v6(jc_gpu_va, gpu_id); break;
+        case 7: pandecode_jc_v7(jc_gpu_va, gpu_id); break;
+        case 9: pandecode_jc_v9(jc_gpu_va, gpu_id); break;
         default: unreachable("Unsupported architecture");
         }
+
+        simple_mtx_unlock(&pandecode_lock);
 }

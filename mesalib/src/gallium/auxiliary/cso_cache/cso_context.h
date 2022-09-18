@@ -35,7 +35,7 @@
 #include "cso_cache.h"
 
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -216,7 +216,7 @@ cso_draw_arrays_instanced(struct cso_context *cso, uint mode,
 void
 cso_draw_arrays(struct cso_context *cso, uint mode, uint start, uint count);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

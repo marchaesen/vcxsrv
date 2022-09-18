@@ -134,6 +134,7 @@ st_vdpau_resource_from_description(struct gl_context *ctx,
    whandle.modifier = DRM_FORMAT_MOD_INVALID;
    whandle.offset = desc->offset;
    whandle.stride = desc->stride;
+   whandle.format = VdpFormatRGBAToPipe(desc->format);
 
    res = st->screen->resource_from_handle(st->screen, &templ, &whandle,
                                           PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE);

@@ -130,11 +130,11 @@ setup_reduce_temp(Program* program)
                                 op == imul16 || op == imax16 || op == imin16 || op == umin16 ||
                                 op == iadd64;
 
-         if (program->chip_class >= GFX10 && cluster_size == 64)
+         if (program->gfx_level >= GFX10 && cluster_size == 64)
             need_vtmp = true;
-         if (program->chip_class >= GFX10 && gfx10_need_vtmp)
+         if (program->gfx_level >= GFX10 && gfx10_need_vtmp)
             need_vtmp = true;
-         if (program->chip_class <= GFX7)
+         if (program->gfx_level <= GFX7)
             need_vtmp = true;
 
          need_vtmp |= cluster_size == 32;

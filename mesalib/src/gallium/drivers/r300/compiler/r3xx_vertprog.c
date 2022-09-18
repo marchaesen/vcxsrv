@@ -33,7 +33,6 @@
 #include "radeon_program_alu.h"
 #include "radeon_swizzle.h"
 #include "radeon_emulate_branches.h"
-#include "radeon_emulate_loops.h"
 #include "radeon_remove_constants.h"
 
 #include "util/compiler.h"
@@ -372,10 +371,14 @@ static void translate_vertex_program(struct radeon_compiler *c, void *user)
 
 	unsigned loops[R500_PVS_MAX_LOOP_DEPTH] = {};
 	unsigned loop_depth = 0;
+	bool last_input_read_at_loop_end = false;
+	bool last_pos_write_at_loop_end = false;
 
 	compiler->code->pos_end = 0;	/* Not supported yet */
 	compiler->code->length = 0;
 	compiler->code->num_temporaries = 0;
+	compiler->code->last_input_read = 0;
+	compiler->code->last_pos_write = 0;
 
 	compiler->SetHwInputOutput(compiler);
 
@@ -448,6 +451,15 @@ static void translate_vertex_program(struct radeon_compiler *c, void *user)
 			unsigned int act_addr;
 			unsigned int last_addr;
 			unsigned int ret_addr;
+
+			if (loop_depth == 1 && last_input_read_at_loop_end) {
+				compiler->code->last_input_read = compiler->code->length / 4;
+				last_input_read_at_loop_end = false;
+			}
+			if (loop_depth == 1 && last_pos_write_at_loop_end) {
+				compiler->code->last_pos_write = compiler->code->length / 4;
+				last_pos_write_at_loop_end = false;
+			}
 
 			ret_addr = loops[--loop_depth];
 			act_addr = ret_addr - 1;
@@ -537,10 +549,28 @@ static void translate_vertex_program(struct radeon_compiler *c, void *user)
 		    vpi->DstReg.Index >= compiler->code->num_temporaries)
 			compiler->code->num_temporaries = vpi->DstReg.Index + 1;
 
-		for (unsigned i = 0; i < info->NumSrcRegs; i++)
+		/* last instruction that writes position */
+		if (info->HasDstReg && vpi->DstReg.File == RC_FILE_OUTPUT &&
+		    t_dst_index(compiler->code, &vpi->DstReg) == 0) {
+			if (loop_depth == 0)
+				compiler->code->last_pos_write = compiler->code->length / 4;
+			else
+				last_pos_write_at_loop_end = true;
+		}
+
+		for (unsigned i = 0; i < info->NumSrcRegs; i++) {
 			if (vpi->SrcReg[i].File == RC_FILE_TEMPORARY &&
 			    vpi->SrcReg[i].Index >= compiler->code->num_temporaries)
 				compiler->code->num_temporaries = vpi->SrcReg[i].Index + 1;
+			if (vpi->SrcReg[i].File == RC_FILE_INPUT) {
+				if (loop_depth == 0)
+					compiler->code->last_input_read = compiler->code->length / 4;
+				else
+					last_input_read_at_loop_end = true;
+			}
+
+		}
+
 
 		if (compiler->code->num_temporaries > compiler->Base.max_temp_regs) {
 			rc_error(&compiler->Base, "Too many temporaries.\n");
@@ -685,12 +715,13 @@ static int transform_nonnative_modifiers(
 			new_inst->U.I.DstReg.File = RC_FILE_TEMPORARY;
 			new_inst->U.I.DstReg.Index = temp;
 			new_inst->U.I.SrcReg[0] = inst->U.I.SrcReg[i];
+			new_inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_XYZW;
 			new_inst->U.I.SrcReg[1] = inst->U.I.SrcReg[i];
+			new_inst->U.I.SrcReg[1].Swizzle = RC_SWIZZLE_XYZW;
 			new_inst->U.I.SrcReg[1].Negate ^= RC_MASK_XYZW;
 
 			inst->U.I.SrcReg[i].File = RC_FILE_TEMPORARY;
 			inst->U.I.SrcReg[i].Index = temp;
-			inst->U.I.SrcReg[i].Swizzle = RC_SWIZZLE_XYZW;
 			inst->U.I.SrcReg[i].RelAddr = 0;
 		}
 	}

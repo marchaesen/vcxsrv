@@ -127,13 +127,25 @@ vlVaMapBuffer(VADriverContextP ctx, VABufferID buf_id, void **pbuff)
    if (buf->derived_surface.resource) {
       struct pipe_resource *resource;
       struct pipe_box box = {};
+      void *(*map_func)(struct pipe_context *,
+             struct pipe_resource *resource,
+             unsigned level,
+             unsigned usage,  /* a combination of PIPE_MAP_x */
+             const struct pipe_box *,
+             struct pipe_transfer **out_transfer);
 
       resource = buf->derived_surface.resource;
       box.width = resource->width0;
       box.height = resource->height0;
       box.depth = resource->depth0;
-      *pbuff = drv->pipe->buffer_map(drv->pipe, resource, 0, PIPE_MAP_WRITE,
-                                       &box, &buf->derived_surface.transfer);
+
+      if (resource->target == PIPE_BUFFER)
+         map_func = drv->pipe->buffer_map;
+      else
+         map_func = drv->pipe->texture_map;
+
+      *pbuff = map_func(drv->pipe, resource, 0, PIPE_MAP_WRITE,
+                        &box, &buf->derived_surface.transfer);
       mtx_unlock(&drv->mutex);
 
       if (!buf->derived_surface.transfer || !*pbuff)
@@ -158,6 +170,7 @@ vlVaUnmapBuffer(VADriverContextP ctx, VABufferID buf_id)
 {
    vlVaDriver *drv;
    vlVaBuffer *buf;
+   struct pipe_resource *resource;
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -173,13 +186,22 @@ vlVaUnmapBuffer(VADriverContextP ctx, VABufferID buf_id)
       return VA_STATUS_ERROR_INVALID_BUFFER;
    }
 
-   if (buf->derived_surface.resource) {
+   resource = buf->derived_surface.resource;
+   if (resource) {
+      void (*unmap_func)(struct pipe_context *pipe,
+                         struct pipe_transfer *transfer);
+
       if (!buf->derived_surface.transfer) {
          mtx_unlock(&drv->mutex);
          return VA_STATUS_ERROR_INVALID_BUFFER;
       }
 
-      pipe_buffer_unmap(drv->pipe, buf->derived_surface.transfer);
+      if (resource->target == PIPE_BUFFER)
+         unmap_func = pipe_buffer_unmap;
+      else
+         unmap_func = pipe_texture_unmap;
+
+      unmap_func(drv->pipe, buf->derived_surface.transfer);
       buf->derived_surface.transfer = NULL;
    }
    mtx_unlock(&drv->mutex);

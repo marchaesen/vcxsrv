@@ -1,0 +1,339 @@
+/*
+ * Copyright © 2022 Konstantin Seurer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference2 : require
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#include "build_interface.h"
+
+layout(push_constant) uniform CONSTS {
+   leaf_args args;
+};
+
+/* Just a wrapper for 3 uints. */
+struct triangle_indices {
+   uint32_t index[3];
+};
+TYPE(triangle_indices, 12);
+
+triangle_indices
+load_indices(VOID_REF indices, uint32_t index_format, uint32_t global_id)
+{
+   triangle_indices result;
+
+   uint32_t index_base = global_id * 3;
+
+   switch (index_format) {
+   case VK_INDEX_TYPE_UINT16: {
+      result.index[0] = DEREF(INDEX(uint16_t, indices, index_base + 0));
+      result.index[1] = DEREF(INDEX(uint16_t, indices, index_base + 1));
+      result.index[2] = DEREF(INDEX(uint16_t, indices, index_base + 2));
+      break;
+   }
+   case VK_INDEX_TYPE_UINT32: {
+      result.index[0] = DEREF(INDEX(uint32_t, indices, index_base + 0));
+      result.index[1] = DEREF(INDEX(uint32_t, indices, index_base + 1));
+      result.index[2] = DEREF(INDEX(uint32_t, indices, index_base + 2));
+      break;
+   }
+   case VK_INDEX_TYPE_NONE_KHR: {
+      result.index[0] = index_base + 0;
+      result.index[1] = index_base + 1;
+      result.index[2] = index_base + 2;
+      break;
+   }
+   case VK_INDEX_TYPE_UINT8_EXT: {
+      result.index[0] = DEREF(INDEX(uint8_t, indices, index_base + 0));
+      result.index[1] = DEREF(INDEX(uint8_t, indices, index_base + 1));
+      result.index[2] = DEREF(INDEX(uint8_t, indices, index_base + 2));
+      break;
+   }
+   }
+
+   return result;
+}
+
+/* Just a wrapper for 3 vec4s. */
+struct triangle_vertices {
+   vec4 vertex[3];
+};
+TYPE(triangle_vertices, 48);
+
+TYPE(float16_t, 2);
+
+triangle_vertices
+load_vertices(VOID_REF vertices, triangle_indices indices, uint32_t vertex_format, uint32_t stride)
+{
+   triangle_vertices result;
+
+   for (uint32_t i = 0; i < 3; i++) {
+      VOID_REF vertex_ptr = OFFSET(vertices, indices.index[i] * stride);
+      vec4 vertex = vec4(0.0, 0.0, 0.0, 1.0);
+
+      switch (vertex_format) {
+      case VK_FORMAT_R32G32_SFLOAT:
+         vertex.x = DEREF(INDEX(float, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float, vertex_ptr, 1));
+         break;
+      case VK_FORMAT_R32G32B32_SFLOAT:
+      case VK_FORMAT_R32G32B32A32_SFLOAT:
+         vertex.x = DEREF(INDEX(float, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float, vertex_ptr, 1));
+         vertex.z = DEREF(INDEX(float, vertex_ptr, 2));
+         break;
+      case VK_FORMAT_R16G16_SFLOAT:
+         vertex.x = DEREF(INDEX(float16_t, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float16_t, vertex_ptr, 1));
+         break;
+      case VK_FORMAT_R16G16B16_SFLOAT:
+      case VK_FORMAT_R16G16B16A16_SFLOAT:
+         vertex.x = DEREF(INDEX(float16_t, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float16_t, vertex_ptr, 1));
+         vertex.z = DEREF(INDEX(float16_t, vertex_ptr, 2));
+         break;
+      case VK_FORMAT_R16G16_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 0)) / float(0x7FFF));
+         vertex.y = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 1)) / float(0x7FFF));
+         break;
+      case VK_FORMAT_R16G16B16A16_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 0)) / float(0x7FFF));
+         vertex.y = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 1)) / float(0x7FFF));
+         vertex.z = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 2)) / float(0x7FFF));
+         break;
+      case VK_FORMAT_R8G8_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 0)) / float(0x7F));
+         vertex.y = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 1)) / float(0x7F));
+         break;
+      case VK_FORMAT_R8G8B8A8_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 0)) / float(0x7F));
+         vertex.y = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 1)) / float(0x7F));
+         vertex.z = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 2)) / float(0x7F));
+         break;
+      case VK_FORMAT_R16G16_UNORM:
+         vertex.x = DEREF(INDEX(uint16_t, vertex_ptr, 0)) / float(0xFFFF);
+         vertex.y = DEREF(INDEX(uint16_t, vertex_ptr, 1)) / float(0xFFFF);
+         break;
+      case VK_FORMAT_R16G16B16A16_UNORM:
+         vertex.x = DEREF(INDEX(uint16_t, vertex_ptr, 0)) / float(0xFFFF);
+         vertex.y = DEREF(INDEX(uint16_t, vertex_ptr, 1)) / float(0xFFFF);
+         vertex.z = DEREF(INDEX(uint16_t, vertex_ptr, 2)) / float(0xFFFF);
+         break;
+      case VK_FORMAT_R8G8_UNORM:
+         vertex.x = DEREF(INDEX(uint8_t, vertex_ptr, 0)) / float(0xFF);
+         vertex.y = DEREF(INDEX(uint8_t, vertex_ptr, 1)) / float(0xFF);
+         break;
+      case VK_FORMAT_R8G8B8A8_UNORM:
+         vertex.x = DEREF(INDEX(uint8_t, vertex_ptr, 0)) / float(0xFF);
+         vertex.y = DEREF(INDEX(uint8_t, vertex_ptr, 1)) / float(0xFF);
+         vertex.z = DEREF(INDEX(uint8_t, vertex_ptr, 2)) / float(0xFF);
+         break;
+      case VK_FORMAT_A2B10G10R10_UNORM_PACK32: {
+         uint32_t data = DEREF(REF(uint32_t)(vertex_ptr));
+         vertex.x = float(data & 0x3FF) / 0x3FF;
+         vertex.y = float((data >> 10) & 0x3FF) / 0x3FF;
+         vertex.z = float((data >> 20) & 0x3FF) / 0x3FF;
+         break;
+      }
+      }
+
+      result.vertex[i] = vertex;
+   }
+
+   return result;
+}
+
+/* A GLSL-adapted copy of VkAccelerationStructureInstanceKHR. */
+struct AccelerationStructureInstance {
+   float transform[12];
+   uint32_t custom_instance_and_mask;
+   uint32_t sbt_offset_and_flags;
+   uint64_t accelerationStructureReference;
+};
+TYPE(AccelerationStructureInstance, 64);
+
+/* Returns whether the instance is active. */
+bool
+build_instance(inout AABB bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t global_id)
+{
+   REF(radv_bvh_instance_node) node = REF(radv_bvh_instance_node)(dst_ptr);
+
+   AccelerationStructureInstance instance = DEREF(REF(AccelerationStructureInstance)(src_ptr));
+   if (instance.accelerationStructureReference == 0)
+      return false;
+
+   mat4 transform = mat4(1.0);
+   for (uint32_t col = 0; col < 4; col++)
+      for (uint32_t row = 0; row < 3; row++)
+         transform[col][row] = instance.transform[col + row * 4];
+
+   mat4 inv_transform = inverse(transform);
+   for (uint32_t col = 0; col < 3; col++)
+      for (uint32_t row = 0; row < 3; row++)
+         DEREF(node).wto_matrix[col + row * 4] = inv_transform[col][row];
+
+   DEREF(node).wto_matrix[3] = transform[3][0];
+   DEREF(node).wto_matrix[7] = transform[3][1];
+   DEREF(node).wto_matrix[11] = transform[3][2];
+
+   for (uint32_t col = 0; col < 3; col++)
+      for (uint32_t row = 0; row < 3; row++)
+         DEREF(node).otw_matrix[col + row * 3] = transform[col][row];
+
+   radv_accel_struct_header instance_header =
+      DEREF(REF(radv_accel_struct_header)(instance.accelerationStructureReference));
+   DEREF(node).base_ptr =
+      instance.accelerationStructureReference | instance_header.root_node_offset;
+
+   for (uint32_t comp = 0; comp < 3; ++comp) {
+      bounds.min[comp] = transform[3][comp];
+      bounds.max[comp] = transform[3][comp];
+      for (uint32_t col = 0; col < 3; ++col) {
+         bounds.min[comp] += min(transform[col][comp] * instance_header.aabb[0][col],
+                                 transform[col][comp] * instance_header.aabb[1][col]);
+         bounds.max[comp] += max(transform[col][comp] * instance_header.aabb[0][col],
+                                 transform[col][comp] * instance_header.aabb[1][col]);
+      }
+   }
+
+   DEREF(node).custom_instance_and_mask = instance.custom_instance_and_mask;
+   DEREF(node).sbt_offset_and_flags = instance.sbt_offset_and_flags;
+   DEREF(node).instance_id = global_id;
+
+   DEREF(node).aabb[0][0] = bounds.min.x;
+   DEREF(node).aabb[0][1] = bounds.min.y;
+   DEREF(node).aabb[0][2] = bounds.min.z;
+   DEREF(node).aabb[1][0] = bounds.max.x;
+   DEREF(node).aabb[1][1] = bounds.max.y;
+   DEREF(node).aabb[1][2] = bounds.max.z;
+
+   return true;
+}
+
+void
+main(void)
+{
+   uint32_t global_id = gl_GlobalInvocationID.x;
+
+   REF(key_id_pair) id_ptr = INDEX(key_id_pair, args.ids, args.first_id + global_id);
+   uint32_t src_offset = global_id * args.stride;
+
+   uint32_t dst_stride;
+   uint32_t node_type;
+   if (args.geometry_type == VK_GEOMETRY_TYPE_TRIANGLES_KHR) {
+      dst_stride = SIZEOF(radv_bvh_triangle_node);
+      node_type = radv_bvh_node_triangle;
+   } else if (args.geometry_type == VK_GEOMETRY_TYPE_AABBS_KHR) {
+      dst_stride = SIZEOF(radv_bvh_aabb_node);
+      node_type = radv_bvh_node_aabb;
+   } else {
+      dst_stride = SIZEOF(radv_bvh_instance_node);
+      node_type = radv_bvh_node_instance;
+   }
+
+   uint32_t dst_offset = args.dst_offset + global_id * dst_stride;
+   VOID_REF dst_ptr = OFFSET(args.bvh, dst_offset);
+
+   AABB bounds;
+   bool is_active = true;
+   if (args.geometry_type == VK_GEOMETRY_TYPE_TRIANGLES_KHR) {
+      triangle_indices indices = load_indices(args.indices, args.index_format, global_id);
+
+      triangle_vertices vertices =
+         load_vertices(args.data, indices, args.vertex_format, args.stride);
+
+      if (args.transform != NULL) {
+         mat4 transform = mat4(1.0);
+
+         for (uint32_t col = 0; col < 4; col++)
+            for (uint32_t row = 0; row < 3; row++)
+               transform[col][row] = DEREF(INDEX(float, args.transform, col + row * 4));
+
+         for (uint32_t i = 0; i < 3; i++)
+            vertices.vertex[i] = transform * vertices.vertex[i];
+      }
+
+      REF(radv_bvh_triangle_node) node = REF(radv_bvh_triangle_node)(dst_ptr);
+
+      bounds.min = vec3(INFINITY);
+      bounds.max = vec3(-INFINITY);
+
+      for (uint32_t coord = 0; coord < 3; coord++)
+         for (uint32_t comp = 0; comp < 3; comp++) {
+            DEREF(node).coords[coord][comp] = vertices.vertex[coord][comp];
+            bounds.min[comp] = min(bounds.min[comp], vertices.vertex[coord][comp]);
+            bounds.max[comp] = max(bounds.max[comp], vertices.vertex[coord][comp]);
+         }
+
+      DEREF(node).triangle_id = global_id;
+      DEREF(node).geometry_id_and_flags = args.geometry_id;
+      DEREF(node).id = 9;
+
+   } else if (args.geometry_type == VK_GEOMETRY_TYPE_AABBS_KHR) {
+      VOID_REF src_ptr = OFFSET(args.data, src_offset);
+
+      REF(radv_bvh_aabb_node) node = REF(radv_bvh_aabb_node)(dst_ptr);
+
+      for (uint32_t vec = 0; vec < 2; vec++)
+         for (uint32_t comp = 0; comp < 3; comp++) {
+            float coord = DEREF(INDEX(float, src_ptr, comp + vec * 3));
+            DEREF(node).aabb[vec][comp] = coord;
+
+            if (vec == 0)
+               bounds.min[comp] = coord;
+            else
+               bounds.max[comp] = coord;
+         }
+
+      DEREF(node).primitive_id = global_id;
+      DEREF(node).geometry_id_and_flags = args.geometry_id;
+   } else {
+      VOID_REF src_ptr = OFFSET(args.data, src_offset);
+      /* arrayOfPointers */
+      if (args.stride == 8) {
+         src_ptr = DEREF(REF(VOID_REF)(src_ptr));
+      }
+
+      is_active = build_instance(bounds, src_ptr, dst_ptr, global_id);
+   }
+
+   DEREF(id_ptr).id = is_active ? pack_node_id(dst_offset, node_type) : NULL_NODE_ID;
+
+   min_float_emulated(INDEX(int32_t, args.bounds, 0), bounds.min.x);
+   min_float_emulated(INDEX(int32_t, args.bounds, 1), bounds.min.y);
+   min_float_emulated(INDEX(int32_t, args.bounds, 2), bounds.min.z);
+   max_float_emulated(INDEX(int32_t, args.bounds, 3), bounds.max.x);
+   max_float_emulated(INDEX(int32_t, args.bounds, 4), bounds.max.y);
+   max_float_emulated(INDEX(int32_t, args.bounds, 5), bounds.max.z);
+}

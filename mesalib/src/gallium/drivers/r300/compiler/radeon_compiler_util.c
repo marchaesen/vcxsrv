@@ -550,50 +550,18 @@ int rc_get_max_index(
 	}
 }
 
-static unsigned int get_source_readmask(
-	struct rc_pair_sub_instruction * sub,
-	unsigned int source,
-	unsigned int src_type)
-{
-	unsigned int i;
-	unsigned int readmask = 0;
-	const struct rc_opcode_info * info = rc_get_opcode_info(sub->Opcode);
-
-	for (i = 0; i < info->NumSrcRegs; i++) {
-		if (sub->Arg[i].Source != source
-		    || src_type != rc_source_type_swz(sub->Arg[i].Swizzle)) {
-			continue;
-		}
-		readmask |= rc_swizzle_to_writemask(sub->Arg[i].Swizzle);
-	}
-	return readmask;
-}
-
 /**
- * This function attempts to remove a source from a pair instructions.
+ * This function removes a source from a pair instructions.
  * @param inst
  * @param src_type RC_SOURCE_RGB, RC_SOURCE_ALPHA, or both bitwise or'd
  * @param source The index of the source to remove
- * @param new_readmask A mask representing the components that are read by
- * the source that is intended to replace the one you are removing.  If you
- * want to remove a source only and not replace it, this parameter should be
- * zero.
- * @return 1 if the source was successfully removed, 0 if it was not
+
  */
-unsigned int rc_pair_remove_src(
+void rc_pair_remove_src(
 	struct rc_instruction * inst,
 	unsigned int src_type,
-	unsigned int source,
-	unsigned int new_readmask)
+	unsigned int source)
 {
-	unsigned int readmask = 0;
-
-	readmask |= get_source_readmask(&inst->U.P.RGB, source, src_type);
-	readmask |= get_source_readmask(&inst->U.P.Alpha, source, src_type);
-
-	if ((new_readmask & readmask) != readmask)
-		return 0;
-
 	if (src_type & RC_SOURCE_RGB) {
 		memset(&inst->U.P.RGB.Src[source], 0,
 			sizeof(struct rc_pair_instruction_source));
@@ -603,8 +571,6 @@ unsigned int rc_pair_remove_src(
 		memset(&inst->U.P.Alpha.Src[source], 0,
 			sizeof(struct rc_pair_instruction_source));
 	}
-
-	return 1;
 }
 
 /**

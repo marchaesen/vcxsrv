@@ -97,7 +97,7 @@ delete_block(struct ir3 *ir, struct ir3_block *block)
       assert(block->physical_predecessors_count == 1);
       struct ir3_block *pred = block->physical_predecessors[0];
       assert(block->node.next != &ir->block_list);
-      struct ir3_block *next = LIST_ENTRY(struct ir3_block, block->node.next, node);
+      struct ir3_block *next = list_entry(block->node.next, struct ir3_block, node);
       if (pred->physical_successors[1] == block)
          pred->physical_successors[1] = next;
       else

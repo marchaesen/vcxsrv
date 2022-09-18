@@ -23,7 +23,6 @@
  *
  **************************************************************************/
 #include "util/u_memory.h"
-#include "util/simple_list.h"
 #include "util/os_time.h"
 #include "util/u_dump.h"
 #include "util/u_string.h"
@@ -59,6 +58,7 @@ struct lp_cs_job_info {
    unsigned block_size[3];
    unsigned req_local_mem;
    unsigned work_dim;
+   bool zero_initialize_shared_memory;
    struct lp_cs_exec *current;
 };
 
@@ -74,7 +74,7 @@ generate_compute(struct llvmpipe_context *lp,
    LLVMTypeRef func_type, coro_func_type;
    LLVMTypeRef int32_type = LLVMInt32TypeInContext(gallivm->context);
    LLVMValueRef context_ptr;
-   LLVMValueRef x_size_arg, y_size_arg, z_size_arg;
+   LLVMValueRef block_x_size_arg, block_y_size_arg, block_z_size_arg;
    LLVMValueRef grid_x_arg, grid_y_arg, grid_z_arg;
    LLVMValueRef grid_size_x_arg, grid_size_y_arg, grid_size_z_arg;
    LLVMValueRef work_dim_arg, thread_data_ptr;
@@ -133,6 +133,7 @@ generate_compute(struct llvmpipe_context *lp,
 
    coro = LLVMAddFunction(gallivm->module, func_name_coro, coro_func_type);
    LLVMSetFunctionCallConv(coro, LLVMCCallConv);
+   LLVMAddTargetDependentFunctionAttr(coro, "coroutine.presplit", "0");
 
    variant->function = function;
 
@@ -150,9 +151,9 @@ generate_compute(struct llvmpipe_context *lp,
       return;
 
    context_ptr  = LLVMGetParam(function, 0);
-   x_size_arg = LLVMGetParam(function, 1);
-   y_size_arg = LLVMGetParam(function, 2);
-   z_size_arg = LLVMGetParam(function, 3);
+   block_x_size_arg = LLVMGetParam(function, 1);
+   block_y_size_arg = LLVMGetParam(function, 2);
+   block_z_size_arg = LLVMGetParam(function, 3);
    grid_x_arg = LLVMGetParam(function, 4);
    grid_y_arg = LLVMGetParam(function, 5);
    grid_z_arg = LLVMGetParam(function, 6);
@@ -163,9 +164,9 @@ generate_compute(struct llvmpipe_context *lp,
    thread_data_ptr  = LLVMGetParam(function, 11);
 
    lp_build_name(context_ptr, "context");
-   lp_build_name(x_size_arg, "x_size");
-   lp_build_name(y_size_arg, "y_size");
-   lp_build_name(z_size_arg, "z_size");
+   lp_build_name(block_x_size_arg, "x_size");
+   lp_build_name(block_y_size_arg, "y_size");
+   lp_build_name(block_z_size_arg, "z_size");
    lp_build_name(grid_x_arg, "grid_x");
    lp_build_name(grid_y_arg, "grid_y");
    lp_build_name(grid_z_arg, "grid_z");
@@ -179,19 +180,21 @@ generate_compute(struct llvmpipe_context *lp,
    builder = gallivm->builder;
    assert(builder);
    LLVMPositionBuilderAtEnd(builder, block);
-   sampler = lp_llvm_sampler_soa_create(lp_cs_variant_key_samplers(key), key->nr_samplers);
+   sampler = lp_llvm_sampler_soa_create(lp_cs_variant_key_samplers(key),
+                                        MAX2(key->nr_samplers,
+                                             key->nr_sampler_views));
    image = lp_llvm_image_soa_create(lp_cs_variant_key_images(key), key->nr_images);
 
    struct lp_build_loop_state loop_state[4];
    LLVMValueRef num_x_loop;
    LLVMValueRef vec_length = lp_build_const_int32(gallivm, cs_type.length);
-   num_x_loop = LLVMBuildAdd(gallivm->builder, x_size_arg, vec_length, "");
+   num_x_loop = LLVMBuildAdd(gallivm->builder, block_x_size_arg, vec_length, "");
    num_x_loop = LLVMBuildSub(gallivm->builder, num_x_loop, lp_build_const_int32(gallivm, 1), "");
    num_x_loop = LLVMBuildUDiv(gallivm->builder, num_x_loop, vec_length, "");
-   LLVMValueRef partials = LLVMBuildURem(gallivm->builder, x_size_arg, vec_length, "");
+   LLVMValueRef partials = LLVMBuildURem(gallivm->builder, block_x_size_arg, vec_length, "");
 
-   LLVMValueRef coro_num_hdls = LLVMBuildMul(gallivm->builder, num_x_loop, y_size_arg, "");
-   coro_num_hdls = LLVMBuildMul(gallivm->builder, coro_num_hdls, z_size_arg, "");
+   LLVMValueRef coro_num_hdls = LLVMBuildMul(gallivm->builder, num_x_loop, block_y_size_arg, "");
+   coro_num_hdls = LLVMBuildMul(gallivm->builder, coro_num_hdls, block_z_size_arg, "");
 
    /* build a ptr in memory to store all the frames in later. */
    LLVMTypeRef hdl_ptr_type = LLVMPointerType(LLVMInt8TypeInContext(gallivm->context), 0);
@@ -232,13 +235,13 @@ generate_compute(struct llvmpipe_context *lp,
       args[11] = thread_data_ptr;
       args[12] = num_x_loop;
       args[13] = partials;
-      args[14] = x_size_arg;
-      args[15] = y_size_arg;
-      args[16] = z_size_arg;
+      args[14] = block_x_size_arg;
+      args[15] = block_y_size_arg;
+      args[16] = block_z_size_arg;
 
       /* idx = (z * (size_x * size_y) + y * size_x + x */
       LLVMValueRef coro_hdl_idx = LLVMBuildMul(gallivm->builder, loop_state[2].counter,
-                                               LLVMBuildMul(gallivm->builder, num_x_loop, y_size_arg, ""), "");
+                                               LLVMBuildMul(gallivm->builder, num_x_loop, block_y_size_arg, ""), "");
       coro_hdl_idx = LLVMBuildAdd(gallivm->builder, coro_hdl_idx,
                                   LLVMBuildMul(gallivm->builder, loop_state[1].counter,
                                                num_x_loop, ""), "");
@@ -278,10 +281,10 @@ generate_compute(struct llvmpipe_context *lp,
                           num_x_loop,
                           NULL,  LLVMIntUGE);
    lp_build_loop_end_cond(&loop_state[1],
-                          y_size_arg,
+                          block_y_size_arg,
                           NULL,  LLVMIntUGE);
    lp_build_loop_end_cond(&loop_state[2],
-                          z_size_arg,
+                          block_z_size_arg,
                           NULL,  LLVMIntUGE);
    lp_build_loop_end_cond(&loop_state[3],
                           lp_build_const_int32(gallivm, end_coroutine),
@@ -293,7 +296,7 @@ generate_compute(struct llvmpipe_context *lp,
    LLVMBuildRetVoid(builder);
 
    /* This is stage (b) - generate the compute shader code inside the coroutine. */
-   LLVMValueRef block_x_size_arg, block_y_size_arg, block_z_size_arg;
+   LLVMValueRef x_size_arg, y_size_arg, z_size_arg;   
    context_ptr  = LLVMGetParam(coro, 0);
    x_size_arg = LLVMGetParam(coro, 1);
    y_size_arg = LLVMGetParam(coro, 2);
@@ -316,8 +319,8 @@ generate_compute(struct llvmpipe_context *lp,
    block = LLVMAppendBasicBlockInContext(gallivm->context, coro, "entry");
    LLVMPositionBuilderAtEnd(builder, block);
    {
-      LLVMValueRef consts_ptr, num_consts_ptr;
-      LLVMValueRef ssbo_ptr, num_ssbo_ptr;
+      LLVMValueRef consts_ptr;
+      LLVMValueRef ssbo_ptr;
       LLVMValueRef shared_ptr;
       LLVMValueRef kernel_args_ptr;
       struct lp_build_mask_context mask;
@@ -325,9 +328,7 @@ generate_compute(struct llvmpipe_context *lp,
 
       memset(&system_values, 0, sizeof(system_values));
       consts_ptr = lp_jit_cs_context_constants(gallivm, context_ptr);
-      num_consts_ptr = lp_jit_cs_context_num_constants(gallivm, context_ptr);
       ssbo_ptr = lp_jit_cs_context_ssbos(gallivm, context_ptr);
-      num_ssbo_ptr = lp_jit_cs_context_num_ssbos(gallivm, context_ptr);
       kernel_args_ptr = lp_jit_cs_context_kernel_args(gallivm, context_ptr);
 
       shared_ptr = lp_jit_cs_thread_data_shared(gallivm, thread_data_ptr);
@@ -370,9 +371,31 @@ generate_compute(struct llvmpipe_context *lp,
 
       system_values.work_dim = work_dim_arg;
 
-      system_values.subgroup_id = coro_idx;
-      system_values.num_subgroups = LLVMBuildMul(builder, num_x_loop,
-                                                 LLVMBuildMul(builder, block_y_size_arg, block_z_size_arg, ""), "");
+      /* subgroup_id = ((z * block_size_x * block_size_y) + (y * block_size_x) + x) / subgroup_size
+       *
+       * this breaks if z or y is zero, so distribute the division to preserve ids
+       *
+       * subgroup_id = ((z * block_size_x * block_size_y) / subgroup_size) + ((y * block_size_x) / subgroup_size) + (x / subgroup_size)
+       *
+       * except "x" is pre-divided here
+       *
+       * subgroup_id = ((z * block_size_x * block_size_y) / subgroup_size) + ((y * block_size_x) / subgroup_size) + x
+       */
+      LLVMValueRef subgroup_id = LLVMBuildUDiv(builder,
+                                               LLVMBuildMul(gallivm->builder, z_size_arg, LLVMBuildMul(gallivm->builder, block_x_size_arg, block_y_size_arg, ""), ""),
+                                               vec_length, "");
+      subgroup_id = LLVMBuildAdd(gallivm->builder,
+                                 subgroup_id,
+                                 LLVMBuildUDiv(builder, LLVMBuildMul(gallivm->builder, y_size_arg, block_x_size_arg, ""), vec_length, ""),
+                                 "");
+      subgroup_id = LLVMBuildAdd(gallivm->builder, subgroup_id, x_size_arg, "");
+      system_values.subgroup_id = subgroup_id;
+      LLVMValueRef num_subgroups = LLVMBuildUDiv(builder,
+                                                 LLVMBuildMul(builder, block_x_size_arg,
+                                                              LLVMBuildMul(builder, block_y_size_arg, block_z_size_arg, ""), ""),
+                                                 vec_length, "");
+      LLVMValueRef subgroup_cmp = LLVMBuildICmp(gallivm->builder, LLVMIntEQ, num_subgroups, lp_build_const_int32(gallivm, 0), "");
+      system_values.num_subgroups = LLVMBuildSelect(builder, subgroup_cmp, lp_build_const_int32(gallivm, 1), num_subgroups, "");
 
       LLVMValueRef bsize[3] = { block_x_size_arg, block_y_size_arg, block_z_size_arg };
       system_values.block_size = LLVMGetUndef(LLVMVectorType(int32_type, 3));
@@ -412,13 +435,11 @@ generate_compute(struct llvmpipe_context *lp,
       params.type = cs_type;
       params.mask = &mask;
       params.consts_ptr = consts_ptr;
-      params.const_sizes_ptr = num_consts_ptr;
       params.system_values = &system_values;
       params.context_ptr = context_ptr;
       params.sampler = sampler;
       params.info = &shader->info.base;
       params.ssbo_ptr = ssbo_ptr;
-      params.ssbo_sizes_ptr = num_ssbo_ptr;
       params.image = image;
       params.shared_ptr = shared_ptr;
       params.coro = &coro_info;
@@ -443,8 +464,8 @@ generate_compute(struct llvmpipe_context *lp,
       LLVMBuildRet(builder, coro_hdl);
    }
 
-   sampler->destroy(sampler);
-   image->destroy(image);
+   lp_llvm_sampler_soa_destroy(sampler);
+   lp_llvm_image_soa_destroy(image);
 
    gallivm_verify_function(gallivm, coro);
    gallivm_verify_function(gallivm, function);
@@ -475,9 +496,11 @@ llvmpipe_create_compute_state(struct pipe_context *pipe,
 
       pipe->screen->finalize_nir(pipe->screen, shader->base.ir.nir);
       shader->req_local_mem += ((struct nir_shader *)shader->base.ir.nir)->info.shared_size;
+      shader->zero_initialize_shared_memory = ((struct nir_shader *)shader->base.ir.nir)->info.zero_initialize_shared_memory;
    } else if (templ->ir_type == PIPE_SHADER_IR_NIR) {
       shader->base.ir.nir = (struct nir_shader *)templ->prog;
       shader->req_local_mem += ((struct nir_shader *)shader->base.ir.nir)->info.shared_size;
+      shader->zero_initialize_shared_memory = ((struct nir_shader *)shader->base.ir.nir)->info.zero_initialize_shared_memory;
    }
    if (shader->base.type == PIPE_SHADER_IR_TGSI) {
       /* get/save the summary info for this shader */
@@ -489,7 +512,7 @@ llvmpipe_create_compute_state(struct pipe_context *pipe,
       nir_tgsi_scan_shader(shader->base.ir.nir, &shader->info.base, false);
    }
 
-   make_empty_list(&shader->variants);
+   list_inithead(&shader->variants.list);
 
    nr_samplers = shader->info.base.file_max[TGSI_FILE_SAMPLER] + 1;
    nr_sampler_views = shader->info.base.file_max[TGSI_FILE_SAMPLER_VIEW] + 1;
@@ -532,11 +555,11 @@ llvmpipe_remove_cs_shader_variant(struct llvmpipe_context *lp,
    gallivm_destroy(variant->gallivm);
 
    /* remove from shader's list */
-   remove_from_list(&variant->list_item_local);
+   list_del(&variant->list_item_local.list);
    variant->shader->variants_cached--;
 
    /* remove from context's list */
-   remove_from_list(&variant->list_item_global);
+   list_del(&variant->list_item_global.list);
    lp->nr_cs_variants--;
    lp->nr_cs_instrs -= variant->nr_instrs;
 
@@ -549,7 +572,7 @@ llvmpipe_delete_compute_state(struct pipe_context *pipe,
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    struct lp_compute_shader *shader = cs;
-   struct lp_cs_variant_list_item *li;
+   struct lp_cs_variant_list_item *li, *next;
 
    if (llvmpipe->cs == cs)
       llvmpipe->cs = NULL;
@@ -558,11 +581,8 @@ llvmpipe_delete_compute_state(struct pipe_context *pipe,
    FREE(shader->global_buffers);
 
    /* Delete all the variants */
-   li = first_elem(&shader->variants);
-   while(!at_end(&shader->variants, li)) {
-      struct lp_cs_variant_list_item *next = next_elem(li);
+   LIST_FOR_EACH_ENTRY_SAFE(li, next, &shader->variants.list, list) {
       llvmpipe_remove_cs_shader_variant(llvmpipe, li->base);
-      li = next;
    }
    if (shader->base.ir.nir)
       ralloc_free(shader->base.ir.nir);
@@ -584,6 +604,8 @@ make_variant_key(struct llvmpipe_context *lp,
     */
    key->nr_samplers = shader->info.base.file_max[TGSI_FILE_SAMPLER] + 1;
 
+   if (shader->info.base.file_max[TGSI_FILE_SAMPLER_VIEW] != -1)
+      key->nr_sampler_views = shader->info.base.file_max[TGSI_FILE_SAMPLER_VIEW] + 1;
    struct lp_sampler_static_state *cs_sampler;
 
    cs_sampler = lp_cs_variant_key_samplers(key);
@@ -602,7 +624,6 @@ make_variant_key(struct llvmpipe_context *lp,
     * if we want to skip the holes here (without rescanning tgsi).
     */
    if (shader->info.base.file_max[TGSI_FILE_SAMPLER_VIEW] != -1) {
-      key->nr_sampler_views = shader->info.base.file_max[TGSI_FILE_SAMPLER_VIEW] + 1;
       for(i = 0; i < key->nr_sampler_views; ++i) {
          /*
           * Note sview may exceed what's representable by file_mask.
@@ -816,20 +837,18 @@ llvmpipe_update_cs(struct llvmpipe_context *lp)
    key = make_variant_key(lp, shader, store);
 
    /* Search the variants for one which matches the key */
-   li = first_elem(&shader->variants);
-   while(!at_end(&shader->variants, li)) {
+   LIST_FOR_EACH_ENTRY(li, &shader->variants.list, list) {
       if(memcmp(&li->base->key, key, shader->variant_key_size) == 0) {
          variant = li->base;
          break;
       }
-      li = next_elem(li);
    }
 
    if (variant) {
       /* Move this variant to the head of the list to implement LRU
        * deletion of shader's when we have too many.
        */
-      move_to_head(&lp->cs_variants_list, &variant->list_item_global);
+      list_move_to(&variant->list_item_global.list, &lp->cs_variants_list.list);
    }
    else {
       /* variant not found, create it now */
@@ -867,10 +886,11 @@ llvmpipe_update_cs(struct llvmpipe_context *lp)
 
          for (i = 0; i < variants_to_cull || lp->nr_cs_instrs >= LP_MAX_SHADER_INSTRUCTIONS; i++) {
             struct lp_cs_variant_list_item *item;
-            if (is_empty_list(&lp->cs_variants_list)) {
+            if (list_is_empty(&lp->cs_variants_list.list)) {
                break;
             }
-            item = last_elem(&lp->cs_variants_list);
+            item = list_last_entry(&lp->cs_variants_list.list,
+                                   struct lp_cs_variant_list_item, list);
             assert(item);
             assert(item->base);
             llvmpipe_remove_cs_shader_variant(lp, item->base);
@@ -888,8 +908,8 @@ llvmpipe_update_cs(struct llvmpipe_context *lp)
 
       /* Put the new variant into the list */
       if (variant) {
-         insert_at_head(&shader->variants, &variant->list_item_local);
-         insert_at_head(&lp->cs_variants_list, &variant->list_item_global);
+         list_add(&variant->list_item_local.list, &shader->variants.list);
+         list_add(&variant->list_item_global.list, &lp->cs_variants_list.list);
          lp->nr_cs_variants++;
          lp->nr_cs_instrs += variant->nr_instrs;
          shader->variants_cached++;
@@ -985,7 +1005,8 @@ lp_csctx_set_sampler_views(struct lp_cs_context *csctx,
                   if (res->target == PIPE_TEXTURE_1D_ARRAY ||
                       res->target == PIPE_TEXTURE_2D_ARRAY ||
                       res->target == PIPE_TEXTURE_CUBE ||
-                      res->target == PIPE_TEXTURE_CUBE_ARRAY) {
+                      res->target == PIPE_TEXTURE_CUBE_ARRAY ||
+                      (res->target == PIPE_TEXTURE_3D && view->target == PIPE_TEXTURE_2D)) {
                      /*
                       * For array textures, we don't have first_layer, instead
                       * adjust last_layer (stored as depth) plus the mip level offsets
@@ -1002,7 +1023,10 @@ lp_csctx_set_sampler_views(struct lp_cs_context *csctx,
                         assert(jit_tex->depth % 6 == 0);
                      }
                      assert(view->u.tex.first_layer <= view->u.tex.last_layer);
-                     assert(view->u.tex.last_layer < res->array_size);
+                     if (res->target == PIPE_TEXTURE_3D)
+                        assert(view->u.tex.last_layer < res->depth0);
+                     else
+                        assert(view->u.tex.last_layer < res->array_size);
                   }
                }
                else {
@@ -1211,14 +1235,14 @@ update_csctx_consts(struct llvmpipe_context *llvmpipe)
 
       if (current_data && current_size >= sizeof(float)) {
          current_data += csctx->constants[i].current.buffer_offset;
-         csctx->cs.current.jit_context.constants[i] = (const float *)current_data;
-         csctx->cs.current.jit_context.num_constants[i] =
+         csctx->cs.current.jit_context.constants[i].f = (const float *)current_data;
+         csctx->cs.current.jit_context.constants[i].num_elements =
             DIV_ROUND_UP(csctx->constants[i].current.buffer_size,
                          lp_get_constant_buffer_stride(llvmpipe->pipe.screen));
       } else {
          static const float fake_const_buf[4];
-         csctx->cs.current.jit_context.constants[i] = fake_const_buf;
-         csctx->cs.current.jit_context.num_constants[i] = 0;
+         csctx->cs.current.jit_context.constants[i].f = fake_const_buf;
+         csctx->cs.current.jit_context.constants[i].num_elements = 0;
       }
    }
 }
@@ -1232,24 +1256,23 @@ update_csctx_ssbo(struct llvmpipe_context *llvmpipe)
       struct pipe_resource *buffer = csctx->ssbos[i].current.buffer;
       const ubyte *current_data = NULL;
 
-      if (!buffer)
-         continue;
       /* resource buffer */
-      current_data = (ubyte *) llvmpipe_resource_data(buffer);
+      if (buffer)
+         current_data = (ubyte *) llvmpipe_resource_data(buffer);
       if (current_data) {
          current_data += csctx->ssbos[i].current.buffer_offset;
 
-         csctx->cs.current.jit_context.ssbos[i] = (const uint32_t *)current_data;
-         csctx->cs.current.jit_context.num_ssbos[i] = csctx->ssbos[i].current.buffer_size;
+         csctx->cs.current.jit_context.ssbos[i].u = (const uint32_t *)current_data;
+         csctx->cs.current.jit_context.ssbos[i].num_elements = csctx->ssbos[i].current.buffer_size;
       } else {
-         csctx->cs.current.jit_context.ssbos[i] = NULL;
-         csctx->cs.current.jit_context.num_ssbos[i] = 0;
+         csctx->cs.current.jit_context.ssbos[i].u = NULL;
+         csctx->cs.current.jit_context.ssbos[i].num_elements = 0;
       }
    }
 }
 
 static void
-llvmpipe_cs_update_derived(struct llvmpipe_context *llvmpipe, void *input)
+llvmpipe_cs_update_derived(struct llvmpipe_context *llvmpipe, const void *input)
 {
    if (llvmpipe->cs_dirty & LP_CSNEW_CONSTANTS) {
       lp_csctx_set_cs_constants(llvmpipe->csctx,
@@ -1310,6 +1333,8 @@ cs_exec_fn(void *init_data, int iter_idx, struct lp_cs_local_mem *lmem)
                                     job_info->req_local_mem);
       lmem->local_size = job_info->req_local_mem;
    }
+   if (job_info->zero_initialize_shared_memory)
+      memset(lmem->local_mem_ptr, 0, job_info->req_local_mem);
    thread_data.shared = lmem->local_mem_ptr;
 
    unsigned grid_z = iter_idx / (job_info->grid_size[0] * job_info->grid_size[1]);
@@ -1379,6 +1404,7 @@ static void llvmpipe_launch_grid(struct pipe_context *pipe,
    job_info.block_size[2] = info->block[2];
    job_info.work_dim = info->work_dim;
    job_info.req_local_mem = llvmpipe->cs->req_local_mem;
+   job_info.zero_initialize_shared_memory = llvmpipe->cs->zero_initialize_shared_memory;
    job_info.current = &llvmpipe->csctx->cs.current;
 
    int num_tasks = job_info.grid_size[2] * job_info.grid_size[1] * job_info.grid_size[0];
@@ -1390,7 +1416,8 @@ static void llvmpipe_launch_grid(struct pipe_context *pipe,
 
       lp_cs_tpool_wait_for_task(screen->cs_tpool, &task);
    }
-   llvmpipe->pipeline_statistics.cs_invocations += num_tasks * info->block[0] * info->block[1] * info->block[2];
+   if (!llvmpipe->queries_disabled)
+      llvmpipe->pipeline_statistics.cs_invocations += num_tasks * info->block[0] * info->block[1] * info->block[2];
 }
 
 static void

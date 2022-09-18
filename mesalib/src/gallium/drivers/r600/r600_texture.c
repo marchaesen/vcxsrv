@@ -213,7 +213,7 @@ static int r600_init_surface(struct r600_common_screen *rscreen,
 	is_depth = util_format_has_depth(desc);
 	is_stencil = util_format_has_stencil(desc);
 
-	if (rscreen->chip_class >= EVERGREEN && !is_flushed_depth &&
+	if (rscreen->gfx_level >= EVERGREEN && !is_flushed_depth &&
 	    ptex->format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) {
 		bpe = 4; /* stencil is allocated separately on evergreen */
 	} else {
@@ -365,7 +365,7 @@ static void r600_reallocate_texture_inplace(struct r600_common_context *rctx,
 	templ.bind |= new_bind_flag;
 
 	/* r600g doesn't react to dirty_tex_descriptor_counter */
-	if (rctx->chip_class < GFX6)
+	if (rctx->gfx_level < GFX6)
 		return;
 
 	if (rtex->resource.b.is_shared)
@@ -630,7 +630,7 @@ void r600_texture_get_fmask_info(struct r600_common_screen *rscreen,
 	/* Overallocate FMASK on R600-R700 to fix colorbuffer corruption.
 	 * This can be fixed by writing a separate FMASK allocator specifically
 	 * for R600-R700 asics. */
-	if (rscreen->chip_class <= R700) {
+	if (rscreen->gfx_level <= R700) {
 		bpe *= 2;
 	}
 
@@ -756,12 +756,8 @@ static void r600_texture_get_htile_size(struct r600_common_screen *rscreen,
 
 	rtex->surface.meta_size = 0;
 
-	if (rscreen->chip_class <= EVERGREEN &&
-	    rscreen->info.drm_minor < 26)
-		return;
-
 	/* HW bug on R6xx. */
-	if (rscreen->chip_class == R600 &&
+	if (rscreen->gfx_level == R600 &&
 	    (rtex->resource.b.b.width0 > 7680 ||
 	     rtex->resource.b.b.height0 > 7680))
 		return;
@@ -933,7 +929,7 @@ r600_texture_create_object(struct pipe_screen *screen,
 	if (rtex->is_depth) {
 		if (base->flags & (R600_RESOURCE_FLAG_TRANSFER |
 				   R600_RESOURCE_FLAG_FLUSHED_DEPTH) ||
-		    rscreen->chip_class >= EVERGREEN) {
+		    rscreen->gfx_level >= EVERGREEN) {
 			rtex->can_sample_z = !rtex->surface.u.legacy.depth_adjusted;
 			rtex->can_sample_s = !rtex->surface.u.legacy.stencil_adjusted;
 		} else {
@@ -1043,7 +1039,7 @@ r600_choose_tiling(struct r600_common_screen *rscreen,
 		return RADEON_SURF_MODE_LINEAR_ALIGNED;
 
 	/* r600g: force tiling on TEXTURE_2D and TEXTURE_3D compute resources. */
-	if (rscreen->chip_class >= R600 && rscreen->chip_class <= CAYMAN &&
+	if (rscreen->gfx_level >= R600 && rscreen->gfx_level <= CAYMAN &&
 	    (templ->bind & PIPE_BIND_COMPUTE_RESOURCE) &&
 	    (templ->target == PIPE_TEXTURE_2D ||
 	     templ->target == PIPE_TEXTURE_3D))
@@ -1253,7 +1249,7 @@ static bool r600_can_invalidate_texture(struct r600_common_screen *rscreen,
 					const struct pipe_box *box)
 {
 	/* r600g doesn't react to dirty_tex_descriptor_counter */
-	return rscreen->chip_class >= GFX6 &&
+	return rscreen->gfx_level >= GFX6 &&
 		!rtex->resource.b.is_shared &&
 		!(transfer_usage & PIPE_MAP_READ) &&
 		rtex->resource.b.b.last_level == 0 &&
@@ -1506,7 +1502,7 @@ void r600_texture_transfer_unmap(struct pipe_context *ctx,
 	 *
 	 * The result is that the kernel memory manager is never a bottleneck.
 	 */
-	if (rctx->num_alloc_tex_transfer_bytes > rctx->screen->info.gart_size / 4) {
+	if (rctx->num_alloc_tex_transfer_bytes > (uint64_t)rctx->screen->info.gart_size_kb * 1024 / 4) {
 		rctx->gfx.flush(rctx, PIPE_FLUSH_ASYNC, NULL);
 		rctx->num_alloc_tex_transfer_bytes = 0;
 	}

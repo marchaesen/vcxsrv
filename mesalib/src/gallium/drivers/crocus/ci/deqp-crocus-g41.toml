@@ -21,3 +21,12 @@ deqp_args = [
     "--deqp-gl-config-name=rgba8888d24s8ms0",
     "--deqp-visibility=hidden"
 ]
+
+[[piglit]]
+piglit_folder = "/piglit"
+# We use "gpu" to skip running glslparser tests, with the assumption that
+# they're covered by the llvmpipe run.
+profile = "gpu"
+process_isolation = true
+  [piglit.env]
+  PIGLIT_PLATFORM = "gbm"

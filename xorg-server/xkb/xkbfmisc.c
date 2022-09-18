@@ -46,7 +46,6 @@
 #define XKBSRV_NEED_FILE_FUNCS	1
 #include <xkbsrv.h>
 #include "xkbgeom.h"
-#include "xkb.h"
 
 unsigned
 _XkbKSCheckCase(KeySym ks)

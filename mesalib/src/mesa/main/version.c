@@ -704,6 +704,15 @@ _mesa_get_device_uuid(struct gl_context *ctx, GLint *uuid)
    screen->get_device_uuid(screen, (char *)uuid);
 }
 
+void
+_mesa_get_device_luid(struct gl_context *ctx, GLint *luid)
+{
+   struct pipe_screen *screen = ctx->pipe->screen;
+   assert(GL_LUID_SIZE_EXT >= PIPE_LUID_SIZE);
+   memset(luid, 0, GL_UUID_SIZE_EXT);
+   screen->get_device_luid(screen, (char *)luid);
+}
+
 /**
  * Get the i-th GLSL version string.  If index=0, return the most recent
  * supported version.

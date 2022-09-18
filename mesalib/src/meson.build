@@ -25,6 +25,7 @@ inc_gallium = include_directories('gallium/include')
 inc_gallium_aux = include_directories('gallium/auxiliary')
 inc_amd_common = include_directories('amd/common')
 inc_tool = include_directories('tool')
+inc_virtio_gpu = include_directories('virtio/virtio-gpu')
 pps_datasources = []
 pps_includes = []
 
@@ -57,12 +58,13 @@ sha1_h = custom_target(
 )
 
 subdir('gtest')
-if cc.get_id() == 'msvc'
+if cc.get_argument_syntax() == 'msvc'
   subdir('getopt')
 else
   idep_getopt = null_dep
 endif
 subdir('android_stub')
+subdir('c11/impl')
 subdir('util')
 subdir('mapi')
 # TODO: opengl
@@ -94,13 +96,16 @@ endif
 if with_gallium_freedreno or with_freedreno_vk or with_tools.contains('freedreno')
   subdir('freedreno')
 endif
+if with_imagination_vk
+  subdir('imagination')
+endif
 if with_gallium_panfrost or with_gallium_lima or with_panfrost_vk or with_tools.contains('panfrost')
   subdir('panfrost')
 endif
 if with_gallium_virgl or with_virtio_vk
   subdir('virtio')
 endif
-if with_microsoft_clc or with_gallium_d3d12 or with_spirv_to_dxil
+if with_microsoft_clc or with_gallium_d3d12 or with_spirv_to_dxil or with_microsoft_vk
   subdir('microsoft')
 endif
 if with_gallium_nouveau
@@ -147,7 +152,7 @@ if with_glx != 'disabled' and not with_glvnd
     libraries : libgl,
     libraries_private : gl_priv_libs,
     requires_private : gl_priv_reqs,
-    variables : ['glx_tls=@0@'.format(use_elf_tls ? 'yes' : 'no')],
+    variables : ['glx_tls=yes'],
   )
 endif
 

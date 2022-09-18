@@ -23,6 +23,7 @@
 #include <string.h>
 #include "ir.h"
 #include "util/half_float.h"
+#include "util/bitscan.h"
 #include "compiler/glsl_types.h"
 #include "glsl_parser_extras.h"
 
@@ -149,30 +150,20 @@ ir_assignment::whole_variable_written()
 }
 
 ir_assignment::ir_assignment(ir_dereference *lhs, ir_rvalue *rhs,
-			     ir_rvalue *condition, unsigned write_mask)
+                             unsigned write_mask)
    : ir_instruction(ir_type_assignment)
 {
-   this->condition = condition;
    this->rhs = rhs;
    this->lhs = lhs;
    this->write_mask = write_mask;
 
-   if (lhs->type->is_scalar() || lhs->type->is_vector()) {
-      int lhs_components = 0;
-      for (int i = 0; i < 4; i++) {
-	 if (write_mask & (1 << i))
-	    lhs_components++;
-      }
-
-      assert(lhs_components == this->rhs->type->vector_elements);
-   }
+   if (lhs->type->is_scalar() || lhs->type->is_vector())
+      assert(util_bitcount(write_mask) == this->rhs->type->vector_elements);
 }
 
-ir_assignment::ir_assignment(ir_rvalue *lhs, ir_rvalue *rhs,
-			     ir_rvalue *condition)
+ir_assignment::ir_assignment(ir_rvalue *lhs, ir_rvalue *rhs)
    : ir_instruction(ir_type_assignment)
 {
-   this->condition = condition;
    this->rhs = rhs;
 
    /* If the RHS is a vector type, assume that all components of the vector
@@ -2034,7 +2025,6 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.explicit_component = false;
    this->data.has_initializer = false;
    this->data.is_implicit_initializer = false;
-   this->data.is_unmatched_generic_inout = false;
    this->data.is_xfb = false;
    this->data.is_xfb_only = false;
    this->data.explicit_xfb_buffer = false;

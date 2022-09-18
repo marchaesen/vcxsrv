@@ -45,7 +45,7 @@
 #  error Unsupported OS
 #endif
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -77,7 +77,7 @@ static inline int os_munmap(void *addr, size_t length)
 #endif
 
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

@@ -37,5 +37,5 @@ libasahi = static_library(
 
 driver_asahi = declare_dependency(
   compile_args : '-DGALLIUM_ASAHI',
-  link_with : [libasahi, libasahi_compiler, libasahi_lib, libasahi_decode]
+  link_with : [libasahi, libasahi_compiler, libasahi_lib, libasahi_layout, libasahi_decode]
 )

@@ -12,6 +12,13 @@
 #include <unistd.h>
 #include <xf86drm.h>
 
+#ifdef MAJOR_IN_MKDEV
+#include <sys/mkdev.h>
+#endif
+#ifdef MAJOR_IN_SYSMACROS
+#include <sys/sysmacros.h>
+#endif
+
 #include "drm-uapi/virtgpu_drm.h"
 #include "util/sparse_array.h"
 #define VIRGL_RENDERER_UNSTABLE_APIS
@@ -41,9 +48,18 @@ struct drm_virtgpu_context_init {
 #define VIRTGPU_PARAM_MAX_SYNC_QUEUE_COUNT 100
 #endif /* VIRTGPU_PARAM_MAX_SYNC_QUEUE_COUNT */
 
+#ifndef VIRTGPU_PARAM_GUEST_VRAM
+/* All guest allocations happen via virtgpu dedicated heap. */
+#define VIRTGPU_PARAM_GUEST_VRAM 9
+#endif
+
+#ifndef VIRTGPU_BLOB_MEM_GUEST_VRAM
+#define VIRTGPU_BLOB_MEM_GUEST_VRAM 0x0004
+#endif
+
 /* XXX comment these out to really use kernel uapi */
 #define SIMULATE_BO_SIZE_FIX 1
-//#define SIMULATE_CONTEXT_INIT 1
+// #define SIMULATE_CONTEXT_INIT 1
 #define SIMULATE_SYNCOBJ 1
 #define SIMULATE_SUBMIT 1
 
@@ -90,7 +106,12 @@ struct virtgpu {
    struct vn_instance *instance;
 
    int fd;
-   int version_minor;
+
+   bool has_primary;
+   int primary_major;
+   int primary_minor;
+   int render_major;
+   int render_minor;
 
    int bustype;
    drmPciBusInfo pci_bus_info;
@@ -104,6 +125,7 @@ struct virtgpu {
    } capset;
 
    uint32_t shmem_blob_mem;
+   uint32_t bo_blob_mem;
 
    /* note that we use gem_handle instead of res_id to index because
     * res_id is monotonically increasing by default (see
@@ -1175,8 +1197,8 @@ virtgpu_bo_create_from_dma_buf(struct vn_renderer *renderer,
    uint32_t blob_flags;
    size_t mmap_size;
    if (info.blob_mem) {
-      /* must be VIRTGPU_BLOB_MEM_HOST3D */
-      if (info.blob_mem != VIRTGPU_BLOB_MEM_HOST3D)
+      /* must be VIRTGPU_BLOB_MEM_HOST3D or VIRTGPU_BLOB_MEM_GUEST_VRAM */
+      if (info.blob_mem != gpu->bo_blob_mem)
          goto fail;
 
       /* blob_flags is not passed to the kernel and is only for internal use
@@ -1254,7 +1276,7 @@ virtgpu_bo_create_from_device_memory(
 
    uint32_t res_id;
    uint32_t gem_handle = virtgpu_ioctl_resource_create_blob(
-      gpu, VIRTGPU_BLOB_MEM_HOST3D, blob_flags, size, mem_id, &res_id);
+      gpu, gpu->bo_blob_mem, blob_flags, size, mem_id, &res_id);
    if (!gem_handle)
       return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
@@ -1361,11 +1383,16 @@ virtgpu_submit(struct vn_renderer *renderer,
 }
 
 static void
-virtgpu_get_info(struct vn_renderer *renderer, struct vn_renderer_info *info)
+virtgpu_init_renderer_info(struct virtgpu *gpu)
 {
-   struct virtgpu *gpu = (struct virtgpu *)renderer;
+   struct vn_renderer_info *info = &gpu->base.info;
 
-   memset(info, 0, sizeof(*info));
+   info->drm.has_primary = gpu->has_primary;
+   info->drm.primary_major = gpu->primary_major;
+   info->drm.primary_minor = gpu->primary_minor;
+   info->drm.has_render = true;
+   info->drm.render_major = gpu->render_major;
+   info->drm.render_minor = gpu->render_minor;
 
    info->pci.vendor_id = VIRTGPU_PCI_VENDOR_ID;
    info->pci.device_id = VIRTGPU_PCI_DEVICE_ID;
@@ -1400,6 +1427,17 @@ virtgpu_get_info(struct vn_renderer *renderer, struct vn_renderer_info *info)
    info->vk_mesa_venus_protocol_spec_version =
       capset->vk_mesa_venus_protocol_spec_version;
    info->supports_blob_id_0 = capset->supports_blob_id_0;
+
+   /* ensure vk_extension_mask is large enough to hold all capset masks */
+   STATIC_ASSERT(sizeof(info->vk_extension_mask) >=
+                 sizeof(capset->vk_extension_mask1));
+   memcpy(info->vk_extension_mask, capset->vk_extension_mask1,
+          sizeof(capset->vk_extension_mask1));
+
+   info->allow_vk_wait_syncs = capset->allow_vk_wait_syncs;
+
+   if (gpu->bo_blob_mem == VIRTGPU_BLOB_MEM_GUEST_VRAM)
+      info->has_guest_vram = true;
 }
 
 static void
@@ -1489,8 +1527,8 @@ virtgpu_init_params(struct virtgpu *gpu)
 {
    const uint64_t required_params[] = {
       VIRTGPU_PARAM_3D_FEATURES,   VIRTGPU_PARAM_CAPSET_QUERY_FIX,
-      VIRTGPU_PARAM_RESOURCE_BLOB, VIRTGPU_PARAM_HOST_VISIBLE,
-      VIRTGPU_PARAM_CROSS_DEVICE,  VIRTGPU_PARAM_CONTEXT_INIT,
+      VIRTGPU_PARAM_RESOURCE_BLOB, VIRTGPU_PARAM_CROSS_DEVICE,
+      VIRTGPU_PARAM_CONTEXT_INIT,
    };
    uint64_t val;
    for (uint32_t i = 0; i < ARRAY_SIZE(required_params); i++) {
@@ -1502,6 +1540,23 @@ virtgpu_init_params(struct virtgpu *gpu)
          }
          return VK_ERROR_INITIALIZATION_FAILED;
       }
+   }
+
+   val = virtgpu_ioctl_getparam(gpu, VIRTGPU_PARAM_HOST_VISIBLE);
+   if (val) {
+      gpu->bo_blob_mem = VIRTGPU_BLOB_MEM_HOST3D;
+   } else {
+      val = virtgpu_ioctl_getparam(gpu, VIRTGPU_PARAM_GUEST_VRAM);
+      if (val) {
+         gpu->bo_blob_mem = VIRTGPU_BLOB_MEM_GUEST_VRAM;
+      }
+   }
+
+   if (!val) {
+      vn_log(gpu->instance,
+             "one of required kernel params (%d or %d) is missing",
+             (int)VIRTGPU_PARAM_HOST_VISIBLE, (int)VIRTGPU_PARAM_GUEST_VRAM);
+      return VK_ERROR_INITIALIZATION_FAILED;
    }
 
    val = virtgpu_ioctl_getparam(gpu, VIRTGPU_PARAM_MAX_SYNC_QUEUE_COUNT);
@@ -1523,7 +1578,7 @@ virtgpu_open_device(struct virtgpu *gpu, const drmDevicePtr dev)
    switch (dev->bustype) {
    case DRM_BUS_PCI:
       if (dev->deviceinfo.pci->vendor_id == VIRTGPU_PCI_VENDOR_ID &&
-         dev->deviceinfo.pci->device_id == VIRTGPU_PCI_DEVICE_ID)
+          dev->deviceinfo.pci->device_id == VIRTGPU_PCI_DEVICE_ID)
          supported_bus = true;
       break;
    case DRM_BUS_PLATFORM:
@@ -1547,6 +1602,7 @@ virtgpu_open_device(struct virtgpu *gpu, const drmDevicePtr dev)
       return VK_ERROR_INITIALIZATION_FAILED;
    }
 
+   const char *primary_path = dev->nodes[DRM_NODE_PRIMARY];
    const char *node_path = dev->nodes[DRM_NODE_RENDER];
 
    int fd = open(node_path, O_RDWR | O_CLOEXEC);
@@ -1574,7 +1630,21 @@ virtgpu_open_device(struct virtgpu *gpu, const drmDevicePtr dev)
    }
 
    gpu->fd = fd;
-   gpu->version_minor = version->version_minor;
+
+   struct stat st;
+   if (stat(primary_path, &st) == 0) {
+      gpu->has_primary = true;
+      gpu->primary_major = major(st.st_rdev);
+      gpu->primary_minor = minor(st.st_rdev);
+   } else {
+      gpu->has_primary = false;
+      gpu->primary_major = 0;
+      gpu->primary_minor = 0;
+   }
+   stat(node_path, &st);
+   gpu->render_major = major(st.st_rdev);
+   gpu->render_minor = minor(st.st_rdev);
+
    gpu->bustype = dev->bustype;
    if (dev->bustype == DRM_BUS_PCI)
       gpu->pci_bus_info = *dev->businfo.pci;
@@ -1634,8 +1704,9 @@ virtgpu_init(struct virtgpu *gpu)
    vn_renderer_shmem_cache_init(&gpu->shmem_cache, &gpu->base,
                                 virtgpu_shmem_destroy_now);
 
+   virtgpu_init_renderer_info(gpu);
+
    gpu->base.ops.destroy = virtgpu_destroy;
-   gpu->base.ops.get_info = virtgpu_get_info;
    gpu->base.ops.submit = virtgpu_submit;
    gpu->base.ops.wait = virtgpu_wait;
 

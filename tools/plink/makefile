@@ -37,7 +37,13 @@ CSRCS = settings.c \
  clicons.c \
  console.c \
  x11disp.c \
- version.c
+ version.c \
+ null-seat.c \
+ null-opener.c \
+ null-key.c \
+ null-cipher.c \
+ null-mac.c \
+ null-lp.c
 
 vpath %.c proxy stubs
 

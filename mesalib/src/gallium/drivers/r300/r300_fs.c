@@ -88,7 +88,7 @@ void r300_shader_read_fs_inputs(struct tgsi_shader_info* info,
 static void find_output_registers(struct r300_fragment_program_compiler * compiler,
                                   struct r300_fragment_shader_code *shader)
 {
-    unsigned i, colorbuf_count = 0;
+    unsigned i;
 
     /* Mark the outputs as not present initially */
     compiler->OutputColor[0] = shader->info.num_outputs;
@@ -101,8 +101,7 @@ static void find_output_registers(struct r300_fragment_program_compiler * compil
     for(i = 0; i < shader->info.num_outputs; ++i) {
         switch(shader->info.output_semantic_name[i]) {
             case TGSI_SEMANTIC_COLOR:
-                compiler->OutputColor[colorbuf_count] = i;
-                colorbuf_count++;
+                compiler->OutputColor[shader->info.output_semantic_index[i]] = i;
                 break;
             case TGSI_SEMANTIC_POSITION:
                 compiler->OutputDepth = i;
@@ -433,13 +432,14 @@ static void r300_translate_fragment_shader(
     compiler.code = &shader->code;
     compiler.state = shader->compare_state;
     if (!shader->dummy)
-        compiler.Base.debug = &r300->debug;
+        compiler.Base.debug = &r300->context.debug;
     compiler.Base.is_r500 = r300->screen->caps.is_r500;
     compiler.Base.is_r400 = r300->screen->caps.is_r400;
     compiler.Base.disable_optimizations = DBG_ON(r300, DBG_NO_OPT);
     compiler.Base.has_half_swizzles = TRUE;
     compiler.Base.has_presub = TRUE;
     compiler.Base.has_omod = TRUE;
+    compiler.Base.needs_trig_input_transform = DBG_ON(r300, DBG_USE_TGSI);
     compiler.Base.max_temp_regs =
         compiler.Base.is_r500 ? 128 : (compiler.Base.is_r400 ? 64 : 32);
     compiler.Base.max_constants = compiler.Base.is_r500 ? 256 : 32;

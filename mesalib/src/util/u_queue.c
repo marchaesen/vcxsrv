@@ -55,7 +55,10 @@ util_queue_kill_threads(struct util_queue *queue, unsigned keep_num_threads,
  */
 
 static once_flag atexit_once_flag = ONCE_FLAG_INIT;
-static struct list_head queue_list;
+static struct list_head queue_list = {
+   .next = &queue_list,
+   .prev = &queue_list,
+};
 static mtx_t exit_mutex = _MTX_INITIALIZER_NP;
 
 static void
@@ -74,7 +77,6 @@ atexit_handler(void)
 static void
 global_init(void)
 {
-   list_inithead(&queue_list);
    atexit(atexit_handler);
 }
 
@@ -183,11 +185,7 @@ _util_queue_fence_wait_timeout(struct util_queue_fence *fence,
    if (rel > 0) {
       struct timespec ts;
 
-#if defined(HAVE_TIMESPEC_GET) || defined(_WIN32)
       timespec_get(&ts, TIME_UTC);
-#else
-      clock_gettime(CLOCK_REALTIME, &ts);
-#endif
 
       ts.tv_sec += abs_timeout / (1000*1000*1000);
       ts.tv_nsec += abs_timeout % (1000*1000*1000);
@@ -262,9 +260,6 @@ util_queue_thread_func(void *input)
       uint32_t mask[UTIL_MAX_CPUS / 32];
 
       memset(mask, 0xff, sizeof(mask));
-
-      /* Ensure util_cpu_caps.num_cpu_mask_bits is initialized: */
-      util_cpu_detect();
 
       util_set_current_thread_affinity(mask, NULL,
                                        util_get_cpu_caps()->num_cpu_mask_bits);
@@ -344,9 +339,7 @@ util_queue_create_thread(struct util_queue *queue, unsigned index)
    input->queue = queue;
    input->thread_index = index;
 
-   queue->threads[index] = u_thread_create(util_queue_thread_func, input);
-
-   if (!queue->threads[index]) {
+   if (thrd_success != u_thread_create(queue->threads + index, util_queue_thread_func, input)) {
       free(input);
       return false;
    }
@@ -395,8 +388,10 @@ util_queue_adjust_num_threads(struct util_queue *queue, unsigned num_threads)
     */
    queue->num_threads = num_threads;
    for (unsigned i = old_num_threads; i < num_threads; i++) {
-      if (!util_queue_create_thread(queue, i))
+      if (!util_queue_create_thread(queue, i)) {
+         queue->num_threads = i;
          break;
+      }
    }
    simple_mtx_unlock(&queue->finish_lock);
 }
@@ -536,7 +531,7 @@ util_queue_destroy(struct util_queue *queue)
 {
    util_queue_kill_threads(queue, 0, false);
 
-   /* This makes it safe to call on a queue that failedutil_queue_init. */
+   /* This makes it safe to call on a queue that failed util_queue_init. */
    if (queue->head.next != NULL)
       remove_from_atexit_list(queue);
 
@@ -572,14 +567,15 @@ util_queue_add_job(struct util_queue *queue,
 
    assert(queue->num_queued >= 0 && queue->num_queued <= queue->max_jobs);
 
+   /* Scale the number of threads up if there's already one job waiting. */
+   if (queue->num_queued > 0 &&
+       queue->flags & UTIL_QUEUE_INIT_SCALE_THREADS &&
+       execute != util_queue_finish_execute &&
+       queue->num_threads < queue->max_threads) {
+      util_queue_adjust_num_threads(queue, queue->num_threads + 1);
+   }
 
    if (queue->num_queued == queue->max_jobs) {
-      if ((queue->flags & UTIL_QUEUE_INIT_SCALE_THREADS) &&
-          execute != util_queue_finish_execute &&
-          queue->num_threads < queue->max_threads) {
-         util_queue_adjust_num_threads(queue, queue->num_threads + 1);
-      }
-
       if (queue->flags & UTIL_QUEUE_INIT_RESIZE_IF_FULL &&
           queue->total_jobs_size + job_size < S_256MB) {
          /* If the queue is full, make it larger to avoid waiting for a free

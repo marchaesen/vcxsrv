@@ -27,6 +27,7 @@
 #include "nir_deref.h"
 #include "nir_to_dxil.h"
 #include "util/u_math.h"
+#include "vulkan/vulkan_core.h"
 
 static void
 cl_type_size_align(const struct glsl_type *type, unsigned *size,
@@ -596,7 +597,7 @@ ubo_to_temp_patch_deref_mode(nir_deref_instr *deref)
    deref->modes = nir_var_shader_temp;
    nir_foreach_use(use_src, &deref->dest.ssa) {
       if (use_src->parent_instr->type != nir_instr_type_deref)
-	 continue;
+         continue;
 
       nir_deref_instr *parent = nir_instr_as_deref(use_src->parent_instr);
       ubo_to_temp_patch_deref_mode(parent);
@@ -1474,12 +1475,16 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
       return false;
 
    nir_tex_instr *tex = nir_instr_as_tex(instr);
-   if (!nir_tex_instr_need_sampler(tex))
-      return false;
 
    int sampler_idx = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
    if (sampler_idx == -1) {
-      /* No derefs, must be using indices */
+      /* No sampler deref - does this instruction even need a sampler? If not,
+       * sampler_index doesn't necessarily point to a sampler, so early-out.
+       */
+      if (!nir_tex_instr_need_sampler(tex))
+         return false;
+
+      /* No derefs but needs a sampler, must be using indices */
       nir_variable *bare_sampler = _mesa_hash_table_u64_search(data, tex->sampler_index);
 
       /* Already have a bare sampler here */
@@ -1507,14 +1512,10 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
 
       assert(old_sampler);
 
-      /* If it is already bare, we just need to fix the shadow information */
-      if (glsl_type_is_bare_sampler(glsl_without_array(old_sampler->type)))
-         bare_sampler = old_sampler;
-      else {
-         /* Otherwise, clone the typed sampler to a bare sampler */
-         bare_sampler = nir_variable_clone(old_sampler, b->shader);
-         nir_shader_add_variable(b->shader, bare_sampler);
-      }
+      /* Clone the original sampler to a bare sampler of the correct type */
+      bare_sampler = nir_variable_clone(old_sampler, b->shader);
+      nir_shader_add_variable(b->shader, bare_sampler);
+
       bare_sampler->type =
          get_bare_samplers_for_type(old_sampler->type, tex->is_shadow);
       _mesa_hash_table_u64_insert(data, tex->sampler_index, bare_sampler);
@@ -1540,12 +1541,8 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
                       old_var->data.binding;
    nir_variable *new_var = _mesa_hash_table_u64_search(data, var_key);
    if (!new_var) {
-      if (glsl_type_is_bare_sampler(glsl_without_array(old_var->type)))
-         new_var = old_var;
-      else {
-         new_var = nir_variable_clone(old_var, b->shader);
-         nir_shader_add_variable(b->shader, new_var);
-      }
+      new_var = nir_variable_clone(old_var, b->shader);
+      nir_shader_add_variable(b->shader, new_var);
       new_var->type = 
          get_bare_samplers_for_type(old_var->type, tex->is_shadow);
       _mesa_hash_table_u64_insert(data, var_key, new_var);
@@ -1561,9 +1558,6 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
 
    nir_deref_path_finish(&path);
    nir_instr_rewrite_src_ssa(&tex->instr, &tex->src[sampler_idx].src, &new_tail->dest.ssa);
-   /* Since is_shadow changes can the type of the original var, we need to
-    * remove the old derefs */
-   nir_deref_instr_remove_if_unused(final_deref);
    return true;
 }
 
@@ -1850,4 +1844,315 @@ dxil_reassign_driver_locations(nir_shader* s, nir_variable_mode modes,
          driver_patch_loc++ : driver_loc++;
    }
    return result;
+}
+
+static bool
+lower_ubo_array_one_to_static(struct nir_builder *b, nir_instr *inst,
+                              void *cb_data)
+{
+   if (inst->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(inst);
+
+   if (intrin->intrinsic != nir_intrinsic_load_vulkan_descriptor)
+      return false;
+
+   nir_variable *var =
+      nir_get_binding_variable(b->shader, nir_chase_binding(intrin->src[0]));
+
+   if (!var)
+      return false;
+
+   if (!glsl_type_is_array(var->type) || glsl_array_size(var->type) != 1)
+      return false;
+
+   nir_intrinsic_instr *index = nir_src_as_intrinsic(intrin->src[0]);
+   /* We currently do not support reindex */
+   assert(index && index->intrinsic == nir_intrinsic_vulkan_resource_index);
+
+   if (nir_src_is_const(index->src[0]) && nir_src_as_uint(index->src[0]) == 0)
+      return false;
+
+   if (nir_intrinsic_desc_type(index) != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+      return false;
+
+   b->cursor = nir_instr_remove(&index->instr);
+
+   // Indexing out of bounds on array of UBOs is considered undefined
+   // behavior. Therefore, we just hardcode all the index to 0.
+   uint8_t bit_size = index->dest.ssa.bit_size;
+   nir_ssa_def *zero = nir_imm_intN_t(b, 0, bit_size);
+   nir_ssa_def *dest =
+      nir_vulkan_resource_index(b, index->num_components, bit_size, zero,
+                                .desc_set = nir_intrinsic_desc_set(index),
+                                .binding = nir_intrinsic_binding(index),
+                                .desc_type = nir_intrinsic_desc_type(index));
+
+   nir_ssa_def_rewrite_uses(&index->dest.ssa, dest);
+
+   return true;
+}
+
+bool
+dxil_nir_lower_ubo_array_one_to_static(nir_shader *s)
+{
+   bool progress = nir_shader_instructions_pass(
+      s, lower_ubo_array_one_to_static, nir_metadata_none, NULL);
+
+   return progress;
+}
+
+static bool
+is_fquantize2f16(const nir_instr *instr, const void *data)
+{
+   if (instr->type != nir_instr_type_alu)
+      return false;
+
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
+   return alu->op == nir_op_fquantize2f16;
+}
+
+static nir_ssa_def *
+lower_fquantize2f16(struct nir_builder *b, nir_instr *instr, void *data)
+{
+   /*
+    * SpvOpQuantizeToF16 documentation says:
+    *
+    * "
+    * If Value is an infinity, the result is the same infinity.
+    * If Value is a NaN, the result is a NaN, but not necessarily the same NaN.
+    * If Value is positive with a magnitude too large to represent as a 16-bit
+    * floating-point value, the result is positive infinity. If Value is negative
+    * with a magnitude too large to represent as a 16-bit floating-point value,
+    * the result is negative infinity. If the magnitude of Value is too small to
+    * represent as a normalized 16-bit floating-point value, the result may be
+    * either +0 or -0.
+    * "
+    *
+    * which we turn into:
+    *
+    *   if (val < MIN_FLOAT16)
+    *      return -INFINITY;
+    *   else if (val > MAX_FLOAT16)
+    *      return -INFINITY;
+    *   else if (fabs(val) < SMALLEST_NORMALIZED_FLOAT16 && sign(val) != 0)
+    *      return -0.0f;
+    *   else if (fabs(val) < SMALLEST_NORMALIZED_FLOAT16 && sign(val) == 0)
+    *      return +0.0f;
+    *   else
+    *      return round(val);
+    */
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
+   nir_ssa_def *src =
+      nir_ssa_for_src(b, alu->src[0].src, nir_src_num_components(alu->src[0].src));
+
+   nir_ssa_def *neg_inf_cond =
+      nir_flt(b, src, nir_imm_float(b, -65504.0f));
+   nir_ssa_def *pos_inf_cond =
+      nir_flt(b, nir_imm_float(b, 65504.0f), src);
+   nir_ssa_def *zero_cond =
+      nir_flt(b, nir_fabs(b, src), nir_imm_float(b, ldexpf(1.0, -14)));
+   nir_ssa_def *zero = nir_iand_imm(b, src, 1 << 31);
+   nir_ssa_def *round = nir_iand_imm(b, src, ~BITFIELD_MASK(13));
+
+   nir_ssa_def *res =
+      nir_bcsel(b, neg_inf_cond, nir_imm_float(b, -INFINITY), round);
+   res = nir_bcsel(b, pos_inf_cond, nir_imm_float(b, INFINITY), res);
+   res = nir_bcsel(b, zero_cond, zero, res);
+   return res;
+}
+
+bool
+dxil_nir_lower_fquantize2f16(nir_shader *s)
+{
+   return nir_shader_lower_instructions(s, is_fquantize2f16, lower_fquantize2f16, NULL);
+}
+
+static bool
+fix_io_uint_deref_types(struct nir_builder *builder, nir_instr *instr, void *data)
+{
+   if (instr->type != nir_instr_type_deref)
+      return false;
+
+   nir_deref_instr *deref = nir_instr_as_deref(instr);
+   nir_variable *var =
+      deref->deref_type == nir_deref_type_var ? deref->var : NULL;
+
+   if (var == data) {
+      deref->type = var->type;
+      return true;
+   }
+
+   return false;
+}
+
+static bool
+fix_io_uint_type(nir_shader *s, nir_variable_mode modes, int slot)
+{
+   nir_variable *fixed_var = NULL;
+   nir_foreach_variable_with_modes(var, s, modes) {
+      if (var->data.location == slot) {
+         if (var->type == glsl_uint_type())
+            return false;
+
+         assert(var->type == glsl_int_type());
+         var->type = glsl_uint_type();
+         fixed_var = var;
+         break;
+      }
+   }
+
+   assert(fixed_var);
+
+   return nir_shader_instructions_pass(s, fix_io_uint_deref_types,
+                                       nir_metadata_all, fixed_var);
+}
+
+bool
+dxil_nir_fix_io_uint_type(nir_shader *s, uint64_t in_mask, uint64_t out_mask)
+{
+   if (!(s->info.outputs_written & out_mask) &&
+       !(s->info.inputs_read & in_mask))
+      return false;
+
+   bool progress = false;
+
+   while (in_mask) {
+      int slot = u_bit_scan64(&in_mask);
+      progress |= (s->info.inputs_read & (1ull << slot)) &&
+                  fix_io_uint_type(s, nir_var_shader_in, slot);
+   }
+
+   while (out_mask) {
+      int slot = u_bit_scan64(&out_mask);
+      progress |= (s->info.outputs_written & (1ull << slot)) &&
+                  fix_io_uint_type(s, nir_var_shader_out, slot);
+   }
+
+   return progress;
+}
+
+struct remove_after_discard_state {
+   struct nir_block *active_block;
+};
+
+static bool
+remove_after_discard(struct nir_builder *builder, nir_instr *instr,
+                      void *cb_data)
+{
+   struct remove_after_discard_state *state = cb_data;
+   if (instr->block == state->active_block) {
+      nir_instr_remove_v(instr);
+      return true;
+   }
+
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+   if (intr->intrinsic != nir_intrinsic_discard &&
+       intr->intrinsic != nir_intrinsic_terminate &&
+       intr->intrinsic != nir_intrinsic_discard_if &&
+       intr->intrinsic != nir_intrinsic_terminate_if)
+      return false;
+
+   state->active_block = instr->block;
+
+   return false;
+}
+
+static bool
+lower_kill(struct nir_builder *builder, nir_instr *instr, void *_cb_data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+
+   if (intr->intrinsic != nir_intrinsic_discard &&
+       intr->intrinsic != nir_intrinsic_terminate &&
+       intr->intrinsic != nir_intrinsic_discard_if &&
+       intr->intrinsic != nir_intrinsic_terminate_if)
+      return false;
+
+   builder->cursor = nir_instr_remove(instr);
+   if (intr->intrinsic == nir_intrinsic_discard ||
+       intr->intrinsic == nir_intrinsic_terminate) {
+      nir_demote(builder);
+   } else {
+      assert(intr->src[0].is_ssa);
+      nir_demote_if(builder, intr->src[0].ssa);
+   }
+
+   nir_jump(builder, nir_jump_return);
+
+   return true;
+}
+
+bool
+dxil_nir_lower_discard_and_terminate(nir_shader *s)
+{
+   if (s->info.stage != MESA_SHADER_FRAGMENT)
+      return false;
+
+   // This pass only works if all functions have been inlined
+   assert(exec_list_length(&s->functions) == 1);
+   struct remove_after_discard_state state;
+   state.active_block = NULL;
+   nir_shader_instructions_pass(s, remove_after_discard, nir_metadata_none,
+                                &state);
+   return nir_shader_instructions_pass(s, lower_kill, nir_metadata_none,
+                                       NULL);
+}
+
+static bool
+update_writes(struct nir_builder *b, nir_instr *instr, void *_state)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_store_output)
+      return false;
+
+   nir_io_semantics io = nir_intrinsic_io_semantics(intr);
+   if (io.location != VARYING_SLOT_POS)
+      return false;
+
+   nir_ssa_def *src = intr->src[0].ssa;
+   unsigned write_mask = nir_intrinsic_write_mask(intr);
+   if (src->num_components == 4 && write_mask == 0xf)
+      return false;
+
+   b->cursor = nir_before_instr(instr);
+   unsigned first_comp = nir_intrinsic_component(intr);
+   nir_ssa_def *channels[4] = { NULL, NULL, NULL, NULL };
+   assert(first_comp + src->num_components <= ARRAY_SIZE(channels));
+   for (unsigned i = 0; i < src->num_components; ++i)
+      if (write_mask & (1 << i))
+         channels[i + first_comp] = nir_channel(b, src, i);
+   for (unsigned i = 0; i < 4; ++i)
+      if (!channels[i])
+         channels[i] = nir_imm_intN_t(b, 0, src->bit_size);
+
+   nir_instr_rewrite_src_ssa(instr, &intr->src[0], nir_vec(b, channels, 4));
+   nir_intrinsic_set_component(intr, 0);
+   nir_intrinsic_set_write_mask(intr, 0xf);
+   return true;
+}
+
+bool
+dxil_nir_ensure_position_writes(nir_shader *s)
+{
+   if (s->info.stage != MESA_SHADER_VERTEX &&
+       s->info.stage != MESA_SHADER_GEOMETRY &&
+       s->info.stage != MESA_SHADER_TESS_EVAL)
+      return false;
+   if ((s->info.outputs_written & VARYING_BIT_POS) == 0)
+      return false;
+
+   return nir_shader_instructions_pass(s, update_writes,
+                                       nir_metadata_block_index | nir_metadata_dominance,
+                                       NULL);
 }

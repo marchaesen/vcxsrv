@@ -78,6 +78,8 @@ lower_impl(nir_builder *b, nir_instr *instr, bool bindless_only)
    case nir_intrinsic_image_deref_load:
    case nir_intrinsic_image_deref_samples:
    case nir_intrinsic_image_deref_size:
+   case nir_intrinsic_image_deref_samples_identical:
+   case nir_intrinsic_image_deref_descriptor_amd:
    case nir_intrinsic_image_deref_store: {
       deref = nir_src_as_deref(intrinsic->src[0]);
       var = nir_deref_instr_get_variable(deref);

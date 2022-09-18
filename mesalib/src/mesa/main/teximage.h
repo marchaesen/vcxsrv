@@ -139,7 +139,10 @@ _mesa_init_teximage_fields_ms(struct gl_context *ctx,
                               GLuint numSamples,
                               GLboolean fixedSampleLocations);
 
-
+void
+_mesa_update_teximage_format_swizzle(struct gl_context *ctx,
+                                     struct gl_texture_image *img,
+                                     GLenum depth_mode);
 extern mesa_format
 _mesa_choose_texture_format(struct gl_context *ctx,
                             struct gl_texture_object *texObj,

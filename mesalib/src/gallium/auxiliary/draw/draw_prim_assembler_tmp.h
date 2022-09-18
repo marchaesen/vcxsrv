@@ -7,12 +7,12 @@
 
 #define FUNC_ENTER                                                \
    /* declare more local vars */                                  \
-   const unsigned prim = input_prims->prim;                       \
+   const enum pipe_prim_type prim = input_prims->prim;            \
    const unsigned prim_flags = input_prims->flags;                \
    const boolean last_vertex_last = !asmblr->draw->rasterizer->flatshade_first;  \
    switch (prim) {                                                  \
    case PIPE_PRIM_POLYGON:                                          \
-      debug_assert(!"unexpected primitive type in prim assembler"); \
+      assert(!"unexpected primitive type in prim assembler"); \
       return;                                                       \
    default:                                                         \
       break;                                                        \

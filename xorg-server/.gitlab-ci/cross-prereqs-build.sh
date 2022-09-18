@@ -51,12 +51,14 @@ build 'https://gitlab.freedesktop.org/xorg/lib/pthread-stubs.git' '0.4'
 # these would add -I/usr/include to CFLAGS, which breaks cross-compilation
 build 'https://gitlab.freedesktop.org/xorg/proto/xorgproto.git' 'xorgproto-2021.4.99.2' '--datadir=/lib'
 build 'https://gitlab.freedesktop.org/xorg/lib/libXau.git' 'libXau-1.0.9'
-build 'https://gitlab.freedesktop.org/xorg/proto/xcbproto.git' 'xcb-proto-1.14'
+build 'https://gitlab.freedesktop.org/xorg/proto/xcbproto.git' 'xcb-proto-1.14.1'
 build 'https://gitlab.freedesktop.org/xorg/lib/libxcb.git' 'libxcb-1.14'
 build 'https://gitlab.freedesktop.org/xorg/lib/libxtrans.git' 'xtrans-1.4.0'
 # the default value of keysymdefdir is taken from the includedir variable for
 # xproto, which isn't adjusted by pkg-config for the sysroot
-build 'https://gitlab.freedesktop.org/xorg/lib/libX11.git' 'libX11-1.6.9' "--with-keysymdefdir=/usr/${HOST}/include/X11"
+# Using -fcommon to address build failure when cross-compiling for windows.
+# See discussion at https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/913
+CFLAGS="-fcommon" build 'https://gitlab.freedesktop.org/xorg/lib/libX11.git' 'libX11-1.6.9' "--with-keysymdefdir=/usr/${HOST}/include/X11"
 build 'https://gitlab.freedesktop.org/xorg/lib/libxkbfile.git' 'libxkbfile-1.1.0'
 # freetype needs an explicit --build to know it's cross-compiling
 # disable png as freetype tries to use libpng-config, even when cross-compiling

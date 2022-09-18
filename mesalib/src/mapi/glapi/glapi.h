@@ -88,9 +88,6 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
  */
 #define MAX_EXTENSION_FUNCS 300
 
-
-#if defined (USE_ELF_TLS)
-
 #if DETECT_OS_WINDOWS
 extern __THREAD_INITIAL_EXEC struct _glapi_table * _glapi_tls_Dispatch;
 extern __THREAD_INITIAL_EXEC void * _glapi_tls_Context;
@@ -99,18 +96,13 @@ _GLAPI_EXPORT extern __THREAD_INITIAL_EXEC struct _glapi_table * _glapi_tls_Disp
 _GLAPI_EXPORT extern __THREAD_INITIAL_EXEC void * _glapi_tls_Context;
 #endif
 
-_GLAPI_EXPORT extern const struct _glapi_table *_glapi_Dispatch;
-_GLAPI_EXPORT extern const void *_glapi_Context;
-
-#if defined (USE_TLS_BEHIND_FUNCTIONS)
+#if DETECT_OS_WINDOWS && !defined(MAPI_MODE_UTIL) && !defined(MAPI_MODE_GLAPI)
 # define GET_DISPATCH() _glapi_get_dispatch()
 # define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_get_context()
 #else
 # define GET_DISPATCH() _glapi_tls_Dispatch
 # define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_tls_Context
 #endif
-
-#else
 
 #ifdef INSERVER
 #define SERVEXTERN _declspec(dllimport)
@@ -120,19 +112,9 @@ _GLAPI_EXPORT extern const void *_glapi_Context;
 
 SERVEXTERN struct _glapi_table *_glapi_Dispatch;
 SERVEXTERN void *_glapi_Context;
+SERVEXTERN void
+_glapi_destroy_multithread(void);
 
-#define GET_DISPATCH() \
-     (likely(_glapi_Dispatch) ? _glapi_Dispatch : _glapi_get_dispatch())
-
-#define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
-     (likely(_glapi_Context) ? _glapi_Context : _glapi_get_context())
-
-#endif /* defined (USE_ELF_TLS) */
-
-
-/**
- ** GL API public functions
- **/
 
 SERVEXTERN void
 _glapi_check_multithread(void);

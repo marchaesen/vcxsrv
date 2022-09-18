@@ -27,21 +27,47 @@
 #include "vk_extensions.h"
 #include "vk_object.h"
 
+#include "util/list.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+struct disk_cache;
 struct wsi_device;
 struct vk_sync_type;
+struct vk_pipeline_cache_object_ops;
 
+/** Base struct for all VkPhysicalDevice implementations
+ */
 struct vk_physical_device {
    struct vk_object_base base;
+
+   /* See vk_instance::pdevices::list */
+   struct list_head link;
+
+   /** Instance which is the parent of this physical device */
    struct vk_instance *instance;
 
+   /** Table of all supported device extensions
+    *
+    * This table is initialized from the `supported_extensions` parameter
+    * passed to `vk_physical_device_init()` if not `NULL`.  If a `NULL`
+    * extension table is passed, all extensions are initialized to false and
+    * it's the responsibility of the driver to populate the table.  This may
+    * be useful if the driver's physical device initialization order is such
+    * that extension support cannot be determined until significant physical
+    * device setup work has already been done.
+    */
    struct vk_device_extension_table supported_extensions;
 
+   /** Physical-device-level dispatch table */
    struct vk_physical_device_dispatch_table dispatch_table;
 
+   /** Disk cache, or NULL */
+   struct disk_cache *disk_cache;
+
+   /** WSI device, or NULL */
    struct wsi_device *wsi_device;
 
    /** A null-terminated array of supported sync types, in priority order
@@ -54,17 +80,41 @@ struct vk_physical_device {
     * considered just one more criterion.
     */
    const struct vk_sync_type *const *supported_sync_types;
+
+   /** A null-terminated array of supported pipeline cache object types
+    *
+    * The common implementation of VkPipelineCache uses this to remember the
+    * type of objects stored in the cache and deserialize them immediately
+    * when importing the cache. If an object type isn't in this list, then it
+    * will be loaded as a raw data object and then deserialized when we first
+    * look it up. Deserializing immediately avoids a copy but may be more
+    * expensive for objects that aren't hit.
+    */
+   const struct vk_pipeline_cache_object_ops *const *pipeline_cache_import_ops;
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_physical_device, base, VkPhysicalDevice,
-                       VK_OBJECT_TYPE_PHYSICAL_DEVICE)
+                       VK_OBJECT_TYPE_PHYSICAL_DEVICE);
 
+/** Initialize a vk_physical_device
+ *
+ * @param[out] physical_device      The physical device to initialize
+ * @param[in]  instance             The instance which is the parent of this
+ *                                  physical device
+ * @param[in]  supported_extensions Table of all device extensions supported
+ *                                  by this physical device
+ * @param[in]  dispatch_table       Physical-device-level dispatch table
+ */
 VkResult MUST_CHECK
 vk_physical_device_init(struct vk_physical_device *physical_device,
                         struct vk_instance *instance,
                         const struct vk_device_extension_table *supported_extensions,
                         const struct vk_physical_device_dispatch_table *dispatch_table);
 
+/** Tears down a vk_physical_device
+ *
+ * @param[out] physical_device   The physical device to tear down
+ */
 void
 vk_physical_device_finish(struct vk_physical_device *physical_device);
 

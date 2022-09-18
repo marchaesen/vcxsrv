@@ -32,13 +32,13 @@ XkbAddGeomOverlayRow \- Add a row to an existing overlay
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- overlay
+.I overlay
 overlay to be updated
 .TP
-.I \- row_under
+.I row_under
 row to be overlaid in the section overlay overlays
 .TP
-.I \- sz_keys
+.I sz_keys
 number of keys to reserve in the row
 .SH DESCRIPTION
 .LP

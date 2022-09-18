@@ -33,6 +33,8 @@
 #include "pipe/p_video_codec.h"
 #include "util/u_memory.h"
 
+#include "vl/vl_codec.h"
+
 #include "entrypoint.h"
 #include "h264e.h"
 #include "h264eprc.h"
@@ -271,7 +273,7 @@ static void enc_ClearBframes(vid_enc_PrivateType * priv, struct input_buf_privat
    if (list_is_empty(&priv->b_frames))
       return;
 
-   task = LIST_ENTRY(struct encode_task, priv->b_frames.prev, list);
+   task = list_entry(priv->b_frames.prev, struct encode_task, list);
    list_del(&task->list);
 
    /* promote last from to P frame */
@@ -365,7 +367,7 @@ static OMX_ERRORTYPE encode_frame(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTY
       }
       if (stacked_num == priv->stacked_frames_num) {
          struct encode_task *t;
-         t = LIST_ENTRY(struct encode_task, priv->stacked_tasks.next, list);
+         t = list_entry(priv->stacked_tasks.next, struct encode_task, list);
          list_del(&t->list);
          list_addtail(&t->list, &inp->tasks);
       }
@@ -399,8 +401,7 @@ static OMX_ERRORTYPE h264e_prc_create_encoder(void *ap_obj)
       return OMX_ErrorInsufficientResources;
 
    screen = priv->screen->pscreen;
-   if (!screen->get_video_param(screen, PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH,
-                                PIPE_VIDEO_ENTRYPOINT_ENCODE, PIPE_VIDEO_CAP_SUPPORTED))
+   if (!vl_codec_supported(screen, PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH, true))
       return OMX_ErrorBadParameter;
 
    priv->s_pipe = pipe_create_multimedia_context(screen);

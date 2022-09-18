@@ -65,7 +65,7 @@ etna_assemble(uint32_t *out, const struct etna_inst *inst)
    if (inst->imm && inst->src[2].use)
       return 1;
 
-   if (!inst->halti5 && !check_uniforms(inst))
+   if (!inst->no_oneconst_limit && !check_uniforms(inst))
       BUG("error: generating instruction that accesses two different uniforms");
 
    assert(!(inst->opcode&~0x7f));

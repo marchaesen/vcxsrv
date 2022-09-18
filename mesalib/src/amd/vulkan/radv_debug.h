@@ -66,6 +66,7 @@ enum {
    RADV_DEBUG_DUMP_PROLOGS = 1ull << 35,
    RADV_DEBUG_NO_DMA_BLIT = 1ull << 36,
    RADV_DEBUG_SPLIT_FMA = 1ull << 37,
+   RADV_DEBUG_DUMP_EPILOGS = 1ull << 38,
 };
 
 enum {
@@ -79,9 +80,11 @@ enum {
    RADV_PERFTEST_SAM = 1u << 7,
    RADV_PERFTEST_RT = 1u << 8,
    RADV_PERFTEST_NGGC = 1u << 9,
-   RADV_PERFTEST_FORCE_EMULATE_RT = 1u << 10,
+   RADV_PERFTEST_EMULATE_RT = 1u << 10,
    RADV_PERFTEST_NV_MS = 1u << 11,
    RADV_PERFTEST_RT_WAVE_64 = 1u << 12,
+   RADV_PERFTEST_GPL = 1u << 13,
+   RADV_PERFTEST_EXT_MS = 1u << 14,
 };
 
 bool radv_init_trace(struct radv_device *device);

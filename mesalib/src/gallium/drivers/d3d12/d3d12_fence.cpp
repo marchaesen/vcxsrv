@@ -28,6 +28,8 @@
 
 #include "util/u_memory.h"
 
+#include <dxguids/dxguids.h>
+
 constexpr uint64_t NsPerMs = 1000000;
 constexpr uint64_t MaxTimeoutInNs = (uint64_t)UINT_MAX * NsPerMs;
 
@@ -87,7 +89,7 @@ destroy_fence(struct d3d12_fence *fence)
 }
 
 struct d3d12_fence *
-d3d12_create_fence(struct d3d12_screen *screen, struct d3d12_context *ctx)
+d3d12_create_fence(struct d3d12_screen *screen)
 {
    struct d3d12_fence *ret = CALLOC_STRUCT(d3d12_fence);
    if (!ret) {
@@ -95,12 +97,12 @@ d3d12_create_fence(struct d3d12_screen *screen, struct d3d12_context *ctx)
       return NULL;
    }
 
-   ret->cmdqueue_fence = ctx->cmdqueue_fence;
-   ret->value = ++ctx->fence_value;
+   ret->cmdqueue_fence = screen->fence;
+   ret->value = ++screen->fence_value;
    ret->event = create_event(&ret->event_fd);
-   if (FAILED(ctx->cmdqueue_fence->SetEventOnCompletion(ret->value, ret->event)))
+   if (FAILED(screen->fence->SetEventOnCompletion(ret->value, ret->event)))
       goto fail;
-   if (FAILED(screen->cmdqueue->Signal(ctx->cmdqueue_fence, ret->value)))
+   if (FAILED(screen->cmdqueue->Signal(screen->fence, ret->value)))
       goto fail;
 
    pipe_reference_init(&ret->reference, 1);
@@ -109,6 +111,34 @@ d3d12_create_fence(struct d3d12_screen *screen, struct d3d12_context *ctx)
 fail:
    destroy_fence(ret);
    return NULL;
+}
+
+struct d3d12_fence *
+d3d12_open_fence(struct d3d12_screen *screen, HANDLE handle, const void *name)
+{
+   struct d3d12_fence *ret = CALLOC_STRUCT(d3d12_fence);
+   if (!ret) {
+      debug_printf("CALLOC_STRUCT failed\n");
+      return NULL;
+   }
+
+   HANDLE handle_to_close = nullptr;
+   assert(!!handle ^ !!name);
+   if (name) {
+      screen->dev->OpenSharedHandleByName((LPCWSTR)name, GENERIC_ALL, &handle_to_close);
+      handle = handle_to_close;
+   }
+
+   screen->dev->OpenSharedHandle(handle, IID_PPV_ARGS(&ret->cmdqueue_fence));
+   if (!ret->cmdqueue_fence) {
+      free(ret);
+      return NULL;
+   }
+
+   /* A new value will be assigned later */
+   ret->value = 0;
+   pipe_reference_init(&ret->reference, 1);
+   return ret;
 }
 
 void

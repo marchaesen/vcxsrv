@@ -33,13 +33,13 @@ XkbFreeCompatMap \- Free an entire compatibility map or selected portions of one
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 Xkb description in which to free compatibility map
 .TP
-.I \- which
+.I which
 mask of compatibility map components to free
 .TP
-.I \- free_map
+.I free_map
 True => free XkbCompatMap structure itself
 .SH DESCRIPTION
 .LP

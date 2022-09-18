@@ -35,22 +35,22 @@ XkbLookupKeyBinding \- Find the string bound to a key by XRebindKeySym
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to server
 .TP
-.I \- sym
+.I sym
 connection to server
 .TP
-.I \- state
+.I state
 state for which string is to be looked up
 .TP
-.I \- buf
+.I buf
 buffer into which returned string is written
 .TP
-.I \- nbytes
+.I nbytes
 size of buffer in bytes
 .TP
-.I \- extra_rtrn
+.I extra_rtrn
 backfilled with number bytes overflow
 .SH DESCRIPTION
 .LP

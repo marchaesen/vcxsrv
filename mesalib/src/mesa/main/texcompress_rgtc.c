@@ -42,6 +42,7 @@
 #include "mipmap.h"
 #include "texcompress.h"
 #include "util/rgtc.h"
+#include "util/format/u_format_rgtc.h"
 #include "texcompress_rgtc.h"
 #include "texstore.h"
 
@@ -454,5 +455,48 @@ _mesa_get_compressed_rgtc_func(mesa_format format)
       return fetch_signed_la_latc2;
    default:
       return NULL;
+   }
+}
+
+void
+_mesa_unpack_rgtc(uint8_t *dst_row,
+                  unsigned dst_stride,
+                  const uint8_t *src_row,
+                  unsigned src_stride,
+                  unsigned src_width,
+                  unsigned src_height,
+                  mesa_format format)
+{
+   switch (format) {
+   case MESA_FORMAT_R_RGTC1_UNORM:
+   case MESA_FORMAT_L_LATC1_UNORM:
+      util_format_rgtc1_unorm_unpack_r_8unorm(dst_row, dst_stride,
+                                              src_row, src_stride,
+                                              src_width, src_height);
+      break;
+
+   case MESA_FORMAT_R_RGTC1_SNORM:
+   case MESA_FORMAT_L_LATC1_SNORM:
+      util_format_rgtc1_snorm_unpack_r_8snorm((int8_t *)dst_row, dst_stride,
+                                              src_row, src_stride,
+                                              src_width, src_height);
+      break;
+
+   case MESA_FORMAT_RG_RGTC2_UNORM:
+   case MESA_FORMAT_LA_LATC2_UNORM:
+      util_format_rgtc2_unorm_unpack_rg_8unorm(dst_row, dst_stride,
+                                               src_row, src_stride,
+                                               src_width, src_height);
+      break;
+
+   case MESA_FORMAT_RG_RGTC2_SNORM:
+   case MESA_FORMAT_LA_LATC2_SNORM:
+      util_format_rgtc2_snorm_unpack_rg_8snorm((int8_t *)dst_row, dst_stride,
+                                               src_row, src_stride,
+                                               src_width, src_height);
+      break;
+
+   default:
+      unreachable("unexpected format");
    }
 }

@@ -251,6 +251,7 @@ nine_convert_sampler_state(struct cso_context *ctx, int idx, const DWORD *ss)
     samp.border_color_is_integer = 0;
     samp.reduction_mode = 0;
     samp.pad = 0;
+    samp.border_color_format = PIPE_FORMAT_NONE;
     d3dcolor_to_pipe_color_union(&samp.border_color, ss[D3DSAMP_BORDERCOLOR]);
 
     /* see nine_state.h */

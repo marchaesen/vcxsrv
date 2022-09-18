@@ -92,8 +92,8 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
 
             nir_tex_instr *tex = nir_instr_as_tex(instr);
             nir_src *coord = NULL;
-            nir_src *lod_bias = NULL;
-            unsigned lod_bias_idx;
+            nir_src *src1 = NULL;
+            unsigned src1_idx;
 
             assert(tex->sampler_index == tex->texture_index);
 
@@ -104,10 +104,12 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
                   break;
                case nir_tex_src_bias:
                case nir_tex_src_lod:
-                  assert(!lod_bias);
-                  lod_bias = &tex->src[i].src;
-                  lod_bias_idx = i;
+                  assert(!src1);
+                  src1 = &tex->src[i].src;
+                  src1_idx = i;
                   break;
+               case nir_tex_src_ddx:
+               case nir_tex_src_ddy:
                case nir_tex_src_comparator:
                   break;
                default:
@@ -118,10 +120,10 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
 
             /* pre HALTI5 needs texture sources in a single source */
 
-            if (!lod_bias || v->shader->specs->halti >= 5)
+            if (!src1 || v->shader->specs->halti >= 5)
                continue;
 
-            assert(coord && lod_bias && tex->coord_components < 4);
+            assert(coord && src1 && tex->coord_components < 4);
 
             nir_alu_instr *vec = nir_alu_instr_create(shader, nir_op_vec4);
             for (unsigned i = 0; i < tex->coord_components; i++) {
@@ -129,12 +131,12 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
                vec->src[i].swizzle[0] = i;
             }
             for (unsigned i = tex->coord_components; i < 4; i++)
-               vec->src[i].src = nir_src_for_ssa(lod_bias->ssa);
+               vec->src[i].src = nir_src_for_ssa(src1->ssa);
 
             vec->dest.write_mask = 0xf;
             nir_ssa_dest_init(&vec->instr, &vec->dest.dest, 4, 32, NULL);
 
-            nir_tex_instr_remove_src(tex, lod_bias_idx);
+            nir_tex_instr_remove_src(tex, src1_idx);
             nir_instr_rewrite_src(&tex->instr, coord, nir_src_for_ssa(&vec->dest.dest.ssa));
             tex->coord_components = 4;
 

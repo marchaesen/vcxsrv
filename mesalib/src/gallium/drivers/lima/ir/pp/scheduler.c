@@ -26,6 +26,10 @@
 
 #include "ppir.h"
 
+static int cmp_int(const void *a, const void *b)
+{
+   return (*(int*)a - *(int*)b);
+}
 
 static void ppir_schedule_calc_sched_info(ppir_instr *instr)
 {
@@ -62,15 +66,7 @@ static void ppir_schedule_calc_sched_info(ppir_instr *instr)
    }
 
    /* sort */
-   for (i = 0; i < n - 1; i++) {
-      for (int j = 0; j < n - i - 1; j++) {
-         if (reg[j] > reg[j + 1]) {
-            int tmp = reg[j + 1];
-            reg[j + 1] = reg[j];
-            reg[j] = tmp;
-         }
-      }
-   }
+   qsort(reg, n, sizeof(reg[0]), cmp_int);
 
    for (i = 0; i < n; i++) {
       int pressure = reg[i] + n - (i + 1);

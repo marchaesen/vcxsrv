@@ -239,6 +239,63 @@ nir_can_find_libclc(unsigned ptr_bit_size)
    }
 }
 
+/** Adds generic pointer variants of libclc functions
+ *
+ * Libclc currently doesn't contain generic variants for a bunch of functions
+ * like `frexp` but the OpenCL spec with generic pointers requires them.  We
+ * really should fix libclc but, in the mean time, we can easily duplicate
+ * every function that works on global memory and make it also work on generic
+ * memory.
+ */
+static void
+libclc_add_generic_variants(nir_shader *shader)
+{
+   nir_foreach_function(func, shader) {
+      /* These don't need generic variants */
+      if (strstr(func->name, "async_work_group_strided_copy"))
+         continue;
+
+      char *U3AS1 = strstr(func->name, "U3AS1");
+      if (U3AS1 == NULL)
+         continue;
+
+      ptrdiff_t offset_1 = U3AS1 - func->name + 4;
+      assert(offset_1 < strlen(func->name) && func->name[offset_1] == '1');
+
+      char *generic_name = ralloc_strdup(shader, func->name);
+      assert(generic_name[offset_1] == '1');
+      generic_name[offset_1] = '4';
+
+      nir_function *gfunc = nir_function_create(shader, generic_name);
+      gfunc->num_params = func->num_params;
+      gfunc->params = ralloc_array(shader, nir_parameter, gfunc->num_params);
+      for (unsigned i = 0; i < gfunc->num_params; i++)
+         gfunc->params[i] = func->params[i];
+
+      gfunc->impl = nir_function_impl_clone(shader, func->impl);
+      gfunc->impl->function = gfunc;
+
+      /* Rewrite any global pointers to generic */
+      nir_foreach_block(block, gfunc->impl) {
+         nir_foreach_instr(instr, block) {
+            if (instr->type != nir_instr_type_deref)
+               continue;
+
+            nir_deref_instr *deref = nir_instr_as_deref(instr);
+            if (!nir_deref_mode_may_be(deref, nir_var_mem_global))
+               continue;
+
+            assert(deref->type != nir_deref_type_var);
+            assert(nir_deref_mode_is(deref, nir_var_mem_global));
+
+            deref->modes = nir_var_mem_generic;
+         }
+      }
+
+      nir_metadata_preserve(gfunc->impl, nir_metadata_none);
+   }
+}
+
 nir_shader *
 nir_load_libclc_shader(unsigned ptr_bit_size,
                        struct disk_cache *disk_cache,
@@ -292,6 +349,8 @@ nir_load_libclc_shader(unsigned ptr_bit_size,
    nir->info.internal = true;
    NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
    NIR_PASS_V(nir, nir_lower_returns);
+
+   NIR_PASS_V(nir, libclc_add_generic_variants);
 
    /* TODO: One day, we may want to run some optimizations on the libclc
     * shader once and cache them to save time in each shader call.

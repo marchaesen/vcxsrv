@@ -209,7 +209,7 @@ public:
 	void build_constraint_queue();
 	void build_chunk_queue();
 	int color_constraints();
-	void color_chunks();
+	int color_chunks();
 
 	ra_constraint* create_constraint(constraint_kind kind);
 

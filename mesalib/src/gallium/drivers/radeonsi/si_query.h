@@ -133,7 +133,8 @@ struct si_query_ops {
    bool (*end)(struct si_context *, struct si_query *);
    bool (*get_result)(struct si_context *, struct si_query *, bool wait,
                       union pipe_query_result *result);
-   void (*get_result_resource)(struct si_context *, struct si_query *, bool wait,
+   void (*get_result_resource)(struct si_context *, struct si_query *,
+                               enum pipe_query_flags flags,
                                enum pipe_query_value_type result_type, int index,
                                struct pipe_resource *resource, unsigned offset);
 
@@ -161,6 +162,10 @@ enum
    /* gap */
    /* whether begin_query doesn't clear the result */
    SI_QUERY_HW_FLAG_BEGIN_RESUMES = (1 << 2),
+   /* whether GS invocations and emitted primitives counters are emulated
+    * using atomic adds.
+    */
+   SI_QUERY_EMULATE_GS_COUNTERS = (1 << 3),
 };
 
 struct si_query_hw_ops {
@@ -202,14 +207,20 @@ struct si_query_hw {
    /* Size of the result in memory for both begin_query and end_query,
     * this can be one or two numbers, or it could even be a size of a structure. */
    unsigned result_size;
-   /* For transform feedback: which stream the query is for */
-   unsigned stream;
+   union {
+      /* For transform feedback: which stream the query is for */
+      unsigned stream;
+      /* For pipeline stats: which counter is active */
+      unsigned index;
+   };
 
    /* Workaround via compute shader */
    struct si_resource *workaround_buf;
    unsigned workaround_offset;
 };
 
+unsigned si_query_pipestat_end_dw_offset(struct si_screen *sscreen,
+                                         enum pipe_statistics_query_index index);
 void si_query_hw_destroy(struct si_context *sctx, struct si_query *squery);
 bool si_query_hw_begin(struct si_context *sctx, struct si_query *squery);
 bool si_query_hw_end(struct si_context *sctx, struct si_query *squery);

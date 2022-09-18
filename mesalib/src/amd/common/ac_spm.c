@@ -26,6 +26,7 @@
 
 #include "util/bitscan.h"
 #include "util/u_memory.h"
+#include "ac_perfcounter.h"
 
 static struct ac_spm_block_select *
 ac_spm_get_block_select(struct ac_spm_trace_data *spm_trace,
@@ -54,6 +55,14 @@ ac_spm_get_block_select(struct ac_spm_trace_data *spm_trace,
 
    new_block_sel->b = block;
    new_block_sel->num_counters = block->b->b->num_spm_counters;
+
+   /* Broadcast global block writes to SEs and SAs */
+   if (!(block->b->b->flags & (AC_PC_BLOCK_SE | AC_PC_BLOCK_SHADER)))
+      new_block_sel->grbm_gfx_index = S_030800_SE_BROADCAST_WRITES(1) |
+                                      S_030800_SH_BROADCAST_WRITES(1);
+   /* Broadcast per SE block writes to SAs */
+   else if (block->b->b->flags & AC_PC_BLOCK_SE)
+      new_block_sel->grbm_gfx_index = S_030800_SH_BROADCAST_WRITES(1);
 
    return new_block_sel;
 }
@@ -311,7 +320,7 @@ bool ac_init_spm(const struct radeon_info *info,
          } else {
             counter->offset = segment_offset + odd_line_idx *
                               AC_SPM_NUM_COUNTER_PER_MUXSEL + odd_counter_idx;
-            
+
             spm_trace->muxsel_lines[s][odd_line_idx].muxsel[odd_counter_idx] = spm_trace->counters[i].muxsel;
             if (++odd_counter_idx == AC_SPM_NUM_COUNTER_PER_MUXSEL) {
                odd_counter_idx = 0;

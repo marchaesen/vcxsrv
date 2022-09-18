@@ -35,7 +35,6 @@ struct lima_screen;
 struct panfrost_minmax_cache;
 
 struct lima_resource_level {
-   uint32_t width;
    uint32_t stride;
    uint32_t offset;
    uint32_t layer_stride;
@@ -55,6 +54,7 @@ struct lima_resource {
    struct renderonly_scanout *scanout;
    struct lima_bo *bo;
    struct panfrost_minmax_cache *index_cache;
+   uint32_t mrt_pitch;
    bool tiled;
    bool modifier_constant;
    unsigned full_updates;

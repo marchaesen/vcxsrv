@@ -739,8 +739,7 @@ v3d_emit_gl_shader_state(struct v3d_context *v3d,
                 if (!rsc)
                         continue;
 
-                const uint32_t size =
-                        cl_packet_length(GL_SHADER_STATE_ATTRIBUTE_RECORD);
+                enum { size = cl_packet_length(GL_SHADER_STATE_ATTRIBUTE_RECORD) };
                 cl_emit_with_prepacked(&job->indirect,
                                        GL_SHADER_STATE_ATTRIBUTE_RECORD,
                                        &vtx->attrs[i * size], attr) {
@@ -852,6 +851,49 @@ v3d_update_primitives_generated_counter(struct v3d_context *v3d,
 static void
 v3d_update_job_ez(struct v3d_context *v3d, struct v3d_job *job)
 {
+        /* If first_ez_state is V3D_EZ_DISABLED it means that we have already
+         * determined that we should disable EZ completely for all draw calls
+         * in this job. This will cause us to disable EZ for the entire job in
+         * the Tile Rendering Mode RCL packet and when we do that we need to
+         * make sure we never emit a draw call in the job with EZ enabled in
+         * the CFG_BITS packet, so ez_state must also be V3D_EZ_DISABLED.
+         */
+        if (job->first_ez_state == V3D_EZ_DISABLED) {
+                assert(job->ez_state == V3D_EZ_DISABLED);
+                return;
+        }
+
+        /* If this is the first time we update EZ state for this job we first
+         * check if there is anything that requires disabling it completely
+         * for the entire job (based on state that is not related to the
+         * current draw call and pipeline state).
+         */
+        if (!job->decided_global_ez_enable) {
+                job->decided_global_ez_enable = true;
+
+                if (!job->zsbuf) {
+                        job->first_ez_state = V3D_EZ_DISABLED;
+                        job->ez_state = V3D_EZ_DISABLED;
+                        return;
+                }
+
+                /* GFXH-1918: the early-Z buffer may load incorrect depth
+                 * values if the frame has odd width or height. Disable early-Z
+                 * in this case.
+                 */
+                bool needs_depth_load = v3d->zsa && job->zsbuf &&
+                        v3d->zsa->base.depth_enabled &&
+                        (PIPE_CLEAR_DEPTH & ~job->clear);
+                if (needs_depth_load &&
+                     ((job->draw_width % 2 != 0) || (job->draw_height % 2 != 0))) {
+                        perf_debug("Loading depth buffer for framebuffer with odd width "
+                                   "or height disables early-Z tests\n");
+                        job->first_ez_state = V3D_EZ_DISABLED;
+                        job->ez_state = V3D_EZ_DISABLED;
+                        return;
+                }
+        }
+
         switch (v3d->zsa->ez_state) {
         case V3D_EZ_UNDECIDED:
                 /* If the Z/S state didn't pick a direction but didn't
@@ -892,30 +934,6 @@ v3d_update_job_ez(struct v3d_context *v3d, struct v3d_job *job)
         if (job->first_ez_state == V3D_EZ_UNDECIDED &&
             (job->ez_state != V3D_EZ_DISABLED || job->draw_calls_queued == 0))
                 job->first_ez_state = job->ez_state;
-}
-
-static uint32_t
-v3d_hw_prim_type(enum pipe_prim_type prim_type)
-{
-        switch (prim_type) {
-        case PIPE_PRIM_POINTS:
-        case PIPE_PRIM_LINES:
-        case PIPE_PRIM_LINE_LOOP:
-        case PIPE_PRIM_LINE_STRIP:
-        case PIPE_PRIM_TRIANGLES:
-        case PIPE_PRIM_TRIANGLE_STRIP:
-        case PIPE_PRIM_TRIANGLE_FAN:
-                return prim_type;
-
-        case PIPE_PRIM_LINES_ADJACENCY:
-        case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-        case PIPE_PRIM_TRIANGLES_ADJACENCY:
-        case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-                return 8 + (prim_type - PIPE_PRIM_LINES_ADJACENCY);
-
-        default:
-                unreachable("Unsupported primitive type");
-        }
 }
 
 static bool
@@ -1290,7 +1308,7 @@ v3d_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
                 v3d_flush(pctx);
         }
 
-        if (unlikely(V3D_DEBUG & V3D_DEBUG_ALWAYS_FLUSH))
+        if (V3D_DBG(ALWAYS_FLUSH))
                 v3d_flush(pctx);
 }
 
@@ -1452,7 +1470,7 @@ v3d_launch_grid(struct pipe_context *pctx, const struct pipe_grid_info *info)
 
         v3d->last_perfmon = v3d->active_perfmon;
 
-        if (!(unlikely(V3D_DEBUG & V3D_DEBUG_NORAST))) {
+        if (!V3D_DBG(NORAST)) {
                 int ret = v3d_ioctl(screen->fd, DRM_IOCTL_V3D_SUBMIT_CSD,
                                     &submit);
                 static bool warned = false;
@@ -1499,15 +1517,7 @@ v3d_draw_clear(struct v3d_context *v3d,
                const union pipe_color_union *color,
                double depth, unsigned stencil)
 {
-        static const union pipe_color_union dummy_color = {};
-
-        /* The blitter util dereferences the color regardless, even though the
-         * gallium clear API may not pass one in when only Z/S are cleared.
-         */
-        if (!color)
-                color = &dummy_color;
-
-        v3d_blitter_save(v3d);
+        v3d_blitter_save(v3d, false);
         util_blitter_clear(v3d->blitter,
                            v3d->framebuffer.width,
                            v3d->framebuffer.height,

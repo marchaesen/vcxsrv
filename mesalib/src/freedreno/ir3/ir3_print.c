@@ -137,7 +137,51 @@ print_instr_name(struct log_stream *stream, struct ir3_instruction *instr,
                                 disasm_a3xx_instr_name(instr->opc));
       }
 
-      if (instr->opc != OPC_MOVMSK) {
+      if (instr->opc == OPC_SCAN_MACRO) {
+         switch (instr->cat1.reduce_op) {
+         case REDUCE_OP_ADD_U:
+            mesa_log_stream_printf(stream, ".add.u");
+            break;
+         case REDUCE_OP_ADD_F:
+            mesa_log_stream_printf(stream, ".add.f");
+            break;
+         case REDUCE_OP_MUL_U:
+            mesa_log_stream_printf(stream, ".mul.u");
+            break;
+         case REDUCE_OP_MUL_F:
+            mesa_log_stream_printf(stream, ".mul.f");
+            break;
+         case REDUCE_OP_MIN_U:
+            mesa_log_stream_printf(stream, ".min.u");
+            break;
+         case REDUCE_OP_MIN_S:
+            mesa_log_stream_printf(stream, ".min.s");
+            break;
+         case REDUCE_OP_MIN_F:
+            mesa_log_stream_printf(stream, ".min.f");
+            break;
+         case REDUCE_OP_MAX_U:
+            mesa_log_stream_printf(stream, ".max.u");
+            break;
+         case REDUCE_OP_MAX_S:
+            mesa_log_stream_printf(stream, ".max.s");
+            break;
+         case REDUCE_OP_MAX_F:
+            mesa_log_stream_printf(stream, ".max.f");
+            break;
+         case REDUCE_OP_AND_B:
+            mesa_log_stream_printf(stream, ".and.b");
+            break;
+         case REDUCE_OP_OR_B:
+            mesa_log_stream_printf(stream, ".or.b");
+            break;
+         case REDUCE_OP_XOR_B:
+            mesa_log_stream_printf(stream, ".xor.b");
+            break;
+         }
+      }
+
+      if (instr->opc != OPC_MOVMSK && instr->opc != OPC_SCAN_MACRO) {
          mesa_log_stream_printf(stream, ".%s%s",
                                 type_name(instr->cat1.src_type),
                                 type_name(instr->cat1.dst_type));
@@ -171,6 +215,8 @@ print_instr_name(struct log_stream *stream, struct ir3_instruction *instr,
          mesa_log_stream_printf(stream, ".a1en");
       if (instr->opc == OPC_LDC)
          mesa_log_stream_printf(stream, ".offset%d", instr->cat6.d);
+      if (instr->opc == OPC_LDC_K)
+         mesa_log_stream_printf(stream, ".%d", instr->cat6.iim_val);
       if (instr->flags & IR3_INSTR_B) {
          mesa_log_stream_printf(
             stream, ".base%d",
@@ -243,6 +289,9 @@ print_reg_name(struct log_stream *stream, struct ir3_instruction *instr,
 
    if (reg->flags & IR3_REG_R)
       mesa_log_stream_printf(stream, "(r)");
+
+   if (reg->flags & IR3_REG_EARLY_CLOBBER)
+      mesa_log_stream_printf(stream, "(early_clobber)");
 
    /* Right now all instructions that use tied registers only have one
     * destination register, so we can just print (tied) as if it's a flag,
@@ -487,6 +536,9 @@ print_block(struct ir3_block *block, int lvl)
          break;
       case IR3_BRANCH_GETONE:
          mesa_log_stream_printf(stream, "getone ");
+         break;
+      case IR3_BRANCH_SHPS:
+         mesa_log_stream_printf(stream, "shps ");
          break;
       }
       if (block->condition)

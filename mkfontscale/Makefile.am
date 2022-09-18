@@ -30,9 +30,9 @@ DIR_SUBSTS = -e 's|@bindir[@]|$(bindir)|g'
 mkfontdir: mkfontdir.in
 	$(AM_V_GEN)$(SED) $(DIR_SUBSTS) < $(srcdir)/mkfontdir.in > $@
 
-AM_CPPFLAGS = @MKFONTSCALE_CFLAGS@ @X11_CFLAGS@ -D_BSD_SOURCE
+AM_CPPFLAGS = @MKFONTSCALE_CFLAGS@ @X11_CFLAGS@ @ZLIB_CFLAGS@ -D_BSD_SOURCE
 AM_CFLAGS = $(CWARNFLAGS)
-mkfontscale_LDADD  = @MKFONTSCALE_LIBS@
+mkfontscale_LDADD  = @MKFONTSCALE_LIBS@ @ZLIB_LIBS@
 
 mkfontscale_SOURCES = \
 	constlist.c \

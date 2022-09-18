@@ -53,7 +53,7 @@ struct llvm_middle_end {
 
    unsigned vertex_data_offset;
    unsigned vertex_size;
-   unsigned input_prim;
+   enum pipe_prim_type input_prim;
    unsigned opt;
 
    struct draw_llvm *llvm;
@@ -80,23 +80,20 @@ llvm_middle_end_prepare_gs(struct llvm_middle_end *fpme)
    struct draw_gs_llvm_variant_list_item *li;
    struct llvm_geometry_shader *shader = llvm_geometry_shader(gs);
    char store[DRAW_GS_LLVM_MAX_VARIANT_KEY_SIZE];
-   unsigned i;
 
    key = draw_gs_llvm_make_variant_key(llvm, store);
 
    /* Search shader's list of variants for the key */
-   li = first_elem(&shader->variants);
-   while (!at_end(&shader->variants, li)) {
+   LIST_FOR_EACH_ENTRY(li, &shader->variants.list, list) {
       if (memcmp(&li->base->key, key, shader->variant_key_size) == 0) {
          variant = li->base;
          break;
       }
-      li = next_elem(li);
    }
 
    if (variant) {
       /* found the variant, move to head of global list (for LRU) */
-      move_to_head(&llvm->gs_variants_list, &variant->list_item_global);
+      list_move_to(&variant->list_item_global.list, &llvm->gs_variants_list.list);
    }
    else {
       /* Need to create new variant */
@@ -113,12 +110,13 @@ llvm_middle_end_prepare_gs(struct llvm_middle_end *fpme)
          /*
           * XXX: should we flush here ?
           */
-         for (i = 0; i < DRAW_MAX_SHADER_VARIANTS / 32; i++) {
-            struct draw_gs_llvm_variant_list_item *item;
-            if (is_empty_list(&llvm->gs_variants_list)) {
+         struct draw_gs_llvm_variant_list_item *item;
+         for (unsigned i = 0; i < DRAW_MAX_SHADER_VARIANTS / 32; i++) {
+            if (list_is_empty(&llvm->gs_variants_list.list)) {
                break;
             }
-            item = last_elem(&llvm->gs_variants_list);
+            item = list_last_entry(&llvm->gs_variants_list.list,
+                                   struct draw_gs_llvm_variant_list_item, list);
             assert(item);
             assert(item->base);
             draw_gs_llvm_destroy_variant(item->base);
@@ -128,9 +126,8 @@ llvm_middle_end_prepare_gs(struct llvm_middle_end *fpme)
       variant = draw_gs_llvm_create_variant(llvm, gs->info.num_outputs, key);
 
       if (variant) {
-         insert_at_head(&shader->variants, &variant->list_item_local);
-         insert_at_head(&llvm->gs_variants_list,
-                        &variant->list_item_global);
+         list_add(&variant->list_item_local.list, &shader->variants.list);
+         list_add(&variant->list_item_global.list, &llvm->gs_variants_list.list);
          llvm->nr_gs_variants++;
          shader->variants_cached++;
       }
@@ -155,18 +152,16 @@ llvm_middle_end_prepare_tcs(struct llvm_middle_end *fpme)
    key = draw_tcs_llvm_make_variant_key(llvm, store);
 
    /* Search shader's list of variants for the key */
-   li = first_elem(&shader->variants);
-   while (!at_end(&shader->variants, li)) {
+   LIST_FOR_EACH_ENTRY(li, &shader->variants.list, list) {
       if (memcmp(&li->base->key, key, shader->variant_key_size) == 0) {
          variant = li->base;
          break;
       }
-      li = next_elem(li);
    }
 
    if (variant) {
       /* found the variant, move to head of global list (for LRU) */
-      move_to_head(&llvm->tcs_variants_list, &variant->list_item_global);
+      list_move_to(&variant->list_item_global.list, &llvm->tcs_variants_list.list);
    }
    else {
       /* Need to create new variant */
@@ -185,10 +180,11 @@ llvm_middle_end_prepare_tcs(struct llvm_middle_end *fpme)
           */
          for (i = 0; i < DRAW_MAX_SHADER_VARIANTS / 32; i++) {
             struct draw_tcs_llvm_variant_list_item *item;
-            if (is_empty_list(&llvm->tcs_variants_list)) {
+            if (list_is_empty(&llvm->tcs_variants_list.list)) {
                break;
             }
-            item = last_elem(&llvm->tcs_variants_list);
+            item = list_last_entry(&llvm->tcs_variants_list.list,
+                                   struct draw_tcs_llvm_variant_list_item, list);
             assert(item);
             assert(item->base);
             draw_tcs_llvm_destroy_variant(item->base);
@@ -198,9 +194,8 @@ llvm_middle_end_prepare_tcs(struct llvm_middle_end *fpme)
       variant = draw_tcs_llvm_create_variant(llvm, 0, key);
 
       if (variant) {
-         insert_at_head(&shader->variants, &variant->list_item_local);
-         insert_at_head(&llvm->tcs_variants_list,
-                        &variant->list_item_global);
+         list_add(&variant->list_item_local.list, &shader->variants.list);
+         list_add(&variant->list_item_global.list, &llvm->tcs_variants_list.list);
          llvm->nr_tcs_variants++;
          shader->variants_cached++;
       }
@@ -225,18 +220,16 @@ llvm_middle_end_prepare_tes(struct llvm_middle_end *fpme)
    key = draw_tes_llvm_make_variant_key(llvm, store);
 
    /* Search shader's list of variants for the key */
-   li = first_elem(&shader->variants);
-   while (!at_end(&shader->variants, li)) {
+   LIST_FOR_EACH_ENTRY(li, &shader->variants.list, list) {
       if (memcmp(&li->base->key, key, shader->variant_key_size) == 0) {
          variant = li->base;
          break;
       }
-      li = next_elem(li);
    }
 
    if (variant) {
       /* found the variant, move to head of global list (for LRU) */
-      move_to_head(&llvm->tes_variants_list, &variant->list_item_global);
+      list_move_to(&variant->list_item_global.list, &llvm->tes_variants_list.list);
    }
    else {
       /* Need to create new variant */
@@ -255,10 +248,11 @@ llvm_middle_end_prepare_tes(struct llvm_middle_end *fpme)
           */
          for (i = 0; i < DRAW_MAX_SHADER_VARIANTS / 32; i++) {
             struct draw_tes_llvm_variant_list_item *item;
-            if (is_empty_list(&llvm->tes_variants_list)) {
+            if (list_is_empty(&llvm->tes_variants_list.list)) {
                break;
             }
-            item = last_elem(&llvm->tes_variants_list);
+            item = list_last_entry(&llvm->tes_variants_list.list,
+                                   struct draw_tes_llvm_variant_list_item, list);
             assert(item);
             assert(item->base);
             draw_tes_llvm_destroy_variant(item->base);
@@ -268,9 +262,8 @@ llvm_middle_end_prepare_tes(struct llvm_middle_end *fpme)
       variant = draw_tes_llvm_create_variant(llvm, draw_total_tes_outputs(draw), key);
 
       if (variant) {
-         insert_at_head(&shader->variants, &variant->list_item_local);
-         insert_at_head(&llvm->tes_variants_list,
-                        &variant->list_item_global);
+         list_add(&variant->list_item_local.list, &shader->variants.list);
+         list_add(&variant->list_item_global.list, &llvm->tes_variants_list.list);
          llvm->nr_tes_variants++;
          shader->variants_cached++;
       }
@@ -286,7 +279,7 @@ llvm_middle_end_prepare_tes(struct llvm_middle_end *fpme)
  */
 static void
 llvm_middle_end_prepare( struct draw_pt_middle_end *middle,
-                         unsigned in_prim,
+                         enum pipe_prim_type in_prim,
                          unsigned opt,
                          unsigned *max_vertices )
 {
@@ -297,7 +290,8 @@ llvm_middle_end_prepare( struct draw_pt_middle_end *middle,
    struct draw_geometry_shader *gs = draw->gs.geometry_shader;
    struct draw_tess_ctrl_shader *tcs = draw->tcs.tess_ctrl_shader;
    struct draw_tess_eval_shader *tes = draw->tes.tess_eval_shader;
-   const unsigned out_prim = gs ? gs->output_primitive : tes ? get_tes_output_prim(tes) :
+   const enum pipe_prim_type out_prim =
+      gs ? gs->output_primitive : tes ? get_tes_output_prim(tes) :
       u_assembled_prim(in_prim);
    unsigned point_clip = draw->rasterizer->fill_front == PIPE_POLYGON_MODE_POINT ||
                          out_prim == PIPE_PRIM_POINTS;
@@ -316,7 +310,7 @@ llvm_middle_end_prepare( struct draw_pt_middle_end *middle,
                             draw->rasterizer->clip_halfz,
                             (draw->vs.edgeflag_output ? TRUE : FALSE) );
 
-   draw_pt_so_emit_prepare( fpme->so_emit, gs == NULL );
+   draw_pt_so_emit_prepare( fpme->so_emit, (gs == NULL && tes == NULL));
 
    if (!(opt & PT_PIPELINE)) {
       draw_pt_emit_prepare( fpme->emit, out_prim,
@@ -356,18 +350,16 @@ llvm_middle_end_prepare( struct draw_pt_middle_end *middle,
       key = draw_llvm_make_variant_key(llvm, store);
 
       /* Search shader's list of variants for the key */
-      li = first_elem(&shader->variants);
-      while (!at_end(&shader->variants, li)) {
+      LIST_FOR_EACH_ENTRY(li, &shader->variants.list, list) {
          if (memcmp(&li->base->key, key, shader->variant_key_size) == 0) {
             variant = li->base;
             break;
          }
-         li = next_elem(li);
       }
 
       if (variant) {
          /* found the variant, move to head of global list (for LRU) */
-         move_to_head(&llvm->vs_variants_list, &variant->list_item_global);
+         list_move_to(&variant->list_item_global.list, &llvm->vs_variants_list.list);
       }
       else {
          /* Need to create new variant */
@@ -386,10 +378,11 @@ llvm_middle_end_prepare( struct draw_pt_middle_end *middle,
              */
             for (i = 0; i < DRAW_MAX_SHADER_VARIANTS / 32; i++) {
                struct draw_llvm_variant_list_item *item;
-               if (is_empty_list(&llvm->vs_variants_list)) {
+               if (list_is_empty(&llvm->vs_variants_list.list)) {
                   break;
                }
-               item = last_elem(&llvm->vs_variants_list);
+               item = list_last_entry(&llvm->vs_variants_list.list,
+                                    struct draw_llvm_variant_list_item, list);
                assert(item);
                assert(item->base);
                draw_llvm_destroy_variant(item->base);
@@ -399,9 +392,8 @@ llvm_middle_end_prepare( struct draw_pt_middle_end *middle,
          variant = draw_llvm_create_variant(llvm, nr, key);
 
          if (variant) {
-            insert_at_head(&shader->variants, &variant->list_item_local);
-            insert_at_head(&llvm->vs_variants_list,
-                           &variant->list_item_global);
+            list_add(&variant->list_item_local.list, &shader->variants.list);
+            list_add(&variant->list_item_global.list, &llvm->vs_variants_list.list);
             llvm->nr_variants++;
             shader->variants_cached++;
          }
@@ -447,76 +439,76 @@ llvm_middle_end_bind_parameters(struct draw_pt_middle_end *middle)
    struct draw_llvm *llvm = fpme->llvm;
    unsigned i;
 
-   for (i = 0; i < ARRAY_SIZE(llvm->jit_context.vs_constants); ++i) {
+   for (i = 0; i < ARRAY_SIZE(llvm->jit_context.constants); ++i) {
       /*
        * There could be a potential issue with rounding this up, as the
        * shader expects 16-byte allocations, the fix is likely to move
        * to LOAD intrinsic in the future and remove the vec4 constraint.
        */
       int num_consts = get_num_consts_robust(draw, draw->pt.user.vs_constants_size, i);
-      llvm->jit_context.vs_constants[i] = draw->pt.user.vs_constants[i];
-      llvm->jit_context.num_vs_constants[i] = num_consts;
+      llvm->jit_context.constants[i].f = draw->pt.user.vs_constants[i];
+      llvm->jit_context.constants[i].num_elements = num_consts;
       if (num_consts == 0) {
-         llvm->jit_context.vs_constants[i] = fake_const_buf;
+         llvm->jit_context.constants[i].f = fake_const_buf;
       }
    }
-   for (i = 0; i < ARRAY_SIZE(llvm->jit_context.vs_ssbos); ++i) {
+   for (i = 0; i < ARRAY_SIZE(llvm->jit_context.ssbos); ++i) {
       int num_ssbos = draw->pt.user.vs_ssbos_size[i];
-      llvm->jit_context.vs_ssbos[i] = draw->pt.user.vs_ssbos[i];
-      llvm->jit_context.num_vs_ssbos[i] = num_ssbos;
+      llvm->jit_context.ssbos[i].u = draw->pt.user.vs_ssbos[i];
+      llvm->jit_context.ssbos[i].num_elements = num_ssbos;
       if (num_ssbos == 0) {
-         llvm->jit_context.vs_ssbos[i] = (const uint32_t *)fake_const_buf;
+         llvm->jit_context.ssbos[i].u = (const uint32_t *)fake_const_buf;
       }
    }
 
    for (i = 0; i < ARRAY_SIZE(llvm->gs_jit_context.constants); ++i) {
       int num_consts = get_num_consts_robust(draw, draw->pt.user.gs_constants_size, i);
-      llvm->gs_jit_context.constants[i] = draw->pt.user.gs_constants[i];
-      llvm->gs_jit_context.num_constants[i] = num_consts;
+      llvm->gs_jit_context.constants[i].f = draw->pt.user.gs_constants[i];
+      llvm->gs_jit_context.constants[i].num_elements = num_consts;
       if (num_consts == 0) {
-         llvm->gs_jit_context.constants[i] = fake_const_buf;
+         llvm->gs_jit_context.constants[i].f = fake_const_buf;
       }
    }
    for (i = 0; i < ARRAY_SIZE(llvm->gs_jit_context.ssbos); ++i) {
       int num_ssbos = draw->pt.user.gs_ssbos_size[i];
-      llvm->gs_jit_context.ssbos[i] = draw->pt.user.gs_ssbos[i];
-      llvm->gs_jit_context.num_ssbos[i] = num_ssbos;
+      llvm->gs_jit_context.ssbos[i].u = draw->pt.user.gs_ssbos[i];
+      llvm->gs_jit_context.ssbos[i].num_elements = num_ssbos;
       if (num_ssbos == 0) {
-         llvm->gs_jit_context.ssbos[i] = (const uint32_t *)fake_const_buf;
+         llvm->gs_jit_context.ssbos[i].u = (const uint32_t *)fake_const_buf;
       }
    }
 
    for (i = 0; i < ARRAY_SIZE(llvm->tcs_jit_context.constants); ++i) {
       int num_consts = get_num_consts_robust(draw, draw->pt.user.tcs_constants_size, i);
-      llvm->tcs_jit_context.constants[i] = draw->pt.user.tcs_constants[i];
-      llvm->tcs_jit_context.num_constants[i] = num_consts;
+      llvm->tcs_jit_context.constants[i].f = draw->pt.user.tcs_constants[i];
+      llvm->tcs_jit_context.constants[i].num_elements = num_consts;
       if (num_consts == 0) {
-         llvm->tcs_jit_context.constants[i] = fake_const_buf;
+         llvm->tcs_jit_context.constants[i].f = fake_const_buf;
       }
    }
    for (i = 0; i < ARRAY_SIZE(llvm->tcs_jit_context.ssbos); ++i) {
       int num_ssbos = draw->pt.user.tcs_ssbos_size[i];
-      llvm->tcs_jit_context.ssbos[i] = draw->pt.user.tcs_ssbos[i];
-      llvm->tcs_jit_context.num_ssbos[i] = num_ssbos;
+      llvm->tcs_jit_context.ssbos[i].u = draw->pt.user.tcs_ssbos[i];
+      llvm->tcs_jit_context.ssbos[i].num_elements = num_ssbos;
       if (num_ssbos == 0) {
-         llvm->tcs_jit_context.ssbos[i] = (const uint32_t *)fake_const_buf;
+         llvm->tcs_jit_context.ssbos[i].u = (const uint32_t *)fake_const_buf;
       }
    }
 
    for (i = 0; i < ARRAY_SIZE(llvm->tes_jit_context.constants); ++i) {
       int num_consts = get_num_consts_robust(draw, draw->pt.user.tes_constants_size, i);
-      llvm->tes_jit_context.constants[i] = draw->pt.user.tes_constants[i];
-      llvm->tes_jit_context.num_constants[i] = num_consts;
+      llvm->tes_jit_context.constants[i].f = draw->pt.user.tes_constants[i];
+      llvm->tes_jit_context.constants[i].num_elements = num_consts;
       if (num_consts == 0) {
-         llvm->tes_jit_context.constants[i] = fake_const_buf;
+         llvm->tes_jit_context.constants[i].f = fake_const_buf;
       }
    }
    for (i = 0; i < ARRAY_SIZE(llvm->tes_jit_context.ssbos); ++i) {
       int num_ssbos = draw->pt.user.tes_ssbos_size[i];
-      llvm->tes_jit_context.ssbos[i] = draw->pt.user.tes_ssbos[i];
-      llvm->tes_jit_context.num_ssbos[i] = num_ssbos;
+      llvm->tes_jit_context.ssbos[i].u = draw->pt.user.tes_ssbos[i];
+      llvm->tes_jit_context.ssbos[i].num_elements = num_ssbos;
       if (num_ssbos == 0) {
-         llvm->tes_jit_context.ssbos[i] = (const uint32_t *)fake_const_buf;
+         llvm->tes_jit_context.ssbos[i].u = (const uint32_t *)fake_const_buf;
       }
    }
 
@@ -788,8 +780,8 @@ out:
 }
 
 
-static inline unsigned
-prim_type(unsigned prim, unsigned flags)
+static inline enum pipe_prim_type
+prim_type(enum pipe_prim_type prim, unsigned flags)
 {
    if (flags & DRAW_LINE_LOOP_AS_STRIP)
       return PIPE_PRIM_LINE_STRIP;

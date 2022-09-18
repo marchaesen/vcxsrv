@@ -31,32 +31,28 @@
 typedef struct
 {
    nir_ssa_def *w_reflection;
-   nir_ssa_def *w_accepted;
-   nir_ssa_def *all_w_positive;
+   nir_ssa_def *all_w_negative;
    nir_ssa_def *any_w_negative;
 } position_w_info;
 
 static void
-analyze_position_w(nir_builder *b, nir_ssa_def *pos[3][4], position_w_info *w_info)
+analyze_position_w(nir_builder *b, nir_ssa_def *pos[][4], unsigned num_vertices,
+                   position_w_info *w_info)
 {
-   nir_ssa_def *all_w_negative = nir_imm_bool(b, true);
-
+   w_info->all_w_negative = nir_imm_bool(b, true);
    w_info->w_reflection = nir_imm_bool(b, false);
    w_info->any_w_negative = nir_imm_bool(b, false);
 
-   for (unsigned i = 0; i < 3; ++i) {
+   for (unsigned i = 0; i < num_vertices; ++i) {
       nir_ssa_def *neg_w = nir_flt(b, pos[i][3], nir_imm_float(b, 0.0f));
       w_info->w_reflection = nir_ixor(b, neg_w, w_info->w_reflection);
       w_info->any_w_negative = nir_ior(b, neg_w, w_info->any_w_negative);
-      all_w_negative = nir_iand(b, neg_w, all_w_negative);
+      w_info->all_w_negative = nir_iand(b, neg_w, w_info->all_w_negative);
    }
-
-   w_info->all_w_positive = nir_inot(b, w_info->any_w_negative);
-   w_info->w_accepted = nir_inot(b, all_w_negative);
 }
 
 static nir_ssa_def *
-cull_face(nir_builder *b, nir_ssa_def *pos[3][4], const position_w_info *w_info)
+cull_face_triangle(nir_builder *b, nir_ssa_def *pos[3][4], const position_w_info *w_info)
 {
    nir_ssa_def *det_t0 = nir_fsub(b, pos[2][0], pos[0][0]);
    nir_ssa_def *det_t1 = nir_fsub(b, pos[1][1], pos[0][1]);
@@ -80,85 +76,287 @@ cull_face(nir_builder *b, nir_ssa_def *pos[3][4], const position_w_info *w_info)
    /* Don't reject NaN and +/-infinity, these are tricky.
     * Just trust fixed-function HW to handle these cases correctly.
     */
-   face_culled = nir_iand(b, face_culled, nir_fisfinite(b, det));
+   return nir_iand(b, face_culled, nir_fisfinite(b, det));
+}
 
-   return nir_inot(b, face_culled);
+static void
+calc_bbox_triangle(nir_builder *b, nir_ssa_def *pos[3][4], nir_ssa_def *bbox_min[2], nir_ssa_def *bbox_max[2])
+{
+   for (unsigned chan = 0; chan < 2; ++chan) {
+      bbox_min[chan] = nir_fmin(b, pos[0][chan], nir_fmin(b, pos[1][chan], pos[2][chan]));
+      bbox_max[chan] = nir_fmax(b, pos[0][chan], nir_fmax(b, pos[1][chan], pos[2][chan]));
+   }
 }
 
 static nir_ssa_def *
-cull_bbox(nir_builder *b, nir_ssa_def *pos[3][4], nir_ssa_def *accepted, const position_w_info *w_info)
+cull_frustrum(nir_builder *b, nir_ssa_def *bbox_min[2], nir_ssa_def *bbox_max[2])
 {
-   nir_ssa_def *bbox_accepted = NULL;
-   nir_ssa_def *try_cull_bbox = nir_iand(b, accepted, w_info->all_w_positive);
+   nir_ssa_def *prim_outside_view = nir_imm_false(b);
 
-   nir_if *if_cull_bbox = nir_push_if(b, try_cull_bbox);
+   for (unsigned chan = 0; chan < 2; ++chan) {
+      prim_outside_view = nir_ior(b, prim_outside_view, nir_flt(b, bbox_max[chan], nir_imm_float(b, -1.0f)));
+      prim_outside_view = nir_ior(b, prim_outside_view, nir_flt(b, nir_imm_float(b, 1.0f), bbox_min[chan]));
+   }
+
+   return prim_outside_view;
+}
+
+static nir_ssa_def *
+cull_small_primitive_triangle(nir_builder *b, nir_ssa_def *bbox_min[2], nir_ssa_def *bbox_max[2],
+                              nir_ssa_def *prim_is_small_else)
+{
+   nir_ssa_def *prim_is_small = NULL;
+
+   nir_if *if_cull_small_prims = nir_push_if(b, nir_load_cull_small_primitives_enabled_amd(b));
    {
-      nir_ssa_def *bbox_min[3] = {0}, *bbox_max[3] = {0};
+      nir_ssa_def *vp = nir_load_viewport_xy_scale_and_offset(b);
+      nir_ssa_def *small_prim_precision = nir_load_cull_small_prim_precision_amd(b);
+      prim_is_small = prim_is_small_else;
 
       for (unsigned chan = 0; chan < 2; ++chan) {
-         bbox_min[chan] = nir_fmin(b, pos[0][chan], nir_fmin(b, pos[1][chan], pos[2][chan]));
-         bbox_max[chan] = nir_fmax(b, pos[0][chan], nir_fmax(b, pos[1][chan], pos[2][chan]));
+         nir_ssa_def *vp_scale = nir_channel(b, vp, chan);
+         nir_ssa_def *vp_translate = nir_channel(b, vp, 2 + chan);
+
+         /* Convert the position to screen-space coordinates. */
+         nir_ssa_def *min = nir_ffma(b, bbox_min[chan], vp_scale, vp_translate);
+         nir_ssa_def *max = nir_ffma(b, bbox_max[chan], vp_scale, vp_translate);
+
+         /* Scale the bounding box according to precision. */
+         min = nir_fsub(b, min, small_prim_precision);
+         max = nir_fadd(b, max, small_prim_precision);
+
+         /* Determine if the bbox intersects the sample point, by checking if the min and max round to the same int. */
+         min = nir_fround_even(b, min);
+         max = nir_fround_even(b, max);
+
+         nir_ssa_def *rounded_to_eq = nir_feq(b, min, max);
+         prim_is_small = nir_ior(b, prim_is_small, rounded_to_eq);
       }
+   }
+   nir_pop_if(b, if_cull_small_prims);
 
-      nir_ssa_def *vp_scale[2] = { nir_load_viewport_x_scale(b), nir_load_viewport_y_scale(b), };
-      nir_ssa_def *vp_translate[2] = { nir_load_viewport_x_offset(b), nir_load_viewport_y_offset(b), };
-      nir_ssa_def *prim_outside_view = nir_imm_false(b);
+   return nir_if_phi(b, prim_is_small, prim_is_small_else);
+}
 
-      /* Frustrum culling - eliminate triangles that are fully outside the view. */
-      for (unsigned chan = 0; chan < 2; ++chan) {
-         prim_outside_view = nir_ior(b, prim_outside_view, nir_flt(b, bbox_max[chan], nir_imm_float(b, -1.0f)));
-         prim_outside_view = nir_ior(b, prim_outside_view, nir_flt(b, nir_imm_float(b, 1.0f), bbox_min[chan]));
-      }
+static nir_ssa_def *
+ac_nir_cull_triangle(nir_builder *b,
+                     nir_ssa_def *initially_accepted,
+                     nir_ssa_def *pos[3][4],
+                     position_w_info *w_info,
+                     ac_nir_cull_accepted accept_func,
+                     void *state)
+{
+   nir_ssa_def *accepted = initially_accepted;
+   accepted = nir_iand(b, accepted, nir_inot(b, w_info->all_w_negative));
+   accepted = nir_iand(b, accepted, nir_inot(b, cull_face_triangle(b, pos, w_info)));
 
-      nir_ssa_def *prim_is_small = NULL;
-      nir_ssa_def *prim_is_small_else = nir_imm_false(b);
+   nir_ssa_def *bbox_accepted = NULL;
 
-      /* Small primitive filter - eliminate triangles that are too small to affect a sample. */
-      nir_if *if_cull_small_prims = nir_push_if(b, nir_load_cull_small_primitives_enabled_amd(b));
-      {
-         nir_ssa_def *small_prim_precision = nir_load_cull_small_prim_precision_amd(b);
-         prim_is_small = nir_imm_false(b);
+   nir_if *if_accepted = nir_push_if(b, accepted);
+   {
+      nir_ssa_def *bbox_min[2] = {0}, *bbox_max[2] = {0};
+      calc_bbox_triangle(b, pos, bbox_min, bbox_max);
 
-         for (unsigned chan = 0; chan < 2; ++chan) {
-            /* Convert the position to screen-space coordinates. */
-            nir_ssa_def *min = nir_ffma(b, bbox_min[chan], vp_scale[chan], vp_translate[chan]);
-            nir_ssa_def *max = nir_ffma(b, bbox_max[chan], vp_scale[chan], vp_translate[chan]);
+      nir_ssa_def *prim_outside_view = cull_frustrum(b, bbox_min, bbox_max);
+      nir_ssa_def *prim_invisible =
+         cull_small_primitive_triangle(b, bbox_min, bbox_max, prim_outside_view);
 
-            /* Scale the bounding box according to precision. */
-            min = nir_fsub(b, min, small_prim_precision);
-            max = nir_fadd(b, max, small_prim_precision);
+      bbox_accepted = nir_ior(b, nir_inot(b, prim_invisible), w_info->any_w_negative);
 
-            /* Determine if the bbox intersects the sample point, by checking if the min and max round to the same int. */
-            min = nir_fround_even(b, min);
-            max = nir_fround_even(b, max);
-
-            nir_ssa_def *rounded_to_eq = nir_feq(b, min, max);
-            prim_is_small = nir_ior(b, prim_is_small, rounded_to_eq);
+      /* for caller which need to react when primitive is accepted */
+      if (accept_func) {
+         nir_if *if_still_accepted = nir_push_if(b, bbox_accepted);
+         {
+            accept_func(b, state);
          }
+         nir_pop_if(b, if_still_accepted);
       }
-      nir_pop_if(b, if_cull_small_prims);
+   }
+   nir_pop_if(b, if_accepted);
 
-      prim_is_small = nir_if_phi(b, prim_is_small, prim_is_small_else);
-      nir_ssa_def *prim_invisible = nir_ior(b, prim_outside_view, prim_is_small);
+   return nir_if_phi(b, bbox_accepted, accepted);
+}
+
+static void
+rotate_45degrees(nir_builder *b, nir_ssa_def *v[2])
+{
+   /* sin(45) == cos(45) */
+   nir_ssa_def *sincos45 = nir_imm_float(b, 0.707106781);
+
+   /* x2  =  x*cos45 - y*sin45  =  x*sincos45 - y*sincos45
+    * y2  =  x*sin45 + y*cos45  =  x*sincos45 + y*sincos45
+    */
+   nir_ssa_def *first = nir_fmul(b, v[0], sincos45);
+
+   /* Doing 2x ffma while duplicating the multiplication is 33% faster than fmul+fadd+fadd. */
+   nir_ssa_def *result[2] = {
+      nir_ffma(b, nir_fneg(b, v[1]), sincos45, first),
+      nir_ffma(b, v[1], sincos45, first),
+   };
+
+   memcpy(v, result, sizeof(result));
+}
+
+static void
+calc_bbox_line(nir_builder *b, nir_ssa_def *pos[3][4], nir_ssa_def *bbox_min[2], nir_ssa_def *bbox_max[2])
+{
+   nir_ssa_def *clip_half_line_width = nir_load_clip_half_line_width_amd(b);
+
+   for (unsigned chan = 0; chan < 2; ++chan) {
+      bbox_min[chan] = nir_fmin(b, pos[0][chan], pos[1][chan]);
+      bbox_max[chan] = nir_fmax(b, pos[0][chan], pos[1][chan]);
+
+      nir_ssa_def *width = nir_channel(b, clip_half_line_width, chan);
+      bbox_min[chan] = nir_fsub(b, bbox_min[chan], width);
+      bbox_max[chan] = nir_fsub(b, bbox_max[chan], width);
+   }
+}
+
+static nir_ssa_def *
+cull_small_primitive_line(nir_builder *b, nir_ssa_def *pos[3][4],
+                          nir_ssa_def *bbox_min[2], nir_ssa_def *bbox_max[2],
+                          nir_ssa_def *prim_is_small_else)
+{
+   nir_ssa_def *prim_is_small = NULL;
+
+   /* Small primitive filter - eliminate lines that are too small to affect a sample. */
+   nir_if *if_cull_small_prims = nir_push_if(b, nir_load_cull_small_primitives_enabled_amd(b));
+   {
+      /* This only works with lines without perpendicular end caps (lines with perpendicular
+       * end caps are rasterized as quads and thus can't be culled as small prims in 99% of
+       * cases because line_width >= 1).
+       *
+       * This takes advantage of the diamond exit rule, which says that every pixel
+       * has a diamond inside it touching the pixel boundary and only if a line exits
+       * the diamond, that pixel is filled. If a line enters the diamond or stays
+       * outside the diamond, the pixel isn't filled.
+       *
+       * This algorithm is a little simpler than that. The space outside all diamonds also
+       * has the same diamond shape, which we'll call corner diamonds.
+       *
+       * The idea is to cull all lines that are entirely inside a diamond, including
+       * corner diamonds. If a line is entirely inside a diamond, it can be culled because
+       * it doesn't exit it. If a line is entirely inside a corner diamond, it can be culled
+       * because it doesn't enter any diamond and thus can't exit any diamond.
+       *
+       * The viewport is rotated by 45 degress to turn diamonds into squares, and a bounding
+       * box test is used to determine whether a line is entirely inside any square (diamond).
+       *
+       * The line width doesn't matter. Wide lines only duplicate filled pixels in either X or
+       * Y direction from the filled pixels. MSAA also doesn't matter. MSAA should ideally use
+       * perpendicular end caps that enable quad rasterization for lines. Thus, this should
+       * always use non-MSAA viewport transformation and non-MSAA small prim precision.
+       *
+       * A good test is piglit/lineloop because it draws 10k subpixel lines in a circle.
+       * It should contain no holes if this matches hw behavior.
+       */
+      nir_ssa_def *v0[2], *v1[2];
+      nir_ssa_def *vp = nir_load_viewport_xy_scale_and_offset(b);
+
+      /* Get vertex positions in pixels. */
+      for (unsigned chan = 0; chan < 2; chan++) {
+         nir_ssa_def *vp_scale = nir_channel(b, vp, chan);
+         nir_ssa_def *vp_translate = nir_channel(b, vp, 2 + chan);
+
+         v0[chan] = nir_ffma(b, pos[0][chan], vp_scale, vp_translate);
+         v1[chan] = nir_ffma(b, pos[1][chan], vp_scale, vp_translate);
+      }
+
+      /* Rotate the viewport by 45 degress, so that diamonds become squares. */
+      rotate_45degrees(b, v0);
+      rotate_45degrees(b, v1);
+
+      nir_ssa_def *small_prim_precision = nir_load_cull_small_prim_precision_amd(b);
+      prim_is_small = prim_is_small_else;
+
+      for (unsigned chan = 0; chan < 2; chan++) {
+         /* The width of each square is sqrt(0.5), so scale it to 1 because we want
+          * round() to give us the position of the closest center of a square (diamond).
+          */
+         v0[chan] = nir_fmul_imm(b, v0[chan], 1.414213562);
+         v1[chan] = nir_fmul_imm(b, v1[chan], 1.414213562);
+
+         /* Compute the bounding box around both vertices. We do this because we must
+          * enlarge the line area by the precision of the rasterizer.
+          */
+         nir_ssa_def *min = nir_fmin(b, v0[chan], v1[chan]);
+         nir_ssa_def *max = nir_fmax(b, v0[chan], v1[chan]);
+
+         /* Enlarge the bounding box by the precision of the rasterizer. */
+         min = nir_fsub(b, min, small_prim_precision);
+         max = nir_fadd(b, max, small_prim_precision);
+
+         /* Round the bounding box corners. If both rounded corners are equal,
+          * the bounding box is entirely inside a square (diamond).
+          */
+         min = nir_fround_even(b, min);
+         max = nir_fround_even(b, max);
+
+         nir_ssa_def *rounded_to_eq = nir_feq(b, min, max);
+         prim_is_small = nir_ior(b, prim_is_small, rounded_to_eq);
+      }
+   }
+   nir_pop_if(b, if_cull_small_prims);
+
+   return nir_if_phi(b, prim_is_small, prim_is_small_else);
+}
+
+static nir_ssa_def *
+ac_nir_cull_line(nir_builder *b,
+                 nir_ssa_def *initially_accepted,
+                 nir_ssa_def *pos[3][4],
+                 position_w_info *w_info,
+                 ac_nir_cull_accepted accept_func,
+                 void *state)
+{
+   nir_ssa_def *accepted = initially_accepted;
+   accepted = nir_iand(b, accepted, nir_inot(b, w_info->any_w_negative));
+
+   nir_ssa_def *bbox_accepted = NULL;
+
+   nir_if *if_accepted = nir_push_if(b, accepted);
+   {
+      nir_ssa_def *bbox_min[2] = {0}, *bbox_max[2] = {0};
+      calc_bbox_line(b, pos, bbox_min, bbox_max);
+
+      /* Frustrum culling - eliminate lines that are fully outside the view. */
+      nir_ssa_def *prim_outside_view = cull_frustrum(b, bbox_min, bbox_max);
+      nir_ssa_def *prim_invisible =
+         cull_small_primitive_line(b, pos, bbox_min, bbox_max, prim_outside_view);
 
       bbox_accepted = nir_inot(b, prim_invisible);
+
+      /* for caller which need to react when primitive is accepted */
+      if (accept_func) {
+         nir_if *if_still_accepted = nir_push_if(b, bbox_accepted);
+         {
+            accept_func(b, state);
+         }
+         nir_pop_if(b, if_still_accepted);
+      }
    }
-   nir_pop_if(b, if_cull_bbox);
+   nir_pop_if(b, if_accepted);
+
    return nir_if_phi(b, bbox_accepted, accepted);
 }
 
 nir_ssa_def *
-ac_nir_cull_triangle(nir_builder *b,
-                     nir_ssa_def *initially_accepted,
-                     nir_ssa_def *pos[3][4])
+ac_nir_cull_primitive(nir_builder *b,
+                      nir_ssa_def *initially_accepted,
+                      nir_ssa_def *pos[3][4],
+                      unsigned num_vertices,
+                      ac_nir_cull_accepted accept_func,
+                      void *state)
 {
    position_w_info w_info = {0};
-   analyze_position_w(b, pos, &w_info);
+   analyze_position_w(b, pos, num_vertices, &w_info);
 
-   nir_ssa_def *accepted = initially_accepted;
-   accepted = nir_iand(b, accepted, w_info.w_accepted);
-   accepted = nir_iand(b, accepted, cull_face(b, pos, &w_info));
-   accepted = nir_iand(b, accepted, cull_bbox(b, pos, accepted, &w_info));
+   if (num_vertices == 3)
+      return ac_nir_cull_triangle(b, initially_accepted, pos, &w_info, accept_func, state);
+   else if (num_vertices == 2)
+      return ac_nir_cull_line(b, initially_accepted, pos, &w_info, accept_func, state);
+   else
+      unreachable("point culling not implemented");
 
-   return accepted;
+   return NULL;
 }

@@ -119,13 +119,11 @@ static void ppir_node_add_src(ppir_compiler *comp, ppir_node *node,
       }
    }
 
+   assert(child);
    ppir_node_target_assign(ps, child);
 }
 
 static int nir_to_ppir_opcodes[nir_num_opcodes] = {
-   /* not supported */
-   [0 ... nir_last_opcode] = -1,
-
    [nir_op_mov] = ppir_op_mov,
    [nir_op_fmul] = ppir_op_mul,
    [nir_op_fabs] = ppir_op_abs,
@@ -162,7 +160,7 @@ static bool ppir_emit_alu(ppir_block *block, nir_instr *ni)
    nir_alu_instr *instr = nir_instr_as_alu(ni);
    int op = nir_to_ppir_opcodes[instr->op];
 
-   if (op < 0) {
+   if (op == ppir_op_unsupported) {
       ppir_error("unsupported nir_op: %s\n", nir_op_infos[instr->op].name);
       return false;
    }
@@ -862,7 +860,7 @@ static void ppir_add_ordering_deps(ppir_compiler *comp)
 }
 
 static void ppir_print_shader_db(struct nir_shader *nir, ppir_compiler *comp,
-                                 struct pipe_debug_callback *debug)
+                                 struct util_debug_callback *debug)
 {
    const struct shader_info *info = &nir->info;
    char *shaderdb;
@@ -878,7 +876,7 @@ static void ppir_print_shader_db(struct nir_shader *nir, ppir_compiler *comp,
    if (lima_debug & LIMA_DEBUG_SHADERDB)
       fprintf(stderr, "SHADER-DB: %s\n", shaderdb);
 
-   pipe_debug_message(debug, SHADER_INFO, "%s", shaderdb);
+   util_debug_message(debug, SHADER_INFO, "%s", shaderdb);
    free(shaderdb);
 }
 
@@ -908,7 +906,7 @@ static void ppir_add_write_after_read_deps(ppir_compiler *comp)
 
 bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *nir,
                       struct ra_regs *ra,
-                      struct pipe_debug_callback *debug)
+                      struct util_debug_callback *debug)
 {
    nir_function_impl *func = nir_shader_get_entrypoint(nir);
    ppir_compiler *comp = ppir_compiler_create(prog, func->reg_alloc, func->ssa_alloc);

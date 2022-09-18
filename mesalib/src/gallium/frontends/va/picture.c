@@ -86,6 +86,14 @@ vlVaBeginPicture(VADriverContextP ctx, VAContextID context_id, VASurfaceID rende
           context->target->buffer_format != PIPE_FORMAT_P016)
          return VA_STATUS_ERROR_UNIMPLEMENTED;
 
+      if (drv->pipe->screen->get_video_param(drv->pipe->screen,
+                              PIPE_VIDEO_PROFILE_UNKNOWN,
+                              PIPE_VIDEO_ENTRYPOINT_PROCESSING,
+                              PIPE_VIDEO_CAP_SUPPORTED)) {
+         context->needs_begin_frame = true;
+         context->vpp_needs_flush_on_endpic = true;
+      }
+
       return VA_STATUS_SUCCESS;
    }
 
@@ -104,6 +112,52 @@ vlVaGetReferenceFrame(vlVaDriver *drv, VASurfaceID surface_id,
       *ref_frame = surf->buffer;
    else
       *ref_frame = NULL;
+}
+/*
+ * in->quality = 0; without any settings, it is using speed preset
+ *                  and no preencode and no vbaq. It is the fastest setting.
+ * in->quality = 1; suggested setting, with balanced preset, and
+ *                  preencode and vbaq
+ * in->quality = others; it is the customized setting
+ *                  with valid bit (bit #0) set to "1"
+ *                  for example:
+ *
+ *                  0x3  (balance preset, no pre-encoding, no vbaq)
+ *                  0x13 (balanced preset, no pre-encoding, vbaq)
+ *                  0x13 (balanced preset, no pre-encoding, vbaq)
+ *                  0x9  (speed preset, pre-encoding, no vbaq)
+ *                  0x19 (speed preset, pre-encoding, vbaq)
+ *
+ *                  The quality value has to be treated as a combination
+ *                  of preset mode, pre-encoding and vbaq settings.
+ *                  The quality and speed could be vary according to
+ *                  different settings,
+ */
+void
+vlVaHandleVAEncMiscParameterTypeQualityLevel(struct pipe_enc_quality_modes *p, vlVaQualityBits *in)
+{
+   if (!in->quality) {
+      p->level = 0;
+      p->preset_mode = PRESET_MODE_SPEED;
+      p->pre_encode_mode = PREENCODING_MODE_DISABLE;
+      p->vbaq_mode = VBAQ_DISABLE;
+
+      return;
+   }
+
+   if (p->level != in->quality) {
+      if (in->quality == 1) {
+         p->preset_mode = PRESET_MODE_BALANCE;
+         p->pre_encode_mode = PREENCODING_MODE_DEFAULT;
+         p->vbaq_mode = VBAQ_AUTO;
+      } else {
+         p->preset_mode = in->preset_mode > PRESET_MODE_QUALITY
+            ? PRESET_MODE_QUALITY : in->preset_mode;
+         p->pre_encode_mode = in->pre_encode_mode;
+         p->vbaq_mode = in->vbaq_mode;
+      }
+   }
+   p->level = in->quality;
 }
 
 static VAStatus
@@ -275,6 +329,7 @@ handleVAProtectedSliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
 
 	context->desc.base.decrypt_key = CALLOC(1, drm_key_size);
 	memcpy(context->desc.base.decrypt_key, encrypted_data, drm_key_size);
+	context->desc.base.key_size = drm_key_size;
 	context->desc.base.protected_playback = true;
 }
 
@@ -448,6 +503,68 @@ handleVAEncSequenceParameterBufferType(vlVaDriver *drv, vlVaContext *context, vl
 }
 
 static VAStatus
+handleVAEncMiscParameterTypeQualityLevel(vlVaContext *context, VAEncMiscParameterBuffer *misc)
+{
+   VAStatus status = VA_STATUS_SUCCESS;
+
+   switch (u_reduce_video_profile(context->templat.profile)) {
+   case PIPE_VIDEO_FORMAT_MPEG4_AVC:
+      status = vlVaHandleVAEncMiscParameterTypeQualityLevelH264(context, misc);
+      break;
+
+   case PIPE_VIDEO_FORMAT_HEVC:
+      status = vlVaHandleVAEncMiscParameterTypeQualityLevelHEVC(context, misc);
+      break;
+
+   default:
+      break;
+   }
+
+   return status;
+}
+
+static VAStatus
+handleVAEncMiscParameterTypeMaxFrameSize(vlVaContext *context, VAEncMiscParameterBuffer *misc)
+{
+   VAStatus status = VA_STATUS_SUCCESS;
+
+   switch (u_reduce_video_profile(context->templat.profile)) {
+   case PIPE_VIDEO_FORMAT_MPEG4_AVC:
+      status = vlVaHandleVAEncMiscParameterTypeMaxFrameSizeH264(context, misc);
+      break;
+
+   case PIPE_VIDEO_FORMAT_HEVC:
+      status = vlVaHandleVAEncMiscParameterTypeMaxFrameSizeHEVC(context, misc);
+      break;
+
+   default:
+      break;
+   }
+
+   return status;
+}
+static VAStatus
+handleVAEncMiscParameterTypeHRD(vlVaContext *context, VAEncMiscParameterBuffer *misc)
+{
+   VAStatus status = VA_STATUS_SUCCESS;
+
+   switch (u_reduce_video_profile(context->templat.profile)) {
+   case PIPE_VIDEO_FORMAT_MPEG4_AVC:
+      status = vlVaHandleVAEncMiscParameterTypeHRDH264(context, misc);
+      break;
+
+   case PIPE_VIDEO_FORMAT_HEVC:
+      status = vlVaHandleVAEncMiscParameterTypeHRDHEVC(context, misc);
+      break;
+
+   default:
+      break;
+   }
+
+   return status;
+}
+
+static VAStatus
 handleVAEncMiscParameterBufferType(vlVaContext *context, vlVaBuffer *buf)
 {
    VAStatus vaStatus = VA_STATUS_SUCCESS;
@@ -465,6 +582,18 @@ handleVAEncMiscParameterBufferType(vlVaContext *context, vlVaBuffer *buf)
 
    case VAEncMiscParameterTypeTemporalLayerStructure:
       vaStatus = handleVAEncMiscParameterTypeTemporalLayer(context, misc);
+      break;
+
+   case VAEncMiscParameterTypeQualityLevel:
+      vaStatus = handleVAEncMiscParameterTypeQualityLevel(context, misc);
+      break;
+
+   case VAEncMiscParameterTypeMaxFrameSize:
+      vaStatus = handleVAEncMiscParameterTypeMaxFrameSize(context, misc);
+      break;
+
+   case VAEncMiscParameterTypeHRD:
+      vaStatus = handleVAEncMiscParameterTypeHRD(context, misc);
       break;
 
    default:
@@ -779,12 +908,25 @@ vlVaEndPicture(VADriverContextP ctx, VAContextID context_id)
    }
 
    if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
+      struct pipe_screen *screen = context->decoder->context->screen;
       coded_buf = context->coded_buf;
-      if (u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC) {
-         getEncParamPresetH264(context);
+      if (u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC)
          context->desc.h264enc.frame_num_cnt++;
-      } else if (u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_HEVC)
-         getEncParamPresetH265(context);
+
+      /* keep other path the same way */
+      if (!screen->get_video_param(screen, PIPE_VIDEO_PROFILE_UNKNOWN,
+                                  context->decoder->entrypoint,
+                                  PIPE_VIDEO_CAP_ENC_QUALITY_LEVEL)) {
+
+         if (u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC)
+            getEncParamPresetH264(context);
+         else if (u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_HEVC)
+            getEncParamPresetH265(context);
+      }
+
+      context->desc.base.input_format = surf->buffer->buffer_format;
+      context->desc.base.output_format = surf->encoder_format;
+
       context->decoder->begin_frame(context->decoder, context->target, &context->desc.base);
       context->decoder->encode_bitstream(context->decoder, context->target,
                                          coded_buf->derived_surface.resource, &feedback);
@@ -813,9 +955,17 @@ vlVaEndPicture(VADriverContextP ctx, VAContextID context_id)
             context->first_single_submitted = false;
          surf->force_flushed = true;
       }
+      if (!context->desc.h264enc.not_referenced)
+         context->desc.h264enc.frame_num++;
    } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE &&
               u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_HEVC)
       context->desc.h265enc.frame_num++;
+   else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING &&
+            context->vpp_needs_flush_on_endpic) {
+      context->decoder->flush(context->decoder);
+      context->vpp_needs_flush_on_endpic = false;
+   }
+
    mtx_unlock(&drv->mutex);
    return VA_STATUS_SUCCESS;
 }

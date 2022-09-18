@@ -40,11 +40,11 @@
 #include <unistd.h>
 
 static void
-iris_utrace_record_ts(struct u_trace *trace, void *_batch,
+iris_utrace_record_ts(struct u_trace *trace, void *cs,
                       void *timestamps, unsigned idx,
                       bool end_of_pipe)
 {
-   struct iris_batch *batch = _batch;
+   struct iris_batch *batch = container_of(trace, struct iris_batch, trace);
    struct iris_resource *res = (void *) timestamps;
    struct iris_bo *bo = res->bo;
 
@@ -140,19 +140,20 @@ iris_utrace_pipe_flush_bit_to_ds_stall_flag(uint32_t flags)
       uint32_t iris;
       enum intel_ds_stall_flag ds;
    } iris_to_ds_flags[] = {
-      { .iris = PIPE_CONTROL_DEPTH_CACHE_FLUSH,        .ds = INTEL_DS_DEPTH_CACHE_FLUSH_BIT, },
-      { .iris = PIPE_CONTROL_DATA_CACHE_FLUSH,         .ds = INTEL_DS_DATA_CACHE_FLUSH_BIT, },
-      { .iris = PIPE_CONTROL_TILE_CACHE_FLUSH,         .ds = INTEL_DS_TILE_CACHE_FLUSH_BIT, },
-      { .iris = PIPE_CONTROL_RENDER_TARGET_FLUSH,      .ds = INTEL_DS_RENDER_TARGET_CACHE_FLUSH_BIT, },
-      { .iris = PIPE_CONTROL_STATE_CACHE_INVALIDATE,   .ds = INTEL_DS_STATE_CACHE_INVALIDATE_BIT, },
-      { .iris = PIPE_CONTROL_CONST_CACHE_INVALIDATE,   .ds = INTEL_DS_CONST_CACHE_INVALIDATE_BIT, },
-      { .iris = PIPE_CONTROL_VF_CACHE_INVALIDATE,      .ds = INTEL_DS_VF_CACHE_INVALIDATE_BIT, },
-      { .iris = PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE, .ds = INTEL_DS_TEXTURE_CACHE_INVALIDATE_BIT, },
-      { .iris = PIPE_CONTROL_INSTRUCTION_INVALIDATE,   .ds = INTEL_DS_INST_CACHE_INVALIDATE_BIT, },
-      { .iris = PIPE_CONTROL_DEPTH_STALL,              .ds = INTEL_DS_DEPTH_STALL_BIT, },
-      { .iris = PIPE_CONTROL_CS_STALL,                 .ds = INTEL_DS_CS_STALL_BIT, },
-      { .iris = PIPE_CONTROL_FLUSH_HDC,                .ds = INTEL_DS_HDC_PIPELINE_FLUSH_BIT, },
-      { .iris = PIPE_CONTROL_STALL_AT_SCOREBOARD,      .ds = INTEL_DS_STALL_AT_SCOREBOARD_BIT, },
+      { .iris = PIPE_CONTROL_DEPTH_CACHE_FLUSH,            .ds = INTEL_DS_DEPTH_CACHE_FLUSH_BIT, },
+      { .iris = PIPE_CONTROL_DATA_CACHE_FLUSH,             .ds = INTEL_DS_DATA_CACHE_FLUSH_BIT, },
+      { .iris = PIPE_CONTROL_TILE_CACHE_FLUSH,             .ds = INTEL_DS_TILE_CACHE_FLUSH_BIT, },
+      { .iris = PIPE_CONTROL_RENDER_TARGET_FLUSH,          .ds = INTEL_DS_RENDER_TARGET_CACHE_FLUSH_BIT, },
+      { .iris = PIPE_CONTROL_STATE_CACHE_INVALIDATE,       .ds = INTEL_DS_STATE_CACHE_INVALIDATE_BIT, },
+      { .iris = PIPE_CONTROL_CONST_CACHE_INVALIDATE,       .ds = INTEL_DS_CONST_CACHE_INVALIDATE_BIT, },
+      { .iris = PIPE_CONTROL_VF_CACHE_INVALIDATE,          .ds = INTEL_DS_VF_CACHE_INVALIDATE_BIT, },
+      { .iris = PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE,     .ds = INTEL_DS_TEXTURE_CACHE_INVALIDATE_BIT, },
+      { .iris = PIPE_CONTROL_INSTRUCTION_INVALIDATE,       .ds = INTEL_DS_INST_CACHE_INVALIDATE_BIT, },
+      { .iris = PIPE_CONTROL_DEPTH_STALL,                  .ds = INTEL_DS_DEPTH_STALL_BIT, },
+      { .iris = PIPE_CONTROL_CS_STALL,                     .ds = INTEL_DS_CS_STALL_BIT, },
+      { .iris = PIPE_CONTROL_FLUSH_HDC,                    .ds = INTEL_DS_HDC_PIPELINE_FLUSH_BIT, },
+      { .iris = PIPE_CONTROL_STALL_AT_SCOREBOARD,          .ds = INTEL_DS_STALL_AT_SCOREBOARD_BIT, },
+      { .iris = PIPE_CONTROL_UNTYPED_DATAPORT_CACHE_FLUSH, .ds = INTEL_DS_UNTYPED_DATAPORT_CACHE_FLUSH_BIT, },
    };
 
    enum intel_ds_stall_flag ret = 0;

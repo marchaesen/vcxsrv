@@ -27,19 +27,19 @@ description
 .HP
 .B XkbPropertyPtr XkbAddGeomProperty
 .BI "(\^XkbGeometryPtr " "geom" "\^,"
-.BI "char *" "name" "\^,"
-.BI "char *" "value" "\^);"
+.BI "_Xconst char *" "name" "\^,"
+.BI "_Xconst char *" "value" "\^);"
 .if n .ti +5n
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry to be updated
 .TP
-.I \- name
+.I name
 name of the new property
 .TP
-.I \- value
+.I value
 value for the new property
 .SH DESCRIPTION
 .LP

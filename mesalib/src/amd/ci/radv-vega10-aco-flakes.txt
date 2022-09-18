@@ -1,2 +1,10 @@
-dEQP-VK.api.object_management.multithreaded_per_thread_device.image_2d
-dEQP-VK.api.object_management.multithreaded_per_thread_resources.image_2d
+dEQP-VK.dynamic_rendering.basic.*
+dEQP-VK.glsl.texture_functions.query.texturequerylod.sampler1darray_float_zero_uv_width_fragment
+dEQP-VK.glsl.texture_functions.query.texturequerylod.sampler1d_fixed_fragment
+dEQP-VK.glsl.texture_functions.query.texturequerylod.usampler1darray_fragment
+dEQP-VK.glsl.texture_functions.query.texturequerylod.usampler1darray_zero_uv_width_fragment
+dEQP-VK.glsl.texture_functions.query.texturequerylod.isampler1darray_fragment
+dEQP-VK.image.sample_texture.64_bit_compressed_format_two_samplers
+dEQP-VK.image.sample_texture.64_bit_compressed_format_two_samplers_cubemap
+dEQP-VK.image.sample_texture.128_bit_compressed_format_two_samplers
+dEQP-VK.image.sample_texture.128_bit_compressed_format_two_samplers_cubemap

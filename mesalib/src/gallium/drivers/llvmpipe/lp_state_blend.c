@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2009 VMware, Inc.
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
@@ -11,11 +11,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -23,7 +23,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -46,12 +46,11 @@ llvmpipe_create_blend_state(struct pipe_context *pipe,
                             const struct pipe_blend_state *blend)
 {
    struct pipe_blend_state *state = mem_dup(blend, sizeof *blend);
-   int i;
 
    if (LP_PERF & PERF_NO_BLEND) {
       state->independent_blend_enable = 0;
-      for (i = 0; i < PIPE_MAX_COLOR_BUFS; i++)
-	 state->rt[i].blend_enable = 0;
+      for (unsigned i = 0; i < PIPE_MAX_COLOR_BUFS; i++)
+         state->rt[i].blend_enable = 0;
    }
 
    return state;
@@ -77,7 +76,7 @@ llvmpipe_bind_blend_state(struct pipe_context *pipe, void *blend)
 static void
 llvmpipe_delete_blend_state(struct pipe_context *pipe, void *blend)
 {
-   FREE( blend );
+   FREE(blend);
 }
 
 
@@ -90,7 +89,7 @@ llvmpipe_set_blend_color(struct pipe_context *pipe,
    if (!blend_color)
       return;
 
-   if(memcmp(&llvmpipe->blend_color, blend_color, sizeof *blend_color) == 0)
+   if (memcmp(&llvmpipe->blend_color, blend_color, sizeof *blend_color) == 0)
       return;
 
    draw_flush(llvmpipe->draw);
@@ -108,7 +107,7 @@ llvmpipe_set_blend_color(struct pipe_context *pipe,
 
 static void *
 llvmpipe_create_depth_stencil_state(struct pipe_context *pipe,
-				    const struct pipe_depth_stencil_alpha_state *depth_stencil)
+                                    const struct pipe_depth_stencil_alpha_state *depth_stencil)
 {
    struct pipe_depth_stencil_alpha_state *state;
 
@@ -149,7 +148,7 @@ llvmpipe_bind_depth_stencil_state(struct pipe_context *pipe,
 static void
 llvmpipe_delete_depth_stencil_state(struct pipe_context *pipe, void *depth)
 {
-   FREE( depth );
+   FREE(depth);
 }
 
 
@@ -159,7 +158,7 @@ llvmpipe_set_stencil_ref(struct pipe_context *pipe,
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
 
-   if(memcmp(&llvmpipe->stencil_ref, &stencil_ref, sizeof stencil_ref) == 0)
+   if (memcmp(&llvmpipe->stencil_ref, &stencil_ref, sizeof stencil_ref) == 0)
       return;
 
    draw_flush(llvmpipe->draw);

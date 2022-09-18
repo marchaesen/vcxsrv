@@ -241,8 +241,8 @@ static void test_modifier(const struct radeon_info *info,
          .rb = G_0098F8_NUM_RB_PER_SE(info->gb_addr_config) +
                G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config),
          .se = G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config),
-         .banks_or_pkrs = info->chip_class >= GFX10 ?
-            (info->gb_addr_config) : G_0098F8_NUM_BANKS(info->gb_addr_config)
+         .banks_or_pkrs = info->gfx_level >= GFX10 ?
+            G_0098F8_NUM_PKRS(info->gb_addr_config) : G_0098F8_NUM_BANKS(info->gb_addr_config)
       };
 
       struct radeon_surf surf = (struct radeon_surf) {
@@ -258,12 +258,14 @@ static void test_modifier(const struct radeon_info *info,
       assert(surf.cmask_offset == 0);
       assert(surf.fmask_offset == 0);
 
+      unsigned block_size_bits = surf.u.gfx9.swizzle_mode >= ADDR_SW_256KB_Z_X ? 18 : 16;
+
       uint64_t surf_size;
       unsigned aligned_pitch, aligned_height;
       if (modifier != DRM_FORMAT_MOD_LINEAR) {
          surf_size = block_count(dims[i][0], dims[i][1],
-                  elem_bits, 16, &aligned_pitch,
-                  &aligned_height) << 16;
+                  elem_bits, block_size_bits, &aligned_pitch,
+                  &aligned_height) << block_size_bits;
       } else {
          aligned_pitch = align(dims[i][0], 256 / util_format_get_blocksize(format));
          aligned_height = dims[i][1];
@@ -277,7 +279,7 @@ static void test_modifier(const struct radeon_info *info,
       uint64_t expected_offset = surf_size;
 
       if (ac_modifier_has_dcc_retile(modifier)) {
-         unsigned dcc_align = info->chip_class >= GFX10 ? 4096 : 65536;
+         unsigned dcc_align = info->gfx_level >= GFX10 ? 4096 : 65536;
          unsigned dcc_pitch;
          uint64_t dcc_size = block_count(dims[i][0], dims[i][1],
                      elem_bits, 20, &dcc_pitch,
@@ -294,9 +296,9 @@ static void test_modifier(const struct radeon_info *info,
       if (ac_modifier_has_dcc(modifier)) {
          uint64_t dcc_align = 1;
          unsigned block_bits;
-         if (info->chip_class >= GFX10) {
+         if (info->gfx_level >= GFX10) {
             unsigned num_pipes = G_0098F8_NUM_PIPES(info->gb_addr_config);
-            if (info->chip_class == GFX10_3 &&
+            if (info->gfx_level >= GFX10_3 &&
                 G_0098F8_NUM_PKRS(info->gb_addr_config) == num_pipes && num_pipes > 1)
                ++num_pipes;
             block_bits = 16 +

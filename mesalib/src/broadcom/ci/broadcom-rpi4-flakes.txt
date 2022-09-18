@@ -1,5 +1,3 @@
-dEQP-GLES31.functional.compute.shared_var.basic_type.ivec3_highp
-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.highp_mat2
 KHR-GLES31.core.shader_image_load_store.basic-glsl-earlyFragTests
 
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero
@@ -10,8 +8,8 @@ spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4
 spec@arb_occlusion_query@occlusion_query_order
 spec@egl_chromium_sync_control@conformance
 
+# This test works alone, but fails when executing all the tests together
+dEQP-GLES3.functional.texture.specification.teximage2d_pbo.rgba32ui_2d
+
 dEQP-VK.api.external.fence.opaque_fd.reset_permanent
 dEQP-VK.api.external.fence.opaque_fd.reset_temporary
-dEQP-VK.api.external.fence.opaque_fd.signal_export_import_wait_permanent
-dEQP-VK.ssbo.layout.instance_array_basic_type.std430.uvec4
-dEQP-VK.wsi.display.get_display_plane_capabilities

@@ -98,7 +98,7 @@ try_extract_const_addition(nir_builder *b, nir_ssa_scalar val, opt_offsets_state
    nir_ssa_def *r =
           nir_iadd(b, nir_channel(b, src[0].def, src[0].comp),
                    nir_channel(b, src[1].def, src[1].comp));
-   return (nir_ssa_scalar){r, 0};
+   return nir_get_ssa_scalar(r, 0);
 }
 
 static bool
@@ -144,6 +144,39 @@ try_fold_load_store(nir_builder *b,
 }
 
 static bool
+try_fold_shared2(nir_builder *b,
+                    nir_intrinsic_instr *intrin,
+                    opt_offsets_state *state,
+                    unsigned offset_src_idx)
+{
+   unsigned comp_size = (intrin->intrinsic == nir_intrinsic_load_shared2_amd ?
+                         intrin->dest.ssa.bit_size : intrin->src[0].ssa->bit_size) / 8;
+   unsigned stride = (nir_intrinsic_st64(intrin) ? 64 : 1) * comp_size;
+   unsigned offset0 = nir_intrinsic_offset0(intrin) * stride;
+   unsigned offset1 = nir_intrinsic_offset1(intrin) * stride;
+   nir_src *off_src = &intrin->src[offset_src_idx];
+
+   if (!nir_src_is_const(*off_src))
+      return false;
+
+   unsigned const_offset = nir_src_as_uint(*off_src);
+   offset0 += const_offset;
+   offset1 += const_offset;
+   bool st64 = offset0 % (64 * comp_size) == 0 && offset1 % (64 * comp_size) == 0;
+   stride = (st64 ? 64 : 1) * comp_size;
+   if (const_offset % stride || offset0 > 255 * stride || offset1 > 255 * stride)
+      return false;
+
+   b->cursor = nir_before_instr(&intrin->instr);
+   nir_instr_rewrite_src(&intrin->instr, off_src, nir_src_for_ssa(nir_imm_zero(b, 1, 32)));
+   nir_intrinsic_set_offset0(intrin, offset0 / stride);
+   nir_intrinsic_set_offset1(intrin, offset1 / stride);
+   nir_intrinsic_set_st64(intrin, st64);
+
+   return true;
+}
+
+static bool
 process_instr(nir_builder *b, nir_instr *instr, void *s)
 {
    if (instr->type != nir_instr_type_intrinsic)
@@ -163,6 +196,10 @@ process_instr(nir_builder *b, nir_instr *instr, void *s)
    case nir_intrinsic_store_shared:
    case nir_intrinsic_store_shared_ir3:
       return try_fold_load_store(b, intrin, state, 1, state->options->shared_max);
+   case nir_intrinsic_load_shared2_amd:
+      return try_fold_shared2(b, intrin, state, 0);
+   case nir_intrinsic_store_shared2_amd:
+      return try_fold_shared2(b, intrin, state, 1);
    case nir_intrinsic_load_buffer_amd:
       return try_fold_load_store(b, intrin, state, 1, state->options->buffer_max);
    case nir_intrinsic_store_buffer_amd:

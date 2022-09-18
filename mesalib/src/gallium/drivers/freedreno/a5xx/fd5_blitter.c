@@ -118,9 +118,9 @@ can_do_blit(const struct pipe_blit_info *info)
    if (!ok_dims(info->dst.resource, &info->dst.box, info->dst.level))
       return false;
 
-   debug_assert(info->dst.box.width >= 0);
-   debug_assert(info->dst.box.height >= 0);
-   debug_assert(info->dst.box.depth >= 0);
+   assert(info->dst.box.width >= 0);
+   assert(info->dst.box.height >= 0);
+   assert(info->dst.box.depth >= 0);
 
    if ((info->dst.resource->nr_samples > 1) ||
        (info->src.resource->nr_samples > 1))
@@ -198,16 +198,16 @@ emit_blit_buffer(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
    src = fd_resource(info->src.resource);
    dst = fd_resource(info->dst.resource);
 
-   debug_assert(src->layout.cpp == 1);
-   debug_assert(dst->layout.cpp == 1);
-   debug_assert(info->src.resource->format == info->dst.resource->format);
-   debug_assert((sbox->y == 0) && (sbox->height == 1));
-   debug_assert((dbox->y == 0) && (dbox->height == 1));
-   debug_assert((sbox->z == 0) && (sbox->depth == 1));
-   debug_assert((dbox->z == 0) && (dbox->depth == 1));
-   debug_assert(sbox->width == dbox->width);
-   debug_assert(info->src.level == 0);
-   debug_assert(info->dst.level == 0);
+   assert(src->layout.cpp == 1);
+   assert(dst->layout.cpp == 1);
+   assert(info->src.resource->format == info->dst.resource->format);
+   assert((sbox->y == 0) && (sbox->height == 1));
+   assert((dbox->y == 0) && (dbox->height == 1));
+   assert((sbox->z == 0) && (sbox->depth == 1));
+   assert((dbox->z == 0) && (dbox->depth == 1));
+   assert(sbox->width == dbox->width);
+   assert(info->src.level == 0);
+   assert(info->dst.level == 0);
 
    /*
     * Buffers can have dimensions bigger than max width, remap into
@@ -239,8 +239,8 @@ emit_blit_buffer(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
       w = MIN2(sbox->width - off, (0x4000 - 0x40));
       p = align(w, 64);
 
-      debug_assert((soff + w) <= fd_bo_size(src->bo));
-      debug_assert((doff + w) <= fd_bo_size(dst->bo));
+      assert((soff + w) <= fd_bo_size(src->bo));
+      assert((doff + w) <= fd_bo_size(dst->bo));
 
       OUT_PKT7(ring, CP_SET_RENDER_MODE, 1);
       OUT_RING(ring, CP_SET_RENDER_MODE_0_MODE(BLIT2D));
@@ -336,7 +336,7 @@ emit_blit(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
     * dst swap mode (so we don't change component order)
     */
    if (stile || dtile) {
-      debug_assert(info->src.format == info->dst.format);
+      assert(info->src.format == info->dst.format);
       sswap = dswap = WZYX;
    }
 
@@ -357,8 +357,8 @@ emit_blit(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
       unsigned soff = fd_resource_offset(src, info->src.level, sbox->z + i);
       unsigned doff = fd_resource_offset(dst, info->dst.level, dbox->z + i);
 
-      debug_assert((soff + (sbox->height * spitch)) <= fd_bo_size(src->bo));
-      debug_assert((doff + (dbox->height * dpitch)) <= fd_bo_size(dst->bo));
+      assert((soff + (sbox->height * spitch)) <= fd_bo_size(src->bo));
+      assert((doff + (dbox->height * dpitch)) <= fd_bo_size(dst->bo));
 
       OUT_PKT7(ring, CP_SET_RENDER_MODE, 1);
       OUT_RING(ring, CP_SET_RENDER_MODE_0_MODE(BLIT2D));
@@ -455,8 +455,8 @@ fd5_blitter_blit(struct fd_context *ctx,
       emit_blit_buffer(batch->draw, info);
    } else {
       /* I don't *think* we need to handle blits between buffer <-> !buffer */
-      debug_assert(info->src.resource->target != PIPE_BUFFER);
-      debug_assert(info->dst.resource->target != PIPE_BUFFER);
+      assert(info->src.resource->target != PIPE_BUFFER);
+      assert(info->dst.resource->target != PIPE_BUFFER);
       emit_blit(batch->draw, info);
    }
 

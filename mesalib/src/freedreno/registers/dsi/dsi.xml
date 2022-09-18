@@ -361,6 +361,28 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="MAJOR" low="24" high="31" type="uint"/>
 	</reg32>
 	<reg32 offset="0x002d4" name="CPHY_MODE_CTRL"/>
+	<reg32 offset="0x0029c" name="VIDEO_COMPRESSION_MODE_CTRL">
+		<bitfield name="WC" low="16" high="31" type="uint"/>
+		<bitfield name="DATATYPE" low="8" high="13" type="uint"/>
+		<bitfield name="PKT_PER_LINE" low="6" high="7" type="uint"/>
+		<bitfield name="EOL_BYTE_NUM" low="4" high="5" type="uint"/>
+		<bitfield name="EN" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x002a4" name="COMMAND_COMPRESSION_MODE_CTRL">
+		<bitfield name="STREAM1_DATATYPE" low="24" high="29" type="uint"/>
+		<bitfield name="STREAM1_PKT_PER_LINE" low="22" high="23" type="uint"/>
+		<bitfield name="STREAM1_EOL_BYTE_NUM" low="20" high="21" type="uint"/>
+		<bitfield name="STREAM1_EN" pos="16" type="boolean"/>
+		<bitfield name="STREAM0_DATATYPE" low="8" high="13" type="uint"/>
+		<bitfield name="STREAM0_PKT_PER_LINE" low="6" high="7" type="uint"/>
+		<bitfield name="STREAM0_EOL_BYTE_NUM" low="4" high="5" type="uint"/>
+		<bitfield name="STREAM0_EN" pos="0" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x002a8" name="COMMAND_COMPRESSION_MODE_CTRL2">
+		<bitfield name="STREAM1_SLICE_WIDTH" low="16" high="31" type="uint"/>
+		<bitfield name="STREAM0_SLICE_WIDTH" low="0" high="15" type="uint"/>
+	</reg32>
+
 </domain>
 
 </database>

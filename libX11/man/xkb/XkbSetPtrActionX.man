@@ -33,10 +33,10 @@ integer value x
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set X
 .TP
-.I \- x
+.I x
 new value to set
 .SH DESCRIPTION
 .LP

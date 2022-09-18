@@ -36,6 +36,7 @@
 
 #import "X11Controller.h"
 #import "X11Application.h"
+#import "NSUserDefaults+XQuartzDefaults.h"
 
 #include "opaque.h"
 #include "darwin.h"
@@ -61,8 +62,8 @@ extern char *bundle_id_prefix;
 @property (nonatomic, readwrite, strong) NSMenuItem *check_for_updates_item; // Programatically enabled
 #endif
 
-@property (nonatomic, readwrite, strong) NSArray *apps;
-@property (nonatomic, readwrite, strong) NSMutableArray *table_apps;
+@property (nonatomic, readwrite, strong) NSArray <NSArray <NSString *> *> *apps;
+@property (nonatomic, readwrite, strong) NSMutableArray <NSMutableArray <NSString *> *> *table_apps;
 @property (nonatomic, readwrite, assign) NSInteger windows_menu_nitems;
 @property (nonatomic, readwrite, assign) int checked_window_item;
 @property (nonatomic, readwrite, assign) x_list *pending_apps;
@@ -74,21 +75,19 @@ extern char *bundle_id_prefix;
 - (void) awakeFromNib
 {
     X11Application *xapp = NSApp;
-    NSArray *array;
 
     /* Point X11Application at ourself. */
     xapp.controller = self;
 
-    array = [xapp prefs_get_array:@PREFS_APPSMENU];
-    if (array != nil) {
-        int count;
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
+    NSArray *appsMenu = [defaults arrayForKey:XQuartzPrefKeyAppsMenu];
+
+    if (appsMenu) {
+        int count = appsMenu.count;
 
         /* convert from [TITLE1 COMMAND1 TITLE2 COMMAND2 ...]
            to [[TITLE1 COMMAND1] [TITLE2 COMMAND2] ...] format. */
-
-        count = [array count];
-        if (count > 0
-            && ![[array objectAtIndex:0] isKindOfClass:[NSArray class]]) {
+        if (count > 0 && ![appsMenu[0] isKindOfClass:NSArray.class]) {
             int i;
             NSMutableArray *copy, *sub;
 
@@ -96,24 +95,24 @@ extern char *bundle_id_prefix;
 
             for (i = 0; i < count / 2; i++) {
                 sub = [[NSMutableArray alloc] initWithCapacity:3];
-                [sub addObject:[array objectAtIndex:i * 2]];
-                [sub addObject:[array objectAtIndex:i * 2 + 1]];
+                [sub addObject:appsMenu[i * 2]];
+                [sub addObject:appsMenu[i * 2 + 1]];
                 [sub addObject:@""];
                 [copy addObject:sub];
                 [sub release];
             }
 
-            array = copy;
+            appsMenu = copy;
+            [defaults setObject:appsMenu forKey:XQuartzPrefKeyAppsMenu];
         }
 
-        [self set_apps_menu:array];
+        [self set_apps_menu:appsMenu];
     }
 
-    [[NSNotificationCenter defaultCenter]
-     addObserver: self
-        selector: @selector(apps_table_done:)
-            name: NSWindowWillCloseNotification
-          object: self.apps_table.window];
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(apps_table_done:)
+                                               name:NSWindowWillCloseNotification
+                                             object:self.apps_table.window];
 }
 
 - (void) item_selected:sender
@@ -156,10 +155,10 @@ extern char *bundle_id_prefix;
     self.apps = nil;
 }
 
-- (void) prepend_apps_item:(NSArray *)list index:(int)i menu:(NSMenu *)menu
+- (void) prepend_apps_item:(NSArray <NSArray <NSString *> *> *)list index:(int)i menu:(NSMenu *)menu
 {
     NSString *title, *shortcut = @"";
-    NSArray *group;
+    NSArray <NSString *> *group;
     NSMenuItem *item;
 
     group = [list objectAtIndex:i];
@@ -183,7 +182,7 @@ extern char *bundle_id_prefix;
     [item setTag:i + 1];                  /* can't be zero, so add one */
 }
 
-- (void) install_apps_menu:(NSArray *)list
+- (void) install_apps_menu:(NSArray <NSArray <NSString *> *> *)list
 {
     NSMenu *menu;
     int i, count;
@@ -207,7 +206,7 @@ extern char *bundle_id_prefix;
     self.apps = list;
 }
 
-- (void) set_window_menu:(NSArray *)list
+- (void) set_window_menu:(NSArray <NSArray <NSString *> *> *)list
 {
     NSMenu * const menu = X11App.windowsMenu;
     NSMenu * const dock_menu = self.dock_menu;
@@ -303,7 +302,7 @@ extern char *bundle_id_prefix;
     self.checked_window_item = n;
 }
 
-- (void) set_apps_menu:(NSArray *)list
+- (void) set_apps_menu:(NSArray <NSArray <NSString *> *> *)list
 {
     [self remove_apps_menu];
     [self install_apps_menu:list];
@@ -349,9 +348,12 @@ extern char *bundle_id_prefix;
     int stdout_pipe[2];
     int stderr_pipe[2];
 
-    newargv[0] = [X11App prefs_get_string:@PREFS_LOGIN_SHELL default:"/bin/sh"];
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
+    NSString * const shell = [defaults stringForKey:XQuartzPrefKeyLoginShell];
+
+    newargv[0] = shell.fileSystemRepresentation;
     newargv[1] = "-c";
-    newargv[2] = [filename UTF8String];
+    newargv[2] = filename.fileSystemRepresentation;
     newargv[3] = NULL;
 
     s = getenv("DISPLAY");
@@ -446,7 +448,7 @@ extern char *bundle_id_prefix;
 {
     int tag;
     NSString *item;
-    NSArray * const apps = self.apps;
+    NSArray <NSArray <NSString *> *> * const apps = self.apps;
 
     tag = [sender tag] - 1;
     if (apps == nil || tag < 0 || tag >= [apps count])
@@ -460,15 +462,18 @@ extern char *bundle_id_prefix;
 - (IBAction) apps_table_show:sender
 {
     NSArray *columns;
-    NSMutableArray *oldapps = self.table_apps;
+    NSMutableArray <NSMutableArray <NSString *> *> * const oldapps = self.table_apps;
     NSTableView * const apps_table = self.apps_table;
 
-    NSMutableArray * const table_apps = [[NSMutableArray alloc] initWithCapacity:1];
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = [[NSMutableArray alloc] initWithCapacity:1];
     self.table_apps = table_apps;
 
-    NSArray * const apps = self.apps;
-    if (apps != nil)
-        [table_apps addObjectsFromArray:apps];
+    NSArray <NSArray <NSString *> *> * const apps = self.apps;
+    if (apps != nil) {
+        for (NSArray <NSString *> * row in apps) {
+            [table_apps addObject:row.mutableCopy];
+        }
+    }
 
     columns = [apps_table tableColumns];
     [[columns objectAtIndex:0] setIdentifier:@"0"];
@@ -487,15 +492,15 @@ extern char *bundle_id_prefix;
 
 - (IBAction) apps_table_done:sender
 {
-    NSMutableArray * const table_apps = self.table_apps;
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = self.table_apps;
     NSTableView * const apps_table = self.apps_table;
     [apps_table deselectAll:sender];    /* flush edits? */
 
     [self remove_apps_menu];
     [self install_apps_menu:table_apps];
 
-    [NSApp prefs_set_array:@PREFS_APPSMENU value:table_apps];
-    [NSApp prefs_synchronize];
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
+    [defaults setObject:table_apps forKey:XQuartzPrefKeyAppsMenu];
 
     [[apps_table window] orderOut:sender];
 
@@ -505,7 +510,7 @@ extern char *bundle_id_prefix;
 - (IBAction) apps_table_new:sender
 {
     NSMutableArray *item;
-    NSMutableArray * const table_apps = self.table_apps;
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = self.table_apps;
     NSTableView * const apps_table = self.apps_table;
 
     int row = [apps_table selectedRow], i;
@@ -534,10 +539,10 @@ extern char *bundle_id_prefix;
 
 - (IBAction) apps_table_duplicate:sender
 {
-    NSMutableArray * const table_apps = self.table_apps;
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = self.table_apps;
     NSTableView * const apps_table = self.apps_table;
     int row = [apps_table selectedRow], i;
-    NSObject *item;
+    NSMutableArray <NSString *> *item;
 
     if (row < 0) {
         [self apps_table_new:sender];
@@ -560,7 +565,7 @@ extern char *bundle_id_prefix;
 
 - (IBAction) apps_table_delete:sender
 {
-    NSMutableArray * const table_apps = self.table_apps;
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = self.table_apps;
     NSTableView * const apps_table = self.apps_table;
     int row = [apps_table selectedRow];
 
@@ -584,7 +589,7 @@ extern char *bundle_id_prefix;
 
 - (NSInteger) numberOfRowsInTableView:(NSTableView *)tableView
 {
-    NSMutableArray * const table_apps = self.table_apps;
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = self.table_apps;
     if (table_apps == nil) return 0;
 
     return [table_apps count];
@@ -593,7 +598,7 @@ extern char *bundle_id_prefix;
 - (id)             tableView:(NSTableView *)tableView
    objectValueForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
-    NSMutableArray * const table_apps = self.table_apps;
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = self.table_apps;
     NSArray *item;
     int col;
 
@@ -611,8 +616,8 @@ extern char *bundle_id_prefix;
 - (void) tableView:(NSTableView *)tableView setObjectValue:(id)object
     forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
-    NSMutableArray * const table_apps = self.table_apps;
-    NSMutableArray *item;
+    NSMutableArray <NSMutableArray <NSString *> *> * const table_apps = self.table_apps;
+    NSMutableArray <NSString *> *item;
     int col;
 
     if (table_apps == nil) return;
@@ -672,15 +677,15 @@ extern char *bundle_id_prefix;
 
 - (IBAction) enable_fullscreen_changed:sender
 {
-    XQuartzRootlessDefault = !self.enable_fullscreen.intValue;
+    XQuartzRootlessDefault = !self.enable_fullscreen.state;
 
     [self.enable_fullscreen_menu setEnabled:!XQuartzRootlessDefault];
     [self.enable_fullscreen_menu_text setTextColor:XQuartzRootlessDefault ? NSColor.disabledControlTextColor : NSColor.controlTextColor];
 
     DarwinSendDDXEvent(kXquartzSetRootless, 1, XQuartzRootlessDefault);
 
-    [NSApp prefs_set_boolean:@PREFS_ROOTLESS value:XQuartzRootlessDefault];
-    [NSApp prefs_synchronize];
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
+    [defaults setBool:XQuartzRootlessDefault forKey:XQuartzPrefKeyRootless];
 }
 
 - (IBAction) toggle_fullscreen:sender
@@ -693,55 +698,43 @@ extern char *bundle_id_prefix;
     if (!sender)
         return;
 
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
+
     if (sender == self.fake_buttons) {
-        darwinFakeButtons = self.fake_buttons.intValue;
-        [NSApp prefs_set_boolean:@PREFS_FAKEBUTTONS value:darwinFakeButtons];
-    }
-    else if (sender == self.enable_keyequivs) {
-        XQuartzEnableKeyEquivalents = self.enable_keyequivs.intValue;
-        [NSApp prefs_set_boolean:@PREFS_KEYEQUIVS value:
-         XQuartzEnableKeyEquivalents];
-    }
-    else if (sender == self.sync_keymap) {
-        darwinSyncKeymap = self.sync_keymap.intValue;
-        [NSApp prefs_set_boolean:@PREFS_SYNC_KEYMAP value:darwinSyncKeymap];
-    }
-    else if (sender == self.enable_fullscreen_menu) {
-        XQuartzFullscreenMenu = self.enable_fullscreen_menu.intValue;
-        [NSApp prefs_set_boolean:@PREFS_FULLSCREEN_MENU value:
-         XQuartzFullscreenMenu];
-    }
-    else if (sender == self.option_sends_alt) {
+        darwinFakeButtons = !!self.fake_buttons.state;
+        [defaults setBool:darwinFakeButtons forKey:XQuartzPrefKeyFakeButtons];
+    } else if (sender == self.enable_keyequivs) {
+        XQuartzEnableKeyEquivalents = !!self.enable_keyequivs.state;
+        [defaults setBool:XQuartzEnableKeyEquivalents forKey:XQuartzPrefKeyKeyEquivs];
+    } else if (sender == self.sync_keymap) {
+        darwinSyncKeymap = !!self.sync_keymap.state;
+        [defaults setBool:darwinSyncKeymap forKey:XQuartzPrefKeySyncKeymap];
+    } else if (sender == self.enable_fullscreen_menu) {
+        XQuartzFullscreenMenu = !!self.enable_fullscreen_menu.state;
+        [defaults setBool:XQuartzFullscreenMenu forKey:XQuartzPrefKeyFullscreenMenu];
+    } else if (sender == self.option_sends_alt) {
         BOOL prev_opt_sends_alt = XQuartzOptionSendsAlt;
 
-        XQuartzOptionSendsAlt = self.option_sends_alt.intValue;
-        [NSApp prefs_set_boolean:@PREFS_OPTION_SENDS_ALT value:
-         XQuartzOptionSendsAlt];
+        XQuartzOptionSendsAlt = !!self.option_sends_alt.state;
+        [defaults setBool:XQuartzOptionSendsAlt forKey:XQuartzPrefKeyOptionSendsAlt];
 
         if (prev_opt_sends_alt != XQuartzOptionSendsAlt)
             QuartsResyncKeymap(TRUE);
-    }
-    else if (sender == self.click_through) {
-        [NSApp prefs_set_boolean:@PREFS_CLICK_THROUGH value:self.click_through.intValue];
-    }
-    else if (sender == self.focus_follows_mouse) {
-        [NSApp prefs_set_boolean:@PREFS_FFM value:self.focus_follows_mouse.intValue];
-    }
-    else if (sender == self.focus_on_new_window) {
-        [NSApp prefs_set_boolean:@PREFS_FOCUS_ON_NEW_WINDOW value:self.focus_on_new_window.intValue];
-    }
-    else if (sender == self.enable_auth) {
-        [NSApp prefs_set_boolean:@PREFS_NO_AUTH value:!self.enable_auth.intValue];
-    }
-    else if (sender == self.enable_tcp) {
-        [NSApp prefs_set_boolean:@PREFS_NO_TCP value:!self.enable_tcp.intValue];
-    }
-    else if (sender == self.depth) {
-        [NSApp prefs_set_integer:@PREFS_DEPTH value:self.depth.selectedTag];
-    }
-    else if (sender == self.sync_pasteboard) {
+    } else if (sender == self.click_through) {
+        [defaults setBool:!!self.click_through.state forKey:XQuartzPrefKeyClickThrough];
+    } else if (sender == self.focus_follows_mouse) {
+        [defaults setBool:!!self.focus_follows_mouse.state forKey:XQuartzPrefKeyFocusFollowsMouse];
+    } else if (sender == self.focus_on_new_window) {
+        [defaults setBool:!!self.focus_on_new_window.state forKey:XQuartzPrefKeyFocusOnNewWindow];
+    } else if (sender == self.enable_auth) {
+        [defaults setBool:!self.enable_auth.state forKey:XQuartzPrefKeyNoAuth];
+    } else if (sender == self.enable_tcp) {
+        [defaults setBool:!self.enable_tcp.state forKey:XQuartzPrefKeyNoTCP];
+    } else if (sender == self.depth) {
+        [defaults setInteger:self.depth.selectedTag forKey:XQuartzPrefKeyDepth];
+    } else if (sender == self.sync_pasteboard) {
         BOOL pbproxy_active = self.sync_pasteboard.intValue;
-        [NSApp prefs_set_boolean:@PREFS_SYNC_PB value:pbproxy_active];
+        [defaults setBool:pbproxy_active forKey:XQuartzPrefKeySyncPasteboard];
 
         [self.sync_pasteboard_to_clipboard setEnabled:pbproxy_active];
         [self.sync_pasteboard_to_primary setEnabled:pbproxy_active];
@@ -751,33 +744,27 @@ extern char *bundle_id_prefix;
         // setEnabled doesn't do this...
         [self.sync_text1 setTextColor:pbproxy_active ? NSColor.controlTextColor : NSColor.disabledControlTextColor];
         [self.sync_text2 setTextColor:pbproxy_active ? NSColor.controlTextColor : NSColor.disabledControlTextColor];
+    } else if (sender == self.sync_pasteboard_to_clipboard) {
+        [defaults setBool:!!self.sync_pasteboard_to_clipboard.state forKey:XQuartzPrefKeySyncPasteboardToClipboard];
+    } else if (sender == self.sync_pasteboard_to_primary) {
+        [defaults setBool:!!self.sync_pasteboard_to_primary.state forKey:XQuartzPrefKeySyncPasteboardToPrimary];
+    } else if (sender == self.sync_clipboard_to_pasteboard) {
+        [defaults setBool:!!self.sync_clipboard_to_pasteboard.state forKey:XQuartzPrefKeySyncClipboardToPasteBoard];
+    } else if (sender == self.sync_primary_immediately) {
+        [defaults setBool:!!self.sync_primary_immediately.state forKey:XQuartzPrefKeySyncPrimaryOnSelect];
+    } else if (sender == self.scroll_in_device_direction) {
+        XQuartzScrollInDeviceDirection = !!self.scroll_in_device_direction.state;
+        [defaults setBool:XQuartzScrollInDeviceDirection forKey:XQuartzPrefKeyScrollInDeviceDirection];
     }
-    else if (sender == self.sync_pasteboard_to_clipboard) {
-        [NSApp prefs_set_boolean:@PREFS_SYNC_PB_TO_CLIPBOARD value:self.sync_pasteboard_to_clipboard.intValue];
-    }
-    else if (sender == self.sync_pasteboard_to_primary) {
-        [NSApp prefs_set_boolean:@PREFS_SYNC_PB_TO_PRIMARY value:self.sync_pasteboard_to_primary.intValue];
-    }
-    else if (sender == self.sync_clipboard_to_pasteboard) {
-        [NSApp prefs_set_boolean:@PREFS_SYNC_CLIPBOARD_TO_PB value:self.sync_clipboard_to_pasteboard.intValue];
-    }
-    else if (sender == self.sync_primary_immediately) {
-        [NSApp prefs_set_boolean:@PREFS_SYNC_PRIMARY_ON_SELECT value:self.sync_primary_immediately.intValue];
-    }
-    else if (sender == self.scroll_in_device_direction) {
-        XQuartzScrollInDeviceDirection = self.scroll_in_device_direction.intValue;
-        [NSApp prefs_set_boolean:@PREFS_SCROLL_IN_DEV_DIRECTION value:XQuartzScrollInDeviceDirection];
-    }
-
-    [NSApp prefs_synchronize];
 
     DarwinSendDDXEvent(kXquartzReloadPreferences, 0);
 }
 
 - (IBAction) prefs_show:sender
 {
-    BOOL pbproxy_active =
-        [NSApp prefs_get_boolean:@PREFS_SYNC_PB default:YES];
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
+
+    BOOL pbproxy_active = [defaults boolForKey:XQuartzPrefKeySyncPasteboard];
 
     [self.scroll_in_device_direction setIntValue:XQuartzScrollInDeviceDirection];
 
@@ -785,20 +772,20 @@ extern char *bundle_id_prefix;
     [self.enable_keyequivs setIntValue:XQuartzEnableKeyEquivalents];
     [self.sync_keymap setIntValue:darwinSyncKeymap];
     [self.option_sends_alt setIntValue:XQuartzOptionSendsAlt];
-    [self.click_through setIntValue:[NSApp prefs_get_boolean:@PREFS_CLICK_THROUGH default:NO]];
-    [self.focus_follows_mouse setIntValue:[NSApp prefs_get_boolean:@PREFS_FFM default:NO]];
-    [self.focus_on_new_window setIntValue:[NSApp prefs_get_boolean:@PREFS_FOCUS_ON_NEW_WINDOW default:YES]];
+    [self.click_through setIntValue:[defaults boolForKey:XQuartzPrefKeyClickThrough]];
+    [self.focus_follows_mouse setIntValue:[defaults boolForKey:XQuartzPrefKeyFocusFollowsMouse]];
+    [self.focus_on_new_window setIntValue:[defaults boolForKey:XQuartzPrefKeyFocusOnNewWindow]];
 
-    [self.enable_auth setIntValue:![NSApp prefs_get_boolean:@PREFS_NO_AUTH default:NO]];
-    [self.enable_tcp setIntValue:![NSApp prefs_get_boolean:@PREFS_NO_TCP default:NO]];
+    [self.enable_auth setIntValue:![defaults boolForKey:XQuartzPrefKeyNoAuth]];
+    [self.enable_tcp setIntValue:![defaults boolForKey:XQuartzPrefKeyNoTCP]];
 
-    [self.depth selectItemAtIndex:[self.depth indexOfItemWithTag:[NSApp prefs_get_integer:@PREFS_DEPTH default:-1]]];
+    [self.depth selectItemAtIndex:[self.depth indexOfItemWithTag:[defaults integerForKey:XQuartzPrefKeyDepth]]];
 
     [self.sync_pasteboard setIntValue:pbproxy_active];
-    [self.sync_pasteboard_to_clipboard setIntValue:[NSApp prefs_get_boolean:@PREFS_SYNC_PB_TO_CLIPBOARD default:YES]];
-    [self.sync_pasteboard_to_primary setIntValue:[NSApp prefs_get_boolean:@PREFS_SYNC_PB_TO_PRIMARY default:YES]];
-    [self.sync_clipboard_to_pasteboard setIntValue:[NSApp prefs_get_boolean:@PREFS_SYNC_CLIPBOARD_TO_PB default:YES]];
-    [self.sync_primary_immediately setIntValue:[NSApp prefs_get_boolean:@PREFS_SYNC_PRIMARY_ON_SELECT default:NO]];
+    [self.sync_pasteboard_to_clipboard setIntValue:[defaults boolForKey:XQuartzPrefKeySyncPasteboardToClipboard]];
+    [self.sync_pasteboard_to_primary setIntValue:[defaults boolForKey:XQuartzPrefKeySyncPasteboardToPrimary]];
+    [self.sync_clipboard_to_pasteboard setIntValue:[defaults boolForKey:XQuartzPrefKeySyncClipboardToPasteBoard]];
+    [self.sync_primary_immediately setIntValue:[defaults boolForKey:XQuartzPrefKeySyncPrimaryOnSelect]];
 
     [self.sync_pasteboard_to_clipboard setEnabled:pbproxy_active];
     [self.sync_pasteboard_to_primary setEnabled:pbproxy_active];
@@ -863,9 +850,11 @@ extern char *bundle_id_prefix;
     NSString *msg;
     NSString *title;
 
-    if (self.can_quit ||
-        [X11App prefs_get_boolean:@PREFS_NO_QUIT_ALERT default:NO])
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
+
+    if (self.can_quit || [defaults boolForKey:XQuartzPrefKeyNoQuitAlert]) {
         return NSTerminateNow;
+    }
 
     /* Make sure we're frontmost. */
     [NSApp activateIgnoringOtherApps:YES];
@@ -887,8 +876,6 @@ extern char *bundle_id_prefix;
 
 - (void) applicationWillTerminate:(NSNotification *)aNotification _X_NORETURN
 {
-    [X11App prefs_synchronize];
-
     /* shutdown the X server, it will exit () for us. */
     DarwinSendDDXEvent(kXquartzQuit, 0);
 

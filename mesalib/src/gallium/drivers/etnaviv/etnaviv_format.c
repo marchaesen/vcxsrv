@@ -325,6 +325,16 @@ get_texture_swiz(enum pipe_format fmt, unsigned swizzle_r,
       swizzle_r, swizzle_g, swizzle_b, swizzle_a,
    };
 
+   if (unlikely(fmt == PIPE_FORMAT_DXT1_RGB)) {
+      /* The HW uses the same decompression scheme for RGB and RGBA DXT1
+       * textures, tell it to 1-fill the alpha channel for plain RGB.
+       */
+      for (unsigned i = 0; i < 4; i++) {
+         if (swiz[i] == PIPE_SWIZZLE_W)
+            swiz[i] = PIPE_SWIZZLE_1;
+      }
+   }
+
    if (util_format_linear(fmt) == PIPE_FORMAT_R8_UNORM) {
       /* R8 is emulated with L8, needs yz channels set to zero */
       for (unsigned i = 0; i < 4; i++) {

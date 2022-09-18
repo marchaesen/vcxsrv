@@ -80,61 +80,41 @@ LIBGLSL_FILES = \
 	glsl/linker.h \
 	glsl/linker_util.h \
 	glsl/linker_util.cpp \
-	glsl/link_atomics.cpp \
 	glsl/link_functions.cpp \
 	glsl/link_interface_blocks.cpp \
 	glsl/link_uniforms.cpp \
-	glsl/link_uniform_initializers.cpp \
 	glsl/link_uniform_block_active_visitor.cpp \
 	glsl/link_uniform_block_active_visitor.h \
 	glsl/link_uniform_blocks.cpp \
 	glsl/link_varyings.cpp \
 	glsl/link_varyings.h \
 	glsl/list.h \
-	glsl/loop_analysis.cpp \
-	glsl/loop_analysis.h \
-	glsl/loop_unroll.cpp \
 	glsl/lower_blend_equation_advanced.cpp \
 	glsl/lower_builtins.cpp \
-	glsl/lower_buffer_access.cpp \
-	glsl/lower_buffer_access.h \
-	glsl/lower_const_arrays_to_uniforms.cpp \
-	glsl/lower_cs_derived.cpp \
 	glsl/lower_discard.cpp \
 	glsl/lower_discard_flow.cpp \
 	glsl/lower_distance.cpp \
-	glsl/lower_if_to_cond_assign.cpp \
 	glsl/lower_instructions.cpp \
 	glsl/lower_int64.cpp \
 	glsl/lower_jumps.cpp \
 	glsl/lower_mat_op_to_vec.cpp \
-	glsl/lower_offset_array.cpp \
-	glsl/lower_packed_varyings.cpp \
 	glsl/lower_named_interface_blocks.cpp \
 	glsl/lower_packing_builtins.cpp \
 	glsl/lower_precision.cpp \
 	glsl/lower_subroutine.cpp \
 	glsl/lower_tess_level.cpp \
-	glsl/lower_variable_index_to_cond_assign.cpp \
 	glsl/lower_vec_index_to_cond_assign.cpp \
 	glsl/lower_vec_index_to_swizzle.cpp \
-	glsl/lower_vector.cpp \
 	glsl/lower_vector_derefs.cpp \
 	glsl/lower_vector_insert.cpp \
-	glsl/lower_vertex_id.cpp \
 	glsl/lower_output_reads.cpp \
-	glsl/lower_shared_reference.cpp \
-	glsl/lower_ubo_reference.cpp \
-	glsl/lower_xfb_varying.cpp \
 	glsl/opt_algebraic.cpp \
 	glsl/opt_array_splitting.cpp \
-	glsl/opt_conditional_discard.cpp \
 	glsl/opt_constant_folding.cpp \
 	glsl/opt_constant_propagation.cpp \
 	glsl/opt_constant_variable.cpp \
 	glsl/opt_copy_propagation_elements.cpp \
 	glsl/opt_dead_builtin_variables.cpp \
-	glsl/opt_dead_builtin_varyings.cpp \
 	glsl/opt_dead_code.cpp \
 	glsl/opt_dead_code_local.cpp \
 	glsl/opt_dead_functions.cpp \
@@ -145,7 +125,6 @@ LIBGLSL_FILES = \
 	glsl/opt_minmax.cpp \
 	glsl/opt_rebalance_tree.cpp \
 	glsl/opt_structure_splitting.cpp \
-	glsl/opt_swizzle.cpp \
 	glsl/opt_tree_grafting.cpp \
 	glsl/program.h \
 	glsl/propagate_invariance.cpp \
@@ -154,7 +133,11 @@ LIBGLSL_FILES = \
 	glsl/serialize.cpp \
 	glsl/serialize.h \
 	glsl/string_to_uint_map.cpp \
-	glsl/string_to_uint_map.h
+	glsl/string_to_uint_map.h \
+	glsl/gl_nir_link_varyings.c \
+	glsl/gl_nir_lower_xfb_varying.c \
+	glsl/gl_nir_opt_dead_builtin_varyings.c \
+	glsl/gl_nir_lower_packed_varyings.c
 
 LIBGLSL_SHADER_CACHE_FILES = \
 	glsl/shader_cache.cpp \
@@ -235,7 +218,6 @@ NIR_FILES = \
 	nir/nir_loop_analyze.h \
 	nir/nir_lower_alpha_test.c \
 	nir/nir_lower_alu.c \
-	nir/nir_lower_alu_to_scalar.c \
 	nir/nir_lower_amul.c \
 	nir/nir_lower_array_deref_of_vec.c \
 	nir/nir_lower_atomics_to_ssbo.c \
@@ -312,6 +294,7 @@ NIR_FILES = \
 	nir/nir_lower_wpos_center.c \
 	nir/nir_lower_wpos_ytransform.c \
 	nir/nir_lower_wrmasks.c \
+	nir/nir_lower_alu_width.c \
 	nir/nir_metadata.c \
 	nir/nir_move_vec_src_uses_to_dest.c \
 	nir/nir_normalize_cubemap_coords.c \
@@ -319,6 +302,7 @@ NIR_FILES = \
 	nir/nir_opt_barriers.c \
 	nir/nir_opt_combine_stores.c \
 	nir/nir_opt_comparison_pre.c \
+	nir/nir_split_64bit_vec3_and_vec4.c \
 	nir/nir_opt_conditional_discard.c \
 	nir/nir_opt_constant_folding.c \
 	nir/nir_opt_copy_prop_vars.c \
@@ -340,6 +324,7 @@ NIR_FILES = \
 	nir/nir_opt_offsets.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_rematerialize_compares.c \
+	nir/nir_lower_discard_if.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_opt_shrink_vectors.c \
 	nir/nir_opt_sink.c \
@@ -363,6 +348,7 @@ NIR_FILES = \
 	nir/nir_serialize.c \
 	nir/nir_serialize.h \
 	nir/nir_split_per_member_structs.c \
+	nir/nir_lower_const_arrays_to_uniforms.c \
 	nir/nir_split_var_copies.c \
 	nir/nir_split_vars.c \
 	nir/nir_sweep.c \
@@ -374,6 +360,7 @@ NIR_FILES = \
 	nir/nir_worklist.h \
 	nir/nir_xfb_info.h \
 	nir/nir_opt_phi_precision.c \
+	nir/nir_opt_shrink_stores.c \
 	nir_lower_sysvals_to_varyings.c \
         nir/nir_opt_fragdepth.c
 

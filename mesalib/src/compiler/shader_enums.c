@@ -165,6 +165,7 @@ gl_varying_slot_name_for_stage(gl_varying_slot slot, gl_shader_stage stage)
       switch (slot) {
       case VARYING_SLOT_PRIMITIVE_COUNT: return "VARYING_SLOT_PRIMITIVE_COUNT";
       case VARYING_SLOT_PRIMITIVE_INDICES: return "VARYING_SLOT_PRIMITIVE_INDICES";
+      case VARYING_SLOT_CULL_PRIMITIVE: return "VARYING_SLOT_CULL_PRIMITIVE";
       default:
          /* Not an overlapping value. */
          break;
@@ -311,13 +312,14 @@ gl_system_value_name(gl_system_value sysval)
      ENUM(SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_PERSP_SAMPLE),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID),
-     ENUM(SYSTEM_VALUE_BARYCENTRIC_PERSP_SIZE),
+     ENUM(SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTER_RHW),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_LINEAR_PIXEL),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_LINEAR_SAMPLE),
      ENUM(SYSTEM_VALUE_BARYCENTRIC_PULL_MODEL),
      ENUM(SYSTEM_VALUE_RAY_LAUNCH_ID),
      ENUM(SYSTEM_VALUE_RAY_LAUNCH_SIZE),
+     ENUM(SYSTEM_VALUE_RAY_LAUNCH_SIZE_ADDR_AMD),
      ENUM(SYSTEM_VALUE_RAY_WORLD_ORIGIN),
      ENUM(SYSTEM_VALUE_RAY_WORLD_DIRECTION),
      ENUM(SYSTEM_VALUE_RAY_OBJECT_ORIGIN),
@@ -329,6 +331,7 @@ gl_system_value_name(gl_system_value sysval)
      ENUM(SYSTEM_VALUE_RAY_HIT_KIND),
      ENUM(SYSTEM_VALUE_RAY_FLAGS),
      ENUM(SYSTEM_VALUE_RAY_GEOMETRY_INDEX),
+     ENUM(SYSTEM_VALUE_CULL_MASK),
      ENUM(SYSTEM_VALUE_MESH_VIEW_COUNT),
      ENUM(SYSTEM_VALUE_MESH_VIEW_INDICES),
      ENUM(SYSTEM_VALUE_GS_HEADER_IR3),
@@ -374,4 +377,19 @@ gl_frag_result_name(gl_frag_result result)
    };
    STATIC_ASSERT(ARRAY_SIZE(names) == FRAG_RESULT_MAX);
    return NAME(result);
+}
+
+unsigned
+num_mesh_vertices_per_primitive(unsigned prim)
+{
+   switch (prim) {
+      case SHADER_PRIM_POINTS:
+         return 1;
+      case SHADER_PRIM_LINES:
+         return 2;
+      case SHADER_PRIM_TRIANGLES:
+         return 3;
+      default:
+         unreachable("invalid mesh shader primitive type");
+   }
 }

@@ -78,13 +78,13 @@ xkb_symbols "sin_phonetic" {
 
 partial alphanumeric_keys
 xkb_symbols "tam_unicode" {
-    include "in(tam_tamilnet)"
+    include "in(tamilnet)"
     name[Group1]= "Tamil (Sri Lanka, TamilNet '99)";
 };
 
 partial alphanumeric_keys
 xkb_symbols "tam_TAB" {
-    include "in(tam_tamilnet_TAB)"
+    include "in(tamilnet_TAB)"
     name[Group1]= "Tamil (Sri Lanka, TamilNet '99, TAB encoding)";
 };
 

@@ -1,9 +1,6 @@
 /*
  * Copyright © 2021 Collabora Ltd.
  *
- * Derived from tu_pipeline_cache.c which is:
- * Copyright © 2015 Intel Corporation
- *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -24,63 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "panvk_private.h"
-
-#include "util/debug.h"
-#include "util/disk_cache.h"
-#include "util/mesa-sha1.h"
-#include "util/u_atomic.h"
-
-VkResult
-panvk_CreatePipelineCache(VkDevice _device,
-                          const VkPipelineCacheCreateInfo *pCreateInfo,
-                          const VkAllocationCallbacks *pAllocator,
-                          VkPipelineCache *pPipelineCache)
-{
-   VK_FROM_HANDLE(panvk_device, device, _device);
-   struct panvk_pipeline_cache *cache;
-
-   cache = vk_object_alloc(&device->vk, pAllocator, sizeof(*cache),
-                           VK_OBJECT_TYPE_PIPELINE_CACHE);
-   if (cache == NULL)
-      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
-
-   if (pAllocator)
-      cache->alloc = *pAllocator;
-   else
-      cache->alloc = device->vk.alloc;
-
-   *pPipelineCache = panvk_pipeline_cache_to_handle(cache);
-   return VK_SUCCESS;
-}
-
-void
-panvk_DestroyPipelineCache(VkDevice _device,
-                           VkPipelineCache _cache,
-                           const VkAllocationCallbacks *pAllocator)
-{
-   VK_FROM_HANDLE(panvk_device, device, _device);
-   VK_FROM_HANDLE(panvk_pipeline_cache, cache, _cache);
-
-   vk_object_free(&device->vk, pAllocator, cache);
-}
-
-VkResult
-panvk_GetPipelineCacheData(VkDevice _device,
-                           VkPipelineCache _cache,
-                           size_t *pDataSize,
-                           void *pData)
-{
-   panvk_stub();
-   return VK_SUCCESS;
-}
-
-VkResult
-panvk_MergePipelineCaches(VkDevice _device,
-                          VkPipelineCache destCache,
-                          uint32_t srcCacheCount,
-                          const VkPipelineCache *pSrcCaches)
-{
-   panvk_stub();
-   return VK_SUCCESS;
-}
+/*
+ * This file is a stub until we have a real pipeline cache. For now, the
+ * pipeline cache functions are stubbed by the common Vulkan runtime.
+ */

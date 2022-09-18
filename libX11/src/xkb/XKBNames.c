@@ -189,6 +189,7 @@ _XkbReadGetNamesReply(Display *dpy,
                                         (char *) &names->keys[rep->firstKey],
                                         rep->nKeys * XkbKeyNameLength))
                 goto BAILOUT;
+            names->num_keys = rep->nKeys;
         }
         else
             _XkbSkipReadBufferData(&buf, rep->nKeys * XkbKeyNameLength);

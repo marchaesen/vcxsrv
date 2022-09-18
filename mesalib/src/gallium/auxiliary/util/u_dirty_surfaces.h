@@ -59,7 +59,7 @@ util_dirty_surfaces_use_for_sampling(struct pipe_context *pipe, struct util_dirt
    struct list_head *p, *next;
    for(p = dss->dirty_list.next; p != &dss->dirty_list; p = next)
    {
-      struct util_dirty_surface *ds = LIST_ENTRY(struct util_dirty_surface, p, dirty_list);
+      struct util_dirty_surface *ds = list_entry(p, struct util_dirty_surface, dirty_list);
       next = p->next;
 
       flush(pipe, &ds->base);
@@ -74,7 +74,7 @@ util_dirty_surfaces_use_levels_for_sampling(struct pipe_context *pipe, struct ut
       return;
    for(p = dss->dirty_list.next; p != &dss->dirty_list; p = next)
    {
-      struct util_dirty_surface *ds = LIST_ENTRY(struct util_dirty_surface, p, dirty_list);
+      struct util_dirty_surface *ds = list_entry(p, struct util_dirty_surface, dirty_list);
       next = p->next;
 
       if(ds->base.u.tex.level >= first && ds->base.u.tex.level <= last)

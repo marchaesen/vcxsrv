@@ -349,11 +349,6 @@ static int TRANS(WriteV)(
 
 #endif /* WIN32 */
 
-
-static int is_numeric (
-    const char *	/* str */
-);
-
 #ifdef TRANS_SERVER
 static int trans_mkdir (
     const char *,	/* path */
@@ -373,10 +368,11 @@ static int trans_mkdir (
 #include <stdarg.h>
 
 /*
- * The X server provides ErrorF() & VErrorF(), for other software that uses
- * xtrans, we provide our own simple versions.
+ * The X server and the font server both provide ErrorF() & VErrorF(). For
+ * other software that uses xtrans, we provide our own simple
+ * versions.
  */
-# if defined(XSERV_t) && defined(TRANS_SERVER)
+# if (defined(XSERV_t) || defined(TRANS_HAS_ERRORF)) && defined(TRANS_SERVER)
 #  include "os.h"
 # else
 

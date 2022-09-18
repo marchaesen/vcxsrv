@@ -64,6 +64,61 @@ vn_encode_VkSamplerReductionModeCreateInfo(struct vn_cs_encoder *enc, const VkSa
     vn_encode_VkSamplerReductionModeCreateInfo_self(enc, val);
 }
 
+/* struct VkSamplerCustomBorderColorCreateInfoEXT chain */
+
+static inline size_t
+vn_sizeof_VkSamplerCustomBorderColorCreateInfoEXT_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkSamplerCustomBorderColorCreateInfoEXT_self(const VkSamplerCustomBorderColorCreateInfoEXT *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkClearColorValue(&val->customBorderColor);
+    size += vn_sizeof_VkFormat(&val->format);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkSamplerCustomBorderColorCreateInfoEXT(const VkSamplerCustomBorderColorCreateInfoEXT *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkSamplerCustomBorderColorCreateInfoEXT_pnext(val->pNext);
+    size += vn_sizeof_VkSamplerCustomBorderColorCreateInfoEXT_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkSamplerCustomBorderColorCreateInfoEXT_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkSamplerCustomBorderColorCreateInfoEXT_self(struct vn_cs_encoder *enc, const VkSamplerCustomBorderColorCreateInfoEXT *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkClearColorValue(enc, &val->customBorderColor);
+    vn_encode_VkFormat(enc, &val->format);
+}
+
+static inline void
+vn_encode_VkSamplerCustomBorderColorCreateInfoEXT(struct vn_cs_encoder *enc, const VkSamplerCustomBorderColorCreateInfoEXT *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT });
+    vn_encode_VkSamplerCustomBorderColorCreateInfoEXT_pnext(enc, val->pNext);
+    vn_encode_VkSamplerCustomBorderColorCreateInfoEXT_self(enc, val);
+}
+
 /* struct VkSamplerCreateInfo chain */
 
 static inline size_t
@@ -85,6 +140,14 @@ vn_sizeof_VkSamplerCreateInfo_pnext(const void *val)
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkSamplerCreateInfo_pnext(pnext->pNext);
             size += vn_sizeof_VkSamplerReductionModeCreateInfo_self((const VkSamplerReductionModeCreateInfo *)pnext);
+            return size;
+        case VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(288 /* VK_EXT_custom_border_color */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkSamplerCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkSamplerCustomBorderColorCreateInfoEXT_self((const VkSamplerCustomBorderColorCreateInfoEXT *)pnext);
             return size;
         default:
             /* ignore unknown/unsupported struct */
@@ -150,6 +213,14 @@ vn_encode_VkSamplerCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val)
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkSamplerCreateInfo_pnext(enc, pnext->pNext);
             vn_encode_VkSamplerReductionModeCreateInfo_self(enc, (const VkSamplerReductionModeCreateInfo *)pnext);
+            return;
+        case VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(288 /* VK_EXT_custom_border_color */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkSamplerCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkSamplerCustomBorderColorCreateInfoEXT_self(enc, (const VkSamplerCustomBorderColorCreateInfoEXT *)pnext);
             return;
         default:
             /* ignore unknown/unsupported struct */

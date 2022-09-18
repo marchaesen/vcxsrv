@@ -21,7 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-#ifdef ENABLE_SHADER_CACHE
 
 #include <assert.h>
 #include <inttypes.h>
@@ -30,16 +29,53 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #include <fcntl.h>
 
 #include "util/compress.h"
 #include "util/crc32.h"
+#include "util/disk_cache.h"
+#include "util/disk_cache_os.h"
 
-struct cache_entry_file_data {
-   uint32_t crc32;
-   uint32_t uncompressed_size;
-};
+#if DETECT_OS_WINDOWS
+
+bool
+disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx)
+{
+   HMODULE mod = NULL;
+   GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                      (LPCWSTR)ptr,
+                      &mod);
+   if (!mod)
+      return false;
+
+   WCHAR filename[MAX_PATH];
+   DWORD filename_length = GetModuleFileNameW(mod, filename, ARRAY_SIZE(filename));
+
+   if (filename_length == 0 || filename_length == ARRAY_SIZE(filename))
+      return false;
+
+   HANDLE mod_as_file = CreateFileW(
+        filename,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+   if (mod_as_file == INVALID_HANDLE_VALUE)
+      return false;
+
+   FILETIME time;
+   bool ret = GetFileTime(mod_as_file, NULL, NULL, &time);
+   if (ret)
+      _mesa_sha1_update(ctx, &time, sizeof(time));
+   CloseHandle(mod_as_file);
+   return ret;
+}
+
+#endif
+
+#ifdef ENABLE_SHADER_CACHE
 
 #if DETECT_OS_WINDOWS
 /* TODO: implement disk cache support on windows */
@@ -60,8 +96,6 @@ struct cache_entry_file_data {
 #include "util/blob.h"
 #include "util/crc32.h"
 #include "util/debug.h"
-#include "util/disk_cache.h"
-#include "util/disk_cache_os.h"
 #include "util/ralloc.h"
 #include "util/rand_xor.h"
 
@@ -511,9 +545,19 @@ parse_and_validate_cache_item(struct disk_cache *cache, void *cache_item,
 
    /* Uncompress the cache data */
    uncompressed_data = malloc(cf_data->uncompressed_size);
-   if (!util_compress_inflate(data, cache_data_size, uncompressed_data,
-                              cf_data->uncompressed_size))
+   if (!uncompressed_data)
       goto fail;
+
+   if (cache->compression_disabled) {
+      if (cf_data->uncompressed_size != cache_data_size)
+         goto fail;
+
+      memcpy(uncompressed_data, data, cache_data_size);
+   } else {
+      if (!util_compress_inflate(data, cache_data_size, uncompressed_data,
+                                 cf_data->uncompressed_size))
+         goto fail;
+   }
 
    if (size)
       *size = cf_data->uncompressed_size;
@@ -599,15 +643,22 @@ create_cache_item_header_and_blob(struct disk_cache_put_job *dc_job,
 
    /* Compress the cache item data */
    size_t max_buf = util_compress_max_compressed_len(dc_job->size);
-   void *compressed_data = malloc(max_buf);
-   if (compressed_data == NULL)
-      return false;
+   size_t compressed_size;
+   void *compressed_data;
 
-   size_t compressed_size =
-      util_compress_deflate(dc_job->data, dc_job->size,
-                            compressed_data, max_buf);
-   if (compressed_size == 0)
-      goto fail;
+   if (dc_job->cache->compression_disabled) {
+      compressed_size = dc_job->size;
+      compressed_data = dc_job->data;
+   } else {
+      compressed_data = malloc(max_buf);
+      if (compressed_data == NULL)
+         return false;
+      compressed_size =
+         util_compress_deflate(dc_job->data, dc_job->size,
+                              compressed_data, max_buf);
+      if (compressed_size == 0)
+         goto fail;
+   }
 
    /* Copy the driver_keys_blob, this can be used find information about the
     * mesa version that produced the entry or deal with hash collisions,
@@ -649,11 +700,15 @@ create_cache_item_header_and_blob(struct disk_cache_put_job *dc_job,
    if (!blob_write_bytes(cache_blob, compressed_data, compressed_size))
       goto fail;
 
-   free(compressed_data);
+   if (!dc_job->cache->compression_disabled)
+      free(compressed_data);
+
    return true;
 
  fail:
-   free(compressed_data);
+   if (!dc_job->cache->compression_disabled)
+      free(compressed_data);
+
    return false;
 }
 
@@ -766,7 +821,7 @@ disk_cache_write_item_to_disk(struct disk_cache_put_job *dc_job,
 
 /* Determine path for cache based on the first defined name as follows:
  *
- *   $MESA_GLSL_CACHE_DIR
+ *   $MESA_SHADER_CACHE_DIR
  *   $XDG_CACHE_HOME/mesa_shader_cache
  *   <pwd.pw_dir>/.cache/mesa_shader_cache
  */
@@ -777,8 +832,19 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
    char *cache_dir_name = CACHE_DIR_NAME;
    if (env_var_as_boolean("MESA_DISK_CACHE_SINGLE_FILE", false))
       cache_dir_name = CACHE_DIR_NAME_SF;
+   else if (env_var_as_boolean("MESA_DISK_CACHE_DATABASE", false))
+      cache_dir_name = CACHE_DIR_NAME_DB;
 
-   char *path = getenv("MESA_GLSL_CACHE_DIR");
+   char *path = getenv("MESA_SHADER_CACHE_DIR");
+
+   if (!path) {
+      path = getenv("MESA_GLSL_CACHE_DIR");
+      if (path)
+         fprintf(stderr,
+                 "*** MESA_GLSL_CACHE_DIR is deprecated; "
+                 "use MESA_SHADER_CACHE_DIR instead ***\n");
+   }
+
    if (path) {
       if (mkdir_if_needed(path) == -1)
          return NULL;
@@ -862,7 +928,16 @@ disk_cache_enabled()
 #else
    bool disable_by_default = false;
 #endif
-   if (env_var_as_boolean("MESA_GLSL_CACHE_DISABLE", disable_by_default))
+   char *envvar_name = "MESA_SHADER_CACHE_DISABLE";
+   if (!getenv(envvar_name)) {
+      envvar_name = "MESA_GLSL_CACHE_DISABLE";
+      if (getenv(envvar_name))
+         fprintf(stderr,
+                 "*** MESA_GLSL_CACHE_DISABLE is deprecated; "
+                 "use MESA_SHADER_CACHE_DISABLE instead ***\n");
+   }
+
+   if (env_var_as_boolean(envvar_name, disable_by_default))
       return false;
 
    return true;
@@ -901,7 +976,7 @@ disk_cache_write_item_to_disk_foz(struct disk_cache_put_job *dc_job)
 }
 
 bool
-disk_cache_load_cache_index(void *mem_ctx, struct disk_cache *cache)
+disk_cache_load_cache_index_foz(void *mem_ctx, struct disk_cache *cache)
 {
    /* Load cache index into a hash map (from fossilise files) */
    return foz_prepare(&cache->foz_db, cache->path);
@@ -969,6 +1044,45 @@ void
 disk_cache_destroy_mmap(struct disk_cache *cache)
 {
    munmap(cache->index_mmap, cache->index_mmap_size);
+}
+
+void *
+disk_cache_db_load_item(struct disk_cache *cache, const cache_key key,
+                        size_t *size)
+{
+   size_t cache_tem_size = 0;
+   void *cache_item = mesa_cache_db_read_entry(&cache->cache_db, key,
+                                               &cache_tem_size);
+   if (!cache_item)
+      return NULL;
+
+   uint8_t *uncompressed_data =
+       parse_and_validate_cache_item(cache, cache_item, cache_tem_size, size);
+   free(cache_item);
+
+   return uncompressed_data;
+}
+
+bool
+disk_cache_db_write_item_to_disk(struct disk_cache_put_job *dc_job)
+{
+   struct blob cache_blob;
+   blob_init(&cache_blob);
+
+   if (!create_cache_item_header_and_blob(dc_job, &cache_blob))
+      return false;
+
+   bool r = mesa_cache_db_entry_write(&dc_job->cache->cache_db, dc_job->key,
+                                      cache_blob.data, cache_blob.size);
+
+   blob_finish(&cache_blob);
+   return r;
+}
+
+bool
+disk_cache_db_load_cache_index(void *mem_ctx, struct disk_cache *cache)
+{
+   return mesa_cache_db_open(&cache->cache_db, cache->path);
 }
 #endif
 

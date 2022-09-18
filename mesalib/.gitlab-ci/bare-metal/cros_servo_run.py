@@ -31,52 +31,18 @@ import threading
 
 
 class CrosServoRun:
-    def __init__(self, cpu, ec):
-        # Merged FIFO for the two serial buffers, fed by threads.
-        self.serial_queue = queue.Queue()
-        self.sentinel = object()
-        self.threads_done = 0
-
-        self.ec_ser = SerialBuffer(
-            ec, "results/serial-ec.txt", "R SERIAL-EC> ")
+    def __init__(self, cpu, ec, test_timeout):
         self.cpu_ser = SerialBuffer(
             cpu, "results/serial.txt", "R SERIAL-CPU> ")
-
-        self.iter_feed_ec = threading.Thread(
-            target=self.iter_feed_queue, daemon=True, args=(self.ec_ser.lines(),))
-        self.iter_feed_ec.start()
-
-        self.iter_feed_cpu = threading.Thread(
-            target=self.iter_feed_queue, daemon=True, args=(self.cpu_ser.lines(),))
-        self.iter_feed_cpu.start()
+        # Merge the EC serial into the cpu_ser's line stream so that we can
+        # effectively poll on both at the same time and not have to worry about
+        self.ec_ser = SerialBuffer(
+            ec, "results/serial-ec.txt", "R SERIAL-EC> ", line_queue=self.cpu_ser.line_queue)
+        self.test_timeout = test_timeout
 
     def close(self):
         self.ec_ser.close()
         self.cpu_ser.close()
-        self.iter_feed_ec.join()
-        self.iter_feed_cpu.join()
-
-    # Feed lines from our serial queues into the merged queue, marking when our
-    # input is done.
-    def iter_feed_queue(self, it):
-        for i in it:
-            self.serial_queue.put(i)
-        self.serial_queue.put(self.sentinel)
-
-    # Return the next line from the queue, counting how many threads have
-    # terminated and joining when done
-    def get_serial_queue_line(self):
-        line = self.serial_queue.get()
-        if line == self.sentinel:
-            self.threads_done = self.threads_done + 1
-            if self.threads_done == 2:
-                self.iter_feed_cpu.join()
-                self.iter_feed_ec.join()
-        return line
-
-    # Returns an iterator for getting the next line.
-    def serial_queue_lines(self):
-        return iter(self.get_serial_queue_line, self.sentinel)
 
     def ec_write(self, s):
         print("W SERIAL-EC> %s" % s)
@@ -96,23 +62,36 @@ class CrosServoRun:
         self.ec_write("\n")
         self.ec_write("reboot\n")
 
+        bootloader_done = False
         # This is emitted right when the bootloader pauses to check for input.
         # Emit a ^N character to request network boot, because we don't have a
         # direct-to-netboot firmware on cheza.
-        for line in self.serial_queue_lines():
+        for line in self.cpu_ser.lines(timeout=120, phase="bootloader"):
             if re.search("load_archive: loading locale_en.bin", line):
                 self.cpu_write("\016")
+                bootloader_done = True
+                break
+
+            # If the board has a netboot firmware and we made it to booting the
+            # kernel, proceed to processing of the test run.
+            if re.search("Booting Linux", line):
+                bootloader_done = True
                 break
 
             # The Cheza boards have issues with failing to bring up power to
             # the system sometimes, possibly dependent on ambient temperature
             # in the farm.
             if re.search("POWER_GOOD not seen in time", line):
-                self.print_error("Detected intermittent poweron failure, restarting run...")
+                self.print_error(
+                    "Detected intermittent poweron failure, restarting run...")
                 return 2
 
+        if not bootloader_done:
+            print("Failed to make it through bootloader, restarting run...")
+            return 2
+
         tftp_failures = 0
-        for line in self.serial_queue_lines():
+        for line in self.cpu_ser.lines(timeout=self.test_timeout, phase="test"):
             if re.search("---. end Kernel panic", line):
                 return 1
 
@@ -123,13 +102,15 @@ class CrosServoRun:
             if re.search("R8152: Bulk read error 0xffffffbf", line):
                 tftp_failures += 1
                 if tftp_failures >= 100:
-                    self.print_error("Detected intermittent tftp failure, restarting run...")
+                    self.print_error(
+                        "Detected intermittent tftp failure, restarting run...")
                     return 2
 
             # There are very infrequent bus errors during power management transitions
             # on cheza, which we don't expect to be the case on future boards.
             if re.search("Kernel panic - not syncing: Asynchronous SError Interrupt", line):
-                self.print_error("Detected cheza power management bus error, restarting run...")
+                self.print_error(
+                    "Detected cheza power management bus error, restarting run...")
                 return 2
 
             # If the network device dies, it's probably not graphics's fault, just try again.
@@ -148,7 +129,8 @@ class CrosServoRun:
             # Given that it seems to trigger randomly near a GPU fault and then
             # break many tests after that, just restart the whole run.
             if re.search("a6xx_hfi_send_msg.*Unexpected message id .* on the response queue", line):
-                self.print_error("Detected cheza power management bus error, restarting run...")
+                self.print_error(
+                    "Detected cheza power management bus error, restarting run...")
                 return 2
 
             if re.search("coreboot.*bootblock starting", line):
@@ -167,8 +149,9 @@ class CrosServoRun:
                 else:
                     return 1
 
-        self.print_error("Reached the end of the CPU serial log without finding a result")
-        return 1
+        self.print_error(
+            "Reached the end of the CPU serial log without finding a result")
+        return 2
 
 
 def main():
@@ -177,21 +160,20 @@ def main():
                         help='CPU Serial device', required=True)
     parser.add_argument(
         '--ec', type=str, help='EC Serial device', required=True)
+    parser.add_argument(
+        '--test-timeout', type=int, help='Test phase timeout (minutes)', required=True)
     args = parser.parse_args()
 
-    servo = CrosServoRun(args.cpu, args.ec)
-
     while True:
+        servo = CrosServoRun(args.cpu, args.ec, args.test_timeout * 60)
         retval = servo.run()
+
+        # power down the CPU on the device
+        servo.ec_write("power off\n")
+        servo.close()
+
         if retval != 2:
-            break
-
-    # power down the CPU on the device
-    servo.ec_write("power off\n")
-
-    servo.close()
-
-    sys.exit(retval)
+            sys.exit(retval)
 
 
 if __name__ == '__main__':

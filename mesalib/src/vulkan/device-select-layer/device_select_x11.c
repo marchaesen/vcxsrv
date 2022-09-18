@@ -74,7 +74,7 @@ int device_select_find_xcb_pci_default(struct device_pci_info *devices, uint32_t
     return -1;
 
   xcb_query_extension_cookie_t dri3_cookie;
-  xcb_query_extension_reply_t *dri3_reply;
+  xcb_query_extension_reply_t *dri3_reply = NULL;
 
   dri3_cookie = xcb_query_extension(conn, 4, "DRI3");
   dri3_reply = xcb_query_extension_reply(conn, dri3_cookie, NULL);
@@ -84,6 +84,7 @@ int device_select_find_xcb_pci_default(struct device_pci_info *devices, uint32_t
 
   if (dri3_reply->present == 0)
     goto out;
+
   setup = xcb_get_setup(conn);
   iter = xcb_setup_roots_iterator(setup);
 
@@ -116,6 +117,7 @@ int device_select_find_xcb_pci_default(struct device_pci_info *devices, uint32_t
   }
 
 out:
+  free(dri3_reply);
   drmFreeDevice(&xdev); /* Is NULL pointer safe. */
   xcb_disconnect(conn);
   return default_idx;

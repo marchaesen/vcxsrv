@@ -17,6 +17,7 @@
 
 #include "vn_device.h"
 #include "vn_physical_device.h"
+#include "vn_render_pass.h"
 
 /* shader module commands */
 
@@ -125,6 +126,7 @@ vn_CreatePipelineCache(VkDevice device,
                        const VkAllocationCallbacks *pAllocator,
                        VkPipelineCache *pPipelineCache)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
@@ -163,6 +165,7 @@ vn_DestroyPipelineCache(VkDevice device,
                         VkPipelineCache pipelineCache,
                         const VkAllocationCallbacks *pAllocator)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_pipeline_cache *cache =
       vn_pipeline_cache_from_handle(pipelineCache);
@@ -185,6 +188,7 @@ vn_GetPipelineCacheData(VkDevice device,
                         size_t *pDataSize,
                         void *pData)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_physical_device *physical_dev = dev->physical_device;
 
@@ -206,7 +210,7 @@ vn_GetPipelineCacheData(VkDevice device,
    }
 
    const VkPhysicalDeviceProperties *props =
-      &physical_dev->properties.properties;
+      &physical_dev->properties.vulkan_1_0;
    header->header_size = sizeof(*header);
    header->header_version = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
    header->vendor_id = props->vendorID;
@@ -231,6 +235,7 @@ vn_MergePipelineCaches(VkDevice device,
                        uint32_t srcCacheCount,
                        const VkPipelineCache *pSrcCaches)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
 
    vn_async_vkMergePipelineCaches(dev->instance, device, dstCache,
@@ -241,53 +246,434 @@ vn_MergePipelineCaches(VkDevice device,
 
 /* pipeline commands */
 
+static bool
+vn_create_pipeline_handles(struct vn_device *dev,
+                           uint32_t pipeline_count,
+                           VkPipeline *pipeline_handles,
+                           const VkAllocationCallbacks *alloc)
+{
+   for (uint32_t i = 0; i < pipeline_count; i++) {
+      struct vn_pipeline *pipeline =
+         vk_zalloc(alloc, sizeof(*pipeline), VN_DEFAULT_ALIGN,
+                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+      if (!pipeline) {
+         for (uint32_t j = 0; j < i; j++) {
+            pipeline = vn_pipeline_from_handle(pipeline_handles[j]);
+            vn_object_base_fini(&pipeline->base);
+            vk_free(alloc, pipeline);
+         }
+
+         memset(pipeline_handles, 0,
+                pipeline_count * sizeof(pipeline_handles[0]));
+         return false;
+      }
+
+      vn_object_base_init(&pipeline->base, VK_OBJECT_TYPE_PIPELINE,
+                          &dev->base);
+      pipeline_handles[i] = vn_pipeline_to_handle(pipeline);
+   }
+
+   return true;
+}
+
+/** For vkCreate*Pipelines.  */
+static void
+vn_destroy_failed_pipelines(struct vn_device *dev,
+                            uint32_t create_info_count,
+                            VkPipeline *pipelines,
+                            const VkAllocationCallbacks *alloc)
+{
+   for (uint32_t i = 0; i < create_info_count; i++) {
+      struct vn_pipeline *pipeline = vn_pipeline_from_handle(pipelines[i]);
+
+      if (pipeline->base.id == 0) {
+         vn_object_base_fini(&pipeline->base);
+         vk_free(alloc, pipeline);
+         pipelines[i] = VK_NULL_HANDLE;
+      }
+   }
+}
+
+#define VN_PIPELINE_CREATE_SYNC_MASK                                         \
+   (VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT |               \
+    VK_PIPELINE_CREATE_EARLY_RETURN_ON_FAILURE_BIT)
+
+/** Fixes for a single VkGraphicsPipelineCreateInfo. */
+struct vn_graphics_pipeline_create_info_fix {
+   bool ignore_tessellation_state;
+   bool ignore_viewport_state;
+   bool ignore_viewports;
+   bool ignore_scissors;
+   bool ignore_multisample_state;
+   bool ignore_depth_stencil_state;
+   bool ignore_color_blend_state;
+   bool ignore_base_pipeline_handle;
+};
+
+/** Temporary storage for fixes in vkCreateGraphicsPipelines. */
+struct vn_create_graphics_pipelines_fixes {
+   VkGraphicsPipelineCreateInfo *create_infos;
+   VkPipelineViewportStateCreateInfo *viewport_state_create_infos;
+};
+
+static struct vn_create_graphics_pipelines_fixes *
+vn_alloc_create_graphics_pipelines_fixes(const VkAllocationCallbacks *alloc,
+                                         uint32_t info_count)
+{
+   struct vn_create_graphics_pipelines_fixes *fixes;
+   VkGraphicsPipelineCreateInfo *create_infos;
+   VkPipelineViewportStateCreateInfo *viewport_state_create_infos;
+
+   VK_MULTIALLOC(ma);
+   vk_multialloc_add(&ma, &fixes, __typeof__(*fixes), 1);
+   vk_multialloc_add(&ma, &create_infos, __typeof__(*create_infos),
+                     info_count);
+   vk_multialloc_add(&ma, &viewport_state_create_infos,
+                     __typeof__(*viewport_state_create_infos), info_count);
+
+   if (!vk_multialloc_zalloc(&ma, alloc, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND))
+      return NULL;
+
+   fixes->create_infos = create_infos;
+   fixes->viewport_state_create_infos = viewport_state_create_infos;
+
+   return fixes;
+}
+
 static const VkGraphicsPipelineCreateInfo *
 vn_fix_graphics_pipeline_create_info(
    struct vn_device *dev,
-   uint32_t create_info_count,
+   uint32_t info_count,
    const VkGraphicsPipelineCreateInfo *create_infos,
    const VkAllocationCallbacks *alloc,
-   VkGraphicsPipelineCreateInfo **out)
+   struct vn_create_graphics_pipelines_fixes **out_fixes)
 {
-   VkGraphicsPipelineCreateInfo *infos = NULL;
-   bool has_ignored_state = false;
+   VN_TRACE_FUNC();
 
-   for (uint32_t i = 0; i < create_info_count; i++) {
-      if (create_infos[i].pRasterizationState->rasterizerDiscardEnable ==
-          VK_FALSE)
+   /* Defer allocation until we need a fix. */
+   struct vn_create_graphics_pipelines_fixes *fixes = NULL;
+
+   for (uint32_t i = 0; i < info_count; i++) {
+      struct vn_graphics_pipeline_create_info_fix fix = { 0 };
+      bool any_fix = false;
+
+      const VkGraphicsPipelineCreateInfo *info = &create_infos[i];
+      const VkPipelineRenderingCreateInfo *rendering_info =
+         vk_find_struct_const(info, PIPELINE_RENDERING_CREATE_INFO);
+
+      VkShaderStageFlags stages = 0;
+      for (uint32_t j = 0; j < info->stageCount; j++) {
+         stages |= info->pStages[j].stage;
+      }
+
+      /* VkDynamicState */
+      struct {
+         bool rasterizer_discard_enable;
+         bool viewport;
+         bool viewport_with_count;
+         bool scissor;
+         bool scissor_with_count;
+      } has_dynamic_state = { 0 };
+
+      if (info->pDynamicState) {
+         for (uint32_t j = 0; j < info->pDynamicState->dynamicStateCount;
+              j++) {
+            switch (info->pDynamicState->pDynamicStates[j]) {
+            case VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE:
+               has_dynamic_state.rasterizer_discard_enable = true;
+               break;
+            case VK_DYNAMIC_STATE_VIEWPORT:
+               has_dynamic_state.viewport = true;
+               break;
+            case VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT:
+               has_dynamic_state.viewport_with_count = true;
+               break;
+            case VK_DYNAMIC_STATE_SCISSOR:
+               has_dynamic_state.scissor = true;
+               break;
+            case VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT:
+               has_dynamic_state.scissor_with_count = true;
+               break;
+            default:
+               break;
+            }
+         }
+      }
+
+      const struct vn_render_pass *pass =
+         vn_render_pass_from_handle(info->renderPass);
+
+      const struct vn_subpass *subpass = NULL;
+      if (pass)
+         subpass = &pass->subpasses[info->subpass];
+
+      /* TODO: Ignore VkPipelineRenderingCreateInfo when not using dynamic
+       * rendering. This requires either a deep rewrite of
+       * VkGraphicsPipelineCreateInfo::pNext or a fix in the generated
+       * protocol code.
+       *
+       * The Vulkan spec (1.3.223) says about VkPipelineRenderingCreateInfo:
+       *    If a graphics pipeline is created with a valid VkRenderPass,
+       *    parameters of this structure are ignored.
+       */
+      const bool has_dynamic_rendering = !pass && rendering_info;
+
+      /* For each pipeline state category, we define a bool.
+       *
+       * The Vulkan spec (1.3.223) says:
+       *    The state required for a graphics pipeline is divided into vertex
+       *    input state, pre-rasterization shader state, fragment shader
+       *    state, and fragment output state.
+       *
+       * Without VK_EXT_graphics_pipeline_library, most states are
+       * unconditionally included in the pipeline. Despite that, we still
+       * reference the state bools in the ignore rules because (a) it makes
+       * the ignore condition easier to validate against the text of the
+       * relevant VUs; and (b) it makes it easier to enable
+       * VK_EXT_graphics_pipeline_library because we won't need to carefully
+       * revisit the text of each VU to untangle the missing pipeline state
+       * bools.
+       */
+
+      /* VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT
+       *
+       * The Vulkan spec (1.3.223) says:
+       *    If the pre-rasterization shader state includes a vertex shader,
+       * then vertex input state is included in a complete graphics pipeline.
+       *
+       * We support no extension yet that allows the vertex stage to be
+       * omitted, such as VK_EXT_vertex_input_dynamic_state or
+       * VK_EXT_graphics_pipeline_library.
+       */
+      const bool UNUSED has_vertex_input_state = true;
+
+      /* VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT */
+      const bool has_pre_raster_state = true;
+
+      /* The spec does not assign a name to this state. We define it just to
+       * deduplicate code.
+       *
+       * The Vulkan spec (1.3.223) says:
+       *    If the value of [...]rasterizerDiscardEnable in the
+       *    pre-rasterization shader state is VK_FALSE or the
+       *    VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE dynamic state is
+       *    enabled fragment shader state and fragment output interface state
+       *    is included in a complete graphics pipeline.
+       */
+      const bool has_raster_state =
+         has_dynamic_state.rasterizer_discard_enable ||
+         (info->pRasterizationState &&
+          info->pRasterizationState->rasterizerDiscardEnable == VK_FALSE);
+
+      /* VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT */
+      const bool has_fragment_shader_state = has_raster_state;
+
+      /* VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT */
+      const bool has_fragment_output_state = has_raster_state;
+
+      /* Ignore pTessellationState?
+       *    VUID-VkGraphicsPipelineCreateInfo-pStages-00731
+       */
+      if (info->pTessellationState &&
+          (!(stages & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) ||
+           !(stages & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT))) {
+         fix.ignore_tessellation_state = true;
+         any_fix = true;
+      }
+
+      /* Ignore pViewportState?
+       *    VUID-VkGraphicsPipelineCreateInfo-rasterizerDiscardEnable-00750
+       *    VUID-VkGraphicsPipelineCreateInfo-pViewportState-04892
+       */
+      if (info->pViewportState &&
+          !(has_pre_raster_state && has_raster_state)) {
+         fix.ignore_viewport_state = true;
+         any_fix = true;
+      }
+
+      /* Ignore pViewports?
+       *    VUID-VkGraphicsPipelineCreateInfo-pDynamicStates-04130
+       *
+       * Even if pViewportState is non-null, we must not dereference it if it
+       * is ignored.
+       */
+      if (!fix.ignore_viewport_state && info->pViewportState &&
+          info->pViewportState->pViewports) {
+         const bool has_dynamic_viewport =
+            has_pre_raster_state && (has_dynamic_state.viewport ||
+                                     has_dynamic_state.viewport_with_count);
+
+         if (has_dynamic_viewport) {
+            fix.ignore_viewports = true;
+            any_fix = true;
+         }
+      }
+
+      /* Ignore pScissors?
+       *    VUID-VkGraphicsPipelineCreateInfo-pDynamicStates-04131
+       *
+       * Even if pViewportState is non-null, we must not dereference it if it
+       * is ignored.
+       */
+      if (!fix.ignore_viewport_state && info->pViewportState &&
+          info->pViewportState->pScissors) {
+         const bool has_dynamic_scissor =
+            has_pre_raster_state && (has_dynamic_state.scissor ||
+                                     has_dynamic_state.scissor_with_count);
+         if (has_dynamic_scissor) {
+            fix.ignore_scissors = true;
+            any_fix = true;
+         }
+      }
+
+      /* Ignore pMultisampleState?
+       *    VUID-VkGraphicsPipelineCreateInfo-rasterizerDiscardEnable-00751
+       */
+      if (info->pMultisampleState && !has_fragment_output_state) {
+         fix.ignore_multisample_state = true;
+         any_fix = true;
+      }
+
+      /* Ignore pDepthStencilState? */
+      if (info->pDepthStencilState) {
+         const bool has_static_attachment =
+            subpass && subpass->has_depth_stencil_attachment;
+
+         /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06043 */
+         bool require_state =
+            has_fragment_shader_state && has_static_attachment;
+
+         if (!require_state) {
+            const bool has_dynamic_attachment =
+               has_dynamic_rendering &&
+               (rendering_info->depthAttachmentFormat !=
+                   VK_FORMAT_UNDEFINED ||
+                rendering_info->stencilAttachmentFormat !=
+                   VK_FORMAT_UNDEFINED);
+
+            /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06053 */
+            require_state = has_fragment_shader_state &&
+                            has_fragment_output_state &&
+                            has_dynamic_attachment;
+         }
+
+         fix.ignore_depth_stencil_state = !require_state;
+         any_fix |= fix.ignore_depth_stencil_state;
+      }
+
+      /* Ignore pColorBlendState? */
+      if (info->pColorBlendState) {
+         const bool has_static_attachment =
+            subpass && subpass->has_color_attachment;
+
+         /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06044 */
+         bool require_state =
+            has_fragment_output_state && has_static_attachment;
+
+         if (!require_state) {
+            const bool has_dynamic_attachment =
+               has_dynamic_rendering && rendering_info->colorAttachmentCount;
+
+            /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06054 */
+            require_state =
+               has_fragment_output_state && has_dynamic_attachment;
+         }
+
+         fix.ignore_color_blend_state = !require_state;
+         any_fix |= fix.ignore_color_blend_state;
+      }
+
+      /* Ignore basePipelineHandle?
+       *    VUID-VkGraphicsPipelineCreateInfo-flags-00722
+       *    VUID-VkGraphicsPipelineCreateInfo-flags-00724
+       *    VUID-VkGraphicsPipelineCreateInfo-flags-00725
+       */
+      if (info->basePipelineHandle != VK_NULL_HANDLE &&
+          !(info->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)) {
+         fix.ignore_base_pipeline_handle = true;
+         any_fix = true;
+      }
+
+      if (!any_fix)
          continue;
 
-      if (create_infos[i].pViewportState ||
-          create_infos[i].pMultisampleState ||
-          create_infos[i].pDepthStencilState ||
-          create_infos[i].pColorBlendState) {
-         has_ignored_state = true;
-         break;
+      if (!fixes) {
+         fixes = vn_alloc_create_graphics_pipelines_fixes(alloc, info_count);
+
+         if (!fixes)
+            return NULL;
+
+         memcpy(fixes->create_infos, create_infos,
+                info_count * sizeof(create_infos[0]));
       }
+
+      if (fix.ignore_tessellation_state)
+         fixes->create_infos[i].pTessellationState = NULL;
+
+      if (fix.ignore_viewport_state)
+         fixes->create_infos[i].pViewportState = NULL;
+
+      if (fixes->create_infos[i].pViewportState) {
+         if (fix.ignore_viewports || fix.ignore_scissors) {
+            fixes->viewport_state_create_infos[i] = *info->pViewportState;
+            fixes->create_infos[i].pViewportState =
+               &fixes->viewport_state_create_infos[i];
+         }
+
+         if (fix.ignore_viewports)
+            fixes->viewport_state_create_infos[i].pViewports = NULL;
+
+         if (fix.ignore_scissors)
+            fixes->viewport_state_create_infos[i].pScissors = NULL;
+      }
+
+      if (fix.ignore_multisample_state)
+         fixes->create_infos[i].pMultisampleState = NULL;
+
+      if (fix.ignore_depth_stencil_state)
+         fixes->create_infos[i].pDepthStencilState = NULL;
+
+      if (fix.ignore_color_blend_state)
+         fixes->create_infos[i].pColorBlendState = NULL;
+
+      if (fix.ignore_base_pipeline_handle)
+         fixes->create_infos[i].basePipelineHandle = VK_NULL_HANDLE;
    }
 
-   if (!has_ignored_state)
+   if (!fixes)
       return create_infos;
 
-   infos = vk_alloc(alloc, sizeof(*infos) * create_info_count,
-                    VN_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
-   if (!infos)
-      return NULL;
+   *out_fixes = fixes;
+   return fixes->create_infos;
+}
 
-   memcpy(infos, create_infos, sizeof(*infos) * create_info_count);
+/**
+ * We invalidate each VkPipelineCreationFeedback. This is a legal but useless
+ * implementation.
+ *
+ * We invalidate because the venus protocol (as of 2022-08-25) does not know
+ * that the VkPipelineCreationFeedback structs in the
+ * VkGraphicsPipelineCreateInfo pNext are output parameters. Before
+ * VK_EXT_pipeline_creation_feedback, the pNext chain was input-only.
+ */
+static void
+vn_invalidate_pipeline_creation_feedback(const VkBaseInStructure *chain)
+{
+   const VkPipelineCreationFeedbackCreateInfo *feedback_info =
+      vk_find_struct_const(chain, PIPELINE_CREATION_FEEDBACK_CREATE_INFO);
 
-   for (uint32_t i = 0; i < create_info_count; i++) {
-      if (infos[i].pRasterizationState->rasterizerDiscardEnable == VK_FALSE)
-         continue;
+   if (!feedback_info)
+      return;
 
-      infos[i].pViewportState = NULL;
-      infos[i].pMultisampleState = NULL;
-      infos[i].pDepthStencilState = NULL;
-      infos[i].pColorBlendState = NULL;
+   feedback_info->pPipelineCreationFeedback->flags &=
+      ~VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT;
+
+   for (uint32_t i = 0; i < feedback_info->pipelineStageCreationFeedbackCount;
+        i++) {
+      feedback_info->pPipelineStageCreationFeedbacks[i].flags &=
+         ~VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT;
    }
-
-   *out = infos;
-   return infos;
 }
 
 VkResult
@@ -298,46 +684,50 @@ vn_CreateGraphicsPipelines(VkDevice device,
                            const VkAllocationCallbacks *pAllocator,
                            VkPipeline *pPipelines)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
-   VkGraphicsPipelineCreateInfo *local_infos = NULL;
+   struct vn_create_graphics_pipelines_fixes *fixes = NULL;
+   bool want_sync = false;
+   VkResult result;
+
+   memset(pPipelines, 0, sizeof(*pPipelines) * createInfoCount);
 
    pCreateInfos = vn_fix_graphics_pipeline_create_info(
-      dev, createInfoCount, pCreateInfos, alloc, &local_infos);
+      dev, createInfoCount, pCreateInfos, alloc, &fixes);
    if (!pCreateInfos)
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   for (uint32_t i = 0; i < createInfoCount; i++) {
-      struct vn_pipeline *pipeline =
-         vk_zalloc(alloc, sizeof(*pipeline), VN_DEFAULT_ALIGN,
-                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-      if (!pipeline) {
-         for (uint32_t j = 0; j < i; j++)
-            vk_free(alloc, vn_pipeline_from_handle(pPipelines[j]));
-
-         if (local_infos)
-            vk_free(alloc, local_infos);
-
-         memset(pPipelines, 0, sizeof(*pPipelines) * createInfoCount);
-         return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
-      }
-
-      vn_object_base_init(&pipeline->base, VK_OBJECT_TYPE_PIPELINE,
-                          &dev->base);
-
-      VkPipeline pipeline_handle = vn_pipeline_to_handle(pipeline);
-      pPipelines[i] = pipeline_handle;
+   if (!vn_create_pipeline_handles(dev, createInfoCount, pPipelines, alloc)) {
+      vk_free(alloc, fixes);
+      return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
 
-   vn_async_vkCreateGraphicsPipelines(dev->instance, device, pipelineCache,
-                                      createInfoCount, pCreateInfos, NULL,
-                                      pPipelines);
+   for (uint32_t i = 0; i < createInfoCount; i++) {
+      if ((pCreateInfos[i].flags & VN_PIPELINE_CREATE_SYNC_MASK))
+         want_sync = true;
 
-   if (local_infos)
-      vk_free(alloc, local_infos);
+      vn_invalidate_pipeline_creation_feedback(
+         (const VkBaseInStructure *)pCreateInfos[i].pNext);
+   }
 
-   return VK_SUCCESS;
+   if (want_sync) {
+      result = vn_call_vkCreateGraphicsPipelines(
+         dev->instance, device, pipelineCache, createInfoCount, pCreateInfos,
+         NULL, pPipelines);
+      if (result != VK_SUCCESS)
+         vn_destroy_failed_pipelines(dev, createInfoCount, pPipelines, alloc);
+   } else {
+      vn_async_vkCreateGraphicsPipelines(dev->instance, device, pipelineCache,
+                                         createInfoCount, pCreateInfos, NULL,
+                                         pPipelines);
+      result = VK_SUCCESS;
+   }
+
+   vk_free(alloc, fixes);
+
+   return vn_result(dev->instance, result);
 }
 
 VkResult
@@ -348,33 +738,40 @@ vn_CreateComputePipelines(VkDevice device,
                           const VkAllocationCallbacks *pAllocator,
                           VkPipeline *pPipelines)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
+   bool want_sync = false;
+   VkResult result;
+
+   memset(pPipelines, 0, sizeof(*pPipelines) * createInfoCount);
+
+   if (!vn_create_pipeline_handles(dev, createInfoCount, pPipelines, alloc))
+      return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    for (uint32_t i = 0; i < createInfoCount; i++) {
-      struct vn_pipeline *pipeline =
-         vk_zalloc(alloc, sizeof(*pipeline), VN_DEFAULT_ALIGN,
-                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-      if (!pipeline) {
-         for (uint32_t j = 0; j < i; j++)
-            vk_free(alloc, vn_pipeline_from_handle(pPipelines[j]));
-         memset(pPipelines, 0, sizeof(*pPipelines) * createInfoCount);
-         return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
-      }
+      if ((pCreateInfos[i].flags & VN_PIPELINE_CREATE_SYNC_MASK))
+         want_sync = true;
 
-      vn_object_base_init(&pipeline->base, VK_OBJECT_TYPE_PIPELINE,
-                          &dev->base);
-
-      VkPipeline pipeline_handle = vn_pipeline_to_handle(pipeline);
-      pPipelines[i] = pipeline_handle;
+      vn_invalidate_pipeline_creation_feedback(
+         (const VkBaseInStructure *)pCreateInfos[i].pNext);
    }
 
-   vn_async_vkCreateComputePipelines(dev->instance, device, pipelineCache,
-                                     createInfoCount, pCreateInfos, NULL,
-                                     pPipelines);
+   if (want_sync) {
+      result = vn_call_vkCreateComputePipelines(
+         dev->instance, device, pipelineCache, createInfoCount, pCreateInfos,
+         NULL, pPipelines);
+      if (result != VK_SUCCESS)
+         vn_destroy_failed_pipelines(dev, createInfoCount, pPipelines, alloc);
+   } else {
+      vn_call_vkCreateComputePipelines(dev->instance, device, pipelineCache,
+                                       createInfoCount, pCreateInfos, NULL,
+                                       pPipelines);
+      result = VK_SUCCESS;
+   }
 
-   return VK_SUCCESS;
+   return vn_result(dev->instance, result);
 }
 
 void
@@ -382,6 +779,7 @@ vn_DestroyPipeline(VkDevice device,
                    VkPipeline _pipeline,
                    const VkAllocationCallbacks *pAllocator)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_pipeline *pipeline = vn_pipeline_from_handle(_pipeline);
    const VkAllocationCallbacks *alloc =

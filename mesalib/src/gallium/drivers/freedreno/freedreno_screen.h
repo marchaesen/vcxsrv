@@ -89,6 +89,7 @@ struct fd_screen {
    uint32_t ram_size;
    uint32_t max_rts; /* max # of render targets */
    uint32_t priority_mask;
+   unsigned prio_low, prio_norm, prio_high;  /* remap low/norm/high priority to kernel priority */
    bool has_timestamp;
    bool has_robustness;
    bool has_syncobj;
@@ -163,7 +164,7 @@ struct fd_screen {
     * internal RECTLIST primtype, if available, used for blits/
     * clears.
     */
-   const uint8_t *primtypes;
+   const enum pc_di_primtype *primtypes;
    uint32_t primtypes_mask;
 };
 
@@ -256,7 +257,7 @@ is_ir3(struct fd_screen *screen)
 static inline bool
 has_compute(struct fd_screen *screen)
 {
-   return is_a5xx(screen) || is_a6xx(screen);
+   return is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
 }
 
 #endif /* FREEDRENO_SCREEN_H_ */

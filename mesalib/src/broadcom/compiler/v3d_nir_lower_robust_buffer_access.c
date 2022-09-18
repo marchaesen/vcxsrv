@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Raspberry Pi
+ * Copyright © 2020 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -101,21 +101,23 @@ lower_shared(struct v3d_compile *c,
                               nir_src_for_ssa(offset));
 }
 
-static void
-lower_instr(struct v3d_compile *c, nir_builder *b, struct nir_instr *instr)
+static bool
+lower_instr(nir_builder *b, nir_instr *instr, void *_state)
 {
+        struct v3d_compile *c = _state;
+
         if (instr->type != nir_instr_type_intrinsic)
-                return;
+                return false;
         nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
         switch (intr->intrinsic) {
         case nir_intrinsic_load_ubo:
         case nir_intrinsic_load_ssbo:
                 lower_load(c, b, intr);
-                break;
+                return true;
         case nir_intrinsic_store_ssbo:
                 lower_store(c, b, intr);
-                break;
+                return true;
         case nir_intrinsic_ssbo_atomic_add:
         case nir_intrinsic_ssbo_atomic_imin:
         case nir_intrinsic_ssbo_atomic_umin:
@@ -127,7 +129,7 @@ lower_instr(struct v3d_compile *c, nir_builder *b, struct nir_instr *instr)
         case nir_intrinsic_ssbo_atomic_exchange:
         case nir_intrinsic_ssbo_atomic_comp_swap:
                 lower_atomic(c, b, intr);
-                break;
+                return true;
         case nir_intrinsic_load_shared:
         case nir_intrinsic_shared_atomic_add:
         case nir_intrinsic_shared_atomic_imin:
@@ -140,28 +142,16 @@ lower_instr(struct v3d_compile *c, nir_builder *b, struct nir_instr *instr)
         case nir_intrinsic_shared_atomic_exchange:
         case nir_intrinsic_shared_atomic_comp_swap:
                 lower_shared(c, b, intr);
-                break;
+                return true;
         default:
-                break;
+                return false;
         }
 }
 
-void
+bool
 v3d_nir_lower_robust_buffer_access(nir_shader *s, struct v3d_compile *c)
 {
-        nir_foreach_function(function, s) {
-                if (function->impl) {
-                        nir_builder b;
-                        nir_builder_init(&b, function->impl);
-
-                        nir_foreach_block(block, function->impl) {
-                                nir_foreach_instr_safe(instr, block)
-                                        lower_instr(c, &b, instr);
-                        }
-
-                        nir_metadata_preserve(function->impl,
-                                              nir_metadata_block_index |
-                                              nir_metadata_dominance);
-                }
-        }
+        return nir_shader_instructions_pass(s, lower_instr,
+                                            nir_metadata_block_index |
+                                            nir_metadata_dominance, c);
 }

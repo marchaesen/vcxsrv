@@ -507,7 +507,7 @@ handle_detailed_print(struct detailed_monitor_section *det_mon, void *data)
     }
     if (det_mon->type >= DS_VENDOR && det_mon->type <= DS_VENDOR_MAX) {
         xf86DrvMsg(scrnIndex, X_INFO,
-                   "Unknown vendor-specific block %hx\n",
+                   "Unknown vendor-specific block %x\n",
                    det_mon->type - DS_VENDOR);
     }
 

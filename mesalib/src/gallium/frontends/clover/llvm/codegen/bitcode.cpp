@@ -41,12 +41,8 @@
 
 #include <map>
 #include <llvm/Config/llvm-config.h>
-#if LLVM_VERSION_MAJOR < 4
-#include <llvm/Bitcode/ReaderWriter.h>
-#else
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
-#endif
 #include <llvm/Support/raw_ostream.h>
 
 using clover::binary;

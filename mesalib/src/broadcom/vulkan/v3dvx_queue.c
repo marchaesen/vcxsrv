@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Raspberry Pi
+ * Copyright © 2021 Raspberry Pi Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -29,7 +29,7 @@
 void
 v3dX(job_emit_noop)(struct v3dv_job *job)
 {
-   v3dv_job_start_frame(job, 1, 1, 1, true, 1, V3D_INTERNAL_BPP_32, false);
+   v3dv_job_start_frame(job, 1, 1, 1, true, true, 1, V3D_INTERNAL_BPP_32, false);
    v3dX(job_emit_binning_flush)(job);
 
    struct v3dv_cl *rcl = &job->rcl;

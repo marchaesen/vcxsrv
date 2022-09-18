@@ -96,6 +96,9 @@ test_printf(unsigned verbose, FILE *fp,
    boolean success = TRUE;
 
    context = LLVMContextCreate();
+#if LLVM_VERSION_MAJOR >= 15
+   LLVMContextSetOpaquePointers(context, false);
+#endif
    gallivm = gallivm_create("test_module", context, NULL);
 
    test = add_printf_test(gallivm);

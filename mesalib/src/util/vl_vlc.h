@@ -98,7 +98,7 @@ vl_vlc_next_input(struct vl_vlc *vlc)
       vlc->bytes_left = 0;
    }
 
-   vlc->data = vlc->inputs[0];
+   vlc->data = (const uint8_t *) vlc->inputs[0];
    vlc->end = vlc->data + len;
 
    ++vlc->inputs;

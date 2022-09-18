@@ -32,13 +32,13 @@ XkbGetIndicatorState \- Obtains the current state of the keyboard indicators
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to the X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- state_return
+.I state_return
 backfilled with a mask of the indicator state
 .SH DESCRIPTION
 .LP

@@ -40,7 +40,6 @@
 #include "tgsi/tgsi_from_mesa.h"
 #include "st_context.h"
 #include "st_texture.h"
-#include "st_glsl_to_tgsi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +56,9 @@ struct st_external_sampler_key
    GLuint lower_yuv;
    GLuint lower_yu_yv;
    GLuint lower_y41x;
+   GLuint bt709;
+   GLuint bt2020;
+   GLuint yuv_full_range;
 };
 
 static inline struct st_external_sampler_key
@@ -126,6 +128,20 @@ st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
                 format);
          break;
       }
+
+      switch (stObj->yuv_color_space) {
+      case GL_TEXTURE_YUV_COLOR_SPACE_REC601:
+         break;
+      case GL_TEXTURE_YUV_COLOR_SPACE_REC709:
+         key.bt709 |= (1 << unit);
+         break;
+      case GL_TEXTURE_YUV_COLOR_SPACE_REC2020:
+         key.bt2020 |= (1 << unit);
+         break;
+      }
+
+      if (stObj->yuv_full_range)
+         key.yuv_full_range |= (1 << unit);
    }
 
    return key;
@@ -296,7 +312,7 @@ extern void
 st_finalize_nir_before_variants(struct nir_shader *nir);
 
 extern void
-st_prepare_vertex_program(struct gl_program *stvp, uint8_t *attrib_to_index);
+st_prepare_vertex_program(struct gl_program *stvp);
 
 extern void
 st_translate_stream_output_info(struct gl_program *prog);
@@ -313,6 +329,9 @@ st_create_nir_shader(struct st_context *st, struct pipe_shader_state *state);
 GLboolean st_program_string_notify(struct gl_context *ctx,
                                    GLenum target,
                                    struct gl_program *prog);
+
+bool
+st_can_add_pointsize_to_program(struct st_context *st, struct gl_program *prog);
 
 #ifdef __cplusplus
 }

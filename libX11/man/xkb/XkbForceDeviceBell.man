@@ -37,22 +37,22 @@ settings for audible bells
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to the X server
 .TP
-.I \- window
+.I window
 event window, or None
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- bell_class
+.I bell_class
 input extension class of the bell to be rung 
 .TP
-.I \- bell_id
+.I bell_id
 input extension ID of the bell to be rung
 .TP
-.I \- percent
+.I percent
 relative volume, which can range from -100 to 100 inclusive 
 .SH DESCRIPTION
 .LP

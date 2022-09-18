@@ -58,7 +58,7 @@ panvk_CreateRenderPass2(VkDevice _device,
    pass->subpass_count = pCreateInfo->subpassCount;
    pass->attachments = (void *) pass + attachments_offset;
 
-   vk_foreach_struct(ext, pCreateInfo->pNext) {
+   vk_foreach_struct_const(ext, pCreateInfo->pNext) {
       switch (ext->sType) {
       case VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO:
          multiview_info = (VkRenderPassMultiviewCreateInfo *) ext;
@@ -218,5 +218,6 @@ panvk_GetRenderAreaGranularity(VkDevice _device,
                                VkRenderPass renderPass,
                                VkExtent2D *pGranularity)
 {
-   panvk_stub();
+   /* TODO: Return the actual tile size for the render pass? */
+   *pGranularity = (VkExtent2D) { 1, 1 };
 }

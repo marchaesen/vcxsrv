@@ -41,7 +41,6 @@ files_etnaviv = files(
   'etnaviv_compiler_nir_emit.c',
   'etnaviv_compiler_nir_liveness.c',
   'etnaviv_compiler_nir_ra.c',
-  'etnaviv_compiler_tgsi.c',
   'etnaviv_context.c',
   'etnaviv_context.h',
   'etnaviv_debug.h',

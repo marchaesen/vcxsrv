@@ -162,23 +162,17 @@ emit_idiv(nir_builder *bld, nir_ssa_def *numer, nir_ssa_def *denom, nir_op op)
 {
    nir_ssa_def *lh_sign = nir_ilt(bld, numer, nir_imm_int(bld, 0));
    nir_ssa_def *rh_sign = nir_ilt(bld, denom, nir_imm_int(bld, 0));
-   lh_sign = nir_bcsel(bld, lh_sign, nir_imm_int(bld, -1), nir_imm_int(bld, 0));
-   rh_sign = nir_bcsel(bld, rh_sign, nir_imm_int(bld, -1), nir_imm_int(bld, 0));
 
-   nir_ssa_def *lhs = nir_iadd(bld, numer, lh_sign);
-   nir_ssa_def *rhs = nir_iadd(bld, denom, rh_sign);
-   lhs = nir_ixor(bld, lhs, lh_sign);
-   rhs = nir_ixor(bld, rhs, rh_sign);
+   nir_ssa_def *lhs = nir_iabs(bld, numer);
+   nir_ssa_def *rhs = nir_iabs(bld, denom);
 
    if (op == nir_op_idiv) {
       nir_ssa_def *d_sign = nir_ixor(bld, lh_sign, rh_sign);
       nir_ssa_def *res = emit_udiv(bld, lhs, rhs, false);
-      res = nir_ixor(bld, res, d_sign);
-      return nir_isub(bld, res, d_sign);
+      return nir_bcsel(bld, d_sign, nir_ineg(bld, res), res);
    } else {
       nir_ssa_def *res = emit_udiv(bld, lhs, rhs, true);
-      res = nir_ixor(bld, res, lh_sign);
-      res = nir_isub(bld, res, lh_sign);
+      res = nir_bcsel(bld, lh_sign, nir_ineg(bld, res), res);
       if (op == nir_op_imod) {
          nir_ssa_def *cond = nir_ieq_imm(bld, res, 0);
          cond = nir_ior(bld, nir_ieq(bld, lh_sign, rh_sign), cond);

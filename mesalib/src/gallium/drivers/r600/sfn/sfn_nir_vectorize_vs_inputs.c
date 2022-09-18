@@ -159,7 +159,7 @@ r600_create_new_load(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *va
 
    if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
        intr->intrinsic == nir_intrinsic_interp_deref_at_sample)
-      nir_src_copy(&new_intr->src[1], &intr->src[1]);
+      nir_src_copy(&new_intr->src[1], &intr->src[1], &new_intr->instr);
 
    nir_builder_instr_insert(b, &new_intr->instr);
 

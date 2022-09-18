@@ -99,8 +99,7 @@ struct draw_llvm_image_soa
  * @sa http://llvm.org/docs/GetElementPtr.html
  */
 static LLVMValueRef
-draw_llvm_texture_member(const struct lp_sampler_dynamic_state *base,
-                         struct gallivm_state *gallivm,
+draw_llvm_texture_member(struct gallivm_state *gallivm,
                          LLVMValueRef context_ptr,
                          unsigned texture_unit,
                          LLVMValueRef texture_unit_offset,
@@ -113,7 +112,7 @@ draw_llvm_texture_member(const struct lp_sampler_dynamic_state *base,
    LLVMValueRef ptr;
    LLVMValueRef res;
 
-   debug_assert(texture_unit < PIPE_MAX_SHADER_SAMPLER_VIEWS);
+   assert(texture_unit < PIPE_MAX_SHADER_SAMPLER_VIEWS);
 
    /* context[0] */
    indices[0] = lp_build_const_int32(gallivm, 0);
@@ -151,8 +150,7 @@ draw_llvm_texture_member(const struct lp_sampler_dynamic_state *base,
  * @sa http://llvm.org/docs/GetElementPtr.html
  */
 static LLVMValueRef
-draw_llvm_sampler_member(const struct lp_sampler_dynamic_state *base,
-                         struct gallivm_state *gallivm,
+draw_llvm_sampler_member(struct gallivm_state *gallivm,
                          LLVMValueRef context_ptr,
                          unsigned sampler_unit,
                          unsigned member_index,
@@ -164,7 +162,7 @@ draw_llvm_sampler_member(const struct lp_sampler_dynamic_state *base,
    LLVMValueRef ptr;
    LLVMValueRef res;
 
-   debug_assert(sampler_unit < PIPE_MAX_SAMPLERS);
+   assert(sampler_unit < PIPE_MAX_SAMPLERS);
 
    /* context[0] */
    indices[0] = lp_build_const_int32(gallivm, 0);
@@ -196,8 +194,7 @@ draw_llvm_sampler_member(const struct lp_sampler_dynamic_state *base,
  * @sa http://llvm.org/docs/GetElementPtr.html
  */
 static LLVMValueRef
-draw_llvm_image_member(const struct lp_sampler_dynamic_state *base,
-                       struct gallivm_state *gallivm,
+draw_llvm_image_member(struct gallivm_state *gallivm,
                        LLVMValueRef context_ptr,
                        unsigned image_unit,
                        LLVMValueRef image_unit_offset,
@@ -210,7 +207,7 @@ draw_llvm_image_member(const struct lp_sampler_dynamic_state *base,
    LLVMValueRef ptr;
    LLVMValueRef res;
 
-   debug_assert(image_unit < PIPE_MAX_SHADER_IMAGES);
+   assert(image_unit < PIPE_MAX_SHADER_IMAGES);
 
    /* context[0] */
    indices[0] = lp_build_const_int32(gallivm, 0);
@@ -249,13 +246,12 @@ draw_llvm_image_member(const struct lp_sampler_dynamic_state *base,
  */
 #define DRAW_LLVM_TEXTURE_MEMBER(_name, _index, _emit_load)  \
    static LLVMValueRef \
-   draw_llvm_texture_##_name( const struct lp_sampler_dynamic_state *base, \
-                              struct gallivm_state *gallivm,               \
+   draw_llvm_texture_##_name( struct gallivm_state *gallivm,               \
                               LLVMValueRef context_ptr,                    \
                               unsigned texture_unit,                       \
                               LLVMValueRef texture_unit_offset)            \
    { \
-      return draw_llvm_texture_member(base, gallivm, context_ptr, \
+      return draw_llvm_texture_member(gallivm, context_ptr, \
                                       texture_unit, texture_unit_offset, \
                                       _index, #_name, _emit_load );     \
    }
@@ -275,12 +271,11 @@ DRAW_LLVM_TEXTURE_MEMBER(sample_stride, DRAW_JIT_TEXTURE_SAMPLE_STRIDE, TRUE)
 
 #define DRAW_LLVM_SAMPLER_MEMBER(_name, _index, _emit_load)  \
    static LLVMValueRef \
-   draw_llvm_sampler_##_name( const struct lp_sampler_dynamic_state *base, \
-                              struct gallivm_state *gallivm,               \
+   draw_llvm_sampler_##_name( struct gallivm_state *gallivm,               \
                               LLVMValueRef context_ptr,                    \
                               unsigned sampler_unit)                       \
    { \
-      return draw_llvm_sampler_member(base, gallivm, context_ptr, \
+      return draw_llvm_sampler_member(gallivm, context_ptr, \
                                       sampler_unit, _index, #_name, _emit_load ); \
    }
 
@@ -293,12 +288,11 @@ DRAW_LLVM_SAMPLER_MEMBER(max_aniso,  DRAW_JIT_SAMPLER_MAX_ANISO, TRUE)
 
 #define DRAW_LLVM_IMAGE_MEMBER(_name, _index, _emit_load)  \
    static LLVMValueRef \
-   draw_llvm_image_##_name( const struct lp_sampler_dynamic_state *base, \
-                            struct gallivm_state *gallivm,               \
+   draw_llvm_image_##_name( struct gallivm_state *gallivm,               \
                             LLVMValueRef context_ptr,                    \
                             unsigned image_unit, LLVMValueRef image_unit_offset) \
    { \
-      return draw_llvm_image_member(base, gallivm, context_ptr, \
+      return draw_llvm_image_member(gallivm, context_ptr, \
                                     image_unit, image_unit_offset, \
                                     _index, #_name, _emit_load );  \
    }
@@ -312,12 +306,6 @@ DRAW_LLVM_IMAGE_MEMBER(row_stride, DRAW_JIT_IMAGE_ROW_STRIDE, TRUE)
 DRAW_LLVM_IMAGE_MEMBER(img_stride, DRAW_JIT_IMAGE_IMG_STRIDE, TRUE)
 DRAW_LLVM_IMAGE_MEMBER(num_samples, DRAW_JIT_IMAGE_NUM_SAMPLES, TRUE)
 DRAW_LLVM_IMAGE_MEMBER(sample_stride, DRAW_JIT_IMAGE_SAMPLE_STRIDE, TRUE)
-
-static void
-draw_llvm_sampler_soa_destroy(struct lp_build_sampler_soa *sampler)
-{
-   FREE(sampler);
-}
 
 
 /**
@@ -388,7 +376,6 @@ draw_llvm_sampler_soa_create(const struct draw_sampler_static_state *static_stat
    if (!sampler)
       return NULL;
 
-   sampler->base.destroy = draw_llvm_sampler_soa_destroy;
    sampler->base.emit_tex_sample = draw_llvm_sampler_soa_emit_fetch_texel;
    sampler->base.emit_size_query = draw_llvm_sampler_soa_emit_size_query;
    sampler->dynamic_state.base.width = draw_llvm_texture_width;
@@ -459,11 +446,6 @@ draw_llvm_image_soa_emit_size_query(const struct lp_build_image_soa *base,
                            &image->dynamic_state.base,
                            params);
 }
-static void
-draw_llvm_image_soa_destroy(struct lp_build_image_soa *image)
-{
-   FREE(image);
-}
 
 struct lp_build_image_soa *
 draw_llvm_image_soa_create(const struct draw_image_static_state *static_state,
@@ -475,7 +457,6 @@ draw_llvm_image_soa_create(const struct draw_image_static_state *static_state,
    if (!image)
       return NULL;
 
-   image->base.destroy = draw_llvm_image_soa_destroy;
    image->base.emit_op = draw_llvm_image_soa_emit_op;
    image->base.emit_size_query = draw_llvm_image_soa_emit_size_query;
 

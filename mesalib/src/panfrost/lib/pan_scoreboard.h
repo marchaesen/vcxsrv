@@ -131,6 +131,11 @@ struct pan_scoreboard {
 static bool
 panfrost_job_uses_tiling(enum mali_job_type type)
 {
+#if PAN_ARCH >= 9
+        if (type == MALI_JOB_TYPE_MALLOC_VERTEX)
+                return true;
+#endif
+
 #if PAN_ARCH >= 6
         if (type == MALI_JOB_TYPE_INDEXED_VERTEX)
                 return true;

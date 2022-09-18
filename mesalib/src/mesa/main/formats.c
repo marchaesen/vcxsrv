@@ -630,21 +630,7 @@ _mesa_is_format_srgb(mesa_format format)
 bool
 _mesa_is_format_etc2(mesa_format format)
 {
-   switch (format) {
-   case MESA_FORMAT_ETC2_RGB8:
-   case MESA_FORMAT_ETC2_SRGB8:
-   case MESA_FORMAT_ETC2_RGBA8_EAC:
-   case MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC:
-   case MESA_FORMAT_ETC2_R11_EAC:
-   case MESA_FORMAT_ETC2_RG11_EAC:
-   case MESA_FORMAT_ETC2_SIGNED_R11_EAC:
-   case MESA_FORMAT_ETC2_SIGNED_RG11_EAC:
-   case MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1:
-   case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
-      return true;
-   default:
-      return false;
-   }
+   return _mesa_get_format_layout(format) == MESA_FORMAT_LAYOUT_ETC2;
 }
 
 
@@ -654,39 +640,48 @@ _mesa_is_format_etc2(mesa_format format)
 bool
 _mesa_is_format_astc_2d(mesa_format format)
 {
-   switch (format) {
-   case MESA_FORMAT_RGBA_ASTC_4x4:
-   case MESA_FORMAT_RGBA_ASTC_5x4:
-   case MESA_FORMAT_RGBA_ASTC_5x5:
-   case MESA_FORMAT_RGBA_ASTC_6x5:
-   case MESA_FORMAT_RGBA_ASTC_6x6:
-   case MESA_FORMAT_RGBA_ASTC_8x5:
-   case MESA_FORMAT_RGBA_ASTC_8x6:
-   case MESA_FORMAT_RGBA_ASTC_8x8:
-   case MESA_FORMAT_RGBA_ASTC_10x5:
-   case MESA_FORMAT_RGBA_ASTC_10x6:
-   case MESA_FORMAT_RGBA_ASTC_10x8:
-   case MESA_FORMAT_RGBA_ASTC_10x10:
-   case MESA_FORMAT_RGBA_ASTC_12x10:
-   case MESA_FORMAT_RGBA_ASTC_12x12:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x4:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x5:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_8x5:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_8x6:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_8x8:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x5:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x6:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x8:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_10x10:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x10:
-   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x12:
-      return true;
-   default:
-      return false;
-   }
+   const struct mesa_format_info *info = _mesa_get_format_info(format);
+   return info->Layout == MESA_FORMAT_LAYOUT_ASTC && info->BlockDepth == 1;
+}
+
+
+/**
+ * Return TRUE if format is an S3TC compressed format.
+ */
+bool
+_mesa_is_format_s3tc(mesa_format format)
+{
+   return _mesa_get_format_layout(format) == MESA_FORMAT_LAYOUT_S3TC;
+}
+
+
+/**
+ * Return TRUE if format is an RGTC compressed format.
+ */
+bool
+_mesa_is_format_rgtc(mesa_format format)
+{
+   return _mesa_get_format_layout(format) == MESA_FORMAT_LAYOUT_RGTC;
+}
+
+
+/**
+ * Return TRUE if format is an LATC compressed format.
+ */
+bool
+_mesa_is_format_latc(mesa_format format)
+{
+   return _mesa_get_format_layout(format) == MESA_FORMAT_LAYOUT_LATC;
+}
+
+
+/**
+ * Return TRUE if format is an BPTC compressed format.
+ */
+bool
+_mesa_is_format_bptc(mesa_format format)
+{
+   return _mesa_get_format_layout(format) == MESA_FORMAT_LAYOUT_BPTC;
 }
 
 

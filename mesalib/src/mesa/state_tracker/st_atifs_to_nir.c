@@ -459,6 +459,7 @@ st_translate_atifs_program(struct ati_fragment_shader *atifs,
 
    nir_shader *s = t->b->shader;
    s->info.name = ralloc_asprintf(s, "ATIFS%d", program->Id);
+   s->info.internal = false;
 
    t->fragcolor = nir_variable_create(b.shader, nir_var_shader_out,
                                       glsl_vec4_type(), "gl_FragColor");

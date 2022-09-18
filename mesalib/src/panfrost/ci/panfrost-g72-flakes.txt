@@ -7,6 +7,5 @@ dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_nearest_linea
 dEQP-GLES3.functional.shaders.fragdepth.*
 dEQP-GLES31.functional.draw_base_vertex.*
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask.*
-dEQP-GLES31.functional.texture.gather.offsets.implementation_offset.2d_array.rgba8.size_pot.repeat_mirrored_repeat
-dEQP-GLES31.functional.texture.gather.offset_dynamic.implementation_offset.2d_array.rgba8.size_pot.repeat_mirrored_repeat
+dEQP-GLES31.functional.texture.gather.*repeat_mirrored_repeat
 dEQP-GLES31.functional.blend_equation_advanced.msaa.hardlight

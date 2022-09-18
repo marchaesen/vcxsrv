@@ -32,10 +32,10 @@ on the core keyboard
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- ks
+.I ks
 keysym of interest
 .SH DESCRIPTION
 .LP

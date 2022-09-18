@@ -29,7 +29,7 @@ XkbSAGroup \- Returns the group_XXX field of act converted to a signed int
 .BI "(\^XkbAction " "act" "\^);"
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action from which to extract group
 .SH DESCRIPTION
 .LP

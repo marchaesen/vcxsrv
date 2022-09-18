@@ -5,6 +5,7 @@ default partial xkb_compatibility "pc" {
     virtual_modifiers  Alt;
 
     setMods.clearLocks= True;
+
     interpret Alt_L+Any {
 	virtualModifier= Alt;
 	action = SetMods(modifiers=modMapMods);

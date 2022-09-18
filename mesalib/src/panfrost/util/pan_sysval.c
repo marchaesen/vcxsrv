@@ -87,6 +87,10 @@ panfrost_nir_sysval_for_intrinsic(nir_intrinsic_instr *instr)
         case nir_intrinsic_load_ssbo_address: 
         case nir_intrinsic_get_ssbo_size: 
                 return panfrost_sysval_for_ssbo(instr);
+        case nir_intrinsic_load_xfb_address:
+                return PAN_SYSVAL(XFB, nir_intrinsic_base(instr));
+        case nir_intrinsic_load_num_vertices:
+                return PAN_SYSVAL_NUM_VERTICES;
         case nir_intrinsic_load_sampler_lod_parameters_pan:
                 return panfrost_sysval_for_sampler(instr);
         case nir_intrinsic_image_size:
@@ -134,6 +138,17 @@ panfrost_sysval_for_instr(nir_instr *instr, nir_dest *dest)
         return sysval;
 }
 
+static unsigned
+pan_add_sysval(struct hash_table_u64 *sysval_to_id,
+               struct panfrost_sysvals *sysvals,
+               int sysval, unsigned id)
+{
+        assert(id < MAX_SYSVAL_COUNT);
+        _mesa_hash_table_u64_insert(sysval_to_id, sysval, (void *) ((uintptr_t) id + 1));
+        sysvals->sysvals[id] = sysval;
+        return id;
+}
+
 unsigned
 pan_lookup_sysval(struct hash_table_u64 *sysval_to_id,
                   struct panfrost_sysvals *sysvals,
@@ -143,22 +158,37 @@ pan_lookup_sysval(struct hash_table_u64 *sysval_to_id,
 
         void *cached = _mesa_hash_table_u64_search(sysval_to_id, sysval);
 
-        if (cached)
-                return ((uintptr_t) cached) - 1;
+        if (cached) {
+                unsigned id = ((uintptr_t) cached) - 1;
+                assert(id < MAX_SYSVAL_COUNT);
+                assert(sysvals->sysvals[id] == sysval);
+                return id;
+        }
 
         /* Else assign */
-
-        unsigned id = sysvals->sysval_count++;
-        assert(id < MAX_SYSVAL_COUNT);
-        _mesa_hash_table_u64_insert(sysval_to_id, sysval, (void *) ((uintptr_t) id + 1));
-        sysvals->sysvals[id] = sysval;
-
-        return id;
+        return pan_add_sysval(sysval_to_id, sysvals, sysval,
+                              sysvals->sysval_count++);
 }
 
 struct hash_table_u64 *
-panfrost_init_sysvals(struct panfrost_sysvals *sysvals, void *memctx)
+panfrost_init_sysvals(struct panfrost_sysvals *sysvals,
+                      struct panfrost_sysvals *fixed_sysvals,
+                      void *memctx)
 {
-        sysvals->sysval_count = 0;
-        return _mesa_hash_table_u64_create(memctx);
+        memset(sysvals, 0, sizeof(*sysvals));
+        struct hash_table_u64 *sysval_to_id =
+                _mesa_hash_table_u64_create(memctx);
+
+        if (fixed_sysvals) {
+                for (unsigned i = 0; i < fixed_sysvals->sysval_count; i++) {
+                        if (!fixed_sysvals->sysvals[i])
+                                continue;
+
+                        pan_add_sysval(sysval_to_id, sysvals,
+                                       fixed_sysvals->sysvals[i], i);
+                }
+                sysvals->sysval_count = fixed_sysvals->sysval_count;
+        }
+
+        return sysval_to_id;
 }

@@ -66,7 +66,7 @@ radv_null_cs_domain(const struct radeon_winsys *_ws)
 }
 
 static struct radeon_cmdbuf *
-radv_null_cs_create(struct radeon_winsys *ws, enum ring_type ring_type)
+radv_null_cs_create(struct radeon_winsys *ws, enum amd_ip_type ip_type)
 {
    struct radv_null_cs *cs = calloc(1, sizeof(struct radv_null_cs));
    if (!cs)

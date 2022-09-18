@@ -68,7 +68,7 @@ fetch_pipeline_middle_end(struct draw_pt_middle_end *middle)
  */
 static void
 fetch_pipeline_prepare(struct draw_pt_middle_end *middle,
-                       unsigned prim,
+                       enum pipe_prim_type prim,
                        unsigned opt,
                        unsigned *max_vertices)
 {
@@ -76,7 +76,6 @@ fetch_pipeline_prepare(struct draw_pt_middle_end *middle,
    struct draw_context *draw = fpme->draw;
    struct draw_vertex_shader *vs = draw->vs.vertex_shader;
    struct draw_geometry_shader *gs = draw->gs.geometry_shader;
-   unsigned i;
    unsigned instance_id_index = ~0;
    const unsigned gs_out_prim = (gs ? gs->output_primitive :
                                  u_assembled_prim(prim));
@@ -91,7 +90,7 @@ fetch_pipeline_prepare(struct draw_pt_middle_end *middle,
 
    /* Scan for instanceID system value.
     */
-   for (i = 0; i < vs->info.num_inputs; i++) {
+   for (unsigned i = 0; i < vs->info.num_inputs; i++) {
       if (vs->info.input_semantic_name[i] == TGSI_SEMANTIC_INSTANCEID) {
          instance_id_index = i;
          break;
@@ -107,28 +106,26 @@ fetch_pipeline_prepare(struct draw_pt_middle_end *middle,
     */
    fpme->vertex_size = sizeof(struct vertex_header) + nr * 4 * sizeof(float);
 
-   draw_pt_fetch_prepare( fpme->fetch,
-                          vs->info.num_inputs,
-                          fpme->vertex_size,
-                          instance_id_index );
-   draw_pt_post_vs_prepare( fpme->post_vs,
-                            draw->clip_xy,
-                            draw->clip_z,
-                            draw->clip_user,
-                            point_clip ? draw->guard_band_points_xy :
-                                         draw->guard_band_xy,
-                            draw->bypass_viewport,
-                            draw->rasterizer->clip_halfz,
-                            (draw->vs.edgeflag_output ? TRUE : FALSE) );
+   draw_pt_fetch_prepare(fpme->fetch,
+                         vs->info.num_inputs,
+                         fpme->vertex_size,
+                         instance_id_index);
+   draw_pt_post_vs_prepare(fpme->post_vs,
+                           draw->clip_xy,
+                           draw->clip_z,
+                           draw->clip_user,
+                           point_clip ? draw->guard_band_points_xy :
+                                        draw->guard_band_xy,
+                           draw->bypass_viewport,
+                           draw->rasterizer->clip_halfz,
+                           (draw->vs.edgeflag_output ? TRUE : FALSE));
 
-   draw_pt_so_emit_prepare( fpme->so_emit, FALSE );
+   draw_pt_so_emit_prepare(fpme->so_emit, FALSE);
 
    if (!(opt & PT_PIPELINE)) {
-      draw_pt_emit_prepare( fpme->emit,
-			    gs_out_prim,
-                            max_vertices );
+      draw_pt_emit_prepare(fpme->emit, gs_out_prim, max_vertices);
 
-      *max_vertices = MAX2( *max_vertices, 4096 );
+      *max_vertices = MAX2(*max_vertices, 4096);
    }
    else {
       /* limit max fetches by limiting max_vertices */
@@ -153,37 +150,30 @@ fetch_pipeline_bind_parameters(struct draw_pt_middle_end *middle)
 }
 
 
-static void fetch( struct pt_fetch *fetch,
-                   const struct draw_fetch_info *fetch_info,
-                   char *output)
+static void
+fetch(struct pt_fetch *fetch,
+      const struct draw_fetch_info *fetch_info,
+      char *output)
 {
    if (fetch_info->linear) {
-      draw_pt_fetch_run_linear( fetch,
-                                fetch_info->start,
-                                fetch_info->count,
-                                output );
+      draw_pt_fetch_run_linear(fetch, fetch_info->start,
+                               fetch_info->count, output);
    }
    else {
-      draw_pt_fetch_run( fetch,
-                         fetch_info->elts,
-                         fetch_info->count,
-                         output );
+      draw_pt_fetch_run(fetch, fetch_info->elts, fetch_info->count, output);
    }
 }
 
 
-static void pipeline(struct fetch_pipeline_middle_end *fpme,
-                     const struct draw_vertex_info *vert_info,
-                     const struct draw_prim_info *prim_info)
+static void
+pipeline(struct fetch_pipeline_middle_end *fpme,
+         const struct draw_vertex_info *vert_info,
+         const struct draw_prim_info *prim_info)
 {
    if (prim_info->linear)
-      draw_pipeline_run_linear( fpme->draw,
-                                vert_info,
-                                prim_info);
+      draw_pipeline_run_linear(fpme->draw, vert_info, prim_info);
    else
-      draw_pipeline_run( fpme->draw,
-                         vert_info,
-                         prim_info );
+      draw_pipeline_run(fpme->draw, vert_info, prim_info);
 }
 
 
@@ -270,7 +260,7 @@ fetch_pipeline_generic(struct draw_pt_middle_end *middle,
 
    /* Fetch into our vertex buffer.
     */
-   fetch( fpme->fetch, fetch_info, (char *)fetched_vert_info.verts );
+   fetch(fpme->fetch, fetch_info, (char *)fetched_vert_info.verts);
 
    vert_info = &fetched_vert_info;
 
@@ -347,7 +337,7 @@ fetch_pipeline_generic(struct draw_pt_middle_end *middle,
     * XXX: Stream output surely needs to respect the prim_info->elt
     *      lists.
     */
-   draw_pt_so_emit( fpme->so_emit, num_vertex_streams, vert_info, prim_info );
+   draw_pt_so_emit(fpme->so_emit, num_vertex_streams, vert_info, prim_info);
 
    draw_stats_clipper_primitives(draw, prim_info);
 
@@ -356,19 +346,17 @@ fetch_pipeline_generic(struct draw_pt_middle_end *middle,
     * will try to access non-existent position output.
     */
    if (draw_current_shader_position_output(draw) != -1) {
-
-      if (draw_pt_post_vs_run( fpme->post_vs, vert_info, prim_info ))
-      {
+      if (draw_pt_post_vs_run(fpme->post_vs, vert_info, prim_info)) {
          opt |= PT_PIPELINE;
       }
 
       /* Do we need to run the pipeline?
        */
       if (opt & PT_PIPELINE) {
-         pipeline( fpme, vert_info, prim_info );
+         pipeline(fpme, vert_info, prim_info);
       }
       else {
-         emit( fpme->emit, vert_info, prim_info );
+         emit(fpme->emit, vert_info, prim_info);
       }
    }
    FREE(vert_info->verts);
@@ -414,7 +402,7 @@ fetch_pipeline_run(struct draw_pt_middle_end *middle,
    prim_info.primitive_count = 1;
    prim_info.primitive_lengths = &draw_count;
 
-   fetch_pipeline_generic( middle, &fetch_info, &prim_info );
+   fetch_pipeline_generic(middle, &fetch_info, &prim_info);
 }
 
 
@@ -442,9 +430,8 @@ fetch_pipeline_linear_run(struct draw_pt_middle_end *middle,
    prim_info.primitive_count = 1;
    prim_info.primitive_lengths = &count;
 
-   fetch_pipeline_generic( middle, &fetch_info, &prim_info );
+   fetch_pipeline_generic(middle, &fetch_info, &prim_info);
 }
-
 
 
 static boolean
@@ -453,7 +440,7 @@ fetch_pipeline_linear_run_elts(struct draw_pt_middle_end *middle,
                                unsigned count,
                                const ushort *draw_elts,
                                unsigned draw_count,
-                               unsigned prim_flags )
+                               unsigned prim_flags)
 {
    struct fetch_pipeline_middle_end *fpme = fetch_pipeline_middle_end(middle);
    struct draw_fetch_info fetch_info;
@@ -473,35 +460,35 @@ fetch_pipeline_linear_run_elts(struct draw_pt_middle_end *middle,
    prim_info.primitive_count = 1;
    prim_info.primitive_lengths = &draw_count;
 
-   fetch_pipeline_generic( middle, &fetch_info, &prim_info );
+   fetch_pipeline_generic(middle, &fetch_info, &prim_info);
 
    return TRUE;
 }
 
 
 static void
-fetch_pipeline_finish( struct draw_pt_middle_end *middle )
+fetch_pipeline_finish(struct draw_pt_middle_end *middle)
 {
    /* nothing to do */
 }
 
 
 static void
-fetch_pipeline_destroy( struct draw_pt_middle_end *middle )
+fetch_pipeline_destroy(struct draw_pt_middle_end *middle)
 {
    struct fetch_pipeline_middle_end *fpme = fetch_pipeline_middle_end(middle);
 
    if (fpme->fetch)
-      draw_pt_fetch_destroy( fpme->fetch );
+      draw_pt_fetch_destroy(fpme->fetch);
 
    if (fpme->emit)
-      draw_pt_emit_destroy( fpme->emit );
+      draw_pt_emit_destroy(fpme->emit);
 
    if (fpme->so_emit)
-      draw_pt_so_emit_destroy( fpme->so_emit );
+      draw_pt_so_emit_destroy(fpme->so_emit);
 
    if (fpme->post_vs)
-      draw_pt_post_vs_destroy( fpme->post_vs );
+      draw_pt_post_vs_destroy(fpme->post_vs);
 
    FREE(middle);
 }
@@ -511,7 +498,7 @@ struct draw_pt_middle_end *
 draw_pt_fetch_pipeline_or_emit(struct draw_context *draw)
 {
    struct fetch_pipeline_middle_end *fpme =
-      CALLOC_STRUCT( fetch_pipeline_middle_end );
+      CALLOC_STRUCT(fetch_pipeline_middle_end);
    if (!fpme)
       goto fail;
 
@@ -525,19 +512,19 @@ draw_pt_fetch_pipeline_or_emit(struct draw_context *draw)
 
    fpme->draw = draw;
 
-   fpme->fetch = draw_pt_fetch_create( draw );
+   fpme->fetch = draw_pt_fetch_create(draw);
    if (!fpme->fetch)
       goto fail;
 
-   fpme->post_vs = draw_pt_post_vs_create( draw );
+   fpme->post_vs = draw_pt_post_vs_create(draw);
    if (!fpme->post_vs)
       goto fail;
 
-   fpme->emit = draw_pt_emit_create( draw );
+   fpme->emit = draw_pt_emit_create(draw);
    if (!fpme->emit)
       goto fail;
 
-   fpme->so_emit = draw_pt_so_emit_create( draw );
+   fpme->so_emit = draw_pt_so_emit_create(draw);
    if (!fpme->so_emit)
       goto fail;
 
@@ -545,7 +532,7 @@ draw_pt_fetch_pipeline_or_emit(struct draw_context *draw)
 
  fail:
    if (fpme)
-      fetch_pipeline_destroy( &fpme->base );
+      fetch_pipeline_destroy(&fpme->base);
 
    return NULL;
 }

@@ -46,7 +46,7 @@ util_tls_qsort_r(void *base, size_t nmemb, size_t size,
 int
 util_qsort_adapter(void *ctx, const void *elem1, const void *elem2)
 {
-   util_qsort_adapter_data *data = 
+   util_qsort_adapter_data *data =
       reinterpret_cast<util_qsort_adapter_data*>(ctx);
    return data->compar(elem1, elem2, data->args);
 }

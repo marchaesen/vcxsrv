@@ -1,0 +1,6 @@
+[[deqp]]
+deqp = "/install/crosvm-runner.sh"
+caselists = [ "/deqp/mustpass/vk-master.txt" ]
+deqp_args = [ "/deqp/external/vulkancts/modules/vulkan/deqp-vk" ]
+timeout = 30.0 # Starting lots of Crosvm instances simultaneously can take some time
+renderer_check = "Virtio-GPU Venus.*llvmpipe"

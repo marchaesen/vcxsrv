@@ -1,8 +1,7 @@
-/**
+/*
 ************************************************************************************************************************
 *
-* Copyright © 2007-2021 Advanced Micro Devices, Inc.
-* All Rights Reserved.
+*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -22,8 +21,7 @@
 * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE
 *
-************************************************************************************************************************
-*/
+***********************************************************************************************************************/
 
 
 /**
@@ -106,6 +104,8 @@ enum AddrBlockType
     AddrBlockThickVar  = 7, // Resource uses thick var block
     AddrBlockMaxTiledType,
 
+    AddrBlockThin256KB  = AddrBlockThinVar,
+    AddrBlockThick256KB = AddrBlockThickVar,
 };
 
 enum AddrSwSet
@@ -148,6 +148,8 @@ union ADDR_BIT_SETTING
 * @brief Swizzle pattern information
 ************************************************************************************************************************
 */
+// Accessed by index representing the logbase2 of (8bpp/16bpp/32bpp/64bpp/128bpp)
+// contains the indices which map to 2D arrays SW_PATTERN_NIBBLE[0-9] which contain sections of an index equation. They are dependant on pipe# and bpe #
 struct ADDR_SW_PATINFO
 {
     UINT_8  maxItemCount;

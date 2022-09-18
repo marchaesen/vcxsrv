@@ -8,3 +8,5 @@ dEQP-GLES[0-9]*.functional.flush_finish.*
 # Slow, and indirect draws are emulated in Midgard anyway.
 dEQP-GLES31.functional.draw_indirect.compute_interop.large.*
 
+# Marked as xfail but sometimes passes.
+dEQP-GLES31.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.7

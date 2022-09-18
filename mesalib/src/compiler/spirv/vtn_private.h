@@ -41,7 +41,7 @@ struct vtn_builder;
 struct vtn_decoration;
 
 /* setjmp/longjmp is broken on MinGW: https://sourceforge.net/p/mingw-w64/bugs/406/ */
-#ifdef __MINGW32__
+#if defined(__MINGW32__) && !defined(_UCRT)
   #define vtn_setjmp __builtin_setjmp
   #define vtn_longjmp __builtin_longjmp
 #else
@@ -274,6 +274,7 @@ struct vtn_function {
 
    const uint32_t *end;
 
+   SpvLinkageType linkage;
    SpvFunctionControlMask control;
 };
 
@@ -480,6 +481,8 @@ struct vtn_access_chain {
    /* Access qualifiers */
    enum gl_access_qualifier access;
 
+   bool in_bounds;
+
    /** Struct elements and array offsets.
     *
     * This is an array of 1 so that it can conveniently be created on the
@@ -499,6 +502,7 @@ enum vtn_variable_mode {
    vtn_variable_mode_push_constant,
    vtn_variable_mode_workgroup,
    vtn_variable_mode_cross_workgroup,
+   vtn_variable_mode_task_payload,
    vtn_variable_mode_generic,
    vtn_variable_mode_constant,
    vtn_variable_mode_input,
@@ -645,6 +649,7 @@ struct vtn_decoration {
     */
    int scope;
 
+   uint32_t num_operands;
    const uint32_t *operands;
    struct vtn_value *group;
 
@@ -741,6 +746,10 @@ struct vtn_builder {
    /* memory model specified by OpMemoryModel */
    unsigned mem_model;
 };
+
+const char *
+vtn_string_literal(struct vtn_builder *b, const uint32_t *words,
+                   unsigned word_count, unsigned *words_used);
 
 nir_ssa_def *
 vtn_pointer_to_ssa(struct vtn_builder *b, struct vtn_pointer *ptr);
@@ -1040,6 +1049,13 @@ SpvMemorySemanticsMask vtn_mode_to_memory_semantics(enum vtn_variable_mode mode)
 
 void vtn_emit_memory_barrier(struct vtn_builder *b, SpvScope scope,
                              SpvMemorySemanticsMask semantics);
+
+bool vtn_value_is_relaxed_precision(struct vtn_builder *b, struct vtn_value *val);
+nir_ssa_def *
+vtn_mediump_downconvert(struct vtn_builder *b, enum glsl_base_type base_type, nir_ssa_def *def);
+struct vtn_ssa_value *
+vtn_mediump_downconvert_value(struct vtn_builder *b, struct vtn_ssa_value *src);
+void vtn_mediump_upconvert_value(struct vtn_builder *b, struct vtn_ssa_value *value);
 
 static inline int
 cmp_uint32_t(const void *pa, const void *pb)

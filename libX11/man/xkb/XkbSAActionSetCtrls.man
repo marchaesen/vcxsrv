@@ -39,10 +39,10 @@ from
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set ctrls0-ctrls3
 .TP
-.I \- ctrls
+.I ctrls
 value to set in ctrls0-ctrls3
 .SH DESCRIPTION
 .LP

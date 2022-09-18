@@ -32,7 +32,9 @@
 #include "p_format.h"
 #include "p_video_enums.h"
 #include "p_defines.h"
+#include "util/u_debug.h"
 #include <stdio.h>
+#include "frontend/winsys_handle.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,7 +47,6 @@ struct pipe_blit_info;
 struct pipe_box;
 struct pipe_clip_state;
 struct pipe_constant_buffer;
-struct pipe_debug_callback;
 struct pipe_depth_stencil_alpha_state;
 struct pipe_device_reset_callback;
 struct pipe_draw_info;
@@ -81,6 +82,7 @@ union pipe_color_union;
 union pipe_query_result;
 struct u_log_context;
 struct u_upload_mgr;
+struct util_debug_callback;
 
 /**
  * Gallium rendering context.  Basically:
@@ -103,6 +105,12 @@ struct pipe_context {
     */
    struct u_upload_mgr *stream_uploader; /* everything but shader constants */
    struct u_upload_mgr *const_uploader;  /* shader constants only */
+
+   /**
+    * Debug callback set by u_default_set_debug_callback. Frontends should use
+    * set_debug_callback in case drivers need to flush compiler queues.
+    */
+   struct util_debug_callback debug;
 
    void (*destroy)( struct pipe_context * );
 
@@ -265,7 +273,7 @@ struct pipe_context {
     */
    void (*get_query_result_resource)(struct pipe_context *pipe,
                                      struct pipe_query *q,
-                                     bool wait,
+                                     enum pipe_query_flags flags,
                                      enum pipe_query_value_type result_type,
                                      int index,
                                      struct pipe_resource *resource,
@@ -521,7 +529,7 @@ struct pipe_context {
     * set, otherwise a copy of the data should be made.
     */
    void (*set_debug_callback)(struct pipe_context *,
-                              const struct pipe_debug_callback *);
+                              const struct util_debug_callback *);
 
    /**
     * Bind an array of shader buffers that will be used by a shader.
@@ -1185,6 +1193,15 @@ struct pipe_context {
                                                                    const struct pipe_video_buffer *templat,
                                                                    const uint64_t *modifiers,
                                                                    unsigned int modifiers_count);
+
+   /**
+    * Creates a video buffer as decoding target, from external memory
+    */
+   struct pipe_video_buffer *(*video_buffer_from_handle)( struct pipe_context *context,
+                                                     const struct pipe_video_buffer *templat,
+                                                     struct winsys_handle *handle,
+                                                     unsigned usage );
+
 };
 
 

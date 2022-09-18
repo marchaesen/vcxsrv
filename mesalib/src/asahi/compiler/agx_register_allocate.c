@@ -24,40 +24,51 @@
 #include "agx_compiler.h"
 #include "agx_builder.h"
 
-/* Trivial register allocator that never frees anything.
- *
- * TODO: Write a real register allocator.
- * TODO: Handle phi nodes.
- */
+/* SSA-based register allocator */
 
 /** Returns number of registers written by an instruction */
-static unsigned
+unsigned
 agx_write_registers(agx_instr *I, unsigned d)
 {
-   unsigned size = I->dest[d].size == AGX_SIZE_32 ? 2 : 1;
+   unsigned size = agx_size_align_16(I->dest[d].size);
 
    switch (I->op) {
-   case AGX_OPCODE_LD_VARY:
+   case AGX_OPCODE_ITER:
+      assert(1 <= I->channels && I->channels <= 4);
+      return I->channels * size;
+
    case AGX_OPCODE_DEVICE_LOAD:
+   case AGX_OPCODE_TEXTURE_LOAD:
    case AGX_OPCODE_TEXTURE_SAMPLE:
    case AGX_OPCODE_LD_TILE:
-      return 8;
-   case AGX_OPCODE_LD_VARY_FLAT:
+      /* TODO: mask */
+      return 4 * size;
+
+   case AGX_OPCODE_LDCF:
       return 6;
    case AGX_OPCODE_P_COMBINE:
-   {
-      unsigned components = 0;
-
-      for (unsigned i = 0; i < 4; ++i) {
-         if (!agx_is_null(I->src[i]))
-            components = i + 1;
-      }
-
-      return components * size;
-   }
+      return I->nr_srcs * size;
    default:
       return size;
    }
+}
+
+static inline enum agx_size
+agx_split_width(const agx_instr *I)
+{
+   enum agx_size width = ~0;
+
+   agx_foreach_dest(I, d) {
+      if (agx_is_null(I->dest[d]))
+         continue;
+      else if (width != ~0)
+         assert(width == I->dest[d].size);
+      else
+         width = I->dest[d].size;
+   }
+
+   assert(width != ~0 && "should have been DCE'd");
+   return width;
 }
 
 static unsigned
@@ -91,13 +102,13 @@ agx_assign_regs(BITSET_WORD *used_regs, unsigned count, unsigned align, unsigned
 /** Assign registers to SSA values in a block. */
 
 static void
-agx_ra_assign_local(agx_block *block, uint8_t *ssa_to_reg, uint8_t *ncomps, unsigned max_reg)
+agx_ra_assign_local(agx_block *block, uint8_t *ssa_to_reg, uint8_t *ncomps)
 {
    BITSET_DECLARE(used_regs, AGX_NUM_REGS) = { 0 };
 
    agx_foreach_predecessor(block, pred) {
       for (unsigned i = 0; i < BITSET_WORDS(AGX_NUM_REGS); ++i)
-         used_regs[i] |= pred->regs_out[i];
+         used_regs[i] |= (*pred)->regs_out[i];
    }
 
    BITSET_SET(used_regs, 0); // control flow writes r0l
@@ -107,6 +118,44 @@ agx_ra_assign_local(agx_block *block, uint8_t *ssa_to_reg, uint8_t *ncomps, unsi
    BITSET_SET(used_regs, (6*2 + 1));
 
    agx_foreach_instr_in_block(block, I) {
+      /* Optimization: if a split contains the last use of a vector, the split
+       * can be removed by assigning the destinations overlapping the source.
+       */
+      if (I->op == AGX_OPCODE_P_SPLIT && I->src[0].kill) {
+         unsigned reg = ssa_to_reg[I->src[0].value];
+         unsigned length = ncomps[I->src[0].value];
+         unsigned width = agx_size_align_16(agx_split_width(I));
+         unsigned count = length / width;
+
+         agx_foreach_dest(I, d) {
+            /* Skip excess components */
+            if (d >= count) {
+               assert(agx_is_null(I->dest[d]));
+               continue;
+            }
+
+            /* The source of the split is killed. If a destination of the split
+             * is null, that channel is killed. Free it.
+             */
+            if (agx_is_null(I->dest[d])) {
+               for (unsigned i = 0; i < width; ++i)
+                  BITSET_CLEAR(used_regs, reg + (width * d) + i);
+
+               continue;
+            }
+
+            /* Otherwise, transfer the liveness */
+            unsigned offset = d * width;
+
+            assert(I->dest[d].type == AGX_INDEX_NORMAL);
+            assert(offset < length);
+
+            ssa_to_reg[I->dest[d].value] = reg + offset;
+         }
+
+         continue;
+      }
+
       /* First, free killed sources */
       agx_foreach_src(I, s) {
          if (I->src[s].type == AGX_INDEX_NORMAL && I->src[s].kill) {
@@ -118,12 +167,14 @@ agx_ra_assign_local(agx_block *block, uint8_t *ssa_to_reg, uint8_t *ncomps, unsi
          }
       }
 
-      /* Next, assign destinations. Always legal in SSA form. */
+      /* Next, assign destinations one at a time. This is always legal
+       * because of the SSA form.
+       */
       agx_foreach_dest(I, d) {
          if (I->dest[d].type == AGX_INDEX_NORMAL) {
             unsigned count = agx_write_registers(I, d);
-            unsigned align = (I->dest[d].size == AGX_SIZE_16) ? 1 : 2;
-            unsigned reg = agx_assign_regs(used_regs, count, align, max_reg);
+            unsigned align = agx_size_align_16(I->dest[d].size);
+            unsigned reg = agx_assign_regs(used_regs, count, align, AGX_NUM_REGS);
 
             ssa_to_reg[I->dest[d].value] = reg;
          }
@@ -132,6 +183,87 @@ agx_ra_assign_local(agx_block *block, uint8_t *ssa_to_reg, uint8_t *ncomps, unsi
 
    STATIC_ASSERT(sizeof(block->regs_out) == sizeof(used_regs));
    memcpy(block->regs_out, used_regs, sizeof(used_regs));
+}
+
+/*
+ * Resolve an agx_index of type NORMAL or REGISTER to a physical register, once
+ * registers have been allocated for all SSA values.
+ */
+static unsigned
+agx_index_to_reg(uint8_t *ssa_to_reg, agx_index idx)
+{
+   if (idx.type == AGX_INDEX_NORMAL) {
+      return ssa_to_reg[idx.value];
+   } else {
+      assert(idx.type == AGX_INDEX_REGISTER);
+      return idx.value;
+   }
+}
+
+/*
+ * Lower phis to parallel copies at the logical end of a given block. If a block
+ * needs parallel copies inserted, a successor of the block has a phi node. To
+ * have a (nontrivial) phi node, a block must have multiple predecessors. So the
+ * edge from the block to the successor (with phi) is not the only edge entering
+ * the successor. Because the control flow graph has no critical edges, this
+ * edge must therefore be the only edge leaving the block, so the block must
+ * have only a single successor.
+ */
+static void
+agx_insert_parallel_copies(agx_context *ctx, agx_block *block)
+{
+   bool any_succ = false;
+   unsigned nr_phi = 0;
+
+   /* Phi nodes logically happen on the control flow edge, so parallel copies
+    * are added at the end of the predecessor */
+   agx_builder b = agx_init_builder(ctx, agx_after_block_logical(block));
+
+   agx_foreach_successor(block, succ) {
+      assert(nr_phi == 0 && "control flow graph has a critical edge");
+
+      /* Phi nodes can only come at the start of the block */
+      agx_foreach_instr_in_block(succ, phi) {
+         if (phi->op != AGX_OPCODE_PHI) break;
+
+         assert(!any_succ && "control flow graph has a critical edge");
+         nr_phi++;
+      }
+
+      any_succ = true;
+
+      /* Nothing to do if there are no phi nodes */
+      if (nr_phi == 0)
+         continue;
+
+      unsigned pred_index = agx_predecessor_index(succ, block);
+
+      /* Create a parallel copy lowering all the phi nodes */
+      struct agx_copy *copies = calloc(sizeof(*copies), nr_phi);
+
+      unsigned i = 0;
+
+      agx_foreach_instr_in_block(succ, phi) {
+         if (phi->op != AGX_OPCODE_PHI) break;
+
+         agx_index dest = phi->dest[0];
+         agx_index src = phi->src[pred_index];
+
+         assert(dest.type == AGX_INDEX_REGISTER);
+         assert(src.type == AGX_INDEX_REGISTER);
+         assert(dest.size == src.size);
+
+         copies[i++] = (struct agx_copy) {
+            .dest = dest.value,
+            .src = src.value,
+            .size = src.size
+         };
+      }
+
+      agx_emit_parallel_copies(&b, copies, nr_phi);
+
+      free(copies);
+   }
 }
 
 void
@@ -153,76 +285,14 @@ agx_ra(agx_context *ctx)
       }
    }
 
-   agx_foreach_block(ctx, block)
-      agx_ra_assign_local(block, ssa_to_reg, ncomps, ctx->max_register);
+   /* Assign registers in dominance-order. This coincides with source-order due
+    * to a NIR invariant, so we do not need special handling for this.
+    */
+   agx_foreach_block(ctx, block) {
+      agx_ra_assign_local(block, ssa_to_reg, ncomps);
+   }
 
-   /* TODO: Coalesce combines */
-
-   agx_foreach_instr_global_safe(ctx, ins) {
-      /* Lower away RA pseudo-instructions */
-      if (ins->op == AGX_OPCODE_P_COMBINE) {
-         /* TODO: Optimize out the moves! */
-         assert(ins->dest[0].type == AGX_INDEX_NORMAL);
-         enum agx_size common_size = ins->dest[0].size;
-         unsigned base = ssa_to_reg[ins->dest[0].value];
-         unsigned size = common_size == AGX_SIZE_32 ? 2 : 1;
-
-         /* Move the sources */
-         agx_builder b = agx_init_builder(ctx, agx_after_instr(ins));
-
-         /* TODO: Eliminate the intermediate copy by handling parallel copies */
-         for (unsigned i = 0; i < 4; ++i) {
-            if (agx_is_null(ins->src[i])) continue;
-            unsigned base = ins->src[i].value;
-            if (ins->src[i].type == AGX_INDEX_NORMAL)
-               base = ssa_to_reg[base];
-            else
-               assert(ins->src[i].type == AGX_INDEX_REGISTER);
-
-            assert(ins->src[i].size == common_size);
-
-            agx_mov_to(&b, agx_register(124*2 + (i * size), common_size),
-                  agx_register(base, common_size));
-         }
-
-         for (unsigned i = 0; i < 4; ++i) {
-            if (agx_is_null(ins->src[i])) continue;
-            agx_index src = ins->src[i];
-
-            if (src.type == AGX_INDEX_NORMAL)
-               src = agx_register(alloc[src.value], src.size);
-
-            agx_mov_to(&b, agx_register(base + (i * size), common_size),
-                  agx_register(124*2 + (i * size), common_size));
-         }
-
-         /* We've lowered away, delete the old */
-         agx_remove_instruction(ins);
-         continue;
-      } else if (ins->op == AGX_OPCODE_P_EXTRACT) {
-         /* Uses the destination size */
-         assert(ins->dest[0].type == AGX_INDEX_NORMAL);
-         unsigned base = ins->src[0].value;
-
-         if (ins->src[0].type != AGX_INDEX_REGISTER) {
-            assert(ins->src[0].type == AGX_INDEX_NORMAL);
-            base = alloc[base];
-         }
-
-         unsigned size = ins->dest[0].size == AGX_SIZE_64 ? 4 : ins->dest[0].size == AGX_SIZE_32 ? 2 : 1;
-         unsigned left = ssa_to_reg[ins->dest[0].value];
-         unsigned right = ssa_to_reg[ins->src[0].value] + (size * ins->imm);
-
-         if (left != right) {
-            agx_builder b = agx_init_builder(ctx, agx_after_instr(ins));
-            agx_mov_to(&b, agx_register(left, ins->dest[0].size),
-                  agx_register(right, ins->src[0].size));
-         }
-
-         agx_remove_instruction(ins);
-         continue;
-      }
-
+   agx_foreach_instr_global(ctx, ins) {
       agx_foreach_src(ins, s) {
          if (ins->src[s].type == AGX_INDEX_NORMAL) {
             unsigned v = ssa_to_reg[ins->src[s].value];
@@ -235,6 +305,79 @@ agx_ra(agx_context *ctx)
             unsigned v = ssa_to_reg[ins->dest[d].value];
             ins->dest[d] = agx_replace_index(ins->dest[d], agx_register(v, ins->dest[d].size));
          }
+      }
+   }
+
+   agx_foreach_instr_global_safe(ctx, ins) {
+      /* Lower away RA pseudo-instructions */
+      agx_builder b = agx_init_builder(ctx, agx_after_instr(ins));
+
+      if (ins->op == AGX_OPCODE_P_COMBINE) {
+         unsigned base = agx_index_to_reg(ssa_to_reg, ins->dest[0]);
+         unsigned width = agx_size_align_16(ins->dest[0].size);
+
+         struct agx_copy *copies = alloca(sizeof(copies[0]) * ins->nr_srcs);
+         unsigned n = 0;
+
+         /* Move the sources */
+         agx_foreach_src(ins, i) {
+            if (agx_is_null(ins->src[i])) continue;
+            assert(ins->src[i].size == ins->dest[0].size);
+
+            copies[n++] = (struct agx_copy) {
+               .dest = base + (i * width),
+               .src = agx_index_to_reg(ssa_to_reg, ins->src[i]) ,
+               .size = ins->src[i].size
+            };
+         }
+
+         agx_emit_parallel_copies(&b, copies, n);
+         agx_remove_instruction(ins);
+         continue;
+      } else if (ins->op == AGX_OPCODE_P_SPLIT) {
+         unsigned base = agx_index_to_reg(ssa_to_reg, ins->src[0]);
+         unsigned width = agx_size_align_16(agx_split_width(ins));
+
+         struct agx_copy copies[4];
+         unsigned n = 0;
+
+         /* Move the sources */
+         for (unsigned i = 0; i < 4; ++i) {
+            if (agx_is_null(ins->dest[i])) continue;
+
+            copies[n++] = (struct agx_copy) {
+               .dest = agx_index_to_reg(ssa_to_reg, ins->dest[i]),
+               .src = base + (i * width),
+               .size = ins->dest[i].size
+            };
+         }
+
+         /* Lower away */
+         agx_builder b = agx_init_builder(ctx, agx_after_instr(ins));
+         agx_emit_parallel_copies(&b, copies, n);
+         agx_remove_instruction(ins);
+         continue;
+      }
+
+
+   }
+
+   /* Insert parallel copies lowering phi nodes */
+   agx_foreach_block(ctx, block) {
+      agx_insert_parallel_copies(ctx, block);
+   }
+
+   /* Phi nodes can be removed now */
+   agx_foreach_instr_global_safe(ctx, I) {
+      if (I->op == AGX_OPCODE_PHI || I->op == AGX_OPCODE_P_LOGICAL_END)
+         agx_remove_instruction(I);
+
+      /* Remove identity moves */
+      if (I->op == AGX_OPCODE_MOV && I->src[0].type == AGX_INDEX_REGISTER &&
+          I->dest[0].size == I->src[0].size && I->src[0].value == I->dest[0].value) {
+
+         assert(I->dest[0].type == AGX_INDEX_REGISTER);
+         agx_remove_instruction(I);
       }
    }
 

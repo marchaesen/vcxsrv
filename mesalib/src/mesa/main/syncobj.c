@@ -409,14 +409,17 @@ wait_sync(struct gl_context *ctx, struct gl_sync_object *syncObj,
 
    /* Nothing needs to be done here if the driver does not support async
     * flushes. */
-   if (!pipe->fence_server_sync)
+   if (!pipe->fence_server_sync) {
+      _mesa_unref_sync_object(ctx, syncObj, 1);
       return;
+   }
 
    /* If the fence doesn't exist, assume it's signalled. */
    simple_mtx_lock(&syncObj->mutex);
    if (!syncObj->fence) {
       simple_mtx_unlock(&syncObj->mutex);
       syncObj->StatusFlag = GL_TRUE;
+      _mesa_unref_sync_object(ctx, syncObj, 1);
       return;
    }
 

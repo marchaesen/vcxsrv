@@ -121,11 +121,10 @@ fetch_bgrx_memcpy(struct lp_linear_elem *elem)
    const int s     = samp->s;
    const int width = samp->width;
    uint32_t *row   = samp->row;
-   int i;
 
    src_row = &src_row[s >> FIXED16_SHIFT];
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       row[i] = src_row[i] | 0xff000000;
    }
 
@@ -156,9 +155,8 @@ fetch_bgra_axis_aligned(struct lp_linear_elem *elem)
    const int width = samp->width;
    uint32_t *row   = samp->row;
    int s = samp->s;
-   int i;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       row[i] = src_row[s>>FIXED16_SHIFT];
       s += dsdx;
    }
@@ -166,6 +164,7 @@ fetch_bgra_axis_aligned(struct lp_linear_elem *elem)
    samp->t += samp->dtdy;
    return row;
 }
+
 
 static const uint32_t *
 fetch_bgrx_axis_aligned(struct lp_linear_elem *elem)
@@ -179,9 +178,8 @@ fetch_bgrx_axis_aligned(struct lp_linear_elem *elem)
    const int width = samp->width;
    uint32_t *row   = samp->row;
    int s = samp->s;
-   int i;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       row[i] = src_row[s>>FIXED16_SHIFT] | 0xff000000;
       s += dsdx;
    }
@@ -189,6 +187,7 @@ fetch_bgrx_axis_aligned(struct lp_linear_elem *elem)
    samp->t += samp->dtdy;
    return row;
 }
+
 
 /* Non-axis aligned, but no clamping or wrapping required
  */
@@ -205,9 +204,8 @@ fetch_bgra(struct lp_linear_elem *elem)
    uint32_t *row   = samp->row;
    int s = samp->s;
    int t = samp->t;
-   int i;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       const uint8_t *texel = (src +
                               (t>>FIXED16_SHIFT) * stride +
                               (s>>FIXED16_SHIFT) * 4);
@@ -237,9 +235,8 @@ fetch_bgrx(struct lp_linear_elem *elem)
    uint32_t *row   = samp->row;
    int s = samp->s;
    int t = samp->t;
-   int i;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       const uint8_t *texel = (src +
                               (t>>FIXED16_SHIFT) * stride +
                               (s>>FIXED16_SHIFT) * 4);
@@ -272,15 +269,12 @@ fetch_bgra_clamp(struct lp_linear_elem *elem)
    uint32_t *row   = samp->row;
    int s = samp->s;
    int t = samp->t;
-   int i;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       int ct = CLAMP(t>>FIXED16_SHIFT, 0, tex_height);
       int cs = CLAMP(s>>FIXED16_SHIFT, 0, tex_width);
 
-      const uint8_t *texel = (src +
-                              ct * stride +
-                              cs * 4);
+      const uint8_t *texel = src + ct * stride + cs * 4;
 
       row[i] = *(const uint32_t *)texel;
 
@@ -308,15 +302,12 @@ fetch_bgrx_clamp(struct lp_linear_elem *elem)
    uint32_t *row   = samp->row;
    int s = samp->s;
    int t = samp->t;
-   int i;
 
-   for (i = 0; i < width; i++) {
+   for (int i = 0; i < width; i++) {
       int ct = CLAMP(t>>FIXED16_SHIFT, 0, tex_height);
       int cs = CLAMP(s>>FIXED16_SHIFT, 0, tex_width);
 
-      const uint8_t *texel = (src +
-                              ct * stride +
-                              cs * 4);
+      const uint8_t *texel = src + ct * stride + cs * 4;
 
       row[i] = (*(const uint32_t *)texel) | 0xff000000;
 
@@ -339,8 +330,6 @@ fetch_and_stretch_bgra_row(struct lp_linear_sampler *samp,
    const struct lp_jit_texture *texture = samp->texture;
    const uint32_t *data = (const uint32_t *)texture->base;
    const int stride = texture->row_stride[0] / sizeof(uint32_t);
-   const uint32_t * restrict src_row;
-   uint32_t * restrict dst_row;
    const int width = samp->width;
 
    /*
@@ -361,18 +350,14 @@ fetch_and_stretch_bgra_row(struct lp_linear_sampler *samp,
     * Replace one entry.
     */
 
-   src_row = data + y * stride;
-
-   dst_row = samp->stretched_row[samp->stretched_row_index];
+   const uint32_t * restrict src_row = data + y * stride;
+   uint32_t * restrict dst_row = samp->stretched_row[samp->stretched_row_index];
 
    if (fixed16_frac(samp->s) == 0 &&
        samp->dsdx == FIXED16_ONE) { // TODO: could be relaxed
       /*
        * 1:1 blit on the x direction.
        */
-
-      unsigned i;
-
       src_row += samp->s >> FIXED16_SHIFT;
 
       if (((uintptr_t)src_row & 0xf) == 0) {
@@ -381,7 +366,7 @@ fetch_and_stretch_bgra_row(struct lp_linear_sampler *samp,
       }
 
       /* Copy the source texture */
-      for (i = 0; i < width; i += 4) {
+      for (int i = 0; i < width; i += 4) {
          __m128i src = _mm_loadu_si128((const __m128i *)&src_row[i]);
          *(__m128i *)&dst_row[i] = src;
       }
@@ -398,6 +383,7 @@ fetch_and_stretch_bgra_row(struct lp_linear_sampler *samp,
    return dst_row;
 }
 
+
 /* Maximise only as we fetch unscaled pixels linearly into a size-64
  * temporary.  For minimise, we will want to either have a bigger
  * temporary or fetch sparsely.
@@ -407,29 +393,25 @@ fetch_bgra_axis_aligned_linear(struct lp_linear_elem *elem)
 {
    struct lp_linear_sampler *samp = (struct lp_linear_sampler *)elem;
    const int width = samp->width;
-   const uint32_t * restrict src_row0;
-   const uint32_t * restrict src_row1;
    uint32_t * restrict row = samp->row;
-   int y = samp->t >> FIXED16_SHIFT;
-   int w = (samp->t >> 8) & 0xff;
-   int i;
-   __m128i wt;
+   const int y = samp->t >> FIXED16_SHIFT;
+   const int w = (samp->t >> 8) & 0xff;
 
    samp->t += samp->dtdy;
 
-   src_row0 = fetch_and_stretch_bgra_row(samp, y);
+   const uint32_t * restrict src_row0 = fetch_and_stretch_bgra_row(samp, y);
 
    if (w == 0) {
       return src_row0;
    }
 
-   src_row1 = fetch_and_stretch_bgra_row(samp, y + 1);
+   const uint32_t * restrict src_row1 = fetch_and_stretch_bgra_row(samp, y + 1);
 
-   wt = _mm_set1_epi16(w);
+   __m128i wt = _mm_set1_epi16(w);
 
    /* Combine the two rows using a constant weight.
     */
-   for (i = 0; i < width; i += 4) {
+   for (int i = 0; i < width; i += 4) {
       __m128i srca = _mm_load_si128((const __m128i *)&src_row0[i]);
       __m128i srcb = _mm_load_si128((const __m128i *)&src_row1[i]);
 
@@ -438,6 +420,7 @@ fetch_bgra_axis_aligned_linear(struct lp_linear_elem *elem)
 
    return row;
 }
+
 
 /* Non-axis-aligned version.  Don't try to take advantage of
  * maximize.
@@ -455,14 +438,13 @@ fetch_bgra_linear(struct lp_linear_elem *elem)
    uint32_t *row   = samp->row;
    int s = samp->s;
    int t = samp->t;
-   int i, j;
 
-   for (i = 0; i < width; i += 4) {
+   for (int i = 0; i < width; i += 4) {
       union m128i si0, si1, si2, si3, ws, wt;
       __m128i si02, si13;
 
-      for (j = 0; j < 4; j++) {
-         const uint32_t *src = data + (t >> 16) * stride + (s>>16);
+      for (int j = 0; j < 4; j++) {
+         const uint32_t *src = data + (t >> 16) * stride + (s >> 16);
 
          si0.ui[j] = src[0];
          si1.ui[j] = src[1];
@@ -512,7 +494,7 @@ fetch_bgra_clamp_linear(struct lp_linear_elem *elem)
    uint32_t *row   = samp->row;
    int s = samp->s;
    int t = samp->t;
-   int i, j;
+
    /* width, height, stride (in pixels) must be smaller than 32768 */
    __m128i dsdx4, dtdx4, s4, t4, stride4, w4, h4, zero, one;
    s4 = _mm_set1_epi32(s);
@@ -527,7 +509,7 @@ fetch_bgra_clamp_linear(struct lp_linear_elem *elem)
    zero = _mm_setzero_si128();
    one = _mm_set1_epi32(1);
 
-   for (i = 0; i < width; i += 4) {
+   for (int i = 0; i < width; i += 4) {
       union m128i addr[4];
       __m128i ws, wt, wsl, wsh, wtl, wth;
       __m128i s4s, t4s, cs0, cs1, ct0, ct1, tmp, si[4];
@@ -547,7 +529,7 @@ fetch_bgra_clamp_linear(struct lp_linear_elem *elem)
       addr[2].m = _mm_add_epi32(tmp, cs0);
       addr[3].m = _mm_add_epi32(tmp, cs1);
 
-      for (j = 0; j < 4; j++) {
+      for (int j = 0; j < 4; j++) {
          __m128i ld1, ld2, ld3;
          si[j] = _mm_cvtsi32_si128(data[addr[j].ui[0]]);
          ld1 = _mm_cvtsi32_si128(data[addr[j].ui[1]]);
@@ -568,7 +550,7 @@ fetch_bgra_clamp_linear(struct lp_linear_elem *elem)
 
 #if 0
 /* scalar code for reference */
-      for (j = 0; j < 4; j++) {
+      for (int j = 0; j < 4; j++) {
          int s0 = s >> FIXED16_SHIFT;
          int t0 = t >> FIXED16_SHIFT;
          int cs0 = CLAMP(s0    , 0, tex_width);
@@ -605,8 +587,10 @@ fetch_bgra_clamp_linear(struct lp_linear_elem *elem)
 
    samp->s += samp->dsdy;
    samp->t += samp->dtdy;
+
    return row;
 }
+
 
 static const uint32_t *
 fetch_bgrx_axis_aligned_linear(struct lp_linear_elem *elem)
@@ -614,13 +598,10 @@ fetch_bgrx_axis_aligned_linear(struct lp_linear_elem *elem)
    struct lp_linear_sampler *samp = (struct lp_linear_sampler *)elem;
    const __m128i mask = _mm_set1_epi32(0xff000000);
    uint32_t *dst_row = samp->row;
-   const uint32_t *src_row;
-   int width = samp->width;
-   int i;
+   const uint32_t *src_row = fetch_bgra_axis_aligned_linear(&samp->base);
+   const int width = samp->width;
 
-   src_row = fetch_bgra_axis_aligned_linear(&samp->base);
-
-   for (i = 0; i < width; i += 4) {
+   for (int i = 0; i < width; i += 4) {
       __m128i bgra = *(__m128i *)&src_row[i];
       __m128i bgrx = _mm_or_si128(bgra, mask);
       *(__m128i *)&dst_row[i] = bgrx;
@@ -635,13 +616,12 @@ fetch_bgrx_clamp_linear(struct lp_linear_elem *elem)
 {
    struct lp_linear_sampler *samp = (struct lp_linear_sampler *)elem;
    const __m128i mask = _mm_set1_epi32(0xff000000);
-   uint32_t *row   = samp->row;
-   int width = samp->width;
-   int i;
+   uint32_t *row = samp->row;
+   const int width = samp->width;
 
    fetch_bgra_clamp_linear(&samp->base);
 
-   for (i = 0; i < width; i += 4) {
+   for (int i = 0; i < width; i += 4) {
       __m128i bgra = *(__m128i *)&row[i];
       __m128i bgrx = _mm_or_si128(bgra, mask);
       *(__m128i *)&row[i] = bgrx;
@@ -656,13 +636,12 @@ fetch_bgrx_linear(struct lp_linear_elem *elem)
 {
    struct lp_linear_sampler *samp = (struct lp_linear_sampler *)elem;
    const __m128i mask = _mm_set1_epi32(0xff000000);
-   uint32_t *row   = samp->row;
-   int width = samp->width;
-   int i;
+   uint32_t *row = samp->row;
+   const int width = samp->width;
 
    fetch_bgra_linear(&samp->base);
 
-   for (i = 0; i < width; i += 4) {
+   for (int i = 0; i < width; i += 4) {
       __m128i bgra = *(__m128i *)&row[i];
       __m128i bgrx = _mm_or_si128(bgra, mask);
       *(__m128i *)&row[i] = bgrx;
@@ -747,15 +726,19 @@ lp_linear_init_sampler(struct lp_linear_sampler *samp,
    const struct lp_tgsi_channel_info *schan = &info->coord[0];
    const struct lp_tgsi_channel_info *tchan = &info->coord[1];
 
+   assert(schan->file == TGSI_FILE_INPUT);
+   assert(tchan->file == TGSI_FILE_INPUT);
+
    float w0   =   a0[0][3];
 
-   float s0   =   a0[schan->u.index+1][schan->swizzle];
-   float dsdx = dadx[schan->u.index+1][schan->swizzle];
-   float dsdy = dady[schan->u.index+1][schan->swizzle];
+   int foo = 1;
+   float s0   =   a0[schan->u.index+foo][schan->swizzle];
+   float dsdx = dadx[schan->u.index+foo][schan->swizzle];
+   float dsdy = dady[schan->u.index+foo][schan->swizzle];
 
-   float t0   =   a0[tchan->u.index+1][tchan->swizzle];
-   float dtdx = dadx[tchan->u.index+1][tchan->swizzle];
-   float dtdy = dady[tchan->u.index+1][tchan->swizzle];
+   float t0   =   a0[tchan->u.index+foo][tchan->swizzle];
+   float dtdx = dadx[tchan->u.index+foo][tchan->swizzle];
+   float dtdy = dady[tchan->u.index+foo][tchan->swizzle];
 
    int mins, mint, maxs, maxt;
    float oow = 1.0f / w0;
@@ -895,9 +878,7 @@ lp_linear_init_sampler(struct lp_linear_sampler *samp,
             samp->base.fetch = fetch_bgra_axis_aligned;
          else
             samp->base.fetch = fetch_bgra_memcpy;
-
          return TRUE;
-
       case PIPE_FORMAT_B8G8R8X8_UNORM:
          if (need_wrap)
             samp->base.fetch = fetch_bgrx_clamp;
@@ -907,9 +888,7 @@ lp_linear_init_sampler(struct lp_linear_sampler *samp,
             samp->base.fetch = fetch_bgrx_axis_aligned;
          else
             samp->base.fetch = fetch_bgrx_memcpy;
-
          return TRUE;
-
       default:
          break;
       }
@@ -929,9 +908,7 @@ lp_linear_init_sampler(struct lp_linear_sampler *samp,
             samp->base.fetch = fetch_bgra_linear;
          else
             samp->base.fetch = fetch_bgra_axis_aligned_linear;
-
          return TRUE;
-
       case PIPE_FORMAT_B8G8R8X8_UNORM:
          if (need_wrap)
             samp->base.fetch = fetch_bgrx_clamp_linear;
@@ -940,7 +917,6 @@ lp_linear_init_sampler(struct lp_linear_sampler *samp,
          else
             samp->base.fetch = fetch_bgrx_axis_aligned_linear;
          return TRUE;
-
       default:
          break;
       }
@@ -964,7 +940,9 @@ lp_linear_init_noop_sampler(struct lp_linear_sampler *samp)
    samp->base.fetch = fetch_noop;
 }
 
-/* Check the variant for linear path compatibility.
+
+/*
+ * Check the given sampler and texture info for linear path compatibility.
  */
 boolean
 lp_linear_check_sampler(const struct lp_sampler_static_state *sampler,
@@ -995,6 +973,14 @@ lp_linear_check_sampler(const struct lp_sampler_static_state *sampler,
    if (sampler->texture_state.format != PIPE_FORMAT_B8G8R8A8_UNORM &&
        sampler->texture_state.format != PIPE_FORMAT_B8G8R8X8_UNORM)
       return FALSE;
+
+   /* We don't support sampler view swizzling on the linear path */
+   if (sampler->texture_state.swizzle_r != PIPE_SWIZZLE_X ||
+       sampler->texture_state.swizzle_g != PIPE_SWIZZLE_Y ||
+       sampler->texture_state.swizzle_b != PIPE_SWIZZLE_Z ||
+       sampler->texture_state.swizzle_a != PIPE_SWIZZLE_W) {
+      return FALSE;
+   }
 
    return TRUE;
 }

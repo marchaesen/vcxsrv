@@ -26,7 +26,7 @@ the library and the server, and initializes the extension for use.
 .SH SYNOPSIS
 .HP
 .B Display *XkbOpenDisplay
-.BI "(\^char *" "display_name" "\^,"
+.BI "(\^_Xconst char *" "display_name" "\^,"
 .BI "int *" "event_rtrn" "\^,"
 .BI "int *" "error_rtrn" "\^,"
 .BI "int *" "major_in_out" "\^,"

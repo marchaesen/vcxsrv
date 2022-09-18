@@ -33,6 +33,7 @@
 
 #include <vector>
 #include <llvm/Config/llvm-config.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Metadata.h>
 

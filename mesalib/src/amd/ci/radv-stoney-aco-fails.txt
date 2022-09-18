@@ -347,3 +347,42 @@ dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_49_13.samples_4.d16_unorm_s8_
 dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_49_13.samples_4.d16_unorm_s8_uint.depth_zero_stencil_zero_testing_stencil_samplemask,Fail
 dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_49_13.samples_8.d16_unorm_s8_uint_separate_layouts.depth_zero_stencil_min_testing_stencil_samplemask,Fail
 dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_49_13.samples_8.d16_unorm_s8_uint.depth_zero_stencil_zero_testing_stencil_samplemask,Fail
+
+# CTS 1.3.1.1 uprev:
+dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.linear_nearest,Fail
+dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.linear_nearest,Fail
+dEQP-VK.texture.mipmap.cubemap.image_view_min_lod.base_level.nearest_linear,Fail
+
+# CTS 1.3.2.0  uprev:
+dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.linear_linear_integer_texel_coord,Fail
+dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.linear_linear_integer_texel_coord,Fail
+
+# The following tests started to fail after CI fix, see
+# https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/16325
+dEQP-VK.rasterization.interpolation_multisample_4_bit.lines_wide,Fail
+dEQP-VK.rasterization.interpolation_multisample_4_bit.non_strict_lines_wide,Fail
+
+# See https://gitlab.freedesktop.org/mesa/mesa/-/issues/6689
+dEQP-VK.image.sample_texture.128_bit_compressed_format_two_samplers,Fail
+dEQP-VK.image.sample_texture.128_bit_compressed_format_two_samplers_cubemap,Fail
+dEQP-VK.image.sample_texture.64_bit_compressed_format_two_samplers,Fail
+dEQP-VK.image.sample_texture.64_bit_compressed_format_two_samplers_cubemap,Fail
+
+# CTS 1.3.3.0 uprev:
+dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.nearest_linear,Fail
+dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.nearest_linear,Fail
+
+# The following tests started to fail after RADV switched to 100% dynamic
+# rendering, but given there is already a lot of depth/stencil resolve failures
+# I don't worry about these new failures.
+dEQP-VK.dynamic_rendering.suballocation.unused_clear_attachments.colorunused_colorunused_colorunused_colorused_stencilonly_d32s8_used,Fail
+dEQP-VK.dynamic_rendering.suballocation.unused_clear_attachments.colorused_colorunused_colorused_colorused_stencilonly_d32s8_used,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d32_sfloat.depth_zero,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d32_sfloat.depth_average,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d32_sfloat.depth_max,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d16_unorm.depth_average,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d16_unorm.depth_max,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d16_unorm.depth_zero,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_49_13.samples_2.d16_unorm_s8_uint_separate_layouts.depth_zero_stencil_none_testing_stencil_samplemask,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_49_13.samples_4.d16_unorm_s8_uint_separate_layouts.depth_zero_stencil_none_testing_stencil_samplemask,Fail
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_49_13.samples_8.d16_unorm_s8_uint_separate_layouts.depth_zero_stencil_none_testing_stencil_samplemask,Fail

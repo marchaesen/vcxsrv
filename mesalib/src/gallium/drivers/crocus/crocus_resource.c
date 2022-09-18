@@ -365,7 +365,7 @@ crocus_alloc_resource(struct pipe_screen *pscreen,
    res->base.b.screen = pscreen;
    res->orig_screen = crocus_pscreen_ref(pscreen);
    pipe_reference_init(&res->base.b.reference, 1);
-   threaded_resource_init(&res->base.b, false, 0);
+   threaded_resource_init(&res->base.b, false);
 
    if (templ->target == PIPE_BUFFER)
       util_range_init(&res->valid_buffer_range);
@@ -447,7 +447,7 @@ crocus_resource_configure_aux(struct crocus_screen *screen,
       isl_surf_get_hiz_surf(&screen->isl_dev, &res->surf, &res->aux.surf);
 
    const bool has_ccs =
-      ((devinfo->ver >= 7 && !res->mod_info && !INTEL_DEBUG(DEBUG_NO_RBC)) ||
+      ((devinfo->ver >= 7 && !res->mod_info && !INTEL_DEBUG(DEBUG_NO_CCS)) ||
        (res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE)) &&
       isl_surf_get_ccs_surf(&screen->isl_dev, &res->surf, NULL,
                             &res->aux.surf, 0);
@@ -695,18 +695,22 @@ crocus_resource_create_with_modifiers(struct pipe_screen *pscreen,
    if (templ->usage == PIPE_USAGE_STAGING &&
        templ->bind == PIPE_BIND_DEPTH_STENCIL &&
        devinfo->ver < 6)
-      return NULL;
+      goto fail;
 
    const bool isl_surf_created_successfully =
       crocus_resource_configure_main(screen, res, templ, modifier, 0);
    if (!isl_surf_created_successfully)
-      return NULL;
+      goto fail;
 
    const char *name = "miptree";
 
    unsigned int flags = 0;
    if (templ->usage == PIPE_USAGE_STAGING)
       flags |= BO_ALLOC_COHERENT;
+
+   /* Scanout buffers need to be WC. */
+   if (templ->bind & PIPE_BIND_SCANOUT)
+      flags |= BO_ALLOC_SCANOUT;
 
    uint64_t aux_size = 0;
    uint32_t aux_preferred_alloc_flags;
@@ -758,7 +762,6 @@ crocus_resource_create_with_modifiers(struct pipe_screen *pscreen,
    return &res->base.b;
 
 fail:
-   fprintf(stderr, "XXX: resource creation failed\n");
    crocus_resource_destroy(pscreen, &res->base.b);
    return NULL;
 
@@ -1255,7 +1258,12 @@ crocus_map_copy_region(struct crocus_transfer *map)
       templ.target = PIPE_TEXTURE_2D;
 
    map->staging = crocus_resource_create(pscreen, &templ);
-   assert(map->staging);
+
+   /* If we fail to create a staging resource, the caller will fallback
+    * to mapping directly on the CPU.
+    */
+   if (!map->staging)
+      return;
 
    if (templ.target != PIPE_BUFFER) {
       struct isl_surf *surf = &((struct crocus_resource *) map->staging)->surf;
@@ -1641,16 +1649,15 @@ crocus_transfer_map(struct pipe_context *ctx,
 
    struct crocus_transfer *map;
    if (usage & TC_TRANSFER_MAP_THREADED_UNSYNC)
-      map = slab_alloc(&ice->transfer_pool_unsync);
+      map = slab_zalloc(&ice->transfer_pool_unsync);
    else
-      map = slab_alloc(&ice->transfer_pool);
+      map = slab_zalloc(&ice->transfer_pool);
 
    struct pipe_transfer *xfer = &map->base.b;
 
    if (!map)
       return NULL;
 
-   memset(map, 0, sizeof(*map));
    map->dbg = &ice->dbg;
 
    map->has_swizzling = screen->devinfo.has_bit6_swizzle;
@@ -1701,9 +1708,12 @@ crocus_transfer_map(struct pipe_context *ctx,
       map->batch = &ice->batches[CROCUS_BATCH_RENDER];
       map->blorp = &ice->blorp;
       crocus_map_copy_region(map);
-   } else {
-      /* Otherwise we're free to map on the CPU. */
+   }
 
+   /* If we've requested a direct mapping, or crocus_map_copy_region failed
+    * to create a staging resource, then map it directly on the CPU.
+    */
+   if (!map->ptr) {
       if (resource->target != PIPE_BUFFER) {
          crocus_resource_access_raw(ice, res,
                                     level, box->z, box->depth,
@@ -2004,9 +2014,15 @@ crocus_init_screen_resource_functions(struct pipe_screen *pscreen)
    pscreen->resource_destroy = u_transfer_helper_resource_destroy;
    pscreen->memobj_create_from_handle = crocus_memobj_create_from_handle;
    pscreen->memobj_destroy = crocus_memobj_destroy;
+
+   enum u_transfer_helper_flags transfer_flags = U_TRANSFER_HELPER_MSAA_MAP;
+   if (screen->devinfo.ver >= 6) {
+      transfer_flags |= U_TRANSFER_HELPER_SEPARATE_Z32S8 |
+               U_TRANSFER_HELPER_SEPARATE_STENCIL;
+   }
+
    pscreen->transfer_helper =
-      u_transfer_helper_create(&transfer_vtbl, screen->devinfo.ver >= 6,
-                               screen->devinfo.ver >= 6, false, true);
+      u_transfer_helper_create(&transfer_vtbl, transfer_flags);
 }
 
 void

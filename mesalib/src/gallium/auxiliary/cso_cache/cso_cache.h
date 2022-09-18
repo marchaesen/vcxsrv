@@ -81,7 +81,7 @@
 #include "cso_hash.h"
 
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -182,7 +182,7 @@ cso_construct_key(void *key, int key_size)
    return hash;
 }
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

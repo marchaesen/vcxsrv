@@ -33,16 +33,16 @@ XkbFreeGeomSections \- Free geometry sections
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry in which sections should be freed
 .TP
-.I \- first
+.I first
 first section to be freed
 .TP
-.I \- count
+.I count
 number of sections to be freed 
 .TP
-.I \- free_all
+.I free_all
 True => all sections are freed
 .SH DESCRIPTION
 .LP

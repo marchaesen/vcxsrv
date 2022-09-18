@@ -190,6 +190,13 @@ blorp_alloc_binding_table(struct blorp_batch *blorp_batch,
    }
 }
 
+static uint32_t
+blorp_binding_table_offset_to_pointer(struct blorp_batch *batch,
+                                      uint32_t offset)
+{
+   return offset;
+}
+
 static void *
 blorp_alloc_vertex_buffer(struct blorp_batch *blorp_batch,
                           uint32_t size,

@@ -27,19 +27,19 @@ description
 .HP
 .B XkbColorPtr XkbAddGeomColor
 .BI "(\^XkbGeometryPtr " "geom" "\^,"
-.BI "char *" "spec" "\^,"
+.BI "_Xconst char *" "spec" "\^,"
 .BI "unsigned int " "pixel" "\^);"
 .if n .ti +5n
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry to be updated
 .TP
-.I \- spec
+.I spec
 color to be added
 .TP
-.I \- pixel
+.I pixel
 color to be added
 .SH DESCRIPTION
 .LP

@@ -32,13 +32,13 @@ XkbFreeGeometry \- Free an entire geometry
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry to be freed
 .TP
-.I \- which
+.I which
 mask of geometry components to be freed 
 .TP
-.I \- free_all
+.I free_all
 True => the entire geometry is freed
 .SH DESCRIPTION
 .LP

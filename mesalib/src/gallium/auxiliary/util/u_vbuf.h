@@ -88,7 +88,8 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
 void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
                      unsigned drawid_offset,
                      const struct pipe_draw_indirect_info *indirect,
-                     const struct pipe_draw_start_count_bias draw);
+                     const struct pipe_draw_start_count_bias *draws,
+                     unsigned num_draws);
 void u_vbuf_get_minmax_index(struct pipe_context *pipe,
                              const struct pipe_draw_info *info,
                              const struct pipe_draw_start_count_bias *draw,

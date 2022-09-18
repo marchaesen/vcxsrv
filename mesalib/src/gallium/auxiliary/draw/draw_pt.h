@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
  /*
@@ -64,17 +64,17 @@ struct draw_vertex_info;
  *    - vsplit - catchall implementation, splits big prims
  */
 struct draw_pt_front_end {
-   void (*prepare)( struct draw_pt_front_end *,
-                    unsigned prim,
-                    struct draw_pt_middle_end *,
-		    unsigned opt );
+   void (*prepare)(struct draw_pt_front_end *,
+                   enum pipe_prim_type prim,
+                   struct draw_pt_middle_end *,
+                   unsigned opt);
 
-   void (*run)( struct draw_pt_front_end *,
-                unsigned start,
-                unsigned count );
+   void (*run)(struct draw_pt_front_end *,
+               unsigned start,
+               unsigned count);
 
-   void (*flush)( struct draw_pt_front_end *, unsigned flags );
-   void (*destroy)( struct draw_pt_front_end * );
+   void (*flush)(struct draw_pt_front_end *, unsigned flags);
+   void (*destroy)(struct draw_pt_front_end *);
 };
 
 
@@ -88,10 +88,10 @@ struct draw_pt_front_end {
  *     - fetch, emit (ie passthrough)
  */
 struct draw_pt_middle_end {
-   void (*prepare)( struct draw_pt_middle_end *,
-                    unsigned prim,
-		    unsigned opt,
-                    unsigned *max_vertices );
+   void (*prepare)(struct draw_pt_middle_end *,
+                   enum pipe_prim_type prim,
+                   unsigned opt,
+                   unsigned *max_vertices);
 
    /**
     * Bind/update parameter state such as constants, viewport dims
@@ -100,32 +100,32 @@ struct draw_pt_middle_end {
     */
    void (*bind_parameters)(struct draw_pt_middle_end *);
 
-   void (*run)( struct draw_pt_middle_end *,
-                const unsigned *fetch_elts,
-                unsigned fetch_count,
-                const ushort *draw_elts,
-                unsigned draw_count,
-                unsigned prim_flags );
+   void (*run)(struct draw_pt_middle_end *,
+               const unsigned *fetch_elts,
+               unsigned fetch_count,
+               const ushort *draw_elts,
+               unsigned draw_count,
+               unsigned prim_flags);
 
    void (*run_linear)(struct draw_pt_middle_end *,
                       unsigned start,
                       unsigned count,
-                      unsigned prim_flags );
+                      unsigned prim_flags);
 
    /* Transform all vertices in a linear range and then draw them with
     * the supplied element list.  May fail and return FALSE.
     */
-   boolean (*run_linear_elts)( struct draw_pt_middle_end *,
-                            unsigned fetch_start,
-                            unsigned fetch_count,
-                            const ushort *draw_elts,
-                            unsigned draw_count,
-                            unsigned prim_flags );
+   boolean (*run_linear_elts)(struct draw_pt_middle_end *,
+                              unsigned fetch_start,
+                              unsigned fetch_count,
+                              const ushort *draw_elts,
+                              unsigned draw_count,
+                              unsigned prim_flags);
 
-   int (*get_max_vertex_count)( struct draw_pt_middle_end * );
+   int (*get_max_vertex_count)(struct draw_pt_middle_end *);
 
-   void (*finish)( struct draw_pt_middle_end * );
-   void (*destroy)( struct draw_pt_middle_end * );
+   void (*finish)(struct draw_pt_middle_end *);
+   void (*destroy)(struct draw_pt_middle_end *);
 };
 
 
@@ -135,7 +135,7 @@ struct vbuf_render;
 struct vertex_header;
 
 
-/* Frontends: 
+/* Frontends:
  *
  * Currently only the general-purpose vsplit implementation.
  */
@@ -148,7 +148,7 @@ struct draw_pt_front_end *draw_pt_vsplit(struct draw_context *draw);
  * at the slight expense of creating a vertex_header in some cases
  * unecessarily.
  */
-struct draw_pt_middle_end *draw_pt_middle_fse( struct draw_context *draw );
+struct draw_pt_middle_end *draw_pt_middle_fse(struct draw_context *draw);
 struct draw_pt_middle_end *draw_pt_fetch_pipeline_or_emit(struct draw_context *draw);
 struct draw_pt_middle_end *draw_pt_fetch_pipeline_or_emit_llvm(struct draw_context *draw);
 
@@ -159,90 +159,114 @@ struct draw_pt_middle_end *draw_pt_fetch_pipeline_or_emit_llvm(struct draw_conte
  */
 struct pt_emit;
 
-void draw_pt_emit_prepare( struct pt_emit *emit,
-			   unsigned prim,
-                           unsigned *max_vertices );
+void
+draw_pt_emit_prepare(struct pt_emit *emit,
+                     enum pipe_prim_type prim,
+                     unsigned *max_vertices);
 
-void draw_pt_emit( struct pt_emit *emit,
-                   const struct draw_vertex_info *vert_info,
-                   const struct draw_prim_info *prim_info);
+void
+draw_pt_emit(struct pt_emit *emit,
+             const struct draw_vertex_info *vert_info,
+             const struct draw_prim_info *prim_info);
 
-void draw_pt_emit_linear( struct pt_emit *emit,
-                          const struct draw_vertex_info *vert_info,
-                          const struct draw_prim_info *prim_info);
+void
+draw_pt_emit_linear(struct pt_emit *emit,
+                    const struct draw_vertex_info *vert_info,
+                    const struct draw_prim_info *prim_info);
 
-void draw_pt_emit_destroy( struct pt_emit *emit );
+void
+draw_pt_emit_destroy(struct pt_emit *emit);
 
-struct pt_emit *draw_pt_emit_create( struct draw_context *draw );
+struct pt_emit *
+draw_pt_emit_create(struct draw_context *draw);
+
 
 /*******************************************************************************
  * HW stream output emit:
  */
 struct pt_so_emit;
 
-void draw_pt_so_emit_prepare(struct pt_so_emit *emit, boolean use_pre_clip_pos);
+void
+draw_pt_so_emit_prepare(struct pt_so_emit *emit, boolean use_pre_clip_pos);
 
-void draw_pt_so_emit( struct pt_so_emit *emit,
-                      int num_vertex_streams,
-                      const struct draw_vertex_info *vert_info,
-                      const struct draw_prim_info *prim_info );
+void
+draw_pt_so_emit(struct pt_so_emit *emit,
+                int num_vertex_streams,
+                const struct draw_vertex_info *vert_info,
+                const struct draw_prim_info *prim_info);
 
-void draw_pt_so_emit_destroy( struct pt_so_emit *emit );
+void
+draw_pt_so_emit_destroy(struct pt_so_emit *emit);
 
-struct pt_so_emit *draw_pt_so_emit_create( struct draw_context *draw );
+struct pt_so_emit *
+draw_pt_so_emit_create(struct draw_context *draw);
+
 
 /*******************************************************************************
  * API vertex fetch:
  */
 
 struct pt_fetch;
-void draw_pt_fetch_prepare( struct pt_fetch *fetch,
-                            unsigned vertex_input_count,
-                            unsigned vertex_size,
-                            unsigned instance_id_index );
 
-void draw_pt_fetch_run( struct pt_fetch *fetch,
-			const unsigned *elts,
-			unsigned count,
-			char *verts );
+void
+draw_pt_fetch_prepare(struct pt_fetch *fetch,
+                      unsigned vertex_input_count,
+                      unsigned vertex_size,
+                      unsigned instance_id_index);
 
-void draw_pt_fetch_run_linear( struct pt_fetch *fetch,
-                               unsigned start,
-                               unsigned count,
-                               char *verts );
+void
+draw_pt_fetch_run(struct pt_fetch *fetch,
+                  const unsigned *elts,
+                  unsigned count,
+                  char *verts);
 
-void draw_pt_fetch_destroy( struct pt_fetch *fetch );
+void
+draw_pt_fetch_run_linear(struct pt_fetch *fetch,
+                         unsigned start,
+                         unsigned count,
+                         char *verts);
 
-struct pt_fetch *draw_pt_fetch_create( struct draw_context *draw );
+void
+draw_pt_fetch_destroy(struct pt_fetch *fetch);
+
+struct pt_fetch *
+draw_pt_fetch_create(struct draw_context *draw);
 
 /*******************************************************************************
  * Post-VS: cliptest, rhw, viewport
  */
 struct pt_post_vs;
 
-boolean draw_pt_post_vs_run( struct pt_post_vs *pvs,
-			     struct draw_vertex_info *info,
-                             const struct draw_prim_info *prim_info );
+boolean
+draw_pt_post_vs_run(struct pt_post_vs *pvs,
+                    struct draw_vertex_info *info,
+                    const struct draw_prim_info *prim_info);
 
-void draw_pt_post_vs_prepare( struct pt_post_vs *pvs,
-			      boolean clip_xy,
-			      boolean clip_z,
-			      boolean clip_user,
-                              boolean guard_band,
-			      boolean bypass_viewport,
-                              boolean clip_halfz,
-			      boolean need_edgeflags );
+void
+draw_pt_post_vs_prepare(struct pt_post_vs *pvs,
+                        boolean clip_xy,
+                        boolean clip_z,
+                        boolean clip_user,
+                        boolean guard_band,
+                        boolean bypass_viewport,
+                        boolean clip_halfz,
+                        boolean need_edgeflags);
 
-struct pt_post_vs *draw_pt_post_vs_create( struct draw_context *draw );
+struct pt_post_vs *
+draw_pt_post_vs_create(struct draw_context *draw);
 
-void draw_pt_post_vs_destroy( struct pt_post_vs *pvs );
+void
+draw_pt_post_vs_destroy(struct pt_post_vs *pvs);
 
 
 /*******************************************************************************
- * Utils: 
+ * Utils:
  */
-void draw_pt_split_prim(unsigned prim, unsigned *first, unsigned *incr);
-unsigned draw_pt_trim_count(unsigned count, unsigned first, unsigned incr);
+void
+draw_pt_split_prim(enum pipe_prim_type prim, unsigned *first, unsigned *incr);
+
+unsigned
+draw_pt_trim_count(unsigned count, unsigned first, unsigned incr);
 
 
 #endif

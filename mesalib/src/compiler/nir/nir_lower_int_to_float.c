@@ -65,7 +65,29 @@ lower_alu_instr(nir_builder *b, nir_alu_instr *alu)
    case nir_op_b2i32: alu->op = nir_op_b2f32; break;
    case nir_op_i2f32: alu->op = nir_op_mov; break;
    case nir_op_u2f32: alu->op = nir_op_mov; break;
-   case nir_op_f2i32: alu->op = nir_op_ftrunc; break;
+
+   case nir_op_f2i32: {
+      alu->op = nir_op_ftrunc;
+
+      /* If the source was already integer, then we did't need to truncate and
+       * can switch it to a mov that can be copy-propagated away.
+       */
+      nir_alu_instr *src_alu = nir_src_as_alu_instr(alu->src[0].src);
+      if (src_alu) {
+         switch (src_alu->op) {
+         case nir_op_fround_even:
+         case nir_op_fceil:
+         case nir_op_ftrunc:
+         case nir_op_ffloor:
+            alu->op = nir_op_mov;
+            break;
+         default:
+            break;
+         }
+      }
+      break;
+   }
+
    case nir_op_f2u32: alu->op = nir_op_ffloor; break;
    case nir_op_i2b1: alu->op = nir_op_f2b1; break;
 
@@ -79,11 +101,20 @@ lower_alu_instr(nir_builder *b, nir_alu_instr *alu)
    case nir_op_iadd: alu->op = nir_op_fadd; break;
    case nir_op_isub: alu->op = nir_op_fsub; break;
    case nir_op_imul: alu->op = nir_op_fmul; break;
-   case nir_op_idiv:
-      rep = nir_ftrunc(b, nir_fdiv(b,
-                                   nir_ssa_for_alu_src(b, alu, 0),
-                                   nir_ssa_for_alu_src(b, alu, 1)));
+
+   case nir_op_idiv: {
+      nir_ssa_def *x = nir_ssa_for_alu_src(b, alu, 0);
+      nir_ssa_def *y = nir_ssa_for_alu_src(b, alu, 1);
+
+      /* Hand-lower fdiv, since lower_int_to_float is after nir_opt_algebraic. */
+      if (b->shader->options->lower_fdiv) {
+         rep = nir_ftrunc(b, nir_fmul(b, x, nir_frcp(b, y)));
+      } else {
+         rep = nir_ftrunc(b, nir_fdiv(b, x, y));
+      }
       break;
+   }
+
    case nir_op_iabs: alu->op = nir_op_fabs; break;
    case nir_op_ineg: alu->op = nir_op_fneg; break;
    case nir_op_imax: alu->op = nir_op_fmax; break;

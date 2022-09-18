@@ -22,43 +22,19 @@
     GPU_VERSION: crocus-hsw
     FDO_CI_CONCURRENT: 12
 
-crocus-g41-deqp:
+crocus-g41:
   extends:
     - .anholt-g41-test
     - .deqp-test
   variables:
     DEQP_SUITE: crocus-g41
 
-crocus-hsw-deqp:
+crocus-hsw:
   extends:
     - .anholt-hsw-test
     - .deqp-test
   variables:
     DEQP_SUITE: crocus-hsw
-
-.crocus-piglit-test:
-  variables:
-    PIGLIT_PROFILES: gpu
-    PIGLIT_PLATFORM: gbm
-  artifacts:
-    paths:
-      - results/
-    reports:
-      junit: results/junit.xml
-  script:
-    - install/piglit/piglit-runner.sh
-
-crocus-g41-piglit:
-  extends:
-    - .anholt-g41-test
-    - .piglit-test
-    - .crocus-piglit-test
-
-crocus-hsw-piglit:
-  extends:
-    - .anholt-hsw-test
-    - .piglit-test
-    - .crocus-piglit-test
 
 crocus-g41-traces:
   extends:

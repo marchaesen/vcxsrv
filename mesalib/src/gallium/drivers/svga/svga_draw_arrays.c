@@ -291,7 +291,7 @@ svga_hwtnl_draw_arrays(struct svga_hwtnl *hwtnl,
                                          gen_nr,
                                          gen_size, gen_func, &gen_buf);
       if (ret == PIPE_OK) {
-         pipe_debug_message(&svga->debug.callback, PERF_INFO,
+         util_debug_message(&svga->debug.callback, PERF_INFO,
                             "generating temporary index buffer for drawing %s",
                             u_prim_name(prim));
 

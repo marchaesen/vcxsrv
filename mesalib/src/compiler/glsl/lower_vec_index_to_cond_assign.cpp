@@ -41,6 +41,7 @@
 #include "ir_optimization.h"
 #include "compiler/glsl_types.h"
 #include "ir_builder.h"
+#include "program/prog_instruction.h"
 
 using namespace ir_builder;
 
@@ -58,11 +59,6 @@ public:
       /* empty */
    }
 
-   ir_rvalue *convert_vec_index_to_cond_assign(void *mem_ctx,
-                                               ir_rvalue *orig_vector,
-                                               ir_rvalue *orig_index,
-                                               const glsl_type *type);
-
    ir_rvalue *convert_vector_extract_to_cond_assign(ir_rvalue *ir);
 
    virtual ir_visitor_status visit_enter(ir_expression *);
@@ -76,52 +72,6 @@ public:
 };
 
 } /* anonymous namespace */
-
-ir_rvalue *
-ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign(void *mem_ctx,
-                                                                      ir_rvalue *orig_vector,
-                                                                      ir_rvalue *orig_index,
-                                                                      const glsl_type *type)
-{
-   exec_list list;
-   ir_factory body(&list, base_ir);
-
-   /* Store the index to a temporary to avoid reusing its tree. */
-   assert(orig_index->type == glsl_type::int_type ||
-          orig_index->type == glsl_type::uint_type);
-   ir_variable *const index =
-      body.make_temp(orig_index->type, "vec_index_tmp_i");
-
-   body.emit(assign(index, orig_index));
-
-   /* Store the value inside a temp, thus avoiding matrixes duplication */
-   ir_variable *const value =
-      body.make_temp(orig_vector->type, "vec_value_tmp");
-
-   body.emit(assign(value, orig_vector));
-
-
-   /* Temporary where we store whichever value we swizzle out. */
-   ir_variable *const var = body.make_temp(type, "vec_index_tmp_v");
-
-   /* Generate a single comparison condition "mask" for all of the components
-    * in the vector.
-    */
-   ir_variable *const cond =
-      compare_index_block(body, index, 0, orig_vector->type->vector_elements);
-
-   /* Generate a conditional move of each vector element to the temp. */
-   for (unsigned i = 0; i < orig_vector->type->vector_elements; i++)
-      body.emit(assign(var, swizzle(value, i, 1), swizzle(cond, i, 1)));
-
-   /* Put all of the new instructions in the IR stream before the old
-    * instruction.
-    */
-   base_ir->insert_before(&list);
-
-   this->progress = true;
-   return deref(var).val;
-}
 
 ir_rvalue *
 ir_vec_index_to_cond_assign_visitor::convert_vector_extract_to_cond_assign(ir_rvalue *ir)
@@ -151,19 +101,13 @@ ir_vec_index_to_cond_assign_visitor::convert_vector_extract_to_cond_assign(ir_rv
          new(base_ir) ir_expression(expr->operation, vec_input->type,
                                     vec_input, expr->operands[1]);
 
-      return convert_vec_index_to_cond_assign(ralloc_parent(ir),
-                                              vec_interpolate,
-                                              interpolant->operands[1],
-                                              ir->type);
+      this->progress = true;
+      return new(base_ir) ir_expression(ir_binop_vector_extract, ir->type,
+                                        vec_interpolate,
+                                        interpolant->operands[1]);
    }
 
-   if (expr->operation != ir_binop_vector_extract)
-      return ir;
-
-   return convert_vec_index_to_cond_assign(ralloc_parent(ir),
-                                           expr->operands[0],
-                                           expr->operands[1],
-                                           ir->type);
+   return ir;
 }
 
 ir_visitor_status
@@ -191,9 +135,6 @@ ir_visitor_status
 ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment *ir)
 {
    ir->rhs = convert_vector_extract_to_cond_assign(ir->rhs);
-
-   if (ir->condition)
-      ir->condition = convert_vector_extract_to_cond_assign(ir->condition);
 
    return visit_continue;
 }

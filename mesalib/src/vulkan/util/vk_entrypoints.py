@@ -26,7 +26,7 @@ from collections import OrderedDict, namedtuple
 
 # Mesa-local imports must be declared in meson variable
 # '{file_without_suffix}_depend_files'.
-from vk_extensions import *
+from vk_extensions import Extension, VkVersion
 
 EntrypointParam = namedtuple('EntrypointParam', 'type name decl len')
 

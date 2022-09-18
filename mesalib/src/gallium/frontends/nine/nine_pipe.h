@@ -374,6 +374,7 @@ d3d9_to_pipe_format_checked(struct pipe_screen *screen,
                 return PIPE_FORMAT_NONE;
             if (format_check_internal(PIPE_FORMAT_R8G8B8X8_UNORM))
                 return PIPE_FORMAT_R8G8B8X8_UNORM;
+            break;
         default:
             break;
     }

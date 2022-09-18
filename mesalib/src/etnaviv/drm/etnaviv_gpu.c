@@ -118,6 +118,18 @@ int etna_gpu_get_param(struct etna_gpu *gpu, enum etna_param_id param,
 	case ETNA_GPU_FEATURES_8:
 		*value = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_8);
 		return 0;
+	case ETNA_GPU_FEATURES_9:
+		*value = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_9);
+		return 0;
+	case ETNA_GPU_FEATURES_10:
+		*value = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_10);
+		return 0;
+	case ETNA_GPU_FEATURES_11:
+		*value = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_11);
+		return 0;
+	case ETNA_GPU_FEATURES_12:
+		*value = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_12);
+		return 0;
 	case ETNA_GPU_STREAM_COUNT:
 		*value = get_param(dev, core, ETNA_GPU_STREAM_COUNT);
 		return 0;

@@ -40,6 +40,9 @@ vn_android_get_drm_format_modifier_info(
    const VkPhysicalDeviceImageFormatInfo2 *format_info,
    VkPhysicalDeviceImageDrmFormatModifierInfoEXT *out_info);
 
+const VkFormat *
+vn_android_format_to_view_formats(VkFormat format, uint32_t *out_count);
+
 uint64_t
 vn_android_get_ahb_usage(const VkImageUsageFlags usage,
                          const VkImageCreateFlags flags);
@@ -80,6 +83,9 @@ VkResult
 vn_android_get_ahb_buffer_memory_type_bits(struct vn_device *dev,
                                            uint32_t *out_mem_type_bits);
 
+uint32_t
+vn_android_gralloc_get_shared_present_usage(void);
+
 #else
 
 static inline const VkNativeBufferANDROID *
@@ -104,6 +110,13 @@ vn_android_get_drm_format_modifier_info(
    UNUSED VkPhysicalDeviceImageDrmFormatModifierInfoEXT *out_info)
 {
    return false;
+}
+
+static inline const VkFormat *
+vn_android_format_to_view_formats(UNUSED VkFormat format,
+                                  UNUSED uint32_t *out_count)
+{
+   return NULL;
 }
 
 static inline uint64_t
@@ -168,6 +181,12 @@ vn_android_get_ahb_buffer_memory_type_bits(UNUSED struct vn_device *dev,
                                            UNUSED uint32_t *out_mem_type_bits)
 {
    return VK_ERROR_FEATURE_NOT_PRESENT;
+}
+
+static inline uint32_t
+vn_android_gralloc_get_shared_present_usage(void)
+{
+   return 0;
 }
 
 #endif /* ANDROID */

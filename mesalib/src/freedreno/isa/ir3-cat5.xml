@@ -266,6 +266,91 @@ SOFTWARE.
 </bitset>
 
 <bitset name="getinfo" extends="#instruction-cat5-tex">
+	<doc>
+		GETINFO returns 4 values, in .xyzw:
+
+		x: A value associated with the channel type, i.e. OpenCL's
+		   get_image_channel_data_type:
+
+		   The below was RE'd on A420 and confirmed with the
+		   blob's headers.
+
+		   8_SNORM:	     0 (CLK_SNORM_INT8)
+		   16_SNORM:	     1 (CLK_SNORM_INT16)
+		   8_UNORM:	     2 (CLK_UNORM_INT8)
+		   16_UNORM:	     3 (CLK_UNORM_INT16)
+		   5_6_5_UNORM:	     4 (CLK_UNORM_SHORT_565)
+		   5_5_5_1_UNORM:    5 (CLK_UNORM_SHORT_555)
+		   10_10_10_2_UNORM: 6 (CLK_UNORM_INT_101010, CLK_UNORM_SHORT_101010)
+		   8_SINT:	     7 (CLK_SIGNED_INT8)
+		   16_SINT:	     8 (CLK_SIGNED_INT16)
+		   32_SINT:	     9 (CLK_SIGNED_INT32)
+		   8_UINT:	    10 (CLK_UNSIGNED_INT8)
+		   16_UINT:	    11 (CLK_UNSIGNED_INT16)
+		   32_UINT:	    12 (CLK_UNSIGNED_INT32)
+		   16_FLOAT:	    13 (CLK_HALF_FLOAT)
+		   32_FLOAT:	    14 (CLK_FLOAT)
+		   9_9_9_E5_FLOAT:  15 (CLK_FLOAT_10F_11F_11F)
+		   11_11_10_FLOAT:  15 (CLK_FLOAT_10F_11F_11F)
+		   10_10_10_2_UINT: 16 (CLK_UNSIGNED_SHORT_101010)
+		   4_4_4_4_UNORM:   17 (CLK_UNORM_INT4)
+		   X8Z24_UNORM:	    18 (CLK_UNORM_INT32)
+
+		y: A value associated with the number of components
+		   and swizzle, i.e. OpenCL's get_image_channel_order:
+
+		   The below was largely taken from the blob's headers.
+
+		   A3xx/A4xx:
+
+		   0:  CLK_A
+		   1:  CLK_R
+		   2:  CLK_Rx
+		   3:  CLK_RG
+		   4:  CLK_RGx
+		   5:  CLK_RA
+		   6:  CLK_RGB
+		   7:  CLK_RGBx
+		   8:  CLK_RGBA
+		   9:  CLK_ARGB
+		   10: CLK_BGRA
+		   11: CLK_LUMINANCE
+		   12: CLK_INTENSITY
+		   13: CLK_ABGR
+		   14: CLK_BGR
+		   15: CLK_sRGB
+		   16: CLK_sRGBA
+		   17: CLK_DEPTH
+
+		   A5xx/A6xx:
+
+		   0:  CLK_A
+		   1:  CLK_R
+		   2:  CLK_RX
+		   3:  CLK_RG
+		   4:  CLK_RGX
+		   5:  CLK_RA
+		   6:  CLK_RGB
+		   7:  CLK_RGBX
+		   8:  CLK_RGBA
+		   9:  CLK_ARGB
+		   10: CLK_BGRA
+		   11: CLK_INTENSITY
+		   12: CLK_LUMINANCE
+		   13: CLK_ABGR
+		   14: CLK_DEPTH
+		   15: CLK_sRGB
+		   16: CLK_sRGBx
+		   17: CLK_sRGBA
+		   18: CLK_sBGRA
+		   19: CLK_sARGB
+		   20: CLK_sABGR
+		   21: CLK_BGR
+
+		z: Number of levels
+
+		w: Number of samples
+	</doc>
 	<pattern low="54" high="58">01101</pattern>
 	<derived name="NUM_SRC" expr="#zero" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>

@@ -21,7 +21,7 @@ same timeline, to better understand and tune/debug system level performance:
 - pps-producer: A systemwide daemon that can collect global performance
   counters.
 - mesa: Per-process producer within mesa to capture render-stage traces
-  on the GPU timeline, track events, etc.
+  on the GPU timeline, track events on the CPU timeline, etc.
 
 The exact supported features vary per driver:
 
@@ -36,10 +36,10 @@ The exact supported features vary per driver:
      - ``gpu.renderstages.msm``
    * - Turnip
      - ``gpu.counters.msm``
-     -
+     - ``gpu.renderstages.msm``
    * - Intel
      - ``gpu.counters.i915``
-     -
+     - ``gpu.renderstages.i915``
    * - Panfrost
      - ``gpu.counters.panfrost``
      -
@@ -103,6 +103,14 @@ the steps above :
    mesa $ ./build/src/tool/pps/pps-producer
 
    # Back in the perfetto tmux, press enter to start the capture
+
+CPU Tracing
+~~~~~~~~~~~
+
+Mesa's CPU tracepoints (``MESA_TRACE_*``) use Perfetto track events when
+Perfetto is enabled.  They use ``mesa.default`` and ``mesa.slow`` categories.
+
+Currently, only EGL and freedreno have CPU tracepoints.
 
 Vulkan data sources
 ~~~~~~~~~~~~~~~~~~~

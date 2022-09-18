@@ -43,8 +43,7 @@ extern int midgard_debug;
 typedef enum {
         midgard_word_type_alu,
         midgard_word_type_load_store,
-        midgard_word_type_texture,
-        midgard_word_type_unknown
+        midgard_word_type_texture
 } midgard_word_type;
 
 typedef enum {
@@ -338,7 +337,7 @@ __attribute__((__packed__))
         unsigned src1             :  6;
         /* last 5 bits are used when src2 is an immediate */
         unsigned src2             : 11;
-        unsigned unknown          :  1;
+        unsigned reserved         :  1;
         unsigned outmod           :  2;
         bool output_full          :  1;
         unsigned output_component :  3;
@@ -380,7 +379,7 @@ typedef enum {
         midgard_jmp_writeout_op_tilebuffer_pending = 6,
 
         /* In a fragment shader, try to write out the value pushed to r0 to the
-         * tilebuffer, subject to unknown state in r1.z and r1.w. If this
+         * tilebuffer, subject to state in r1.z and r1.w. If this
          * succeeds, the shader terminates. If it fails, it branches to the
          * specified branch target. Generally, this should be used in a loop to
          * itself, acting as "do { write(r0); } while(!write_successful);" */
@@ -401,12 +400,18 @@ typedef enum {
         midgard_condition_always = 3,
 } midgard_condition;
 
+enum midgard_call_mode {
+        midgard_call_mode_default = 1,
+        midgard_call_mode_call = 2,
+        midgard_call_mode_return = 3
+};
+
 typedef struct
 __attribute__((__packed__))
 {
         midgard_jmp_writeout_op op : 3; /* == branch_uncond */
         unsigned dest_tag : 4; /* tag of branch destination */
-        unsigned unknown : 2;
+        enum midgard_call_mode call_mode : 2;
         int offset : 7;
 }
 midgard_branch_uncond;
@@ -426,7 +431,7 @@ __attribute__((__packed__))
 {
         midgard_jmp_writeout_op op : 3; /* == branch_cond */
         unsigned dest_tag : 4; /* tag of branch destination */
-        unsigned unknown : 2;
+        enum midgard_call_mode call_mode : 2;
         signed offset : 23;
 
         /* Extended branches permit inputting up to 4 conditions loaded into
@@ -866,6 +871,12 @@ enum mali_derivative_mode {
         TEXTURE_DFDY = 1,
 };
 
+enum midgard_partial_execution {
+        MIDGARD_PARTIAL_EXECUTION_SKIP = 1,
+        MIDGARD_PARTIAL_EXECUTION_KILL = 2,
+        MIDGARD_PARTIAL_EXECUTION_NONE = 3
+};
+
 typedef struct
 __attribute__((__packed__))
 {
@@ -874,14 +885,7 @@ __attribute__((__packed__))
 
         enum mali_texture_op op  : 4;
         unsigned mode : 4;
-
-        /* A little obscure, but last is set for the last texture operation in
-         * a shader. cont appears to just be last's opposite (?). Yeah, I know,
-         * kind of funky.. BiOpen thinks it could do with memory hinting, or
-         * tile locking? */
-
-        unsigned cont  : 1;
-        unsigned last  : 1;
+        enum midgard_partial_execution exec : 2;
 
         unsigned format : 2;
 

@@ -46,6 +46,10 @@ Requirements
 
       yum install llvm-devel
 
+   If you want development snapshot builds of LLVM for Fedora, you can
+   use the Copr repository at `fedora-llvm-team/llvm-snapshots <https://copr.fedorainfracloud.org/coprs/g/fedora-llvm-team/llvm-snapshots/>`__,
+   which is maintained by Red Hat's LLVM team.
+
    For Windows you will need to build LLVM from source with MSVC or
    MINGW (either natively or through cross compilers) and CMake, and set
    the ``LLVM`` environment variable to the directory you installed it
@@ -82,6 +86,29 @@ To build everything on Linux invoke meson as:
 
 Using
 -----
+
+Environment variables
+~~~~~~~~~~~~~~~~~~~~~
+
+``LP_NATIVE_VECTOR_WIDTH``
+   We can use it to override vector bits. Because sometimes it turns
+   out llvmpipe can be fastest by using 128 bit vectors,
+   yet use AVX instructions.
+``GALLIUM_OVERRIDE_CPU_CAPS``
+   Override cpu capabilities for llvmpipe and softpipe, possible values for x86:
+   `nosse`
+   `sse`
+   `sse2`
+   `sse3`
+   `ssse3`
+   `sse4.1`
+   `avx`
+``GALLIUM_NOSSE``
+   Deprecated in favor of `GALLIUM_OVERRIDE_CPU_CAPS`,
+   use `GALLIUM_OVERRIDE_CPU_CAPS=nosse` instead.
+``LP_FORCE_SSE2``
+   Deprecated in favor of `GALLIUM_OVERRIDE_CPU_CAPS`
+   use `GALLIUM_OVERRIDE_CPU_CAPS=sse2` instead.
 
 Linux
 ~~~~~

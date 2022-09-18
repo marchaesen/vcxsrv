@@ -118,8 +118,6 @@ ir_visitor_status
 ir_rvalue_base_visitor::rvalue_visit(ir_assignment *ir)
 {
    handle_rvalue(&ir->rhs);
-   handle_rvalue(&ir->condition);
-
    return visit_continue;
 }
 

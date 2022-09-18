@@ -46,7 +46,7 @@
 
 #include "pipe/p_compiler.h"
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -171,7 +171,7 @@ cso_hash_iter_next(struct cso_hash_iter iter)
    return next;
 }
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

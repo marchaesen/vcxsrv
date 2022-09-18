@@ -3,6 +3,7 @@
 #include "nine_pipe.h"
 
 #include <stdio.h>
+#include "c11/threads.h"
 #include "util/u_memory.h"
 #include "util/u_math.h"
 
@@ -10,7 +11,7 @@
 
 #if defined(DEBUG) || !defined(NDEBUG)
 
-static char __thread tls[128];
+static char thread_local tls[128];
 
 const char *nine_D3DDEVTYPE_to_str(D3DDEVTYPE type)
 {

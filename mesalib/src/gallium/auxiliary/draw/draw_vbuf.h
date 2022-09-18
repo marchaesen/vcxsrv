@@ -28,7 +28,7 @@
 /**
  * \file
  * Vertex buffer drawing stage.
- * 
+ *
  * \author Keith Whitwell <keithw@vmware.com>
  * \author Jose Fonseca <jfonseca@vmware.com>
  */
@@ -67,29 +67,29 @@ struct vbuf_render {
     */
    boolean (*need_pipeline)(const struct vbuf_render *render,
                             const struct pipe_rasterizer_state *rasterizer,
-                            unsigned int prim );
+                            unsigned int prim);
 
 
    /**
     * Get the hardware vertex format.
-    * 
+    *
     * XXX: have this in draw_context instead?
-    */ 
-   const struct vertex_info *(*get_vertex_info)( struct vbuf_render * );
-	 
+    */
+   const struct vertex_info *(*get_vertex_info)(struct vbuf_render *);
+
    /**
     * Request a destination for vertices.
     * Hardware renderers will use ttm memory, others will just malloc
     * something.
     */
-   boolean (*allocate_vertices)( struct vbuf_render *,
-                                 ushort vertex_size,
-                                 ushort nr_vertices );
-   
-   void *(*map_vertices)( struct vbuf_render * );
-   void (*unmap_vertices)( struct vbuf_render *, 
-                           ushort min_index,
-                           ushort max_index );
+   boolean (*allocate_vertices)(struct vbuf_render *,
+                                ushort vertex_size,
+                                ushort nr_vertices);
+
+   void *(*map_vertices)(struct vbuf_render *);
+   void (*unmap_vertices)(struct vbuf_render *,
+                          ushort min_index,
+                          ushort max_index);
 
    /**
     * Notify the renderer of the current primitive when it changes.
@@ -97,56 +97,56 @@ struct vbuf_render {
     * the discretion of the driver, for the benefit of the passthrough
     * path.
     */
-   void (*set_primitive)( struct vbuf_render *, enum pipe_prim_type prim );
+   void (*set_primitive)(struct vbuf_render *, enum pipe_prim_type prim);
 
    /**
     * Notify the renderer of the current view index.
     */
-   void (*set_view_index)( struct vbuf_render *, unsigned view_index );
+   void (*set_view_index)(struct vbuf_render *, unsigned view_index);
 
    /**
     * Draw indexed primitives.  Note that indices are ushort.  The driver
     * must complete this call, if necessary splitting the index list itself.
     */
-   void (*draw_elements)( struct vbuf_render *,
-                          const ushort *indices,
-                          uint nr_indices );
+   void (*draw_elements)(struct vbuf_render *,
+                         const ushort *indices,
+                         uint nr_indices);
 
    /* Draw non-indexed primitives.
     */
-   void (*draw_arrays)( struct vbuf_render *,
-			unsigned start,
-			uint nr );
+   void (*draw_arrays)(struct vbuf_render *,
+                       unsigned start,
+                       uint nr);
 
    /**
     * Called when vbuf is done with this set of vertices:
     */
-   void (*release_vertices)( struct vbuf_render * );
+   void (*release_vertices)(struct vbuf_render *);
 
-   void (*destroy)( struct vbuf_render * );
+   void (*destroy)(struct vbuf_render *);
 
 
    /**
     * Called after writing data to the stream out buffers
     */
-   void (*set_stream_output_info)( struct vbuf_render *vbufr,
-                                   unsigned stream,
-                                   unsigned primitive_count,
-                                   unsigned primitive_generated );
+   void (*set_stream_output_info)(struct vbuf_render *vbufr,
+                                  unsigned stream,
+                                  unsigned primitive_count,
+                                  unsigned primitive_generated);
 
    /**
     * Called after all relevant statistics have been accumulated.
     */
    void (*pipeline_statistics)(
       struct vbuf_render *vbufr,
-      const struct pipe_query_data_pipeline_statistics *stats );
+      const struct pipe_query_data_pipeline_statistics *stats);
 };
 
 
 
 struct draw_stage *
-draw_vbuf_stage( struct draw_context *draw,
-                 struct vbuf_render *render );
+draw_vbuf_stage(struct draw_context *draw,
+                 struct vbuf_render *render);
 
 
 #endif /*DRAW_VBUF_H_*/

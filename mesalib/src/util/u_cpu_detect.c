@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2008 Dennis Smit
  * All Rights Reserved.
  *
@@ -21,7 +21,7 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -90,10 +90,19 @@
 #include <sched.h>
 #endif
 
+// prevent inadvert infinite recursion
+#define util_get_cpu_caps() util_get_cpu_caps_DO_NOT_USE()
+
 DEBUG_GET_ONCE_BOOL_OPTION(dump_cpu, "GALLIUM_DUMP_CPU", false)
 
-
+static
 struct util_cpu_caps_t util_cpu_caps;
+
+/* Do not try to access _util_cpu_caps_state directly, call to util_get_cpu_caps instead */
+struct _util_cpu_caps_state_t _util_cpu_caps_state = {
+   .once_flag = ONCE_FLAG_INIT,
+   .detect_done = 0,
+};
 
 #if defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64)
 static int has_cpuid(void);
@@ -136,7 +145,7 @@ check_os_altivec_support(void)
    int sels[2] = {CTL_MACHDEP, CPU_ALTIVEC};
 #endif
    int has_vu = 0;
-   int len = sizeof (has_vu);
+   size_t len = sizeof (has_vu);
    int err;
 
    err = sysctl(sels, 2, &has_vu, &len, NULL, 0);
@@ -361,11 +370,11 @@ static inline uint64_t xgetbv(void)
 #if defined(PIPE_ARCH_X86)
 PIPE_ALIGN_STACK static inline boolean sse2_has_daz(void)
 {
-   struct {
+   alignas(16) struct {
       uint32_t pad1[7];
       uint32_t mxcsr_mask;
       uint32_t pad2[128-8];
-   } PIPE_ALIGN_VAR(16) fxarea;
+   } fxarea;
 
    fxarea.mxcsr_mask = 0;
 #if defined(PIPE_CC_GCC)
@@ -438,6 +447,7 @@ check_os_arm_support(void)
 static void
 check_os_mips64_support(void)
 {
+#if defined(PIPE_OS_LINUX)
     Elf64_auxv_t aux;
     int fd;
 
@@ -453,6 +463,7 @@ check_os_mips64_support(void)
        }
        close (fd);
     }
+#endif /* PIPE_OS_LINUX */
 }
 #endif /* PIPE_ARCH_MIPS64 */
 
@@ -582,8 +593,99 @@ get_cpu_topology(void)
 #endif
 }
 
-static void
-util_cpu_detect_once(void)
+static
+void check_cpu_caps_override(void)
+{
+   const char *override_cpu_caps = debug_get_option("GALLIUM_OVERRIDE_CPU_CAPS", NULL);
+#if defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64)
+   if (debug_get_bool_option("GALLIUM_NOSSE", false)) {
+      util_cpu_caps.has_sse = 0;
+   }
+#ifdef DEBUG
+   /* For simulating less capable machines */
+   if (debug_get_bool_option("LP_FORCE_SSE2", false)) {
+      util_cpu_caps.has_sse3 = 0;
+   }
+#endif
+#endif /* PIPE_ARCH_X86 || PIPE_ARCH_X86_64 */
+
+   if (override_cpu_caps != NULL) {
+#if defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64)
+      if (!strcmp(override_cpu_caps, "nosse")) {
+         util_cpu_caps.has_sse = 0;
+      } else if (!strcmp(override_cpu_caps, "sse")) {
+         util_cpu_caps.has_sse2 = 0;
+      } else if (!strcmp(override_cpu_caps, "sse2")) {
+         util_cpu_caps.has_sse3 = 0;
+      } else if (!strcmp(override_cpu_caps, "sse3")) {
+         util_cpu_caps.has_ssse3 = 0;
+      } else if (!strcmp(override_cpu_caps, "ssse3")) {
+         util_cpu_caps.has_sse4_1 = 0;
+      } else if (!strcmp(override_cpu_caps, "sse4.1")) {
+         util_cpu_caps.has_avx = 0;
+      } else if (!strcmp(override_cpu_caps, "avx")) {
+         util_cpu_caps.has_avx512f = 0;
+      }
+#endif /* PIPE_ARCH_X86 || PIPE_ARCH_X86_64 */
+   }
+
+#if defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64)
+   if (!util_cpu_caps.has_sse) {
+      util_cpu_caps.has_sse2 = 0;
+   }
+   if (!util_cpu_caps.has_sse2) {
+      util_cpu_caps.has_sse3 = 0;
+   }
+   if (!util_cpu_caps.has_sse3) {
+      util_cpu_caps.has_ssse3 = 0;
+   }
+   if (!util_cpu_caps.has_ssse3) {
+      util_cpu_caps.has_sse4_1 = 0;
+   }
+   if (!util_cpu_caps.has_sse4_1) {
+      util_cpu_caps.has_sse4_2 = 0;
+      util_cpu_caps.has_avx = 0;
+   }
+   if (!util_cpu_caps.has_avx) {
+      util_cpu_caps.has_avx2 = 0;
+      util_cpu_caps.has_f16c = 0;
+      util_cpu_caps.has_fma = 0;
+      util_cpu_caps.has_avx512f = 0;
+   }
+   if (!util_cpu_caps.has_avx512f) {
+      /* avx512 are cleared */
+      util_cpu_caps.has_avx512dq   = 0;
+      util_cpu_caps.has_avx512ifma = 0;
+      util_cpu_caps.has_avx512pf   = 0;
+      util_cpu_caps.has_avx512er   = 0;
+      util_cpu_caps.has_avx512cd   = 0;
+      util_cpu_caps.has_avx512bw   = 0;
+      util_cpu_caps.has_avx512vl   = 0;
+      util_cpu_caps.has_avx512vbmi = 0;
+   }
+#endif /* PIPE_ARCH_X86 || PIPE_ARCH_X86_64 */
+}
+
+static
+void check_max_vector_bits(void)
+{
+   /* Leave it at 128, even when no SIMD extensions are available.
+    * Really needs to be a multiple of 128 so can fit 4 floats.
+    */
+   util_cpu_caps.max_vector_bits = 128;
+#if defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64)
+   if (util_cpu_caps.has_avx512f) {
+      util_cpu_caps.max_vector_bits = 512;
+   } else if (util_cpu_caps.has_avx) {
+      util_cpu_caps.max_vector_bits = 256;
+   }
+#endif
+}
+
+void _util_cpu_detect_once(void);
+
+void
+_util_cpu_detect_once(void)
 {
    int available_cpus = 0;
    int total_cpus = 0;
@@ -623,7 +725,7 @@ util_cpu_detect_once(void)
    if (available_cpus == 0) {
       const int mib[] = { CTL_HW, HW_NCPUONLINE };
       int ncpu;
-      int len = sizeof(ncpu);
+      size_t len = sizeof(ncpu);
 
       sysctl(mib, 2, &ncpu, &len, NULL, 0);
       available_cpus = ncpu;
@@ -791,13 +893,6 @@ util_cpu_detect_once(void)
          if (cacheline > 0)
             util_cpu_caps.cacheline = cacheline;
       }
-
-      if (!util_cpu_caps.has_sse) {
-         util_cpu_caps.has_sse2 = 0;
-         util_cpu_caps.has_sse3 = 0;
-         util_cpu_caps.has_ssse3 = 0;
-         util_cpu_caps.has_sse4_1 = 0;
-      }
    }
 #endif /* PIPE_ARCH_X86 || PIPE_ARCH_X86_64 */
 
@@ -816,6 +911,11 @@ util_cpu_detect_once(void)
 #if defined(PIPE_ARCH_S390)
    util_cpu_caps.family = CPU_S390X;
 #endif
+
+   check_cpu_caps_override();
+
+   /* max_vector_bits should be checked after cpu caps override */
+   check_max_vector_bits();
 
    get_cpu_topology();
 
@@ -858,12 +958,8 @@ util_cpu_detect_once(void)
       printf("util_cpu_caps.num_L3_caches = %u\n", util_cpu_caps.num_L3_caches);
       printf("util_cpu_caps.num_cpu_mask_bits = %u\n", util_cpu_caps.num_cpu_mask_bits);
    }
-}
+   _util_cpu_caps_state.caps = util_cpu_caps;
 
-static once_flag cpu_once_flag = ONCE_FLAG_INIT;
-
-void
-util_cpu_detect(void)
-{
-   call_once(&cpu_once_flag, util_cpu_detect_once);
+   /* This must happen at the end as it's used to guard everything else */
+   p_atomic_set(&_util_cpu_caps_state.detect_done, 1);
 }

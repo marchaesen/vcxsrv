@@ -1917,7 +1917,10 @@ perhaps they should be taken with a grain of salt
 	<reg32 offset="0x2387" name="TPL1_TP_HS_BORDER_COLOR_BASE_ADDR"/>
 	<reg32 offset="0x238a" name="TPL1_TP_DS_BORDER_COLOR_BASE_ADDR"/>
 	<reg32 offset="0x238d" name="TPL1_TP_GS_BORDER_COLOR_BASE_ADDR"/>
-	<reg32 offset="0x23a0" name="TPL1_TP_FS_TEX_COUNT"/>
+	<reg32 offset="0x23a0" name="TPL1_TP_FS_TEX_COUNT">
+		<bitfield name="FS" low="0" high="7" type="uint"/>
+		<bitfield name="CS" low="8" high="15" type="uint"/>
+	</reg32>
 	<reg32 offset="0x23a1" name="TPL1_TP_FS_BORDER_COLOR_BASE_ADDR"/>
 	<reg32 offset="0x23a4" name="TPL1_TP_CS_BORDER_COLOR_BASE_ADDR"/>
 	<reg32 offset="0x23a5" name="TPL1_TP_CS_SAMPLER_BASE_ADDR"/>

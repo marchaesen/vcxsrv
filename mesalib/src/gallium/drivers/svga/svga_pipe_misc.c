@@ -225,7 +225,7 @@ svga_set_viewport_states(struct pipe_context *pipe,
  */
 static void
 svga_set_debug_callback(struct pipe_context *pipe,
-                        const struct pipe_debug_callback *cb)
+                        const struct util_debug_callback *cb)
 {
    struct svga_context *svga = svga_context(pipe);
 

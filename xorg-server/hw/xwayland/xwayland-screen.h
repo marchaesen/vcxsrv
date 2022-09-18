@@ -38,6 +38,10 @@
 #include "xwayland-glamor.h"
 #include "xwayland-drm-lease.h"
 
+#ifdef XWL_HAS_LIBDECOR
+#include <libdecor.h>
+#endif
+
 struct xwl_format {
     uint32_t format;
     int num_modifiers;
@@ -48,6 +52,7 @@ struct xwl_screen {
     int width;
     int height;
     int depth;
+    int output_name_serial;
     ScreenPtr screen;
     int wm_client_id;
     int expecting_event;
@@ -56,6 +61,11 @@ struct xwl_screen {
     int rootless;
     int glamor;
     int present;
+    int force_xrandr_emulation;
+    int fullscreen;
+    int host_grab;
+    int has_grab;
+    int decorate;
 
     CreateScreenResourcesProcPtr CreateScreenResources;
     CloseScreenProcPtr CloseScreen;
@@ -67,6 +77,9 @@ struct xwl_screen {
     ChangeWindowAttributesProcPtr ChangeWindowAttributes;
     ResizeWindowProcPtr ResizeWindow;
     MoveWindowProcPtr MoveWindow;
+
+    int (*GrabServer) (ClientPtr client);
+    int (*UngrabServer) (ClientPtr client);
 
     struct xorg_list output_list;
     struct xorg_list seat_list;
@@ -85,12 +98,15 @@ struct xwl_screen {
     struct zwp_pointer_constraints_v1 *pointer_constraints;
     struct zwp_pointer_gestures_v1 *pointer_gestures;
     struct zwp_xwayland_keyboard_grab_manager_v1 *wp_grab;
+    struct zwp_keyboard_shortcuts_inhibit_manager_v1 *shortcuts_inhibit_manager;
+    struct zwp_keyboard_shortcuts_inhibitor_v1 *shortcuts_inhibit;
     struct zwp_linux_dmabuf_v1 *dmabuf;
     struct zxdg_output_manager_v1 *xdg_output_manager;
     struct wp_viewporter *viewporter;
     struct xorg_list drm_lease_devices;
     struct xorg_list queued_drm_lease_devices;
     struct xorg_list drm_leases;
+    struct xwl_output *fixed_output;
     uint32_t serial;
 
 #define XWL_FORMAT_ARGB8888 (1 << 0)
@@ -115,6 +131,10 @@ struct xwl_screen {
 
     /* The preferred GLVND vendor. If NULL, "mesa" is assumed. */
     const char *glvnd_vendor;
+#ifdef XWL_HAS_LIBDECOR
+    int libdecor_fd;
+    struct libdecor *libdecor_context;
+#endif
 };
 
 /* Apps which use randr/vidmode to change the mode when going fullscreen,
@@ -132,6 +152,7 @@ Bool xwl_screen_has_viewport_support(struct xwl_screen *xwl_screen);
 Bool xwl_screen_has_resolution_change_emulation(struct xwl_screen *xwl_screen);
 void xwl_screen_check_resolution_change_emulation(struct xwl_screen *xwl_screen);
 struct xwl_output *xwl_screen_get_first_output(struct xwl_screen *xwl_screen);
+struct xwl_output *xwl_screen_get_fixed_or_first_output(struct xwl_screen *xwl_screen);
 Bool xwl_close_screen(ScreenPtr screen);
 Bool xwl_screen_init(ScreenPtr pScreen, int argc, char **argv);
 void xwl_sync_events (struct xwl_screen *xwl_screen);
@@ -139,5 +160,6 @@ void xwl_screen_roundtrip (struct xwl_screen *xwl_screen);
 void xwl_surface_damage(struct xwl_screen *xwl_screen,
                         struct wl_surface *surface,
                         int32_t x, int32_t y, int32_t width, int32_t height);
+int xwl_screen_get_next_output_serial(struct xwl_screen * xwl_screen);
 
 #endif /* XWAYLAND_SCREEN_H */

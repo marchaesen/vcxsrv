@@ -36,22 +36,22 @@ given keyboard state
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- sym_inout
+.I sym_inout
 symbol to be translated; result of translation
 .TP
-.I \- mods
+.I mods
 modifiers to apply to sym_inout 
 .TP
-.I \- buf
+.I buf
 buffer into which returned string is written 
 .TP
-.I \- nbytes
+.I nbytes
 size of buffer in bytes
 .TP
-.I \- extra_rtrn
+.I extra_rtrn
 number of bytes overflow
 .SH DESCRIPTION
 .LP

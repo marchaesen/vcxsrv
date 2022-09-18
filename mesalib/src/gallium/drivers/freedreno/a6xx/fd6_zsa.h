@@ -36,7 +36,7 @@
 #include "fd6_context.h"
 
 #define FD6_ZSA_NO_ALPHA    (1 << 0)
-#define FD6_ZSA_DEPTH_CLAMP (1 << 1)
+#define FD6_ZSA_DEPTH_CLIP_DISABLE (1 << 1)
 
 struct fd6_zsa_stateobj {
    struct pipe_depth_stencil_alpha_state base;
@@ -68,7 +68,7 @@ fd6_zsa_state(struct fd_context *ctx, bool no_alpha, bool depth_clamp) assert_dt
    if (no_alpha)
       variant |= FD6_ZSA_NO_ALPHA;
    if (depth_clamp)
-      variant |= FD6_ZSA_DEPTH_CLAMP;
+      variant |= FD6_ZSA_DEPTH_CLIP_DISABLE;
    return fd6_zsa_stateobj(ctx->zsa)->stateobj[variant];
 }
 

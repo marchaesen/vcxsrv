@@ -33,13 +33,13 @@ XkbResizeKeyActions \- Change the number of actions bound to a key
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description to change
 .TP
-.I \- key
+.I key
 keycode of key to change
 .TP
-.I \- needed
+.I needed
 new number of actions required
 .SH DESCRIPTION
 .LP

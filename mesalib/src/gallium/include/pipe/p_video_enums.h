@@ -91,7 +91,84 @@ enum pipe_video_cap
    PIPE_VIDEO_CAP_STACKED_FRAMES = 9,
    PIPE_VIDEO_CAP_MAX_MACROBLOCKS = 10,
    PIPE_VIDEO_CAP_MAX_TEMPORAL_LAYERS = 11,
+   PIPE_VIDEO_CAP_EFC_SUPPORTED = 12,
+   PIPE_VIDEO_CAP_ENC_MAX_SLICES_PER_FRAME = 13,
+   PIPE_VIDEO_CAP_ENC_SLICES_STRUCTURE = 14,
+   PIPE_VIDEO_CAP_ENC_MAX_REFERENCES_PER_FRAME = 15,
+   PIPE_VIDEO_CAP_VPP_ORIENTATION_MODES = 16,
+   PIPE_VIDEO_CAP_VPP_BLEND_MODES = 17,
+   PIPE_VIDEO_CAP_VPP_MAX_INPUT_WIDTH = 18,
+   PIPE_VIDEO_CAP_VPP_MAX_INPUT_HEIGHT = 19,
+   PIPE_VIDEO_CAP_VPP_MIN_INPUT_WIDTH = 20,
+   PIPE_VIDEO_CAP_VPP_MIN_INPUT_HEIGHT = 21,
+   PIPE_VIDEO_CAP_VPP_MAX_OUTPUT_WIDTH = 22,
+   PIPE_VIDEO_CAP_VPP_MAX_OUTPUT_HEIGHT = 23,
+   PIPE_VIDEO_CAP_VPP_MIN_OUTPUT_WIDTH = 24,
+   PIPE_VIDEO_CAP_VPP_MIN_OUTPUT_HEIGHT = 25,
+   PIPE_VIDEO_CAP_ENC_QUALITY_LEVEL = 26,
+   /* If true, when mapping planar textures like NV12 or P016 the mapped buffer contains
+   all the planes contiguously. This allows for use with some frontends functions that
+   require this like vaDeriveImage */
+   PIPE_VIDEO_CAP_SUPPORTS_CONTIGUOUS_PLANES_MAP = 27,
+   PIPE_VIDEO_CAP_ENC_SUPPORTS_MAX_FRAME_SIZE = 28,
+   PIPE_VIDEO_CAP_ENC_HEVC_BLOCK_SIZES = 29,
+   PIPE_VIDEO_CAP_ENC_HEVC_FEATURE_FLAGS = 30,
+   PIPE_VIDEO_CAP_ENC_HEVC_PREDICTION_DIRECTION = 31,
 };
+
+/* To be used with PIPE_VIDEO_CAP_VPP_ORIENTATION_MODES and for VPP state*/
+enum pipe_video_vpp_orientation
+{
+   PIPE_VIDEO_VPP_ORIENTATION_DEFAULT = 0x0,
+   PIPE_VIDEO_VPP_ROTATION_90 = 0x01,
+   PIPE_VIDEO_VPP_ROTATION_180 = 0x02,
+   PIPE_VIDEO_VPP_ROTATION_270 = 0x04,
+   PIPE_VIDEO_VPP_FLIP_HORIZONTAL = 0x08,
+   PIPE_VIDEO_VPP_FLIP_VERTICAL = 0x10,
+};
+
+/* To be used with PIPE_VIDEO_CAP_VPP_BLEND_MODES and for VPP state*/
+enum pipe_video_vpp_blend_mode
+{
+   PIPE_VIDEO_VPP_BLEND_MODE_NONE = 0x0,
+   PIPE_VIDEO_VPP_BLEND_MODE_GLOBAL_ALPHA = 0x1,
+};
+
+
+/* To be used with cap PIPE_VIDEO_CAP_ENC_SLICES_STRUCTURE*/
+/**
+ * pipe_video_cap_slice_structure
+ *
+ * This attribute determines slice structures supported by the
+ * driver for encoding. This attribute is a hint to the user so
+ * that he can choose a suitable surface size and how to arrange
+ * the encoding process of multiple slices per frame.
+ *
+ * More specifically, for H.264 encoding, this attribute
+ * determines the range of accepted values to
+ * h264_slice_descriptor::macroblock_address and
+ * h264_slice_descriptor::num_macroblocks.
+ */
+enum pipe_video_cap_slice_structure
+{
+   /* Driver does not supports multiple slice per frame.*/
+   PIPE_VIDEO_CAP_SLICE_STRUCTURE_NONE = 0x00000000,
+   /* Driver supports a power-of-two number of rows per slice.*/
+   PIPE_VIDEO_CAP_SLICE_STRUCTURE_POWER_OF_TWO_ROWS = 0x00000001,
+   /* Driver supports an arbitrary number of macroblocks per slice.*/
+   PIPE_VIDEO_CAP_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS = 0x00000002,
+   /* Driver support 1 row per slice*/
+   PIPE_VIDEO_CAP_SLICE_STRUCTURE_EQUAL_ROWS = 0x00000004,
+   /* Driver support max encoded slice size per slice */
+   PIPE_VIDEO_CAP_SLICE_STRUCTURE_MAX_SLICE_SIZE = 0x00000008,
+   /* Driver supports an arbitrary number of rows per slice. */
+   PIPE_VIDEO_CAP_SLICE_STRUCTURE_ARBITRARY_ROWS = 0x00000010,
+   /* Driver supports any number of rows per slice but they must be the same
+   *  for all slices except for the last one, which must be equal or smaller
+   *  to the previous slices. */
+   PIPE_VIDEO_CAP_SLICE_STRUCTURE_EQUAL_MULTI_ROWS = 0x00000020,
+};
+
 
 enum pipe_video_entrypoint
 {
@@ -99,7 +176,8 @@ enum pipe_video_entrypoint
    PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
    PIPE_VIDEO_ENTRYPOINT_IDCT,
    PIPE_VIDEO_ENTRYPOINT_MC,
-   PIPE_VIDEO_ENTRYPOINT_ENCODE
+   PIPE_VIDEO_ENTRYPOINT_ENCODE,
+   PIPE_VIDEO_ENTRYPOINT_PROCESSING,
 };
 
 #if defined(__cplusplus)

@@ -226,6 +226,9 @@ struct iris_bufmgr {
    uint64_t vma_min_align;
    struct iris_memregion vram, sys;
 
+   /* Used only when use_global_vm is true. */
+   uint32_t global_vm_id;
+
    int next_screen_id;
 
    bool has_llc:1;
@@ -234,10 +237,14 @@ struct iris_bufmgr {
    bool has_tiling_uapi:1;
    bool has_userptr_probe:1;
    bool bo_reuse:1;
+   bool use_global_vm:1;
+   bool all_vram_mappable:1;
 
    struct intel_aux_map_context *aux_map_ctx;
 
    struct pb_slabs bo_slabs[NUM_SLAB_ALLOCATORS];
+
+   struct iris_border_color_pool border_color_pool;
 };
 
 static simple_mtx_t global_bufmgr_list_mutex = _SIMPLE_MTX_INITIALIZER_NP;
@@ -395,10 +402,6 @@ vma_alloc(struct iris_bufmgr *bufmgr,
    if (memzone == IRIS_MEMZONE_BORDER_COLOR_POOL)
       return IRIS_BORDER_COLOR_POOL_ADDRESS;
 
-   /* The binder handles its own allocations.  Return non-zero here. */
-   if (memzone == IRIS_MEMZONE_BINDER)
-      return IRIS_MEMZONE_BINDER_START;
-
    uint64_t addr =
       util_vma_heap_alloc(&bufmgr->vma_allocator[memzone], size, alignment);
 
@@ -425,10 +428,6 @@ vma_free(struct iris_bufmgr *bufmgr,
       return;
 
    enum iris_memory_zone memzone = iris_memzone_for_address(address);
-
-   /* The binder handles its own allocations. */
-   if (memzone == IRIS_MEMZONE_BINDER)
-      return;
 
    assert(memzone < ARRAY_SIZE(bufmgr->vma_allocator));
 
@@ -998,6 +997,11 @@ alloc_fresh_bo(struct iris_bufmgr *bufmgr, uint64_t bo_size, unsigned flags)
          .extensions = (uintptr_t)&ext_regions,
       };
 
+      if (!bufmgr->all_vram_mappable &&
+          bo->real.heap == IRIS_HEAP_DEVICE_LOCAL_PREFERRED) {
+         create.flags |= I915_GEM_CREATE_EXT_FLAG_NEEDS_CPU_ACCESS;
+      }
+
       /* It should be safe to use GEM_CREATE_EXT without checking, since we are
        * in the side of the branch where discrete memory is available. So we
        * can assume GEM_CREATE_EXT is supported already.
@@ -1080,8 +1084,14 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
                       (bufmgr->vram.size > 0 && !local) ||
                       (flags & BO_ALLOC_COHERENT);
    bool is_scanout = (flags & BO_ALLOC_SCANOUT) != 0;
-   enum iris_mmap_mode mmap_mode =
-      !local && is_coherent && !is_scanout ? IRIS_MMAP_WB : IRIS_MMAP_WC;
+
+   enum iris_mmap_mode mmap_mode;
+   if (!bufmgr->all_vram_mappable && heap == IRIS_HEAP_DEVICE_LOCAL)
+      mmap_mode = IRIS_MMAP_NONE;
+   else if (!local && is_coherent && !is_scanout)
+      mmap_mode = IRIS_MMAP_WB;
+   else
+      mmap_mode = IRIS_MMAP_WC;
 
    simple_mtx_lock(&bufmgr->lock);
 
@@ -1490,7 +1500,7 @@ iris_bo_unreference(struct iris_bo *bo)
 }
 
 static void
-bo_wait_with_stall_warning(struct pipe_debug_callback *dbg,
+bo_wait_with_stall_warning(struct util_debug_callback *dbg,
                            struct iris_bo *bo,
                            const char *action)
 {
@@ -1527,7 +1537,7 @@ print_flags(unsigned flags)
 }
 
 static void *
-iris_bo_gem_mmap_legacy(struct pipe_debug_callback *dbg, struct iris_bo *bo)
+iris_bo_gem_mmap_legacy(struct util_debug_callback *dbg, struct iris_bo *bo)
 {
    struct iris_bufmgr *bufmgr = bo->bufmgr;
 
@@ -1554,7 +1564,7 @@ iris_bo_gem_mmap_legacy(struct pipe_debug_callback *dbg, struct iris_bo *bo)
 }
 
 static void *
-iris_bo_gem_mmap_offset(struct pipe_debug_callback *dbg, struct iris_bo *bo)
+iris_bo_gem_mmap_offset(struct util_debug_callback *dbg, struct iris_bo *bo)
 {
    struct iris_bufmgr *bufmgr = bo->bufmgr;
 
@@ -1614,7 +1624,7 @@ iris_bo_gem_mmap_offset(struct pipe_debug_callback *dbg, struct iris_bo *bo)
 }
 
 void *
-iris_bo_map(struct pipe_debug_callback *dbg,
+iris_bo_map(struct util_debug_callback *dbg,
             struct iris_bo *bo, unsigned flags)
 {
    struct iris_bufmgr *bufmgr = bo->bufmgr;
@@ -1735,6 +1745,8 @@ iris_bo_wait(struct iris_bo *bo, int64_t timeout_ns)
 static void
 iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
 {
+   iris_destroy_border_color_pool(&bufmgr->border_color_pool);
+
    /* Free aux-map buffers */
    intel_aux_map_finish(bufmgr->aux_map_ctx);
 
@@ -1787,10 +1799,8 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
    _mesa_hash_table_destroy(bufmgr->name_table, NULL);
    _mesa_hash_table_destroy(bufmgr->handle_table, NULL);
 
-   for (int z = 0; z < IRIS_MEMZONE_COUNT; z++) {
-      if (z != IRIS_MEMZONE_BINDER)
+   for (int z = 0; z < IRIS_MEMZONE_COUNT; z++)
          util_vma_heap_finish(&bufmgr->vma_allocator[z]);
-   }
 
    close(bufmgr->fd);
 
@@ -2162,6 +2172,24 @@ iris_hw_context_set_unrecoverable(struct iris_bufmgr *bufmgr,
    intel_ioctl(bufmgr->fd, DRM_IOCTL_I915_GEM_CONTEXT_SETPARAM, &p);
 }
 
+void
+iris_hw_context_set_vm_id(struct iris_bufmgr *bufmgr, uint32_t ctx_id)
+{
+   if (!bufmgr->use_global_vm)
+      return;
+
+   struct drm_i915_gem_context_param p = {
+      .ctx_id = ctx_id,
+      .param = I915_CONTEXT_PARAM_VM,
+      .value = bufmgr->global_vm_id,
+   };
+   int ret = intel_ioctl(bufmgr->fd, DRM_IOCTL_I915_GEM_CONTEXT_SETPARAM, &p);
+   if (ret != 0) {
+      DBG("DRM_IOCTL_I915_GEM_CONTEXT_SETPARAM failed: %s\n",
+          strerror(errno));
+   }
+}
+
 uint32_t
 iris_create_hw_context(struct iris_bufmgr *bufmgr)
 {
@@ -2173,6 +2201,7 @@ iris_create_hw_context(struct iris_bufmgr *bufmgr)
    }
 
    iris_hw_context_set_unrecoverable(bufmgr, create.ctx_id);
+   iris_hw_context_set_vm_id(bufmgr, create.ctx_id);
 
    return create.ctx_id;
 }
@@ -2312,32 +2341,35 @@ gem_param(int fd, int name)
 }
 
 static bool
-iris_bufmgr_query_meminfo(struct iris_bufmgr *bufmgr)
+iris_bufmgr_get_meminfo(struct iris_bufmgr *bufmgr,
+                        struct intel_device_info *devinfo)
 {
-   struct drm_i915_query_memory_regions *meminfo =
-      intel_i915_query_alloc(bufmgr->fd, DRM_I915_QUERY_MEMORY_REGIONS, NULL);
-   if (meminfo == NULL)
-      return false;
+   bufmgr->sys.region.memory_class = devinfo->mem.sram.mem_class;
+   bufmgr->sys.region.memory_instance = devinfo->mem.sram.mem_instance;
+   bufmgr->sys.size = devinfo->mem.sram.mappable.size;
 
-   for (int i = 0; i < meminfo->num_regions; i++) {
-      const struct drm_i915_memory_region_info *mem = &meminfo->regions[i];
-      switch (mem->region.memory_class) {
-      case I915_MEMORY_CLASS_SYSTEM:
-         bufmgr->sys.region = mem->region;
-         bufmgr->sys.size = mem->probed_size;
-         break;
-      case I915_MEMORY_CLASS_DEVICE:
-         bufmgr->vram.region = mem->region;
-         bufmgr->vram.size = mem->probed_size;
-         break;
-      default:
-         break;
-      }
-   }
-
-   free(meminfo);
+   bufmgr->vram.region.memory_class = devinfo->mem.vram.mem_class;
+   bufmgr->vram.region.memory_instance = devinfo->mem.vram.mem_instance;
+   bufmgr->vram.size = devinfo->mem.vram.mappable.size;
 
    return true;
+}
+
+static void
+iris_bufmgr_init_global_vm(int fd, struct iris_bufmgr *bufmgr)
+{
+   struct drm_i915_gem_context_param gcp = {
+      .ctx_id = 0,
+      .param = I915_CONTEXT_PARAM_VM,
+   };
+
+   if (intel_ioctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_GETPARAM, &gcp)) {
+      bufmgr->use_global_vm = false;
+      bufmgr->global_vm_id = 0;
+   } else {
+      bufmgr->use_global_vm = true;
+      bufmgr->global_vm_id = gcp.value;
+   }
 }
 
 /**
@@ -2372,6 +2404,8 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
    simple_mtx_init(&bufmgr->lock, mtx_plain);
    simple_mtx_init(&bufmgr->bo_deps_lock, mtx_plain);
 
+   iris_bufmgr_init_global_vm(fd, bufmgr);
+
    list_inithead(&bufmgr->zombie_list);
 
    bufmgr->has_llc = devinfo->has_llc;
@@ -2381,7 +2415,8 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
    bufmgr->has_mmap_offset = gem_param(fd, I915_PARAM_MMAP_GTT_VERSION) >= 4;
    bufmgr->has_userptr_probe =
       gem_param(fd, I915_PARAM_HAS_USERPTR_PROBE) >= 1;
-   iris_bufmgr_query_meminfo(bufmgr);
+   iris_bufmgr_get_meminfo(bufmgr, devinfo);
+   bufmgr->all_vram_mappable = intel_vram_all_mappable(devinfo);
 
    STATIC_ASSERT(IRIS_MEMZONE_SHADER_START == 0ull);
    const uint64_t _4GB = 1ull << 32;
@@ -2392,16 +2427,22 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
 
    util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SHADER],
                       PAGE_SIZE, _4GB_minus_1 - PAGE_SIZE);
+   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_BINDER],
+                      IRIS_MEMZONE_BINDER_START, IRIS_BINDER_ZONE_SIZE);
    util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_BINDLESS],
                       IRIS_MEMZONE_BINDLESS_START, IRIS_BINDLESS_SIZE);
    util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SURFACE],
-                      IRIS_MEMZONE_SURFACE_START,
-                      _4GB_minus_1 - IRIS_MAX_BINDERS * IRIS_BINDER_SIZE -
-                     IRIS_BINDLESS_SIZE);
-   /* TODO: Why does limiting to 2GB help some state items on gfx12?
-    *  - CC Viewport Pointer
-    *  - Blend State Pointer
-    *  - Color Calc State Pointer
+                      IRIS_MEMZONE_SURFACE_START, _4GB_minus_1 -
+                      IRIS_BINDER_ZONE_SIZE - IRIS_BINDLESS_SIZE);
+
+   /* Wa_2209859288: the Tigerlake PRM's workarounds volume says:
+    *
+    *    "PSDunit is dropping MSB of the blend state pointer from SD FIFO"
+    *    "Limit the Blend State Pointer to < 2G"
+    *
+    * We restrict the dynamic state pool to 2GB so that we don't ever get a
+    * BLEND_STATE pointer with the MSB set.  We aren't likely to need the
+    * full 4GB for dynamic state anyway.
     */
    const uint64_t dynamic_pool_size =
       (devinfo->ver >= 12 ? _2GB : _4GB_minus_1) - IRIS_BORDER_COLOR_POOL_SIZE;
@@ -2456,6 +2497,8 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
                                                devinfo);
       assert(bufmgr->aux_map_ctx);
    }
+
+   iris_init_border_color_pool(bufmgr, &bufmgr->border_color_pool);
 
    return bufmgr;
 }
@@ -2539,4 +2582,22 @@ simple_mtx_t *
 iris_bufmgr_get_bo_deps_lock(struct iris_bufmgr *bufmgr)
 {
    return &bufmgr->bo_deps_lock;
+}
+
+struct iris_border_color_pool *
+iris_bufmgr_get_border_color_pool(struct iris_bufmgr *bufmgr)
+{
+   return &bufmgr->border_color_pool;
+}
+
+uint64_t
+iris_bufmgr_vram_size(struct iris_bufmgr *bufmgr)
+{
+   return bufmgr->vram.size;
+}
+
+uint64_t
+iris_bufmgr_sram_size(struct iris_bufmgr *bufmgr)
+{
+   return bufmgr->sys.size;
 }

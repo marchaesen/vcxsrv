@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2012 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -30,8 +30,12 @@
 #include "svga_cmd.h"
 #include "svga_format.h"
 #include "svga_shader.h"
+#include "svga_tgsi.h"
 #include "svga_resource_texture.h"
 #include "VGPU10ShaderTokens.h"
+#include "tgsi/tgsi_parse.h"
+#include "tgsi/tgsi_text.h"
+#include "nir/nir_to_tgsi.h"
 
 
 /**
@@ -465,8 +469,8 @@ svga_init_shader_key_common(const struct svga_context *svga,
    }
 
    if (svga_have_gl43(svga)) {
-      if (shader->info.images_declared || shader->info.hw_atomic_declared ||
-          shader->info.shader_buffers_declared) {
+      if (shader->info.uses_images || shader->info.uses_hw_atomic ||
+          shader->info.uses_shader_buffers) {
 
          /* Save the uavSpliceIndex which is the index used for the first uav
           * in the draw pipeline. For compute, uavSpliceIndex is always 0.
@@ -534,6 +538,8 @@ svga_init_shader_key_common(const struct svga_context *svga,
             else
                key->atomic_buf_uav_index[i] = SVGA3D_INVALID_ID;
          }
+
+         key->image_size_used = shader->info.uses_image_size;
       }
 
       /* Save info about which constant buffers are to be viewed
@@ -898,6 +904,107 @@ svga_rebind_shaders(struct svga_context *svga)
          return ret;
    }
    svga->rebind.flags.tes = 0;
+
+   return PIPE_OK;
+}
+
+
+/**
+ * Helper function to create a shader object.
+ */
+struct svga_shader *
+svga_create_shader(struct pipe_context *pipe,
+                   const struct pipe_shader_state *templ,
+                   enum pipe_shader_type stage,
+                   unsigned shader_structlen)
+{
+   struct svga_context *svga = svga_context(pipe);
+   struct svga_shader *shader = CALLOC(1, shader_structlen);
+
+   if (shader == NULL)
+      return NULL;
+
+   shader->id = svga->debug.shader_id++;
+   shader->type = templ->type;
+   shader->stage = stage;
+
+   shader->tokens = pipe_shader_state_to_tgsi_tokens(pipe->screen, templ);
+
+   if (shader->type == PIPE_SHADER_IR_TGSI) {
+      /* Collect basic info of the shader */
+      svga_tgsi_scan_shader(shader);
+   }
+   else {
+      debug_printf("Unexpected nir shader\n");
+      assert(0);
+   }
+
+   /* check for any stream output declarations */
+   if (templ->stream_output.num_outputs) {
+      shader->stream_output = svga_create_stream_output(svga, shader,
+                                                        &templ->stream_output);
+   }
+
+   return shader;
+}
+
+
+/**
+ * Helper function to compile a shader.
+ * Depending on the shader IR type, it calls the corresponding
+ * compile shader function.
+ */
+enum pipe_error
+svga_compile_shader(struct svga_context *svga,
+                    struct svga_shader *shader,
+                    const struct svga_compile_key *key,
+                    struct svga_shader_variant **out_variant)
+{
+   struct svga_shader_variant *variant = NULL;
+   enum pipe_error ret = PIPE_ERROR;
+
+   if (shader->type == PIPE_SHADER_IR_TGSI) {
+      variant = svga_tgsi_compile_shader(svga, shader, key);
+   } else {
+      debug_printf("Unexpected nir shader\n");
+      assert(0);
+   }
+
+   if (variant == NULL) {
+      if (shader->get_dummy_shader != NULL) {
+         debug_printf("Failed to compile shader, using dummy shader.\n");
+         variant = shader->get_dummy_shader(svga, shader, key);
+      }
+   }
+   else if (svga_shader_too_large(svga, variant)) {
+      /* too big, use shader */
+      if (shader->get_dummy_shader != NULL) {
+         debug_printf("Shader too large (%u bytes), using dummy shader.\n",
+                      (unsigned)(variant->nr_tokens
+                                 * sizeof(variant->tokens[0])));
+
+         /* Free the too-large variant */
+         svga_destroy_shader_variant(svga, variant);
+
+         /* Use simple pass-through shader instead */
+         variant = shader->get_dummy_shader(svga, shader, key);
+      }
+   }
+
+   if (variant == NULL)
+      return PIPE_ERROR;
+
+   ret = svga_define_shader(svga, variant);
+   if (ret != PIPE_OK) {
+      svga_destroy_shader_variant(svga, variant);
+      return ret;
+   }
+
+   *out_variant = variant;
+
+   /* insert variant at head of linked list */
+   variant->next = shader->variants;
+   shader->variants = variant;
 
    return PIPE_OK;
 }

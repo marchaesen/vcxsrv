@@ -33,9 +33,8 @@
 
 struct r300_context;
 
-struct r300_vertex_shader {
+struct r300_vertex_shader_code {
     /* Parent class */
-    struct pipe_shader_state state;
 
     struct tgsi_shader_info info;
     struct r300_shader_semantics outputs;
@@ -43,6 +42,8 @@ struct r300_vertex_shader {
     /* Whether the shader was replaced by a dummy one due to a shader
      * compilation failure. */
     boolean dummy;
+
+    boolean wpos;
 
     /* Numbers of constants for each type. */
     unsigned externals_count;
@@ -52,9 +53,24 @@ struct r300_vertex_shader {
     /* Machine code (if translated) */
     struct r300_vertex_program_code code;
 
+    struct r300_vertex_shader_code *next;
+};
+
+struct r300_vertex_shader {
+    /* Parent class */
+    struct pipe_shader_state state;
+
+    /* Currently-bound vertex shader. */
+    struct r300_vertex_shader_code *shader;
+
+    /* List of the same shaders compiled with different states. */
+    struct r300_vertex_shader_code *first;
+
     /* SWTCL-specific. */
     void *draw_vs;
 };
+
+struct nir_shader;
 
 void r300_init_vs_outputs(struct r300_context *r300,
                           struct r300_vertex_shader *vs);
@@ -64,5 +80,9 @@ void r300_translate_vertex_shader(struct r300_context *r300,
 
 void r300_draw_init_vertex_shader(struct r300_context *r300,
                                   struct r300_vertex_shader *vs);
+
+extern bool r300_transform_vs_trig_input(struct nir_shader *shader);
+
+extern bool r300_transform_fs_trig_input(struct nir_shader *shader);
 
 #endif /* R300_VS_H */

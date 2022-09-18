@@ -166,8 +166,6 @@ files_libgallium = files(
   'rbug/rbug_shader.h',
   'rbug/rbug_texture.c',
   'rbug/rbug_texture.h',
-  'rtasm/rtasm_cpu.c',
-  'rtasm/rtasm_cpu.h',
   'rtasm/rtasm_execmem.c',
   'rtasm/rtasm_execmem.h',
   'rtasm/rtasm_x86sse.c',
@@ -181,8 +179,6 @@ files_libgallium = files(
   'tgsi/tgsi_dynamic_indexing.c',
   'tgsi/tgsi_exec.c',
   'tgsi/tgsi_exec.h',
-  'tgsi/tgsi_emulate.c',
-  'tgsi/tgsi_emulate.h',
   'tgsi/tgsi_from_mesa.c',
   'tgsi/tgsi_from_mesa.h',
   'tgsi/tgsi_info.c',
@@ -234,14 +230,13 @@ files_libgallium = files(
   'util/u_cache.h',
   'util/u_compute.c',
   'util/u_compute.h',
+  'util/u_debug_cb.h',
   'util/u_debug_flush.c',
   'util/u_debug_flush.h',
   'util/u_debug_image.c',
   'util/u_debug_image.h',
   'util/u_dirty_flags.h',
   'util/u_dirty_surfaces.h',
-  'util/u_dl.c',
-  'util/u_dl.h',
   'util/u_draw.c',
   'util/u_draw.h',
   'util/u_draw_quad.c',
@@ -272,7 +267,6 @@ files_libgallium = files(
   'util/u_network.c',
   'util/u_network.h',
   'util/u_pack_color.h',
-  'util/u_pointer.h',
   'util/u_prim.h',
   'util/u_prim.c',
   'util/u_prim_restart.c',
@@ -327,6 +321,8 @@ files_libgallium = files(
   'nir/nir_to_tgsi.h',
   'nir/nir_draw_helpers.c',
   'nir/nir_draw_helpers.h',
+  'nir/nir_helpers.c',
+  'nir/nir_helpers.h',
 )
 
 if dep_libdrm.found()
@@ -374,6 +370,8 @@ if draw_with_llvm
     'gallivm/lp_bld_intr.h',
     'gallivm/lp_bld_ir_common.c',
     'gallivm/lp_bld_ir_common.h',
+    'gallivm/lp_bld_jit_types.h',
+    'gallivm/lp_bld_jit_types.c',
     'gallivm/lp_bld_limits.h',
     'gallivm/lp_bld_logic.c',
     'gallivm/lp_bld_logic.h',
@@ -381,6 +379,7 @@ if draw_with_llvm
     'gallivm/lp_bld_misc.h',
     'gallivm/lp_bld_nir.h',
     'gallivm/lp_bld_nir.c',
+    'gallivm/lp_bld_nir_aos.c',
     'gallivm/lp_bld_nir_soa.c',
     'gallivm/lp_bld_pack.c',
     'gallivm/lp_bld_pack.h',
@@ -423,6 +422,8 @@ endif
 files_libgalliumvl = files(
   'vl/vl_bicubic_filter.c',
   'vl/vl_bicubic_filter.h',
+  'vl/vl_codec.c',
+  'vl/vl_codec.h',
   'vl/vl_compositor.c',
   'vl/vl_compositor.h',
   'vl/vl_compositor_gfx.c',
@@ -472,6 +473,12 @@ if with_dri2 and with_platform_x11
   endif
 endif
 
+if with_glx == 'xlib' or with_glx == 'gallium-xlib'
+  files_libgalliumvlwinsys += files('vl/vl_winsys_xlib_swrast.c')
+else
+  files_libgalliumvlwinsys += files('vl/vl_winsys_dri_vgem.c')
+endif
+
 prog_enums2names = files('driver_trace/enums2names.py')
 files_libgallium += custom_target(
   'tr_util.[ch]',
@@ -512,9 +519,6 @@ idep_u_tracepoints = declare_dependency(
 )
 
 libgallium_extra_c_args = []
-if with_swrast_vk and with_gallium_zink
-  libgallium_extra_c_args += '-DZINK_WITH_SWRAST_VK'
-endif
 libgallium = static_library(
   'gallium',
   [files_libgallium],

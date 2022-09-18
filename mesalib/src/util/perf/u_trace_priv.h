@@ -44,6 +44,7 @@ struct u_tracepoint {
    const char *name;
    bool end_of_pipe;
    void (*print)(FILE *out, const void *payload);
+   void (*print_json)(FILE *out, const void *payload);
 #ifdef HAVE_PERFETTO
    /**
     * Callback to emit a perfetto event, such as render-stage trace

@@ -43,5 +43,13 @@ _mesa_texstore_signed_rg_rgtc2(TEXSTORE_PARAMS);
 extern compressed_fetch_func
 _mesa_get_compressed_rgtc_func(mesa_format format);
 
+extern void
+_mesa_unpack_rgtc(uint8_t *dst_row,
+                  unsigned dst_stride,
+                  const uint8_t *src_row,
+                  unsigned src_stride,
+                  unsigned src_width,
+                  unsigned src_height,
+                  mesa_format format);
 
 #endif

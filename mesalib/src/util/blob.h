@@ -47,7 +47,10 @@ extern "C" {
  */
 
 struct blob {
-   /* The data actually written to the blob. */
+   /* The data actually written to the blob. Never read or write this directly
+    * when serializing, use blob_reserve_* and blob_overwrite_* instead which
+    * check for out_of_memory and handle fixed-size blobs correctly.
+    */
    uint8_t *data;
 
    /** Number of bytes that have been allocated for \c data. */
@@ -119,6 +122,16 @@ blob_finish(struct blob *blob)
 
 void
 blob_finish_get_buffer(struct blob *blob, void **buffer, size_t *size);
+
+/**
+ * Aligns the blob to the given alignment.
+ *
+ * \see blob_reader_align
+ *
+ * \return True unless allocation fails
+ */
+bool
+blob_align(struct blob *blob, size_t alignment);
 
 /**
  * Add some unstructured, fixed-size data to a blob.
@@ -312,6 +325,17 @@ blob_write_string(struct blob *blob, const char *str);
  */
 void
 blob_reader_init(struct blob_reader *blob, const void *data, size_t size);
+
+/**
+ * Align the current offset of the blob reader to the given alignment.
+ *
+ * This may be useful if you need the result of blob_read_bytes to have a
+ * particular alignment.  Note that this only aligns relative to blob->data
+ * and the alignment of the resulting pointer is only guaranteed if blob->data
+ * is also aligned to the requested alignment.
+ */
+void
+blob_reader_align(struct blob_reader *blob, size_t alignment);
 
 /**
  * Read some unstructured, fixed-size data from the current location, (and

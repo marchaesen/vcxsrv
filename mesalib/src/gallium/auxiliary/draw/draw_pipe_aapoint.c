@@ -368,9 +368,6 @@ generate_aapoint_fs(struct aapoint_stage *aapoint)
    aapoint_fs = *orig_fs; /* copy to init */
 
    assert(aapoint_fs.type == PIPE_SHADER_IR_TGSI);
-   aapoint_fs.tokens = tgsi_alloc_tokens(newLen);
-   if (aapoint_fs.tokens == NULL)
-      return FALSE;
 
    memset(&transform, 0, sizeof(transform));
    transform.colorOutput = -1;
@@ -383,9 +380,9 @@ generate_aapoint_fs(struct aapoint_stage *aapoint)
    transform.base.transform_instruction = aa_transform_inst;
    transform.base.transform_declaration = aa_transform_decl;
 
-   tgsi_transform_shader(orig_fs->tokens,
-                         (struct tgsi_token *) aapoint_fs.tokens,
-                         newLen, &transform.base);
+   aapoint_fs.tokens = tgsi_transform_shader(orig_fs->tokens, newLen, &transform.base);
+   if (!aapoint_fs.tokens)
+      return false;
 
 #if 0 /* DEBUG */
    debug_printf("draw_aapoint, orig shader:\n");

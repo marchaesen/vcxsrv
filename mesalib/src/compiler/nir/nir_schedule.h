@@ -71,8 +71,16 @@ typedef struct nir_schedule_options {
    bool (* intrinsic_cb)(nir_intrinsic_instr *intr,
                          nir_schedule_dependency *dep,
                          void *user_data);
-   /* Data to pass to the callback */
+
+   /* Data to pass to the intrinsic callback */
    void *intrinsic_cb_data;
+
+   /* Callback used to specify instruction delays */
+   unsigned (* instr_delay_cb)(nir_instr *instr, void *user_data);
+
+   /* Data to pass to the instruction delay callback */
+   void *instr_delay_cb_data;
+
 } nir_schedule_options;
 
 void nir_schedule(nir_shader *shader, const nir_schedule_options *options);

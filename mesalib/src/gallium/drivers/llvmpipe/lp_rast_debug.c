@@ -177,7 +177,7 @@ debug_bin( const struct cmd_bin *bin, int x, int y )
    while (head) {
       for (i = 0; i < head->count; i++, j++) {
          if (head->cmd[i] == LP_RAST_OP_SET_STATE)
-            state = head->arg[i].state;
+            state = head->arg[i].set_state;
 
          debug_printf("%d: %s %s\n", j,
                       cmd_name(head->cmd[i]),
@@ -390,7 +390,7 @@ do_debug_bin( struct tile *tile,
             debug_printf("%c: %15s", val, cmd_name(block->cmd[k]));
 
          if (block->cmd[k] == LP_RAST_OP_SET_STATE)
-            tile->state = block->arg[k].state;
+            tile->state = block->arg[k].set_state;
          
          if (block->cmd[k] == LP_RAST_OP_CLEAR_COLOR ||
              block->cmd[k] == LP_RAST_OP_CLEAR_ZSTENCIL)

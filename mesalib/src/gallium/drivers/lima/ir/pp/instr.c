@@ -186,18 +186,17 @@ bool ppir_instr_insert_node(ppir_instr *instr, ppir_node *node)
          uint8_t swizzle[4] = {0};
 
          if (ppir_instr_insert_const(&ic, nc, swizzle)) {
-            ppir_node *succ = ppir_node_first_succ(node);
-            ppir_src *src = NULL;
-            for (int s = 0; s < ppir_node_get_src_num(succ); s++) {
-               src = ppir_node_get_src(succ, s);
-               if (src->node == node)
-                  break;
-            }
-            assert(src->node == node);
-
             instr->constant[i] = ic;
-            ppir_update_src_pipeline(ppir_pipeline_reg_const0 + i, src,
-                                     &c->dest, swizzle);
+            ppir_node *succ = ppir_node_first_succ(node);
+            for (int s = 0; s < ppir_node_get_src_num(succ); s++) {
+               ppir_src *src = ppir_node_get_src(succ, s);
+               assert(src);
+               if (src->node != node)
+                  continue;
+
+               ppir_update_src_pipeline(ppir_pipeline_reg_const0 + i, src,
+                                        &c->dest, swizzle);
+            }
             break;
          }
       }

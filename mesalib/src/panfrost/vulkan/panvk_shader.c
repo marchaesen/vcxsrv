@@ -26,11 +26,6 @@
 
 #include "panvk_private.h"
 
-#include "nir_builder.h"
-#include "nir_lower_blend.h"
-#include "spirv/nir_spirv.h"
-#include "util/mesa-sha1.h"
-
 #include "pan_shader.h"
 
 #include "vk_util.h"
@@ -42,47 +37,4 @@ panvk_shader_destroy(struct panvk_device *dev,
 {
    util_dynarray_fini(&shader->binary);
    vk_free2(&dev->vk.alloc, alloc, shader);
-}
-
-VkResult
-panvk_CreateShaderModule(VkDevice _device,
-                         const VkShaderModuleCreateInfo *pCreateInfo,
-                         const VkAllocationCallbacks *pAllocator,
-                         VkShaderModule *pShaderModule)
-{
-   VK_FROM_HANDLE(panvk_device, device, _device);
-   struct panvk_shader_module *module;
-
-   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
-   assert(pCreateInfo->flags == 0);
-   assert(pCreateInfo->codeSize % 4 == 0);
-
-   module = vk_object_zalloc(&device->vk, pAllocator,
-                             sizeof(*module) + pCreateInfo->codeSize,
-                             VK_OBJECT_TYPE_SHADER_MODULE);
-   if (module == NULL)
-      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
-
-   module->code_size = pCreateInfo->codeSize;
-   memcpy(module->code, pCreateInfo->pCode, pCreateInfo->codeSize);
-
-   _mesa_sha1_compute(module->code, module->code_size, module->sha1);
-
-   *pShaderModule = panvk_shader_module_to_handle(module);
-
-   return VK_SUCCESS;
-}
-
-void
-panvk_DestroyShaderModule(VkDevice _device,
-                          VkShaderModule _module,
-                          const VkAllocationCallbacks *pAllocator)
-{
-   VK_FROM_HANDLE(panvk_device, device, _device);
-   VK_FROM_HANDLE(panvk_shader_module, module, _module);
-
-   if (!module)
-      return;
-
-   vk_object_free(&device->vk, pAllocator, module);
 }

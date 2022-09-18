@@ -140,7 +140,7 @@ color_buffer_writes_enabled(const struct gl_context *ctx, unsigned idx)
  * \param mask bit-mask indicating the buffers to be cleared.
  *
  * Flushes the vertices and verifies the parameter.
- * If __struct gl_contextRec::NewState is set then calls _mesa_update_state()
+ * If __struct gl_contextRec::NewState is set then calls _mesa_update_clear_state()
  * to update gl_frame_buffer::_Xmin, etc.  If the rasterization mode is set to
  * GL_RENDER then requests the driver to clear the buffers, via the
  * dd_function_table::Clear callback.
@@ -170,7 +170,7 @@ clear(struct gl_context *ctx, GLbitfield mask, bool no_error)
    }
 
    if (ctx->NewState) {
-      _mesa_update_state( ctx );	/* update _Xmin, etc */
+      _mesa_update_clear_state( ctx );	/* update _Xmin, etc */
    }
 
    if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
@@ -349,7 +349,7 @@ clear_bufferiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
    FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->NewState) {
-      _mesa_update_state( ctx );
+      _mesa_update_clear_state( ctx );
    }
 
    if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
@@ -468,7 +468,7 @@ clear_bufferuiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
    FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->NewState) {
-      _mesa_update_state( ctx );
+      _mesa_update_clear_state( ctx );
    }
 
    if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE) {
@@ -562,7 +562,7 @@ clear_bufferfv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
    FLUSH_VERTICES(ctx, 0, 0);
 
    if (ctx->NewState) {
-      _mesa_update_state( ctx );
+      _mesa_update_clear_state( ctx );
    }
 
    if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE) {
@@ -722,7 +722,7 @@ clear_bufferfi(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
       return;
 
    if (ctx->NewState) {
-      _mesa_update_state( ctx );
+      _mesa_update_clear_state( ctx );
    }
 
    if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {

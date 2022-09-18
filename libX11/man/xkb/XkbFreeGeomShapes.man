@@ -33,16 +33,16 @@ XkbFreeGeomShapes \- Free geometry shapes
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry in which shapes should be freed
 .TP
-.I \- first
+.I first
 first shape to be freed
 .TP
-.I \- count
+.I count
 number of shapes to be freed 
 .TP
-.I \- free_all
+.I free_all
 True => all shapes are freed
 .SH DESCRIPTION
 .LP

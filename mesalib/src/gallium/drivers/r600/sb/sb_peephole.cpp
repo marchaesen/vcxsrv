@@ -268,6 +268,12 @@ void peephole::optimize_CNDcc_op(alu_node* a) {
 	if (d->bc.src[nds].abs)
 		return;
 
+	// Don't create an instruction that uses three kcache values
+	// chances are high that it can't be scheduled
+	if (d->src[0]->is_kcache() && a->src[1]->is_kcache() &&
+		 a->src[2]->is_kcache())
+		return;
+
 	// TODO we can handle some cases for uint comparison
 	if (dcmp_type == AF_UINT_CMP)
 		return;

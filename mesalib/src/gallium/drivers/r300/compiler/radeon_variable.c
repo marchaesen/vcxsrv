@@ -26,6 +26,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "radeon_variable.h"
 
 #include "memory_pool.h"
@@ -89,48 +90,28 @@ void rc_variable_change_dst(
 				src_index = rc_pair_get_src_index(
 						pair_inst, reader->U.P.Src);
 			}
-			/* Try to delete the old src, it is OK if this fails,
-			 * because rc_pair_alloc_source might be able to
-			 * find a source the ca be reused.
-			 */
-			if (rc_pair_remove_src(reader->Inst, src_type,
-							src_index, old_mask)) {
-				/* Reuse the source index of the source that
-				 * was just deleted and set its register
-				 * index.  We can't use rc_pair_alloc_source
-				 * for this because it might return a source
-				 * index that is already being used. */
-				if (src_type & RC_SOURCE_RGB) {
-					pair_inst->RGB.Src[src_index]
-						.Used =	1;
-					pair_inst->RGB.Src[src_index]
-						.Index = new_index;
-					pair_inst->RGB.Src[src_index]
-						.File = RC_FILE_TEMPORARY;
-				}
-				if (src_type & RC_SOURCE_ALPHA) {
-					pair_inst->Alpha.Src[src_index]
-						.Used = 1;
-					pair_inst->Alpha.Src[src_index]
-						.Index = new_index;
-					pair_inst->Alpha.Src[src_index]
-						.File = RC_FILE_TEMPORARY;
-				}
-			} else {
-				src_index = rc_pair_alloc_source(
-						&reader->Inst->U.P,
-						src_type & RC_SOURCE_RGB,
-						src_type & RC_SOURCE_ALPHA,
-						RC_FILE_TEMPORARY,
-						new_index);
-				if (src_index < 0) {
-					rc_error(var->C, "Rewrite of inst %u failed "
-						"Can't allocate source for "
-						"Inst %u src_type=%x "
-						"new_index=%u new_mask=%u\n",
-						var->Inst->IP, reader->Inst->IP, src_type, new_index, new_writemask);
-						continue;
-				}
+			rc_pair_remove_src(reader->Inst, src_type,
+							src_index);
+			/* Reuse the source index of the source that
+			 * was just deleted and set its register
+			 * index.  We can't use rc_pair_alloc_source
+			 * for this because it might return a source
+			 * index that is already being used. */
+			if (src_type & RC_SOURCE_RGB) {
+				pair_inst->RGB.Src[src_index]
+					.Used =	1;
+				pair_inst->RGB.Src[src_index]
+					.Index = new_index;
+				pair_inst->RGB.Src[src_index]
+					.File = RC_FILE_TEMPORARY;
+			}
+			if (src_type & RC_SOURCE_ALPHA) {
+				pair_inst->Alpha.Src[src_index]
+					.Used = 1;
+				pair_inst->Alpha.Src[src_index]
+					.Index = new_index;
+				pair_inst->Alpha.Src[src_index]
+					.File = RC_FILE_TEMPORARY;
 			}
 			reader->U.P.Arg->Swizzle = rc_rewrite_swizzle(
 				reader->U.P.Arg->Swizzle, conversion_swizzle);
@@ -346,6 +327,31 @@ static void get_variable_pair_helper(
 }
 
 /**
+ * Compare function for sorting variable pointers by the lowest instruction
+ * IP from it and its friends.
+ */
+static int cmpfunc_variable_by_ip (const void * a, const void * b) {
+	struct rc_variable * var_a = *(struct rc_variable **)a;
+	struct rc_variable * var_b = *(struct rc_variable **)b;
+	unsigned int min_ip_a = var_a->Inst->IP;
+	unsigned int min_ip_b = var_b->Inst->IP;
+
+	/* Find the minimal IP of a variable and its friends */
+	while (var_a->Friend) {
+		var_a = var_a->Friend;
+		if (var_a->Inst->IP < min_ip_a)
+			min_ip_a = var_a->Inst->IP;
+	}
+	while (var_b->Friend) {
+		var_b = var_b->Friend;
+		if (var_b->Inst->IP < min_ip_b)
+			min_ip_b = var_b->Inst->IP;
+	}
+
+	return (int)min_ip_a - (int)min_ip_b;
+}
+
+/**
  * Generate a list of variables used by the shader program.  Each instruction
  * that writes to a register is considered a variable.  The struct rc_variable
  * data structure includes a list of readers and is essentially a
@@ -357,14 +363,42 @@ struct rc_list * rc_get_variables(struct radeon_compiler * c)
 	struct rc_instruction * inst;
 	struct rc_list * variable_list = NULL;
 
+	/* We search for the variables in two loops in order to get it right in
+	 * the following specific case
+	 *
+	 * IF aluresult.x___;
+	 *   ...
+	 *   MAD temp[0].xyz, src0.000, src0.111, src0.000
+	 *   MAD temp[0].w, src0.0, src0.1, src0.0
+	 * ELSE;
+	 *   ...
+	 *   TXB temp[0], temp[1].xy_w, 2D[0] SEM_WAIT SEM_ACQUIRE;
+	 * ENDIF;
+	 * src0.xyz = input[0], src0.w = input[0], src1.xyz = temp[0], src1.w = temp[0] SEM_WAIT
+	 * MAD temp[1].xyz, src0.xyz, src1.xyz, src0.000
+	 * MAD temp[1].w, src0.w, src1.w, src0.0
+	 *
+	 * If we go just in one loop, we will first create two variables for the
+	 * temp[0].xyz and temp[0].w. This happens because they don't share a reader
+	 * as the src1.xyz and src1.w of the instruction where the value is used are
+	 * in theory independent. They are not because the same register is written
+	 * also by the texture instruction in the other branch and TEX can't write xyz
+	 * and w separatelly.
+	 *
+	 * Therefore first search for RC_INSTRUCTION_NORMAL to create variables from
+	 * the texture instruction and than the pair instructions will be properly
+	 * marked as friends. So we will end with only one variable here as we should.
+	 *
+	 * This doesn't matter before the pair translation, because everything is
+	 * RC_INSTRUCTION_NORMAL.
+	 */
 	for (inst = c->Program.Instructions.Next;
 					inst != &c->Program.Instructions;
 					inst = inst->Next) {
-		struct rc_reader_data reader_data;
-		struct rc_variable * new_var;
-		memset(&reader_data, 0, sizeof(reader_data));
-
 		if (inst->Type == RC_INSTRUCTION_NORMAL) {
+			struct rc_reader_data reader_data;
+			struct rc_variable * new_var;
+			memset(&reader_data, 0, sizeof(reader_data));
 			rc_get_readers(c, inst, &reader_data, NULL, NULL, NULL);
 			if (reader_data.ReaderCount == 0) {
 				continue;
@@ -373,11 +407,38 @@ struct rc_list * rc_get_variables(struct radeon_compiler * c)
 				inst->U.I.DstReg.Index,
 				inst->U.I.DstReg.WriteMask, &reader_data);
 			get_variable_helper(&variable_list, new_var);
-		} else {
+		}
+	}
+
+	bool needs_sorting = false;
+	for (inst = c->Program.Instructions.Next;
+					inst != &c->Program.Instructions;
+					inst = inst->Next) {
+		if (inst->Type != RC_INSTRUCTION_NORMAL) {
+			needs_sorting = true;
 			get_variable_pair_helper(&variable_list, c, inst,
 							&inst->U.P.RGB);
 			get_variable_pair_helper(&variable_list, c, inst,
 							&inst->U.P.Alpha);
+		}
+	}
+
+	if (variable_list && needs_sorting) {
+		unsigned int count = rc_list_count(variable_list);
+		struct rc_variable **variables = memory_pool_malloc(&c->Pool,
+				sizeof(struct rc_variable *) * count);
+
+		struct rc_list * current = variable_list;
+		for(unsigned int i = 0; current; i++, current = current->Next) {
+			struct rc_variable * var = current->Item;
+			variables[i] = var;
+		}
+
+		qsort(variables, count, sizeof(struct rc_variable *), cmpfunc_variable_by_ip);
+
+		current = variable_list;
+		for(unsigned int i = 0; current; i++, current = current->Next) {
+			current->Item = variables[i];
 		}
 	}
 

@@ -28,7 +28,11 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
+
 struct nir_shader;
+struct gl_constants;
+struct gl_linked_shader;
 struct gl_shader_program;
 
 bool gl_nir_lower_atomics(nir_shader *shader,
@@ -43,6 +47,16 @@ bool gl_nir_lower_samplers_as_deref(nir_shader *shader,
 
 bool gl_nir_lower_buffers(nir_shader *shader,
                           const struct gl_shader_program *shader_program);
+
+void gl_nir_lower_packed_varyings(const struct gl_constants *consts,
+                                  struct gl_shader_program *prog,
+                                  void *mem_ctx, unsigned locations_used,
+                                  const uint8_t *components,
+                                  nir_variable_mode mode,
+                                  unsigned gs_input_vertices,
+                                  struct gl_linked_shader *linked_shader,
+                                  bool disable_varying_packing,
+                                  bool disable_xfb_packing, bool xfb_enabled);
 
 #ifdef __cplusplus
 }

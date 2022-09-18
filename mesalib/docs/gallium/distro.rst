@@ -1,7 +1,7 @@
 Distribution
 ============
 
-Along with the interface definitions, the following drivers, gallium frontends,
+Along with the interface definitions, the following drivers, Gallium frontends,
 and auxiliary modules are shipped in the standard Gallium distribution.
 
 Drivers
@@ -101,9 +101,14 @@ GLX
 MesaGL
 ^^^^^^
 
-The gallium frontend implementing a GL state machine. Not usable as
-a standalone frontend; Mesa should be built with another gallium frontend,
+The Gallium frontend implementing a GL state machine. Not usable as
+a standalone frontend; Mesa should be built with another Gallium frontend,
 such as :ref:`DRI` or EGL.
+
+Nine
+^^^^
+
+The Gallium frontend implements the Direct3D 9 API.
 
 VDPAU
 ^^^^^

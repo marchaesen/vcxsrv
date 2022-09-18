@@ -4,6 +4,3 @@
 
 # Timeouts, passes otherwise
 KHR-GL33.texture_swizzle.smoke
-
-# Crashes in RA, but slow enough to get there that CI times out sometimes
-dEQP-VK.spirv_assembly.instruction.*.spirv_ids_abuse.lots_ids.*

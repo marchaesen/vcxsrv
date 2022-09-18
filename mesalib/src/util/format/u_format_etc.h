@@ -28,6 +28,8 @@
 #ifndef U_FORMAT_ETC1_H_
 #define U_FORMAT_ETC1_H_
 
+#include "c99_compat.h"
+
 void
 util_format_etc1_rgb8_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride, const uint8_t *restrict src_row, unsigned src_stride, unsigned width, unsigned height);
 

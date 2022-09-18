@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "hw/common.xml.h"
+#include "hw/common_3d.xml.h"
 #include "hw/state.xml.h"
 #include "hw/state_3d.xml.h"
 
@@ -77,6 +79,8 @@ struct etna_specs {
    unsigned has_new_transcendentals : 1;
    /* has the new dp2/dpX_norm instructions, among others */
    unsigned has_halti2_instructions : 1;
+   /* has no limit on the number of constant sources per instruction */
+   unsigned has_no_oneconst_limit : 1;
    /* has V4_COMPRESSION */
    unsigned v4_compression : 1;
    /* supports single-buffer rendering with multiple pixel pipes */

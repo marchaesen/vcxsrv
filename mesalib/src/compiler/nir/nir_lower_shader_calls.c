@@ -697,9 +697,9 @@ duplicate_loop_bodies(nir_function_impl *impl, nir_instr *resume_instr)
 }
 
 static bool
-cf_node_contains_instr(nir_cf_node *node, nir_instr *instr)
+cf_node_contains_block(nir_cf_node *node, nir_block *block)
 {
-   for (nir_cf_node *n = &instr->block->cf_node; n != NULL; n = n->parent) {
+   for (nir_cf_node *n = &block->cf_node; n != NULL; n = n->parent) {
       if (n == node)
          return true;
    }
@@ -727,6 +727,21 @@ rewrite_phis_to_pred(nir_block *block, nir_block *pred)
       }
       assert(found);
    }
+}
+
+static bool
+cursor_is_after_jump(nir_cursor cursor)
+{
+   switch (cursor.option) {
+   case nir_cursor_before_instr:
+   case nir_cursor_before_block:
+      return false;
+   case nir_cursor_after_instr:
+      return cursor.instr->type == nir_instr_type_jump;
+   case nir_cursor_after_block:
+      return nir_block_ends_in_jump(cursor.block);;
+   }
+   unreachable("Invalid cursor option");
 }
 
 /** Flattens if ladders leading up to a resume
@@ -795,14 +810,13 @@ rewrite_phis_to_pred(nir_block *block, nir_block *pred)
  * instruction.
  */
 static bool
-flatten_resume_if_ladder(nir_function_impl *impl,
-                         nir_instr *cursor,
+flatten_resume_if_ladder(nir_builder *b,
+                         nir_cf_node *parent_node,
                          struct exec_list *child_list,
                          bool child_list_contains_cursor,
                          nir_instr *resume_instr,
                          struct brw_bitset *remat)
 {
-   nir_shader *shader = impl->function->shader;
    nir_cf_list cf_list;
 
    /* If our child list contains the cursor instruction then we start out
@@ -816,8 +830,15 @@ flatten_resume_if_ladder(nir_function_impl *impl,
       switch (child->type) {
       case nir_cf_node_block: {
          nir_block *block = nir_cf_node_as_block(child);
+         if (b->cursor.option == nir_cursor_before_block &&
+             b->cursor.block == block) {
+            assert(before_cursor);
+            before_cursor = false;
+         }
          nir_foreach_instr_safe(instr, block) {
-            if (instr == cursor) {
+            if ((b->cursor.option == nir_cursor_before_instr ||
+                 b->cursor.option == nir_cursor_after_instr) &&
+                b->cursor.instr == instr) {
                assert(nir_cf_node_is_first(&block->cf_node));
                assert(before_cursor);
                before_cursor = false;
@@ -829,19 +850,41 @@ flatten_resume_if_ladder(nir_function_impl *impl,
 
             if (!before_cursor && can_remat_instr(instr, remat)) {
                nir_instr_remove(instr);
-               nir_instr_insert(nir_before_instr(cursor), instr);
+               nir_instr_insert(b->cursor, instr);
+               b->cursor = nir_after_instr(instr);
 
                nir_ssa_def *def = nir_instr_ssa_def(instr);
                BITSET_SET(remat->set, def->index);
             }
          }
+         if (b->cursor.option == nir_cursor_after_block &&
+             b->cursor.block == block) {
+            assert(before_cursor);
+            before_cursor = false;
+         }
          break;
       }
 
       case nir_cf_node_if: {
-         assert(!before_cursor);
          nir_if *_if = nir_cf_node_as_if(child);
-         if (flatten_resume_if_ladder(impl, cursor, &_if->then_list,
+
+         /* Because of the dummy blocks inserted in the first if block of the
+          * loops, it's possible we find an empty if block that contains our
+          * cursor. At this point, the block should still be empty and we can
+          * just skip it and consider we're after the cursor.
+          */
+         if (cf_node_contains_block(&_if->cf_node,
+                                    nir_cursor_current_block(b->cursor))) {
+            /* Some sanity checks to verify this is actually a dummy block */
+            assert(nir_src_as_bool(_if->condition) == true);
+            assert(nir_cf_list_is_empty_block(&_if->then_list));
+            assert(nir_cf_list_is_empty_block(&_if->else_list));
+            before_cursor = false;
+            break;
+         }
+         assert(!before_cursor);
+
+         if (flatten_resume_if_ladder(b, &_if->cf_node, &_if->then_list,
                                       false, resume_instr, remat)) {
             resume_node = child;
             rewrite_phis_to_pred(nir_cf_node_as_block(nir_cf_node_next(child)),
@@ -849,7 +892,7 @@ flatten_resume_if_ladder(nir_function_impl *impl,
             goto found_resume;
          }
 
-         if (flatten_resume_if_ladder(impl, cursor, &_if->else_list,
+         if (flatten_resume_if_ladder(b, &_if->cf_node, &_if->else_list,
                                       false, resume_instr, remat)) {
             resume_node = child;
             rewrite_phis_to_pred(nir_cf_node_as_block(nir_cf_node_next(child)),
@@ -863,7 +906,7 @@ flatten_resume_if_ladder(nir_function_impl *impl,
          assert(!before_cursor);
          nir_loop *loop = nir_cf_node_as_loop(child);
 
-         if (cf_node_contains_instr(&loop->cf_node, resume_instr)) {
+         if (cf_node_contains_block(&loop->cf_node, resume_instr->block)) {
             /* Thanks to our loop body duplication pass, every level of loop
              * containing the resume instruction contains exactly three nodes:
              * two blocks and an if.  We don't want to lower away this if
@@ -873,22 +916,31 @@ flatten_resume_if_ladder(nir_function_impl *impl,
             nir_block *header = nir_loop_first_block(loop);
             nir_if *_if = nir_cf_node_as_if(nir_cf_node_next(&header->cf_node));
 
+            nir_builder bl;
+            nir_builder_init(&bl, b->impl);
+            bl.cursor = nir_before_cf_list(&_if->then_list);
             /* We want to place anything re-materialized from inside the loop
              * at the top of the resume half of the loop.
+             *
+             * Because we're inside a loop, we might run into a break/continue
+             * instructions. We can't place those within a block of
+             * instructions, they need to be at the end of a block. So we
+             * build our own dummy block to place them.
              */
-            nir_instr *loop_cursor =
-               &nir_intrinsic_instr_create(shader, nir_intrinsic_nop)->instr;
-            nir_instr_insert(nir_before_cf_list(&_if->then_list), loop_cursor);
+            nir_push_if(&bl, nir_imm_true(&bl));
+            {
+               ASSERTED bool found =
+                  flatten_resume_if_ladder(&bl, &_if->cf_node, &_if->then_list,
+                                           true, resume_instr, remat);
+               assert(found);
+            }
+            nir_pop_if(&bl, NULL);
 
-            ASSERTED bool found =
-               flatten_resume_if_ladder(impl, loop_cursor, &_if->then_list,
-                                        true, resume_instr, remat);
-            assert(found);
             resume_node = child;
             goto found_resume;
          } else {
             ASSERTED bool found =
-               flatten_resume_if_ladder(impl, cursor, &loop->body,
+               flatten_resume_if_ladder(b, &loop->cf_node, &loop->body,
                                         false, resume_instr, remat);
             assert(!found);
          }
@@ -936,20 +988,46 @@ found_resume:
       nir_cf_extract(&cf_list, nir_after_instr(resume_instr),
                                nir_after_cf_list(child_list));
    }
-   nir_cf_reinsert(&cf_list, nir_before_instr(cursor));
+
+   if (cursor_is_after_jump(b->cursor)) {
+      /* If the resume instruction is in a loop, it's possible cf_list ends
+       * in a break or continue instruction, in which case we don't want to
+       * insert anything.  It's also possible we have an early return if
+       * someone hasn't lowered those yet.  In either case, nothing after that
+       * point executes in this context so we can delete it.
+       */
+      nir_cf_delete(&cf_list);
+   } else {
+      b->cursor = nir_cf_reinsert(&cf_list, b->cursor);
+   }
 
    if (!resume_node) {
       /* We want the resume to be the first "interesting" instruction */
       nir_instr_remove(resume_instr);
-      nir_instr_insert(nir_before_cf_list(&impl->body), resume_instr);
+      nir_instr_insert(nir_before_cf_list(&b->impl->body), resume_instr);
    }
 
    /* We've copied everything interesting out of this CF list to before the
     * cursor.  Delete everything else.
     */
    if (child_list_contains_cursor) {
-      nir_cf_extract(&cf_list, nir_after_instr(cursor),
-                               nir_after_cf_list(child_list));
+      /* If the cursor is in child_list, then we're either a loop or function
+       * that contains the cursor. Cursors are always placed in a wrapper if
+       * (true) to deal with break/continue and early returns. We've already
+       * moved everything interesting inside the wrapper if and we want to
+       * remove whatever is left after it.
+       */
+      nir_block *cursor_block = nir_cursor_current_block(b->cursor);
+      nir_if *wrapper_if = nir_cf_node_as_if(cursor_block->cf_node.parent);
+      assert(wrapper_if->cf_node.parent == parent_node);
+      /* The wrapper if blocks are either put into the body of the main
+       * function, or within the resume if block of the loops.
+       */
+      assert(parent_node->type == nir_cf_node_function ||
+             (parent_node->type == nir_cf_node_if &&
+              parent_node->parent->type == nir_cf_node_loop));
+      nir_cf_extract(&cf_list, nir_after_cf_node(&wrapper_if->cf_node),
+                     nir_after_cf_list(child_list));
    } else {
       nir_cf_list_extract(&cf_list, child_list);
    }
@@ -992,14 +1070,18 @@ lower_resume(nir_shader *shader, int call_idx)
    /* Create a nop instruction to use as a cursor as we extract and re-insert
     * stuff into the CFG.
     */
-   nir_instr *cursor =
-      &nir_intrinsic_instr_create(shader, nir_intrinsic_nop)->instr;
-   nir_instr_insert(nir_before_cf_list(&impl->body), cursor);
+   nir_builder b;
+   nir_builder_init(&b, impl);
+   b.cursor = nir_before_cf_list(&impl->body);
 
-   ASSERTED bool found =
-      flatten_resume_if_ladder(impl, cursor, &impl->body,
-                               true, resume_instr, &remat);
-   assert(found);
+   nir_push_if(&b, nir_imm_true(&b));
+   {
+      ASSERTED bool found =
+         flatten_resume_if_ladder(&b, &impl->cf_node, &impl->body,
+                                  true, resume_instr, &remat);
+      assert(found);
+   }
+   nir_pop_if(&b, NULL);
 
    ralloc_free(mem_ctx);
 
@@ -1115,14 +1197,24 @@ nir_lower_shader_calls(nir_shader *shader,
 
    /* Make N copies of our shader */
    nir_shader **resume_shaders = ralloc_array(mem_ctx, nir_shader *, num_calls);
-   for (unsigned i = 0; i < num_calls; i++)
+   for (unsigned i = 0; i < num_calls; i++) {
       resume_shaders[i] = nir_shader_clone(mem_ctx, shader);
+
+      /* Give them a recognizable name */
+      resume_shaders[i]->info.name =
+         ralloc_asprintf(mem_ctx, "%s%sresume_%u",
+                         shader->info.name ? shader->info.name : "",
+                         shader->info.name ? "-" : "",
+                         i);
+   }
 
    replace_resume_with_halt(shader, NULL);
    for (unsigned i = 0; i < num_calls; i++) {
       nir_instr *resume_instr = lower_resume(resume_shaders[i], i);
       replace_resume_with_halt(resume_shaders[i], resume_instr);
       nir_opt_remove_phis(resume_shaders[i]);
+      /* Remove the dummy blocks added by flatten_resume_if_ladder() */
+      nir_opt_if(resume_shaders[i], nir_opt_if_optimize_phi_true_false);
    }
 
    *resume_shaders_out = resume_shaders;

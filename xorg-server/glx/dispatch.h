@@ -65,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1658
+#define _gloffset_COUNT 1662
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -475,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1250
+#define driDispatchRemapTable_size 1254
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1728,6 +1728,10 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define VertexAttribs4hvNV_remap_index 1247
 #define TexPageCommitmentARB_remap_index 1248
 #define TexturePageCommitmentEXT_remap_index 1249
+#define ImportMemoryWin32HandleEXT_remap_index 1250
+#define ImportSemaphoreWin32HandleEXT_remap_index 1251
+#define ImportMemoryWin32NameEXT_remap_index 1252
+#define ImportSemaphoreWin32NameEXT_remap_index 1253
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2979,6 +2983,10 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_VertexAttribs4hvNV driDispatchRemapTable[VertexAttribs4hvNV_remap_index]
 #define _gloffset_TexPageCommitmentARB driDispatchRemapTable[TexPageCommitmentARB_remap_index]
 #define _gloffset_TexturePageCommitmentEXT driDispatchRemapTable[TexturePageCommitmentEXT_remap_index]
+#define _gloffset_ImportMemoryWin32HandleEXT driDispatchRemapTable[ImportMemoryWin32HandleEXT_remap_index]
+#define _gloffset_ImportSemaphoreWin32HandleEXT driDispatchRemapTable[ImportSemaphoreWin32HandleEXT_remap_index]
+#define _gloffset_ImportMemoryWin32NameEXT driDispatchRemapTable[ImportMemoryWin32NameEXT_remap_index]
+#define _gloffset_ImportSemaphoreWin32NameEXT driDispatchRemapTable[ImportSemaphoreWin32NameEXT_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) (* GET_NewList(disp)) parameters
@@ -16242,6 +16250,38 @@ typedef void (GLAPIENTRYP _glptr_TexturePageCommitmentEXT)(GLuint, GLint, GLint,
 #define SET_TexturePageCommitmentEXT(disp, func) do { \
    void (GLAPIENTRYP fn)(GLuint, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLboolean) = func; \
    SET_by_offset(disp, _gloffset_TexturePageCommitmentEXT, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_ImportMemoryWin32HandleEXT)(GLuint, GLuint64, GLenum, GLvoid *);
+#define CALL_ImportMemoryWin32HandleEXT(disp, parameters) (* GET_ImportMemoryWin32HandleEXT(disp)) parameters
+#define GET_ImportMemoryWin32HandleEXT(disp) ((_glptr_ImportMemoryWin32HandleEXT)(GET_by_offset((disp), _gloffset_ImportMemoryWin32HandleEXT)))
+#define SET_ImportMemoryWin32HandleEXT(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLuint, GLuint64, GLenum, GLvoid *) = func; \
+   SET_by_offset(disp, _gloffset_ImportMemoryWin32HandleEXT, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_ImportSemaphoreWin32HandleEXT)(GLuint, GLenum, GLvoid *);
+#define CALL_ImportSemaphoreWin32HandleEXT(disp, parameters) (* GET_ImportSemaphoreWin32HandleEXT(disp)) parameters
+#define GET_ImportSemaphoreWin32HandleEXT(disp) ((_glptr_ImportSemaphoreWin32HandleEXT)(GET_by_offset((disp), _gloffset_ImportSemaphoreWin32HandleEXT)))
+#define SET_ImportSemaphoreWin32HandleEXT(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLuint, GLenum, GLvoid *) = func; \
+   SET_by_offset(disp, _gloffset_ImportSemaphoreWin32HandleEXT, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_ImportMemoryWin32NameEXT)(GLuint, GLuint64, GLenum, const GLvoid *);
+#define CALL_ImportMemoryWin32NameEXT(disp, parameters) (* GET_ImportMemoryWin32NameEXT(disp)) parameters
+#define GET_ImportMemoryWin32NameEXT(disp) ((_glptr_ImportMemoryWin32NameEXT)(GET_by_offset((disp), _gloffset_ImportMemoryWin32NameEXT)))
+#define SET_ImportMemoryWin32NameEXT(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLuint, GLuint64, GLenum, const GLvoid *) = func; \
+   SET_by_offset(disp, _gloffset_ImportMemoryWin32NameEXT, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_ImportSemaphoreWin32NameEXT)(GLuint, GLenum, const GLvoid *);
+#define CALL_ImportSemaphoreWin32NameEXT(disp, parameters) (* GET_ImportSemaphoreWin32NameEXT(disp)) parameters
+#define GET_ImportSemaphoreWin32NameEXT(disp) ((_glptr_ImportSemaphoreWin32NameEXT)(GET_by_offset((disp), _gloffset_ImportSemaphoreWin32NameEXT)))
+#define SET_ImportSemaphoreWin32NameEXT(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLuint, GLenum, const GLvoid *) = func; \
+   SET_by_offset(disp, _gloffset_ImportSemaphoreWin32NameEXT, fn); \
 } while (0)
 
 

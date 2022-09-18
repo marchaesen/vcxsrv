@@ -20,14 +20,14 @@ xkb_symbols "swapcaps" {
     modifier_map  Lock { <LCTL> };
 };
 
-// Swap the functions of the CapsLock key and the left Ctrl key,
-// but make the Ctrl key a 'Hyper' modifier
+// Make the left Ctrl key a left Hyper,
+// and the CapsLock key a left Control.
 partial modifier_keys
-xkb_symbols "swapcaps_hyper" {
+xkb_symbols "hyper_capscontrol" {
     replace key <CAPS> { [ Control_L ] };
     replace key <LCTL> { [ Hyper_L ] };
     modifier_map Control { <CAPS> };
-    modifier_map Mod3 { <LCTL> };
+    modifier_map  Mod4 { <LCTL> };
 };
 
 // Set CapsLock to left Ctrl and left Ctrl to switch layout.

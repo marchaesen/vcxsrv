@@ -33,13 +33,13 @@ XkbAllocCompatMap \- Allocate a new compatibility map if you do not already have
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description in which to allocate compat map
 .TP
-.I \- which
+.I which
 mask of compatibility map components to allocate
 .TP
-.I \- num_si
+.I num_si
 number of symbol interpretations to allocate
 .SH DESCRIPTION
 .LP

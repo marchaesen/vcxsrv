@@ -70,6 +70,17 @@ x11_bin = executable('X11.bin',
      install_dir: x11appdir,
 )
 
+# X11 (Bundle trampoline)
+x11 = executable('X11',
+     [
+      'bundle_trampoline.c',
+     ],
+     c_args: xquartz_defs,
+     link_args: ['-Objc'],
+     install: true,
+     install_dir: x11appdir,
+)
+
 # Xquartz
 xquartz_deps = [
     dependency('CoreServices', method: 'extraframework'),

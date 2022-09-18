@@ -57,7 +57,7 @@ struct clc_dxil_metadata {
          } globconstptr;
          struct {
             unsigned sharedmem_offset;
-	 } localptr;
+         } localptr;
       };
    } *args;
    unsigned kernel_inputs_cbv_id;
@@ -166,7 +166,7 @@ struct clc_work_properties_data {
    unsigned group_id_offset_z;
 };
 
-uint64_t clc_compiler_get_version();
+uint64_t clc_compiler_get_version(void);
 
 #ifdef __cplusplus
 }

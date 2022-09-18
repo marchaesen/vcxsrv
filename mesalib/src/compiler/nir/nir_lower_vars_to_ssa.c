@@ -460,7 +460,7 @@ register_variable_uses(nir_function_impl *impl,
             nir_deref_instr *deref = nir_instr_as_deref(instr);
 
             if (deref->deref_type == nir_deref_type_var &&
-                nir_deref_instr_has_complex_use(deref))
+                nir_deref_instr_has_complex_use(deref, 0))
                register_complex_use(deref, state);
 
             break;
@@ -653,15 +653,15 @@ rename_variables(struct lower_variables_state *state)
                 * written values with the existing contents of unwritten
                 * channels, creating a new SSA value for the whole vector.
                 */
-               nir_ssa_def *srcs[NIR_MAX_VEC_COMPONENTS];
+               nir_ssa_scalar srcs[NIR_MAX_VEC_COMPONENTS];
                for (unsigned i = 0; i < intrin->num_components; i++) {
                   if (wrmask & (1 << i)) {
-                     srcs[i] = nir_channel(&b, value, i);
+                     srcs[i] = nir_get_ssa_scalar(value, i);
                   } else {
-                     srcs[i] = nir_channel(&b, old_def, i);
+                     srcs[i] = nir_get_ssa_scalar(old_def, i);
                   }
                }
-               new_def = nir_vec(&b, srcs, intrin->num_components);
+               new_def = nir_vec_scalars(&b, srcs, intrin->num_components);
             }
 
             assert(new_def->num_components == intrin->num_components);

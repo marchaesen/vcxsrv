@@ -228,7 +228,7 @@ __vk_sync_wait(struct vk_device *device,
    } else {
       struct vk_sync_wait wait = {
          .sync = sync,
-         .stage_mask = ~(VkPipelineStageFlags2KHR)0,
+         .stage_mask = ~(VkPipelineStageFlags2)0,
          .wait_value = wait_value,
       };
       return sync->type->wait_many(device, 1, &wait, wait_flags,

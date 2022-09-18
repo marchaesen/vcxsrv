@@ -33,13 +33,13 @@ XkbNoteDeviceChanges \- Note device changes reported in an XkbExtensionDeviceNot
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- old
+.I old
 structure tracking state changes
 .TP
-.I \- new
+.I new
 event indicating state changes
 .TP
-.I \- wanted
+.I wanted
 mask indicating changes to note
 .SH DESCRIPTION
 .LP

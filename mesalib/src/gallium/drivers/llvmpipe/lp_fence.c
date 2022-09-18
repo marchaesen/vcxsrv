@@ -32,6 +32,8 @@
 #include "lp_fence.h"
 
 
+#include "util/timespec.h"
+
 /**
  * Create a new fence object.
  *
@@ -44,7 +46,7 @@
 struct lp_fence *
 lp_fence_create(unsigned rank)
 {
-   static int fence_id;
+   static unsigned fence_id = 0;
    struct lp_fence *fence = CALLOC_STRUCT(lp_fence);
 
    if (!fence)
@@ -55,7 +57,7 @@ lp_fence_create(unsigned rank)
    (void) mtx_init(&fence->mutex, mtx_plain);
    cnd_init(&fence->signalled);
 
-   fence->id = fence_id++;
+   fence->id = p_atomic_inc_return(&fence_id) - 1;
    fence->rank = rank;
 
    if (LP_DEBUG & DEBUG_FENCE)
@@ -128,17 +130,12 @@ lp_fence_wait(struct lp_fence *f)
 boolean
 lp_fence_timedwait(struct lp_fence *f, uint64_t timeout)
 {
-   struct timespec ts;
+   struct timespec ts, abs_ts;
    int ret;
 
    timespec_get(&ts, TIME_UTC);
 
-   ts.tv_nsec += timeout % 1000000000L;
-   ts.tv_sec += timeout / 1000000000L;
-   if (ts.tv_nsec >= 1000000000L) {
-      ts.tv_sec++;
-      ts.tv_nsec -= 1000000000L;
-   }
+   bool ts_overflow = timespec_add_nsec(&abs_ts, &ts, timeout);
 
    if (LP_DEBUG & DEBUG_FENCE)
       debug_printf("%s %d\n", __FUNCTION__, f->id);
@@ -146,7 +143,10 @@ lp_fence_timedwait(struct lp_fence *f, uint64_t timeout)
    mtx_lock(&f->mutex);
    assert(f->issued);
    while (f->count < f->rank) {
-      ret = cnd_timedwait(&f->signalled, &f->mutex, &ts);
+      if (ts_overflow)
+         ret = cnd_wait(&f->signalled, &f->mutex);
+      else
+         ret = cnd_timedwait(&f->signalled, &f->mutex, &abs_ts);
       if (ret != thrd_success)
          break;
    }

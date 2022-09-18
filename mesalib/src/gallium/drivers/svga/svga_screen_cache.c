@@ -113,7 +113,7 @@ svga_screen_cache_lookup(struct svga_screen *svgascreen,
    while (curr != &cache->bucket[bucket]) {
       ++tries;
 
-      entry = LIST_ENTRY(struct svga_host_surface_cache_entry, curr, bucket_head);
+      entry = list_entry(curr, struct svga_host_surface_cache_entry, bucket_head);
 
       assert(entry->handle);
 
@@ -261,16 +261,18 @@ svga_screen_cache_add(struct svga_screen *svgascreen,
       /* An empty entry has no surface associated with it.
        * Use the first empty entry.
        */
-      entry = LIST_ENTRY(struct svga_host_surface_cache_entry,
-                         cache->empty.next, head);
+      entry = list_entry(cache->empty.next,
+                         struct svga_host_surface_cache_entry,
+                         head);
 
       /* Remove from LRU list */
       list_del(&entry->head);
    }
    else if (!list_is_empty(&cache->unused)) {
       /* free the last used buffer and reuse its entry */
-      entry = LIST_ENTRY(struct svga_host_surface_cache_entry,
-                         cache->unused.prev, head);
+      entry = list_entry(cache->unused.prev,
+                         struct svga_host_surface_cache_entry,
+                         head);
       SVGA_DBG(DEBUG_CACHE|DEBUG_DMA,
                "unref sid %p (make space)\n", entry->handle);
 
@@ -340,7 +342,7 @@ svga_screen_cache_flush(struct svga_screen *svgascreen,
    curr = cache->invalidated.next;
    next = curr->next;
    while (curr != &cache->invalidated) {
-      entry = LIST_ENTRY(struct svga_host_surface_cache_entry, curr, head);
+      entry = list_entry(curr, struct svga_host_surface_cache_entry, head);
 
       assert(entry->handle);
 
@@ -366,7 +368,7 @@ svga_screen_cache_flush(struct svga_screen *svgascreen,
    curr = cache->validated.next;
    next = curr->next;
    while (curr != &cache->validated) {
-      entry = LIST_ENTRY(struct svga_host_surface_cache_entry, curr, head);
+      entry = list_entry(curr, struct svga_host_surface_cache_entry, head);
 
       assert(entry->handle);
       assert(svga_have_gb_objects(svga));
@@ -644,8 +646,7 @@ svga_screen_cache_dump(const struct svga_screen *svgascreen)
       curr = cache->bucket[bucket].next;
       while (curr && curr != &cache->bucket[bucket]) {
          struct svga_host_surface_cache_entry *entry =
-            LIST_ENTRY(struct svga_host_surface_cache_entry,
-                       curr, bucket_head);
+            list_entry(curr, struct svga_host_surface_cache_entry,bucket_head);
          if (entry->key.format == SVGA3D_BUFFER) {
             debug_printf("  %p: buffer %u bytes\n",
                          entry->handle,

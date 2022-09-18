@@ -128,9 +128,20 @@ record_images_used(struct shader_info *info,
    /* Structs have been lowered already, so get_aoa_size is sufficient. */
    const unsigned size =
       glsl_type_is_array(var->type) ? glsl_get_aoa_size(var->type) : 1;
-   unsigned mask = ((1ull << MAX2(size, 1)) - 1) << var->data.binding;
 
-   info->images_used |= mask;
+   BITSET_SET_RANGE(info->images_used, var->data.binding,
+                    var->data.binding + (MAX2(size, 1) - 1));
+
+   enum glsl_sampler_dim sampler_dim =
+      glsl_get_sampler_dim(glsl_without_array(var->type));
+   if (sampler_dim == GLSL_SAMPLER_DIM_BUF) {
+      BITSET_SET_RANGE(info->image_buffers, var->data.binding,
+                       var->data.binding + (MAX2(size, 1) - 1));
+   }
+   if (sampler_dim == GLSL_SAMPLER_DIM_MS) {
+      BITSET_SET_RANGE(info->msaa_images, var->data.binding,
+                       var->data.binding + (MAX2(size, 1) - 1));
+   }
 }
 
 
@@ -233,12 +244,30 @@ record_textures_used(struct shader_info *info,
    const unsigned size =
       glsl_type_is_array(var->type) ? glsl_get_aoa_size(var->type) : 1;
 
-   BITSET_SET_RANGE_INSIDE_WORD(info->textures_used, var->data.binding, var->data.binding + (MAX2(size, 1) - 1));
+   BITSET_SET_RANGE(info->textures_used, var->data.binding,
+                    var->data.binding + (MAX2(size, 1) - 1));
 
    if (op == nir_texop_txf ||
        op == nir_texop_txf_ms ||
-       op == nir_texop_txf_ms_mcs_intel)
-      BITSET_SET_RANGE_INSIDE_WORD(info->textures_used_by_txf, var->data.binding, var->data.binding + (MAX2(size, 1) - 1));
+       op == nir_texop_txf_ms_mcs_intel) {
+      BITSET_SET_RANGE(info->textures_used_by_txf, var->data.binding,
+                       var->data.binding + (MAX2(size, 1) - 1));
+   }
+}
+
+static void
+record_samplers_used(struct shader_info *info,
+                     nir_deref_instr *deref,
+                     nir_texop op)
+{
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+
+   /* Structs have been lowered already, so get_aoa_size is sufficient. */
+   const unsigned size =
+      glsl_type_is_array(var->type) ? glsl_get_aoa_size(var->type) : 1;
+
+   BITSET_SET_RANGE(info->samplers_used, var->data.binding,
+                    var->data.binding + (MAX2(size, 1) - 1));
 }
 
 static bool
@@ -273,6 +302,7 @@ lower_sampler(nir_tex_instr *instr, struct lower_samplers_as_deref_state *state,
       if (sampler_deref) {
          nir_instr_rewrite_src(&instr->instr, &instr->src[sampler_idx].src,
                                nir_src_for_ssa(&sampler_deref->dest.ssa));
+         record_samplers_used(&b->shader->info, sampler_deref, instr->op);
       }
    }
 
@@ -298,6 +328,8 @@ lower_intrinsic(nir_intrinsic_instr *instr,
        instr->intrinsic == nir_intrinsic_image_deref_atomic_comp_swap ||
        instr->intrinsic == nir_intrinsic_image_deref_atomic_fadd ||
        instr->intrinsic == nir_intrinsic_image_deref_size ||
+       instr->intrinsic == nir_intrinsic_image_deref_samples_identical ||
+       instr->intrinsic == nir_intrinsic_image_deref_descriptor_amd ||
        instr->intrinsic == nir_intrinsic_image_deref_samples) {
 
       b->cursor = nir_before_instr(&instr->instr);

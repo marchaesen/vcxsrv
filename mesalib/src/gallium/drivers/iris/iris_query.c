@@ -310,7 +310,7 @@ calculate_result_on_cpu(const struct intel_device_info *devinfo,
       break;
    case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
       q->result = false;
-      for (int i = 0; i < MAX_VERTEX_STREAMS; i++)
+      for (int i = 0; i < PIPE_MAX_VERTEX_STREAMS; i++)
          q->result |= stream_overflowed((void *) q->map, i);
       break;
    case PIPE_QUERY_PIPELINE_STATISTICS_SINGLE:
@@ -356,12 +356,12 @@ calc_overflow_for_stream(struct mi_builder *b,
 static struct mi_value
 calc_overflow_any_stream(struct mi_builder *b, struct iris_query *q)
 {
-   struct mi_value stream_result[MAX_VERTEX_STREAMS];
-   for (int i = 0; i < MAX_VERTEX_STREAMS; i++)
+   struct mi_value stream_result[PIPE_MAX_VERTEX_STREAMS];
+   for (int i = 0; i < PIPE_MAX_VERTEX_STREAMS; i++)
       stream_result[i] = calc_overflow_for_stream(b, q, i);
 
    struct mi_value result = stream_result[0];
-   for (int i = 1; i < MAX_VERTEX_STREAMS; i++)
+   for (int i = 1; i < PIPE_MAX_VERTEX_STREAMS; i++)
       result = mi_ior(b, result, stream_result[i]);
 
    return result;
@@ -651,7 +651,7 @@ iris_get_query_result(struct pipe_context *ctx,
 static void
 iris_get_query_result_resource(struct pipe_context *ctx,
                                struct pipe_query *query,
-                               bool wait,
+                               enum pipe_query_flags flags,
                                enum pipe_query_value_type result_type,
                                int index,
                                struct pipe_resource *p_res,
@@ -699,17 +699,12 @@ iris_get_query_result_resource(struct pipe_context *ctx,
          batch->screen->vtbl.store_data_imm64(batch, dst_bo, offset, q->result);
       }
 
-      /* Make sure the result lands before they use bind the QBO elsewhere
-       * and use the result.
-       */
-      // XXX: Why?  i965 doesn't do this.
-      iris_emit_pipe_control_flush(batch,
-                                   "query: unknown QBO flushing hack",
-                                   PIPE_CONTROL_CS_STALL);
+      /* Make sure QBO is flushed before its result is used elsewhere. */
+      iris_dirty_for_history(ice, res);
       return;
    }
 
-   bool predicated = !wait && !q->stalled;
+   bool predicated = !(flags & PIPE_QUERY_WAIT) && !q->stalled;
 
    struct mi_builder b;
    mi_builder_init(&b, &batch->screen->devinfo, batch);

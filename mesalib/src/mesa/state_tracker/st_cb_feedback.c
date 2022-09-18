@@ -291,12 +291,16 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
       st_init_draw_functions(st->screen, &ctx->Driver);
    }
    else if (newMode == GL_SELECT) {
-      if (!st->selection_stage)
-         st->selection_stage = draw_glselect_stage(ctx, draw);
-      draw_set_rasterize_stage(draw, st->selection_stage);
-      /* Plug in new vbo draw function */
-      ctx->Driver.DrawGallium = _mesa_draw_gallium_fallback;
-      ctx->Driver.DrawGalliumMultiMode = _mesa_draw_gallium_multimode_fallback;
+      if (ctx->Const.HardwareAcceleratedSelect)
+         st_init_hw_select_draw_functions(st->screen, &ctx->Driver);
+      else {
+         if (!st->selection_stage)
+            st->selection_stage = draw_glselect_stage(ctx, draw);
+         draw_set_rasterize_stage(draw, st->selection_stage);
+         /* Plug in new vbo draw function */
+         ctx->Driver.DrawGallium = _mesa_draw_gallium_fallback;
+         ctx->Driver.DrawGalliumMultiMode = _mesa_draw_gallium_multimode_fallback;
+      }
    }
    else {
       struct gl_program *vp = st->ctx->VertexProgram._Current;
@@ -311,4 +315,8 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
       if (vp)
          st->dirty |= ST_NEW_VERTEX_PROGRAM(st, vp);
    }
+
+   /* Restore geometry shader states when leaving GL_SELECT mode. */
+   if (ctx->RenderMode == GL_SELECT && ctx->Const.HardwareAcceleratedSelect)
+      st->dirty |= ST_NEW_GS_SSBOS | ST_NEW_GS_CONSTANTS | ST_NEW_GS_STATE;
 }

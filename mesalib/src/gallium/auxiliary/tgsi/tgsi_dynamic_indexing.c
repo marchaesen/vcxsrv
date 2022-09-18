@@ -332,7 +332,6 @@ tgsi_remove_dynamic_indexing(const struct tgsi_token *tokens_in,
    struct dIndexing_transform_context transform;
    const uint num_new_tokens = 1000; /* should be enough */
    const uint new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
-   struct tgsi_token *new_tokens;
 
    /* setup transformation context */
    memset(&transform, 0, sizeof(transform));
@@ -347,15 +346,7 @@ tgsi_remove_dynamic_indexing(const struct tgsi_token *tokens_in,
    transform.num_samplers = log2(samplers_declared_bitmask + 1);
    transform.num_iterations = 0;
 
-   /* allocate new tokens buffer */
-   new_tokens = tgsi_alloc_tokens(new_len);
-   if (!new_tokens)
-      return NULL;
-
-   /* transform the shader */
-   tgsi_transform_shader(tokens_in, new_tokens, new_len, &transform.base);
-
-   return new_tokens;
+   return tgsi_transform_shader(tokens_in, new_len, &transform.base);
 }
 
 

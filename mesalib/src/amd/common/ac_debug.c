@@ -67,7 +67,7 @@ struct ac_ib_parser {
    unsigned num_dw;
    const int *trace_ids;
    unsigned trace_id_count;
-   enum chip_class chip_class;
+   enum amd_gfx_level gfx_level;
    ac_debug_addr_callback addr_callback;
    void *addr_callback_data;
 
@@ -109,12 +109,16 @@ static void print_named_value(FILE *file, const char *name, uint32_t value, int 
    print_value(file, value, bits);
 }
 
-static const struct si_reg *find_register(enum chip_class chip_class, unsigned offset)
+static const struct si_reg *find_register(enum amd_gfx_level gfx_level, unsigned offset)
 {
    const struct si_reg *table;
    unsigned table_size;
 
-   switch (chip_class) {
+   switch (gfx_level) {
+   case GFX11:
+      table = gfx11_reg_table;
+      table_size = ARRAY_SIZE(gfx11_reg_table);
+      break;
    case GFX10_3:
    case GFX10:
       table = gfx10_reg_table;
@@ -150,17 +154,17 @@ static const struct si_reg *find_register(enum chip_class chip_class, unsigned o
    return NULL;
 }
 
-const char *ac_get_register_name(enum chip_class chip_class, unsigned offset)
+const char *ac_get_register_name(enum amd_gfx_level gfx_level, unsigned offset)
 {
-   const struct si_reg *reg = find_register(chip_class, offset);
+   const struct si_reg *reg = find_register(gfx_level, offset);
 
    return reg ? sid_strings + reg->name_offset : "(no name)";
 }
 
-void ac_dump_reg(FILE *file, enum chip_class chip_class, unsigned offset, uint32_t value,
+void ac_dump_reg(FILE *file, enum amd_gfx_level gfx_level, unsigned offset, uint32_t value,
                  uint32_t field_mask)
 {
-   const struct si_reg *reg = find_register(chip_class, offset);
+   const struct si_reg *reg = find_register(gfx_level, offset);
 
    if (reg) {
       const char *reg_name = sid_strings + reg->name_offset;
@@ -248,7 +252,7 @@ static void ac_parse_set_reg_packet(FILE *f, unsigned count, unsigned reg_offset
    }
 
    for (i = 0; i < count; i++)
-      ac_dump_reg(f, ib->chip_class, reg + i * 4, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, reg + i * 4, ac_ib_get(ib), ~0);
 }
 
 static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
@@ -269,7 +273,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
       const char *name = sid_strings + packet3_table[i].name_offset;
 
       if (op == PKT3_SET_CONTEXT_REG || op == PKT3_SET_CONFIG_REG || op == PKT3_SET_UCONFIG_REG ||
-          op == PKT3_SET_UCONFIG_REG_INDEX || op == PKT3_SET_SH_REG)
+          op == PKT3_SET_UCONFIG_REG_INDEX || op == PKT3_SET_SH_REG || op == PKT3_SET_SH_REG_INDEX)
          fprintf(f, "%s%s%s%s:\n", O_COLOR_CYAN, name, predicate, O_COLOR_RESET);
       else
          fprintf(f, "%s%s%s%s:\n", O_COLOR_GREEN, name, predicate, O_COLOR_RESET);
@@ -289,33 +293,44 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
       ac_parse_set_reg_packet(f, count, CIK_UCONFIG_REG_OFFSET, ib);
       break;
    case PKT3_SET_SH_REG:
+   case PKT3_SET_SH_REG_INDEX:
       ac_parse_set_reg_packet(f, count, SI_SH_REG_OFFSET, ib);
       break;
    case PKT3_ACQUIRE_MEM:
-      ac_dump_reg(f, ib->chip_class, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_030230_CP_COHER_SIZE_HI, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_0301E4_CP_COHER_BASE_HI, ac_ib_get(ib), ~0);
+      if (ib->gfx_level >= GFX11 && G_585_PWS_ENA(ib->ib[ib->cur_dw + 5])) {
+         ac_dump_reg(f, ib->gfx_level, R_580_ACQUIRE_MEM_PWS_2, ac_ib_get(ib), ~0);
+         print_named_value(f, "GCR_SIZE", ac_ib_get(ib), 32);
+         print_named_value(f, "GCR_SIZE_HI", ac_ib_get(ib), 25);
+         print_named_value(f, "GCR_BASE_LO", ac_ib_get(ib), 32);
+         print_named_value(f, "GCR_BASE_HI", ac_ib_get(ib), 32);
+         ac_dump_reg(f, ib->gfx_level, R_585_ACQUIRE_MEM_PWS_7, ac_ib_get(ib), ~0);
+         ac_dump_reg(f, ib->gfx_level, R_586_GCR_CNTL, ac_ib_get(ib), ~0);
+         break;
+      }
+      ac_dump_reg(f, ib->gfx_level, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_030230_CP_COHER_SIZE_HI, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_0301E4_CP_COHER_BASE_HI, ac_ib_get(ib), ~0);
       print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
-      if (ib->chip_class >= GFX10)
-         ac_dump_reg(f, ib->chip_class, R_586_GCR_CNTL, ac_ib_get(ib), ~0);
+      if (ib->gfx_level >= GFX10)
+         ac_dump_reg(f, ib->gfx_level, R_586_GCR_CNTL, ac_ib_get(ib), ~0);
       break;
    case PKT3_SURFACE_SYNC:
-      if (ib->chip_class >= GFX7) {
-         ac_dump_reg(f, ib->chip_class, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
-         ac_dump_reg(f, ib->chip_class, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
-         ac_dump_reg(f, ib->chip_class, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
+      if (ib->gfx_level >= GFX7) {
+         ac_dump_reg(f, ib->gfx_level, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
+         ac_dump_reg(f, ib->gfx_level, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
+         ac_dump_reg(f, ib->gfx_level, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
       } else {
-         ac_dump_reg(f, ib->chip_class, R_0085F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
-         ac_dump_reg(f, ib->chip_class, R_0085F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
-         ac_dump_reg(f, ib->chip_class, R_0085F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
+         ac_dump_reg(f, ib->gfx_level, R_0085F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
+         ac_dump_reg(f, ib->gfx_level, R_0085F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
+         ac_dump_reg(f, ib->gfx_level, R_0085F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
       }
       print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
       break;
    case PKT3_EVENT_WRITE: {
       uint32_t event_dw = ac_ib_get(ib);
-      ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
+      ac_dump_reg(f, ib->gfx_level, R_028A90_VGT_EVENT_INITIATOR, event_dw,
                   S_028A90_EVENT_TYPE(~0));
       print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
       print_named_value(f, "INV_L2", (event_dw >> 20) & 0x1, 1);
@@ -327,7 +342,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
    }
    case PKT3_EVENT_WRITE_EOP: {
       uint32_t event_dw = ac_ib_get(ib);
-      ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
+      ac_dump_reg(f, ib->gfx_level, R_028A90_VGT_EVENT_INITIATOR, event_dw,
                   S_028A90_EVENT_TYPE(~0));
       print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
       print_named_value(f, "TCL1_VOL_ACTION_ENA", (event_dw >> 12) & 0x1, 1);
@@ -347,10 +362,10 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
    }
    case PKT3_RELEASE_MEM: {
       uint32_t event_dw = ac_ib_get(ib);
-      if (ib->chip_class >= GFX10) {
-         ac_dump_reg(f, ib->chip_class, R_490_RELEASE_MEM_OP, event_dw, ~0u);
+      if (ib->gfx_level >= GFX10) {
+         ac_dump_reg(f, ib->gfx_level, R_490_RELEASE_MEM_OP, event_dw, ~0u);
       } else {
-         ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
+         ac_dump_reg(f, ib->gfx_level, R_028A90_VGT_EVENT_INITIATOR, event_dw,
                      S_028A90_EVENT_TYPE(~0));
          print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
          print_named_value(f, "TCL1_VOL_ACTION_ENA", (event_dw >> 12) & 0x1, 1);
@@ -382,52 +397,52 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
       print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
       break;
    case PKT3_DRAW_INDEX_AUTO:
-      ac_dump_reg(f, ib->chip_class, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
       break;
    case PKT3_DRAW_INDEX_2:
-      ac_dump_reg(f, ib->chip_class, R_028A78_VGT_DMA_MAX_SIZE, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_0287E8_VGT_DMA_BASE, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_0287E4_VGT_DMA_BASE_HI, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_028A78_VGT_DMA_MAX_SIZE, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_0287E8_VGT_DMA_BASE, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_0287E4_VGT_DMA_BASE_HI, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_030930_VGT_NUM_INDICES, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_0287F0_VGT_DRAW_INITIATOR, ac_ib_get(ib), ~0);
       break;
    case PKT3_INDEX_TYPE:
-      ac_dump_reg(f, ib->chip_class, R_028A7C_VGT_DMA_INDEX_TYPE, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_028A7C_VGT_DMA_INDEX_TYPE, ac_ib_get(ib), ~0);
       break;
    case PKT3_NUM_INSTANCES:
-      ac_dump_reg(f, ib->chip_class, R_030934_VGT_NUM_INSTANCES, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_030934_VGT_NUM_INSTANCES, ac_ib_get(ib), ~0);
       break;
    case PKT3_WRITE_DATA:
-      ac_dump_reg(f, ib->chip_class, R_370_CONTROL, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_371_DST_ADDR_LO, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_372_DST_ADDR_HI, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_370_CONTROL, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_371_DST_ADDR_LO, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_372_DST_ADDR_HI, ac_ib_get(ib), ~0);
       /* The payload is written automatically */
       break;
    case PKT3_CP_DMA:
-      ac_dump_reg(f, ib->chip_class, R_410_CP_DMA_WORD0, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_411_CP_DMA_WORD1, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_412_CP_DMA_WORD2, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_413_CP_DMA_WORD3, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_415_COMMAND, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_410_CP_DMA_WORD0, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_411_CP_DMA_WORD1, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_412_CP_DMA_WORD2, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_413_CP_DMA_WORD3, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_415_COMMAND, ac_ib_get(ib), ~0);
       break;
    case PKT3_DMA_DATA:
-      ac_dump_reg(f, ib->chip_class, R_500_DMA_DATA_WORD0, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_501_SRC_ADDR_LO, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_502_SRC_ADDR_HI, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_503_DST_ADDR_LO, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_504_DST_ADDR_HI, ac_ib_get(ib), ~0);
-      ac_dump_reg(f, ib->chip_class, R_415_COMMAND, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_500_DMA_DATA_WORD0, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_501_SRC_ADDR_LO, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_502_SRC_ADDR_HI, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_503_DST_ADDR_LO, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_504_DST_ADDR_HI, ac_ib_get(ib), ~0);
+      ac_dump_reg(f, ib->gfx_level, R_415_COMMAND, ac_ib_get(ib), ~0);
       break;
    case PKT3_INDIRECT_BUFFER_SI:
    case PKT3_INDIRECT_BUFFER_CONST:
    case PKT3_INDIRECT_BUFFER_CIK: {
       uint32_t base_lo_dw = ac_ib_get(ib);
-      ac_dump_reg(f, ib->chip_class, R_3F0_IB_BASE_LO, base_lo_dw, ~0);
+      ac_dump_reg(f, ib->gfx_level, R_3F0_IB_BASE_LO, base_lo_dw, ~0);
       uint32_t base_hi_dw = ac_ib_get(ib);
-      ac_dump_reg(f, ib->chip_class, R_3F1_IB_BASE_HI, base_hi_dw, ~0);
+      ac_dump_reg(f, ib->gfx_level, R_3F1_IB_BASE_HI, base_hi_dw, ~0);
       uint32_t control_dw = ac_ib_get(ib);
-      ac_dump_reg(f, ib->chip_class, R_3F2_IB_CONTROL, control_dw, ~0);
+      ac_dump_reg(f, ib->gfx_level, R_3F2_IB_CONTROL, control_dw, ~0);
 
       if (!ib->addr_callback)
          break;
@@ -585,7 +600,7 @@ static void format_ib_output(FILE *f, char *out)
  * \param f            file
  * \param ib_ptr       IB
  * \param num_dw       size of the IB
- * \param chip_class   chip class
+ * \param gfx_level   gfx level
  * \param trace_ids	the last trace IDs that are known to have been reached
  *			and executed by the CP, typically read from a buffer
  * \param trace_id_count The number of entries in the trace_ids array.
@@ -594,7 +609,7 @@ static void format_ib_output(FILE *f, char *out)
  * \param addr_callback_data user data for addr_callback
  */
 void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, const int *trace_ids,
-                       unsigned trace_id_count, enum chip_class chip_class,
+                       unsigned trace_id_count, enum amd_gfx_level gfx_level,
                        ac_debug_addr_callback addr_callback, void *addr_callback_data)
 {
    struct ac_ib_parser ib = {0};
@@ -602,7 +617,7 @@ void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, const int *trace_i
    ib.num_dw = num_dw;
    ib.trace_ids = trace_ids;
    ib.trace_id_count = trace_id_count;
-   ib.chip_class = chip_class;
+   ib.gfx_level = gfx_level;
    ib.addr_callback = addr_callback;
    ib.addr_callback_data = addr_callback_data;
 
@@ -632,7 +647,7 @@ void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, const int *trace_i
  * \param f		file
  * \param ib		IB
  * \param num_dw	size of the IB
- * \param chip_class	chip class
+ * \param gfx_level	gfx level
  * \param trace_ids	the last trace IDs that are known to have been reached
  *			and executed by the CP, typically read from a buffer
  * \param trace_id_count The number of entries in the trace_ids array.
@@ -641,12 +656,12 @@ void ac_parse_ib_chunk(FILE *f, uint32_t *ib_ptr, int num_dw, const int *trace_i
  * \param addr_callback_data user data for addr_callback
  */
 void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids, unsigned trace_id_count,
-                 const char *name, enum chip_class chip_class, ac_debug_addr_callback addr_callback,
+                 const char *name, enum amd_gfx_level gfx_level, ac_debug_addr_callback addr_callback,
                  void *addr_callback_data)
 {
    fprintf(f, "------------------ %s begin ------------------\n", name);
 
-   ac_parse_ib_chunk(f, ib, num_dw, trace_ids, trace_id_count, chip_class, addr_callback,
+   ac_parse_ib_chunk(f, ib, num_dw, trace_ids, trace_id_count, gfx_level, addr_callback,
                      addr_callback_data);
 
    fprintf(f, "------------------- %s end -------------------\n\n", name);
@@ -655,11 +670,11 @@ void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids, unsign
 /**
  * Parse dmesg and return TRUE if a VM fault has been detected.
  *
- * \param chip_class		chip class
+ * \param gfx_level		gfx level
  * \param old_dmesg_timestamp	previous dmesg timestamp parsed at init time
  * \param out_addr		detected VM fault addr
  */
-bool ac_vm_fault_occured(enum chip_class chip_class, uint64_t *old_dmesg_timestamp,
+bool ac_vm_fault_occured(enum amd_gfx_level gfx_level, uint64_t *old_dmesg_timestamp,
                          uint64_t *out_addr)
 {
 #ifdef _WIN32
@@ -717,7 +732,7 @@ bool ac_vm_fault_occured(enum chip_class chip_class, uint64_t *old_dmesg_timesta
 
       const char *header_line, *addr_line_prefix, *addr_line_format;
 
-      if (chip_class >= GFX9) {
+      if (gfx_level >= GFX9) {
          /* Match this:
           * ..: [gfxhub] VMC page fault (src_id:0 ring:158 vm_id:2 pas_id:0)
           * ..:   at page 0x0000000219f8f000 from 27
@@ -797,7 +812,7 @@ static int compare_wave(const void *p1, const void *p2)
 }
 
 /* Return wave information. "waves" should be a large enough array. */
-unsigned ac_get_wave_info(enum chip_class chip_class,
+unsigned ac_get_wave_info(enum amd_gfx_level gfx_level,
                           struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP])
 {
 #ifdef _WIN32
@@ -806,7 +821,7 @@ unsigned ac_get_wave_info(enum chip_class chip_class,
    char line[2000], cmd[128];
    unsigned num_waves = 0;
 
-   sprintf(cmd, "umr -O halt_waves -wa %s", chip_class >= GFX10 ? "gfx_0.0.0" : "gfx");
+   sprintf(cmd, "umr -O halt_waves -wa %s", gfx_level >= GFX10 ? "gfx_0.0.0" : "gfx");
 
    FILE *p = popen(cmd, "r");
    if (!p)

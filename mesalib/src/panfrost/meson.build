@@ -27,6 +27,10 @@ inc_panfrost = include_directories([
    '.', 'include', 'shared', 'midgard', 'bifrost', 'lib'
 ])
 
+compile_args_panfrost = [
+  '-Wno-pointer-arith'
+]
+
 subdir('shared')
 subdir('util')
 subdir('midgard')
@@ -77,4 +81,8 @@ endif
 
 if with_tools.contains('drm-shim')
   subdir('drm-shim')
+endif
+
+if with_tools.contains('panfrost')
+   subdir('tools')
 endif

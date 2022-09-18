@@ -24,7 +24,6 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 <import file="dsi/dsi_phy_14nm.xml"/>
 <import file="dsi/dsi_phy_10nm.xml"/>
 <import file="dsi/dsi_phy_7nm.xml"/>
-<import file="dsi/dsi_phy_5nm.xml"/>
 <import file="dsi/sfpb.xml"/>
 <import file="dsi/mmss_cc.xml"/>
 <import file="hdmi/qfprom.xml"/>

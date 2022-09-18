@@ -269,7 +269,7 @@ os_get_total_physical_memory(uint64_t *size)
    *size = status.ullTotalPhys;
    return (ret == TRUE);
 #else
-#error unexpected platform in os_sysinfo.c
+#error unexpected platform in os_misc.c
    return false;
 #endif
 }
@@ -317,6 +317,14 @@ os_get_available_system_memory(uint64_t *size)
 
    *size = MIN2(mem_available, rl.rlim_cur);
    return true;
+#elif DETECT_OS_WINDOWS
+   MEMORYSTATUSEX status;
+   BOOL ret;
+
+   status.dwLength = sizeof(status);
+   ret = GlobalMemoryStatusEx(&status);
+   *size = status.ullAvailPhys;
+   return (ret == TRUE);
 #else
    return false;
 #endif

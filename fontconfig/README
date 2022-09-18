@@ -1,11 +1,16 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.13.96 (2.14 RC6)
-                              2022-02-04
+                             Version 2.14
+                              2022-03-31
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new.
+
+2.14
+
+Alan Coopersmith (1):
+      Update address for reporting msgid bugs from bugzilla to gitlab
 
 2.13.96 (2.14 RC6)
 

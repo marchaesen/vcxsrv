@@ -296,8 +296,8 @@ static void mainchan_request_response(Channel *chan, bool success)
              * If there's no remote_cmd2 configured, then we have no
              * fallback command, so we've run out of options.
              */
-            ssh_sw_abort(mc->ppl->ssh,
-                         "Server refused to start a shell/command");
+            ssh_sw_abort_deferred(mc->ppl->ssh,
+                                  "Server refused to start a shell/command");
         }
         return;
     }
@@ -310,8 +310,8 @@ static void mainchan_request_response(Channel *chan, bool success)
             ssh_got_fallback_cmd(mc->ppl->ssh);
             mainchan_ready(mc);
         } else {
-            ssh_sw_abort(mc->ppl->ssh,
-                         "Server refused to start a shell/command");
+            ssh_sw_abort_deferred(mc->ppl->ssh,
+                                  "Server refused to start a shell/command");
         }
         return;
     }
@@ -344,7 +344,7 @@ static void mainchan_open_failure(Channel *chan, const char *errtext)
 }
 
 static size_t mainchan_send(Channel *chan, bool is_stderr,
-                         const void *data, size_t length)
+                            const void *data, size_t length)
 {
     assert(chan->vt == &mainchan_channelvt);
     mainchan *mc = container_of(chan, mainchan, chan);

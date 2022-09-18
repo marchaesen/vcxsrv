@@ -39,9 +39,7 @@ xkb_symbols "basic" {
 
 // Tastiera Plisi (plisi.org)
 // by Getoar Mjeku <gm@getoar.com>
-//
-
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "plisi" {
 
  include "us"
@@ -59,7 +57,7 @@ xkb_symbols "plisi" {
  key <AE08> { [ 8, asterisk, braceright ] };
  key <AE09> { [ 9, parenleft, bracketleft ] };
  key <AE10> { [ 0, parenright, bracketright ] };
- key <AE11> { [ minus, underscore, U00AD ] };
+ key <AE11> { [ minus, underscore, hyphen ] };
  key <AE12> { [ equal, plus, registered ] };
 
  key <AD01> { [ q, Q, dead_grave ] };
@@ -93,7 +91,7 @@ xkb_symbols "plisi" {
  key <AB04> { [ v, V, U2039 ] };
  key <AB05> { [ b, B, U203A ] };
  key <AB06> { [ n, N, endash ] };
- key <AB07> { [ m, M, emdash, U00B5 ] };
+ key <AB07> { [ m, M, emdash, mu ] };
  key <AB08> { [ comma, semicolon, U02BB ] };
  key <AB09> { [ period, colon, U200C ] };
  key <AB10> { [ slash, question, U2011 ] };
@@ -105,11 +103,7 @@ xkb_symbols "plisi" {
 
 // EXTRAS:
 
-// Veqilharxhi layout (https://arberisht.wordpress.com/2019/09/13/an-xkb-layout-for-the-veqilharxhi-alphabet/)
-// by Arbër Boriçi (illyriensis@protonmail.com)
-// 2019-09-12
-
-
+// Veqilharxhi layout, by Arbër Boriçi (illyriensis@protonmail.com), September 2019.
 partial alphanumeric_keys
 xkb_symbols "veqilharxhi" {
 

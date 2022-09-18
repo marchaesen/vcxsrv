@@ -10,7 +10,6 @@ default xkb_compatibility "olpc" {
     virtual_modifiers  Square,Cross,Triangle,Circle;
 
     interpret KP_Home+Any {
-        //useModMapMods= level1;
         virtualModifier= Square;
         action = SetMods(modifiers=modMapMods);
     };
@@ -20,7 +19,6 @@ default xkb_compatibility "olpc" {
     };
 
     interpret KP_Next+Any {
-        //useModMapMods= level1;
         virtualModifier= Cross;
         action = SetMods(modifiers=modMapMods);
     };
@@ -30,7 +28,6 @@ default xkb_compatibility "olpc" {
     };
 
     interpret KP_End+Any {
-        //useModMapMods= level1;
         virtualModifier= Circle;
         action = SetMods(modifiers=modMapMods);
     };
@@ -40,7 +37,6 @@ default xkb_compatibility "olpc" {
     };
 
     interpret KP_Prior+Any {
-        //useModMapMods= level1;
         virtualModifier= Triangle;
         action = SetMods(modifiers=modMapMods);
     };

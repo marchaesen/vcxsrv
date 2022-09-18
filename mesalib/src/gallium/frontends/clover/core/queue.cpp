@@ -25,6 +25,7 @@
 #include "pipe/p_screen.h"
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
+#include "util/u_debug.h"
 
 using namespace clover;
 
@@ -32,7 +33,7 @@ namespace {
    void
    debug_notify_callback(void *data,
                          unsigned *id,
-                         enum pipe_debug_type type,
+                         enum util_debug_type type,
                          const char *fmt,
                          va_list args) {
       const command_queue *queue = (const command_queue *)data;
@@ -50,7 +51,7 @@ command_queue::command_queue(clover::context &ctx, clover::device &dev,
       throw error(CL_INVALID_DEVICE);
 
    if (ctx.notify) {
-      struct pipe_debug_callback cb;
+      struct util_debug_callback cb;
       memset(&cb, 0, sizeof(cb));
       cb.debug_message = &debug_notify_callback;
       cb.data = this;
@@ -76,7 +77,7 @@ command_queue::command_queue(clover::context &ctx, clover::device &dev,
       throw error(CL_INVALID_DEVICE);
 
    if (ctx.notify) {
-      struct pipe_debug_callback cb;
+      struct util_debug_callback cb;
       memset(&cb, 0, sizeof(cb));
       cb.debug_message = &debug_notify_callback;
       cb.data = this;

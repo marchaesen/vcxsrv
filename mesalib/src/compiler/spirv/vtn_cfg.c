@@ -148,6 +148,29 @@ vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
    }
 }
 
+static void
+function_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
+                       const struct vtn_decoration *dec, void *void_func)
+{
+   struct vtn_function *func = void_func;
+
+   switch (dec->decoration) {
+   case SpvDecorationLinkageAttributes: {
+      unsigned name_words;
+      const char *name =
+         vtn_string_literal(b, dec->operands, dec->num_operands, &name_words);
+      vtn_fail_if(name_words >= dec->num_operands,
+                  "Malformed LinkageAttributes decoration");
+      (void)name; /* TODO: What is this? */
+      func->linkage = dec->operands[name_words];
+      break;
+   }
+
+   default:
+      break;
+   }
+}
+
 static bool
 vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
                                    const uint32_t *w, unsigned count)
@@ -160,11 +183,14 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
       b->func->node.type = vtn_cf_node_type_function;
       b->func->node.parent = NULL;
       list_inithead(&b->func->body);
+      b->func->linkage = SpvLinkageTypeMax;
       b->func->control = w[3];
 
       UNUSED const struct glsl_type *result_type = vtn_get_type(b, w[1])->type;
       struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_function);
       val->func = b->func;
+
+      vtn_foreach_decoration(b, val, function_decoration_cb, b->func);
 
       b->func->type = vtn_get_type(b, w[4]);
       const struct vtn_type *func_type = b->func->type;
@@ -221,10 +247,19 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpFunctionEnd:
       b->func->end = w;
       if (b->func->start_block == NULL) {
+         vtn_fail_if(b->func->linkage != SpvLinkageTypeImport,
+                     "A function declaration (an OpFunction with no basic "
+                     "blocks), must have a Linkage Attributes Decoration "
+                     "with the Import Linkage Type.");
+
          /* In this case, the function didn't have any actual blocks.  It's
           * just a prototype so delete the function_impl.
           */
          b->func->nir_func->impl = NULL;
+      } else {
+         vtn_fail_if(b->func->linkage == SpvLinkageTypeImport,
+                     "A function definition (an OpFunction with basic blocks) "
+                     "cannot be decorated with the Import Linkage Type.");
       }
       b->func = NULL;
       break;
@@ -889,6 +924,11 @@ vtn_handle_phis_first_pass(struct vtn_builder *b, SpvOp opcode,
    struct vtn_type *type = vtn_get_type(b, w[1]);
    nir_variable *phi_var =
       nir_local_variable_create(b->nb.impl, type->type, "phi");
+
+   struct vtn_value *phi_val = vtn_untyped_value(b, w[2]);
+   if (vtn_value_is_relaxed_precision(b, phi_val))
+      phi_var->data.precision = GLSL_PRECISION_MEDIUM;
+
    _mesa_hash_table_insert(b->phi_table, w, phi_var);
 
    vtn_push_ssa_value(b, w[2],
@@ -1093,16 +1133,19 @@ vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
          const uint32_t *branch = vtn_if->header_block->branch;
          vtn_assert((branch[0] & SpvOpCodeMask) == SpvOpBranchConditional);
 
+         bool sw_break = false;
          /* If both branches are the same, just emit the first block, which is
           * the only one we filled when building the CFG.
           */
          if (branch[2] == branch[3]) {
-            vtn_emit_cf_list_structured(b, &vtn_if->then_body,
-                                        switch_fall_var, has_switch_break, handler);
+            if (vtn_if->then_type == vtn_branch_type_none) {
+               vtn_emit_cf_list_structured(b, &vtn_if->then_body,
+                                           switch_fall_var, &sw_break, handler);
+            } else {
+               vtn_emit_branch(b, vtn_if->then_type, switch_fall_var, &sw_break);
+            }
             break;
          }
-
-         bool sw_break = false;
 
          nir_if *nif =
             nir_push_if(&b->nb, vtn_get_nir_ssa(b, branch[1]));

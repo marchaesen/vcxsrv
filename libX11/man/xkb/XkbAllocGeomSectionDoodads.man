@@ -32,10 +32,10 @@ XkbAllocGeomSectionDoodads \- Allocate doodads that are specific to a section
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- section
+.I section
 section for which doodads should be allocated
 .TP
-.I \- num_needed
+.I num_needed
 number of new doodads required
 .SH DESCRIPTION
 .LP

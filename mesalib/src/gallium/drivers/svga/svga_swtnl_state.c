@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -248,8 +248,8 @@ svga_swtnl_update_vdecl(struct svga_context *svga)
    nr_decls++;
 
    for (i = 0; i < fs->base.info.num_inputs; i++) {
-      const enum tgsi_semantic sem_name = fs->base.info.input_semantic_name[i];
-      const unsigned sem_index = fs->base.info.input_semantic_index[i];
+      const enum tgsi_semantic sem_name = fs->base.tgsi_info.input_semantic_name[i];
+      const unsigned sem_index = fs->base.tgsi_info.input_semantic_index[i];
 
       src = draw_find_shader_output(draw, sem_name, sem_index);
 
@@ -270,6 +270,13 @@ svga_swtnl_update_vdecl(struct svga_context *svga)
          vdecl[nr_decls].identity.type = SVGA3D_DECLTYPE_FLOAT4;
          vdecl[nr_decls].identity.usageIndex =
             svga_remap_generic_index(fs->generic_remap_table, sem_index);
+         offset += 16;
+         nr_decls++;
+         break;
+      case TGSI_SEMANTIC_TEXCOORD:
+         draw_emit_vertex_attr(vinfo, EMIT_4F, src);
+         vdecl[nr_decls].identity.usage = SVGA3D_DECLUSAGE_TEXCOORD;
+         vdecl[nr_decls].identity.type = SVGA3D_DECLTYPE_FLOAT4;
          offset += 16;
          nr_decls++;
          break;

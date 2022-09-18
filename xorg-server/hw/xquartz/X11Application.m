@@ -35,6 +35,7 @@
 #endif
 
 #import "X11Application.h"
+#import "NSUserDefaults+XQuartzDefaults.h"
 
 #include "darwin.h"
 #include "quartz.h"
@@ -54,8 +55,6 @@
 // pbproxy/pbproxy.h
 extern int
 xpbproxy_run(void);
-
-#define DEFAULTS_FILE X11LIBDIR "/X11/xserver/Xquartz.plist"
 
 #ifndef XSERVER_VERSION
 #define XSERVER_VERSION "?"
@@ -100,8 +99,6 @@ static NSPoint bgMouseLocation;
 static BOOL bgMouseLocationUpdated = FALSE;
 
 X11Application *X11App;
-
-CFStringRef app_prefs_domain_cfstr = NULL;
 
 #define ALL_KEY_MASKS (NSShiftKeyMask | NSControlKeyMask | \
                        NSAlternateKeyMask | NSCommandKeyMask)
@@ -270,6 +267,8 @@ QuartzModeBundleInit(void);
     case NSLeftMouseUp:
     case NSRightMouseUp:
     case NSOtherMouseUp:
+    case NSScrollWheel:
+
         if ([e window] != nil) {
             /* Pointer event has an (AppKit) window. Probably something for the kit. */
             for_x = NO;
@@ -420,7 +419,7 @@ QuartzModeBundleInit(void);
         case NSApplicationActivatedEventType:
             for_x = NO;
             if ([e window] == nil && x_was_active) {
-                BOOL order_all_windows = YES, workspaces, ok;
+                BOOL order_all_windows = YES;
                 for_appkit = NO;
 
 #if APPKIT_APPFLAGS_HACK
@@ -433,26 +432,9 @@ QuartzModeBundleInit(void);
                 [self set_front_process:nil];
 
                 /* Get the Spaces preference for SwitchOnActivate */
-                (void)CFPreferencesAppSynchronize(CFSTR("com.apple.dock"));
-                workspaces =
-                    CFPreferencesGetAppBooleanValue(CFSTR("workspaces"),
-                                                    CFSTR(
-                                                        "com.apple.dock"),
-                                                    &ok);
-                if (!ok)
-                    workspaces = NO;
-
+                BOOL const workspaces = [NSUserDefaults.dockDefaults boolForKey:@"workspaces"];
                 if (workspaces) {
-                    (void)CFPreferencesAppSynchronize(CFSTR(
-                                                          ".GlobalPreferences"));
-                    order_all_windows =
-                        CFPreferencesGetAppBooleanValue(CFSTR(
-                                                            "AppleSpacesSwitchOnActivate"),
-                                                        CFSTR(
-                                                            ".GlobalPreferences"),
-                                                        &ok);
-                    if (!ok)
-                        order_all_windows = YES;
+                    order_all_windows = [NSUserDefaults.globalDefaults boolForKey:@"AppleSpacesSwitchOnActivate"];
                 }
 
                 /* TODO: In the workspaces && !AppleSpacesSwitchOnActivate case, the windows are ordered
@@ -463,8 +445,7 @@ QuartzModeBundleInit(void);
                  *       be restoring one of them.
                  */
                 if ([e data2] & 0x10) {         // 0x10 (bfCPSOrderAllWindowsForward) is set when we use cmd-tab or the dock icon
-                    DarwinSendDDXEvent(kXquartzBringAllToFront, 1,
-                                       order_all_windows);
+                    DarwinSendDDXEvent(kXquartzBringAllToFront, 1, order_all_windows);
                 }
             }
             break;
@@ -487,12 +468,14 @@ QuartzModeBundleInit(void);
         break;          /* for gcc */
     }
 
-    if (for_appkit) [super sendEvent:e];
+    if (for_appkit) {
+        [super sendEvent:e];
+    }
 
     if (for_x) {
         dispatch_async(eventTranslationQueue, ^{
-                           [self sendX11NSEvent:e];
-                       });
+            [self sendX11NSEvent:e];
+        });
     }
 }
 
@@ -524,404 +507,50 @@ QuartzModeBundleInit(void);
     (void)[self.controller application:self openFile:cmd];
 }
 
-/* user preferences */
-
-/* Note that these functions only work for arrays whose elements
-   can be toll-free-bridged between NS and CF worlds. */
-
-static const void *
-cfretain(CFAllocatorRef a, const void *b)
-{
-    return CFRetain(b);
-}
-
-static void
-cfrelease(CFAllocatorRef a, const void *b)
-{
-    CFRelease(b);
-}
-
-CF_RETURNS_RETAINED
-static CFMutableArrayRef
-nsarray_to_cfarray(NSArray *in)
-{
-    CFMutableArrayRef out;
-    CFArrayCallBacks cb;
-    NSObject *ns;
-    const CFTypeRef *cf;
-    int i, count;
-
-    memset(&cb, 0, sizeof(cb));
-    cb.version = 0;
-    cb.retain = cfretain;
-    cb.release = cfrelease;
-
-    count = [in count];
-    out = CFArrayCreateMutable(NULL, count, &cb);
-
-    for (i = 0; i < count; i++) {
-        ns = [in objectAtIndex:i];
-
-        if ([ns isKindOfClass:[NSArray class]])
-            cf = (CFTypeRef)nsarray_to_cfarray((NSArray *)ns);
-        else
-            cf = CFRetain((CFTypeRef)ns);
-
-        CFArrayAppendValue(out, cf);
-        CFRelease(cf);
-    }
-
-    return out;
-}
-
-static NSMutableArray *
-cfarray_to_nsarray(CFArrayRef in)
-{
-    NSMutableArray *out;
-    const CFTypeRef *cf;
-    NSObject *ns;
-    int i, count;
-
-    count = CFArrayGetCount(in);
-    out = [[NSMutableArray alloc] initWithCapacity:count];
-
-    for (i = 0; i < count; i++) {
-        cf = CFArrayGetValueAtIndex(in, i);
-
-        if (CFGetTypeID(cf) == CFArrayGetTypeID())
-            ns = cfarray_to_nsarray((CFArrayRef)cf);
-        else
-            ns = [(id) cf retain];
-
-        [out addObject:ns];
-        [ns release];
-    }
-
-    return out;
-}
-
-- (CFPropertyListRef) prefs_get_copy:(NSString *)key
-{
-    CFPropertyListRef value;
-
-    value = CFPreferencesCopyAppValue((CFStringRef)key,
-                                      app_prefs_domain_cfstr);
-
-    if (value == NULL) {
-        static CFDictionaryRef defaults;
-
-        if (defaults == NULL) {
-            CFStringRef error = NULL;
-            CFDataRef data;
-            CFURLRef url;
-            SInt32 error_code;
-
-            url = (CFURLCreateFromFileSystemRepresentation
-                       (NULL, (unsigned char *)DEFAULTS_FILE,
-                       strlen(DEFAULTS_FILE), false));
-            if (CFURLCreateDataAndPropertiesFromResource(NULL, url, &data,
-                                                         NULL, NULL,
-                                                         &error_code)) {
-                defaults = (CFPropertyListCreateFromXMLData
-                                (NULL, data,
-                                kCFPropertyListMutableContainersAndLeaves,
-                                &error));
-                if (error != NULL) CFRelease(error);
-                CFRelease(data);
-            }
-            CFRelease(url);
-
-            if (defaults != NULL) {
-                NSMutableArray *apps, *elt;
-                int count, i;
-                NSString *name, *nname;
-
-                /* Localize the names in the default apps menu. */
-
-                apps =
-                    [(NSDictionary *) defaults objectForKey:@PREFS_APPSMENU];
-                if (apps != nil) {
-                    count = [apps count];
-                    for (i = 0; i < count; i++) {
-                        elt = [apps objectAtIndex:i];
-                        if (elt != nil &&
-                            [elt isKindOfClass:[NSArray class]]) {
-                            name = [elt objectAtIndex:0];
-                            if (name != nil) {
-                                nname = NSLocalizedString(name, nil);
-                                if (nname != nil && nname != name)
-                                    [elt replaceObjectAtIndex:0 withObject:
-                                     nname];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (defaults != NULL) value = CFDictionaryGetValue(defaults, key);
-        if (value != NULL) CFRetain(value);
-    }
-
-    return value;
-}
-
-- (int) prefs_get_integer:(NSString *)key default:(int)def
-{
-    CFPropertyListRef value;
-    int ret;
-
-    value = [self prefs_get_copy:key];
-
-    if (value != NULL && CFGetTypeID(value) == CFNumberGetTypeID())
-        CFNumberGetValue(value, kCFNumberIntType, &ret);
-    else if (value != NULL && CFGetTypeID(value) == CFStringGetTypeID())
-        ret = CFStringGetIntValue(value);
-    else
-        ret = def;
-
-    if (value != NULL) CFRelease(value);
-
-    return ret;
-}
-
-- (const char *) prefs_get_string:(NSString *)key default:(const char *)def
-{
-    CFPropertyListRef value;
-    const char *ret = NULL;
-
-    value = [self prefs_get_copy:key];
-
-    if (value != NULL && CFGetTypeID(value) == CFStringGetTypeID()) {
-        NSString *s = (NSString *)value;
-
-        ret = [s UTF8String];
-    }
-
-    if (value != NULL) CFRelease(value);
-
-    return ret != NULL ? ret : def;
-}
-
-- (NSURL *) prefs_copy_url:(NSString *)key default:(NSURL *)def
-{
-    CFPropertyListRef value;
-    NSURL *ret = NULL;
-
-    value = [self prefs_get_copy:key];
-
-    if (value != NULL && CFGetTypeID(value) == CFStringGetTypeID()) {
-        NSString *s = (NSString *)value;
-
-        ret = [NSURL URLWithString:s];
-        [ret retain];
-    }
-
-    if (value != NULL) CFRelease(value);
-
-    return ret != NULL ? ret : def;
-}
-
-- (float) prefs_get_float:(NSString *)key default:(float)def
-{
-    CFPropertyListRef value;
-    float ret = def;
-
-    value = [self prefs_get_copy:key];
-
-    if (value != NULL
-        && CFGetTypeID(value) == CFNumberGetTypeID()
-        && CFNumberIsFloatType(value))
-        CFNumberGetValue(value, kCFNumberFloatType, &ret);
-    else if (value != NULL && CFGetTypeID(value) == CFStringGetTypeID())
-        ret = CFStringGetDoubleValue(value);
-
-    if (value != NULL) CFRelease(value);
-
-    return ret;
-}
-
-- (int) prefs_get_boolean:(NSString *)key default:(int)def
-{
-    CFPropertyListRef value;
-    int ret = def;
-
-    value = [self prefs_get_copy:key];
-
-    if (value != NULL) {
-        if (CFGetTypeID(value) == CFNumberGetTypeID())
-            CFNumberGetValue(value, kCFNumberIntType, &ret);
-        else if (CFGetTypeID(value) == CFBooleanGetTypeID())
-            ret = CFBooleanGetValue(value);
-        else if (CFGetTypeID(value) == CFStringGetTypeID()) {
-            const char *tem = [(NSString *) value UTF8String];
-            if (strcasecmp(tem, "true") == 0 || strcasecmp(tem, "yes") == 0)
-                ret = YES;
-            else
-                ret = NO;
-        }
-
-        CFRelease(value);
-    }
-    return ret;
-}
-
-- (NSArray *) prefs_get_array:(NSString *)key
-{
-    NSArray *ret = nil;
-    CFPropertyListRef value;
-
-    value = [self prefs_get_copy:key];
-
-    if (value != NULL) {
-        if (CFGetTypeID(value) == CFArrayGetTypeID())
-            ret = [cfarray_to_nsarray (value)autorelease];
-
-        CFRelease(value);
-    }
-
-    return ret;
-}
-
-- (void) prefs_set_integer:(NSString *)key value:(int)value
-{
-    CFNumberRef x;
-
-    x = CFNumberCreate(NULL, kCFNumberIntType, &value);
-
-    CFPreferencesSetValue((CFStringRef)key, (CFTypeRef)x,
-                          app_prefs_domain_cfstr,
-                          kCFPreferencesCurrentUser,
-                          kCFPreferencesAnyHost);
-
-    CFRelease(x);
-}
-
-- (void) prefs_set_float:(NSString *)key value:(float)value
-{
-    CFNumberRef x;
-
-    x = CFNumberCreate(NULL, kCFNumberFloatType, &value);
-
-    CFPreferencesSetValue((CFStringRef)key, (CFTypeRef)x,
-                          app_prefs_domain_cfstr,
-                          kCFPreferencesCurrentUser,
-                          kCFPreferencesAnyHost);
-
-    CFRelease(x);
-}
-
-- (void) prefs_set_boolean:(NSString *)key value:(int)value
-{
-    CFPreferencesSetValue(
-        (CFStringRef)key,
-        (CFTypeRef)(value ? kCFBooleanTrue
-                    : kCFBooleanFalse),
-        app_prefs_domain_cfstr,
-        kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-
-}
-
-- (void) prefs_set_array:(NSString *)key value:(NSArray *)value
-{
-    CFArrayRef cfarray;
-
-    cfarray = nsarray_to_cfarray(value);
-    CFPreferencesSetValue((CFStringRef)key,
-                          (CFTypeRef)cfarray,
-                          app_prefs_domain_cfstr,
-                          kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-    CFRelease(cfarray);
-}
-
-- (void) prefs_set_string:(NSString *)key value:(NSString *)value
-{
-    CFPreferencesSetValue((CFStringRef)key, (CFTypeRef)value,
-                          app_prefs_domain_cfstr, kCFPreferencesCurrentUser,
-                          kCFPreferencesAnyHost);
-}
-
-- (void) prefs_synchronize
-{
-    CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
-}
 
 - (void) read_defaults
 {
-    NSString *nsstr;
-    const char *tem;
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
 
-    XQuartzRootlessDefault = [self prefs_get_boolean:@PREFS_ROOTLESS
-                              default               :XQuartzRootlessDefault];
-    XQuartzFullscreenMenu = [self prefs_get_boolean:@PREFS_FULLSCREEN_MENU
-                             default               :XQuartzFullscreenMenu];
-    XQuartzFullscreenDisableHotkeys =
-        ![self prefs_get_boolean:@PREFS_FULLSCREEN_HOTKEYS
-          default               :!
-          XQuartzFullscreenDisableHotkeys];
-    darwinFakeButtons = [self prefs_get_boolean:@PREFS_FAKEBUTTONS
-                         default               :darwinFakeButtons];
-    XQuartzOptionSendsAlt = [self prefs_get_boolean:@PREFS_OPTION_SENDS_ALT
-                             default               :XQuartzOptionSendsAlt];
+    XQuartzRootlessDefault = [defaults boolForKey:XQuartzPrefKeyRootless];
+    XQuartzFullscreenMenu = [defaults boolForKey:XQuartzPrefKeyFullscreenMenu];
+    XQuartzFullscreenDisableHotkeys = ![defaults boolForKey:XQuartzPrefKeyFullscreenHotkeys];
+
+    darwinFakeButtons = [defaults boolForKey:XQuartzPrefKeyFakeButtons];
+    XQuartzOptionSendsAlt = [defaults boolForKey:XQuartzPrefKeyOptionSendsAlt];
 
     if (darwinFakeButtons) {
-        const char *fake2, *fake3;
+        NSString * const fake2 = [defaults stringForKey:XQuartzPrefKeyFakeButton2];
+        if (fake2) {
+            darwinFakeMouse2Mask = DarwinParseModifierList(fake2.UTF8String, TRUE);
+        }
 
-        fake2 = [self prefs_get_string:@PREFS_FAKE_BUTTON2 default:NULL];
-        fake3 = [self prefs_get_string:@PREFS_FAKE_BUTTON3 default:NULL];
-
-        if (fake2 != NULL) darwinFakeMouse2Mask = DarwinParseModifierList(
-                fake2, TRUE);
-        if (fake3 != NULL) darwinFakeMouse3Mask = DarwinParseModifierList(
-                fake3, TRUE);
-    }
-
-    tem = [self prefs_get_string:@PREFS_APPKIT_MODIFIERS default:NULL];
-    if (tem != NULL) darwinAppKitModMask = DarwinParseModifierList(tem, TRUE);
-
-    tem = [self prefs_get_string:@PREFS_WINDOW_ITEM_MODIFIERS default:NULL];
-    if (tem != NULL) {
-        windowItemModMask = DarwinParseModifierList(tem, FALSE);
-    }
-    else {
-        nsstr = NSLocalizedString(@"window item modifiers",
-                                  @"window item modifiers");
-        if (nsstr != NULL) {
-            tem = [nsstr UTF8String];
-            if ((tem != NULL) && strcmp(tem, "window item modifiers")) {
-                windowItemModMask = DarwinParseModifierList(tem, FALSE);
-            }
+        NSString * const fake3 = [defaults stringForKey:XQuartzPrefKeyFakeButton3];
+        if (fake3) {
+            darwinFakeMouse3Mask = DarwinParseModifierList(fake3.UTF8String, TRUE);
         }
     }
 
-    XQuartzEnableKeyEquivalents = [self prefs_get_boolean:@PREFS_KEYEQUIVS
-                                   default               :
-                                   XQuartzEnableKeyEquivalents];
-
-    darwinSyncKeymap = [self prefs_get_boolean:@PREFS_SYNC_KEYMAP
-                        default               :darwinSyncKeymap];
-
-    darwinDesiredDepth = [self prefs_get_integer:@PREFS_DEPTH
-                          default               :darwinDesiredDepth];
-
-    noTestExtensions = ![self prefs_get_boolean:@PREFS_TEST_EXTENSIONS
-                         default               :FALSE];
-
-    noRenderExtension = ![self prefs_get_boolean:@PREFS_RENDER_EXTENSION
-                          default               :TRUE];
-
-    XQuartzScrollInDeviceDirection =
-        [self prefs_get_boolean:@PREFS_SCROLL_IN_DEV_DIRECTION
-         default               :
-         XQuartzScrollInDeviceDirection];
-
-#if XQUARTZ_SPARKLE
-    NSURL *url = [self prefs_copy_url:@PREFS_UPDATE_FEED default:nil];
-    if (url) {
-        [[SUUpdater sharedUpdater] setFeedURL:url];
-        [url release];
+    NSString * const appKitModifiers = [defaults stringForKey:XQuartzPrefKeyAppKitModifiers];
+    if (appKitModifiers) {
+        darwinAppKitModMask = DarwinParseModifierList(appKitModifiers.UTF8String, TRUE);
     }
-#endif
+
+    NSString * const windowItemModifiers = [defaults stringForKey:XQuartzPrefKeyWindowItemModifiers];
+    if (windowItemModifiers) {
+        windowItemModMask = DarwinParseModifierList(windowItemModifiers.UTF8String, FALSE);
+    }
+
+    XQuartzEnableKeyEquivalents = [defaults boolForKey:XQuartzPrefKeyKeyEquivs];
+
+    darwinSyncKeymap = [defaults boolForKey:XQuartzPrefKeySyncKeymap];
+
+    darwinDesiredDepth = [defaults integerForKey:XQuartzPrefKeyDepth];
+
+    noTestExtensions = ![defaults boolForKey:XQuartzPrefKeyTESTExtension];
+    noRenderExtension = ![defaults boolForKey:XQuartzPrefKeyRENDERExtension];
+
+    XQuartzScrollInDeviceDirection = [defaults boolForKey:XQuartzPrefKeyScrollInDeviceDirection];
 }
 
 /* This will end up at the end of the responder chain. */
@@ -1018,8 +647,9 @@ Bool
 X11ApplicationCanEnterRandR(void)
 {
     NSString *title, *msg;
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
 
-    if ([X11App prefs_get_boolean:@PREFS_NO_RANDR_ALERT default:NO] ||
+    if ([defaults boolForKey:XQuartzPrefKeyNoRANDRAlert] ||
         XQuartzShieldingWindowLevel != 0)
         return TRUE;
 
@@ -1042,8 +672,7 @@ X11ApplicationCanEnterRandR(void)
 
     switch (alert_result) {
     case NSAlertOtherReturn:
-        [X11App prefs_set_boolean:@PREFS_NO_RANDR_ALERT value:YES];
-        [X11App prefs_synchronize];
+        [defaults setBool:YES forKey:XQuartzPrefKeyNoRANDRAlert];
 
     case NSAlertDefaultReturn:
         return YES;
@@ -1058,8 +687,9 @@ check_xinitrc(void)
 {
     char *tem, buf[1024];
     NSString *msg;
+    NSUserDefaults * const defaults = NSUserDefaults.xquartzDefaults;
 
-    if ([X11App prefs_get_boolean:@PREFS_DONE_XINIT_CHECK default:NO])
+    if ([defaults boolForKey:XQuartzPrefKeyDoneXinitCheck])
         return;
 
     tem = getenv("HOME");
@@ -1093,8 +723,7 @@ check_xinitrc(void)
     }
 
 done:
-    [X11App prefs_set_boolean:@PREFS_DONE_XINIT_CHECK value:YES];
-    [X11App prefs_synchronize];
+    [defaults setBool:YES forKey:XQuartzPrefKeyDoneXinitCheck];
 }
 
 static inline pthread_t
@@ -1130,15 +759,8 @@ X11ApplicationMain(int argc, char **argv, char **envp)
 
     @autoreleasepool {
         X11App = (X11Application *)[X11Application sharedApplication];
+        [X11App read_defaults];
 
-        app_prefs_domain_cfstr = (CFStringRef)[[NSBundle mainBundle] bundleIdentifier];
-
-        if (app_prefs_domain_cfstr == NULL) {
-            ErrorF("X11ApplicationMain: Unable to determine bundle identifier.  Your installation of XQuartz may be broken.\n");
-            app_prefs_domain_cfstr = CFSTR(BUNDLE_ID_PREFIX ".X11");
-        }
-
-        [NSApp read_defaults];
         [NSBundle loadNibNamed:@"main" owner:NSApp];
         [NSNotificationCenter.defaultCenter addObserver:NSApp
                                                selector:@selector (became_key:)
@@ -1701,8 +1323,17 @@ handle_mouse:
     }
 
         if (darwinSyncKeymap) {
-            TISInputSourceRef key_layout = 
-                TISCopyCurrentKeyboardLayoutInputSource();
+            __block TISInputSourceRef key_layout;
+            dispatch_block_t copyCurrentKeyboardLayoutInputSource = ^{
+                key_layout = TISCopyCurrentKeyboardLayoutInputSource();
+            };
+            /* This is an ugly ant-pattern, but it is more expedient to address the problem right now. */
+            if (pthread_main_np()) {
+                copyCurrentKeyboardLayoutInputSource();
+            } else {
+                dispatch_sync(dispatch_get_main_queue(), copyCurrentKeyboardLayoutInputSource);
+            }
+
             TISInputSourceRef clear;
             if (CFEqual(key_layout, last_key_layout)) {
                 CFRelease(key_layout);

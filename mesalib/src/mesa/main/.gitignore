@@ -4,3 +4,4 @@ api_exec_init.c
 api_save.h
 api_save_init.h
 api_vtxfmt_init.h
+api_hw_select_init.h

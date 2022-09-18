@@ -37,25 +37,25 @@ XkbDeviceBell \- Rings the bell on an X input extension device or the default ke
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to the X server
 .TP
-.I \- window
+.I window
 window for which the bell is generated, or None
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- bell_class
+.I bell_class
 X input extension bell class of the bell to be rung
 .TP
-.I \- bell_id
+.I bell_id
 X input extension bell ID of the bell to be rung
 .TP
-.I \- percent
+.I percent
 bell volume, from -100 to 100 inclusive
 .TP
-.I \- name
+.I name
 a name for the bell, or NULL
 .SH DESCRIPTION
 .LP

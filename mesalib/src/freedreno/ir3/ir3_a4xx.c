@@ -30,9 +30,40 @@
 #include "ir3_context.h"
 #include "ir3_image.h"
 
+/* SSBO data is available at this CB address, addressed like regular consts
+ * containing the following data in each vec4:
+ *
+ * [ base address, pitch, array_pitch, cpp ]
+ *
+ * These mirror the values uploaded to A4XX_SSBO_0 state. For A5XX, these are
+ * uploaded manually by the driver.
+ */
+#define A4XX_SSBO_CB_BASE(i) (0x700 + ((i) << 2))
+
 /*
  * Handlers for instructions changed/added in a4xx:
  */
+
+/* Convert byte offset to address of appropriate width for GPU */
+static struct ir3_instruction *
+byte_offset_to_address(struct ir3_context *ctx,
+      nir_src *ssbo,
+      struct ir3_instruction *byte_offset)
+{
+   struct ir3_block *b = ctx->block;
+
+   if (ctx->compiler->gen == 4) {
+      uint32_t index = nir_src_as_uint(*ssbo);
+      unsigned cb = A4XX_SSBO_CB_BASE(index);
+      byte_offset = ir3_ADD_U(b, create_uniform(b, cb), 0, byte_offset, 0);
+   }
+
+   if (fd_dev_64b(ctx->compiler->dev_id)) {
+      return ir3_collect(b, byte_offset, create_immed(b, 0));
+   } else {
+      return byte_offset;
+   }
+}
 
 /* src[] = { buffer_index, offset }. No const_index */
 static void
@@ -48,7 +79,7 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
    offset = ir3_get_src(ctx, &intr->src[2])[0];
 
    /* src0 is uvec2(offset*4, 0), src1 is offset.. nir already *= 4: */
-   src0 = ir3_collect(b, byte_offset, create_immed(b, 0));
+   src0 = byte_offset_to_address(ctx, &intr->src[0], byte_offset);
    src1 = offset;
 
    ldgb = ir3_LDGB(b, ssbo, 0, src0, 0, src1, 0);
@@ -83,7 +114,7 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
     */
    src0 = ir3_create_collect(b, ir3_get_src(ctx, &intr->src[0]), ncomp);
    src1 = offset;
-   src2 = ir3_collect(b, byte_offset, create_immed(b, 0));
+   src2 = byte_offset_to_address(ctx, &intr->src[1], byte_offset);
 
    stgb = ir3_STGB(b, ssbo, 0, src0, 0, src1, 0, src2, 0);
    stgb->cat6.iim_val = ncomp;
@@ -129,7 +160,7 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    struct ir3_instruction *data = ir3_get_src(ctx, &intr->src[2])[0];
    /* 64b byte offset */
    struct ir3_instruction *byte_offset =
-      ir3_collect(b, ir3_get_src(ctx, &intr->src[1])[0], create_immed(b, 0));
+      byte_offset_to_address(ctx, &intr->src[0], ir3_get_src(ctx, &intr->src[1])[0]);
    /* dword offset for everything but comp_swap */
    struct ir3_instruction *src3 = ir3_get_src(ctx, &intr->src[3])[0];
 
@@ -198,14 +229,23 @@ get_image_offset(struct ir3_context *ctx, const nir_intrinsic_instr *instr,
    /* to calculate the byte offset (yes, uggg) we need (up to) three
     * const values to know the bytes per pixel, and y and z stride:
     */
-   const struct ir3_const_state *const_state = ir3_const_state(ctx->so);
-   unsigned cb = regid(const_state->offsets.image_dims, 0) +
-                 const_state->image_dims.off[index];
+   unsigned cb;
+   if (ctx->compiler->gen > 4) {
+      const struct ir3_const_state *const_state = ir3_const_state(ctx->so);
+      assert(const_state->image_dims.mask & (1 << index));
 
-   debug_assert(const_state->image_dims.mask & (1 << index));
+      cb = regid(const_state->offsets.image_dims, 0) +
+         const_state->image_dims.off[index];
+   } else {
+      index += ctx->s->info.num_ssbos;
+      cb = A4XX_SSBO_CB_BASE(index);
+   }
 
    /* offset = coords.x * bytes_per_pixel: */
-   offset = ir3_MUL_S24(b, coords[0], 0, create_uniform(b, cb + 0), 0);
+   if (ctx->compiler->gen == 4)
+      offset = ir3_MUL_S24(b, coords[0], 0, create_uniform(b, cb + 3), 0);
+   else
+      offset = ir3_MUL_S24(b, coords[0], 0, create_uniform(b, cb + 0), 0);
    if (ncoords > 1) {
       /* offset += coords.y * y_pitch: */
       offset =
@@ -217,6 +257,10 @@ get_image_offset(struct ir3_context *ctx, const nir_intrinsic_instr *instr,
          ir3_MAD_S24(b, create_uniform(b, cb + 2), 0, coords[2], 0, offset, 0);
    }
 
+   /* a4xx: must add in the base address: */
+   if (ctx->compiler->gen == 4)
+      offset = ir3_ADD_U(b, offset, 0, create_uniform(b, cb + 0), 0);
+
    if (!byteoff) {
       /* Some cases, like atomics, seem to use dword offset instead
        * of byte offsets.. blob just puts an extra shr.b in there
@@ -225,7 +269,10 @@ get_image_offset(struct ir3_context *ctx, const nir_intrinsic_instr *instr,
       offset = ir3_SHR_B(b, offset, 0, create_immed(b, 2), 0);
    }
 
-   return ir3_collect(b, offset, create_immed(b, 0));
+   if (fd_dev_64b(ctx->compiler->dev_id))
+      return ir3_collect(b, offset, create_immed(b, 0));
+   else
+      return offset;
 }
 
 /* src[] = { deref, coord, sample_index }. const_index[] = {} */
@@ -241,8 +288,30 @@ emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
    unsigned ncomp =
       ir3_get_num_components_for_image_format(nir_intrinsic_format(intr));
 
-   struct ir3_instruction *ldib = ir3_LDIB(
-      b, ibo, 0, offset, 0, ir3_create_collect(b, coords, ncoords), 0);
+   struct ir3_instruction *ldib;
+   /* At least A420 does not have LDIB. Use LDGB and perform conversion
+    * ourselves.
+    *
+    * TODO: Actually do the conversion. ES 3.1 only requires this for
+    * single-component 32-bit types anyways.
+    */
+   if (ctx->compiler->gen > 4) {
+      ldib = ir3_LDIB(
+            b, ibo, 0, offset, 0, ir3_create_collect(b, coords, ncoords), 0);
+   } else {
+      ldib = ir3_LDGB(
+            b, ibo, 0, offset, 0, ir3_create_collect(b, coords, ncoords), 0);
+      switch (nir_intrinsic_format(intr)) {
+      case PIPE_FORMAT_R32_UINT:
+      case PIPE_FORMAT_R32_SINT:
+      case PIPE_FORMAT_R32_FLOAT:
+         break;
+      default:
+         /* For some reason even more 32-bit components don't work. */
+         assert(0);
+         break;
+      }
+   }
    ldib->dsts[0]->wrmask = MASK(intr->num_components);
    ldib->cat6.iim_val = ncomp;
    ldib->cat6.d = ncoords;
@@ -307,7 +376,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
     */
    src0 = ir3_get_src(ctx, &intr->src[3])[0];
    src1 = ir3_create_collect(b, coords, ncoords);
-   src2 = get_image_offset(ctx, intr, coords, false);
+   src2 = get_image_offset(ctx, intr, coords, ctx->compiler->gen == 4);
 
    switch (intr->intrinsic) {
    case nir_intrinsic_image_atomic_add:
@@ -345,7 +414,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    atomic->cat6.iim_val = 1;
    atomic->cat6.d = ncoords;
    atomic->cat6.type = ir3_get_type_for_image_intrinsic(intr);
-   atomic->cat6.typed = true;
+   atomic->cat6.typed = ctx->compiler->gen == 5;
    atomic->barrier_class = IR3_BARRIER_IMAGE_W;
    atomic->barrier_conflict = IR3_BARRIER_IMAGE_R | IR3_BARRIER_IMAGE_W;
 

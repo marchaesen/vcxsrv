@@ -55,7 +55,7 @@ fd_blend_enabled(struct fd_context *ctx, unsigned n) assert_dt
 }
 
 static inline bool
-fd_depth_clamp_enabled(struct fd_context *ctx) assert_dt
+fd_depth_clip_disabled(struct fd_context *ctx) assert_dt
 {
    return !(ctx->rasterizer->depth_clip_near &&
             ctx->rasterizer->depth_clip_far);

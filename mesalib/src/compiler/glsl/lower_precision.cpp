@@ -480,6 +480,15 @@ handle_call(ir_call *ir, const struct set *lowerable_rvalues)
          if (!strcmp(ir->callee_name(), "textureSize"))
             return GLSL_PRECISION_HIGH;
 
+         /* textureGatherOffsets always takes a highp array of constants. As
+          * per the discussion https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/16547#note_1393704
+          * trying to lower the precision results in segfault later on
+          * in the compiler as textureGatherOffsets will end up being passed
+          * a temp when its expecting a constant as required by the spec.
+          */
+         if (!strcmp(ir->callee_name(), "textureGatherOffsets"))
+            return GLSL_PRECISION_HIGH;
+
          return var->data.precision;
       }
    }

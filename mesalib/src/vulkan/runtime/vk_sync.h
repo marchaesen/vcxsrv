@@ -290,17 +290,17 @@ struct vk_sync {
    enum vk_sync_flags flags;
 };
 
-/* See VkSemaphoreSubmitInfoKHR */
+/* See VkSemaphoreSubmitInfo */
 struct vk_sync_wait {
    struct vk_sync *sync;
-   VkPipelineStageFlags2KHR stage_mask;
+   VkPipelineStageFlags2 stage_mask;
    uint64_t wait_value;
 };
 
-/* See VkSemaphoreSubmitInfoKHR */
+/* See VkSemaphoreSubmitInfo */
 struct vk_sync_signal {
    struct vk_sync *sync;
-   VkPipelineStageFlags2KHR stage_mask;
+   VkPipelineStageFlags2 stage_mask;
    uint64_t signal_value;
 };
 

@@ -33,16 +33,16 @@ XkbFreeGeomColors \- Free geometry colors
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- geom
+.I geom
 geometry in which colors should be freed 
 .TP
-.I \- first
+.I first
 first color to be freed 
 .TP
-.I \- count
+.I count
 number of colors to be freed
 .TP
-.I \- free_all
+.I free_all
 True => all colors are freed
 .SH DESCRIPTION
 .LP

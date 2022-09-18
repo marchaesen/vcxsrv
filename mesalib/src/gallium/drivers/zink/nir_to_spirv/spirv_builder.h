@@ -146,7 +146,7 @@ spirv_builder_emit_entry_point(struct spirv_builder *b,
                                SpvExecutionModel exec_model, SpvId entry_point,
                                const char *name, const SpvId interfaces[],
                                size_t num_interfaces);
-void
+uint32_t
 spirv_builder_emit_exec_mode_literal(struct spirv_builder *b, SpvId entry_point,
                                      SpvExecutionMode exec_mode, uint32_t param);
 void
@@ -267,6 +267,12 @@ spirv_builder_set_phi_operand(struct spirv_builder *b, size_t position,
 
 void
 spirv_builder_emit_kill(struct spirv_builder *b);
+
+void
+spirv_builder_emit_demote(struct spirv_builder *b);
+
+SpvId
+spirv_is_helper_invocation(struct spirv_builder *b);
 
 SpvId
 spirv_builder_emit_vote(struct spirv_builder *b, SpvOp op, SpvId src);
@@ -414,6 +420,11 @@ spirv_builder_type_function(struct spirv_builder *b, SpvId return_type,
                             size_t num_parameter_types);
 
 SpvId
+spirv_builder_function_call(struct spirv_builder *b, SpvId result_type,
+                            SpvId function, const SpvId arguments[],
+                            size_t num_arguments);
+
+SpvId
 spirv_builder_const_bool(struct spirv_builder *b, bool val);
 
 SpvId
@@ -456,10 +467,11 @@ spirv_builder_get_num_words(struct spirv_builder *b);
 
 size_t
 spirv_builder_get_words(struct spirv_builder *b, uint32_t *words,
-                        size_t num_words, uint32_t spirv_version);
+                        size_t num_words, uint32_t spirv_version,
+                        uint32_t *tcs_vertices_out_word);
 
 void
-spirv_builder_emit_vertex(struct spirv_builder *b, uint32_t stream);
+spirv_builder_emit_vertex(struct spirv_builder *b, uint32_t stream, bool multistream);
 void
-spirv_builder_end_primitive(struct spirv_builder *b, uint32_t stream);
+spirv_builder_end_primitive(struct spirv_builder *b, uint32_t stream, bool multistream);
 #endif

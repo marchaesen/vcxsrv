@@ -9,6 +9,7 @@
 #include <stdarg.h>
 
 #include "putty.h"
+#include "ssh.h"
 #include "storage.h"
 #include "tree234.h"
 #include "security-api.h"
@@ -68,8 +69,13 @@ static bool plink_eof(Seat *seat)
 
 static SeatPromptResult plink_get_userpass_input(Seat *seat, prompts_t *p)
 {
+    /* Plink doesn't support Restart Session, so we can just have a
+     * single static cmdline_get_passwd_input_state that's never reset */
+    static cmdline_get_passwd_input_state cmdline_state =
+        CMDLINE_GET_PASSWD_INPUT_STATE_INIT;
+
     SeatPromptResult spr;
-    spr = cmdline_get_passwd_input(p);
+    spr = cmdline_get_passwd_input(p, &cmdline_state, false);
     if (spr.kind == SPRK_INCOMPLETE)
         spr = console_get_userpass_input(p);
     return spr;
@@ -92,12 +98,14 @@ static const SeatVtable plink_seat_vt = {
     .notify_remote_exit = nullseat_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = console_connection_fatal,
+    .nonfatal = console_nonfatal,
     .update_specials_menu = nullseat_update_specials_menu,
     .get_ttymode = nullseat_get_ttymode,
     .set_busy_status = nullseat_set_busy_status,
     .confirm_ssh_host_key = console_confirm_ssh_host_key,
     .confirm_weak_crypto_primitive = console_confirm_weak_crypto_primitive,
     .confirm_weak_cached_hostkey = console_confirm_weak_cached_hostkey,
+    .prompt_descriptions = console_prompt_descriptions,
     .is_utf8 = nullseat_is_never_utf8,
     .echoedit_update = plink_echoedit_update,
     .get_x_display = nullseat_get_x_display,

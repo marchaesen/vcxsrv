@@ -141,7 +141,7 @@ static void ac_parse_set_reg_packet(FILE *f, uint32_t *ib, unsigned count,
 }
 
 static uint32_t *ac_parse_packet3(FILE *f, uint32_t *ib, int *num_dw,
-				  int trace_id, enum chip_class chip_class,
+				  int trace_id, enum amd_gfx_level gfx_level,
 				  ac_debug_addr_callback addr_callback,
 				  void *addr_callback_data)
 {
@@ -275,7 +275,7 @@ static uint32_t *ac_parse_packet3(FILE *f, uint32_t *ib, int *num_dw,
  * \param f		file
  * \param ib		IB
  * \param num_dw	size of the IB
- * \param chip_class	chip class
+ * \param gfx_level	gfx level
  * \param trace_id	the last trace ID that is known to have been reached
  *			and executed by the CP, typically read from a buffer
  * \param addr_callback Get a mapped pointer of the IB at a given address. Can
@@ -283,7 +283,7 @@ static uint32_t *ac_parse_packet3(FILE *f, uint32_t *ib, int *num_dw,
  * \param addr_callback_data user data for addr_callback
  */
 static void eg_parse_ib(FILE *f, uint32_t *ib, int num_dw, int trace_id,
-			const char *name, enum chip_class chip_class,
+			const char *name, enum amd_gfx_level gfx_level,
 			ac_debug_addr_callback addr_callback, void *addr_callback_data)
 {
 	fprintf(f, "------------------ %s begin ------------------\n", name);
@@ -294,7 +294,7 @@ static void eg_parse_ib(FILE *f, uint32_t *ib, int num_dw, int trace_id,
 		switch (type) {
 		case 3:
 			ib = ac_parse_packet3(f, ib, &num_dw, trace_id,
-					      chip_class, addr_callback,
+					      gfx_level, addr_callback,
 					      addr_callback_data);
 			break;
 		case 2:
@@ -341,7 +341,7 @@ static void eg_dump_last_ib(struct r600_context *rctx, FILE *f)
 	}
 
 	eg_parse_ib(f, rctx->last_gfx.ib, rctx->last_gfx.num_dw,
-		    last_trace_id, "IB", rctx->b.chip_class,
+		    last_trace_id, "IB", rctx->b.gfx_level,
 		     NULL, NULL);
 }
 

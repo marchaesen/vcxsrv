@@ -70,7 +70,7 @@ authdes_ezdecode(const char *inmsg, int len)
         why = AUTH_FAILED; /* generic error, since there is no AUTH_BADALLOC */
         return NULL;
     }
-    memmove(temp_inmsg, inmsg, len);
+    memcpy(temp_inmsg, inmsg, len);
 
     memset((char *) &msg, 0, sizeof(msg));
     memset((char *) &r, 0, sizeof(r));

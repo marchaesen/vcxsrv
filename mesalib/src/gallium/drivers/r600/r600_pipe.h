@@ -261,7 +261,6 @@ struct r600_gs_rings_state {
 #define DBG_NO_CP_DMA		(1 << 30)
 /* shader backend */
 #define DBG_NO_SB		(1 << 21)
-#define DBG_SB_CS		(1 << 22)
 #define DBG_SB_DRY_RUN	(1 << 23)
 #define DBG_SB_STAT		(1 << 24)
 #define DBG_SB_DUMP		(1 << 25)
@@ -269,6 +268,7 @@ struct r600_gs_rings_state {
 #define DBG_SB_DISASM	(1 << 27)
 #define DBG_SB_SAFEMATH	(1 << 28)
 #define DBG_NIR_SB	(1 << 28)
+#define DBG_USE_TGSI	(1 << 29)
 
 #define DBG_NIR_PREFERRED (DBG_NIR_SB | DBG_NIR)
 
@@ -363,7 +363,6 @@ struct r600_pipe_shader_selector {
 	/* TCS/VS */
 	uint64_t        lds_patch_outputs_written_mask;
 	uint64_t        lds_outputs_written_mask;
-	unsigned	nr_ps_max_color_exports;
 };
 
 struct r600_pipe_sampler_state {
@@ -686,11 +685,11 @@ evergreen_create_sampler_view_custom(struct pipe_context *ctx,
 				     unsigned force_level);
 void evergreen_init_common_regs(struct r600_context *ctx,
 				struct r600_command_buffer *cb,
-				enum chip_class ctx_chip_class,
+				enum amd_gfx_level ctx_chip_class,
 				enum radeon_family ctx_family,
 				int ctx_drm_minor);
 void cayman_init_common_regs(struct r600_command_buffer *cb,
-			     enum chip_class ctx_chip_class,
+			     enum amd_gfx_level ctx_chip_class,
 			     enum radeon_family ctx_family,
 			     int ctx_drm_minor);
 
@@ -852,7 +851,7 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen, enum pipe_format f
 				  const unsigned char *swizzle_view,
 				  uint32_t *word4_p, uint32_t *yuv_format_p,
 				  bool do_endian_swap);
-uint32_t r600_translate_colorformat(enum chip_class chip, enum pipe_format format,
+uint32_t r600_translate_colorformat(enum amd_gfx_level chip, enum pipe_format format,
 				  bool do_endian_swap);
 uint32_t r600_colorformat_endian_swap(uint32_t colorformat, bool do_endian_swap);
 
@@ -1066,7 +1065,7 @@ struct r600_pipe_shader_selector *r600_create_shader_state_tokens(struct pipe_co
 								  unsigned pipe_shader_type);
 int r600_shader_select(struct pipe_context *ctx,
 		       struct r600_pipe_shader_selector* sel,
-		       bool *dirty);
+		       bool *dirty, bool precompile);
 
 void r600_delete_shader_selector(struct pipe_context *ctx,
 				 struct r600_pipe_shader_selector *sel);

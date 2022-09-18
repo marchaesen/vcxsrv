@@ -134,6 +134,11 @@ vbo_install_exec_vtxfmt_noop(struct gl_context *ctx)
       tab = ctx->BeginEnd;
       #include "api_vtxfmt_init.h"
    }
+
+   if (ctx->HWSelectModeBeginEnd) {
+      tab = ctx->HWSelectModeBeginEnd;
+      #include "api_vtxfmt_init.h"
+   }
 }
 
 

@@ -32,6 +32,7 @@
 #include "util/u_blitter.h"
 #include "util/u_upload_mgr.h"
 #include "util/u_prim.h"
+#include "util/u_debug_cb.h"
 #include "pipe/p_screen.h"
 
 #include "v3d_screen.h"
@@ -84,18 +85,6 @@ v3d_memory_barrier(struct pipe_context *pctx, unsigned int flags)
         /* We only need to flush jobs writing to SSBOs/images. */
         perf_debug("Flushing all jobs for glMemoryBarrier(), could do better");
         v3d_flush(pctx);
-}
-
-static void
-v3d_set_debug_callback(struct pipe_context *pctx,
-                       const struct pipe_debug_callback *cb)
-{
-        struct v3d_context *v3d = v3d_context(pctx);
-
-        if (cb)
-                v3d->debug = *cb;
-        else
-                memset(&v3d->debug, 0, sizeof(v3d->debug));
 }
 
 static void
@@ -293,7 +282,9 @@ v3d_context_destroy(struct pipe_context *pctx)
 
         slab_destroy_child(&v3d->transfer_pool);
 
-        pipe_surface_reference(&v3d->framebuffer.cbufs[0], NULL);
+        for (int i = 0; i < v3d->framebuffer.nr_cbufs; i++)
+                pipe_surface_reference(&v3d->framebuffer.cbufs[i], NULL);
+
         pipe_surface_reference(&v3d->framebuffer.zsbuf, NULL);
 
         if (v3d->sand8_blit_vs)
@@ -336,8 +327,8 @@ v3d_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
         struct v3d_context *v3d;
 
         /* Prevent dumping of the shaders built during context setup. */
-        uint32_t saved_shaderdb_flag = V3D_DEBUG & V3D_DEBUG_SHADERDB;
-        V3D_DEBUG &= ~V3D_DEBUG_SHADERDB;
+        uint32_t saved_shaderdb_flag = v3d_mesa_debug & V3D_DEBUG_SHADERDB;
+        v3d_mesa_debug &= ~V3D_DEBUG_SHADERDB;
 
         v3d = rzalloc(NULL, struct v3d_context);
         if (!v3d)
@@ -358,7 +349,7 @@ v3d_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
         pctx->destroy = v3d_context_destroy;
         pctx->flush = v3d_pipe_flush;
         pctx->memory_barrier = v3d_memory_barrier;
-        pctx->set_debug_callback = v3d_set_debug_callback;
+        pctx->set_debug_callback = u_default_set_debug_callback;
         pctx->invalidate_resource = v3d_invalidate_resource;
         pctx->get_sample_position = v3d_get_sample_position;
 
@@ -392,7 +383,7 @@ v3d_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
                 goto fail;
         v3d->blitter->use_index_buffer = true;
 
-        V3D_DEBUG |= saved_shaderdb_flag;
+        v3d_mesa_debug |= saved_shaderdb_flag;
 
         v3d->sample_mask = (1 << V3D_MAX_SAMPLES) - 1;
         v3d->active_queries = true;

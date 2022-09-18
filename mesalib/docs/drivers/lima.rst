@@ -68,10 +68,14 @@ accepts the following comma-separated list of flags:
 
   ``bocache``
     print debug info for BO cache
+  ``diskcache``
+    print debug info for shader disk cache
   ``dump``
     dump GPU command stream to ``$PWD/lima.dump``
   ``gp``
     print GP shader compiler result of each stage
+  ``noblit``
+    use generic u_blitter instead of lima-specific
   ``nobocache``
     disable BO cache
   ``nogrowheap``
@@ -86,6 +90,7 @@ accepts the following comma-separated list of flags:
     print shader information for shaderdb
   ``singlejob``
     disable multi job optimization
+
 
 .. envvar:: LIMA_CTX_NUM_PLB <int> (None)
 

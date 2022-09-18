@@ -156,8 +156,8 @@ RRMonitorGetGeometry(RRMonitorPtr monitor, RRMonitorGeometryPtr geometry)
 
         /* Adjust physical sizes to account for total area */
         if (active_crtcs > 1 && first.box.x2 != first.box.x1 && first.box.y2 != first.box.y1) {
-            geometry->mmWidth = (this.box.x2 - this.box.x1) / (first.box.x2 - first.box.x1) * first.mmWidth;
-            geometry->mmHeight = (this.box.y2 - this.box.y1) / (first.box.y2 - first.box.y1) * first.mmHeight;
+            geometry->mmWidth = ((double)(geometry->box.x2 - geometry->box.x1) / (first.box.x2 - first.box.x1)) * first.mmWidth;
+            geometry->mmHeight = ((double)(geometry->box.y2 - geometry->box.y1) / (first.box.y2 - first.box.y1)) * first.mmHeight;
         }
     } else {
         *geometry = monitor->geometry;

@@ -5116,7 +5116,7 @@
     </function>
 
     <function name="DeleteBuffers" es1="1.1" es2="2.0" no_error="true"
-              marshal_call_after="if (COMPAT) _mesa_glthread_DeleteBuffers(ctx, n, buffer);">
+              marshal_call_after="_mesa_glthread_DeleteBuffers(ctx, n, buffer);">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="buffer" type="const GLuint *" count="n"/>
         <glx ignore="true"/>
@@ -12898,6 +12898,7 @@
 
 <xi:include href="EXT_external_objects.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 <xi:include href="EXT_external_objects_fd.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+<xi:include href="EXT_external_objects_win32.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="NV_viewport_swizzle.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

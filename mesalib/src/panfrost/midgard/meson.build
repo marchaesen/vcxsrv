@@ -48,11 +48,10 @@ midgard_nir_algebraic_c = custom_target(
   input : 'midgard_nir_algebraic.py',
   output : 'midgard_nir_algebraic.c',
   command : [
-    prog_python, '@INPUT@',
-    '-p', join_paths(meson.source_root(), 'src/compiler/nir/'),
+    prog_python, '@INPUT@', '-p', dir_compiler_nir,
   ],
   capture : true,
-  depend_files : nir_algebraic_py,
+  depend_files : nir_algebraic_depends,
 )
 
 libpanfrost_midgard_disasm = static_library(

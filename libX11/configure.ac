@@ -1,7 +1,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libX11], [1.7.3.1],
+AC_INIT([libX11], [1.8.1],
         [https://gitlab.freedesktop.org/xorg/lib/libx11/issues], [libX11])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([src/config.h include/X11/XlibConf.h])
@@ -147,6 +147,15 @@ if test x$XLIB_LOADABLE_XCURSOR = xyes; then
 		  [Use the X cursor library to load cursors])
 fi
 AC_MSG_RESULT($XLIB_LOADABLE_XCURSOR)
+
+AC_ARG_ENABLE(thread-safety-constructor,
+              AS_HELP_STRING([--disable-thread-safety-constructor],
+                             [Controls mandatory thread safety support]),
+              [USE_THREAD_SAFETY_CONSTRUCTOR=$enableval],
+              [USE_THREAD_SAFETY_CONSTRUCTOR="yes"])
+if test "x$USE_THREAD_SAFETY_CONSTRUCTOR" = "xyes"; then
+        AC_DEFINE(USE_THREAD_SAFETY_CONSTRUCTOR,1,[Call XInitThreads() from the library constructor])
+fi
 
 # Checks for header files.
 AC_CHECK_HEADERS([sys/filio.h sys/select.h sys/ioctl.h sys/socket.h])
@@ -428,6 +437,7 @@ echo " Loadable i18n module support:            "$XLIB_LOADABLE_I18N
 echo " Loadable xcursor library support:        "$XLIB_LOADABLE_XCURSOR
 echo " Threading support:                       "$xthreads
 echo " Use Threads safe API:                    "$mtsafeapi
+echo " Use thread safety constructor:           "$USE_THREAD_SAFETY_CONSTRUCTOR
 echo " Threads stubs in libX11:                 "$thrstubs
 echo " XCMS:                                    "$XCMS
 echo " Internationalization support:            "$XLOCALE

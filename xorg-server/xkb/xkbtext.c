@@ -967,8 +967,7 @@ CopySetLockControlsArgs(XkbDescPtr xkb, XkbAction *action, char *buf, int *sz)
         int nOut = 0;
 
         if (tmp & XkbRepeatKeysMask) {
-            snprintf(tbuf, sizeof(tbuf), "%sRepeatKeys", (nOut > 0 ? "+" : ""));
-            TryCopyStr(buf, tbuf, sz);
+            TryCopyStr(buf, "RepeatKeys", sz);
             nOut++;
         }
         if (tmp & XkbSlowKeysMask) {

@@ -146,7 +146,8 @@ radv_image_from_gralloc(VkDevice device_h, const VkImageCreateInfo *base_info,
    for (int i = 0; i < device->physical_device->memory_properties.memoryTypeCount; ++i) {
       bool is_local = !!(device->physical_device->memory_properties.memoryTypes[i].propertyFlags &
                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-      if (is_local) {
+      bool is_32bit = !!(device->physical_device->memory_types_32bit & (1u << i));
+      if (is_local && !is_32bit) {
          memory_type_index = i;
          break;
       }
@@ -582,13 +583,13 @@ get_ahb_buffer_format_properties2(VkDevice device_h, const struct AHardwareBuffe
     *  the Android hardware buffer’s format has a Vulkan equivalent."
     *
     * "The formatFeatures member *must* include
-    *  VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT_KHR and at least one of
-    *  VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT_KHR or
-    *  VK_FORMAT_FEATURE_2_COSITED_CHROMA_SAMPLES_BIT_KHR"
+    *  VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT and at least one of
+    *  VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT or
+    *  VK_FORMAT_FEATURE_2_COSITED_CHROMA_SAMPLES_BIT"
     */
-   assert(p->formatFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT_KHR);
+   assert(p->formatFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT);
 
-   p->formatFeatures |= VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT_KHR;
+   p->formatFeatures |= VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT;
 
    /* "Implementations may not always be able to determine the color model,
     *  numerical range, or chroma offsets of the image contents, so the values
@@ -645,7 +646,7 @@ radv_GetAndroidHardwareBufferPropertiesANDROID(VkDevice device_h,
    uint32_t memory_types = (1u << pdevice->memory_properties.memoryTypeCount) - 1;
 
    pProperties->allocationSize = lseek(dma_buf, 0, SEEK_END);
-   pProperties->memoryTypeBits = memory_types;
+   pProperties->memoryTypeBits = memory_types & ~pdevice->memory_types_32bit;
 
    return VK_SUCCESS;
 }
@@ -737,7 +738,7 @@ radv_import_ahb_memory(struct radv_device *device, struct radv_device_memory *me
          return VK_ERROR_INVALID_EXTERNAL_HANDLE;
       }
    } else if (mem->buffer) {
-      if (alloc_size < mem->buffer->size) {
+      if (alloc_size < mem->buffer->vk.size) {
          device->ws->buffer_destroy(device->ws, mem->bo);
          mem->bo = NULL;
          return VK_ERROR_INVALID_EXTERNAL_HANDLE;
@@ -778,11 +779,11 @@ radv_create_ahb_memory(struct radv_device *device, struct radv_device_memory *me
       w = image->info.width;
       h = image->info.height;
       layers = image->info.array_size;
-      format = android_format_from_vk(image->vk_format);
-      usage = radv_ahb_usage_from_vk_usage(image->flags, image->usage);
+      format = android_format_from_vk(image->vk.format);
+      usage = radv_ahb_usage_from_vk_usage(image->vk.create_flags, image->vk.usage);
    } else if (dedicated_info && dedicated_info->buffer) {
       RADV_FROM_HANDLE(radv_buffer, buffer, dedicated_info->buffer);
-      w = buffer->size;
+      w = buffer->vk.size;
       format = AHARDWAREBUFFER_FORMAT_BLOB;
       usage = AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN;
    } else {

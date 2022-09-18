@@ -585,18 +585,18 @@ ir_reader::read_assignment(s_expression *expr)
    s_pattern pat4[] = { "assign",            mask_list, lhs_expr, rhs_expr };
    s_pattern pat5[] = { "assign", cond_expr, mask_list, lhs_expr, rhs_expr };
    if (!MATCH(expr, pat4) && !MATCH(expr, pat5)) {
-      ir_read_error(expr, "expected (assign [<condition>] (<write mask>) "
-			  "<lhs> <rhs>)");
+      ir_read_error(expr, "expected (assign (<write mask>) <lhs> <rhs>)");
       return NULL;
    }
 
-   ir_rvalue *condition = NULL;
    if (cond_expr != NULL) {
-      condition = read_rvalue(cond_expr);
-      if (condition == NULL) {
-	 ir_read_error(NULL, "when reading condition of assignment");
-	 return NULL;
-      }
+      ir_rvalue *condition = read_rvalue(cond_expr);
+      if (condition == NULL)
+         ir_read_error(NULL, "when reading condition of assignment");
+      else
+         ir_read_error(expr, "conditional assignemnts are deprecated");
+
+      return NULL;
    }
 
    unsigned mask = 0;
@@ -643,7 +643,7 @@ ir_reader::read_assignment(s_expression *expr)
       return NULL;
    }
 
-   return new(mem_ctx) ir_assignment(lhs, rhs, condition, mask);
+   return new(mem_ctx) ir_assignment(lhs, rhs, mask);
 }
 
 ir_call *

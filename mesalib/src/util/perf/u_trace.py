@@ -27,11 +27,12 @@ from enum import IntEnum
 import os
 
 TRACEPOINTS = {}
+TRACEPOINTS_TOGGLES = {}
 
 class Tracepoint(object):
     """Class that represents all the information about a tracepoint
     """
-    def __init__(self, name, args=[],
+    def __init__(self, name, args=[], toggle_name=None,
                  tp_struct=None, tp_print=None, tp_perfetto=None,
                  end_of_pipe=False):
         """Parameters:
@@ -57,11 +58,22 @@ class Tracepoint(object):
         self.tp_print = tp_print
         self.tp_perfetto = tp_perfetto
         self.end_of_pipe = end_of_pipe
+        self.toggle_name = toggle_name
 
         TRACEPOINTS[name] = self
+        if toggle_name is not None and toggle_name not in TRACEPOINTS_TOGGLES:
+            TRACEPOINTS_TOGGLES[toggle_name] = len(TRACEPOINTS_TOGGLES)
 
     def can_generate_print(self):
         return self.args is not None and len(self.args) > 0
+
+    def enabled_expr(self, trace_toggle_name):
+        if trace_toggle_name is None:
+            return "true"
+        assert self.toggle_name is not None
+        return "({0} & {1}_{2})".format(trace_toggle_name,
+                                        trace_toggle_name.upper(),
+                                        self.toggle_name.upper())
 
 class TracepointArgStruct():
     """Represents struct that is being passed as an argument
@@ -108,13 +120,14 @@ class TracepointArg(object):
 HEADERS = []
 
 class HeaderScope(IntEnum):
-   HEADER = (1 << 0)
-   SOURCE = (1 << 1)
+    HEADER = (1 << 0)
+    SOURCE = (1 << 1)
+    PERFETTO = (1 << 2)
 
 class Header(object):
     """Class that represents a header file dependency of generated tracepoints
     """
-    def __init__(self, hdr, scope=HeaderScope.HEADER|HeaderScope.SOURCE):
+    def __init__(self, hdr, scope=HeaderScope.HEADER):
         """Parameters:
 
         - hdr: the required header path
@@ -179,6 +192,18 @@ extern "C" {
 ${declaration.decl};
 % endfor
 
+% if trace_toggle_name is not None:
+enum ${trace_toggle_name.lower()} {
+%    for toggle_name, config_id in TRACEPOINTS_TOGGLES.items():
+   ${trace_toggle_name.upper()}_${toggle_name.upper()} = 1ull << ${config_id},
+%    endfor
+};
+
+extern uint64_t ${trace_toggle_name};
+
+void ${trace_toggle_name}_config_variable(void);
+% endif
+
 % for trace_name, trace in TRACEPOINTS.items():
 
 /*
@@ -189,7 +214,7 @@ struct trace_${trace_name} {
    ${arg.type} ${arg.name};
 %    endfor
 %    if len(trace.args) == 0:
-#ifdef  __cplusplus
+#ifdef __cplusplus
    /* avoid warnings about empty struct size mis-match in C vs C++..
     * the size mis-match is harmless because (a) nothing will deref
     * the empty struct, and (b) the code that cares about allocating
@@ -210,25 +235,31 @@ void ${trace.tp_perfetto}(
 #endif
 %    endif
 void __trace_${trace_name}(
-       struct u_trace *ut, void *cs
+       struct u_trace *ut
+%    if need_cs_param:
+     , void *cs
+%    endif
 %    for arg in trace.args:
      , ${arg.type} ${arg.var}
 %    endfor
 );
-static inline void trace_${trace_name}(
-     struct u_trace *ut, void *cs
+static ALWAYS_INLINE void trace_${trace_name}(
+     struct u_trace *ut
+%    if need_cs_param:
+   , void *cs
+%    endif
 %    for arg in trace.args:
    , ${arg.type} ${arg.var}
 %    endfor
 ) {
-%    if trace.tp_perfetto is not None:
-   if (!unlikely(ut->enabled || ut_trace_instrument || ut_perfetto_enabled))
-%    else:
-   if (!unlikely(ut->enabled || ut_trace_instrument))
-%    endif
+   if (!unlikely(u_trace_instrument() &&
+                 ${trace.enabled_expr(trace_toggle_name)}))
       return;
    __trace_${trace_name}(
-        ut, cs
+        ut
+%    if need_cs_param:
+      , cs
+%    endif
 %    for arg in trace.args:
       , ${arg.var}
 %    endfor
@@ -266,14 +297,49 @@ src_template = """\
  * IN THE SOFTWARE.
  */
 
+#include "${hdr}"
+
 % for header in HEADERS:
 #include "${header.hdr}"
 % endfor
 
-#include "${hdr}"
-
 #define __NEEDS_TRACE_PRIV
+#include "util/debug.h"
 #include "util/perf/u_trace_priv.h"
+
+% if trace_toggle_name is not None:
+static const struct debug_control config_control[] = {
+%    for toggle_name in TRACEPOINTS_TOGGLES.keys():
+   { "${toggle_name}", ${trace_toggle_name.upper()}_${toggle_name.upper()}, },
+%    endfor
+   { NULL, 0, },
+};
+uint64_t ${trace_toggle_name} = 0;
+
+static void
+${trace_toggle_name}_variable_once(void)
+{
+   uint64_t default_value = 0
+%    for name in trace_toggle_defaults:
+     | ${trace_toggle_name.upper()}_${name.upper()}
+%    endfor
+     ;
+
+   ${trace_toggle_name} =
+      parse_enable_string(getenv("${trace_toggle_name.upper()}"),
+                          default_value,
+                          config_control);
+}
+
+void
+${trace_toggle_name}_config_variable(void)
+{
+   static once_flag process_${trace_toggle_name}_variable_flag = ONCE_FLAG_INIT;
+
+   call_once(&process_${trace_toggle_name}_variable_flag,
+             ${trace_toggle_name}_variable_once);
+}
+% endif
 
 % for trace_name, trace in TRACEPOINTS.items():
 /*
@@ -304,14 +370,44 @@ static void __print_${trace_name}(FILE *out, const void *arg) {
   % endif
    );
 }
+
+static void __print_json_${trace_name}(FILE *out, const void *arg) {
+   const struct trace_${trace_name} *__entry =
+      (const struct trace_${trace_name} *)arg;
+  % if trace.tp_print is not None:
+   fprintf(out, "\\"unstructured\\": \\"${trace.tp_print[0]}\\""
+   % for arg in trace.tp_print[1:]:
+           , ${arg}
+   % endfor
+  % else:
+   fprintf(out, ""
+   % for arg in trace.tp_struct:
+      "\\"${arg.name}\\": \\"${arg.c_format}\\""
+      % if arg != trace.tp_struct[-1]:
+         ", "
+      % endif
+   % endfor
+   % for arg in trace.tp_struct:
+    % if arg.to_prim_type:
+   ,${arg.to_prim_type.format('__entry->' + arg.name)}
+    % else:
+   ,__entry->${arg.name}
+    % endif
+   % endfor
+  % endif
+   );
+}
+
  % else:
 #define __print_${trace_name} NULL
+#define __print_json_${trace_name} NULL
  % endif
 static const struct u_tracepoint __tp_${trace_name} = {
     ALIGN_POT(sizeof(struct trace_${trace_name}), 8),   /* keep size 64b aligned */
     "${trace_name}",
     ${"true" if trace.end_of_pipe else "false"},
     __print_${trace_name},
+    __print_json_${trace_name},
  % if trace.tp_perfetto is not None:
 #ifdef HAVE_PERFETTO
     (void (*)(void *pctx, uint64_t, const void *, const void *))${trace.tp_perfetto},
@@ -319,13 +415,16 @@ static const struct u_tracepoint __tp_${trace_name} = {
  % endif
 };
 void __trace_${trace_name}(
-     struct u_trace *ut, void *cs
+     struct u_trace *ut
+ % if need_cs_param:
+   , void *cs
+ % endif
  % for arg in trace.args:
    , ${arg.type} ${arg.var}
  % endfor
 ) {
    struct trace_${trace_name} *__entry =
-      (struct trace_${trace_name} *)u_trace_append(ut, cs, &__tp_${trace_name});
+      (struct trace_${trace_name} *)u_trace_append(ut, ${cs_param_value + ","} &__tp_${trace_name});
  % if len(trace.tp_struct) == 0:
    (void)__entry;
  % endif
@@ -337,15 +436,35 @@ void __trace_${trace_name}(
 % endfor
 """
 
-def utrace_generate(cpath, hpath, ctx_param):
+def utrace_generate(cpath, hpath, ctx_param, need_cs_param=True,
+                    trace_toggle_name=None, trace_toggle_defaults=[]):
+    """Parameters:
+
+    - cpath: c file to generate.
+    - hpath: h file to generate.
+    - ctx_param: type of the first parameter to the perfetto vfuncs.
+    - need_cs_param: whether tracepoint functions need an additional cs
+      parameter.
+    - trace_toggle_name: (optional) name of the environment variable
+      enabling/disabling tracepoints.
+    - trace_toggle_defaults: (optional) list of tracepoints enabled by default.
+    """
+    cs_param_value = 'NULL'
+    if need_cs_param:
+        cs_param_value = 'cs'
     if cpath is not None:
         hdr = os.path.basename(cpath).rsplit('.', 1)[0] + '.h'
         with open(cpath, 'w') as f:
             f.write(Template(src_template).render(
                 hdr=hdr,
                 ctx_param=ctx_param,
+                need_cs_param=need_cs_param,
+                cs_param_value=cs_param_value,
+                trace_toggle_name=trace_toggle_name,
+                trace_toggle_defaults=trace_toggle_defaults,
                 HEADERS=[h for h in HEADERS if h.scope & HeaderScope.SOURCE],
-                TRACEPOINTS=TRACEPOINTS))
+                TRACEPOINTS=TRACEPOINTS,
+                TRACEPOINTS_TOGGLES=TRACEPOINTS_TOGGLES))
 
     if hpath is not None:
         hdr = os.path.basename(hpath)
@@ -353,9 +472,12 @@ def utrace_generate(cpath, hpath, ctx_param):
             f.write(Template(hdr_template).render(
                 hdrname=hdr.rstrip('.h').upper(),
                 ctx_param=ctx_param,
+                need_cs_param=need_cs_param,
+                trace_toggle_name=trace_toggle_name,
                 HEADERS=[h for h in HEADERS if h.scope & HeaderScope.HEADER],
                 FORWARD_DECLS=FORWARD_DECLS,
-                TRACEPOINTS=TRACEPOINTS))
+                TRACEPOINTS=TRACEPOINTS,
+                TRACEPOINTS_TOGGLES=TRACEPOINTS_TOGGLES))
 
 
 perfetto_utils_hdr_template = """\
@@ -387,6 +509,10 @@ perfetto_utils_hdr_template = """\
 #define ${guard_name}
 
 #include <perfetto.h>
+
+% for header in HEADERS:
+#include "${header.hdr}"
+% endfor
 
 % for trace_name, trace in TRACEPOINTS.items():
 static void UNUSED
@@ -424,4 +550,5 @@ def utrace_generate_perfetto_utils(hpath):
         with open(hpath, 'wb') as f:
             f.write(Template(perfetto_utils_hdr_template, output_encoding='utf-8').render(
                 hdrname=hdr.rstrip('.h').upper(),
+                HEADERS=[h for h in HEADERS if h.scope & HeaderScope.PERFETTO],
                 TRACEPOINTS=TRACEPOINTS))

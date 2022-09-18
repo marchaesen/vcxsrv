@@ -7,34 +7,39 @@
     FLAKES_CHANNEL: "#mesa-swrast-ci"
     GPU_VERSION: llvmpipe
 
-llvmpipe-piglit-cl:
+.llvmpipe-piglit-cl:
   extends:
     - .test-cl
     - .piglit-test
     - .llvmpipe-test
-    - .llvmpipe-cl-rules
   variables:
     LP_CL: 1
     LP_NUM_THREADS: 1
     PIGLIT_PROFILES: cl
-    PIGLIT_RESULTS: "llvmpipe-cl"
     PIGLIT_TESTS: >
       -x bswap -x phatk -x clz-optimizations
   script:
     - install/piglit/run_cl.sh
 
-llvmpipe-piglit-gl:
+llvmpipe-piglit-clover:
   extends:
-    - .test-gl
-    - .piglit-test
-    - .llvmpipe-test
-  parallel: 2
+    - .llvmpipe-piglit-cl
+    - .llvmpipe-clover-rules
+  needs:
+    - debian-clover-testing
+    - debian/x86_test-gl
   variables:
-    GALLIVM_PERF: "no_quad_lod"
-    LP_NUM_THREADS: 0
-    PIGLIT_PROFILES: quick
-  script:
-    - LD_LIBRARY_PATH=`pwd`/install xvfb-run --server-args='-noreset' install/piglit/piglit-runner.sh
+    PIGLIT_RESULTS: "llvmpipe-clover"
+
+llvmpipe-piglit-rusticl:
+  extends:
+    - .llvmpipe-piglit-cl
+    - .llvmpipe-rusticl-rules
+  needs:
+    - debian-rusticl-testing
+    - debian/x86_test-gl
+  variables:
+    PIGLIT_RESULTS: "llvmpipe-rusticl"
 
 llvmpipe-traces:
   extends:
@@ -50,34 +55,30 @@ llvmpipe-traces:
 .llvmpipe-deqp-test:
   variables:
     GALLIVM_PERF: "nopt"
-    # Don't use threads inside llvmpipe, we've already got all cores
-    # busy at the deqp-runner level.
-    LP_NUM_THREADS: 0
   extends:
     - .test-gl
     - .deqp-test
     - .llvmpipe-test
 
-llvmpipe-deqp:
+llvmpipe:
+  tags:
+    - mesa-swrast
   variables:
     DEQP_SUITE: llvmpipe
-  parallel: 2
   extends: .llvmpipe-deqp-test
+  script:
+    - LD_LIBRARY_PATH=`pwd`/install xvfb-run --server-args='-noreset' install/deqp-runner.sh
 
 llvmpipe-deqp-asan:
   variables:
     DEQP_SUITE: llvmpipe-asan
     GPU_VERSION: llvmpipe-asan
     DEQP_FRACTION: 10
+    # Don't use threads inside llvmpipe, we've already got all cores
+    # busy at the deqp-runner level, and we don't want to overload fd.o
+    # shared runners
+    LP_NUM_THREADS: 0
   extends: .llvmpipe-deqp-test
   needs:
     - debian/x86_test-gl
     - debian-testing-asan
-
-llvmpipe-egl:
-  variables:
-    DEQP_VER: egl
-  extends:
-    - .llvmpipe-deqp-test
-  script:
-    - xvfb-run --server-args='-noreset' ./install/deqp-runner.sh

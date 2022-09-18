@@ -2795,6 +2795,174 @@ gles_effective_internal_format_for_format_and_type(GLenum format,
 }
 
 /**
+ * Error checking if internalformat for glTex[Sub]Image is valid
+ * within OpenGL ES 3.2 (or introduced by an ES extension).
+ *
+ * Note, further checks in _mesa_gles_error_check_format_and_type
+ * are required for complete checking between format and type.
+ */
+static GLenum
+_mesa_gles_check_internalformat(const struct gl_context *ctx,
+                                GLenum internalFormat)
+{
+   switch (internalFormat) {
+   /* OpenGL ES 2.0 */
+   case GL_ALPHA:
+   case GL_LUMINANCE:
+   case GL_LUMINANCE_ALPHA:
+   case GL_RGB:
+   case GL_RGBA:
+
+   /* GL_OES_depth_texture */
+   case GL_DEPTH_COMPONENT:
+
+   /* GL_EXT_texture_format_BGRA8888 */
+   case GL_BGRA:
+
+   /* GL_OES_required_internalformat */
+   case GL_RGB565:
+   case GL_RGB8:
+   case GL_RGBA4:
+   case GL_RGB5_A1:
+   case GL_RGBA8:
+   case GL_DEPTH_COMPONENT16:
+   case GL_DEPTH_COMPONENT24:
+   case GL_DEPTH_COMPONENT32:
+   case GL_DEPTH24_STENCIL8:
+   case GL_RGB10_EXT:
+   case GL_RGB10_A2_EXT:
+   case GL_ALPHA8:
+   case GL_LUMINANCE8:
+   case GL_LUMINANCE8_ALPHA8:
+   case GL_LUMINANCE4_ALPHA4:
+      return GL_NO_ERROR;
+
+   case GL_R8:
+   case GL_RG8:
+   case GL_RED:
+   case GL_RG:
+      if (!_mesa_has_rg_textures(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   /* GL_OES_texture_stencil8 */
+   case GL_STENCIL_INDEX8:
+      if (!_mesa_has_OES_texture_stencil8(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_COMPRESSED_RGBA_BPTC_UNORM:
+   case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+   case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
+   case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+      if (!_mesa_has_EXT_texture_compression_bptc(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_COMPRESSED_RED_RGTC1:
+   case GL_COMPRESSED_SIGNED_RED_RGTC1:
+   case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+   case GL_COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT:
+      if (!_mesa_has_EXT_texture_compression_rgtc(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+   case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+   case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+   case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+      if (!_mesa_has_EXT_texture_compression_s3tc(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+      if (!_mesa_has_EXT_texture_compression_s3tc_srgb(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_R16:
+   case GL_RG16:
+   case GL_RGB16:
+   case GL_RGBA16:
+      if (!_mesa_has_EXT_texture_norm16(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_R16_SNORM:
+   case GL_RG16_SNORM:
+   case GL_RGB16_SNORM:
+   case GL_RGBA16_SNORM:
+      if (!_mesa_has_EXT_texture_norm16(ctx) &&
+          !_mesa_has_EXT_texture_snorm(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_SR8_EXT:
+      if (!_mesa_has_EXT_texture_sRGB_R8(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   case GL_SRG8_EXT:
+      if (!_mesa_has_EXT_texture_sRGB_RG8(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+
+   /* OpenGL ES 3.0 */
+   case GL_SRGB8_ALPHA8:
+   case GL_RGBA8_SNORM:
+   case GL_RGBA16F:
+   case GL_RGBA32F:
+   case GL_RGBA8UI:
+   case GL_RGBA8I:
+   case GL_RGBA16UI:
+   case GL_RGBA16I:
+   case GL_RGBA32UI:
+   case GL_RGBA32I:
+   case GL_RGB10_A2UI:
+   case GL_SRGB8:
+   case GL_RGB8_SNORM:
+   case GL_R11F_G11F_B10F:
+   case GL_RGB9_E5:
+   case GL_RGB16F:
+   case GL_RGB32F:
+   case GL_RGB8UI:
+   case GL_RGB8I:
+   case GL_RGB16UI:
+   case GL_RGB16I:
+   case GL_RGB32UI:
+   case GL_RGB32I:
+   case GL_RG8_SNORM:
+   case GL_RG16F:
+   case GL_RG32F:
+   case GL_RG8UI:
+   case GL_RG8I:
+   case GL_RG16UI:
+   case GL_RG16I:
+   case GL_RG32UI:
+   case GL_RG32I:
+   case GL_R8_SNORM:
+   case GL_R16F:
+   case GL_R32F:
+   case GL_R8UI:
+   case GL_R8I:
+   case GL_R16UI:
+   case GL_R16I:
+   case GL_R32UI:
+   case GL_R32I:
+   case GL_DEPTH_COMPONENT32F:
+   case GL_DEPTH32F_STENCIL8:
+      if (!_mesa_is_gles3(ctx))
+         return GL_INVALID_VALUE;
+      return GL_NO_ERROR;
+   default:
+      return GL_INVALID_VALUE;
+   }
+}
+
+/**
  * Do error checking of format/type combinations for OpenGL ES 3
  * glTex[Sub]Image, or ES1/ES2 with GL_OES_required_internalformat.
  * \return error code, or GL_NO_ERROR.
@@ -2848,13 +3016,21 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
    /* The GLES variant of EXT_texture_compression_s3tc is very vague and
     * doesn't list valid types. Just do exactly what the spec says.
     */
-   if (_mesa_has_EXT_texture_compression_s3tc(ctx) &&
-       (internalFormat == GL_COMPRESSED_RGB_S3TC_DXT1_EXT ||
-        internalFormat == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ||
-        internalFormat == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT ||
-        internalFormat == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT))
+   if (internalFormat == GL_COMPRESSED_RGB_S3TC_DXT1_EXT ||
+       internalFormat == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ||
+       internalFormat == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT ||
+       internalFormat == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT)
       return format == GL_RGB || format == GL_RGBA ? GL_NO_ERROR :
                                                      GL_INVALID_OPERATION;
+
+   /* Before checking for the combination, verify that
+    * given internalformat is legal for OpenGL ES.
+    */
+   GLenum internal_format_error =
+      _mesa_gles_check_internalformat(ctx, internalFormat);
+
+   if (internal_format_error != GL_NO_ERROR)
+      return internal_format_error;
 
    switch (format) {
    case GL_BGRA_EXT:
@@ -2887,8 +3063,6 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
             break;
          case GL_COMPRESSED_RGBA_BPTC_UNORM:
          case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
-            if (!_mesa_has_EXT_texture_compression_bptc(ctx))
-               return GL_INVALID_OPERATION;
             break;
          default:
             return GL_INVALID_OPERATION;
@@ -2901,13 +3075,12 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
          break;
 
       case GL_UNSIGNED_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) || internalFormat != GL_RGBA16)
+         if (internalFormat != GL_RGBA16)
             return GL_INVALID_OPERATION;
          break;
 
       case GL_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) ||
-             internalFormat != GL_RGBA16_SNORM)
+         if (internalFormat != GL_RGBA16_SNORM)
             return GL_INVALID_OPERATION;
          break;
 
@@ -3041,13 +3214,12 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
          break;
 
       case GL_UNSIGNED_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) || internalFormat != GL_RGB16)
+         if (internalFormat != GL_RGB16)
             return GL_INVALID_OPERATION;
          break;
 
       case GL_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) ||
-             internalFormat != GL_RGB16_SNORM)
+         if (internalFormat != GL_RGB16_SNORM)
             return GL_INVALID_OPERATION;
          break;
 
@@ -3095,8 +3267,6 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
             break;
          case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
          case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
-            if (!_mesa_has_EXT_texture_compression_bptc(ctx))
-               return GL_INVALID_OPERATION;
             break;
          case GL_RGB:
             if (!_mesa_has_OES_texture_float(ctx) || internalFormat != format)
@@ -3179,29 +3349,25 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
          return GL_INVALID_OPERATION;
       switch (type) {
       case GL_UNSIGNED_BYTE:
-         if (internalFormat == GL_RG8 ||
-             (_mesa_has_EXT_texture_compression_rgtc(ctx) &&
-              internalFormat == GL_COMPRESSED_RED_GREEN_RGTC2_EXT) ||
-             (_mesa_has_EXT_texture_sRGB_RG8(ctx) &&
-              internalFormat == GL_SRG8_EXT))
-            break;
-         return GL_INVALID_OPERATION;
+         if (internalFormat != GL_RG8 &&
+             internalFormat != GL_COMPRESSED_RED_GREEN_RGTC2_EXT &&
+             internalFormat != GL_SRG8_EXT)
+            return GL_INVALID_OPERATION;
+         break;
 
       case GL_BYTE:
          if (internalFormat != GL_RG8_SNORM &&
-             (!_mesa_has_EXT_texture_compression_rgtc(ctx) ||
-              internalFormat != GL_COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT))
+             internalFormat != GL_COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT)
             return GL_INVALID_OPERATION;
          break;
 
       case GL_UNSIGNED_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) || internalFormat != GL_RG16)
+         if (internalFormat != GL_RG16)
             return GL_INVALID_OPERATION;
          break;
 
       case GL_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) ||
-             internalFormat != GL_RG16_SNORM)
+         if (internalFormat != GL_RG16_SNORM)
             return GL_INVALID_OPERATION;
          break;
 
@@ -3213,8 +3379,7 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
                   return GL_INVALID_OPERATION;
                break;
             case GL_RG:
-               if (!_mesa_has_rg_textures(ctx) ||
-                   !_mesa_has_OES_texture_half_float(ctx))
+               if (!_mesa_has_OES_texture_half_float(ctx))
                   return GL_INVALID_OPERATION;
                break;
             default:
@@ -3228,8 +3393,7 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
          case GL_RG32F:
             break;
          case GL_RG:
-            if (!_mesa_has_rg_textures(ctx) ||
-                !_mesa_has_OES_texture_float(ctx))
+            if (!_mesa_has_OES_texture_float(ctx))
                return GL_INVALID_OPERATION;
             break;
          default:
@@ -3286,29 +3450,26 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
          return GL_INVALID_OPERATION;
       switch (type) {
       case GL_UNSIGNED_BYTE:
-         if (internalFormat == GL_R8 ||
-             ((internalFormat == GL_SR8_EXT) &&
-              _mesa_has_EXT_texture_sRGB_R8(ctx)) ||
-             (internalFormat == GL_COMPRESSED_RED_RGTC1_EXT &&
-              _mesa_has_EXT_texture_compression_rgtc(ctx)))
-            break;
-         return GL_INVALID_OPERATION;
+         if (internalFormat != GL_R8 &&
+             internalFormat != GL_SR8_EXT &&
+             internalFormat != GL_COMPRESSED_RED_RGTC1_EXT) {
+            return GL_INVALID_OPERATION;
+         }
+         break;
 
       case GL_BYTE:
          if (internalFormat != GL_R8_SNORM &&
-             (!_mesa_has_EXT_texture_compression_rgtc(ctx) ||
-              internalFormat != GL_COMPRESSED_SIGNED_RED_RGTC1_EXT))
+             internalFormat != GL_COMPRESSED_SIGNED_RED_RGTC1_EXT)
             return GL_INVALID_OPERATION;
          break;
 
       case GL_UNSIGNED_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) || internalFormat != GL_R16)
+         if (internalFormat != GL_R16)
             return GL_INVALID_OPERATION;
          break;
 
       case GL_SHORT:
-         if (!_mesa_has_EXT_texture_norm16(ctx) ||
-             internalFormat != GL_R16_SNORM)
+         if (internalFormat != GL_R16_SNORM)
             return GL_INVALID_OPERATION;
          break;
 
@@ -3321,8 +3482,7 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
             break;
          case GL_RG:
          case GL_RED:
-            if (!_mesa_has_rg_textures(ctx) ||
-                !_mesa_has_OES_texture_half_float(ctx))
+            if (!_mesa_has_OES_texture_half_float(ctx))
                return GL_INVALID_OPERATION;
             break;
          default:
@@ -3336,8 +3496,7 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
          case GL_R32F:
             break;
          case GL_RED:
-            if (!_mesa_has_rg_textures(ctx) ||
-                !_mesa_has_OES_texture_float(ctx))
+            if (!_mesa_has_OES_texture_float(ctx))
                return GL_INVALID_OPERATION;
             break;
          default:
@@ -3392,8 +3551,8 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
    case GL_DEPTH_COMPONENT:
       switch (type) {
       case GL_UNSIGNED_SHORT:
-         if (internalFormat != GL_DEPTH_COMPONENT
-             && internalFormat != GL_DEPTH_COMPONENT16)
+         if (internalFormat != GL_DEPTH_COMPONENT &&
+             internalFormat != GL_DEPTH_COMPONENT16)
             return GL_INVALID_OPERATION;
          break;
 
@@ -3421,8 +3580,8 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
    case GL_DEPTH_STENCIL:
       switch (type) {
       case GL_UNSIGNED_INT_24_8:
-         if (internalFormat != GL_DEPTH_STENCIL
-             && internalFormat != GL_DEPTH24_STENCIL8)
+         if (internalFormat != GL_DEPTH_STENCIL &&
+             internalFormat != GL_DEPTH24_STENCIL8)
             return GL_INVALID_OPERATION;
          break;
 
@@ -3437,8 +3596,7 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
       break;
 
    case GL_STENCIL_INDEX:
-      if (!_mesa_has_OES_texture_stencil8(ctx) ||
-          type != GL_UNSIGNED_BYTE ||
+      if (type != GL_UNSIGNED_BYTE ||
           internalFormat != GL_STENCIL_INDEX8) {
          return GL_INVALID_OPERATION;
       }

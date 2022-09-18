@@ -101,17 +101,6 @@ xkb_symbols "evdev" {
     key <HELP>   {      [ Help                  ]       };
     key <LNFD>   {      [ Linefeed              ]       };
 
-// Commented out because HZTG has same keycode as TLDE
-//    key <HZTG>   {      [ Zenkaku_Hankaku       ]       };
-
-    key <HKTG>   {      [ Hiragana_Katakana     ]       };
-    key <HENK>   {      [ Henkan                ]       };
-    key <MUHE>   {      [ Muhenkan              ]       };
-    key <KATA>   {      [ Katakana              ]       };
-    key <HIRA>   {      [ Hiragana              ]       };
-
-    key <HNGL>   {      [ Hangul                ]       };
-    key <HJCV>   {      [ Hangul_Hanja          ]       };
     key <FK21>   {      [ XF86TouchpadToggle    ]       };
     key <FK22>   {      [ XF86TouchpadOn        ]       };
     key <FK23>   {      [ XF86TouchpadOff       ]       };
@@ -332,6 +321,7 @@ xkb_symbols "evdev" {
    key <I591>   {       [ XF86Assistant                  ]      }; // KEY_ASSISTANT
    key <I592>   {       [ ISO_Next_Group                 ]      }; // KEY_KBD_LAYOUT_NEXT
    key <I593>   {       [ XF86EmojiPicker                ]      }; // KEY_EMOJI_PICKER
+   key <I594>   {       [ XF86Dictate                    ]      }; // KEY_DICTATE
    key <I600>   {       [ XF86BrightnessMin              ]      }; // KEY_BRIGHTNESS_MIN
    key <I601>   {       [ XF86BrightnessMax              ]      }; // KEY_BRIGHTNESS_MAX
    key <I616>   {       [ XF86KbdInputAssistPrev         ]      }; // KEY_KBDINPUTASSIST_PREV
@@ -1165,15 +1155,6 @@ partial alphanumeric_keys
 xkb_symbols "thinkpad60" {
     include "inet(media_nav_common)"
     key <I1F> { [ XF86VendorHome ] };
-};
-
-// IBM Space Saver
-partial alphanumeric_keys
-xkb_symbols "ibm_spacesaver" {
-    key <NMLK>  {
-        type="ONE_LEVEL",
-        symbols[Group1]= [ Num_Lock ]
-    };
 };
 
 
@@ -2071,3 +2052,21 @@ xkb_symbols "teck229" {
     include "inet(teck227)"
 };
 
+
+// Pinephone
+
+// Pinephone Keyboard
+partial alphanumeric_keys
+xkb_symbols "ppkb" {
+
+    key <AE01> {[  1,  exclam,       bar         ]};
+    key <AE02> {[  2,  at,           backslash   ]};
+    key <AE03> {[  3,  numbersign,   sterling    ]};
+    key <AE04> {[  4,  dollar,       EuroSign    ]};
+    key <AE05> {[  5,  percent,      asciitilde  ]};
+    key <AE06> {[  6,  asciicircum,  grave       ]};
+    key <AE07> {[  7,  ampersand,    minus       ]};
+    key <AE08> {[  8,  asterisk,     equal       ]};
+    key <AE09> {[  9,  parenleft,    underscore  ]};
+    key <AE10> {[  0,  parenright,   plus        ]};
+};

@@ -18,7 +18,7 @@ foreach ($spvasm in $spvasm_files) {
         $spv_version = $Matches[1]
     }
     
-    $as_output = C:\spirv-tools\bin\spirv-as.exe --target-env spv$spv_version --preserve-numeric-ids -o $spvfile $spvasm 2>&1 | % { if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { $_ } }  | Out-String
+    $as_output = . "$env:VULKAN_SDK\Bin\spirv-as.exe" --target-env spv$spv_version --preserve-numeric-ids -o $spvfile $spvasm 2>&1 | % { if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { $_ } }  | Out-String
     if ($LASTEXITCODE -ne 0) {
         Write-Output "$test_name Skip: Unable to assemble shader"
         Write-Output "$as_output`n"

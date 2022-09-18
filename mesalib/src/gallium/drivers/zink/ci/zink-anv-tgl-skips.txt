@@ -1,0 +1,13 @@
+#these take too long to finish in ci
+KHR-GL46.texture_swizzle.smoke
+KHR-GL46.copy_image.functional
+KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4
+KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat3
+KHR-GL46.gpu_shader_fp64.fp64.varyings
+KHR-GL46.texture_swizzle.functional
+KHR-Single-GL46.arrays_of_arrays_gl.AtomicUsage
+KHR-Single-GL46.arrays_of_arrays_gl.InteractionFunctionCalls2
+KHR-Single-GL46.arrays_of_arrays_gl.SubroutineFunctionCalls2
+KHR-Single-GL46.enhanced_layouts.uniform_block_member_align_non_power_of_2
+KHR-Single-GL46.enhanced_layouts.xfb_global_buffer
+KHR-Single-GL46.arrays_of_arrays_gl.SubroutineFunctionCalls1

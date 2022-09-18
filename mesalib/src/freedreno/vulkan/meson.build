@@ -1,22 +1,5 @@
 # Copyright © 2017 Intel Corporation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 tu_entrypoints = custom_target(
   'tu_entrypoints',
@@ -34,25 +17,21 @@ libtu_files = files(
   'tu_autotune.c',
   'tu_clear_blit.c',
   'tu_cmd_buffer.c',
+  'tu_cs_breadcrumbs.c',
   'tu_cs.c',
-  'tu_cs.h',
   'tu_device.c',
   'tu_descriptor_set.c',
-  'tu_descriptor_set.h',
+  'tu_dynamic_rendering.c',
   'tu_formats.c',
   'tu_image.c',
-  'tu_legacy.c',
+  'tu_lrz.c',
   'tu_nir_lower_multiview.c',
   'tu_pass.c',
   'tu_pipeline.c',
-  'tu_pipeline_cache.c',
-  'tu_private.h',
   'tu_query.c',
   'tu_shader.c',
+  'tu_suballoc.c',
   'tu_util.c',
-  'tu_util.h',
-  'tu_perfetto.h',
-  'vk_format.h',
 )
 
 tu_deps = []
@@ -71,7 +50,6 @@ if with_platform_wayland
 endif
 
 if system_has_kms_drm and not with_platform_android
-  libtu_files += files('tu_wsi_display.c')
   tu_wsi = true
 endif
 
@@ -90,6 +68,8 @@ endif
 
 if with_freedreno_kgsl
   tu_flags += '-DTU_USE_KGSL'
+  # Even if libdrm is available we shouldn't use it in KGSL build
+  tu_flags += '-UHAVE_LIBDRM'
   libtu_files += files('tu_kgsl.c')
 else
   libtu_files += files('tu_drm.c')
@@ -117,7 +97,7 @@ endif
 
 libvulkan_freedreno = shared_library(
   'vulkan_freedreno',
-  [libtu_files, tu_entrypoints, tu_tracepoints, freedreno_xml_header_files, sha1_h],
+  [libtu_files, tu_entrypoints, tu_tracepoints, freedreno_xml_header_files, sha1_h, u_format_pack_h],
   include_directories : [
     inc_include,
     inc_src,

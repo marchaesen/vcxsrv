@@ -1,8 +1,7 @@
-/**
-****************************************************************************************************
+/*
+************************************************************************************************************************
 *
-* Copyright © 2007-2021 Advanced Micro Devices, Inc.
-* All Rights Reserved.
+*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -22,8 +21,7 @@
 * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE
 *
-****************************************************************************************************
-*/
+***********************************************************************************************************************/
 
 /**
 ****************************************************************************************************
@@ -447,6 +445,38 @@ static inline INT_32 Max(
     INT_32 value2)
 {
     return ((value1 > (value2)) ? (value1) : value2);
+}
+
+/**
+****************************************************************************************************
+*   RoundUpQuotient
+*
+*   @brief
+*       Divides two numbers, rounding up any remainder.
+****************************************************************************************************
+*/
+static inline UINT_32 RoundUpQuotient(
+    UINT_32 numerator,
+    UINT_32 denominator)
+{
+    ADDR_ASSERT(denominator > 0);
+    return ((numerator + (denominator - 1)) / denominator);
+}
+
+/**
+****************************************************************************************************
+*   RoundUpQuotient
+*
+*   @brief
+*       Divides two numbers, rounding up any remainder.
+****************************************************************************************************
+*/
+static inline UINT_64 RoundUpQuotient(
+    UINT_64 numerator,
+    UINT_64 denominator)
+{
+    ADDR_ASSERT(denominator > 0);
+    return ((numerator + (denominator - 1)) / denominator);
 }
 
 /**

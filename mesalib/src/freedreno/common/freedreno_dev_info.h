@@ -70,7 +70,7 @@ struct fd_dev_info {
          bool supports_multiview_mask;
 
          /* info for setting RB_CCU_CNTL */
-         bool ccu_cntl_gmem_unk2;
+         bool concurrent_resolve;
          bool has_z24uint_s8uint;
 
          bool tess_use_shared;
@@ -133,10 +133,31 @@ struct fd_dev_info {
          bool has_dp2acc;
          bool has_dp4acc;
 
+         /* LRZ fast-clear works on all gens, however blob disables it on
+          * gen1 and gen2. We also elect to disable fast-clear on these gens
+          * because for close to none gains it adds complexity and seem to work
+          * a bit differently from gen3+. Which creates at least one edge case:
+          * if first draw which uses LRZ fast-clear doesn't lock LRZ direction
+          * the fast-clear value is undefined. For details see
+          * https://gitlab.freedesktop.org/mesa/mesa/-/issues/6829
+          */
+         bool enable_lrz_fast_clear;
+         bool has_lrz_dir_tracking;
+         bool lrz_track_quirk;
+
          struct {
-            uint32_t RB_UNKNOWN_8E04_blit;
             uint32_t PC_POWER_CNTL;
             uint32_t TPL1_DBG_ECO_CNTL;
+            uint32_t GRAS_DBG_ECO_CNTL;
+            uint32_t SP_CHICKEN_BITS;
+            uint32_t UCHE_CLIENT_PF;
+            uint32_t PC_MODE_CNTL;
+            uint32_t SP_DBG_ECO_CNTL;
+            uint32_t RB_DBG_ECO_CNTL_blit;
+            uint32_t HLSQ_DBG_ECO_CNTL;
+            uint32_t RB_UNKNOWN_8E01;
+            uint32_t VPC_DBG_ECO_CNTL;
+            uint32_t UCHE_UNKNOWN_0E12;
          } magic;
       } a6xx;
    };

@@ -83,8 +83,12 @@ _mesa_float_to_half_slow(float val)
       e = 31;
    }
    else if ((flt_e == 0xff) && (flt_m != 0)) {
-      /* NaN */
-      m = 1;
+      /* Retain the top bits of a NaN to make sure that the quiet/signaling
+       * status stays the same.
+       */
+      m = flt_m >> 13;
+      if (!m)
+         m = 1;
       e = 31;
    }
    else {

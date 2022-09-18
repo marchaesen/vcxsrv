@@ -28,7 +28,7 @@ panvk_entrypoints = custom_target(
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'panvk',
-    '--device-prefix', 'panvk_v5', '--device-prefix', 'panvk_v6', '--device-prefix', 'panvk_v7',
+    '--device-prefix', 'panvk_v6', '--device-prefix', 'panvk_v7',
   ],
   depend_files : vk_entrypoints_gen_depend_files,
 )
@@ -47,16 +47,15 @@ libpanvk_files = files(
   'panvk_private.h',
   'panvk_query.c',
   'panvk_shader.c',
-  'panvk_sync.c',
   'panvk_util.c',
   'panvk_wsi.c',
-)
+) + [vk_cmd_enqueue_entrypoints[0], vk_common_entrypoints[0]]
 
 panvk_deps = []
 panvk_flags = []
 panvk_per_arch_libs = []
 
-foreach arch : ['5', '6', '7']
+foreach arch : ['6', '7']
   panvk_per_arch_libs += static_library(
     'panvk_v@0@'.format(arch),
     [
@@ -70,6 +69,7 @@ foreach arch : ['5', '6', '7']
       'panvk_vX_meta_blit.c',
       'panvk_vX_meta_copy.c',
       'panvk_vX_meta_clear.c',
+      'panvk_vX_nir_lower_descriptors.c',
       'panvk_vX_pipeline.c',
       'panvk_vX_shader.c',
     ],

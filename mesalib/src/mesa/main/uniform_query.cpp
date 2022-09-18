@@ -956,7 +956,7 @@ associate_uniform_storage(struct gl_context *ctx,
          unsigned columns = 0;
 
          int dmul;
-         if (ctx->Const.PackedDriverUniformStorage && !prog->info.is_arb_asm) {
+         if (ctx->Const.PackedDriverUniformStorage && !prog->info.use_legacy_math_rules) {
             dmul = storage->type->vector_elements * sizeof(float);
          } else {
             dmul = 4 * sizeof(float);
@@ -1050,7 +1050,7 @@ associate_uniform_storage(struct gl_context *ctx,
           * initializers in the source code to be copied over.
           */
          unsigned array_elements = MAX2(1, storage->array_elements);
-         if (ctx->Const.PackedDriverUniformStorage && !prog->info.is_arb_asm &&
+         if (ctx->Const.PackedDriverUniformStorage && !prog->info.use_legacy_math_rules &&
              (storage->is_bindless || !storage->type->contains_opaque())) {
             const int dmul = storage->type->is_64bit() ? 2 : 1;
             const unsigned components =

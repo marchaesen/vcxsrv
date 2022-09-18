@@ -65,6 +65,87 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+struct stw_framebuffer *
+stw_pbuffer_create(const struct stw_pixelformat_info *pfi, int iWidth, int iHeight, struct st_manager *smapi)
+{
+   static boolean first = TRUE;
+
+   /*
+    * Implement pbuffers through invisible windows
+    */
+
+   if (first) {
+      WNDCLASS wc;
+      memset(&wc, 0, sizeof wc);
+      wc.hbrBackground = (HBRUSH) (COLOR_BTNFACE + 1);
+      wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+      wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+      wc.lpfnWndProc = WndProc;
+      wc.lpszClassName = "wglpbuffer";
+      wc.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+      RegisterClass(&wc);
+      first = FALSE;
+   }
+
+   DWORD dwExStyle = 0;
+   DWORD dwStyle = WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+
+   if (0) {
+      /*
+       * Don't hide the window -- useful for debugging what the application is
+       * drawing
+       */
+
+      dwStyle |= WS_VISIBLE | WS_OVERLAPPEDWINDOW;
+   } else {
+      dwStyle |= WS_POPUPWINDOW;
+   }
+
+   RECT rect = { 0, 0, iWidth, iHeight };
+
+   /*
+    * The CreateWindowEx parameters are the total (outside) dimensions of the
+    * window, which can vary with Windows version and user settings.  Use
+    * AdjustWindowRect to get the required total area for the given client area.
+    *
+    * AdjustWindowRectEx does not accept WS_OVERLAPPED style (which is defined
+    * as 0), which means we need to use some other style instead, e.g.,
+    * WS_OVERLAPPEDWINDOW or WS_POPUPWINDOW as above.
+    */
+
+   AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle);
+
+   HWND hWnd = CreateWindowEx(dwExStyle,
+                              "wglpbuffer", /* wc.lpszClassName */
+                              NULL,
+                              dwStyle,
+                              CW_USEDEFAULT, /* x */
+                              CW_USEDEFAULT, /* y */
+                              rect.right - rect.left, /* width */
+                              rect.bottom - rect.top, /* height */
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL);
+   if (!hWnd) {
+      return 0;
+   }
+
+#ifdef DEBUG
+   /*
+    * Verify the client area size matches the specified size.
+    */
+
+   GetClientRect(hWnd, &rect);
+   assert(rect.left == 0);
+   assert(rect.top == 0);
+   assert(rect.right - rect.left == iWidth);
+   assert(rect.bottom - rect.top == iHeight);
+#endif
+
+   return stw_framebuffer_create(hWnd, pfi, STW_FRAMEBUFFER_PBUFFER, smapi);
+}
+
 
 HPBUFFERARB WINAPI
 wglCreatePbufferARB(HDC hCurrentDC,
@@ -73,14 +154,9 @@ wglCreatePbufferARB(HDC hCurrentDC,
                     int iHeight,
                     const int *piAttribList)
 {
-   static boolean first = TRUE;
    const int *piAttrib;
    int useLargest = 0;
-   const struct stw_pixelformat_info *info;
    struct stw_framebuffer *fb;
-   DWORD dwExStyle;
-   DWORD dwStyle;
-   RECT rect;
    HWND hWnd;
    int iDisplayablePixelFormat;
    PIXELFORMATDESCRIPTOR pfd;
@@ -88,9 +164,9 @@ wglCreatePbufferARB(HDC hCurrentDC,
    int textureFormat = WGL_NO_TEXTURE_ARB;
    int textureTarget = WGL_NO_TEXTURE_ARB;
    BOOL textureMipmap = FALSE;
+   const struct stw_pixelformat_info *pfi = stw_pixelformat_get_info(iPixelFormat);
 
-   info = stw_pixelformat_get_info(iPixelFormat);
-   if (!info) {
+   if (!pfi) {
       SetLastError(ERROR_INVALID_PIXEL_FORMAT);
       return 0;
    }
@@ -163,86 +239,10 @@ wglCreatePbufferARB(HDC hCurrentDC,
    }
 
    /*
-    * Implement pbuffers through invisible windows
-    */
-
-   if (first) {
-      WNDCLASS wc;
-      memset(&wc, 0, sizeof wc);
-      wc.hbrBackground = (HBRUSH) (COLOR_BTNFACE + 1);
-      wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-      wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-      wc.lpfnWndProc = WndProc;
-      wc.lpszClassName = "wglpbuffer";
-      wc.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-      RegisterClass(&wc);
-      first = FALSE;
-   }
-
-   dwExStyle = 0;
-   dwStyle = WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
-
-   if (0) {
-      /*
-       * Don't hide the window -- useful for debugging what the application is
-       * drawing
-       */
-
-      dwStyle |= WS_VISIBLE | WS_OVERLAPPEDWINDOW;
-   } else {
-      dwStyle |= WS_POPUPWINDOW;
-   }
-
-   rect.left = 0;
-   rect.top = 0;
-   rect.right = rect.left + iWidth;
-   rect.bottom = rect.top + iHeight;
-
-   /*
-    * The CreateWindowEx parameters are the total (outside) dimensions of the
-    * window, which can vary with Windows version and user settings.  Use
-    * AdjustWindowRect to get the required total area for the given client area.
-    *
-    * AdjustWindowRectEx does not accept WS_OVERLAPPED style (which is defined
-    * as 0), which means we need to use some other style instead, e.g.,
-    * WS_OVERLAPPEDWINDOW or WS_POPUPWINDOW as above.
-    */
-
-   AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle);
-
-   hWnd = CreateWindowEx(dwExStyle,
-                         "wglpbuffer", /* wc.lpszClassName */
-                         NULL,
-                         dwStyle,
-                         CW_USEDEFAULT, /* x */
-                         CW_USEDEFAULT, /* y */
-                         rect.right - rect.left, /* width */
-                         rect.bottom - rect.top, /* height */
-                         NULL,
-                         NULL,
-                         NULL,
-                         NULL);
-   if (!hWnd) {
-      return 0;
-   }
-
-#ifdef DEBUG
-   /*
-    * Verify the client area size matches the specified size.
-    */
-
-   GetClientRect(hWnd, &rect);
-   assert(rect.left == 0);
-   assert(rect.top == 0);
-   assert(rect.right - rect.left == iWidth);
-   assert(rect.bottom - rect.top == iHeight);
-#endif
-
-   /*
     * We can't pass non-displayable pixel formats to GDI, which is why we
     * create the framebuffer object before calling SetPixelFormat().
     */
-   fb = stw_framebuffer_create(hWnd, iPixelFormat, STW_FRAMEBUFFER_PBUFFER);
+   fb = stw_pbuffer_create(pfi, iWidth, iHeight, stw_dev->smapi);
    if (!fb) {
       SetLastError(ERROR_NO_SYSTEM_RESOURCES);
       return NULL;
@@ -254,6 +254,7 @@ wglCreatePbufferARB(HDC hCurrentDC,
    fb->textureMipmap = textureMipmap;
 
    iDisplayablePixelFormat = fb->iDisplayablePixelFormat;
+   hWnd = fb->hWnd;
 
    stw_framebuffer_unlock(fb);
 

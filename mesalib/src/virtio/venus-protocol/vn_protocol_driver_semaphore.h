@@ -11,6 +11,13 @@
 #include "vn_instance.h"
 #include "vn_protocol_driver_structs.h"
 
+/*
+ * These structs/unions/commands are not included
+ *
+ *   vkGetSemaphoreFdKHR
+ *   vkImportSemaphoreFdKHR
+ */
+
 /* struct VkExportSemaphoreCreateInfo chain */
 
 static inline size_t
@@ -298,32 +305,59 @@ vn_encode_VkSemaphoreSignalInfo(struct vn_cs_encoder *enc, const VkSemaphoreSign
     vn_encode_VkSemaphoreSignalInfo_self(enc, val);
 }
 
-static inline void
-vn_decode_VkSemaphoreSignalInfo_pnext(struct vn_cs_decoder *dec, const void *val)
+/* struct VkImportSemaphoreResourceInfo100000MESA chain */
+
+static inline size_t
+vn_sizeof_VkImportSemaphoreResourceInfo100000MESA_pnext(const void *val)
 {
     /* no known/supported struct */
-    if (vn_decode_simple_pointer(dec))
-        assert(false);
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkImportSemaphoreResourceInfo100000MESA_self(const VkImportSemaphoreResourceInfo100000MESA *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkSemaphore(&val->semaphore);
+    size += vn_sizeof_uint32_t(&val->resourceId);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkImportSemaphoreResourceInfo100000MESA(const VkImportSemaphoreResourceInfo100000MESA *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkImportSemaphoreResourceInfo100000MESA_pnext(val->pNext);
+    size += vn_sizeof_VkImportSemaphoreResourceInfo100000MESA_self(val);
+
+    return size;
 }
 
 static inline void
-vn_decode_VkSemaphoreSignalInfo_self(struct vn_cs_decoder *dec, VkSemaphoreSignalInfo *val)
+vn_encode_VkImportSemaphoreResourceInfo100000MESA_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkImportSemaphoreResourceInfo100000MESA_self(struct vn_cs_encoder *enc, const VkImportSemaphoreResourceInfo100000MESA *val)
 {
     /* skip val->{sType,pNext} */
-    vn_decode_VkSemaphore(dec, &val->semaphore);
-    vn_decode_uint64_t(dec, &val->value);
+    vn_encode_VkSemaphore(enc, &val->semaphore);
+    vn_encode_uint32_t(enc, &val->resourceId);
 }
 
 static inline void
-vn_decode_VkSemaphoreSignalInfo(struct vn_cs_decoder *dec, VkSemaphoreSignalInfo *val)
+vn_encode_VkImportSemaphoreResourceInfo100000MESA(struct vn_cs_encoder *enc, const VkImportSemaphoreResourceInfo100000MESA *val)
 {
-    VkStructureType stype;
-    vn_decode_VkStructureType(dec, &stype);
-    assert(stype == VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO);
-
-    assert(val->sType == stype);
-    vn_decode_VkSemaphoreSignalInfo_pnext(dec, val->pNext);
-    vn_decode_VkSemaphoreSignalInfo_self(dec, val);
+    assert(val->sType == VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_RESOURCE_INFO_100000_MESA);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_RESOURCE_INFO_100000_MESA });
+    vn_encode_VkImportSemaphoreResourceInfo100000MESA_pnext(enc, val->pNext);
+    vn_encode_VkImportSemaphoreResourceInfo100000MESA_self(enc, val);
 }
 
 static inline size_t vn_sizeof_vkCreateSemaphore(VkDevice device, const VkSemaphoreCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSemaphore* pSemaphore)
@@ -620,6 +654,97 @@ static inline VkResult vn_decode_vkSignalSemaphore_reply(struct vn_cs_decoder *d
     return ret;
 }
 
+static inline size_t vn_sizeof_vkWaitSemaphoreResource100000MESA(VkDevice device, VkSemaphore semaphore)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkWaitSemaphoreResource100000MESA_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkDevice(&device);
+    cmd_size += vn_sizeof_VkSemaphore(&semaphore);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkWaitSemaphoreResource100000MESA(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkDevice device, VkSemaphore semaphore)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkWaitSemaphoreResource100000MESA_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkDevice(enc, &device);
+    vn_encode_VkSemaphore(enc, &semaphore);
+}
+
+static inline size_t vn_sizeof_vkWaitSemaphoreResource100000MESA_reply(VkDevice device, VkSemaphore semaphore)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkWaitSemaphoreResource100000MESA_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip device */
+    /* skip semaphore */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkWaitSemaphoreResource100000MESA_reply(struct vn_cs_decoder *dec, VkDevice device, VkSemaphore semaphore)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkWaitSemaphoreResource100000MESA_EXT);
+
+    /* skip device */
+    /* skip semaphore */
+}
+
+static inline size_t vn_sizeof_vkImportSemaphoreResource100000MESA(VkDevice device, const VkImportSemaphoreResourceInfo100000MESA* pImportSemaphoreResourceInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkImportSemaphoreResource100000MESA_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkDevice(&device);
+    cmd_size += vn_sizeof_simple_pointer(pImportSemaphoreResourceInfo);
+    if (pImportSemaphoreResourceInfo)
+        cmd_size += vn_sizeof_VkImportSemaphoreResourceInfo100000MESA(pImportSemaphoreResourceInfo);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkImportSemaphoreResource100000MESA(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkImportSemaphoreResourceInfo100000MESA* pImportSemaphoreResourceInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkImportSemaphoreResource100000MESA_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkDevice(enc, &device);
+    if (vn_encode_simple_pointer(enc, pImportSemaphoreResourceInfo))
+        vn_encode_VkImportSemaphoreResourceInfo100000MESA(enc, pImportSemaphoreResourceInfo);
+}
+
+static inline size_t vn_sizeof_vkImportSemaphoreResource100000MESA_reply(VkDevice device, const VkImportSemaphoreResourceInfo100000MESA* pImportSemaphoreResourceInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkImportSemaphoreResource100000MESA_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip device */
+    /* skip pImportSemaphoreResourceInfo */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkImportSemaphoreResource100000MESA_reply(struct vn_cs_decoder *dec, VkDevice device, const VkImportSemaphoreResourceInfo100000MESA* pImportSemaphoreResourceInfo)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkImportSemaphoreResource100000MESA_EXT);
+
+    /* skip device */
+    /* skip pImportSemaphoreResourceInfo */
+}
+
 static inline void vn_submit_vkCreateSemaphore(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkSemaphoreCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSemaphore* pSemaphore, struct vn_instance_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
@@ -719,6 +844,48 @@ static inline void vn_submit_vkSignalSemaphore(struct vn_instance *vn_instance, 
     struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkSignalSemaphore(enc, cmd_flags, device, pSignalInfo);
+        vn_instance_submit_command(vn_instance, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkWaitSemaphoreResource100000MESA(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkSemaphore semaphore, struct vn_instance_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkWaitSemaphoreResource100000MESA(device, semaphore);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkWaitSemaphoreResource100000MESA_reply(device, semaphore) : 0;
+
+    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkWaitSemaphoreResource100000MESA(enc, cmd_flags, device, semaphore);
+        vn_instance_submit_command(vn_instance, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkImportSemaphoreResource100000MESA(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkImportSemaphoreResourceInfo100000MESA* pImportSemaphoreResourceInfo, struct vn_instance_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkImportSemaphoreResource100000MESA(device, pImportSemaphoreResourceInfo);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkImportSemaphoreResource100000MESA_reply(device, pImportSemaphoreResourceInfo) : 0;
+
+    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkImportSemaphoreResource100000MESA(enc, cmd_flags, device, pImportSemaphoreResourceInfo);
         vn_instance_submit_command(vn_instance, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
@@ -830,6 +997,44 @@ static inline void vn_async_vkSignalSemaphore(struct vn_instance *vn_instance, V
 {
     struct vn_instance_submit_command submit;
     vn_submit_vkSignalSemaphore(vn_instance, 0, device, pSignalInfo, &submit);
+}
+
+static inline void vn_call_vkWaitSemaphoreResource100000MESA(struct vn_instance *vn_instance, VkDevice device, VkSemaphore semaphore)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_instance_submit_command submit;
+    vn_submit_vkWaitSemaphoreResource100000MESA(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, semaphore, &submit);
+    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    if (dec) {
+        vn_decode_vkWaitSemaphoreResource100000MESA_reply(dec, device, semaphore);
+        vn_instance_free_command_reply(vn_instance, &submit);
+    }
+}
+
+static inline void vn_async_vkWaitSemaphoreResource100000MESA(struct vn_instance *vn_instance, VkDevice device, VkSemaphore semaphore)
+{
+    struct vn_instance_submit_command submit;
+    vn_submit_vkWaitSemaphoreResource100000MESA(vn_instance, 0, device, semaphore, &submit);
+}
+
+static inline void vn_call_vkImportSemaphoreResource100000MESA(struct vn_instance *vn_instance, VkDevice device, const VkImportSemaphoreResourceInfo100000MESA* pImportSemaphoreResourceInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_instance_submit_command submit;
+    vn_submit_vkImportSemaphoreResource100000MESA(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pImportSemaphoreResourceInfo, &submit);
+    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    if (dec) {
+        vn_decode_vkImportSemaphoreResource100000MESA_reply(dec, device, pImportSemaphoreResourceInfo);
+        vn_instance_free_command_reply(vn_instance, &submit);
+    }
+}
+
+static inline void vn_async_vkImportSemaphoreResource100000MESA(struct vn_instance *vn_instance, VkDevice device, const VkImportSemaphoreResourceInfo100000MESA* pImportSemaphoreResourceInfo)
+{
+    struct vn_instance_submit_command submit;
+    vn_submit_vkImportSemaphoreResource100000MESA(vn_instance, 0, device, pImportSemaphoreResourceInfo, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_SEMAPHORE_H */

@@ -196,7 +196,9 @@ realloc_bo(struct fd_resource *rsc, uint32_t size)
    struct pipe_resource *prsc = &rsc->b.b;
    struct fd_screen *screen = fd_screen(rsc->b.b.screen);
    uint32_t flags =
+      COND(rsc->layout.tile_mode, FD_BO_NOMAP) |
       COND(prsc->usage & PIPE_USAGE_STAGING, FD_BO_CACHED_COHERENT) |
+      COND(prsc->bind & PIPE_BIND_SHARED, FD_BO_SHARED) |
       COND(prsc->bind & PIPE_BIND_SCANOUT, FD_BO_SCANOUT);
    /* TODO other flags? */
 
@@ -451,7 +453,7 @@ fd_try_shadow_resource(struct fd_context *ctx, struct fd_resource *rsc,
     * by any batches, but the existing rsc (probably) is.  We need to
     * transfer those references over:
     */
-   debug_assert(shadow->track->batch_mask == 0);
+   assert(shadow->track->batch_mask == 0);
    foreach_batch (batch, &ctx->screen->batch_cache, rsc->track->batch_mask) {
       struct set_entry *entry = _mesa_set_search_pre_hashed(batch->resources, rsc->hash, rsc);
       _mesa_set_remove(batch->resources, entry);
@@ -556,7 +558,7 @@ fd_resource_uncompress(struct fd_context *ctx, struct fd_resource *rsc, bool lin
    bool success = fd_try_shadow_resource(ctx, rsc, 0, NULL, modifier);
 
    /* shadow should not fail in any cases where we need to uncompress: */
-   debug_assert(success);
+   assert(success);
 }
 
 /**
@@ -708,7 +710,10 @@ fd_resource_transfer_unmap(struct pipe_context *pctx,
       pipe_resource_reference(&trans->staging_prsc, NULL);
    }
 
-   if (!(ptrans->usage & PIPE_MAP_UNSYNCHRONIZED)) {
+   if (trans->upload_ptr) {
+      fd_bo_upload(rsc->bo, trans->upload_ptr, ptrans->box.x, ptrans->box.width);
+      free(trans->upload_ptr);
+   } else if (!(ptrans->usage & PIPE_MAP_UNSYNCHRONIZED)) {
       fd_bo_cpu_fini(rsc->bo);
    }
 
@@ -739,6 +744,49 @@ invalidate_resource(struct fd_resource *rsc, unsigned usage) assert_dt
    }
 }
 
+static bool
+valid_range(struct fd_resource *rsc, const struct pipe_box *box)
+{
+   return util_ranges_intersect(&rsc->valid_buffer_range, box->x, box->x + box->width);
+}
+
+static void *
+resource_transfer_map_staging(struct pipe_context *pctx,
+                              struct pipe_resource *prsc,
+                              unsigned level, unsigned usage,
+                              const struct pipe_box *box,
+                              struct fd_transfer *trans)
+   in_dt
+{
+   struct fd_context *ctx = fd_context(pctx);
+   struct fd_resource *rsc = fd_resource(prsc);
+   struct fd_resource *staging_rsc;
+
+   assert(prsc->target != PIPE_BUFFER);
+
+   staging_rsc = fd_alloc_staging(ctx, rsc, level, box);
+   if (!staging_rsc)
+      return NULL;
+
+   trans->staging_prsc = &staging_rsc->b.b;
+   trans->b.b.stride = fd_resource_pitch(staging_rsc, 0);
+   trans->b.b.layer_stride = fd_resource_layer_stride(staging_rsc, 0);
+   trans->staging_box = *box;
+   trans->staging_box.x = 0;
+   trans->staging_box.y = 0;
+   trans->staging_box.z = 0;
+
+   if (usage & PIPE_MAP_READ) {
+      fd_blit_to_staging(ctx, trans);
+
+      fd_resource_wait(ctx, staging_rsc, FD_BO_PREP_READ);
+   }
+
+   ctx->stats.staging_uploads++;
+
+   return fd_bo_map(staging_rsc->bo);
+}
+
 static void *
 resource_transfer_map_unsync(struct pipe_context *pctx,
                              struct pipe_resource *prsc, unsigned level,
@@ -750,7 +798,25 @@ resource_transfer_map_unsync(struct pipe_context *pctx,
    uint32_t offset;
    char *buf;
 
+   if ((prsc->target == PIPE_BUFFER) &&
+       !(usage & (PIPE_MAP_READ | PIPE_MAP_DIRECTLY | PIPE_MAP_PERSISTENT)) &&
+       ((usage & PIPE_MAP_DISCARD_RANGE) || !valid_range(rsc, box)) &&
+       fd_bo_prefer_upload(rsc->bo, box->width)) {
+      trans->upload_ptr = malloc(box->width);
+      return trans->upload_ptr;
+   }
+
    buf = fd_bo_map(rsc->bo);
+
+   /* With imported bo's allocated by something outside of mesa, when
+    * running in a VM (using virtio_gpu kernel driver) we could end up in
+    * a situation where we have a linear bo, but are unable to mmap it
+    * because it was allocated without the VIRTGPU_BLOB_FLAG_USE_MAPPABLE
+    * flag.  So we need end up needing to do a staging blit instead:
+    */
+   if (!buf)
+      return resource_transfer_map_staging(pctx, prsc, level, usage, box, trans);
+
    offset = box->y / util_format_get_blockheight(format) * trans->b.b.stride +
             box->x / util_format_get_blockwidth(format) * rsc->layout.cpp +
             fd_resource_offset(rsc, level, box->z);
@@ -793,32 +859,7 @@ resource_transfer_map(struct pipe_context *pctx, struct pipe_resource *prsc,
     * texture.
     */
    if (rsc->layout.tile_mode) {
-      struct fd_resource *staging_rsc;
-
-      assert(prsc->target != PIPE_BUFFER);
-
-      staging_rsc = fd_alloc_staging(ctx, rsc, level, box);
-      if (staging_rsc) {
-         trans->staging_prsc = &staging_rsc->b.b;
-         trans->b.b.stride = fd_resource_pitch(staging_rsc, 0);
-         trans->b.b.layer_stride = fd_resource_layer_stride(staging_rsc, 0);
-         trans->staging_box = *box;
-         trans->staging_box.x = 0;
-         trans->staging_box.y = 0;
-         trans->staging_box.z = 0;
-
-         if (usage & PIPE_MAP_READ) {
-            fd_blit_to_staging(ctx, trans);
-
-            fd_resource_wait(ctx, staging_rsc, FD_BO_PREP_READ);
-         }
-
-         buf = fd_bo_map(staging_rsc->bo);
-
-         ctx->stats.staging_uploads++;
-
-         return buf;
-      }
+      return resource_transfer_map_staging(pctx, prsc, level, usage, box, trans);
    } else if ((usage & PIPE_MAP_READ) && !fd_bo_is_cached(rsc->bo)) {
       perf_debug_ctx(ctx, "wc readback: prsc=%p, level=%u, usage=%x, box=%dx%d+%d,%d",
                      prsc, level, usage, box->width, box->height, box->x, box->y);
@@ -924,8 +965,7 @@ improve_transfer_map_usage(struct fd_context *ctx, struct fd_resource *rsc,
       if (ctx->in_shadow && !(usage & PIPE_MAP_READ)) {
          usage |= PIPE_MAP_UNSYNCHRONIZED;
       } else if ((usage & PIPE_MAP_WRITE) && (rsc->b.b.target == PIPE_BUFFER) &&
-                 !util_ranges_intersect(&rsc->valid_buffer_range, box->x,
-                                        box->x + box->width)) {
+                 !valid_range(rsc, box)) {
          /* We are trying to write to a previously uninitialized range. No need
           * to synchronize.
           */
@@ -956,17 +996,15 @@ fd_resource_transfer_map(struct pipe_context *pctx, struct pipe_resource *prsc,
    }
 
    if (usage & TC_TRANSFER_MAP_THREADED_UNSYNC) {
-      ptrans = slab_alloc(&ctx->transfer_pool_unsync);
+      ptrans = slab_zalloc(&ctx->transfer_pool_unsync);
    } else {
-      ptrans = slab_alloc(&ctx->transfer_pool);
+      ptrans = slab_zalloc(&ctx->transfer_pool);
    }
 
    if (!ptrans)
       return NULL;
 
-   /* slab_alloc_st() doesn't zero: */
    trans = fd_transfer(ptrans);
-   memset(trans, 0, sizeof(*trans));
 
    usage = improve_transfer_map_usage(ctx, rsc, usage, box);
 
@@ -1056,9 +1094,9 @@ fd_resource_resize(struct pipe_resource *prsc, uint32_t sz)
 {
    struct fd_resource *rsc = fd_resource(prsc);
 
-   debug_assert(prsc->width0 == 0);
-   debug_assert(prsc->target == PIPE_BUFFER);
-   debug_assert(prsc->bind == PIPE_BIND_QUERY_BUFFER);
+   assert(prsc->width0 == 0);
+   assert(prsc->target == PIPE_BUFFER);
+   assert(prsc->bind == PIPE_BIND_QUERY_BUFFER);
 
    prsc->width0 = sz;
    realloc_bo(rsc, fd_screen(prsc->screen)->setup_slices(rsc));
@@ -1109,7 +1147,7 @@ alloc_resource_struct(struct pipe_screen *pscreen,
 
    pipe_reference_init(&rsc->track->reference, 1);
 
-   threaded_resource_init(prsc, false, 0);
+   threaded_resource_init(prsc, false);
 
    if (tmpl->target == PIPE_BUFFER)
       rsc->b.buffer_id_unique = util_idalloc_mt_alloc(&screen->buffer_ids);
@@ -1163,6 +1201,13 @@ get_best_layout(struct fd_screen *screen, struct pipe_resource *prsc,
 
    bool ubwc_ok = is_a6xx(screen);
    if (FD_DBG(NOUBWC))
+      ubwc_ok = false;
+
+   /* Disallow UBWC for front-buffer rendering.  The GPU does not atomically
+    * write pixel and header data, nor does the display atomically read it.
+    * The result can be visual corruption (ie. moreso than normal tearing).
+    */
+   if (tmpl->bind & PIPE_BIND_USE_FRONT_RENDERING)
       ubwc_ok = false;
 
    if (ubwc_ok && !implicit_modifiers &&
@@ -1261,7 +1306,7 @@ fd_resource_allocate_and_resolve(struct pipe_screen *pscreen,
     */
    if (size == 0) {
       /* note, semi-intention == instead of & */
-      debug_assert(prsc->bind == PIPE_BIND_QUERY_BUFFER);
+      assert(prsc->bind == PIPE_BIND_QUERY_BUFFER);
       *psize = 0;
       return prsc;
    }
@@ -1615,7 +1660,6 @@ void
 fd_resource_screen_init(struct pipe_screen *pscreen)
 {
    struct fd_screen *screen = fd_screen(pscreen);
-   bool fake_rgtc = screen->gen < 4;
 
    pscreen->resource_create = u_transfer_helper_resource_create;
    /* NOTE: u_transfer_helper does not yet support the _with_modifiers()
@@ -1627,7 +1671,9 @@ fd_resource_screen_init(struct pipe_screen *pscreen)
    pscreen->resource_destroy = u_transfer_helper_resource_destroy;
 
    pscreen->transfer_helper =
-      u_transfer_helper_create(&transfer_vtbl, true, false, fake_rgtc, true);
+      u_transfer_helper_create(&transfer_vtbl,
+                               U_TRANSFER_HELPER_SEPARATE_Z32S8 |
+                               U_TRANSFER_HELPER_MSAA_MAP);
 
    if (!screen->layout_resource_for_modifier)
       screen->layout_resource_for_modifier = fd_layout_resource_for_modifier;

@@ -1,0 +1,43 @@
+From 3c57ec558bccc67fd53363c23deea20646be5c47 Mon Sep 17 00:00:00 2001
+From: Tomeu Vizoso <tomeu.vizoso@collabora.com>
+Date: Wed, 17 Nov 2021 10:18:04 +0100
+Subject: [PATCH] Hack syslog out
+
+It's causing stability problems when running several Crosvm instances in
+parallel.
+
+Signed-off-by: Tomeu Vizoso <tomeu.vizoso@collabora.com>
+---
+ base/src/unix/linux/syslog.rs       | 2 +-
+ common/sys_util/src/linux/syslog.rs | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/base/src/unix/linux/syslog.rs b/base/src/unix/linux/syslog.rs
+index 05972a3a..f0db3781 100644
+--- a/base/src/unix/linux/syslog.rs
++++ b/base/src/unix/linux/syslog.rs
+@@ -35,7 +35,7 @@ pub struct PlatformSyslog {
+ impl Syslog for PlatformSyslog {
+     fn new() -> Result<Self, Error> {
+         Ok(Self {
+-            socket: Some(openlog_and_get_socket()?),
++            socket: None,
+         })
+     }
+ 
+diff --git a/common/sys_util/src/linux/syslog.rs b/common/sys_util/src/linux/syslog.rs
+index 05972a3a..f0db3781 100644
+--- a/common/sys_util/src/linux/syslog.rs
++++ b/common/sys_util/src/linux/syslog.rs
+@@ -35,7 +35,7 @@ pub struct PlatformSyslog {
+ impl Syslog for PlatformSyslog {
+     fn new() -> Result<Self, Error> {
+         Ok(Self {
+-            socket: Some(openlog_and_get_socket()?),
++            socket: None,
+         })
+     }
+ 
+-- 
+2.25.1
+

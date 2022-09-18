@@ -45,7 +45,7 @@ static int
 get_ir3_intrinsic_for_ssbo_intrinsic(unsigned intrinsic,
                                      uint8_t *offset_src_idx)
 {
-   debug_assert(offset_src_idx);
+   assert(offset_src_idx);
 
    *offset_src_idx = 1;
 
@@ -86,7 +86,7 @@ static nir_ssa_def *
 check_and_propagate_bit_shift32(nir_builder *b, nir_alu_instr *alu_instr,
                                 int32_t direction, int32_t shift)
 {
-   debug_assert(alu_instr->src[1].src.is_ssa);
+   assert(alu_instr->src[1].src.is_ssa);
    nir_ssa_def *shift_ssa = alu_instr->src[1].src.ssa;
 
    /* Only propagate if the shift is a const value so we can check value range
@@ -161,6 +161,36 @@ ir3_nir_try_propagate_bit_shift(nir_builder *b, nir_ssa_def *offset,
    return new_offset;
 }
 
+/* isam doesn't have an "untyped" field, so it can only load 1 component at a
+ * time because our storage buffer descriptors use a 1-component format.
+ * Therefore we need to scalarize any loads that would use isam.
+ */
+static void
+scalarize_load(nir_intrinsic_instr *intrinsic, nir_builder *b)
+{
+   struct nir_ssa_def *results[NIR_MAX_VEC_COMPONENTS];
+
+   nir_ssa_def *descriptor = intrinsic->src[0].ssa;
+   nir_ssa_def *offset = intrinsic->src[1].ssa;
+   nir_ssa_def *new_offset = intrinsic->src[2].ssa;
+   unsigned comp_size = intrinsic->dest.ssa.bit_size / 8;
+   for (unsigned i = 0; i < intrinsic->dest.ssa.num_components; i++) {
+      results[i] =
+         nir_load_ssbo_ir3(b, 1, intrinsic->dest.ssa.bit_size, descriptor,
+                           nir_iadd(b, offset, nir_imm_int(b, i * comp_size)),
+                           nir_iadd(b, new_offset, nir_imm_int(b, i)),
+                           .access = nir_intrinsic_access(intrinsic),
+                           .align_mul = nir_intrinsic_align_mul(intrinsic),
+                           .align_offset = nir_intrinsic_align_offset(intrinsic));
+   }
+
+   nir_ssa_def *result = nir_vec(b, results, intrinsic->dest.ssa.num_components);
+
+   nir_ssa_def_rewrite_uses(&intrinsic->dest.ssa, result);
+
+   nir_instr_remove(&intrinsic->instr);
+}
+
 static bool
 lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
                       unsigned ir3_ssbo_opcode, uint8_t offset_src_idx)
@@ -187,7 +217,7 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
    /* 'offset_src_idx' holds the index of the source that represent the offset. */
    new_intrinsic = nir_intrinsic_instr_create(b->shader, ir3_ssbo_opcode);
 
-   debug_assert(intrinsic->src[offset_src_idx].is_ssa);
+   assert(intrinsic->src[offset_src_idx].is_ssa);
    nir_ssa_def *offset = intrinsic->src[offset_src_idx].ssa;
 
    /* Since we don't have value range checking, we first try to propagate
@@ -207,7 +237,7 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
    *target_src = nir_src_for_ssa(offset);
 
    if (has_dest) {
-      debug_assert(intrinsic->dest.is_ssa);
+      assert(intrinsic->dest.is_ssa);
       nir_ssa_def *dest = &intrinsic->dest.ssa;
       nir_ssa_dest_init(&new_intrinsic->instr, &new_intrinsic->dest,
                         dest->num_components, dest->bit_size, NULL);
@@ -247,6 +277,12 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
 
    /* Finally remove the original intrinsic. */
    nir_instr_remove(&intrinsic->instr);
+
+   if (new_intrinsic->intrinsic == nir_intrinsic_load_ssbo_ir3 &&
+       (nir_intrinsic_access(new_intrinsic) & ACCESS_CAN_REORDER) &&
+       ir3_bindless_resource(new_intrinsic->src[0]) &&
+       new_intrinsic->num_components > 1)
+      scalarize_load(new_intrinsic, b);
 
    return true;
 }

@@ -1,24 +1,22 @@
 // Keyboard layouts for the Ukraine.
-// AEN <aen@logic.ru> & Leon Kanter <leon@geon.donetsk.ua>
-// last changes 2007/10/03 by Andriy Rysin <arysin@yahoo.com>
 
-// Oleksiy Protas <elfy.ua@gmail.com>:
-// - Added Serbian Cyrillics support
+// AEN <aen@logic.ru> & Leon Kanter <leon@geon.donetsk.ua>,
+// Andriy Rysin <arysin@yahoo.com>, Oleksiy Protas <elfy.ua@gmail.com>
 
 // The legacy WinKeys layout extended on the third and fourth level with
-// some Unicode symbols (typographic quotes, m-dash, n-dash, ...), some
-// often-used Cyrillics from other Slavic languages, and some often-used
-// ASCII symbols (slash, brackets, ...).
+// some Unicode symbols, Cyrillics from other Slavic languages, and some
+// often-used ASCII symbols.
 default partial alphanumeric_keys
 xkb_symbols "unicode" {
 
-    include "ua(winkeys)"
+    include "ua(legacy)"
+
     name[Group1]= "Ukrainian";
 
     key <TLDE> { [      apostrophe,           U02BC,          U0301,          asciitilde  ] };  // Apostrophe and Stress symbol
     key <AE01> { [               1,          exclam,    onesuperior                       ] };
     key <AE02> { [               2,        quotedbl,    twosuperior,               U2019  ] };  // single quote used often as an apostrophe (deprecated)
-    key <AE03> { [               3,      numerosign,          U00A7,               U20B4  ] };  // Paragraph and Hryvnia sign
+    key <AE03> { [               3,      numerosign,        section,               U20B4  ] };  // Paragraph and Hryvnia sign
     key <AE04> { [               4,       semicolon,         dollar,            EuroSign  ] };
     key <AE05> { [               5,         percent,         degree                       ] };
     key <AE06> { [               6,           colon,           less                       ] };
@@ -29,28 +27,27 @@ xkb_symbols "unicode" {
     key <AE11> { [           minus,      underscore,         emdash,              endash  ] };
     key <AE12> { [           equal,            plus,       notequal,           plusminus  ] };
 
+    key <AD01> { [ Cyrillic_shorti, Cyrillic_SHORTI,    Cyrillic_je,         Cyrillic_JE  ] };
+    key <AD02> { [    Cyrillic_tse,    Cyrillic_TSE,  Cyrillic_dzhe,       Cyrillic_DZHE  ] };
     key <AD03> { [      Cyrillic_u,      Cyrillic_U, Byelorussian_shortu, Byelorussian_SHORTU  ] };
     key <AD04> { [     Cyrillic_ka,     Cyrillic_KA,     registered                       ] };  // Registered tm
     key <AD05> { [     Cyrillic_ie,     Cyrillic_IE,    Cyrillic_io,         Cyrillic_IO  ] };
+    key <AD06> { [     Cyrillic_en,     Cyrillic_EN,   Cyrillic_nje,        Cyrillic_NJE  ] };
     key <AD12> { [    Ukrainian_yi,    Ukrainian_YI, Cyrillic_hardsign,Cyrillic_HARDSIGN  ] };
+
     key <AC02> { [     Ukrainian_i,     Ukrainian_I,  Cyrillic_yeru,       Cyrillic_YERU  ] };
+    key <AC08> { [     Cyrillic_el,     Cyrillic_EL,   Cyrillic_lje,        Cyrillic_LJE  ] };
+    key <AC09> { [     Cyrillic_de,     Cyrillic_DE,    Serbian_dje,         Serbian_DJE  ] };
     key <AC11> { [    Ukrainian_ie,    Ukrainian_IE,     Cyrillic_e,          Cyrillic_E  ] };
 
     key <BKSL> { [ Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN, backslash,  bar  ] };
 
+    key <AB02> { [    Cyrillic_che,    Cyrillic_CHE,   Serbian_tshe,        Serbian_TSHE  ] };
     key <AB03> { [     Cyrillic_es,     Cyrillic_ES,      copyright                       ] };
     key <AB06> { [     Cyrillic_te,     Cyrillic_TE,      trademark                       ] };
     key <AB08> { [     Cyrillic_be,     Cyrillic_BE,  guillemotleft,  doublelowquotemark  ] };
     key <AB09> { [     Cyrillic_yu,     Cyrillic_YU, guillemotright, leftdoublequotemark  ] };
     key <AB10> { [          period,           comma,          slash,            ellipsis  ] };
-
-    // Serbian Vukovica
-    key <AD01> { [ Cyrillic_shorti, Cyrillic_SHORTI,    Cyrillic_je,         Cyrillic_JE  ] };
-    key <AD02> { [    Cyrillic_tse,    Cyrillic_TSE,  Cyrillic_dzhe,       Cyrillic_DZHE  ] };
-    key <AC09> { [     Cyrillic_de,     Cyrillic_DE,    Serbian_dje,         Serbian_DJE  ] };
-    key <AB02> { [    Cyrillic_che,    Cyrillic_CHE,   Serbian_tshe,        Serbian_TSHE  ] };
-    key <AC08> { [     Cyrillic_el,     Cyrillic_EL,   Cyrillic_lje,        Cyrillic_LJE  ] };
-    key <AD06> { [     Cyrillic_en,     Cyrillic_EN,   Cyrillic_nje,        Cyrillic_NJE  ] };
 
     include "level3(ralt_switch)"
 };
@@ -61,7 +58,7 @@ xkb_symbols "macOS" {
     include "ua(unicode)"
     name[Group1]= "Ukrainian (macOS)";
 
-    key <TLDE> { [ apostrophe, asciitilde, bracketright, bracketleft ] }; 
+    key <TLDE> { [ apostrophe, asciitilde, bracketright, bracketleft ] };
     key <AE01> { [ 1, exclam, exclam, U0174 ] };
     key <AE02> { [ 2, quotedbl, at, quotedbl ] };
     key <AE03> { [ 3, numerosign, numbersign, U20B4 ] };
@@ -77,12 +74,12 @@ xkb_symbols "macOS" {
 
     key <AC02> { [ Cyrillic_i, Cyrillic_I, Cyrillic_yeru, Cyrillic_YERU ] };
     key <AB05> { [ Ukrainian_i, Ukrainian_I, Cyrillic_i, Cyrillic_I ] };
-    
+
     key <AB08> { [ Cyrillic_be, Cyrillic_BE, lessthanequal, less ] };
     key <AB09> { [ Cyrillic_yu, Cyrillic_YU, greaterthanequal, greater ] };
 
     key <AB10> { [ slash, question, U201C, U201E] };
-    
+
     include "level3(ralt_switch)"
 };
 
@@ -131,24 +128,24 @@ xkb_symbols "legacy" {
     key <AC10> { [    Cyrillic_zhe,    Cyrillic_ZHE  ] };
     key <AC11> { [    Ukrainian_ie,    Ukrainian_IE  ] };
 
+    key <LSGT> { [           slash,             bar  ] };
     key <AB01> { [     Cyrillic_ya,     Cyrillic_YA  ] };
     key <AB02> { [    Cyrillic_che,    Cyrillic_CHE  ] };
     key <AB03> { [     Cyrillic_es,     Cyrillic_ES  ] };
     key <AB04> { [     Cyrillic_em,     Cyrillic_EM  ] };
-    key <AB06> { [     Cyrillic_te,     Cyrillic_TE  ] };
     key <AB05> { [      Cyrillic_i,      Cyrillic_I  ] };
+    key <AB06> { [     Cyrillic_te,     Cyrillic_TE  ] };
     key <AB07> {[Cyrillic_softsign,Cyrillic_SOFTSIGN ] };
     key <AB08> { [     Cyrillic_be,     Cyrillic_BE  ] };
     key <AB09> { [     Cyrillic_yu,     Cyrillic_YU  ] };
     key <AB10> { [           slash,        question  ] };
-
-    key <LSGT> { [           slash,             bar  ] };
 };
 
 partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
     include "ua(legacy)"
+
     name[Group1]= "Ukrainian (Windows)";
 
     key <AE03> { [               3,      numerosign  ] };
@@ -157,6 +154,7 @@ xkb_symbols "winkeys" {
     key <AE06> { [               6,           colon  ] };
     key <AE07> { [               7,        question  ] };
     key <AE08> { [               8,        asterisk  ] };
+
     key <AB10> { [          period,           comma  ] };
 };
 
@@ -164,6 +162,7 @@ partial alphanumeric_keys
 xkb_symbols "typewriter" {
 
     include "ua(legacy)"
+
     name[Group1]= "Ukrainian (typewriter)";
 
     key <TLDE> { [      apostrophe,        quotedbl  ] };
@@ -191,8 +190,9 @@ xkb_symbols "typewriter" {
 partial alphanumeric_keys
 xkb_symbols "phonetic" {
 
-  include "ua(legacy)"
-  name[Group1]= "Ukrainian (phonetic)";
+    include "ua(legacy)"
+
+    name[Group1]= "Ukrainian (phonetic)";
 
     key <LatQ> { [ Cyrillic_ya,       Cyrillic_YA        ] };
     key <LatW> { [ Cyrillic_ve,       Cyrillic_VE        ] };
@@ -238,6 +238,7 @@ partial alphanumeric_keys
 xkb_symbols "rstu" {
 
     include "ua(legacy)"
+
     name[Group1]= "Ukrainian (standard RSTU)";
 
     key <TLDE> { [      apostrophe,        question  ] };
@@ -268,6 +269,7 @@ partial alphanumeric_keys
 xkb_symbols "rstu_ru" {
 
     include "ru(common)"
+
     name[Group1]= "Russian (Ukraine, standard RSTU)";
 
     key <TLDE> { [      apostrophe,        question  ] };
@@ -294,8 +296,9 @@ xkb_symbols "rstu_ru" {
 partial alphanumeric_keys
 xkb_symbols "homophonic" {
 
-  include "ua(legacy)"
-  name[Group1]= "Ukrainian (homophonic)";
+    include "ua(legacy)"
+
+    name[Group1]= "Ukrainian (homophonic)";
 
     key <TLDE> { [        grave,        underscore       ] };
     key <AE01> { [            1,            exclam       ] };
@@ -366,11 +369,11 @@ xkb_symbols "crh" {
 
     name[Group1]="Crimean Tatar (Turkish Q)";
 
+    key <TLDE>  { [  quotedbl,  backslash,            less,          degree ] };
     key <AE11>  { [         x,          X,        asterisk,        question ] };
 
     key <AC04>  { [         f,          F,          iacute,          Iacute ] };
     key <AC07>  { [         j,          J,          ibreve,          Ibreve ] };
-    key <TLDE>  { [  quotedbl,  backslash,            less,          degree ] };
 
     key <AB02>  { [    ntilde,     Ntilde,  guillemotright,           greater ] };
 };
@@ -383,13 +386,13 @@ xkb_symbols "crh_f" {
 
     name[Group1]="Crimean Tatar (Turkish F)";
 
+    key <TLDE>  { [      plus,   asterisk,       backslash,       plusminus ] };
     key <AE11>  { [         x,          X,           slash,        question ] };
 
-    key <AD04>  { type[group1] = "FOUR_LEVEL_SEMIALPHABETIC",
+    key <AD04>  { type[group1] = "FOUR_LEVEL_ALPHABETIC",
                   [  idotless,          I,          iacute,          Iacute ] };
 
     key <AC07>  { [         k,          K,          ibreve,          Ibreve ] };
-    key <TLDE>  { [      plus,   asterisk,       backslash,       plusminus ] };
 
     key <BKSL>  { [    ntilde,     Ntilde,           grave,      dead_grave ] };
 };

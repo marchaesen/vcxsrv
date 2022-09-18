@@ -60,7 +60,7 @@ vs_llvm_run_linear( struct draw_vertex_shader *shader,
 {
    /* we should never get here since the entire pipeline is
     * generated in draw_pt_fetch_shade_pipeline_llvm.c */
-   debug_assert(0);
+   assert(0);
 }
 
 
@@ -68,13 +68,10 @@ static void
 vs_llvm_delete( struct draw_vertex_shader *dvs )
 {
    struct llvm_vertex_shader *shader = llvm_vertex_shader(dvs);
-   struct draw_llvm_variant_list_item *li;
+   struct draw_llvm_variant_list_item *li, *next;
 
-   li = first_elem(&shader->variants);
-   while(!at_end(&shader->variants, li)) {
-      struct draw_llvm_variant_list_item *next = next_elem(li);
+   LIST_FOR_EACH_ENTRY_SAFE(li, next, &shader->variants.list, list) {
       draw_llvm_destroy_variant(li->base);
-      li = next;
    }
 
    assert(shader->variants_cached == 0);
@@ -94,9 +91,7 @@ draw_create_vs_llvm(struct draw_context *draw,
    if (!vs)
       return NULL;
 
-   /* due to some bugs in the feedback state tracker we have to check
-      for ir.nir & PIPE_SHADER_IR_NIR here. */
-   if (state->ir.nir && state->type == PIPE_SHADER_IR_NIR) {
+   if (state->type == PIPE_SHADER_IR_NIR) {
       vs->base.state.ir.nir = state->ir.nir;
       nir_shader *nir = (nir_shader *)state->ir.nir;
       if (!nir->options->lower_uniforms_to_ubo)
@@ -113,11 +108,11 @@ draw_create_vs_llvm(struct draw_context *draw,
       tgsi_scan_shader(state->tokens, &vs->base.info);
    }
 
-   vs->variant_key_size = 
+   vs->variant_key_size =
       draw_llvm_variant_key_size(
          vs->base.info.file_max[TGSI_FILE_INPUT]+1,
-         MAX2(vs->base.info.file_max[TGSI_FILE_SAMPLER]+1,
-              vs->base.info.file_max[TGSI_FILE_SAMPLER_VIEW]+1),
+         vs->base.info.file_max[TGSI_FILE_SAMPLER]+1,
+         vs->base.info.file_max[TGSI_FILE_SAMPLER_VIEW]+1,
          vs->base.info.file_max[TGSI_FILE_IMAGE]+1);
 
    vs->base.state.type = state->type;
@@ -128,7 +123,7 @@ draw_create_vs_llvm(struct draw_context *draw,
    vs->base.delete = vs_llvm_delete;
    vs->base.create_variant = draw_vs_create_variant_generic;
 
-   make_empty_list(&vs->variants);
+   list_inithead(&vs->variants.list);
 
    return &vs->base;
 }

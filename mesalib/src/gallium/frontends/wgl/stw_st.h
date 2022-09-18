@@ -41,7 +41,7 @@ struct st_api *
 stw_st_create_api(void);
 
 struct st_framebuffer_iface *
-stw_st_create_framebuffer(struct stw_framebuffer *fb);
+stw_st_create_framebuffer(struct stw_framebuffer *fb, struct st_manager *smapi);
 
 void
 stw_st_destroy_framebuffer_locked(struct st_framebuffer_iface *stfb);

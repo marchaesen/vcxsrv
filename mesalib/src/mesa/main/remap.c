@@ -36,6 +36,7 @@
  */
 
 #include <stdbool.h>
+#include <windows.h>
 #include "glapi/glapi.h"
 #include "glapi/glapi_priv.h"
 #include "remap.h"

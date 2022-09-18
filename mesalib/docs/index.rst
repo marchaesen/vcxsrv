@@ -72,9 +72,10 @@ Linux, FreeBSD, and other operating systems.
    osmesa
    debugging
    perf
-   perfetto
+   gpu-perf-tracing
    extensions
    application-issues
+   gallium-nine
    viewperf
    xlibdriver
 
@@ -84,15 +85,18 @@ Linux, FreeBSD, and other operating systems.
    :hidden:
 
    drivers/anv
+   drivers/asahi
    drivers/d3d12
    drivers/freedreno
    drivers/lima
    drivers/llvmpipe
    drivers/panfrost
+   drivers/radv
    drivers/svga3d
    drivers/v3d
    drivers/vc4
    drivers/venus
+   drivers/virgl
    drivers/zink
 
 .. toctree::
@@ -111,8 +115,10 @@ Linux, FreeBSD, and other operating systems.
    release-calendar
    dispatch
    gallium/index
+   vulkan/index
    nir/index
    isl/index
+   rusticl
    android
    macos
    Linux Kernel Drivers <https://www.kernel.org/doc/html/latest/gpu/>

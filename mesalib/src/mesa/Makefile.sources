@@ -151,8 +151,6 @@ MAIN_FILES = \
 	main/multisample.h \
 	main/objectlabel.c \
 	main/objectlabel.h \
-	main/objectpurge.c \
-	main/objectpurge.h \
 	main/pack.c \
 	main/pack.h \
 	main/pbo.c \
@@ -277,8 +275,6 @@ MATH_FILES = \
 	math/m_matrix.c \
 	math/m_matrix.h \
 	math/m_trans_tmp.h \
-	math/m_translate.c \
-	math/m_translate.h \
 	math/m_vector.c \
 	math/m_vector.h
 
@@ -338,52 +334,26 @@ STATETRACKER_FILES = \
 	state_tracker/st_atom_viewport.c \
 	state_tracker/st_cb_bitmap.c \
 	state_tracker/st_cb_bitmap.h \
-	state_tracker/st_cb_bitmap_shader.c \
-	state_tracker/st_cb_blit.c \
-	state_tracker/st_cb_blit.h \
 	state_tracker/st_cb_clear.c \
 	state_tracker/st_cb_clear.h \
-	state_tracker/st_cb_condrender.c \
-	state_tracker/st_cb_condrender.h \
 	state_tracker/st_cb_copyimage.c \
 	state_tracker/st_cb_copyimage.h \
 	state_tracker/st_cb_drawpixels.c \
 	state_tracker/st_cb_drawpixels.h \
-	state_tracker/st_cb_drawpixels_shader.c \
 	state_tracker/st_cb_drawtex.c \
 	state_tracker/st_cb_drawtex.h \
 	state_tracker/st_cb_eglimage.c \
 	state_tracker/st_cb_eglimage.h \
-	state_tracker/st_cb_fbo.c \
-	state_tracker/st_cb_fbo.h \
 	state_tracker/st_cb_feedback.c \
 	state_tracker/st_cb_feedback.h \
 	state_tracker/st_cb_flush.c \
 	state_tracker/st_cb_flush.h \
-	state_tracker/st_cb_memoryobjects.c \
-	state_tracker/st_cb_memoryobjects.h \
-	state_tracker/st_cb_perfmon.c \
-	state_tracker/st_cb_perfmon.h \
-	state_tracker/st_cb_perfquery.c \
-	state_tracker/st_cb_perfquery.h \
-	state_tracker/st_cb_program.c \
-	state_tracker/st_cb_program.h \
-	state_tracker/st_cb_queryobj.c \
-	state_tracker/st_cb_queryobj.h \
 	state_tracker/st_cb_rasterpos.c \
 	state_tracker/st_cb_rasterpos.h \
 	state_tracker/st_cb_readpixels.c \
 	state_tracker/st_cb_readpixels.h \
-	state_tracker/st_cb_semaphoreobjects.c \
-	state_tracker/st_cb_semaphoreobjects.h \
-	state_tracker/st_cb_syncobj.c \
-	state_tracker/st_cb_syncobj.h \
 	state_tracker/st_cb_texture.c \
 	state_tracker/st_cb_texture.h \
-	state_tracker/st_cb_viewport.c \
-	state_tracker/st_cb_viewport.h \
-	state_tracker/st_cb_xformfb.c \
-	state_tracker/st_cb_xformfb.h \
 	state_tracker/st_context.c \
 	state_tracker/st_context.h \
 	state_tracker/st_copytex.c \
@@ -403,14 +373,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_glsl_to_ir.cpp \
 	state_tracker/st_glsl_to_ir.h \
 	state_tracker/st_glsl_to_nir.cpp \
-	state_tracker/st_glsl_to_tgsi.cpp \
-	state_tracker/st_glsl_to_tgsi.h \
-	state_tracker/st_glsl_to_tgsi_array_merge.cpp \
-	state_tracker/st_glsl_to_tgsi_array_merge.h \
-	state_tracker/st_glsl_to_tgsi_private.cpp \
-	state_tracker/st_glsl_to_tgsi_private.h \
-	state_tracker/st_glsl_to_tgsi_temprename.cpp \
-	state_tracker/st_glsl_to_tgsi_temprename.h \
 	state_tracker/st_manager.c \
 	state_tracker/st_manager.h \
 	state_tracker/st_nir.h \
@@ -429,12 +391,11 @@ STATETRACKER_FILES = \
 	state_tracker/st_shader_cache.h \
 	state_tracker/st_texture.c \
 	state_tracker/st_texture.h \
-	state_tracker/st_tgsi_lower_yuv.c \
-	state_tracker/st_tgsi_lower_yuv.h \
 	state_tracker/st_util.h \
 	state_tracker/st_vdpau.c \
 	state_tracker/st_vdpau.h \
-	state_tracker/st_pbo_compute.c
+	state_tracker/st_pbo_compute.c \
+	state_tracker/st_draw_hw_select.c
 
 PROGRAM_FILES = \
 	program/arbprogparse.c \
@@ -444,9 +405,6 @@ PROGRAM_FILES = \
 	program/prog_cache.h \
 	program/prog_instruction.c \
 	program/prog_instruction.h \
-	program/prog_opt_constant_fold.c \
-	program/prog_optimize.c \
-	program/prog_optimize.h \
 	program/prog_parameter.c \
 	program/prog_parameter.h \
 	program/prog_parameter_layout.c \

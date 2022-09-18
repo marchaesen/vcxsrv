@@ -319,6 +319,13 @@ pipe_surface_equal(struct pipe_surface *s1, struct pipe_surface *s2)
  */
 
 
+static inline unsigned
+pipe_buffer_size(const struct pipe_resource *buffer)
+{
+    return buffer->width0;
+}
+
+
 /**
  * Create a new resource.
  * \param bind  bitmask of PIPE_BIND_x flags

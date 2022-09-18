@@ -4,7 +4,7 @@ caselists = ["/deqp/mustpass/gles2-master.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
-    "--deqp-surface-type=window",
+    "--deqp-surface-type=pbuffer",
     "--deqp-gl-config-name=rgba8888d24s8ms0",
     "--deqp-visibility=hidden"
 ]
@@ -16,7 +16,7 @@ caselists = ["/deqp/mustpass/gles3-master.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
-    "--deqp-surface-type=window",
+    "--deqp-surface-type=pbuffer",
     "--deqp-gl-config-name=rgba8888d24s8ms0",
     "--deqp-visibility=hidden"
 ]
@@ -28,7 +28,7 @@ caselists = ["/deqp/mustpass/gles31-master.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
-    "--deqp-surface-type=window",
+    "--deqp-surface-type=pbuffer",
     "--deqp-gl-config-name=rgba8888d24s8ms0",
     "--deqp-visibility=hidden"
 ]

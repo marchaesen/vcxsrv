@@ -35,19 +35,19 @@ XkbSetNames \- Change the symbolic names in the server
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- which
+.I which
 mask of names or map components to be changed
 .TP
-.I \- first_type
+.I first_type
 first type whose name is to be changed
 .TP
-.I \- num_types
+.I num_types
 number of types for which names are to be changed
 .TP
-.I \- xkb
+.I xkb
 keyboard description from which names are to be taken
 .SH DESCRIPTION
 .LP

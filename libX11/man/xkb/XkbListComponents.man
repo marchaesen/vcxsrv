@@ -34,16 +34,16 @@ XkbListComponents \- List of components for one or more component types
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- ptrns
+.I ptrns
 namelist for components of interest
 .TP
-.I \- max_inout
+.I max_inout
 max # returned names, # left over
 .SH DESCRIPTION
 .LP

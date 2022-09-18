@@ -643,13 +643,23 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	 -->
 	<reg32 offset="0x00000" name="ANA_CFG0"/>
 	<reg32 offset="0x00004" name="ANA_CFG1"/>
+	<reg32 offset="0x00008" name="ANA_CFG2"/>
+	<reg32 offset="0x0000c" name="ANA_CFG3"/>
 	<reg32 offset="0x00010" name="PD_CTRL0"/>
 	<reg32 offset="0x00014" name="PD_CTRL1"/>
+	<reg32 offset="0x00018" name="GLB_CFG"/>
+	<reg32 offset="0x0001c" name="DCC_CFG0"/>
+	<reg32 offset="0x00020" name="DCC_CFG1"/>
+	<reg32 offset="0x00024" name="TXCAL_CFG0"/>
+	<reg32 offset="0x00028" name="TXCAL_CFG1"/>
+	<reg32 offset="0x0002c" name="TXCAL_CFG2"/>
+	<reg32 offset="0x00030" name="TXCAL_CFG3"/>
 	<reg32 offset="0x00034" name="BIST_CFG0"/>
 	<reg32 offset="0x0003c" name="BIST_PATN0"/>
 	<reg32 offset="0x00040" name="BIST_PATN1"/>
 	<reg32 offset="0x00044" name="BIST_PATN2"/>
 	<reg32 offset="0x00048" name="BIST_PATN3"/>
+	<reg32 offset="0x0005c" name="STATUS"/>
 </domain>
 
 <domain name="HDMI_28nm_PHY_PLL" width="32">
@@ -701,6 +711,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x00098" name="CAL_CFG11"/>
 	<reg32 offset="0x0009C" name="EFUSE_CFG"/>
 	<reg32 offset="0x000A0" name="DEBUG_BUS_SEL"/>
+	<reg32 offset="0x000C0" name="STATUS"/>
 </domain>
 
 <domain name="HDMI_8996_PHY" width="32">

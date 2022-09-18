@@ -682,12 +682,12 @@ debug_pop_group(struct gl_debug_state *debug)
 
 
 /**
- * Installed as pipe_debug_callback when GL_DEBUG_OUTPUT is enabled.
+ * Installed as util_debug_callback when GL_DEBUG_OUTPUT is enabled.
  */
 static void
 _debug_message(void *data,
                unsigned *id,
-               enum pipe_debug_type ptype,
+               enum util_debug_type ptype,
                const char *fmt,
                va_list args)
 {
@@ -697,37 +697,37 @@ _debug_message(void *data,
    enum mesa_debug_severity severity;
 
    switch (ptype) {
-   case PIPE_DEBUG_TYPE_OUT_OF_MEMORY:
+   case UTIL_DEBUG_TYPE_OUT_OF_MEMORY:
       source = MESA_DEBUG_SOURCE_API;
       type = MESA_DEBUG_TYPE_ERROR;
       severity = MESA_DEBUG_SEVERITY_MEDIUM;
       break;
-   case PIPE_DEBUG_TYPE_ERROR:
+   case UTIL_DEBUG_TYPE_ERROR:
       source = MESA_DEBUG_SOURCE_API;
       type = MESA_DEBUG_TYPE_ERROR;
       severity = MESA_DEBUG_SEVERITY_MEDIUM;
       break;
-   case PIPE_DEBUG_TYPE_SHADER_INFO:
+   case UTIL_DEBUG_TYPE_SHADER_INFO:
       source = MESA_DEBUG_SOURCE_SHADER_COMPILER;
       type = MESA_DEBUG_TYPE_OTHER;
       severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
       break;
-   case PIPE_DEBUG_TYPE_PERF_INFO:
+   case UTIL_DEBUG_TYPE_PERF_INFO:
       source = MESA_DEBUG_SOURCE_API;
       type = MESA_DEBUG_TYPE_PERFORMANCE;
       severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
       break;
-   case PIPE_DEBUG_TYPE_INFO:
+   case UTIL_DEBUG_TYPE_INFO:
       source = MESA_DEBUG_SOURCE_API;
       type = MESA_DEBUG_TYPE_OTHER;
       severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
       break;
-   case PIPE_DEBUG_TYPE_FALLBACK:
+   case UTIL_DEBUG_TYPE_FALLBACK:
       source = MESA_DEBUG_SOURCE_API;
       type = MESA_DEBUG_TYPE_PERFORMANCE;
       severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
       break;
-   case PIPE_DEBUG_TYPE_CONFORMANCE:
+   case UTIL_DEBUG_TYPE_CONFORMANCE:
       source = MESA_DEBUG_SOURCE_API;
       type = MESA_DEBUG_TYPE_OTHER;
       severity = MESA_DEBUG_SEVERITY_NOTIFICATION;
@@ -747,7 +747,7 @@ _mesa_update_debug_callback(struct gl_context *ctx)
       return;
 
    if (_mesa_get_debug_state_int(ctx, GL_DEBUG_OUTPUT)) {
-      struct pipe_debug_callback cb;
+      struct util_debug_callback cb;
       memset(&cb, 0, sizeof(cb));
       cb.async = !_mesa_get_debug_state_int(ctx, GL_DEBUG_OUTPUT_SYNCHRONOUS);
       cb.debug_message = _debug_message;

@@ -7,16 +7,19 @@ OPT_BOOL(debug_disassembly, false,
 OPT_BOOL(halt_shaders, false, "Halt shaders at the start (will hang)")
 OPT_BOOL(vs_fetch_always_opencode, false,
          "Always open code vertex fetches (less efficient, purely for testing)")
-OPT_BOOL(prim_restart_tri_strips_only, false, "Only enable primitive restart for triangle strips")
 OPT_BOOL(no_infinite_interp, false, "Kill PS with infinite interp coeff")
 OPT_BOOL(clamp_div_by_zero, false, "Clamp div by zero (x / 0 becomes FLT_MAX instead of NaN)")
 OPT_BOOL(vrs2x2, false, "Enable 2x2 coarse shading for non-GUI elements")
 OPT_BOOL(enable_sam, false, "Enable Smart Access Memory with Above 4G Decoding for unvalidated platforms.")
 OPT_BOOL(disable_sam, false, "Disable Smart Access Memory.")
 OPT_BOOL(fp16, false, "Enable FP16 for mediump.")
-OPT_INT(tc_max_cpu_storage_size, 0, "Enable the CPU storage for pipelined buffer uploads in TC.")
+/* for Maya */
+OPT_INT(tc_max_cpu_storage_size, 2500, "Enable the CPU storage for pipelined buffer uploads in TC.")
+/* for Creo and Snx */
+OPT_INT(max_vram_map_size, 8196, "Maximum size of a buffer in VRAM to map directly. Bigger buffers use staging uploads.")
 OPT_BOOL(force_use_fma32, false, "Force use fma32 instruction for GPU family newer than gfx9")
 OPT_BOOL(dcc_msaa, false, "Enable DCC for MSAA")
+OPT_BOOL(mall_noalloc, false, "Don't use MALL (infinity cache)")
 
 #undef OPT_BOOL
 #undef OPT_INT

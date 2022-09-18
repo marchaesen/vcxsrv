@@ -108,11 +108,22 @@ fd_pipe_ref_locked(struct fd_pipe *pipe)
    return pipe;
 }
 
+
+static void
+pipe_del_locked(struct fd_pipe *pipe)
+{
+   fd_bo_del_locked(pipe->control_mem);
+   fd_device_del_locked(pipe->dev);
+   pipe->funcs->destroy(pipe);
+}
+
 void
 fd_pipe_del(struct fd_pipe *pipe)
 {
+   if (!p_atomic_dec_zero(&pipe->refcnt))
+      return;
    simple_mtx_lock(&table_lock);
-   fd_pipe_del_locked(pipe);
+   pipe_del_locked(pipe);
    simple_mtx_unlock(&table_lock);
 }
 
@@ -122,9 +133,7 @@ fd_pipe_del_locked(struct fd_pipe *pipe)
    simple_mtx_assert_locked(&table_lock);
    if (!p_atomic_dec_zero(&pipe->refcnt))
       return;
-   fd_bo_del_locked(pipe->control_mem);
-   fd_device_del_locked(pipe->dev);
-   pipe->funcs->destroy(pipe);
+   pipe_del_locked(pipe);
 }
 
 /**
@@ -162,6 +171,12 @@ int
 fd_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param, uint64_t *value)
 {
    return pipe->funcs->get_param(pipe, param, value);
+}
+
+int
+fd_pipe_set_param(struct fd_pipe *pipe, enum fd_param_id param, uint64_t value)
+{
+   return pipe->funcs->set_param(pipe, param, value);
 }
 
 const struct fd_dev_id *

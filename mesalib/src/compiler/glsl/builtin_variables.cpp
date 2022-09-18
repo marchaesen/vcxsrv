@@ -1368,6 +1368,22 @@ builtin_variable_generator::generate_fs_special_vars()
       var->data.memory_coherent = 1;
    }
 
+   if (state->has_framebuffer_fetch_zs()) {
+      ir_variable *const depth_var =
+         add_output(FRAG_RESULT_DEPTH, float_t,
+                    GLSL_PRECISION_HIGH, "gl_LastFragDepthARM");
+      depth_var->data.read_only = 1;
+      depth_var->data.fb_fetch_output = 1;
+      depth_var->data.memory_coherent = 1;
+
+      ir_variable *const stencil_var =
+         add_output(FRAG_RESULT_STENCIL, int_t,
+                    GLSL_PRECISION_LOW, "gl_LastFragStencilARM");
+      stencil_var->data.read_only = 1;
+      stencil_var->data.fb_fetch_output = 1;
+      stencil_var->data.memory_coherent = 1;
+   }
+
    if (state->es_shader && state->language_version == 100 && state->EXT_blend_func_extended_enable) {
       add_index_output(FRAG_RESULT_COLOR, 1, vec4_t,
                        GLSL_PRECISION_MEDIUM, "gl_SecondaryFragColorEXT");

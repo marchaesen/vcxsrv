@@ -1,0 +1,24 @@
+.venus-lavapipe-test:
+  extends:
+    - .test-vk
+    - .venus-rules
+  variables:
+    VK_DRIVER: virtio
+    CROSVM_GALLIUM_DRIVER: "llvmpipe"
+    CROSVM_VK_DRIVER: "lvp"
+    CROSVM_GPU_ARGS: "vulkan=true,gles=false,backend=virglrenderer,egl=true,surfaceless=true"
+
+venus-lavapipe:
+  extends:
+    - .deqp-test-vk
+    - .venus-lavapipe-test
+  variables:
+    DEQP_FRACTION: 15
+    DEQP_SUITE: venus
+    GPU_VERSION: venus
+    LP_NUM_THREADS: 1 # There will be FDO_CI_CONCURRENT Crosvm processes, so each should use a single thread
+    FDO_CI_CONCURRENT: 32 # Seems to be the fastest value, more gets actually slower
+    CROSVM_MEMORY: 3072
+    FLAKES_CHANNEL: "#virgl-ci"
+  tags:
+    - mesa-swrast

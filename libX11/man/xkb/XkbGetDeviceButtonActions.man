@@ -36,19 +36,19 @@ Extension device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device_info
+.I device_info
 structure to update with results
 .TP
-.I \- all_buttons
+.I all_buttons
 True => get information for all buttons
 .TP
-.I \- first_button
+.I first_button
 number of first button for which info is desired
 .TP
-.I \- num_buttons
+.I num_buttons
 number of buttons for which info is desired
 .SH DESCRIPTION
 .LP

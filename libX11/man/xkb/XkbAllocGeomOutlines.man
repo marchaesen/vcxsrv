@@ -32,10 +32,10 @@ shape
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- shape
+.I shape
 shape for which outlines should be allocated
 .TP
-.I \- num_needed
+.I num_needed
 number of new outlines required
 .SH DESCRIPTION
 .LP

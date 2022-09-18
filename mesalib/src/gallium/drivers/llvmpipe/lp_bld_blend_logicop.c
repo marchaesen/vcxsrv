@@ -42,7 +42,7 @@
 
 LLVMValueRef
 lp_build_logicop(LLVMBuilderRef builder,
-                 unsigned logicop_func,
+                 enum pipe_logicop logicop_func,
                  LLVMValueRef src,
                  LLVMValueRef dst)
 {

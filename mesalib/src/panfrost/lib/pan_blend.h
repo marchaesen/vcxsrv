@@ -90,7 +90,7 @@ struct pan_blend_shader_variant {
         unsigned work_reg_count;
 };
 
-#define PAN_BLEND_SHADER_MAX_VARIANTS 16
+#define PAN_BLEND_SHADER_MAX_VARIANTS 32
 
 struct pan_blend_shader {
         struct pan_blend_shader_key key;

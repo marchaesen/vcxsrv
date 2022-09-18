@@ -133,6 +133,34 @@ add_instruction_for_block(struct block_instructions *bi,
    *data = alu;
 }
 
+/**
+ * Determine if the ALU instruction is used by an if-condition or used by a
+ * logic-not that is used by an if-condition.
+ */
+static bool
+is_compatible_condition(const nir_alu_instr *instr)
+{
+   if (is_used_by_if(instr))
+      return true;
+
+   nir_foreach_use(src, &instr->dest.dest.ssa) {
+      const nir_instr *const user_instr = src->parent_instr;
+
+      if (user_instr->type != nir_instr_type_alu)
+         continue;
+
+      const nir_alu_instr *const user_alu = nir_instr_as_alu(user_instr);
+
+      if (user_alu->op != nir_op_inot)
+         continue;
+
+      if (is_used_by_if(user_alu))
+         return true;
+   }
+
+   return false;
+}
+
 static void
 rewrite_compare_instruction(nir_builder *bld, nir_alu_instr *orig_cmp,
                             nir_alu_instr *orig_add, bool zero_on_left)
@@ -320,7 +348,7 @@ comparison_pre_block(nir_block *block, struct block_queue *bq, nir_builder *bld)
          /* If the instruction is a comparison that is used by an if-statement
           * and neither operand is immediate value 0, add it to the set.
           */
-         if (is_used_by_if(alu) &&
+         if (is_compatible_condition(alu) &&
              is_not_const_zero(NULL, alu, 0, 1, swizzle) &&
              is_not_const_zero(NULL, alu, 1, 1, swizzle))
             add_instruction_for_block(bi, alu);

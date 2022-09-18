@@ -102,11 +102,7 @@ static const struct ac_reg_range Gfx9ContextShadowRange[] = {
    },
    {
       R_028800_DB_DEPTH_CONTROL,
-      R_028820_PA_CL_NANINF_CNTL - R_028800_DB_DEPTH_CONTROL + 4,
-   },
-   {
-      R_02882C_PA_SU_PRIM_FILTER_CNTL,
-      R_028840_PA_STEREO_CNTL - R_02882C_PA_SU_PRIM_FILTER_CNTL + 4,
+      R_028840_PA_STEREO_CNTL - R_028800_DB_DEPTH_CONTROL + 4,
    },
    {
       R_028A00_PA_SU_POINT_SIZE,
@@ -316,12 +312,12 @@ static const struct ac_reg_range Nv10ContextShadowRange[] = {
       R_02879C_CB_BLEND7_CONTROL - R_028754_SX_PS_DOWNCONVERT + 4,
    },
    {
-      R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
-      R_028820_PA_CL_NANINF_CNTL - R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP + 4,
+      R_0287D4_PA_CL_POINT_X_RAD,
+      R_0287E0_PA_CL_POINT_CULL_RAD - R_0287D4_PA_CL_POINT_X_RAD + 4,
    },
    {
-      R_02882C_PA_SU_PRIM_FILTER_CNTL,
-      R_028844_PA_STATE_STEREO_X - R_02882C_PA_SU_PRIM_FILTER_CNTL + 4,
+      R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
+      R_028844_PA_STATE_STEREO_X - R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP + 4,
    },
    {
       R_028A00_PA_SU_POINT_SIZE,
@@ -363,8 +359,8 @@ static const struct ac_reg_range Nv10UserConfigShadowRange[] = {
       4,
    },
    {
-      R_030904_VGT_GSVS_RING_SIZE_UMD,
-      R_030908_VGT_PRIMITIVE_TYPE - R_030904_VGT_GSVS_RING_SIZE_UMD + 4,
+      R_030904_VGT_GSVS_RING_SIZE,
+      R_030908_VGT_PRIMITIVE_TYPE - R_030904_VGT_GSVS_RING_SIZE + 4,
    },
    {
       R_030964_GE_MAX_VTX_INDX,
@@ -376,11 +372,11 @@ static const struct ac_reg_range Nv10UserConfigShadowRange[] = {
    },
    {
       R_030934_VGT_NUM_INSTANCES,
-      R_030940_VGT_TF_MEMORY_BASE_UMD - R_030934_VGT_NUM_INSTANCES + 4,
+      R_030940_VGT_TF_MEMORY_BASE - R_030934_VGT_NUM_INSTANCES + 4,
    },
    {
       R_03097C_GE_STEREO_CNTL,
-      R_030984_VGT_TF_MEMORY_BASE_HI_UMD - R_03097C_GE_STEREO_CNTL + 4,
+      R_030984_VGT_TF_MEMORY_BASE_HI - R_03097C_GE_STEREO_CNTL + 4,
    },
    {
       R_03096C_GE_CNTL,
@@ -438,8 +434,8 @@ static const struct ac_reg_range Gfx10ShShadowRange[] = {
       4,
    },
    {
-      R_00B21C_SPI_SHADER_PGM_RSRC3_GS,
-      R_00B2AC_SPI_SHADER_USER_DATA_GS_31 - R_00B21C_SPI_SHADER_PGM_RSRC3_GS + 4,
+      R_00B220_SPI_SHADER_PGM_LO_GS,
+      R_00B2AC_SPI_SHADER_USER_DATA_GS_31 - R_00B220_SPI_SHADER_PGM_LO_GS + 4,
    },
    {
       R_00B208_SPI_SHADER_USER_DATA_ADDR_LO_GS,
@@ -458,8 +454,8 @@ static const struct ac_reg_range Gfx10ShShadowRange[] = {
       4,
    },
    {
-      R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
-      R_00B4AC_SPI_SHADER_USER_DATA_HS_31 - R_00B41C_SPI_SHADER_PGM_RSRC3_HS + 4,
+      R_00B420_SPI_SHADER_PGM_LO_HS,
+      R_00B4AC_SPI_SHADER_USER_DATA_HS_31 - R_00B420_SPI_SHADER_PGM_LO_HS + 4,
    },
    {
       R_00B4C8_SPI_SHADER_USER_ACCUM_LSHS_0,
@@ -538,12 +534,21 @@ static const struct ac_reg_range Navi10NonShadowedRanges[] = {
       R_028A88_VGT_DMA_NUM_INSTANCES,
       4,
    },
+   /* RSRC{3,4}_{VS,PS,HS,GS} are not shadowed because they are set by SET_SH_REG_INDEX. */
    {
       R_00B118_SPI_SHADER_PGM_RSRC3_VS,
       4,
    },
    {
       R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
+      4,
+   },
+   {
+      R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
+      4,
+   },
+   {
+      R_00B21C_SPI_SHADER_PGM_RSRC3_GS,
       4,
    },
    {
@@ -573,6 +578,10 @@ static const struct ac_reg_range Navi10NonShadowedRanges[] = {
    {
       R_030800_GRBM_GFX_INDEX,
       4,
+   },
+   {
+      R_030A00_PA_SU_LINE_STIPPLE_VALUE,
+      R_030A04_PA_SC_LINE_STIPPLE_STATE - R_030A00_PA_SU_LINE_STIPPLE_VALUE + 4,
    },
    {
       R_031100_SPI_CONFIG_CNTL_REMAP,
@@ -644,12 +653,12 @@ static const struct ac_reg_range Gfx103ContextShadowRange[] = {
       R_02879C_CB_BLEND7_CONTROL - R_028750_SX_PS_DOWNCONVERT_CONTROL + 4,
    },
    {
-      R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
-      R_028820_PA_CL_NANINF_CNTL - R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP + 4,
+      R_0287D4_PA_CL_POINT_X_RAD,
+      R_0287E0_PA_CL_POINT_CULL_RAD - R_0287D4_PA_CL_POINT_X_RAD + 4,
    },
    {
-      R_02882C_PA_SU_PRIM_FILTER_CNTL,
-      R_028848_PA_CL_VRS_CNTL - R_02882C_PA_SU_PRIM_FILTER_CNTL + 4,
+      R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
+      R_028848_PA_CL_VRS_CNTL - R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP + 4,
    },
    {
       R_028A00_PA_SU_POINT_SIZE,
@@ -691,8 +700,8 @@ static const struct ac_reg_range Gfx103UserConfigShadowRange[] = {
       4,
    },
    {
-      R_030904_VGT_GSVS_RING_SIZE_UMD,
-      R_030908_VGT_PRIMITIVE_TYPE - R_030904_VGT_GSVS_RING_SIZE_UMD + 4,
+      R_030904_VGT_GSVS_RING_SIZE,
+      R_030908_VGT_PRIMITIVE_TYPE - R_030904_VGT_GSVS_RING_SIZE + 4,
    },
    {
       R_030964_GE_MAX_VTX_INDX,
@@ -704,11 +713,11 @@ static const struct ac_reg_range Gfx103UserConfigShadowRange[] = {
    },
    {
       R_030934_VGT_NUM_INSTANCES,
-      R_030940_VGT_TF_MEMORY_BASE_UMD - R_030934_VGT_NUM_INSTANCES + 4,
+      R_030940_VGT_TF_MEMORY_BASE - R_030934_VGT_NUM_INSTANCES + 4,
    },
    {
       R_03097C_GE_STEREO_CNTL,
-      R_030984_VGT_TF_MEMORY_BASE_HI_UMD - R_03097C_GE_STEREO_CNTL + 4,
+      R_030984_VGT_TF_MEMORY_BASE_HI - R_03097C_GE_STEREO_CNTL + 4,
    },
    {
       R_03096C_GE_CNTL,
@@ -748,12 +757,21 @@ static const struct ac_reg_range Gfx103NonShadowedRanges[] = {
       R_028A88_VGT_DMA_NUM_INSTANCES,
       4,
    },
+   /* RSRC{3,4}_{VS,PS,HS,GS} are not shadowed because they are set by SET_SH_REG_INDEX. */
    {
       R_00B118_SPI_SHADER_PGM_RSRC3_VS,
       4,
    },
    {
       R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
+      4,
+   },
+   {
+      R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
+      4,
+   },
+   {
+      R_00B21C_SPI_SHADER_PGM_RSRC3_GS,
       4,
    },
    {
@@ -785,6 +803,10 @@ static const struct ac_reg_range Gfx103NonShadowedRanges[] = {
       4,
    },
    {
+      R_030A00_PA_SU_LINE_STIPPLE_VALUE,
+      R_030A04_PA_SC_LINE_STIPPLE_STATE - R_030A00_PA_SU_LINE_STIPPLE_VALUE + 4,
+   },
+   {
       R_031100_SPI_CONFIG_CNTL_REMAP,
       4,
    },
@@ -807,16 +829,418 @@ static const struct ac_reg_range Gfx103NonShadowedRanges[] = {
    },
    /* These are not defined in Mesa. */
    /*{
-      mmATC_PERFCOUNTER0_CFG,
-      mmATC_PERFCOUNTER_HI - mmATC_PERFCOUNTER0_CFG + 1
+      ATC_PERFCOUNTER0_CFG,
+      ATC_PERFCOUNTER_HI - ATC_PERFCOUNTER0_CFG + 4
    },
    {
-      mmRPB_PERFCOUNTER_LO,
-      mmRPB_PERFCOUNTER_RSLT_CNTL - mmRPB_PERFCOUNTER_LO + 1
+      RPB_PERFCOUNTER_LO,
+      RPB_PERFCOUNTER_RSLT_CNTL - RPB_PERFCOUNTER_LO + 4
    },*/
 };
 
-void ac_get_reg_ranges(enum chip_class chip_class, enum radeon_family family,
+static const struct ac_reg_range Gfx11ShShadowRange[] =
+{
+   {
+      R_00B018_SPI_SHADER_PGM_CHKSUM_PS,
+      4,
+   },
+   {
+      R_00B020_SPI_SHADER_PGM_LO_PS,
+      R_00B0AC_SPI_SHADER_USER_DATA_PS_31 - R_00B020_SPI_SHADER_PGM_LO_PS + 4,
+   },
+   {
+      R_00B0C8_SPI_SHADER_USER_ACCUM_PS_0,
+      R_00B0D4_SPI_SHADER_USER_ACCUM_PS_3 - R_00B0C8_SPI_SHADER_USER_ACCUM_PS_0 + 4,
+   },
+   {
+      R_00B320_SPI_SHADER_PGM_LO_ES,
+      R_00B324_SPI_SHADER_PGM_HI_ES - R_00B320_SPI_SHADER_PGM_LO_ES + 4,
+   },
+   {
+      R_00B520_SPI_SHADER_PGM_LO_LS,
+      R_00B524_SPI_SHADER_PGM_HI_LS - R_00B520_SPI_SHADER_PGM_LO_LS + 4,
+   },
+   {
+      R_00B200_SPI_SHADER_PGM_CHKSUM_GS,
+      4,
+   },
+   {
+      R_00B220_SPI_SHADER_PGM_LO_GS,
+      R_00B2AC_SPI_SHADER_USER_DATA_GS_31 - R_00B220_SPI_SHADER_PGM_LO_GS + 4,
+   },
+   {
+      R_00B2C8_SPI_SHADER_USER_ACCUM_ESGS_0,
+      R_00B2D4_SPI_SHADER_USER_ACCUM_ESGS_3 - R_00B2C8_SPI_SHADER_USER_ACCUM_ESGS_0 + 4,
+   },
+   {
+      R_00B400_SPI_SHADER_PGM_CHKSUM_HS,
+      4,
+   },
+   {
+      R_00B420_SPI_SHADER_PGM_LO_HS,
+      R_00B4AC_SPI_SHADER_USER_DATA_HS_31 - R_00B420_SPI_SHADER_PGM_LO_HS + 4,
+   },
+   {
+      R_00B4C8_SPI_SHADER_USER_ACCUM_LSHS_0,
+      R_00B4D4_SPI_SHADER_USER_ACCUM_LSHS_3 - R_00B4C8_SPI_SHADER_USER_ACCUM_LSHS_0 + 4,
+   },
+   {
+      R_00B0C0_SPI_SHADER_REQ_CTRL_PS,
+      4,
+   },
+};
+
+static const struct ac_reg_range Gfx11CsShShadowRange[] =
+{
+   {
+      R_00B810_COMPUTE_START_X,
+      R_00B824_COMPUTE_NUM_THREAD_Z - R_00B810_COMPUTE_START_X + 4,
+   },
+   {
+      R_00B82C_COMPUTE_PERFCOUNT_ENABLE,
+      R_00B834_COMPUTE_PGM_HI - R_00B82C_COMPUTE_PERFCOUNT_ENABLE + 4,
+   },
+   {
+      R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
+      R_00B84C_COMPUTE_PGM_RSRC2 - R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO + 4,
+   },
+   {
+      R_00B854_COMPUTE_RESOURCE_LIMITS,
+      4,
+   },
+   {
+      R_00B860_COMPUTE_TMPRING_SIZE,
+      4,
+   },
+   {
+      R_00B878_COMPUTE_THREAD_TRACE_ENABLE,
+      4,
+   },
+   {
+      R_00B890_COMPUTE_USER_ACCUM_0,
+      R_00B8A0_COMPUTE_PGM_RSRC3 - R_00B890_COMPUTE_USER_ACCUM_0 + 4,
+   },
+   {
+      R_00B8A8_COMPUTE_SHADER_CHKSUM,
+      4,
+   },
+   {
+      R_00B8BC_COMPUTE_DISPATCH_INTERLEAVE,
+      4,
+   },
+   {
+      R_00B900_COMPUTE_USER_DATA_0,
+      R_00B93C_COMPUTE_USER_DATA_15 - R_00B900_COMPUTE_USER_DATA_0 + 4,
+   },
+   {
+      R_00B9F4_COMPUTE_DISPATCH_TUNNEL,
+      4,
+   },
+};
+
+/* Defines the set of ranges of context registers we shadow when mid command buffer preemption
+ * is enabled.
+ */
+static const struct ac_reg_range Gfx11ContextShadowRange[] =
+{
+   {
+      R_028000_DB_RENDER_CONTROL,
+      R_028084_TA_BC_BASE_ADDR_HI - R_028000_DB_RENDER_CONTROL + 4,
+   },
+   {
+      R_0281E8_COHER_DEST_BASE_HI_0,
+      R_02835C_PA_SC_TILE_STEERING_OVERRIDE - R_0281E8_COHER_DEST_BASE_HI_0 + 4,
+   },
+   {
+      R_0283D0_PA_SC_VRS_OVERRIDE_CNTL,
+      R_0283E4_PA_SC_VRS_RATE_CACHE_CNTL - R_0283D0_PA_SC_VRS_OVERRIDE_CNTL + 4,
+   },
+   {
+      R_0283F0_PA_SC_VRS_RATE_BASE,
+      R_0283F8_PA_SC_VRS_RATE_SIZE_XY - R_0283F0_PA_SC_VRS_RATE_BASE + 4,
+   },
+   {
+      R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX,
+      R_028618_PA_CL_UCP_5_W - R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX + 4,
+   },
+   {
+      R_028644_SPI_PS_INPUT_CNTL_0,
+      R_0286F0_SPI_GFX_SCRATCH_BASE_HI - R_028644_SPI_PS_INPUT_CNTL_0 + 4,
+   },
+   {
+      R_028708_SPI_SHADER_IDX_FORMAT,
+      R_028714_SPI_SHADER_COL_FORMAT - R_028708_SPI_SHADER_IDX_FORMAT + 4,
+   },
+   {
+      R_028750_SX_PS_DOWNCONVERT_CONTROL,
+      R_02879C_CB_BLEND7_CONTROL - R_028750_SX_PS_DOWNCONVERT_CONTROL + 4,
+   },
+   {
+      R_0287D4_PA_CL_POINT_X_RAD,
+      R_0287E0_PA_CL_POINT_CULL_RAD - R_0287D4_PA_CL_POINT_X_RAD + 4,
+   },
+   {
+      R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
+      R_028848_PA_CL_VRS_CNTL - R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP + 4,
+   },
+   {
+      R_028A00_PA_SU_POINT_SIZE,
+      R_028A0C_PA_SC_LINE_STIPPLE - R_028A00_PA_SU_POINT_SIZE + 4,
+   },
+   {
+      R_028A18_VGT_HOS_MAX_TESS_LEVEL,
+      R_028A1C_VGT_HOS_MIN_TESS_LEVEL - R_028A18_VGT_HOS_MAX_TESS_LEVEL + 4,
+   },
+   {
+      R_028A48_PA_SC_MODE_CNTL_0,
+      R_028A50_VGT_ENHANCE - R_028A48_PA_SC_MODE_CNTL_0 + 4,
+   },
+   {
+      R_028A84_VGT_PRIMITIVEID_EN,
+      4,
+   },
+   {
+      R_028A8C_VGT_PRIMITIVEID_RESET,
+      4,
+   },
+   {
+      R_028A98_VGT_DRAW_PAYLOAD_CNTL,
+      4,
+   },
+   {
+      R_028AAC_VGT_ESGS_RING_ITEMSIZE,
+      R_028AC4_DB_SRESULTS_COMPARE_STATE1 - R_028AAC_VGT_ESGS_RING_ITEMSIZE + 4,
+   },
+   {
+      R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET,
+      R_028B38_VGT_GS_MAX_VERT_OUT - R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET + 4,
+   },
+   {
+      R_028B4C_GE_NGG_SUBGRP_CNTL,
+      R_028B58_VGT_LS_HS_CONFIG - R_028B4C_GE_NGG_SUBGRP_CNTL + 4,
+   },
+   {
+      R_028B6C_VGT_TF_PARAM,
+      R_028B90_VGT_GS_INSTANCE_CNT - R_028B6C_VGT_TF_PARAM + 4,
+   },
+   {
+      R_028BD4_PA_SC_CENTROID_PRIORITY_0,
+      R_028C54_PA_SC_BINNER_CNTL_2 - R_028BD4_PA_SC_CENTROID_PRIORITY_0 + 4,
+   },
+   {
+      R_028C60_CB_COLOR0_BASE,
+      4,
+   },
+   {
+      R_028C6C_CB_COLOR0_VIEW,
+      R_028C78_CB_COLOR0_FDCC_CONTROL - R_028C6C_CB_COLOR0_VIEW + 4,
+   },
+   {
+      R_028C94_CB_COLOR0_DCC_BASE,
+      R_028C9C_CB_COLOR1_BASE - R_028C94_CB_COLOR0_DCC_BASE + 4,
+   },
+   {
+      R_028CA8_CB_COLOR1_VIEW,
+      R_028CB4_CB_COLOR1_FDCC_CONTROL - R_028CA8_CB_COLOR1_VIEW + 4,
+   },
+   {
+      R_028CD0_CB_COLOR1_DCC_BASE,
+      R_028CD8_CB_COLOR2_BASE - R_028CD0_CB_COLOR1_DCC_BASE + 4,
+   },
+   {
+      R_028CE4_CB_COLOR2_VIEW,
+      R_028CF0_CB_COLOR2_FDCC_CONTROL - R_028CE4_CB_COLOR2_VIEW + 4,
+   },
+   {
+      R_028D0C_CB_COLOR2_DCC_BASE,
+      R_028D14_CB_COLOR3_BASE - R_028D0C_CB_COLOR2_DCC_BASE + 4,
+   },
+   {
+      R_028D20_CB_COLOR3_VIEW,
+      R_028D2C_CB_COLOR3_FDCC_CONTROL - R_028D20_CB_COLOR3_VIEW + 4,
+   },
+   {
+      R_028D48_CB_COLOR3_DCC_BASE,
+      R_028D50_CB_COLOR4_BASE - R_028D48_CB_COLOR3_DCC_BASE + 4,
+   },
+   {
+      R_028D5C_CB_COLOR4_VIEW,
+      R_028D68_CB_COLOR4_FDCC_CONTROL - R_028D5C_CB_COLOR4_VIEW + 4,
+   },
+   {
+      R_028D84_CB_COLOR4_DCC_BASE,
+      R_028D8C_CB_COLOR5_BASE - R_028D84_CB_COLOR4_DCC_BASE + 4,
+   },
+   {
+      R_028D98_CB_COLOR5_VIEW,
+      R_028DA4_CB_COLOR5_FDCC_CONTROL - R_028D98_CB_COLOR5_VIEW + 4,
+   },
+   {
+      R_028DC0_CB_COLOR5_DCC_BASE,
+      R_028DC8_CB_COLOR6_BASE - R_028DC0_CB_COLOR5_DCC_BASE + 4,
+   },
+   {
+      R_028DD4_CB_COLOR6_VIEW,
+      R_028DE0_CB_COLOR6_FDCC_CONTROL - R_028DD4_CB_COLOR6_VIEW + 4,
+   },
+   {
+      R_028DFC_CB_COLOR6_DCC_BASE,
+      R_028E04_CB_COLOR7_BASE - R_028DFC_CB_COLOR6_DCC_BASE + 4,
+   },
+   {
+      R_028E10_CB_COLOR7_VIEW,
+      R_028E1C_CB_COLOR7_FDCC_CONTROL - R_028E10_CB_COLOR7_VIEW + 4,
+   },
+   {
+      R_028E38_CB_COLOR7_DCC_BASE,
+      R_028E5C_CB_COLOR7_BASE_EXT - R_028E38_CB_COLOR7_DCC_BASE + 4,
+   },
+   {
+      R_028EA0_CB_COLOR0_DCC_BASE_EXT,
+      R_028EFC_CB_COLOR7_ATTRIB3 - R_028EA0_CB_COLOR0_DCC_BASE_EXT + 4,
+   },
+};
+
+static const struct ac_reg_range Gfx11UserConfigShadowRange[] =
+{
+   {
+      R_030908_VGT_PRIMITIVE_TYPE,
+      4,
+   },
+   {
+      R_030998_VGT_GS_OUT_PRIM_TYPE,
+      4,
+   },
+   {
+      R_030964_GE_MAX_VTX_INDX,
+      4,
+   },
+   {
+      R_030924_GE_MIN_VTX_INDX,
+      R_03092C_GE_MULTI_PRIM_IB_RESET_EN - R_030924_GE_MIN_VTX_INDX + 4,
+   },
+   {
+      R_008974_VGT_NUM_INSTANCES,
+      R_030940_VGT_TF_MEMORY_BASE - R_008974_VGT_NUM_INSTANCES + 4,
+   },
+   {
+      R_03097C_GE_STEREO_CNTL,
+      R_030984_VGT_TF_MEMORY_BASE_HI - R_03097C_GE_STEREO_CNTL + 4,
+   },
+   {
+      R_03096C_GE_CNTL,
+      4,
+   },
+   {
+      R_030968_VGT_INSTANCE_BASE_ID,
+      4,
+   },
+   {
+      R_030E00_TA_CS_BC_BASE_ADDR,
+      R_030E04_TA_CS_BC_BASE_ADDR_HI - R_030E00_TA_CS_BC_BASE_ADDR + 4,
+   },
+   {
+      R_030988_GE_USER_VGPR_EN,
+      R_03098C_GE_VRS_RATE - R_030988_GE_USER_VGPR_EN + 4,
+   },
+   {
+      R_031110_SPI_GS_THROTTLE_CNTL1,
+      R_03111C_SPI_ATTRIBUTE_RING_SIZE - R_031110_SPI_GS_THROTTLE_CNTL1 + 4,
+   },
+};
+
+/* Defines the set of ranges of registers which cannot be shadowed for various reasons. */
+static const struct ac_reg_range Gfx11NonShadowedRanges[] =
+{
+
+   /* VGT_INDEX_TYPE and VGT_DMA_INDEX_TYPE are a special case and neither of these should
+    * be shadowed.
+    */
+   {
+      R_028A7C_VGT_DMA_INDEX_TYPE,
+      4,
+   },
+   {
+      R_03090C_VGT_INDEX_TYPE,
+      4,
+   },
+   {
+      R_028A88_VGT_DMA_NUM_INSTANCES,
+      4,
+   },
+   {
+      R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
+      4,
+   },
+   {
+      R_00B004_SPI_SHADER_PGM_RSRC4_PS,
+      4,
+   },
+   {
+      R_00B404_SPI_SHADER_PGM_RSRC4_HS,
+      4,
+   },
+   {
+      R_00B204_SPI_SHADER_PGM_RSRC4_GS,
+      4,
+   },
+   {
+      R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0,
+      R_00B85C_COMPUTE_STATIC_THREAD_MGMT_SE1 - R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0 + 4,
+   },
+   {
+      R_00B864_COMPUTE_STATIC_THREAD_MGMT_SE2,
+      R_00B868_COMPUTE_STATIC_THREAD_MGMT_SE3 - R_00B864_COMPUTE_STATIC_THREAD_MGMT_SE2 + 4,
+   },
+   {
+      R_030800_GRBM_GFX_INDEX,
+      4,
+   },
+   {
+      R_030A00_PA_SU_LINE_STIPPLE_VALUE,
+      R_030A04_PA_SC_LINE_STIPPLE_STATE - R_030A00_PA_SU_LINE_STIPPLE_VALUE + 4,
+   },
+   /* SQ thread trace registers are always not shadowed. */
+   {
+      R_0367A0_SQ_THREAD_TRACE_BUF0_BASE,
+      R_0367D4_SQ_THREAD_TRACE_STATUS2 - R_0367A0_SQ_THREAD_TRACE_BUF0_BASE + 4,
+   },
+   {
+      R_030D00_SQ_THREAD_TRACE_USERDATA_0,
+      R_030D1C_SQ_THREAD_TRACE_USERDATA_7 - R_030D00_SQ_THREAD_TRACE_USERDATA_0 + 4,
+   },
+   /* Perf counter registers are always not shadowed. Most of them are in the perf register
+    * space, but some legacy registers are still outside of it. The SPM registers are
+    * in the perf range as well.
+    */
+   {
+      SI_UCONFIG_PERF_REG_OFFSET,
+      SI_UCONFIG_PERF_REG_SPACE_SIZE,
+   },
+   /* These aren't defined in Mesa. */
+   /*{
+      RPB_PERFCOUNTER_LO,
+      RPB_PERFCOUNTER_RSLT_CNTL - RPB_PERFCOUNTER_LO + 4,
+   },*/
+   {
+      R_037890_SDMA0_PERFCOUNTER0_SELECT,
+      R_03789C_SDMA0_PERFCOUNTER1_SELECT1 - R_037890_SDMA0_PERFCOUNTER0_SELECT + 4,
+   },
+   {
+      R_0378C0_SDMA1_PERFCOUNTER0_SELECT,
+      R_0378CC_SDMA1_PERFCOUNTER1_SELECT1 - R_0378C0_SDMA1_PERFCOUNTER0_SELECT + 4,
+   },
+   {
+      R_0359B0_SDMA1_PERFCNT_PERFCOUNTER_LO,
+      R_0359C4_SDMA1_PERFCOUNTER1_HI - R_0359B0_SDMA1_PERFCNT_PERFCOUNTER_LO + 4,
+   },
+   {
+      R_035980_SDMA0_PERFCNT_PERFCOUNTER_LO,
+      R_035994_SDMA0_PERFCOUNTER1_HI - R_035980_SDMA0_PERFCNT_PERFCOUNTER_LO + 4,
+   },
+};
+
+void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
                        enum ac_reg_range_type type, unsigned *num_ranges,
                        const struct ac_reg_range **ranges)
 {
@@ -831,41 +1255,51 @@ void ac_get_reg_ranges(enum chip_class chip_class, enum radeon_family family,
 
    switch (type) {
    case SI_REG_RANGE_UCONFIG:
-      if (chip_class == GFX10_3)
+      if (gfx_level == GFX11)
+         RETURN(Gfx11UserConfigShadowRange);
+      else if (gfx_level == GFX10_3)
          RETURN(Gfx103UserConfigShadowRange);
-      else if (chip_class == GFX10)
+      else if (gfx_level == GFX10)
          RETURN(Nv10UserConfigShadowRange);
-      else if (chip_class == GFX9)
+      else if (gfx_level == GFX9)
          RETURN(Gfx9UserConfigShadowRange);
       break;
    case SI_REG_RANGE_CONTEXT:
-      if (chip_class == GFX10_3)
+      if (gfx_level == GFX11)
+         RETURN(Gfx11ContextShadowRange);
+      else if (gfx_level == GFX10_3)
          RETURN(Gfx103ContextShadowRange);
-      else if (chip_class == GFX10)
+      else if (gfx_level == GFX10)
          RETURN(Nv10ContextShadowRange);
-      else if (chip_class == GFX9)
+      else if (gfx_level == GFX9)
          RETURN(Gfx9ContextShadowRange);
       break;
    case SI_REG_RANGE_SH:
-      if (chip_class == GFX10_3 || chip_class == GFX10)
+      if (gfx_level == GFX11)
+         RETURN(Gfx11ShShadowRange);
+      else if (gfx_level == GFX10_3 || gfx_level == GFX10)
          RETURN(Gfx10ShShadowRange);
       else if (family == CHIP_RAVEN2 || family == CHIP_RENOIR)
          RETURN(Gfx9ShShadowRangeRaven2);
-      else if (chip_class == GFX9)
+      else if (gfx_level == GFX9)
          RETURN(Gfx9ShShadowRange);
       break;
    case SI_REG_RANGE_CS_SH:
-      if (chip_class == GFX10_3 || chip_class == GFX10)
+      if (gfx_level == GFX11)
+         RETURN(Gfx11CsShShadowRange);
+      else if (gfx_level == GFX10_3 || gfx_level == GFX10)
          RETURN(Gfx10CsShShadowRange);
       else if (family == CHIP_RAVEN2 || family == CHIP_RENOIR)
          RETURN(Gfx9CsShShadowRangeRaven2);
-      else if (chip_class == GFX9)
+      else if (gfx_level == GFX9)
          RETURN(Gfx9CsShShadowRange);
       break;
    case SI_REG_RANGE_NON_SHADOWED:
-      if (chip_class == GFX10_3)
+      if (gfx_level == GFX11)
+         RETURN(Gfx11NonShadowedRanges);
+      else if (gfx_level == GFX10_3)
          RETURN(Gfx103NonShadowedRanges);
-      else if (chip_class == GFX10)
+      else if (gfx_level == GFX10)
          RETURN(Navi10NonShadowedRanges);
       else
          assert(0);
@@ -1241,15 +1675,15 @@ static void gfx9_emulate_clear_state(struct radeon_cmdbuf *cs,
       0x4,     // PA_SU_SC_MODE_CNTL
       0x0,     // PA_CL_VTE_CNTL
       0x0,     // PA_CL_VS_OUT_CNTL
-      0x0      // PA_CL_NANINF_CNTL
-   };
-   static const uint32_t PaSuPrimFilterCntlGfx9[] = {
-      0x0, // PA_SU_PRIM_FILTER_CNTL
-      0x0, // PA_SU_SMALL_PRIM_FILTER_CNTL
-      0x0, // PA_CL_OBJPRIM_ID_CNTL
-      0x0, // PA_CL_NGG_CNTL
-      0x0, // PA_SU_OVER_RASTERIZATION_CNTL
-      0x0  // PA_STEREO_CNTL
+      0x0,     // PA_CL_NANINF_CNTL
+      0x0,     // PA_SU_LINE_STIPPLE_CNTL
+      0x0,     // PA_SU_LINE_STIPPLE_SCALE
+      0x0,     // PA_SU_PRIM_FILTER_CNTL
+      0x0,     // PA_SU_SMALL_PRIM_FILTER_CNTL
+      0x0,     // PA_CL_OBJPRIM_ID_CNTL
+      0x0,     // PA_CL_NGG_CNTL
+      0x0,     // PA_SU_OVER_RASTERIZATION_CNTL
+      0x0      // PA_STEREO_CNTL
    };
    static const uint32_t PaSuPointSizeGfx9[] = {
       0x0, // PA_SU_POINT_SIZE
@@ -1512,7 +1946,6 @@ static void gfx9_emulate_clear_state(struct radeon_cmdbuf *cs,
    set_context_reg_seq_array(cs, R_028644_SPI_PS_INPUT_CNTL_0, SET(SpiPsInputCntl0Gfx9));
    set_context_reg_seq_array(cs, R_028754_SX_PS_DOWNCONVERT, SET(SxPsDownconvertGfx9));
    set_context_reg_seq_array(cs, R_028800_DB_DEPTH_CONTROL, SET(DbDepthControlGfx9));
-   set_context_reg_seq_array(cs, R_02882C_PA_SU_PRIM_FILTER_CNTL, SET(PaSuPrimFilterCntlGfx9));
    set_context_reg_seq_array(cs, R_028A00_PA_SU_POINT_SIZE, SET(PaSuPointSizeGfx9));
    set_context_reg_seq_array(cs, R_028A18_VGT_HOS_MAX_TESS_LEVEL, SET(VgtHosMaxTessLevelGfx9));
    set_context_reg_seq_array(cs, R_028A40_VGT_GS_MODE, SET(VgtGsModeGfx9));
@@ -1883,6 +2316,12 @@ static void gfx10_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_reg
       0x0, // CB_BLEND6_CONTROL
       0x0  // CB_BLEND7_CONTROL
    };
+   static const uint32_t PaClPointXRadNv10[] = {
+      0x0, // PA_CL_POINT_X_RAD
+      0x0, // PA_CL_POINT_Y_RAD
+      0x0, // PA_CL_POINT_SIZE
+      0x0  // PA_CL_POINT_CULL_RAD
+   };
    static const uint32_t GeMaxOutputPerSubgroupNv10[] = {
       0x0,     // GE_MAX_OUTPUT_PER_SUBGROUP
       0x0,     // DB_DEPTH_CONTROL
@@ -1893,16 +2332,16 @@ static void gfx10_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_reg
       0x4,     // PA_SU_SC_MODE_CNTL
       0x0,     // PA_CL_VTE_CNTL
       0x0,     // PA_CL_VS_OUT_CNTL
-      0x0      // PA_CL_NANINF_CNTL
-   };
-   static const uint32_t PaSuPrimFilterCntlNv10[] = {
-      0x0, // PA_SU_PRIM_FILTER_CNTL
-      0x0, // PA_SU_SMALL_PRIM_FILTER_CNTL
-      0x0, // PA_CL_OBJPRIM_ID_CNTL
-      0x0, // PA_CL_NGG_CNTL
-      0x0, // PA_SU_OVER_RASTERIZATION_CNTL
-      0x0, // PA_STEREO_CNTL
-      0x0  // PA_STATE_STEREO_X
+      0x0,     // PA_CL_NANINF_CNTL
+      0x0,     // PA_SU_LINE_STIPPLE_CNTL
+      0x0,     // PA_SU_LINE_STIPPLE_SCALE
+      0x0,     // PA_SU_PRIM_FILTER_CNTL
+      0x0,     // PA_SU_SMALL_PRIM_FILTER_CNTL
+      0x0,     // PA_CL_OBJPRIM_ID_CNTL
+      0x0,     // PA_CL_NGG_CNTL
+      0x0,     // PA_SU_OVER_RASTERIZATION_CNTL
+      0x0,     // PA_STEREO_CNTL
+      0x0      // PA_STATE_STEREO_X
    };
    static const uint32_t PaSuPointSizeNv10[] = {
       0x0, // PA_SU_POINT_SIZE
@@ -2213,9 +2652,9 @@ static void gfx10_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_reg
                              SET(VgtMultiPrimIbResetIndxNv10));
    set_context_reg_seq_array(cs, R_028644_SPI_PS_INPUT_CNTL_0, SET(SpiPsInputCntl0Nv10));
    set_context_reg_seq_array(cs, R_028754_SX_PS_DOWNCONVERT, SET(SxPsDownconvertNv10));
+   set_context_reg_seq_array(cs, R_0287D4_PA_CL_POINT_X_RAD, SET(PaClPointXRadNv10));
    set_context_reg_seq_array(cs, R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
                              SET(GeMaxOutputPerSubgroupNv10));
-   set_context_reg_seq_array(cs, R_02882C_PA_SU_PRIM_FILTER_CNTL, SET(PaSuPrimFilterCntlNv10));
    set_context_reg_seq_array(cs, R_028A00_PA_SU_POINT_SIZE, SET(PaSuPointSizeNv10));
    set_context_reg_seq_array(cs, R_028A18_VGT_HOS_MAX_TESS_LEVEL, SET(VgtHosMaxTessLevelNv10));
    set_context_reg_seq_array(cs, R_028A40_VGT_GS_MODE, SET(VgtGsModeNv10));
@@ -2580,6 +3019,12 @@ static void gfx103_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_re
       0x0, // CB_BLEND6_CONTROL
       0x0  // CB_BLEND7_CONTROL
    };
+   static const uint32_t PaClPointXRadGfx103[] = {
+      0x0, // PA_CL_POINT_X_RAD
+      0x0, // PA_CL_POINT_Y_RAD
+      0x0, // PA_CL_POINT_SIZE
+      0x0  // PA_CL_POINT_CULL_RAD
+   };
    static const uint32_t GeMaxOutputPerSubgroupGfx103[] = {
       0x0,     // GE_MAX_OUTPUT_PER_SUBGROUP
       0x0,     // DB_DEPTH_CONTROL
@@ -2590,17 +3035,17 @@ static void gfx103_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_re
       0x4,     // PA_SU_SC_MODE_CNTL
       0x0,     // PA_CL_VTE_CNTL
       0x0,     // PA_CL_VS_OUT_CNTL
-      0x0      // PA_CL_NANINF_CNTL
-   };
-   static const uint32_t PaSuPrimFilterCntlGfx103[] = {
-      0x0, // PA_SU_PRIM_FILTER_CNTL
-      0x0, // PA_SU_SMALL_PRIM_FILTER_CNTL
-      0x0, //
-      0x0, // PA_CL_NGG_CNTL
-      0x0, // PA_SU_OVER_RASTERIZATION_CNTL
-      0x0, // PA_STEREO_CNTL
-      0x0, // PA_STATE_STEREO_X
-      0x0  //
+      0x0,     // PA_CL_NANINF_CNTL
+      0x0,     // PA_SU_LINE_STIPPLE_CNTL
+      0x0,     // PA_SU_LINE_STIPPLE_SCALE
+      0x0,     // PA_SU_PRIM_FILTER_CNTL
+      0x0,     // PA_SU_SMALL_PRIM_FILTER_CNTL
+      0x0,     // PA_CL_OBJPRIM_ID_CNTL
+      0x0,     // PA_CL_NGG_CNTL
+      0x0,     // PA_SU_OVER_RASTERIZATION_CNTL
+      0x0,     // PA_STEREO_CNTL
+      0x0,     // PA_STATE_STEREO_X
+      0x0      // PA_CL_VRS_CNTL
    };
    static const uint32_t PaSuPointSizeGfx103[] = {
       0x0, // PA_SU_POINT_SIZE
@@ -2912,9 +3357,9 @@ static void gfx103_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_re
    set_context_reg_seq_array(cs, R_028644_SPI_PS_INPUT_CNTL_0, SET(SpiPsInputCntl0Gfx103));
    set_context_reg_seq_array(cs, R_028750_SX_PS_DOWNCONVERT_CONTROL,
                              SET(SxPsDownconvertControlGfx103));
+   set_context_reg_seq_array(cs, R_0287D4_PA_CL_POINT_X_RAD, SET(PaClPointXRadGfx103));
    set_context_reg_seq_array(cs, R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
                              SET(GeMaxOutputPerSubgroupGfx103));
-   set_context_reg_seq_array(cs, R_02882C_PA_SU_PRIM_FILTER_CNTL, SET(PaSuPrimFilterCntlGfx103));
    set_context_reg_seq_array(cs, R_028A00_PA_SU_POINT_SIZE, SET(PaSuPointSizeGfx103));
    set_context_reg_seq_array(cs, R_028A18_VGT_HOS_MAX_TESS_LEVEL, SET(VgtHosMaxTessLevelGfx103));
    set_context_reg_seq_array(cs, R_028A40_VGT_GS_MODE, SET(VgtGsModeGfx103));
@@ -2928,6 +3373,657 @@ static void gfx103_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_re
       set_context_reg_seq_array(cs, reg_offsets[i], 1, &reg_values[i]);
 }
 
+/**
+ * Emulate CLEAR_STATE. Additionally, initialize num_reg_pairs registers specified
+ * via reg_offsets and reg_values.
+ */
+static void gfx11_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_reg_pairs,
+                                      unsigned *reg_offsets, uint32_t *reg_values,
+                                      set_context_reg_seq_array_fn set_context_reg_seq_array)
+{
+   static const uint32_t DbRenderControlGfx11[] = {
+      0x0,        // DB_RENDER_CONTROL
+      0x0,        // DB_COUNT_CONTROL
+      0x0,        // DB_DEPTH_VIEW
+      0x0,        // DB_RENDER_OVERRIDE
+      0x0,        // DB_RENDER_OVERRIDE2
+      0x0,        // DB_HTILE_DATA_BASE
+      0x0,        //
+      0x0,        // DB_DEPTH_SIZE_XY
+      0x0,        // DB_DEPTH_BOUNDS_MIN
+      0x0,        // DB_DEPTH_BOUNDS_MAX
+      0x0,        // DB_STENCIL_CLEAR
+      0x0,        // DB_DEPTH_CLEAR
+      0x0,        // PA_SC_SCREEN_SCISSOR_TL
+      0x40004000, // PA_SC_SCREEN_SCISSOR_BR
+      0x0,        //
+      0x0,        // DB_RESERVED_REG_2
+      0x0,        // DB_Z_INFO
+      0x0,        // DB_STENCIL_INFO
+      0x0,        // DB_Z_READ_BASE
+      0x0,        // DB_STENCIL_READ_BASE
+      0x0,        // DB_Z_WRITE_BASE
+      0x0,        // DB_STENCIL_WRITE_BASE
+      0x0,        // DB_RESERVED_REG_1
+      0x0,        // DB_RESERVED_REG_3
+      0x0,        // DB_SPI_VRS_CENTER_LOCATION
+      0x0,        //
+      0x0,        // DB_Z_READ_BASE_HI
+      0x0,        // DB_STENCIL_READ_BASE_HI
+      0x0,        // DB_Z_WRITE_BASE_HI
+      0x0,        // DB_STENCIL_WRITE_BASE_HI
+      0x0,        // DB_HTILE_DATA_BASE_HI
+      0x0,        // DB_RMI_L2_CACHE_CONTROL
+      0x0,        // TA_BC_BASE_ADDR
+      0x0,        // TA_BC_BASE_ADDR_HI
+   };
+   static const uint32_t CoherDestBaseHi0Gfx11[] = {
+      0x0,        // COHER_DEST_BASE_HI_0
+      0x0,        // COHER_DEST_BASE_HI_1
+      0x0,        // COHER_DEST_BASE_HI_2
+      0x0,        // COHER_DEST_BASE_HI_3
+      0x0,        // COHER_DEST_BASE_2
+      0x0,        // COHER_DEST_BASE_3
+      0x0,        // PA_SC_WINDOW_OFFSET
+      0x80000000, // PA_SC_WINDOW_SCISSOR_TL
+      0x40004000, // PA_SC_WINDOW_SCISSOR_BR
+      0xffff,     // PA_SC_CLIPRECT_RULE
+      0x0,        // PA_SC_CLIPRECT_0_TL
+      0x40004000, // PA_SC_CLIPRECT_0_BR
+      0x0,        // PA_SC_CLIPRECT_1_TL
+      0x40004000, // PA_SC_CLIPRECT_1_BR
+      0x0,        // PA_SC_CLIPRECT_2_TL
+      0x40004000, // PA_SC_CLIPRECT_2_BR
+      0x0,        // PA_SC_CLIPRECT_3_TL
+      0x40004000, // PA_SC_CLIPRECT_3_BR
+      0xaa99aaaa, // PA_SC_EDGERULE
+      0x0,        // PA_SU_HARDWARE_SCREEN_OFFSET
+      0xffffffff, // CB_TARGET_MASK
+      0xffffffff, // CB_SHADER_MASK
+      0x80000000, // PA_SC_GENERIC_SCISSOR_TL
+      0x40004000, // PA_SC_GENERIC_SCISSOR_BR
+      0x0,        // COHER_DEST_BASE_0
+      0x0,        // COHER_DEST_BASE_1
+      0x80000000, // PA_SC_VPORT_SCISSOR_0_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_0_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_1_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_1_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_2_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_2_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_3_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_3_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_4_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_4_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_5_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_5_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_6_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_6_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_7_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_7_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_8_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_8_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_9_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_9_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_10_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_10_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_11_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_11_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_12_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_12_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_13_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_13_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_14_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_14_BR
+      0x80000000, // PA_SC_VPORT_SCISSOR_15_TL
+      0x40004000, // PA_SC_VPORT_SCISSOR_15_BR
+      0x0,        // PA_SC_VPORT_ZMIN_0
+      0x3f800000, // PA_SC_VPORT_ZMAX_0
+      0x0,        // PA_SC_VPORT_ZMIN_1
+      0x3f800000, // PA_SC_VPORT_ZMAX_1
+      0x0,        // PA_SC_VPORT_ZMIN_2
+      0x3f800000, // PA_SC_VPORT_ZMAX_2
+      0x0,        // PA_SC_VPORT_ZMIN_3
+      0x3f800000, // PA_SC_VPORT_ZMAX_3
+      0x0,        // PA_SC_VPORT_ZMIN_4
+      0x3f800000, // PA_SC_VPORT_ZMAX_4
+      0x0,        // PA_SC_VPORT_ZMIN_5
+      0x3f800000, // PA_SC_VPORT_ZMAX_5
+      0x0,        // PA_SC_VPORT_ZMIN_6
+      0x3f800000, // PA_SC_VPORT_ZMAX_6
+      0x0,        // PA_SC_VPORT_ZMIN_7
+      0x3f800000, // PA_SC_VPORT_ZMAX_7
+      0x0,        // PA_SC_VPORT_ZMIN_8
+      0x3f800000, // PA_SC_VPORT_ZMAX_8
+      0x0,        // PA_SC_VPORT_ZMIN_9
+      0x3f800000, // PA_SC_VPORT_ZMAX_9
+      0x0,        // PA_SC_VPORT_ZMIN_10
+      0x3f800000, // PA_SC_VPORT_ZMAX_10
+      0x0,        // PA_SC_VPORT_ZMIN_11
+      0x3f800000, // PA_SC_VPORT_ZMAX_11
+      0x0,        // PA_SC_VPORT_ZMIN_12
+      0x3f800000, // PA_SC_VPORT_ZMAX_12
+      0x0,        // PA_SC_VPORT_ZMIN_13
+      0x3f800000, // PA_SC_VPORT_ZMAX_13
+      0x0,        // PA_SC_VPORT_ZMIN_14
+      0x3f800000, // PA_SC_VPORT_ZMAX_14
+      0x0,        // PA_SC_VPORT_ZMIN_15
+      0x3f800000, // PA_SC_VPORT_ZMAX_15
+      0x0,        // PA_SC_RASTER_CONFIG
+      0x0,        // PA_SC_RASTER_CONFIG_1
+      0x0,        //
+      0x0,        // PA_SC_TILE_STEERING_OVERRIDE
+   };
+   static const uint32_t PaScVrsOverrideCntlGfx11[] = {
+      0x0,        // PA_SC_VRS_OVERRIDE_CNTL
+      0x0,        // PA_SC_VRS_RATE_FEEDBACK_BASE
+      0x0,        // PA_SC_VRS_RATE_FEEDBACK_BASE_EXT
+      0x0,        // PA_SC_VRS_RATE_FEEDBACK_SIZE_XY
+      0x0,        //
+      0x0,        // PA_SC_VRS_RATE_CACHE_CNTL
+   };
+   static const uint32_t PaScVrsRateBaseGfx11[] = {
+      0x0,        // PA_SC_VRS_RATE_BASE
+      0x0,        // PA_SC_VRS_RATE_BASE_EXT
+      0x0,        // PA_SC_VRS_RATE_SIZE_XY
+   };
+   static const uint32_t VgtMultiPrimIbResetIndxGfx11[] = {
+      0x0,        // VGT_MULTI_PRIM_IB_RESET_INDX
+      0x0,        // CB_RMI_GL2_CACHE_CONTROL
+      0x0,        // CB_BLEND_RED
+      0x0,        // CB_BLEND_GREEN
+      0x0,        // CB_BLEND_BLUE
+      0x0,        // CB_BLEND_ALPHA
+      0x0,        // CB_FDCC_CONTROL
+      0x0,        // CB_COVERAGE_OUT_CONTROL
+      0x0,        // DB_STENCIL_CONTROL
+      0x1000000,  // DB_STENCILREFMASK
+      0x1000000,  // DB_STENCILREFMASK_BF
+      0x0,        //
+      0x0,        // PA_CL_VPORT_XSCALE
+      0x0,        // PA_CL_VPORT_XOFFSET
+      0x0,        // PA_CL_VPORT_YSCALE
+      0x0,        // PA_CL_VPORT_YOFFSET
+      0x0,        // PA_CL_VPORT_ZSCALE
+      0x0,        // PA_CL_VPORT_ZOFFSET
+      0x0,        // PA_CL_VPORT_XSCALE_1
+      0x0,        // PA_CL_VPORT_XOFFSET_1
+      0x0,        // PA_CL_VPORT_YSCALE_1
+      0x0,        // PA_CL_VPORT_YOFFSET_1
+      0x0,        // PA_CL_VPORT_ZSCALE_1
+      0x0,        // PA_CL_VPORT_ZOFFSET_1
+      0x0,        // PA_CL_VPORT_XSCALE_2
+      0x0,        // PA_CL_VPORT_XOFFSET_2
+      0x0,        // PA_CL_VPORT_YSCALE_2
+      0x0,        // PA_CL_VPORT_YOFFSET_2
+      0x0,        // PA_CL_VPORT_ZSCALE_2
+      0x0,        // PA_CL_VPORT_ZOFFSET_2
+      0x0,        // PA_CL_VPORT_XSCALE_3
+      0x0,        // PA_CL_VPORT_XOFFSET_3
+      0x0,        // PA_CL_VPORT_YSCALE_3
+      0x0,        // PA_CL_VPORT_YOFFSET_3
+      0x0,        // PA_CL_VPORT_ZSCALE_3
+      0x0,        // PA_CL_VPORT_ZOFFSET_3
+      0x0,        // PA_CL_VPORT_XSCALE_4
+      0x0,        // PA_CL_VPORT_XOFFSET_4
+      0x0,        // PA_CL_VPORT_YSCALE_4
+      0x0,        // PA_CL_VPORT_YOFFSET_4
+      0x0,        // PA_CL_VPORT_ZSCALE_4
+      0x0,        // PA_CL_VPORT_ZOFFSET_4
+      0x0,        // PA_CL_VPORT_XSCALE_5
+      0x0,        // PA_CL_VPORT_XOFFSET_5
+      0x0,        // PA_CL_VPORT_YSCALE_5
+      0x0,        // PA_CL_VPORT_YOFFSET_5
+      0x0,        // PA_CL_VPORT_ZSCALE_5
+      0x0,        // PA_CL_VPORT_ZOFFSET_5
+      0x0,        // PA_CL_VPORT_XSCALE_6
+      0x0,        // PA_CL_VPORT_XOFFSET_6
+      0x0,        // PA_CL_VPORT_YSCALE_6
+      0x0,        // PA_CL_VPORT_YOFFSET_6
+      0x0,        // PA_CL_VPORT_ZSCALE_6
+      0x0,        // PA_CL_VPORT_ZOFFSET_6
+      0x0,        // PA_CL_VPORT_XSCALE_7
+      0x0,        // PA_CL_VPORT_XOFFSET_7
+      0x0,        // PA_CL_VPORT_YSCALE_7
+      0x0,        // PA_CL_VPORT_YOFFSET_7
+      0x0,        // PA_CL_VPORT_ZSCALE_7
+      0x0,        // PA_CL_VPORT_ZOFFSET_7
+      0x0,        // PA_CL_VPORT_XSCALE_8
+      0x0,        // PA_CL_VPORT_XOFFSET_8
+      0x0,        // PA_CL_VPORT_YSCALE_8
+      0x0,        // PA_CL_VPORT_YOFFSET_8
+      0x0,        // PA_CL_VPORT_ZSCALE_8
+      0x0,        // PA_CL_VPORT_ZOFFSET_8
+      0x0,        // PA_CL_VPORT_XSCALE_9
+      0x0,        // PA_CL_VPORT_XOFFSET_9
+      0x0,        // PA_CL_VPORT_YSCALE_9
+      0x0,        // PA_CL_VPORT_YOFFSET_9
+      0x0,        // PA_CL_VPORT_ZSCALE_9
+      0x0,        // PA_CL_VPORT_ZOFFSET_9
+      0x0,        // PA_CL_VPORT_XSCALE_10
+      0x0,        // PA_CL_VPORT_XOFFSET_10
+      0x0,        // PA_CL_VPORT_YSCALE_10
+      0x0,        // PA_CL_VPORT_YOFFSET_10
+      0x0,        // PA_CL_VPORT_ZSCALE_10
+      0x0,        // PA_CL_VPORT_ZOFFSET_10
+      0x0,        // PA_CL_VPORT_XSCALE_11
+      0x0,        // PA_CL_VPORT_XOFFSET_11
+      0x0,        // PA_CL_VPORT_YSCALE_11
+      0x0,        // PA_CL_VPORT_YOFFSET_11
+      0x0,        // PA_CL_VPORT_ZSCALE_11
+      0x0,        // PA_CL_VPORT_ZOFFSET_11
+      0x0,        // PA_CL_VPORT_XSCALE_12
+      0x0,        // PA_CL_VPORT_XOFFSET_12
+      0x0,        // PA_CL_VPORT_YSCALE_12
+      0x0,        // PA_CL_VPORT_YOFFSET_12
+      0x0,        // PA_CL_VPORT_ZSCALE_12
+      0x0,        // PA_CL_VPORT_ZOFFSET_12
+      0x0,        // PA_CL_VPORT_XSCALE_13
+      0x0,        // PA_CL_VPORT_XOFFSET_13
+      0x0,        // PA_CL_VPORT_YSCALE_13
+      0x0,        // PA_CL_VPORT_YOFFSET_13
+      0x0,        // PA_CL_VPORT_ZSCALE_13
+      0x0,        // PA_CL_VPORT_ZOFFSET_13
+      0x0,        // PA_CL_VPORT_XSCALE_14
+      0x0,        // PA_CL_VPORT_XOFFSET_14
+      0x0,        // PA_CL_VPORT_YSCALE_14
+      0x0,        // PA_CL_VPORT_YOFFSET_14
+      0x0,        // PA_CL_VPORT_ZSCALE_14
+      0x0,        // PA_CL_VPORT_ZOFFSET_14
+      0x0,        // PA_CL_VPORT_XSCALE_15
+      0x0,        // PA_CL_VPORT_XOFFSET_15
+      0x0,        // PA_CL_VPORT_YSCALE_15
+      0x0,        // PA_CL_VPORT_YOFFSET_15
+      0x0,        // PA_CL_VPORT_ZSCALE_15
+      0x0,        // PA_CL_VPORT_ZOFFSET_15
+      0x0,        // PA_CL_UCP_0_X
+      0x0,        // PA_CL_UCP_0_Y
+      0x0,        // PA_CL_UCP_0_Z
+      0x0,        // PA_CL_UCP_0_W
+      0x0,        // PA_CL_UCP_1_X
+      0x0,        // PA_CL_UCP_1_Y
+      0x0,        // PA_CL_UCP_1_Z
+      0x0,        // PA_CL_UCP_1_W
+      0x0,        // PA_CL_UCP_2_X
+      0x0,        // PA_CL_UCP_2_Y
+      0x0,        // PA_CL_UCP_2_Z
+      0x0,        // PA_CL_UCP_2_W
+      0x0,        // PA_CL_UCP_3_X
+      0x0,        // PA_CL_UCP_3_Y
+      0x0,        // PA_CL_UCP_3_Z
+      0x0,        // PA_CL_UCP_3_W
+      0x0,        // PA_CL_UCP_4_X
+      0x0,        // PA_CL_UCP_4_Y
+      0x0,        // PA_CL_UCP_4_Z
+      0x0,        // PA_CL_UCP_4_W
+      0x0,        // PA_CL_UCP_5_X
+      0x0,        // PA_CL_UCP_5_Y
+      0x0,        // PA_CL_UCP_5_Z
+      0x0,        // PA_CL_UCP_5_W
+   };
+   static const uint32_t SpiPsInputCntl0Gfx11[] = {
+      0x0,        // SPI_PS_INPUT_CNTL_0
+      0x0,        // SPI_PS_INPUT_CNTL_1
+      0x0,        // SPI_PS_INPUT_CNTL_2
+      0x0,        // SPI_PS_INPUT_CNTL_3
+      0x0,        // SPI_PS_INPUT_CNTL_4
+      0x0,        // SPI_PS_INPUT_CNTL_5
+      0x0,        // SPI_PS_INPUT_CNTL_6
+      0x0,        // SPI_PS_INPUT_CNTL_7
+      0x0,        // SPI_PS_INPUT_CNTL_8
+      0x0,        // SPI_PS_INPUT_CNTL_9
+      0x0,        // SPI_PS_INPUT_CNTL_10
+      0x0,        // SPI_PS_INPUT_CNTL_11
+      0x0,        // SPI_PS_INPUT_CNTL_12
+      0x0,        // SPI_PS_INPUT_CNTL_13
+      0x0,        // SPI_PS_INPUT_CNTL_14
+      0x0,        // SPI_PS_INPUT_CNTL_15
+      0x0,        // SPI_PS_INPUT_CNTL_16
+      0x0,        // SPI_PS_INPUT_CNTL_17
+      0x0,        // SPI_PS_INPUT_CNTL_18
+      0x0,        // SPI_PS_INPUT_CNTL_19
+      0x0,        // SPI_PS_INPUT_CNTL_20
+      0x0,        // SPI_PS_INPUT_CNTL_21
+      0x0,        // SPI_PS_INPUT_CNTL_22
+      0x0,        // SPI_PS_INPUT_CNTL_23
+      0x0,        // SPI_PS_INPUT_CNTL_24
+      0x0,        // SPI_PS_INPUT_CNTL_25
+      0x0,        // SPI_PS_INPUT_CNTL_26
+      0x0,        // SPI_PS_INPUT_CNTL_27
+      0x0,        // SPI_PS_INPUT_CNTL_28
+      0x0,        // SPI_PS_INPUT_CNTL_29
+      0x0,        // SPI_PS_INPUT_CNTL_30
+      0x0,        // SPI_PS_INPUT_CNTL_31
+      0x0,        // SPI_VS_OUT_CONFIG
+      0x0,        //
+      0x0,        // SPI_PS_INPUT_ENA
+      0x0,        // SPI_PS_INPUT_ADDR
+      0x0,        // SPI_INTERP_CONTROL_0
+      0x2,        // SPI_PS_IN_CONTROL
+      0x0,        // SPI_BARYC_SSAA_CNTL
+      0x0,        // SPI_BARYC_CNTL
+      0x0,        //
+      0x0,        // SPI_TMPRING_SIZE
+      0x0,        // SPI_GFX_SCRATCH_BASE_LO
+      0x0,        // SPI_GFX_SCRATCH_BASE_HI
+   };
+   static const uint32_t SpiShaderIdxFormatGfx11[] = {
+      0x0,        // SPI_SHADER_IDX_FORMAT
+      0x0,        // SPI_SHADER_POS_FORMAT
+      0x0,        // SPI_SHADER_Z_FORMAT
+      0x0,        // SPI_SHADER_COL_FORMAT
+   };
+   static const uint32_t SxPsDownconvertControlGfx11[] = {
+      0x0,        // SX_PS_DOWNCONVERT_CONTROL
+      0x0,        // SX_PS_DOWNCONVERT
+      0x0,        // SX_BLEND_OPT_EPSILON
+      0x0,        // SX_BLEND_OPT_CONTROL
+      0x0,        // SX_MRT0_BLEND_OPT
+      0x0,        // SX_MRT1_BLEND_OPT
+      0x0,        // SX_MRT2_BLEND_OPT
+      0x0,        // SX_MRT3_BLEND_OPT
+      0x0,        // SX_MRT4_BLEND_OPT
+      0x0,        // SX_MRT5_BLEND_OPT
+      0x0,        // SX_MRT6_BLEND_OPT
+      0x0,        // SX_MRT7_BLEND_OPT
+      0x0,        // CB_BLEND0_CONTROL
+      0x0,        // CB_BLEND1_CONTROL
+      0x0,        // CB_BLEND2_CONTROL
+      0x0,        // CB_BLEND3_CONTROL
+      0x0,        // CB_BLEND4_CONTROL
+      0x0,        // CB_BLEND5_CONTROL
+      0x0,        // CB_BLEND6_CONTROL
+      0x0,        // CB_BLEND7_CONTROL
+   };
+   static const uint32_t PaClPointXRadGfx11[] = {
+      0x0,        // PA_CL_POINT_X_RAD
+      0x0,        // PA_CL_POINT_Y_RAD
+      0x0,        // PA_CL_POINT_SIZE
+      0x0,        // PA_CL_POINT_CULL_RAD
+   };
+   static const uint32_t GeMaxOutputPerSubgroupGfx11[] = {
+      0x0,        // GE_MAX_OUTPUT_PER_SUBGROUP
+      0x0,        // DB_DEPTH_CONTROL
+      0x0,        // DB_EQAA
+      0x0,        // CB_COLOR_CONTROL
+      0x0,        // DB_SHADER_CONTROL
+      0x90000,    // PA_CL_CLIP_CNTL
+      0x4,        // PA_SU_SC_MODE_CNTL
+      0x0,        // PA_CL_VTE_CNTL
+      0x0,        // PA_CL_VS_OUT_CNTL
+      0x0,        // PA_CL_NANINF_CNTL
+      0x0,        // PA_SU_LINE_STIPPLE_CNTL
+      0x0,        // PA_SU_LINE_STIPPLE_SCALE
+      0x0,        // PA_SU_PRIM_FILTER_CNTL
+      0x0,        // PA_SU_SMALL_PRIM_FILTER_CNTL
+      0x0,        //
+      0x0,        // PA_CL_NGG_CNTL
+      0x0,        // PA_SU_OVER_RASTERIZATION_CNTL
+      0x0,        // PA_STEREO_CNTL
+      0x0,        // PA_STATE_STEREO_X
+      0x0,        // PA_CL_VRS_CNTL
+   };
+   static const uint32_t PaSuPointSizeGfx11[] = {
+      0x0,        // PA_SU_POINT_SIZE
+      0x0,        // PA_SU_POINT_MINMAX
+      0x0,        // PA_SU_LINE_CNTL
+      0x0,        // PA_SC_LINE_STIPPLE
+   };
+   static const uint32_t VgtHosMaxTessLevelGfx11[] = {
+      0x0,        // VGT_HOS_MAX_TESS_LEVEL
+      0x0,        // VGT_HOS_MIN_TESS_LEVEL
+   };
+   static const uint32_t PaScModeCntl0Gfx11[] = {
+      0x0,        // PA_SC_MODE_CNTL_0
+      0x0,        // PA_SC_MODE_CNTL_1
+      0x0,        // VGT_ENHANCE
+   };
+   static const uint32_t VgtPrimitiveidEnGfx11[] = {
+      0x0,        // VGT_PRIMITIVEID_EN
+   };
+   static const uint32_t VgtPrimitiveidResetGfx11[] = {
+      0x0,        // VGT_PRIMITIVEID_RESET
+   };
+   static const uint32_t VgtDrawPayloadCntlGfx11[] = {
+      0x0,        // VGT_DRAW_PAYLOAD_CNTL
+   };
+   static const uint32_t VgtEsgsRingItemsizeGfx11[] = {
+      0x0,        // VGT_ESGS_RING_ITEMSIZE
+      0x0,        //
+      0x0,        // VGT_REUSE_OFF
+      0x0,        //
+      0x0,        // DB_HTILE_SURFACE
+      0x0,        // DB_SRESULTS_COMPARE_STATE0
+      0x0,        // DB_SRESULTS_COMPARE_STATE1
+   };
+   static const uint32_t VgtStrmoutDrawOpaqueOffsetGfx11[] = {
+      0x0,        // VGT_STRMOUT_DRAW_OPAQUE_OFFSET
+      0x0,        // VGT_STRMOUT_DRAW_OPAQUE_BUFFER_FILLED_SIZE
+      0x0,        // VGT_STRMOUT_DRAW_OPAQUE_VERTEX_STRIDE
+      0x0,        //
+      0x0,        // VGT_GS_MAX_VERT_OUT
+   };
+   static const uint32_t GeNggSubgrpCntlGfx11[] = {
+      0x0,        // GE_NGG_SUBGRP_CNTL
+      0x0,        // VGT_TESS_DISTRIBUTION
+      0x0,        // VGT_SHADER_STAGES_EN
+      0x0,        // VGT_LS_HS_CONFIG
+   };
+   static const uint32_t VgtTfParamGfx11[] = {
+      0x0,        // VGT_TF_PARAM
+      0x0,        // DB_ALPHA_TO_MASK
+      0x0,        //
+      0x0,        // PA_SU_POLY_OFFSET_DB_FMT_CNTL
+      0x0,        // PA_SU_POLY_OFFSET_CLAMP
+      0x0,        // PA_SU_POLY_OFFSET_FRONT_SCALE
+      0x0,        // PA_SU_POLY_OFFSET_FRONT_OFFSET
+      0x0,        // PA_SU_POLY_OFFSET_BACK_SCALE
+      0x0,        // PA_SU_POLY_OFFSET_BACK_OFFSET
+      0x0,        // VGT_GS_INSTANCE_CNT
+   };
+   static const uint32_t PaScCentroidPriority0Gfx11[] = {
+      0x0,        // PA_SC_CENTROID_PRIORITY_0
+      0x0,        // PA_SC_CENTROID_PRIORITY_1
+      0x1000,     // PA_SC_LINE_CNTL
+      0x0,        // PA_SC_AA_CONFIG
+      0x5,        // PA_SU_VTX_CNTL
+      0x3f800000, // PA_CL_GB_VERT_CLIP_ADJ
+      0x3f800000, // PA_CL_GB_VERT_DISC_ADJ
+      0x3f800000, // PA_CL_GB_HORZ_CLIP_ADJ
+      0x3f800000, // PA_CL_GB_HORZ_DISC_ADJ
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_1
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_2
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_3
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_1
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_2
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_3
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_1
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_2
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_3
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_1
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_2
+      0x0,        // PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_3
+      0xffffffff, // PA_SC_AA_MASK_X0Y0_X1Y0
+      0xffffffff, // PA_SC_AA_MASK_X0Y1_X1Y1
+      0x0,        // PA_SC_SHADER_CONTROL
+      0x3,        // PA_SC_BINNER_CNTL_0
+      0x0,        // PA_SC_BINNER_CNTL_1
+      0x100000,   // PA_SC_CONSERVATIVE_RASTERIZATION_CNTL
+      0x0,        // PA_SC_NGG_MODE_CNTL
+      0x0,        // PA_SC_BINNER_CNTL_2
+   };
+   static const uint32_t CbColor0BaseGfx11[] = {
+      0x0,        // CB_COLOR0_BASE
+   };
+   static const uint32_t CbColor0ViewGfx11[] = {
+      0x0,        // CB_COLOR0_VIEW
+      0x0,        // CB_COLOR0_INFO
+      0x0,        // CB_COLOR0_ATTRIB
+      0x0,        // CB_COLOR0_DCC_CONTROL
+   };
+   static const uint32_t CbColor0DccBaseGfx11[] = {
+      0x0,        // CB_COLOR0_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR1_BASE
+   };
+   static const uint32_t CbColor1ViewGfx11[] = {
+      0x0,        // CB_COLOR1_VIEW
+      0x0,        // CB_COLOR1_INFO
+      0x0,        // CB_COLOR1_ATTRIB
+      0x0,        // CB_COLOR1_DCC_CONTROL
+   };
+   static const uint32_t CbColor1DccBaseGfx11[] = {
+      0x0,        // CB_COLOR1_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR2_BASE
+   };
+   static const uint32_t CbColor2ViewGfx11[] = {
+      0x0,        // CB_COLOR2_VIEW
+      0x0,        // CB_COLOR2_INFO
+      0x0,        // CB_COLOR2_ATTRIB
+      0x0,        // CB_COLOR2_DCC_CONTROL
+   };
+   static const uint32_t CbColor2DccBaseGfx11[] = {
+      0x0,        // CB_COLOR2_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR3_BASE
+   };
+   static const uint32_t CbColor3ViewGfx11[] = {
+      0x0,        // CB_COLOR3_VIEW
+      0x0,        // CB_COLOR3_INFO
+      0x0,        // CB_COLOR3_ATTRIB
+      0x0,        // CB_COLOR3_DCC_CONTROL
+   };
+   static const uint32_t CbColor3DccBaseGfx11[] = {
+      0x0,        // CB_COLOR3_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR4_BASE
+   };
+   static const uint32_t CbColor4ViewGfx11[] = {
+      0x0,        // CB_COLOR4_VIEW
+      0x0,        // CB_COLOR4_INFO
+      0x0,        // CB_COLOR4_ATTRIB
+      0x0,        // CB_COLOR4_DCC_CONTROL
+   };
+   static const uint32_t CbColor4DccBaseGfx11[] = {
+      0x0,        // CB_COLOR4_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR5_BASE
+   };
+   static const uint32_t CbColor5ViewGfx11[] = {
+      0x0,        // CB_COLOR5_VIEW
+      0x0,        // CB_COLOR5_INFO
+      0x0,        // CB_COLOR5_ATTRIB
+      0x0,        // CB_COLOR5_DCC_CONTROL
+   };
+   static const uint32_t CbColor5DccBaseGfx11[] = {
+      0x0,        // CB_COLOR5_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR6_BASE
+   };
+   static const uint32_t CbColor6ViewGfx11[] = {
+      0x0,        // CB_COLOR6_VIEW
+      0x0,        // CB_COLOR6_INFO
+      0x0,        // CB_COLOR6_ATTRIB
+      0x0,        // CB_COLOR6_DCC_CONTROL
+   };
+   static const uint32_t CbColor6DccBaseGfx11[] = {
+      0x0,        // CB_COLOR6_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR7_BASE
+   };
+   static const uint32_t CbColor7ViewGfx11[] = {
+      0x0,        // CB_COLOR7_VIEW
+      0x0,        // CB_COLOR7_INFO
+      0x0,        // CB_COLOR7_ATTRIB
+      0x0,        // CB_COLOR7_DCC_CONTROL
+   };
+   static const uint32_t CbColor7DccBaseGfx11[] = {
+      0x0,        // CB_COLOR7_DCC_BASE
+      0x0,        //
+      0x0,        // CB_COLOR0_BASE_EXT
+      0x0,        // CB_COLOR1_BASE_EXT
+      0x0,        // CB_COLOR2_BASE_EXT
+      0x0,        // CB_COLOR3_BASE_EXT
+      0x0,        // CB_COLOR4_BASE_EXT
+      0x0,        // CB_COLOR5_BASE_EXT
+      0x0,        // CB_COLOR6_BASE_EXT
+      0x0,        // CB_COLOR7_BASE_EXT
+   };
+   static const uint32_t CbColor0DccBaseExtGfx11[] = {
+      0x0,        // CB_COLOR0_DCC_BASE_EXT
+      0x0,        // CB_COLOR1_DCC_BASE_EXT
+      0x0,        // CB_COLOR2_DCC_BASE_EXT
+      0x0,        // CB_COLOR3_DCC_BASE_EXT
+      0x0,        // CB_COLOR4_DCC_BASE_EXT
+      0x0,        // CB_COLOR5_DCC_BASE_EXT
+      0x0,        // CB_COLOR6_DCC_BASE_EXT
+      0x0,        // CB_COLOR7_DCC_BASE_EXT
+      0x0,        // CB_COLOR0_ATTRIB2
+      0x0,        // CB_COLOR1_ATTRIB2
+      0x0,        // CB_COLOR2_ATTRIB2
+      0x0,        // CB_COLOR3_ATTRIB2
+      0x0,        // CB_COLOR4_ATTRIB2
+      0x0,        // CB_COLOR5_ATTRIB2
+      0x0,        // CB_COLOR6_ATTRIB2
+      0x0,        // CB_COLOR7_ATTRIB2
+      0x0,        // CB_COLOR0_ATTRIB3
+      0x0,        // CB_COLOR1_ATTRIB3
+      0x0,        // CB_COLOR2_ATTRIB3
+      0x0,        // CB_COLOR3_ATTRIB3
+      0x0,        // CB_COLOR4_ATTRIB3
+      0x0,        // CB_COLOR5_ATTRIB3
+      0x0,        // CB_COLOR6_ATTRIB3
+      0x0,        // CB_COLOR7_ATTRIB3
+   };
+
+   set_context_reg_seq_array(cs, R_028000_DB_RENDER_CONTROL, SET(DbRenderControlGfx11));
+   set_context_reg_seq_array(cs, R_0281E8_COHER_DEST_BASE_HI_0, SET(CoherDestBaseHi0Gfx11));
+   set_context_reg_seq_array(cs, R_0283D0_PA_SC_VRS_OVERRIDE_CNTL, SET(PaScVrsOverrideCntlGfx11));
+   set_context_reg_seq_array(cs, R_0283F0_PA_SC_VRS_RATE_BASE, SET(PaScVrsRateBaseGfx11));
+   set_context_reg_seq_array(cs, R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX, SET(VgtMultiPrimIbResetIndxGfx11));
+   set_context_reg_seq_array(cs, R_028644_SPI_PS_INPUT_CNTL_0, SET(SpiPsInputCntl0Gfx11));
+   set_context_reg_seq_array(cs, R_028708_SPI_SHADER_IDX_FORMAT, SET(SpiShaderIdxFormatGfx11));
+   set_context_reg_seq_array(cs, R_028750_SX_PS_DOWNCONVERT_CONTROL, SET(SxPsDownconvertControlGfx11));
+   set_context_reg_seq_array(cs, R_0287D4_PA_CL_POINT_X_RAD, SET(PaClPointXRadGfx11));
+   set_context_reg_seq_array(cs, R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP, SET(GeMaxOutputPerSubgroupGfx11));
+   set_context_reg_seq_array(cs, R_028A00_PA_SU_POINT_SIZE, SET(PaSuPointSizeGfx11));
+   set_context_reg_seq_array(cs, R_028A18_VGT_HOS_MAX_TESS_LEVEL, SET(VgtHosMaxTessLevelGfx11));
+   set_context_reg_seq_array(cs, R_028A48_PA_SC_MODE_CNTL_0, SET(PaScModeCntl0Gfx11));
+   set_context_reg_seq_array(cs, R_028A84_VGT_PRIMITIVEID_EN, SET(VgtPrimitiveidEnGfx11));
+   set_context_reg_seq_array(cs, R_028A8C_VGT_PRIMITIVEID_RESET, SET(VgtPrimitiveidResetGfx11));
+   set_context_reg_seq_array(cs, R_028A98_VGT_DRAW_PAYLOAD_CNTL, SET(VgtDrawPayloadCntlGfx11));
+   set_context_reg_seq_array(cs, R_028AAC_VGT_ESGS_RING_ITEMSIZE, SET(VgtEsgsRingItemsizeGfx11));
+   set_context_reg_seq_array(cs, R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET, SET(VgtStrmoutDrawOpaqueOffsetGfx11));
+   set_context_reg_seq_array(cs, R_028B4C_GE_NGG_SUBGRP_CNTL, SET(GeNggSubgrpCntlGfx11));
+   set_context_reg_seq_array(cs, R_028B6C_VGT_TF_PARAM, SET(VgtTfParamGfx11));
+   set_context_reg_seq_array(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, SET(PaScCentroidPriority0Gfx11));
+   set_context_reg_seq_array(cs, R_028C60_CB_COLOR0_BASE, SET(CbColor0BaseGfx11));
+   set_context_reg_seq_array(cs, R_028C6C_CB_COLOR0_VIEW, SET(CbColor0ViewGfx11));
+   set_context_reg_seq_array(cs, R_028C94_CB_COLOR0_DCC_BASE, SET(CbColor0DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028CA8_CB_COLOR1_VIEW, SET(CbColor1ViewGfx11));
+   set_context_reg_seq_array(cs, R_028CD0_CB_COLOR1_DCC_BASE, SET(CbColor1DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028CE4_CB_COLOR2_VIEW, SET(CbColor2ViewGfx11));
+   set_context_reg_seq_array(cs, R_028D0C_CB_COLOR2_DCC_BASE, SET(CbColor2DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028D20_CB_COLOR3_VIEW, SET(CbColor3ViewGfx11));
+   set_context_reg_seq_array(cs, R_028D48_CB_COLOR3_DCC_BASE, SET(CbColor3DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028D5C_CB_COLOR4_VIEW, SET(CbColor4ViewGfx11));
+   set_context_reg_seq_array(cs, R_028D84_CB_COLOR4_DCC_BASE, SET(CbColor4DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028D98_CB_COLOR5_VIEW, SET(CbColor5ViewGfx11));
+   set_context_reg_seq_array(cs, R_028DC0_CB_COLOR5_DCC_BASE, SET(CbColor5DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028DD4_CB_COLOR6_VIEW, SET(CbColor6ViewGfx11));
+   set_context_reg_seq_array(cs, R_028DFC_CB_COLOR6_DCC_BASE, SET(CbColor6DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028E10_CB_COLOR7_VIEW, SET(CbColor7ViewGfx11));
+   set_context_reg_seq_array(cs, R_028E38_CB_COLOR7_DCC_BASE, SET(CbColor7DccBaseGfx11));
+   set_context_reg_seq_array(cs, R_028C98_CB_COLOR0_DCC_BASE_EXT, SET(CbColor0DccBaseExtGfx11));
+
+   for (unsigned i = 0; i < num_reg_pairs; i++)
+      set_context_reg_seq_array(cs, reg_offsets[i], 1, &reg_values[i]);
+}
+
 void ac_emulate_clear_state(const struct radeon_info *info, struct radeon_cmdbuf *cs,
                             set_context_reg_seq_array_fn set_context_reg_seq_array)
 {
@@ -2935,11 +4031,13 @@ void ac_emulate_clear_state(const struct radeon_info *info, struct radeon_cmdbuf
    unsigned reg_offset = R_02835C_PA_SC_TILE_STEERING_OVERRIDE;
    uint32_t reg_value = info->pa_sc_tile_steering_override;
 
-   if (info->chip_class == GFX10_3) {
+   if (info->gfx_level >= GFX11) {
+      gfx11_emulate_clear_state(cs, 1, &reg_offset, &reg_value, set_context_reg_seq_array);
+   } else if (info->gfx_level == GFX10_3) {
       gfx103_emulate_clear_state(cs, 1, &reg_offset, &reg_value, set_context_reg_seq_array);
-   } else if (info->chip_class == GFX10) {
+   } else if (info->gfx_level == GFX10) {
       gfx10_emulate_clear_state(cs, 1, &reg_offset, &reg_value, set_context_reg_seq_array);
-   } else if (info->chip_class == GFX9) {
+   } else if (info->gfx_level == GFX9) {
       gfx9_emulate_clear_state(cs, set_context_reg_seq_array);
    } else {
       unreachable("unimplemented");
@@ -2949,7 +4047,7 @@ void ac_emulate_clear_state(const struct radeon_info *info, struct radeon_cmdbuf
 /* Debug helper to find if any registers are missing in the tables above.
  * Call this in the driver whenever you set a register.
  */
-void ac_check_shadowed_regs(enum chip_class chip_class, enum radeon_family family,
+void ac_check_shadowed_regs(enum amd_gfx_level gfx_level, enum radeon_family family,
                             unsigned reg_offset, unsigned count)
 {
    bool found = false;
@@ -2959,7 +4057,7 @@ void ac_check_shadowed_regs(enum chip_class chip_class, enum radeon_family famil
       const struct ac_reg_range *ranges;
       unsigned num_ranges;
 
-      ac_get_reg_ranges(chip_class, family, type, &num_ranges, &ranges);
+      ac_get_reg_ranges(gfx_level, family, type, &num_ranges, &ranges);
 
       for (unsigned i = 0; i < num_ranges; i++) {
          unsigned end_reg_offset = reg_offset + count * 4;
@@ -2982,10 +4080,10 @@ void ac_check_shadowed_regs(enum chip_class chip_class, enum radeon_family famil
    if (!found || !shadowed) {
       printf("register %s: ", !found ? "not found" : "not shadowed");
       if (count > 1) {
-         printf("%s .. %s\n", ac_get_register_name(chip_class, reg_offset),
-                ac_get_register_name(chip_class, reg_offset + (count - 1) * 4));
+         printf("%s .. %s\n", ac_get_register_name(gfx_level, reg_offset),
+                ac_get_register_name(gfx_level, reg_offset + (count - 1) * 4));
       } else {
-         printf("%s\n", ac_get_register_name(chip_class, reg_offset));
+         printf("%s\n", ac_get_register_name(gfx_level, reg_offset));
       }
    }
 }
@@ -3004,13 +4102,13 @@ void ac_print_shadowed_regs(const struct radeon_info *info)
       const struct ac_reg_range *ranges;
       unsigned num_ranges;
 
-      ac_get_reg_ranges(info->chip_class, info->family, type, &num_ranges, &ranges);
+      ac_get_reg_ranges(info->gfx_level, info->family, type, &num_ranges, &ranges);
 
       for (unsigned i = 0; i < num_ranges; i++) {
          for (unsigned j = 0; j < ranges[i].size / 4; j++) {
             unsigned offset = ranges[i].offset + j * 4;
 
-            const char *name = ac_get_register_name(info->chip_class, offset);
+            const char *name = ac_get_register_name(info->gfx_level, offset);
             unsigned value = -1;
 
 #ifndef _WIN32

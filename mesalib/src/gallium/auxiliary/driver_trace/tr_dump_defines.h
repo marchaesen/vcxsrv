@@ -53,6 +53,15 @@ trace_dump_query_type(unsigned value)
    trace_dump_enum(util_str_query_type(value, false));
 }
 
+static inline void
+trace_dump_query_flags(unsigned value)
+{
+   if (!trace_dumping_enabled_locked())
+      return;
+
+   trace_dump_enum(util_str_query_type(value, false));
+}
+
 
 
 #endif /* TR_DUMP_DEFINES_H_ */

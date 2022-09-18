@@ -34,10 +34,10 @@
  * https://github.com/freedreno/freedreno/wiki/Visibility-Stream-Format
  */
 
-enum {
+enum bits_per {
    byte = 8,
    dword = 4 * byte,
-} bits_per;
+};
 
 /**
  * Determine # of bits required to store a given number, see

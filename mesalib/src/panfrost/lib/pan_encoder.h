@@ -75,7 +75,7 @@ unsigned
 panfrost_get_total_stack_size(
                 unsigned thread_size,
                 unsigned threads_per_core,
-                unsigned core_count);
+                unsigned core_id_range);
 
 /* Attributes / instancing */
 
@@ -145,6 +145,7 @@ panfrost_flip_compare_func(enum mali_func f)
 
 }
 
+#if PAN_ARCH <= 7
 /* Compute shaders are invoked with a gl_NumWorkGroups X/Y/Z triplet. Vertex
  * shaders are invoked as (1, vertex_count, instance_count). Compute shaders
  * also have a gl_WorkGroupSize X/Y/Z triplet. These 6 values are packed
@@ -205,6 +206,7 @@ panfrost_pack_work_groups_compute(
                         MALI_SPLIT_MIN_EFFICIENT : cfg.workgroups_x_shift;
         }
 }
+#endif
 
 #if PAN_ARCH >= 5
 /* Format conversion */
@@ -228,5 +230,20 @@ panfrost_get_z_internal_format(enum pipe_format fmt)
 #endif
 
 #endif /* PAN_ARCH */
+
+#if PAN_ARCH >= 9
+static inline void
+panfrost_make_resource_table(struct panfrost_ptr base, unsigned index,
+                             mali_ptr address, unsigned resource_count)
+{
+        if (resource_count == 0)
+                return;
+
+        pan_pack(base.cpu + index * pan_size(RESOURCE), RESOURCE, cfg) {
+                cfg.address = address;
+                cfg.size = resource_count * pan_size(BUFFER);
+        }
+}
+#endif
 
 #endif

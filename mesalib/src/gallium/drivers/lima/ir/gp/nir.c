@@ -147,9 +147,6 @@ static gpir_node *gpir_node_find(gpir_block *block, nir_src *src,
 }
 
 static int nir_to_gpir_opcodes[nir_num_opcodes] = {
-   /* not supported */
-   [0 ... nir_last_opcode] = -1,
-
    [nir_op_fmul] = gpir_op_mul,
    [nir_op_fadd] = gpir_op_add,
    [nir_op_fneg] = gpir_op_neg,
@@ -188,7 +185,7 @@ static bool gpir_emit_alu(gpir_block *block, nir_instr *ni)
 
    int op = nir_to_gpir_opcodes[instr->op];
 
-   if (op < 0) {
+   if (op == gpir_op_unsupported) {
       gpir_error("unsupported nir_op: %s\n", nir_op_infos[instr->op].name);
       return false;
    }
@@ -427,7 +424,7 @@ static int gpir_glsl_type_size(enum glsl_base_type type)
 }
 
 static void gpir_print_shader_db(struct nir_shader *nir, gpir_compiler *comp,
-                                 struct pipe_debug_callback *debug)
+                                 struct util_debug_callback *debug)
 {
    const struct shader_info *info = &nir->info;
    char *shaderdb;
@@ -443,12 +440,12 @@ static void gpir_print_shader_db(struct nir_shader *nir, gpir_compiler *comp,
    if (lima_debug & LIMA_DEBUG_SHADERDB)
       fprintf(stderr, "SHADER-DB: %s\n", shaderdb);
 
-   pipe_debug_message(debug, SHADER_INFO, "%s", shaderdb);
+   util_debug_message(debug, SHADER_INFO, "%s", shaderdb);
    free(shaderdb);
 }
 
 bool gpir_compile_nir(struct lima_vs_compiled_shader *prog, struct nir_shader *nir,
-                      struct pipe_debug_callback *debug)
+                      struct util_debug_callback *debug)
 {
    nir_function_impl *func = nir_shader_get_entrypoint(nir);
    gpir_compiler *comp = gpir_compiler_create(prog, func->reg_alloc, func->ssa_alloc);

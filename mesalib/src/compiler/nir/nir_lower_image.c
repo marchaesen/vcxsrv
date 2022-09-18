@@ -45,17 +45,17 @@ lower_cube_size(nir_builder *b, nir_intrinsic_instr *intrin)
    nir_builder_instr_insert(b, &_2darray_size->instr);
 
    nir_ssa_def *size = nir_instr_ssa_def(&_2darray_size->instr);
-   nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS] = { NULL, };
+   nir_ssa_scalar comps[NIR_MAX_VEC_COMPONENTS] = { 0 };
    unsigned coord_comps = intrin->dest.ssa.num_components;
    for (unsigned c = 0; c < coord_comps; c++) {
       if (c == 2) {
-         comps[2] = nir_idiv(b, nir_channel(b, size, 2), nir_imm_int(b, 6));
+         comps[2] = nir_get_ssa_scalar(nir_idiv(b, nir_channel(b, size, 2), nir_imm_int(b, 6)), 0);
       } else {
-         comps[c] = nir_channel(b, size, c);
+         comps[c] = nir_get_ssa_scalar(size, c);
       }
    }
 
-   nir_ssa_def *vec = nir_vec(b, comps, intrin->dest.ssa.num_components);
+   nir_ssa_def *vec = nir_vec_scalars(b, comps, intrin->dest.ssa.num_components);
    nir_ssa_def_rewrite_uses(&intrin->dest.ssa, vec);
    nir_instr_remove(&intrin->instr);
    nir_instr_free(&intrin->instr);

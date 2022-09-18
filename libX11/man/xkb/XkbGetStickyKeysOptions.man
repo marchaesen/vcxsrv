@@ -32,13 +32,13 @@ XkbGetStickyKeysOptions \- Queries the current StickyKeys attributes for a keybo
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- options_rtrn
+.I options_rtrn
 backfilled with StickyKeys option mask
 .SH DESCRIPTION
 .LP

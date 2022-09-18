@@ -153,6 +153,7 @@ struct schedule_state {
 	void (*CalcScore)(struct schedule_instruction *);
 	long max_tex_group;
 	unsigned PrevBlockHasTex:1;
+	unsigned PrevBlockHasKil:1;
 	unsigned TEXCount;
 	unsigned Opt:1;
 };
@@ -1102,6 +1103,7 @@ static void emit_instruction(
 	for (tex_ptr = s->ReadyTEX; tex_ptr; tex_ptr = tex_ptr->NextReady) {
 		if (tex_ptr->Instruction->U.I.Opcode == RC_OPCODE_KIL) {
 			emit_all_tex(s, before);
+			s->PrevBlockHasKil = 1;
 			return;
 		}
 		tex_count++;
@@ -1112,7 +1114,7 @@ static void emit_instruction(
 
 	if (tex_count >= s->max_tex_group || max_score == -1
 		|| (s->TEXCount > 0 && tex_count == s->TEXCount)
-		|| (!s->C->is_r500 && tex_count > 0 && max_score == -1)) {
+		|| (tex_count > 0 && max_score < NO_OUTPUT_SCORE)) {
 		emit_all_tex(s, before);
 	} else {
 
@@ -1335,6 +1337,16 @@ void rc_pair_schedule(struct radeon_compiler *cc, void *user)
 		struct rc_instruction * first;
 
 		if (is_controlflow(inst)) {
+			/* The TexSemWait flag is already properly set for ALU
+			 * instructions using the results of normal TEX lookup,
+			 * however it was found empirically that TEXKIL also needs
+			 * synchronization with the control flow. This might not be optimal,
+			 * however the docs don't offer any guidance in this matter.
+			 */
+			if (s.PrevBlockHasKil) {
+				inst->U.I.TexSemWait = 1;
+				s.PrevBlockHasKil = 0;
+			}
 			inst = inst->Next;
 			continue;
 		}

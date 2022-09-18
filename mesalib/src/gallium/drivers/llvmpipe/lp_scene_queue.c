@@ -36,10 +36,10 @@
 #include "util/u_memory.h"
 #include "lp_scene_queue.h"
 #include "util/u_math.h"
+#include "lp_setup_context.h"
 
 
-
-#define SCENE_QUEUE_SIZE 4
+#define SCENE_QUEUE_SIZE MAX_SCENES
 
 
 

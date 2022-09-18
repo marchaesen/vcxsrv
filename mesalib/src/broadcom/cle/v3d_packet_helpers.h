@@ -24,87 +24,20 @@
 #ifndef MESA_V3D_PACKET_HELPERS_H
 #define MESA_V3D_PACKET_HELPERS_H
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <math.h>
-#include "util/u_math.h"
+#include "util/bitpack_helpers.h"
 
 #ifdef HAVE_VALGRIND
 #include <valgrind.h>
 #include <memcheck.h>
 #define VG(x) x
-#ifndef NDEBUG
-#define __gen_validate_value(x) VALGRIND_CHECK_MEM_IS_DEFINED(&(x), sizeof(x))
-#endif
 #else
 #define VG(x) ((void)0)
 #endif
 
-#ifndef __gen_validate_value
-#define __gen_validate_value(x)
-#endif
-/*
-#ifndef __gen_address_type
-#error #define __gen_address_type before including this file
-#endif
-
-#ifndef __gen_user_data
-#error #define __gen_combine_address before including this file
-#endif
-*/
-union __gen_value {
-   float f;
-   uint32_t dw;
-};
-
-static inline uint64_t
-__gen_mbo(uint32_t start, uint32_t end)
-{
-   return (~0ull >> (64 - (end - start + 1))) << start;
-}
-
-static inline uint64_t
-__gen_uint(uint64_t v, uint32_t start, uint32_t end)
-{
-   __gen_validate_value(v);
-
-#ifndef NDEBUG
-   const int width = end - start + 1;
-   if (width < 64) {
-      const uint64_t max = (1ull << width) - 1;
-      assert(v <= max);
-   }
-#endif
-
-   return v << start;
-}
-
-static inline uint64_t
-__gen_sint(int64_t v, uint32_t start, uint32_t end)
-{
-   const int width = end - start + 1;
-
-   __gen_validate_value(v);
-
-#ifndef NDEBUG
-   if (width < 64) {
-      const int64_t max = (1ll << (width - 1)) - 1;
-      const int64_t min = -(1ll << (width - 1));
-      assert(min <= v && v <= max);
-   }
-#endif
-
-   const uint64_t mask = ~0ull >> (64 - width);
-
-   return (v & mask) << start;
-}
-
 static inline uint64_t
 __gen_offset(uint64_t v, uint32_t start, uint32_t end)
 {
-   __gen_validate_value(v);
+   util_bitpack_validate_value(v);
 #ifndef NDEBUG
    uint64_t mask = (~0ull >> (64 - (end - start + 1))) << start;
 
@@ -112,50 +45,6 @@ __gen_offset(uint64_t v, uint32_t start, uint32_t end)
 #endif
 
    return v;
-}
-
-static inline uint32_t
-__gen_float(float v)
-{
-   __gen_validate_value(v);
-   return ((union __gen_value) { .f = (v) }).dw;
-}
-
-static inline uint64_t
-__gen_sfixed(float v, uint32_t start, uint32_t end, uint32_t fract_bits)
-{
-   __gen_validate_value(v);
-
-   const float factor = (1 << fract_bits);
-
-#ifndef NDEBUG
-   const float max = ((1 << (end - start)) - 1) / factor;
-   const float min = -(1 << (end - start)) / factor;
-   assert(min <= v && v <= max);
-#endif
-
-   const int64_t int_val = llroundf(v * factor);
-   const uint64_t mask = ~0ull >> (64 - (end - start + 1));
-
-   return (int_val & mask) << start;
-}
-
-static inline uint64_t
-__gen_ufixed(float v, uint32_t start, uint32_t end, uint32_t fract_bits)
-{
-   __gen_validate_value(v);
-
-   const float factor = (1 << fract_bits);
-
-#ifndef NDEBUG
-   const float max = ((1 << (end - start + 1)) - 1) / factor;
-   const float min = 0.0f;
-   assert(min <= v && v <= max);
-#endif
-
-   const uint64_t uint_val = llroundf(v * factor);
-
-   return uint_val << start;
 }
 
 static inline uint64_t

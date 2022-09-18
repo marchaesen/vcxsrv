@@ -312,9 +312,6 @@ ir_assignment::accept(ir_hierarchical_visitor *v)
    if (s != visit_continue)
       return (s == visit_continue_with_parent) ? visit_continue : s;
 
-   if (this->condition)
-      s = this->condition->accept(v);
-
    return (s == visit_stop) ? s : v->visit_leave(this);
 }
 

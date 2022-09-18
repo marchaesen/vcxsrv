@@ -33,10 +33,10 @@ integer value y
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set Y
 .TP
-.I \- y
+.I y
 new value to set
 .SH DESCRIPTION
 .LP

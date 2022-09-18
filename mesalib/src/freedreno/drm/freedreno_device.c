@@ -34,11 +34,14 @@
 #include "freedreno_priv.h"
 
 struct fd_device *msm_device_new(int fd, drmVersionPtr version);
+#if HAVE_FREEDRENO_VIRTIO
+struct fd_device *virtio_device_new(int fd, drmVersionPtr version);
+#endif
 
 struct fd_device *
 fd_device_new(int fd)
 {
-   struct fd_device *dev;
+   struct fd_device *dev = NULL;
    drmVersionPtr version;
 
    /* figure out if we are kgsl or msm drm driver: */
@@ -53,20 +56,25 @@ fd_device_new(int fd)
       if (version->version_major != 1) {
          ERROR_MSG("unsupported version: %u.%u.%u", version->version_major,
                    version->version_minor, version->version_patchlevel);
-         dev = NULL;
          goto out;
       }
 
       dev = msm_device_new(fd, version);
-      dev->version = version->version_minor;
+#if HAVE_FREEDRENO_VIRTIO
+   } else if (!strcmp(version->name, "virtio_gpu")) {
+      DEBUG_MSG("virtio_gpu DRM device");
+      dev = virtio_device_new(fd, version);
+#endif
 #if HAVE_FREEDRENO_KGSL
    } else if (!strcmp(version->name, "kgsl")) {
       DEBUG_MSG("kgsl DRM device");
       dev = kgsl_device_new(fd);
 #endif
-   } else {
-      ERROR_MSG("unknown device: %s", version->name);
-      dev = NULL;
+   }
+
+   if (!dev) {
+      INFO_MSG("unsupported device: %s", version->name);
+      goto out;
    }
 
 out:
@@ -106,6 +114,24 @@ fd_device_new_dup(int fd)
    return dev;
 }
 
+/* Convenience helper to open the drm device and return new fd_device:
+ */
+struct fd_device *
+fd_device_open(void)
+{
+   int fd;
+
+   fd = drmOpenWithType("msm", NULL, DRM_NODE_RENDER);
+#if HAVE_FREEDRENO_VIRTIO
+   if (fd < 0)
+      fd = drmOpenWithType("virtio_gpu", NULL, DRM_NODE_RENDER);
+#endif
+   if (fd < 0)
+      return NULL;
+
+   return fd_device_new(fd);
+}
+
 struct fd_device *
 fd_device_ref(struct fd_device *dev)
 {
@@ -125,8 +151,6 @@ fd_device_purge(struct fd_device *dev)
 static void
 fd_device_del_impl(struct fd_device *dev)
 {
-   int close_fd = dev->closefd ? dev->fd : -1;
-
    simple_mtx_assert_locked(&table_lock);
 
    assert(list_is_empty(&dev->deferred_submits));
@@ -136,11 +160,22 @@ fd_device_del_impl(struct fd_device *dev)
 
    fd_bo_cache_cleanup(&dev->bo_cache, 0);
    fd_bo_cache_cleanup(&dev->ring_cache, 0);
+
+   /* Needs to be after bo cache cleanup in case backend has a
+    * util_vma_heap that it destroys:
+    */
+   dev->funcs->destroy(dev);
+
    _mesa_hash_table_destroy(dev->handle_table, NULL);
    _mesa_hash_table_destroy(dev->name_table, NULL);
-   dev->funcs->destroy(dev);
-   if (close_fd >= 0)
-      close(close_fd);
+
+   if (util_queue_is_initialized(&dev->submit_queue))
+      util_queue_destroy(&dev->submit_queue);
+
+   if (dev->closefd)
+      close(dev->fd);
+
+   free(dev);
 }
 
 void
@@ -173,15 +208,12 @@ fd_device_version(struct fd_device *dev)
    return dev->version;
 }
 
+DEBUG_GET_ONCE_BOOL_OPTION(libgl, "LIBGL_DEBUG", false)
+
 bool
 fd_dbg(void)
 {
-   static int dbg;
-
-   if (!dbg)
-      dbg = getenv("LIBGL_DEBUG") ? 1 : -1;
-
-   return dbg == 1;
+   return debug_get_option_libgl();
 }
 
 bool

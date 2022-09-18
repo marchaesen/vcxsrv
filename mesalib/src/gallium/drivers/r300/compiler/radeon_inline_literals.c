@@ -28,6 +28,7 @@
 #include "radeon_dataflow.h"
 #include "radeon_program.h"
 #include "radeon_program_constants.h"
+#include "radeon_swizzle.h"
 #include "util/u_bitcast.h"
 #include <stdio.h>
 
@@ -104,26 +105,21 @@ void rc_inline_literals(struct radeon_compiler *c, void *user)
 		/* We aren't using rc_for_all_reads_src here, because presub
 		 * sources need to be handled differently. */
 		for (src_idx = 0; src_idx < info->NumSrcRegs; src_idx++) {
-			unsigned new_swizzle;
 			unsigned use_literal = 0;
-			unsigned negate_mask = 0;
 			unsigned swz, chan;
-			struct rc_src_register * src_reg =
-						&inst->U.I.SrcReg[src_idx];
-			swz = RC_SWIZZLE_UNUSED;
-			if (src_reg->File != RC_FILE_CONSTANT) {
+			struct rc_src_register src_reg = inst->U.I.SrcReg[src_idx];
+			if (src_reg.File != RC_FILE_CONSTANT) {
 				continue;
 			}
 			constant =
-				&c->Program.Constants.Constants[src_reg->Index];
+				&c->Program.Constants.Constants[src_reg.Index];
 			if (constant->Type != RC_CONSTANT_IMMEDIATE) {
 				continue;
 			}
-			new_swizzle = rc_init_swizzle(RC_SWIZZLE_UNUSED, 0);
 			for (chan = 0; chan < 4; chan++) {
 				unsigned char r300_float_tmp;
-				swz = GET_SWZ(src_reg->Swizzle, chan);
-				if (swz == RC_SWIZZLE_UNUSED) {
+				swz = GET_SWZ(src_reg.Swizzle, chan);
+				if (swz >= RC_SWIZZLE_ZERO) {
 					continue;
 				}
 				float_value = constant->u.Immediate[swz];
@@ -135,7 +131,7 @@ void rc_inline_literals(struct radeon_compiler *c, void *user)
 					break;
 				}
 
-				if (ret == -1 && src_reg->Abs) {
+				if (ret == -1 && src_reg.Abs) {
 					use_literal = 0;
 					break;
 				}
@@ -147,19 +143,18 @@ void rc_inline_literals(struct radeon_compiler *c, void *user)
 
 				/* Use RC_SWIZZLE_W for the inline constant, so
 				 * it will become one of the alpha sources. */
-				SET_SWZ(new_swizzle, chan, RC_SWIZZLE_W);
+				SET_SWZ(src_reg.Swizzle, chan, RC_SWIZZLE_W);
 				if (ret == -1) {
-					negate_mask |= (1 << chan);
+					src_reg.Negate ^= (1 << chan);
 				}
 			}
 
-			if (!use_literal) {
+			src_reg.File = RC_FILE_INLINE;
+			src_reg.Index = r300_float;
+			if (!use_literal || !c->SwizzleCaps->IsNative(inst->U.I.Opcode, src_reg)) {
 				continue;
 			}
-			src_reg->File = RC_FILE_INLINE;
-			src_reg->Index = r300_float;
-			src_reg->Swizzle = new_swizzle;
-			src_reg->Negate = src_reg->Negate ^ negate_mask;
+			inst->U.I.SrcReg[src_idx] = src_reg;
 		}
 	}
 }

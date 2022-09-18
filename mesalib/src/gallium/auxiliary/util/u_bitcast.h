@@ -31,8 +31,6 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "c99_compat.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

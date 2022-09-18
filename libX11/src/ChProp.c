@@ -45,16 +45,16 @@ XChangeProperty (
 
     LockDisplay(dpy);
     GetReq (ChangeProperty, req);
-    req->window = w;
-    req->property = property;
-    req->type = type;
-    req->mode = mode;
+    req->window = (CARD32) w;
+    req->property = (CARD32) property;
+    req->type = (CARD32) type;
+    req->mode = (CARD8) mode;
     if (nelements < 0) {
 	req->nUnits = 0;
 	req->format = 0; /* ask for garbage, get garbage */
     } else {
-	req->nUnits = nelements;
-	req->format = format;
+	req->nUnits = (CARD32) nelements;
+	req->format = (CARD8) format;
     }
 
     switch (req->format) {

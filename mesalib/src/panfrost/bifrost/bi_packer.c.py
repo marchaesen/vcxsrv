@@ -24,9 +24,14 @@ import sys
 from bifrost_isa import *
 from mako.template import Template
 
+# Consider pseudo instructions when getting the modifier list
+instructions_with_pseudo = parse_instructions(sys.argv[1], include_pseudo = True)
+ir_instructions_with_pseudo = partition_mnemonics(instructions_with_pseudo)
+modifier_lists = order_modifiers(ir_instructions_with_pseudo)
+
+# ...but strip for packing
 instructions = parse_instructions(sys.argv[1])
 ir_instructions = partition_mnemonics(instructions)
-modifier_lists = order_modifiers(ir_instructions)
 
 # Packs sources into an argument. Offset argument to work around a quirk of our
 # compiler IR when dealing with staging registers (TODO: reorder in the IR to

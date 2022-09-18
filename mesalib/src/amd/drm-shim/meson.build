@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 libradeon_noop_drm_shim = shared_library(
-  ['radeon_noop_drm_shim'],
+  'radeon_noop_drm_shim',
   'radeon_noop_drm_shim.c',
   include_directories: [inc_include, inc_src, inc_amd],
   dependencies: dep_drm_shim,

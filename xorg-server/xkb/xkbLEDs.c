@@ -38,7 +38,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <X11/extensions/XI.h>
 #include <xkbsrv.h>
-#include "xkb.h"
 
 /***====================================================================***/
 

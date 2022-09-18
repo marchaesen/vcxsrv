@@ -1706,6 +1706,10 @@ struct _glapi_table
    void (GLAPIENTRYP VertexAttribs4hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1655 */
    void (GLAPIENTRYP TexPageCommitmentARB)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLboolean commit); /* 1656 */
    void (GLAPIENTRYP TexturePageCommitmentEXT)(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLboolean commit); /* 1657 */
+   void (GLAPIENTRYP ImportMemoryWin32HandleEXT)(GLuint memory, GLuint64 size, GLenum handleType, GLvoid * handle); /* 1658 */
+   void (GLAPIENTRYP ImportSemaphoreWin32HandleEXT)(GLuint semaphore, GLenum handleType, GLvoid * handle); /* 1659 */
+   void (GLAPIENTRYP ImportMemoryWin32NameEXT)(GLuint memory, GLuint64 size, GLenum handleType, const GLvoid * name); /* 1660 */
+   void (GLAPIENTRYP ImportSemaphoreWin32NameEXT)(GLuint semaphore, GLenum handleType, const GLvoid * handle); /* 1661 */
 };
 
 #ifdef __cplusplus

@@ -51,6 +51,18 @@
  * lower register pressure.
  */
 
+static ALWAYS_INLINE bool
+src_is_ssa(nir_src *src, void *state)
+{
+   return src->is_ssa;
+}
+
+static ALWAYS_INLINE bool
+instr_reads_register(nir_instr *instr)
+{
+   return !nir_foreach_src(instr, src_is_ssa, NULL);
+}
+
 static bool
 nir_opt_move_block(nir_block *block, nir_move_options options)
 {
@@ -68,8 +80,15 @@ nir_opt_move_block(nir_block *block, nir_move_options options)
     * the original order is kept.
     */
    unsigned index =  1;
+   unsigned last_reg_def_index = 0;
    nir_foreach_instr_reverse_safe(instr, block) {
       instr->index = index++;
+
+      /* Don't move register defs  */
+      if (nir_instr_def_is_register(instr)) {
+         last_reg_def_index = instr->index;
+         continue;
+      }
 
       /* Check if this instruction can be moved downwards */
       if (!nir_can_move_instr(instr, options))
@@ -94,6 +113,12 @@ nir_opt_move_block(nir_block *block, nir_move_options options)
          /* check if the user is already the immediate successor */
          if (nir_instr_prev(first_user) == instr)
             continue;
+
+         /* Don't move register reads past register defs  */
+         if (first_user->index < last_reg_def_index &&
+             instr_reads_register(instr)) {
+            continue;
+         }
 
          /* Insert the instruction before it's first user */
          exec_node_remove(&instr->node);

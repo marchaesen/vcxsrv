@@ -726,7 +726,7 @@ XkbGetPerClientControls(Display *dpy, unsigned *ctrls)
 }
 
 Display *
-XkbOpenDisplay(char *name,
+XkbOpenDisplay(_Xconst char *name,
                int *ev_rtrn,
                int *err_rtrn,
                int *major_rtrn,

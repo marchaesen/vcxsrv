@@ -278,7 +278,7 @@ struct InstrPred {
       case Format::EXP:
       case Format::SOPP:
       case Format::PSEUDO_BRANCH:
-      case Format::PSEUDO_BARRIER: assert(false);
+      case Format::PSEUDO_BARRIER: unreachable("unsupported instruction format");
       default: return true;
       }
    }

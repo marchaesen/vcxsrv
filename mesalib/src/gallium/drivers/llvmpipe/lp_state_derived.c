@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2003 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 #include "util/u_math.h"
@@ -124,6 +124,18 @@ compute_vertex_info(struct llvmpipe_context *llvmpipe)
       }
    }
 
+   /*
+    * The new style front face is a system value, hence won't show up as
+    * ordinary fs register above. But we still need to assign a vs output
+    * location so draw can inject face info for unfilled tris.
+    */
+   if (llvmpipe->face_slot < 0 && fsInfo->uses_frontface) {
+      vs_index = draw_find_shader_output(llvmpipe->draw,
+                                         TGSI_SEMANTIC_FACE, 0);
+      llvmpipe->face_slot = (int)vinfo->num_attribs;
+      draw_emit_vertex_attr(vinfo, EMIT_4F, vs_index);
+   }
+
    /* Figure out if we need bcolor as well.
     */
    for (i = 0; i < 2; i++) {
@@ -174,7 +186,7 @@ compute_vertex_info(struct llvmpipe_context *llvmpipe)
 
 
 static void
-check_linear_rasterizer( struct llvmpipe_context *lp )
+check_linear_rasterizer(struct llvmpipe_context *lp)
 {
    boolean bgr8;
    boolean permit_linear;
@@ -182,7 +194,7 @@ check_linear_rasterizer( struct llvmpipe_context *lp )
    boolean clipping_changed = FALSE;
 
    bgr8 = (lp->framebuffer.nr_cbufs == 1 && lp->framebuffer.cbufs[0] &&
-           lp->framebuffer.cbufs[0]->texture->nr_samples == 1 &&
+           util_res_sample_count(lp->framebuffer.cbufs[0]->texture) == 1 &&
            lp->framebuffer.cbufs[0]->texture->target == PIPE_TEXTURE_2D &&
            (lp->framebuffer.cbufs[0]->format == PIPE_FORMAT_B8G8R8A8_UNORM ||
             lp->framebuffer.cbufs[0]->format == PIPE_FORMAT_B8G8R8X8_UNORM));
@@ -233,7 +245,8 @@ check_linear_rasterizer( struct llvmpipe_context *lp )
  * Handle state changes before clears.
  * Called just prior to clearing (pipe::clear()).
  */
-void llvmpipe_update_derived_clear( struct llvmpipe_context *llvmpipe )
+void
+llvmpipe_update_derived_clear(struct llvmpipe_context *llvmpipe)
 {
    if (llvmpipe->dirty & (LP_NEW_FS |
                           LP_NEW_FRAMEBUFFER))
@@ -248,7 +261,8 @@ void llvmpipe_update_derived_clear( struct llvmpipe_context *llvmpipe )
  * Hopefully this will remain quite simple, otherwise need to pull in
  * something like the gallium frontend mechanism.
  */
-void llvmpipe_update_derived( struct llvmpipe_context *llvmpipe )
+void
+llvmpipe_update_derived(struct llvmpipe_context *llvmpipe)
 {
    struct llvmpipe_screen *lp_screen = llvmpipe_screen(llvmpipe->pipe.screen);
 
@@ -305,7 +319,7 @@ void llvmpipe_update_derived( struct llvmpipe_context *llvmpipe )
    if (llvmpipe->dirty & (LP_NEW_FS |
                           LP_NEW_FRAMEBUFFER |
                           LP_NEW_RASTERIZER))
-      llvmpipe_update_setup( llvmpipe );
+      llvmpipe_update_setup(llvmpipe);
 
    if (llvmpipe->dirty & LP_NEW_SAMPLE_MASK)
       lp_setup_set_sample_mask(llvmpipe->setup, llvmpipe->sample_mask);
@@ -318,7 +332,7 @@ void llvmpipe_update_derived( struct llvmpipe_context *llvmpipe )
       lp_setup_set_scissors(llvmpipe->setup, llvmpipe->scissors);
 
    if (llvmpipe->dirty & LP_NEW_DEPTH_STENCIL_ALPHA) {
-      lp_setup_set_alpha_ref_value(llvmpipe->setup, 
+      lp_setup_set_alpha_ref_value(llvmpipe->setup,
                                    llvmpipe->depth_stencil->alpha_ref_value);
       lp_setup_set_stencil_ref_values(llvmpipe->setup,
                                       llvmpipe->stencil_ref.ref_value);
@@ -332,7 +346,7 @@ void llvmpipe_update_derived( struct llvmpipe_context *llvmpipe )
    if (llvmpipe->dirty & LP_NEW_FS_SSBOS)
       lp_setup_set_fs_ssbos(llvmpipe->setup,
                             ARRAY_SIZE(llvmpipe->ssbos[PIPE_SHADER_FRAGMENT]),
-                            llvmpipe->ssbos[PIPE_SHADER_FRAGMENT]);
+                            llvmpipe->ssbos[PIPE_SHADER_FRAGMENT], llvmpipe->fs_ssbo_write_mask);
 
    if (llvmpipe->dirty & LP_NEW_FS_IMAGES)
       lp_setup_set_fs_images(llvmpipe->setup,

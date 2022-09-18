@@ -34,13 +34,13 @@ XkbDeviceChangesRec
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to X server
 .TP
-.I \- device_info
+.I device_info
 local copy of device state and configuration
 .TP
-.I \- changes
+.I changes
 note specifying changes in device_info
 .SH DESCRIPTION
 .LP

@@ -10,7 +10,7 @@ The rendering tests have support for GL, GLES and Vulkan backends and test some
 rendering scenarios.
 And the unit tests check the GPU behavior without rendering images.
 
-Tests 
+Tests
 -----
 
 Render tests design
@@ -19,7 +19,7 @@ Render tests design
 It is worth noting that `rendertests.txt` can bring some detail about each test
 expectation, so each test can have a max pixel error count, to tell skqp that it
 is OK to have at most that number of errors for that test. See also:
-https://github.com/google/skia/blob/main/tools/skqp/README_ALGORITHM.md
+https://github.com/google/skia/blob/c29454d1c9ebed4758a54a69798869fa2e7a36e0/tools/skqp/README_ALGORITHM.md
 
 .. _test-location:
 

@@ -61,7 +61,6 @@ struct r600_shader_atomic {
 	unsigned start, end;
 	unsigned buffer_id;
 	unsigned hw_idx;
-	unsigned array_id;
 };
 
 struct r600_shader {
@@ -80,10 +79,6 @@ struct r600_shader {
 	boolean			fs_write_all;
 	boolean			two_side;
 	boolean			needs_scratch_space;
-	/* Number of color outputs in the TGSI shader,
-	 * sometimes it could be higher than nr_cbufs (bug?).
-	 * Also with writes_all property on eg+ it will be set to max CB number */
-	unsigned		nr_ps_max_color_exports;
 	/* Real number of ps color exports compiled in the bytecode */
 	unsigned		nr_ps_color_exports;
 	unsigned                ps_color_export_mask;
@@ -118,12 +113,15 @@ struct r600_shader {
 	unsigned                tes_as_es;
 	unsigned                tcs_prim_mode;
 	unsigned                ps_prim_id_input;
+	unsigned                num_loops;
+
 	struct r600_shader_array * arrays;
 
 	boolean			uses_doubles;
 	boolean                 uses_atomics;
 	boolean			uses_images;
 	boolean			uses_helper_invocation;
+	boolean			uses_interpolate_at_sample;
 	uint8_t                 atomic_base;
 	uint8_t			rat_base;
 	uint8_t                 image_size_const_offset;
@@ -176,6 +174,7 @@ struct r600_pipe_shader {
 	struct r600_resource	*bo;
 	unsigned		sprite_coord_enable;
 	unsigned		flatshade;
+	unsigned		msaa;
 	unsigned		pa_cl_vs_out_cntl;
 	unsigned		nr_ps_color_outputs;
 	unsigned                ps_color_export_mask;

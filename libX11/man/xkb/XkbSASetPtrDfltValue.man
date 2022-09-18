@@ -32,10 +32,10 @@ XkbSASetPtrDfltValue \- Sets the valueXXX field of act from val
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- act
+.I act
 action in which to set valueXXX
 .TP
-.I \- val
+.I val
 value to set in valueXXX
 .SH DESCRIPTION
 .LP

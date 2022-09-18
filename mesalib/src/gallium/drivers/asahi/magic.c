@@ -50,113 +50,256 @@ demo_zero(struct agx_pool *pool, unsigned count)
    return ptr.gpu;
 }
 
+static size_t
+asahi_size_resource(struct pipe_resource *prsrc, unsigned level)
+{
+   struct agx_resource *rsrc = agx_resource(prsrc);
+   size_t size = rsrc->layout.size_B;
+
+   if (rsrc->separate_stencil)
+      size += asahi_size_resource(&rsrc->separate_stencil->base, level);
+
+   return size;
+}
+
+static size_t
+asahi_size_surface(struct pipe_surface *surf)
+{
+   return asahi_size_resource(surf->texture, surf->u.tex.level);
+}
+
+static size_t
+asahi_size_attachments(struct pipe_framebuffer_state *framebuffer)
+{
+   size_t sum = 0;
+
+   for (unsigned i = 0; i < framebuffer->nr_cbufs; ++i)
+      sum += asahi_size_surface(framebuffer->cbufs[i]);
+
+   if (framebuffer->zsbuf)
+      sum += asahi_size_surface(framebuffer->zsbuf);
+
+   return sum;
+}
+
+static enum agx_iogpu_attachment_type
+asahi_classify_attachment(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   if (util_format_has_depth(desc))
+      return AGX_IOGPU_ATTACHMENT_TYPE_DEPTH;
+   else if (util_format_has_stencil(desc))
+      return AGX_IOGPU_ATTACHMENT_TYPE_STENCIL;
+   else
+      return AGX_IOGPU_ATTACHMENT_TYPE_COLOUR;
+}
+
+static uint64_t
+agx_map_surface_resource(struct pipe_surface *surf, struct agx_resource *rsrc)
+{
+   return agx_map_texture_gpu(rsrc, surf->u.tex.first_layer);
+}
+
+static uint64_t
+agx_map_surface(struct pipe_surface *surf)
+{
+   return agx_map_surface_resource(surf, agx_resource(surf->texture));
+}
+
+static void
+asahi_pack_iogpu_attachment(void *out, struct agx_resource *rsrc,
+                            struct pipe_surface *surf,
+                            unsigned total_size)
+{
+   /* We don't support layered rendering yet */
+   assert(surf->u.tex.first_layer == surf->u.tex.last_layer);
+
+   agx_pack(out, IOGPU_ATTACHMENT, cfg) {
+      cfg.type = asahi_classify_attachment(rsrc->base.format);
+      cfg.address = agx_map_surface_resource(surf, rsrc);
+      cfg.size = rsrc->layout.size_B;
+      cfg.percent = (100 * cfg.size) / total_size;
+   }
+}
+
+static unsigned
+asahi_pack_iogpu_attachments(void *out, struct pipe_framebuffer_state *framebuffer)
+{
+   unsigned total_attachment_size = asahi_size_attachments(framebuffer);
+   struct agx_iogpu_attachment_packed *attachments = out;
+   unsigned nr = 0;
+
+   for (unsigned i = 0; i < framebuffer->nr_cbufs; ++i) {
+      asahi_pack_iogpu_attachment(attachments + (nr++),
+                                  agx_resource(framebuffer->cbufs[i]->texture),
+                                  framebuffer->cbufs[i],
+                                  total_attachment_size);
+   }
+
+   if (framebuffer->zsbuf) {
+         struct agx_resource *rsrc = agx_resource(framebuffer->zsbuf->texture);
+
+         asahi_pack_iogpu_attachment(attachments + (nr++),
+                                     rsrc, framebuffer->zsbuf,
+                                     total_attachment_size);
+
+         if (rsrc->separate_stencil) {
+            asahi_pack_iogpu_attachment(attachments + (nr++),
+                                        rsrc->separate_stencil,
+                                        framebuffer->zsbuf,
+                                        total_attachment_size);
+         }
+   }
+
+   return nr;
+}
+
 unsigned
 demo_cmdbuf(uint64_t *buf, size_t size,
             struct agx_pool *pool,
+            struct pipe_framebuffer_state *framebuffer,
             uint64_t encoder_ptr,
             uint64_t encoder_id,
             uint64_t scissor_ptr,
-            unsigned width, unsigned height, unsigned bpp,
-            uint32_t pipeline_null,
+            uint64_t depth_bias_ptr,
             uint32_t pipeline_clear,
+            uint32_t pipeline_load,
             uint32_t pipeline_store,
-            uint64_t rt0,
-            bool clear_pipeline_textures)
+            bool clear_pipeline_textures,
+            unsigned clear_buffers,
+            double clear_depth,
+            unsigned clear_stencil)
 {
+   bool should_clear_depth = clear_buffers & PIPE_CLEAR_DEPTH;
+   bool should_clear_stencil = clear_buffers & PIPE_CLEAR_STENCIL;
+
    uint32_t *map = (uint32_t *) buf;
-   memset(map, 0, 474 * 4);
+   memset(map, 0, 518 * 4);
 
-   map[54] = 0x6b0003;
-   map[55] = 0x3a0012;
-   map[56] = 1;
+   uint64_t deflake_buffer = demo_zero(pool, 0x7e0);
+   uint64_t deflake_1 = deflake_buffer + 0x2a0;
+   uint64_t deflake_2 = deflake_buffer + 0x20;
 
-   map[106] = 1;
-   map[108] = 0x1c;
-   map[112] = 0xffffffff;
-   map[113] = 0xffffffff;
-   map[114] = 0xffffffff;
-
-   uint64_t unk_buffer = demo_zero(pool, 0x1000);
    uint64_t unk_buffer_2 = demo_zero(pool, 0x8000);
 
-   // This is a pipeline bind
-   map[156] = 0xffff8002 | (clear_pipeline_textures ? 0x210 : 0);
-   map[158] = pipeline_clear | 0x4;
-   map[163] = 0x12;
-   map[164] = pipeline_store | 0x4;
-   map[166] = scissor_ptr & 0xFFFFFFFF;
-   map[167] = scissor_ptr >> 32;
-   map[168] = unk_buffer & 0xFFFFFFFF;
-   map[169] = unk_buffer >> 32;
+   uint64_t depth_buffer = 0;
+   uint64_t stencil_buffer = 0;
 
-   map[220] = 4;
-   map[222] = 0xc000;
-   map[224] = width;
-   map[225] = height;
-   map[226] = unk_buffer_2 & 0xFFFFFFFF;
-   map[227] = unk_buffer_2 >> 32;
+   agx_pack(map + 160, IOGPU_INTERNAL_PIPELINES, cfg) {
+      cfg.clear_pipeline_bind = 0xffff8002 | (clear_pipeline_textures ? 0x210 : 0);
+      cfg.clear_pipeline = pipeline_clear;
 
-   float depth_clear = 1.0;
-   uint8_t stencil_clear = 0;
+      /* store pipeline used when entire frame completes */
+      cfg.store_pipeline_bind = 0x12;
+      cfg.store_pipeline = pipeline_store;
+      cfg.scissor_array = scissor_ptr;
+      cfg.depth_bias_array = depth_bias_ptr;
 
-   map[278] = fui(depth_clear);
-   map[279] = (0x3 << 8) | stencil_clear;
-   map[282] = 0x1000000;
-   map[284] = 0xffffffff;
-   map[285] = 0xffffffff;
-   map[286] = 0xffffffff;
+      if (framebuffer->zsbuf) {
+         struct pipe_surface *zsbuf = framebuffer->zsbuf;
+         const struct util_format_description *desc =
+            util_format_description(zsbuf->texture->format);
 
-   map[298] = 0xffff8212;
-   map[300] = pipeline_null | 0x4;
-   map[305] = 0x12;
-   map[306] = pipeline_store | 0x4;
-   map[352] = 1;
-   map[360] = 0x1c;
-   map[362] = encoder_id;
-   map[365] = 0xffffffff;
-   map[366] = 1;
+         cfg.depth_width = framebuffer->width;
+         cfg.depth_height = framebuffer->height;
 
-   uint64_t unk6 = demo_unk6(pool);
-   map[370] = unk6 & 0xFFFFFFFF;
-   map[371] = unk6 >> 32;
+         if (util_format_has_depth(desc)) {
+            depth_buffer = agx_map_surface(zsbuf);
 
-   map[374] = width;
-   map[375] = height;
-   map[376] = 1;
-   map[377] = 8;
-   map[378] = 8;
+            cfg.depth_reload = !should_clear_depth;
+            cfg.depth_flags |= 0x80000;
+            if (!should_clear_depth) cfg.depth_flags |= 0x8000;
+         } else {
+            stencil_buffer = agx_map_surface(zsbuf);
+            cfg.depth_flags |= 0x40000;
+            if (!should_clear_stencil) cfg.depth_flags |= 0x4000;
+         }
 
-   map[393] = 8;
-   map[394] = 32;
-   map[395] = 32;
-   map[396] = 1;
+         if (agx_resource(zsbuf->texture)->separate_stencil) {
+            stencil_buffer = agx_map_surface_resource(zsbuf,
+                  agx_resource(zsbuf->texture)->separate_stencil);
 
-   unsigned offset_unk = (458 * 4);
-   unsigned offset_attachments = (470 * 4);
-   unsigned nr_attachments = 1;
+            cfg.depth_flags |= 0x40000;
+            if (!should_clear_stencil) cfg.depth_flags |= 0x4000;
+         }
 
-   map[473] = nr_attachments;
+         cfg.depth_buffer_if_clearing = depth_buffer;
+         cfg.stencil_buffer = stencil_buffer;
 
-   /* A single attachment follows, depth/stencil have their own attachments */
-   agx_pack((map + (offset_attachments / 4) + 4), IOGPU_ATTACHMENT, cfg) {
-      cfg.address = rt0;
-      cfg.type = AGX_IOGPU_ATTACHMENT_TYPE_COLOUR;
-      cfg.size = width * height * 4;
-      cfg.percent = 100;
+         /* It's unclear how tile size is conveyed for depth/stencil targets,
+          * which interactions with mipmapping (for example of a 33x33
+          * depth/stencil attachment)
+          */
+         if (zsbuf->u.tex.level != 0)
+            unreachable("todo: mapping other levels");
+
+         cfg.depth_buffer = depth_buffer;
+         cfg.stencil_buffer_2 = stencil_buffer;
+      }
    }
+
+   agx_pack(map + 228, IOGPU_AUX_FRAMEBUFFER, cfg) {
+      cfg.width = framebuffer->width;
+      cfg.height = framebuffer->height;
+      cfg.pointer = unk_buffer_2;
+   }
+
+   agx_pack(map + 292, IOGPU_CLEAR_Z_S, cfg) {
+      cfg.set_when_reloading_z_or_s_1 = clear_pipeline_textures;
+
+      if (depth_buffer && !should_clear_depth) {
+         cfg.set_when_reloading_z_or_s_1 = true;
+         cfg.set_when_reloading_z_or_s_2 = true;
+      }
+
+      if (stencil_buffer && !should_clear_stencil) {
+         cfg.set_when_reloading_z_or_s_1 = true;
+         cfg.set_when_reloading_z_or_s_2 = true;
+      }
+
+      cfg.depth_clear_value = fui(clear_depth);
+      cfg.stencil_clear_value = clear_stencil & 0xff;
+
+      cfg.partial_reload_pipeline_bind = 0xffff8212;
+      cfg.partial_reload_pipeline = pipeline_load;
+
+      cfg.partial_store_pipeline_bind = 0x12;
+      cfg.partial_store_pipeline = pipeline_store;
+   }
+
+   agx_pack(map + 356, IOGPU_MISC, cfg) {
+      cfg.depth_buffer = depth_buffer;
+      cfg.stencil_buffer = stencil_buffer;
+      cfg.encoder_id = encoder_id;
+      cfg.unknown_buffer = demo_unk6(pool);
+      cfg.width = framebuffer->width;
+      cfg.height = framebuffer->height;
+      cfg.unk_80 = clear_pipeline_textures ? 0x0 : 0x1;
+   }
+
+   unsigned offset_unk = (484 * 4);
+   unsigned offset_attachments = (496 * 4);
+
+   unsigned nr_attachments =
+      asahi_pack_iogpu_attachments(map + (offset_attachments / 4) + 4,
+                                   framebuffer);
+
+   map[(offset_attachments / 4) + 3] = nr_attachments;
 
    unsigned total_size = offset_attachments + (AGX_IOGPU_ATTACHMENT_LENGTH * nr_attachments) + 16;
 
    agx_pack(map, IOGPU_HEADER, cfg) {
       cfg.total_size = total_size;
-      cfg.attachment_offset_1 = offset_attachments;
-      cfg.attachment_offset_2 = offset_attachments;
+      cfg.attachment_offset = offset_attachments;
       cfg.attachment_length = nr_attachments * AGX_IOGPU_ATTACHMENT_LENGTH;
       cfg.unknown_offset = offset_unk;
       cfg.encoder = encoder_ptr;
+      cfg.opengl_depth_clipping = true;
 
-      cfg.deflake_1 = demo_zero(pool, 0x540);
-      cfg.deflake_2 = demo_zero(pool, 0x280);
+      cfg.deflake_1 = deflake_1;
+      cfg.deflake_2 = deflake_2;
+      cfg.deflake_3 = deflake_buffer;
    }
 
    return total_size;
@@ -165,17 +308,23 @@ demo_cmdbuf(uint64_t *buf, size_t size,
 static struct agx_map_header
 demo_map_header(uint64_t cmdbuf_id, uint64_t encoder_id, unsigned cmdbuf_size, unsigned count)
 {
+   /* Structure: header followed by resource groups. For now, we use a single
+    * resource group for every resource. This could be optimized.
+    */
+   unsigned length = sizeof(struct agx_map_header);
+   length += count * sizeof(struct agx_map_entry);
+   assert(length < 0x10000);
+
    return (struct agx_map_header) {
       .cmdbuf_id = cmdbuf_id,
-      .unk2 = 0x1,
-      .unk3 = 0x528, // 1320
+      .segment_count = 1,
+      .length = length,
       .encoder_id = encoder_id,
-      .unk6 = 0x0,
-      .cmdbuf_size = cmdbuf_size,
-
-      /* +1 for the sentinel ending */
-      .nr_entries = count,
-      .nr_handles = count,
+      .kernel_commands_start_offset = 0,
+      .kernel_commands_end_offset = cmdbuf_size,
+      .total_resources = count,
+      .resource_group_count = count,
+      .unk = 0x8000,
    };
 }
 
@@ -194,10 +343,10 @@ demo_mem_map(void *map, size_t size, unsigned *handles, unsigned count,
    for (unsigned i = 0; i < count; ++i) {
 	   assert((entries + i) < end);
       entries[i] = (struct agx_map_entry) {
-         .indices = {handles[i]},
-         .unkAAA = 0x20,
-         .unkBBB = 0x1,
-         .unka = 0x1ffff,
+         .resource_id = { handles[i] },
+         .resource_unk = { 0x20 },
+         .resource_flags = { 0x1 },
+         .resource_count = 1
       };
    }
 }

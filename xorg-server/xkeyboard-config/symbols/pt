@@ -108,7 +108,7 @@ xkb_symbols "nativo" {
     key <AC02> { [            e,               E,             EuroSign,         EuroSign ] };
     key <AC03> { [            a,               A,                   ae,               AE ] };
     key <AC04> { [            o,               O,                   oe,               OE ] };
-    key <AC05> { [            u,               U,               oslash,         Ooblique ] };
+    key <AC05> { [            u,               U,               oslash,           Oslash ] };
     key <AC06> { [            m,               M,                   mu,               mu ] };
     key <AC07> { [            d,               D,                  eth,              ETH ] };
     key <AC08> { [            s,               S,               ssharp,       0x01001E9E ] };
@@ -205,7 +205,7 @@ xkb_symbols "colemak" {
     key <AC07>  { [         n,          N,            n,            N ] };
     key <AC08>  { [         e,          E,     EuroSign,         cent ] };
     key <AC09>  { [         i,          I,   rightarrow,     idotless ] };
-    key <AC10>  { [         o,          O,       oslash,     Ooblique ] };
+    key <AC10>  { [         o,          O,       oslash,       Oslash ] };
 
     key <AB01>  { [         z,          Z, guillemotleft,        less ] };
     key <AB02>  { [         x,          X, guillemotright,    greater ] };

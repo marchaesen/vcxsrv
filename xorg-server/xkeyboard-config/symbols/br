@@ -150,7 +150,7 @@ xkb_symbols "dvorak" {
     key <AC01> { [            a,               A,                   ae,               AE ] };
     key <AC02> { [            o,               O,                   oe,               OE ] };
     key <AC03> { [            e,               E,             EuroSign,         EuroSign ] };
-    key <AC04> { [            u,               U,               oslash,         Ooblique ] };
+    key <AC04> { [            u,               U,               oslash,           Oslash ] };
     key <AC05> { [            i,               I,             idotless,        Iabovedot ] };
     key <AC06> { [            d,               D,                  eth,              ETH ] };
     key <AC07> { [            h,               H,            leftarrow,        paragraph ] };
@@ -229,7 +229,7 @@ xkb_symbols "nativo" {
     key <AC02> { [            e,               E,             EuroSign,         EuroSign ] };
     key <AC03> { [            a,               A,                   ae,               AE ] };
     key <AC04> { [            o,               O,                   oe,               OE ] };
-    key <AC05> { [            u,               U,               oslash,         Ooblique ] };
+    key <AC05> { [            u,               U,               oslash,           Oslash ] };
     key <AC06> { [            m,               M,                   mu,               mu ] };
     key <AC07> { [            d,               D,                  eth,              ETH ] };
     key <AC08> { [            s,               S,               ssharp,            U1E9E ] };

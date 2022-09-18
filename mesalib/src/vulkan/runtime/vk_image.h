@@ -125,12 +125,85 @@ vk_image_subresource_level_count(const struct vk_image *image,
           image->mip_levels - range->baseMipLevel : range->levelCount;
 }
 
+static inline VkExtent3D
+vk_image_sanitize_extent(const struct vk_image *image,
+                         const VkExtent3D imageExtent)
+{
+   switch (image->image_type) {
+   case VK_IMAGE_TYPE_1D:
+      return (VkExtent3D) { imageExtent.width, 1, 1 };
+   case VK_IMAGE_TYPE_2D:
+      return (VkExtent3D) { imageExtent.width, imageExtent.height, 1 };
+   case VK_IMAGE_TYPE_3D:
+      return imageExtent;
+   default:
+      unreachable("invalid image type");
+   }
+}
+
+VkExtent3D
+vk_image_extent_to_elements(const struct vk_image *image, VkExtent3D extent);
+
+static inline VkOffset3D
+vk_image_sanitize_offset(const struct vk_image *image,
+                         const VkOffset3D imageOffset)
+{
+   switch (image->image_type) {
+   case VK_IMAGE_TYPE_1D:
+      return (VkOffset3D) { imageOffset.x, 0, 0 };
+   case VK_IMAGE_TYPE_2D:
+      return (VkOffset3D) { imageOffset.x, imageOffset.y, 0 };
+   case VK_IMAGE_TYPE_3D:
+      return imageOffset;
+   default:
+      unreachable("invalid image type");
+   }
+}
+
+VkOffset3D
+vk_image_offset_to_elements(const struct vk_image *image, VkOffset3D offset);
+
+struct vk_image_buffer_layout {
+   /**
+    * VkBufferImageCopy2::bufferRowLength or
+    * VkBufferImageCopy2::extent::width as needed.
+    */
+   uint32_t row_length;
+
+   /**
+    * VkBufferImageCopy2::bufferImageHeight or
+    * VkBufferImageCopy2::extent::height as needed.
+    */
+   uint32_t image_height;
+
+   /** Size of a single element (pixel or compressed block) in bytes */
+   uint32_t element_size_B;
+
+   /** Row stride in bytes */
+   uint32_t row_stride_B;
+
+   /** Image (or layer) stride in bytes
+    *
+    * For 1D or 2D array images, this is the stride in bytes between array
+    * slices.  For 3D images, this is the stride in bytes between fixed-Z
+    * slices.
+    */
+   uint64_t image_stride_B;
+};
+
+struct vk_image_buffer_layout
+vk_image_buffer_copy_layout(const struct vk_image *image,
+                            const VkBufferImageCopy2* region);
+
 struct vk_image_view {
    struct vk_object_base base;
 
    VkImageViewCreateFlags create_flags;
    struct vk_image *image;
    VkImageViewType view_type;
+
+   /** VkImageViewCreateInfo::format */
+   VkFormat format;
 
    /** Image view format, relative to the selected aspects
     *
@@ -158,7 +231,7 @@ struct vk_image_view {
     *     plane of the multi-planar format.  In this case, the format will be
     *     the plane-compatible format requested by the client.
     */
-   VkFormat format;
+   VkFormat view_format;
 
    /* Component mapping, aka swizzle
     *
@@ -199,25 +272,46 @@ struct vk_image_view {
    uint32_t base_array_layer;
    uint32_t layer_count;
 
+   /* VK_EXT_image_view_min_lod */
+   float min_lod;
+
    /* Image extent at LOD 0 */
    VkExtent3D extent;
 
    /* VK_KHR_maintenance2 */
    VkImageUsageFlags usage;
 };
+VK_DEFINE_NONDISP_HANDLE_CASTS(vk_image_view, base, VkImageView,
+                               VK_OBJECT_TYPE_IMAGE_VIEW);
 
 void vk_image_view_init(struct vk_device *device,
                         struct vk_image_view *image_view,
+                        bool driver_internal,
                         const VkImageViewCreateInfo *pCreateInfo);
 void vk_image_view_finish(struct vk_image_view *image_view);
 
 void *vk_image_view_create(struct vk_device *device,
+                           bool driver_internal,
                            const VkImageViewCreateInfo *pCreateInfo,
                            const VkAllocationCallbacks *alloc,
                            size_t size);
 void vk_image_view_destroy(struct vk_device *device,
                            const VkAllocationCallbacks *alloc,
                            struct vk_image_view *image_view);
+
+static inline VkImageSubresourceRange
+vk_image_view_subresource_range(const struct vk_image_view *view)
+{
+   VkImageSubresourceRange range = {
+      .aspectMask = view->aspects,
+      .baseMipLevel = view->base_mip_level,
+      .levelCount = view->level_count,
+      .baseArrayLayer = view->base_array_layer,
+      .layerCount = view->layer_count,
+   };
+
+   return range;
+}
 
 bool vk_image_layout_is_read_only(VkImageLayout layout,
                                   VkImageAspectFlagBits aspect);
@@ -226,9 +320,9 @@ bool vk_image_layout_is_depth_only(VkImageLayout layout);
 VkImageUsageFlags vk_image_layout_to_usage_flags(VkImageLayout layout,
                                                  VkImageAspectFlagBits aspect);
 
-VkImageLayout vk_att_ref_stencil_layout(const VkAttachmentReference2KHR *att_ref,
+VkImageLayout vk_att_ref_stencil_layout(const VkAttachmentReference2 *att_ref,
                                         const VkAttachmentDescription2 *attachments);
-VkImageLayout vk_att_desc_stencil_layout(const VkAttachmentDescription2KHR *att_desc,
+VkImageLayout vk_att_desc_stencil_layout(const VkAttachmentDescription2 *att_desc,
                                            bool final);
 
 #ifdef __cplusplus

@@ -164,6 +164,18 @@ option(
   description : 'build gallium "clover" OpenCL frontend.',
 )
 option(
+  'gallium-rusticl',
+  type : 'boolean',
+  value : false,
+  description : 'build gallium "rusticl" OpenCL frontend.',
+)
+option(
+  'gallium-windows-dll-name',
+  type : 'string',
+  value : 'libgallium_wgl',
+  description : 'name of gallium megadriver DLL built for Windows. defaults to libgallium_wgl.dll to match DRI',
+)
+option(
   'opencl-spirv',
   type : 'boolean',
   value : false,
@@ -192,7 +204,7 @@ option(
   'vulkan-drivers',
   type : 'array',
   value : ['auto'],
-  choices : ['auto', 'amd', 'broadcom', 'freedreno', 'intel', 'panfrost', 'swrast', 'virtio-experimental'],
+  choices : ['auto', 'amd', 'broadcom', 'freedreno', 'imagination-experimental', 'intel', 'intel_hasvk', 'microsoft-experimental', 'panfrost', 'swrast', 'virtio-experimental'],
   description : 'List of vulkan drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
@@ -200,6 +212,18 @@ option(
   type : 'boolean',
   value : false,
   description : 'use kgsl backend for freedreno vulkan driver',
+)
+option(
+  'freedreno-virtio',
+  type : 'boolean',
+  value : false,
+  description : 'use experimental virtio backend for freedreno (currently only gallium driver)',
+)
+option(
+  'imagination-srv',
+  type : 'boolean',
+  value : false,
+  description : 'Enable Services backend for Imagination Technologies vulkan driver',
 )
 option(
   'shader-cache',
@@ -212,15 +236,15 @@ option(
   'shader-cache-default',
   type : 'boolean',
   value : true,
-  description : 'If set to false, the feature is only activated when environment variable MESA_GLSL_CACHE_DISABLE is set to false',
+  description : 'If set to false, the feature is only activated when environment variable MESA_SHADER_CACHE_DISABLE is set to false',
 )
 option(
   'shader-cache-max-size',
   type : 'string',
   value : '',
-  description : '''Default value for MESA_GLSL_CACHE_MAX_SIZE enviroment variable.
+  description : '''Default value for MESA_SHADER_CACHE_MAX_SIZE enviroment variable.
    If set, determines the maximum size of the on-disk cache of compiled
-   GLSL programs, can be overriden by enviroment variable if needed. Should be set to a number optionally followed by
+   shader programs, can be overriden by enviroment variable if needed. Should be set to a number optionally followed by
    ``K``, ``M``, or ``G`` to specify a size in kilobytes, megabytes, or
    gigabytes. By default, gigabytes will be assumed. And if unset, a
    maximum size of 1GB will be used.'''
@@ -345,7 +369,7 @@ option(
 option(
   'draw-use-llvm',
   type : 'boolean',
-  value : 'true',
+  value : true,
   description : 'Whether to use LLVM for the Gallium draw module, if LLVM is included.'
 )
 option(
@@ -374,6 +398,12 @@ option(
   type : 'boolean',
   value : false,
   description : 'Build unit tests. Currently this will build *all* unit tests except the ACO tests, which may build more than expected.'
+)
+option(
+  'enable-glcpp-tests',
+  type : 'boolean',
+  value : true,
+  description : 'Build glcpp unit tests. These are flaky on CI.'
 )
 option(
   'build-aco-tests',
@@ -408,16 +438,16 @@ option(
 option(
   'osmesa-bits',
   type : 'combo',
-  value : '8',
-  choices : ['8', '16', '32'],
-  description : 'Number of channel bits for OSMesa.'
+  value : 'unspecified',
+  choices : ['unspecified', '8', '16', '32'],
+  description : 'DEPRECATED: Number of channel bits for OSMesa.'
 )
 
 option(
   'tools',
   type : 'array',
   value : [],
-  choices : ['drm-shim', 'etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'lima', 'panfrost', 'asahi', 'all', 'dlclose-skip'],
+  choices : ['drm-shim', 'etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'lima', 'panfrost', 'asahi', 'imagination', 'all', 'dlclose-skip'],
   description : 'List of tools to build. (Note: `intel-ui` selects `intel`)',
 )
 option(
@@ -455,7 +485,7 @@ option(
   'platform-sdk-version',
   type : 'integer',
   min : 25,
-  max : 31,
+  max : 10000,
   value : 25,
   description : 'Android Platform SDK version. Default: Nougat version.'
 )
@@ -508,4 +538,39 @@ option(
   type : 'boolean',
   value : false,
   description : 'Build vulkan drivers with BETA extensions enabled.'
+)
+option(
+  'intel-clc',
+  type : 'feature',
+  value : 'disabled',
+  description : 'Build the intel-clc compiler (required for ray queries).'
+)
+option(
+  'video-codecs',
+  type : 'array',
+  value : [],
+  choices: [
+    'vc1dec', 'h264dec', 'h264enc', 'h265dec', 'h265enc'
+  ],
+  description : 'List of patent encumbered codecs to build support for. Distros might want to consult their legal department before enabling these. This is used for all video APIs (vaapi, vdpau, vulkan). Non-patent encumbered codecs will be enabled by default.'
+)
+option(
+  'gallium-d3d12-video',
+  type : 'feature',
+  value : 'auto',
+  description : 'build gallium d3d12 with video support.',
+)
+option(
+  'radv-build-id',
+  type : 'string',
+  value : '',
+  description : 'Override build id for shader cache keys (hex string). Can be extracted with readelf -x .note.gnu.build-id'
+)
+option(
+  'min-windows-version',
+  type : 'integer',
+  min : 7,
+  max : 11,
+  value : 8,
+  description : 'Minimum Windows version to support. Defaults to Windows 8.'
 )

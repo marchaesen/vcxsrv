@@ -1,0 +1,232 @@
+%YAML 1.2
+---
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  glmark2/desktop:windows=4:effect=blur:blur-radius=5:passes=1:separable=true-v2.trace:
+    gl-virgl:
+      label: [crash]
+      text: |-
+        ../src/dispatch_common.c:858: epoxy_get_proc_address:
+        Assertion `0 && Couldn't find current GLX or EGL context.\n' failed.
+  glmark2/jellyfish-v2.trace:
+    gl-virgl:
+      checksum: 9b6a4191680b2e75f4089b69b31a75b8
+  glxgears/glxgears-2-v2.trace:
+    gl-virgl:
+      checksum: f53ac20e17da91c0359c31f2fa3f401e
+  gputest/furmark-v2.trace:
+    gl-virgl:
+      checksum: c377f21f7bfaca0c04983612e7c9a7bb
+  gputest/pixmark-piano-v2.trace:
+    gl-virgl:
+      checksum: f2338b10aebf05d7c10d805852d2e774
+  gputest/triangle-v2.trace:
+    gl-virgl:
+      checksum: 5f694874b15bcd7a3689b387c143590b
+  humus/Portals-v2.trace:
+    gl-virgl:
+      checksum: 32e8b627a33ad08d416dfdb804920371
+  0ad/0ad-v2.trace:
+    gl-virgl:
+      checksum: 784d20f0166ef66b4b65f25f2858a5ee
+  glmark2/buffer:update-fraction=0.5:update-dispersion=0.9:columns=200:update-method=map:interleave=false-v2.trace:
+    gl-virgl:
+      checksum: 64c12e5b89aef72c95184e860c6a70a2
+  glmark2/buffer:update-fraction=0.5:update-dispersion=0.9:columns=200:update-method=subdata:interleave=false-v2.trace:
+    gl-virgl:
+      checksum: dbe8fc3027495c3c433ff2638b789314
+  glmark2/buffer:update-fraction=0.5:update-dispersion=0.9:columns=200:update-method=map:interleave=true-v2.trace:
+    gl-virgl:
+      checksum: 7dd3d9b641333dcd4fba4e04d0c20f93
+  glmark2/bump:bump-render=height-v2.trace:
+    gl-virgl:
+      checksum: cd32f46925906c53fae747372a8f2ed8
+  glmark2/bump:bump-render=high-poly-v2.trace:
+    gl-virgl:
+      checksum: 11b7a4820b452934e6f12b57b8910a9a
+  glmark2/bump:bump-render=normals-v2.trace:
+    gl-virgl:
+      checksum: 822a9f45a9eb10f28dba5fd7b750ead5
+  glmark2/conditionals:vertex-steps=0:fragment-steps=0-v2.trace:
+    gl-virgl:
+      checksum: 70cd4a7a8ae25177bc4a2e3044c44c2d
+  glmark2/conditionals:vertex-steps=0:fragment-steps=5-v2.trace:
+    gl-virgl:
+      checksum: ef659484c57854a3fedb54c4f5b3983e
+  glmark2/conditionals:vertex-steps=5:fragment-steps=0-v2.trace:
+    gl-virgl:
+      checksum: 0ee6864cc2c68cf767ffa773a1f81b6f
+  glmark2/desktop:windows=4:effect=shadow-v2.trace:
+    gl-virgl:
+      checksum: fb613653ec149be57cafa29f8e077b59
+  glmark2/effect2d:kernel=0,1,0;1,-4,1;0,1,0;-v2.trace:
+    gl-virgl:
+      checksum: e3677a85bc346a9bd52a6569d17bbe6e
+  glmark2/effect2d:kernel=1,1,1,1,1;1,1,1,1,1;1,1,1,1,1;-v2.trace:
+    gl-virgl:
+      checksum: b80963dae6ecf40c83bfb16943ef1011
+  glmark2/function:fragment-steps=5:fragment-complexity=low-v2.trace:
+    gl-virgl:
+      checksum: 8fa0f14154ac1ec8162ea8a0d5f26092
+  glmark2/function:fragment-steps=5:fragment-complexity=medium-v2.trace:
+    gl-virgl:
+      checksum: 2ead7a061d05a6431c0efd076cb8731a
+  glmark2/build:use-vbo=false-v2.trace:
+    gl-virgl:
+      checksum: cf8ee908ffab16537acf899cd31698d3
+  glmark2/build:use-vbo=true-v2.trace:
+    gl-virgl:
+      checksum: ef075cad089512504539bdb4139190f5
+  glmark2/ideas:speed=10000-v2.trace:
+    gl-virgl:
+      checksum: 61683b2126c758375fdc75d7e6e34720
+  glmark2/loop:vertex-steps=5:fragment-steps=5:fragment-loop=false-v2.trace:
+    gl-virgl:
+      checksum: 6c5675c503aec910095e57f0390d0311
+  glmark2/loop:vertex-steps=5:fragment-steps=5:fragment-uniform=false-v2.trace:
+    gl-virgl:
+      checksum: 35521cba43b8c537f335bf65a31b6492
+  glmark2/loop:vertex-steps=5:fragment-steps=5:fragment-uniform=true-v2.trace:
+    gl-virgl:
+      checksum: 314cebc76c8eb24bc4a453ac7b85e6a7
+  glmark2/pulsar:quads=5:texture=false:light=false-v2.trace:
+    gl-virgl:
+      checksum: 36596dbbd11804a538790c19ff05622d
+  glmark2/refract-v2.trace:
+    gl-virgl:
+      checksum: 99f8afc6528241cb0dc013a038179118
+  glmark2/shading:shading=blinn-phong-inf-v2.trace:
+    gl-virgl:
+      checksum: 3b1bfe5792425fb989df394d248ad16a
+  glmark2/shading:shading=cel-v2.trace:
+    gl-virgl:
+      checksum: adf3d3fd63b94dff23312fad6939e789
+  glmark2/shading:shading=gouraud-v2.trace:
+    gl-virgl:
+      checksum: 76d7f65e289f474a7024a44152252aa8
+  glmark2/shading:shading=phong-v2.trace:
+    gl-virgl:
+      checksum: 6714070f3b88fdf1446abb2550f3264a
+  glmark2/shadow-v2.trace:
+    gl-virgl:
+      checksum: 5d152ef79b699de16dfc1e2c72951346
+  glmark2/texture:texture-filter=linear-v2.trace:
+    gl-virgl:
+      checksum: 4ca969ae421ae34ba90a833ecf0052c8
+  glmark2/texture:texture-filter=mipmap-v2.trace:
+    gl-virgl:
+      checksum: f335d1e56904d576631e5393b0eedff1
+  glmark2/texture:texture-filter=nearest-v2.trace:
+    gl-virgl:
+      checksum: cac64fd2e5d61123b30ab744f9471dc6
+  gputest/gimark-v2.trace:
+    gl-virgl:
+      label: [crash]
+  gputest/pixmark-julia-fp32-v2.trace:
+    gl-virgl:
+      checksum: fbf5e44a6f46684b84e5bb5ad6d36c67
+  gputest/pixmark-julia-fp64-v2.trace:
+    gl-virgl:
+      checksum: 1760aea00af985b8cd902128235b08f6
+  gputest/pixmark-volplosion-v2.trace:
+    gl-virgl:
+      checksum: 00642d04fd37eca519d07f7f345f6b9c
+  gputest/plot3d-v2.trace:
+    gl-virgl:
+      checksum: 56f11d133f72712a6df13855ec00cdb0
+  gputest/tessmark-v2.trace:
+    gl-virgl:
+      label: [skip, slow]
+  humus/AmbientAperture-v2.trace:
+    gl-virgl:
+      checksum: b8e7c0ab1c14345023ae55619ce345d2
+  humus/CelShading-v2.trace:
+    gl-virgl:
+      checksum: 04b500b7a56d01ab35661bebd82d35bc
+  humus/DynamicBranching3-v2.trace:
+    gl-virgl:
+      checksum: 491dd7e374069b7da45e4306b523587f
+  humus/HDR-v2.trace:
+    gl-virgl:
+      checksum: 52a31cbc5dc5c08d80c8ff1287f99652
+  humus/RaytracedShadows-v2.trace:
+    gl-virgl:
+      checksum: 2cd1b0f0f336bd5a2cd485a795f04620
+  humus/VolumetricFogging2-v2.trace:
+    gl-virgl:
+      checksum: 7946d847e0d381495db96e25f4cfa0f6
+  itoral-gl-terrain-demo/demo-v2.trace:
+    gl-virgl:
+      label: [crash]
+      checksum: eb35b96d94ff1eda37aae5e5cc505bad
+      text: virtio_gpu OOM
+  neverball/neverball-v2.trace:
+    gl-virgl:
+      checksum: f481391fd77e7339a44fe73304fce2f8
+  pathfinder/canvas_moire-v2.trace:
+    gl-virgl:
+      checksum: 1706229fca06c1d7946ebc94e3b0a66d
+  pathfinder/canvas_text_v2-v2.trace:
+    gl-virgl:
+      checksum: c824fcadd028eba50d9911ebe1a3f823
+  pathfinder/demo-v2.trace:
+    gl-virgl:
+      checksum: 558c3d2b1b7acc782b3908c579ce0ce8
+  paraview/pv-manyspheres-v2.trace:
+    gl-virgl:
+      label: [crash]
+      text: |-
+        src/mesa/main/arrayobj.c:800:_mesa_update_vao_derived_arrays: Assertion
+        `attrib->_EffRelativeOffset < binding->Stride failed. running these.
+  paraview/pv-waveletcontour-v2.trace:
+    gl-virgl:
+      label: [crash]
+  paraview/pv-waveletvolume-v2.trace:
+    gl-virgl:
+      checksum: b36c25e52624cbf8dab73b6acecb8e84
+  supertuxkart/supertuxkart-mansion-egl-gles-v2.trace:
+    gl-virgl:
+      checksum: 5f09cbda043d1b6ee41ab287209e903d
+  xonotic/xonotic-keybench-high-v2.trace:
+    gl-virgl:
+      checksum: 181424f3afd256108be63d8ea0669b6b
+  valve/counterstrike-v2.trace:
+    gl-virgl:
+      label: [skip, flakes]
+      text: does look correct, but change checksum very often
+  valve/counterstrike-source-v2.trace:
+    gl-virgl:
+      checksum: 8b9e1ea0bf139dfb825d44bd1fda85a5
+  valve/half-life-2-v2.trace:
+    gl-virgl:
+      checksum: 89f93a1000a8b1245c4114a20f398453
+  valve/portal-2-v2.trace:
+    gl-virgl:
+      checksum: a10392dbca5b15cc76468a3a819b9d4d
+  supertuxkart/supertuxkart-antediluvian-abyss.rdc:
+    gl-virgl:
+      label: [crash]
+  supertuxkart/supertuxkart-menu.rdc:
+    gl-virgl:
+      label: [crash]
+  supertuxkart/supertuxkart-ravenbridge-mansion.rdc:
+    gl-virgl:
+      label: [crash]
+  godot/Material Testers.x86_64_2020.04.08_13.38_frame799.rdc:
+    gl-virgl:
+      checksum: 447cdd1fbb713ed04e4cf00b483916b0
+  ror/ror-default.trace:
+    gl-virgl:
+      label: [crash]
+      text: |-
+        ../src/mesa/main/arrayobj.c:800:_mesa_update_vao_derived_arrays:
+        Assertion `attrib->_EffRelativeOffset < binding->Stride' failed.
+  nheko/nheko-colors.trace:
+    gl-virgl:
+      label: [no-perf]
+      checksum: 9877fc41ce761c9ce15561b12ef77c27
+  warzone2100/warzone2100-default.trace:
+    gl-virgl:
+      checksum: dacc6414458f9bc8f0c4db53d6c8ed45

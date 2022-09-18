@@ -147,7 +147,10 @@ MESA_UTIL_FILES := \
         u_qsort.cpp \
 	u_debug_describe.c \
 	indices/u_primconvert.c \
-	u_indices_gen.c
+	u_indices_gen.c \
+	u_dl.c \
+        u_worklist.c \
+        streaming-load-memcpy.c
 
 
 MESA_UTIL_GENERATED_FILES = \

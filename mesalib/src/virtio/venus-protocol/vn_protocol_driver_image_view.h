@@ -64,6 +64,59 @@ vn_encode_VkImageViewUsageCreateInfo(struct vn_cs_encoder *enc, const VkImageVie
     vn_encode_VkImageViewUsageCreateInfo_self(enc, val);
 }
 
+/* struct VkImageViewMinLodCreateInfoEXT chain */
+
+static inline size_t
+vn_sizeof_VkImageViewMinLodCreateInfoEXT_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkImageViewMinLodCreateInfoEXT_self(const VkImageViewMinLodCreateInfoEXT *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_float(&val->minLod);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkImageViewMinLodCreateInfoEXT(const VkImageViewMinLodCreateInfoEXT *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkImageViewMinLodCreateInfoEXT_pnext(val->pNext);
+    size += vn_sizeof_VkImageViewMinLodCreateInfoEXT_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkImageViewMinLodCreateInfoEXT_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkImageViewMinLodCreateInfoEXT_self(struct vn_cs_encoder *enc, const VkImageViewMinLodCreateInfoEXT *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_float(enc, &val->minLod);
+}
+
+static inline void
+vn_encode_VkImageViewMinLodCreateInfoEXT(struct vn_cs_encoder *enc, const VkImageViewMinLodCreateInfoEXT *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT });
+    vn_encode_VkImageViewMinLodCreateInfoEXT_pnext(enc, val->pNext);
+    vn_encode_VkImageViewMinLodCreateInfoEXT_self(enc, val);
+}
+
 /* struct VkImageViewCreateInfo chain */
 
 static inline size_t
@@ -85,6 +138,14 @@ vn_sizeof_VkImageViewCreateInfo_pnext(const void *val)
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkImageViewCreateInfo_pnext(pnext->pNext);
             size += vn_sizeof_VkSamplerYcbcrConversionInfo_self((const VkSamplerYcbcrConversionInfo *)pnext);
+            return size;
+        case VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(392 /* VK_EXT_image_view_min_lod */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkImageViewCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkImageViewMinLodCreateInfoEXT_self((const VkImageViewMinLodCreateInfoEXT *)pnext);
             return size;
         default:
             /* ignore unknown/unsupported struct */
@@ -140,6 +201,14 @@ vn_encode_VkImageViewCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkImageViewCreateInfo_pnext(enc, pnext->pNext);
             vn_encode_VkSamplerYcbcrConversionInfo_self(enc, (const VkSamplerYcbcrConversionInfo *)pnext);
+            return;
+        case VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(392 /* VK_EXT_image_view_min_lod */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkImageViewCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkImageViewMinLodCreateInfoEXT_self(enc, (const VkImageViewMinLodCreateInfoEXT *)pnext);
             return;
         default:
             /* ignore unknown/unsupported struct */

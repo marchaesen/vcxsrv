@@ -7,7 +7,6 @@
 PUBLIC const __DRIextension **__driDriverGetExtensions_##drivername(void);       \
 PUBLIC const __DRIextension **__driDriverGetExtensions_##drivername(void) \
 {                                                                         \
-   globalDriverAPI = &galliumdrm_driver_api;                              \
    return galliumdrm_driver_extensions;                                   \
 }
 
@@ -17,7 +16,6 @@ PUBLIC const __DRIextension **__driDriverGetExtensions_swrast(void);
 
 PUBLIC const __DRIextension **__driDriverGetExtensions_swrast(void)
 {
-   globalDriverAPI = &galliumsw_driver_api;
    return galliumsw_driver_extensions;
 }
 
@@ -27,8 +25,7 @@ const __DRIextension **__driDriverGetExtensions_kms_swrast(void);
 
 PUBLIC const __DRIextension **__driDriverGetExtensions_kms_swrast(void)
 {
-   globalDriverAPI = &dri_kms_driver_api;
-   return galliumdrm_driver_extensions;
+   return dri_swrast_kms_driver_extensions;
 }
 
 #endif
@@ -71,7 +68,7 @@ DEFINE_LOADER_DRM_ENTRYPOINT(msm)
 DEFINE_LOADER_DRM_ENTRYPOINT(kgsl)
 #endif
 
-#if defined(GALLIUM_VIRGL)
+#if defined(GALLIUM_VIRGL) || (defined(GALLIUM_FREEDRENO) && !defined(PIPE_LOADER_DYNAMIC))
 DEFINE_LOADER_DRM_ENTRYPOINT(virtio_gpu)
 #endif
 
@@ -103,6 +100,7 @@ DEFINE_LOADER_DRM_ENTRYPOINT(ili9225)
 DEFINE_LOADER_DRM_ENTRYPOINT(ili9341)
 DEFINE_LOADER_DRM_ENTRYPOINT(imx_drm)
 DEFINE_LOADER_DRM_ENTRYPOINT(imx_dcss)
+DEFINE_LOADER_DRM_ENTRYPOINT(imx_lcdif)
 DEFINE_LOADER_DRM_ENTRYPOINT(ingenic_drm)
 DEFINE_LOADER_DRM_ENTRYPOINT(kirin)
 DEFINE_LOADER_DRM_ENTRYPOINT(komeda)
@@ -127,7 +125,16 @@ DEFINE_LOADER_DRM_ENTRYPOINT(lima)
 #endif
 
 #if defined(GALLIUM_ZINK) && !defined(__APPLE__)
+#if defined(ANDROID)
 DEFINE_LOADER_DRM_ENTRYPOINT(zink);
+#else
+const __DRIextension **__driDriverGetExtensions_zink(void);
+
+PUBLIC const __DRIextension **__driDriverGetExtensions_zink(void)
+{
+   return galliumvk_driver_extensions;
+}
+#endif
 #endif
 
 #if defined(GALLIUM_D3D12)

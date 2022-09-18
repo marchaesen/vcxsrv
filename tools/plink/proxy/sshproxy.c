@@ -10,6 +10,7 @@
 #include "ssh.h"
 #include "network.h"
 #include "storage.h"
+#include "proxy.h"
 
 const bool ssh_proxy_supported = true;
 
@@ -100,12 +101,20 @@ static void sshproxy_write_eof(Socket *s)
 
 static void try_send_ssh_to_socket(void *ctx);
 
+static void try_send_ssh_to_socket_cb(void *ctx)
+{
+    SshProxy *sp = (SshProxy *)ctx;
+    try_send_ssh_to_socket(sp);
+    if (sp->backend)
+        backend_unthrottle(sp->backend, bufchain_size(&sp->ssh_to_socket));
+}
+
 static void sshproxy_set_frozen(Socket *s, bool is_frozen)
 {
     SshProxy *sp = container_of(s, SshProxy, sock);
     sp->frozen = is_frozen;
     if (!sp->frozen)
-        queue_toplevel_callback(try_send_ssh_to_socket, sp);
+        queue_toplevel_callback(try_send_ssh_to_socket_cb, sp);
 }
 
 static const char *sshproxy_socket_error(Socket *s)
@@ -246,8 +255,15 @@ static size_t sshproxy_output(Seat *seat, SeatOutputType type,
                               const void *data, size_t len)
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
-    bufchain_add(&sp->ssh_to_socket, data, len);
-    try_send_ssh_to_socket(sp);
+    switch (type) {
+      case SEAT_OUTPUT_STDOUT:
+        bufchain_add(&sp->ssh_to_socket, data, len);
+        try_send_ssh_to_socket(sp);
+        break;
+      case SEAT_OUTPUT_STDERR:
+        log_proxy_stderr(sp->plug, &sp->psb, data, len);
+        break;
+    }
     return bufchain_size(&sp->ssh_to_socket);
 }
 
@@ -389,9 +405,17 @@ static void sshproxy_connection_fatal(Seat *seat, const char *message)
     }
 }
 
+static void sshproxy_nonfatal(Seat *seat, const char *message)
+{
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+    if (sp->clientseat)
+        seat_nonfatal(sp->clientseat, "error in proxy SSH connection: %s",
+                      message);
+}
+
 static SeatPromptResult sshproxy_confirm_ssh_host_key(
     Seat *seat, const char *host, int port, const char *keytype,
-    char *keystr, const char *keydisp, char **key_fingerprints, bool mismatch,
+    char *keystr, SeatDialogText *text, HelpCtx helpctx,
     void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
@@ -402,8 +426,8 @@ static SeatPromptResult sshproxy_confirm_ssh_host_key(
          * request on to it.
          */
         return seat_confirm_ssh_host_key(
-            wrap(sp->clientseat), host, port, keytype, keystr, keydisp,
-            key_fingerprints, mismatch, callback, ctx);
+            wrap(sp->clientseat), host, port, keytype, keystr, text,
+            helpctx, callback, ctx);
     }
 
     /*
@@ -415,8 +439,8 @@ static SeatPromptResult sshproxy_confirm_ssh_host_key(
 }
 
 static SeatPromptResult sshproxy_confirm_weak_crypto_primitive(
-        Seat *seat, const char *algtype, const char *algname,
-        void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
+    Seat *seat, const char *algtype, const char *algname,
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
 
@@ -441,8 +465,8 @@ static SeatPromptResult sshproxy_confirm_weak_crypto_primitive(
 }
 
 static SeatPromptResult sshproxy_confirm_weak_cached_hostkey(
-        Seat *seat, const char *algname, const char *betteralgs,
-        void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
+    Seat *seat, const char *algname, const char *betteralgs,
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
 
@@ -464,6 +488,20 @@ static SeatPromptResult sshproxy_confirm_weak_cached_hostkey(
                    algname);
     return SPR_SW_ABORT("Noninteractive SSH proxy cannot confirm "
                         "weak cached host key");
+}
+
+static const SeatDialogPromptDescriptions *sshproxy_prompt_descriptions(
+    Seat *seat)
+{
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+
+    /* If we have a client seat, return their prompt descriptions, so
+     * that prompts passed on to them will make sense. */
+    if (sp->clientseat)
+        return seat_prompt_descriptions(sp->clientseat);
+
+    /* Otherwise, it doesn't matter what we return, so do the easiest thing. */
+    return nullseat_prompt_descriptions(NULL);
 }
 
 static StripCtrlChars *sshproxy_stripctrl_new(
@@ -511,12 +549,14 @@ static const SeatVtable SshProxy_seat_vt = {
     .notify_remote_exit = nullseat_notify_remote_exit,
     .notify_remote_disconnect = sshproxy_notify_remote_disconnect,
     .connection_fatal = sshproxy_connection_fatal,
+    .nonfatal = sshproxy_nonfatal,
     .update_specials_menu = nullseat_update_specials_menu,
     .get_ttymode = nullseat_get_ttymode,
     .set_busy_status = nullseat_set_busy_status,
     .confirm_ssh_host_key = sshproxy_confirm_ssh_host_key,
     .confirm_weak_crypto_primitive = sshproxy_confirm_weak_crypto_primitive,
     .confirm_weak_cached_hostkey = sshproxy_confirm_weak_cached_hostkey,
+    .prompt_descriptions = sshproxy_prompt_descriptions,
     .is_utf8 = nullseat_is_never_utf8,
     .echoedit_update = nullseat_echoedit_update,
     .get_x_display = nullseat_get_x_display,
@@ -628,12 +668,53 @@ Socket *sshproxy_new_connection(SockAddr *addr, const char *hostname,
      */
     conf_set_bool(sp->conf, CONF_ssh_simple, true);
 
+    int proxy_type = conf_get_int(clientconf, CONF_proxy_type);
+    switch (proxy_type) {
+      case PROXY_SSH_TCPIP:
+        /*
+         * Configure the main channel of this SSH session to be a
+         * direct-tcpip connection to the destination host/port.
+         */
+        conf_set_str(sp->conf, CONF_ssh_nc_host, hostname);
+        conf_set_int(sp->conf, CONF_ssh_nc_port, port);
+        break;
+
+      case PROXY_SSH_SUBSYSTEM:
+      case PROXY_SSH_EXEC: {
+        Conf *cmd_conf = conf_copy(clientconf);
+
+        /*
+         * Unlike the Telnet and Local proxy types, we don't use the
+         * proxy username and password fields in the formatted
+         * command, because if we use them at all, it's for
+         * authenticating to the proxy SSH server.
+         */
+        conf_set_str(cmd_conf, CONF_proxy_username, "");
+        conf_set_str(cmd_conf, CONF_proxy_password, "");
+
+        char *cmd = format_telnet_command(sp->addr, sp->port, cmd_conf, NULL);
+        conf_free(cmd_conf);
+
+        conf_set_str(sp->conf, CONF_remote_cmd, cmd);
+        sfree(cmd);
+
+        conf_set_bool(sp->conf, CONF_nopty, true);
+
+        if (proxy_type == PROXY_SSH_SUBSYSTEM)
+            conf_set_bool(sp->conf, CONF_ssh_subsys, true);
+
+        break;
+      }
+
+      default:
+        unreachable("bad SSH proxy type");
+    }
+
     /*
-     * Configure the main channel of this SSH session to be a
-     * direct-tcpip connection to the destination host/port.
+     * Do the usual normalisation of things in the Conf like a "user@"
+     * prefix on the hostname field.
      */
-    conf_set_str(sp->conf, CONF_ssh_nc_host, hostname);
-    conf_set_int(sp->conf, CONF_ssh_nc_port, port);
+    prepare_session(sp->conf);
 
     sp->logctx = log_init(&sp->logpolicy, sp->conf);
 

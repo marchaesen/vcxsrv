@@ -83,7 +83,7 @@ fs7	{
 		primary	ISO8859-7:GR
 	}
 }
-XCOMM	fs9 class (ISO8859 families)
+XCOMM	fs8 class (ISO8859 families)
 fs8	{
 	charset	{
 		name	ISO8859-9:GR
@@ -92,7 +92,7 @@ fs8	{
 		primary	ISO8859-9:GR
 	}
 }
-XCOMM	fs13 class (ISO8859 families)
+XCOMM	fs9 class (ISO8859 families)
 fs9	{
 	charset	{
 		name	ISO8859-13:GR
@@ -101,7 +101,7 @@ fs9	{
 		primary	ISO8859-13:GR
 	}
 }
-XCOMM	fs14 class (ISO8859 families)
+XCOMM	fs10 class (ISO8859 families)
 fs10	{
 	charset	{
 		name	ISO8859-14:GR
@@ -110,7 +110,7 @@ fs10	{
 		primary	ISO8859-14:GR
 	}
 }
-XCOMM	fs15 class (ISO8859 families)
+XCOMM	fs11 class (ISO8859 families)
 fs11	{
 	charset	{
 		name	ISO8859-15:GR
@@ -119,7 +119,7 @@ fs11	{
 		primary	ISO8859-15:GR
 	}
 }
-XCOMM 	fs16 class (Kanji)
+XCOMM 	fs12 class (Kanji)
 fs12	{
 	charset	{
 		name	JISX0208.1983-0:GL
@@ -128,7 +128,7 @@ fs12	{
 		primary	JISX0208.1983-0:GL
 	}
 }
-XCOMM   fs17 class (Korean Character)
+XCOMM   fs13 class (Korean Character)
 fs13	{
 	charset	{
 		name	KSC5601.1987-0:GL
@@ -137,7 +137,7 @@ fs13	{
 		primary	KSC5601.1987-0:GL
 	}
 }
-XCOMM   fs18 class (Chinese Han Character)
+XCOMM   fs14 class (Chinese Han Character)
 fs14	{
 	charset	{
 		name	GB2312.1980-0:GL
@@ -146,7 +146,7 @@ fs14	{
 		primary	GB2312.1980-0:GL
 	}
 }
-XCOMM	fs20 class (Half Kana)
+XCOMM	fs15 class (Half Kana)
 fs15	{
 	charset	{
 		name	JISX0201.1976-0:GR
@@ -157,7 +157,7 @@ fs15	{
 	}
 }
 XCOMM	ISO10646 should come last so the fonts above will actually be used
-XCOMM	fs24 class
+XCOMM	fs16 class
 fs16	{
 	charset	{
 		name	ISO10646-1
@@ -219,13 +219,6 @@ cs5     {
         ct_encoding     ISO8859-5:GR
 }
  
-XCOMM	cs6 class
-cs6     {
-        side            GR
-        length          1
-        ct_encoding     KOI8-R:GR
-}
- 
 XCOMM	cs7 class
 cs7     {
         side            GR
@@ -233,35 +226,35 @@ cs7     {
         ct_encoding     ISO8859-7:GR
 }
  
-XCOMM	cs9 class
+XCOMM	cs8 class
 cs8     {
         side            GR
         length          1
         ct_encoding     ISO8859-9:GR
 }
  
-XCOMM	cs13 class
+XCOMM	cs9 class
 cs9     {
         side            GR
         length          1
         ct_encoding     ISO8859-13:GR
 }
  
-XCOMM	cs14 class
+XCOMM	cs10 class
 cs10     {
         side            GR
         length          1
         ct_encoding     ISO8859-14:GR
 }
  
-XCOMM	cs15 class
+XCOMM	cs11 class
 cs11     {
         side            GR
         length          1
         ct_encoding     ISO8859-15:GR
 }
  
-XCOMM	cs16 class
+XCOMM	cs12 class
 cs12	{
 	side		GR
 	length		2
@@ -269,7 +262,7 @@ cs12	{
 			JISX0208.1983-1:GL; JISX0208.1983-1:GR
 }
 
-XCOMM	cs17 class
+XCOMM	cs13 class
 cs13     {
         side            GL
         length          2
@@ -277,21 +270,21 @@ cs13     {
                         KSC5601.1987-1:GL; KSC5601.1987-1:GR
 }
  
-XCOMM	cs18 class
+XCOMM	cs14 class
 cs14     {
         side            GR
         length          2
         ct_encoding     GB2312.1980-0:GL; GB2312.1980-0:GR
 }
  
-XCOMM	cs20 class
+XCOMM	cs15 class
 cs15	{
 	side		GR
 	length		1
 	ct_encoding	JISX0201.1976-0:GR
 }
  
-XCOMM	cs24 class
+XCOMM	cs16 class
 cs16	{
 	side		none
 	ct_encoding	ISO10646-1

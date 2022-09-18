@@ -39,6 +39,10 @@ struct debug_control {
 uint64_t
 parse_debug_string(const char *debug,
                    const struct debug_control *control);
+uint64_t
+parse_enable_string(const char *debug,
+                    uint64_t default_value,
+                    const struct debug_control *control);
 bool
 comma_separated_list_contains(const char *list, const char *s);
 bool

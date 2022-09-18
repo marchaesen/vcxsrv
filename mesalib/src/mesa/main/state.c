@@ -90,8 +90,10 @@ _mesa_update_allow_draw_out_of_order(struct gl_context *ctx)
     * for driver-internal reasons.
     */
    /* Only the compatibility profile with immediate mode needs this. */
-   if (ctx->API != API_OPENGL_COMPAT || !ctx->Const.AllowDrawOutOfOrder)
+   if (!ctx->Const.AllowDrawOutOfOrder)
       return;
+
+   assert(ctx->API == API_OPENGL_COMPAT);
 
    /* If all of these are NULL, GLSL is disabled. */
    struct gl_program *vs =
@@ -287,6 +289,17 @@ update_program(struct gl_context *ctx)
    } else {
       /* no compute program */
       _mesa_reference_program(ctx, &ctx->ComputeProgram._Current, NULL);
+   }
+
+   bool vp_changed = ctx->VertexProgram._Current != prevVP;
+   bool tep_changed = ctx->TessEvalProgram._Current != prevTEP;
+   bool gp_changed = ctx->GeometryProgram._Current != prevGP;
+   if (ctx->GeometryProgram._Current) {
+      ctx->LastVertexStageDirty |= gp_changed;
+   } else if (ctx->TessEvalProgram._Current) {
+      ctx->LastVertexStageDirty |= gp_changed | tep_changed;
+   } else {
+      ctx->LastVertexStageDirty |= gp_changed | tep_changed | vp_changed;
    }
 
    /* Let the driver know what's happening:
@@ -490,6 +503,23 @@ _mesa_update_state( struct gl_context *ctx )
    _mesa_unlock_context_textures(ctx);
 }
 
+/* This is the usual entrypoint for state updates in glClear calls:
+ */
+void
+_mesa_update_clear_state( struct gl_context *ctx )
+{
+   GLbitfield new_state = ctx->NewState;
+
+   if (MESA_VERBOSE & VERBOSE_STATE)
+      _mesa_print_state("_mesa_update_clear_state", new_state);
+
+   if (new_state & _NEW_BUFFERS) {
+      _mesa_update_framebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer);
+
+      st_invalidate_buffers(st_context(ctx));
+      ctx->NewState &= ~_NEW_BUFFERS;
+   }
+}
 
 /**
  * Used by drivers to tell core Mesa that the driver is going to

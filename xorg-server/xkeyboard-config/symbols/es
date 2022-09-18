@@ -7,6 +7,7 @@ xkb_symbols "basic" {
 
     name[Group1]="Spanish";
 
+    key <TLDE>	{ [ masculine, ordfeminine,    backslash,   backslash ]	};
     key <AE01>	{ [         1,     exclam,          bar,   exclamdown ]	};
     key <AE03>	{ [         3, periodcentered, numbersign,   sterling ]	};
     key <AE04>	{ [         4,     dollar,   asciitilde,       dollar ]	};
@@ -18,8 +19,6 @@ xkb_symbols "basic" {
 
     key <AC10>	{ [    ntilde, Ntilde,   dead_tilde, dead_doubleacute ]	};
     key <AC11>	{ [dead_acute, dead_diaeresis, braceleft,  dead_caron ]	};
-    key <TLDE>	{ [ masculine, ordfeminine,    backslash,   backslash ]	};
-
     key <BKSL>	{ [  ccedilla,   Ccedilla,   braceright,   dead_breve ]	};
 
     include "level3(ralt_switch)"

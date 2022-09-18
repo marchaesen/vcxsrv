@@ -32,10 +32,10 @@ XkbAllocGeometry \- Allocate an entire geometry
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- xkb
+.I xkb
 keyboard description for which geometry is to be allocated
 .TP
-.I \- sizes
+.I sizes
 initial sizes for all geometry components
 .SH DESCRIPTION
 .LP

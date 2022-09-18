@@ -43,6 +43,7 @@ lvp_init_wsi(struct lvp_physical_device *physical_device)
    if (result != VK_SUCCESS)
       return result;
 
+   physical_device->wsi_device.wants_linear = true;
    physical_device->vk.wsi_device = &physical_device->wsi_device;
 
    return VK_SUCCESS;
@@ -54,26 +55,4 @@ lvp_finish_wsi(struct lvp_physical_device *physical_device)
    physical_device->vk.wsi_device = NULL;
    wsi_device_finish(&physical_device->wsi_device,
                      &physical_device->vk.instance->alloc);
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL lvp_AcquireNextImage2KHR(
-   VkDevice                                     _device,
-   const VkAcquireNextImageInfoKHR*             pAcquireInfo,
-   uint32_t*                                    pImageIndex)
-{
-   LVP_FROM_HANDLE(lvp_device, device, _device);
-   struct lvp_physical_device *pdevice = device->physical_device;
-
-   VkResult result = wsi_common_acquire_next_image2(&pdevice->wsi_device,
-                                                    _device,
-                                                    pAcquireInfo,
-                                                    pImageIndex);
-
-   LVP_FROM_HANDLE(lvp_fence, fence, pAcquireInfo->fence);
-
-   if (fence && (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)) {
-      fence->timeline = p_atomic_inc_return(&device->queue.timeline);
-      util_queue_add_job(&device->queue.queue, fence, &fence->fence, queue_thread_noop, NULL, 0);
-   }
-   return result;
 }

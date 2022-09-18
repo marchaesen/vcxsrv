@@ -147,7 +147,7 @@ pb_slab_alloc_reclaimed(struct pb_slabs *slabs, unsigned size, unsigned heap, bo
     * entries, try reclaiming entries.
     */
    if (list_is_empty(&group->slabs) ||
-       list_is_empty(&LIST_ENTRY(struct pb_slab, group->slabs.next, head)->free)) {
+       list_is_empty(&list_entry(group->slabs.next, struct pb_slab, head)->free)) {
       if (reclaim_all)
          pb_slabs_reclaim_all_locked(slabs);
       else
@@ -156,7 +156,7 @@ pb_slab_alloc_reclaimed(struct pb_slabs *slabs, unsigned size, unsigned heap, bo
 
    /* Remove slabs without free entries. */
    while (!list_is_empty(&group->slabs)) {
-      slab = LIST_ENTRY(struct pb_slab, group->slabs.next, head);
+      slab = list_entry(group->slabs.next, struct pb_slab, head);
       if (!list_is_empty(&slab->free))
          break;
 
@@ -180,7 +180,7 @@ pb_slab_alloc_reclaimed(struct pb_slabs *slabs, unsigned size, unsigned heap, bo
       list_add(&slab->head, &group->slabs);
    }
 
-   entry = LIST_ENTRY(struct pb_slab_entry, slab->free.next, head);
+   entry = list_entry(slab->free.next, struct pb_slab_entry, head);
    list_del(&entry->head);
    slab->num_free--;
 
@@ -287,7 +287,7 @@ pb_slabs_deinit(struct pb_slabs *slabs)
     */
    while (!list_is_empty(&slabs->reclaim)) {
       struct pb_slab_entry *entry =
-         LIST_ENTRY(struct pb_slab_entry, slabs->reclaim.next, head);
+         list_entry(slabs->reclaim.next, struct pb_slab_entry, head);
       pb_slab_reclaim(slabs, entry);
    }
 

@@ -233,7 +233,7 @@ ppir_liveness_compute_live_sets(ppir_compiler *comp)
             }
          }
          else {
-            ppir_instr *next_instr = LIST_ENTRY(ppir_instr, instr->list.next, list);
+            ppir_instr *next_instr = list_entry(instr->list.next, ppir_instr, list);
             ppir_liveness_propagate(comp,
                                     instr->live_set, next_instr->live_set,
                                     instr->live_mask, next_instr->live_mask);

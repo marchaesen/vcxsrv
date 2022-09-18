@@ -1,4 +1,4 @@
-# Copyright © 2019 Raspberry Pi
+# Copyright © 2019 Raspberry Pi Ltd
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +51,7 @@ libv3dv_files = files(
   'v3dv_queue.c',
   'v3dv_uniforms.c',
   'v3dv_wsi.c',
-)
+) + [v3d_xml_pack, vk_common_entrypoints[0], wsi_entrypoints[0]]
 
 files_per_version = files(
   'v3dvx_cmd_buffer.c',
@@ -156,7 +156,7 @@ broadcom_icd = custom_target(
   output : 'broadcom_icd.@0@.json'.format(host_machine.cpu()),
   command : [
     prog_python, '@INPUT0@',
-    '--api-version', '1.1', '--xml', '@INPUT1@',
+    '--api-version', '1.2', '--xml', '@INPUT1@',
     '--lib-path', join_paths(get_option('prefix'), get_option('libdir'),
     		  	     'libvulkan_broadcom.so'),
     '--out', '@OUTPUT@',

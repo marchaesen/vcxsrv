@@ -37,25 +37,25 @@ keyboard device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 unsigned short
 .TP
-.I \- device_spec
+.I device_spec
 device to query, or XkbUseCoreKbd
 .TP
-.I \- timeout_rtrn
+.I timeout_rtrn
 delay until AccessXTimeout, seconds
 .TP
-.I \- ctrls_mask_rtrn
+.I ctrls_mask_rtrn
 backfilled with controls to modify
 .TP
-.I \- ctrls_values_rtrn
+.I ctrls_values_rtrn
 backfilled with on/off status for controls
 .TP
-.I \- options_mask_rtrn
+.I options_mask_rtrn
 backfilled with ax_options to modify
 .TP
-.I \- options_values_rtrn
+.I options_values_rtrn
 backfilled with values for ax_options
 .SH DESCRIPTION
 .LP

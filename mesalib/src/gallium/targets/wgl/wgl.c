@@ -97,7 +97,7 @@ wgl_screen_create_by_name(HDC hDC, const char* driver, struct sw_winsys *winsys)
 #endif
 #ifdef GALLIUM_ZINK
    if (strcmp(driver, "zink") == 0) {
-      screen = zink_create_screen(winsys);
+      screen = zink_create_screen(winsys, NULL);
       if (screen)
          use_zink = TRUE;
    }
@@ -125,6 +125,9 @@ wgl_screen_create(HDC hDC)
       debug_get_option("GALLIUM_DRIVER", ""),
 #ifdef GALLIUM_D3D12
       sw_only ? "" : "d3d12",
+#endif
+#ifdef GALLIUM_ZINK
+      sw_only ? "" : "zink",
 #endif
 #if defined(GALLIUM_LLVMPIPE)
       "llvmpipe",

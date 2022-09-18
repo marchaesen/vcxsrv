@@ -27,6 +27,7 @@
 #include "util/slab.h"
 #include "util/disk_cache.h"
 #include "virgl_winsys.h"
+#include "compiler/nir/nir.h"
 
 enum virgl_debug_flags {
    VIRGL_DEBUG_VERBOSE              = 1 << 0,
@@ -36,8 +37,9 @@ enum virgl_debug_flags {
    VIRGL_DEBUG_SYNC                 = 1 << 4,
    VIRGL_DEBUG_XFER                 = 1 << 5,
    VIRGL_DEBUG_NO_COHERENT          = 1 << 6,
-   VIRGL_DEBUG_NIR                  = 1 << 7,
+   VIRGL_DEBUG_USE_TGSI             = 1 << 7,
    VIRGL_DEBUG_L8_SRGB_ENABLE_READBACK = 1 << 8,
+   VIRGL_DEBUG_VIDEO                = 1 << 9,
 };
 
 extern int virgl_debug;
@@ -63,6 +65,8 @@ struct virgl_screen {
    bool no_coherent;
    int32_t tweak_gles_tf3_value;
 
+   nir_shader_compiler_options compiler_options;
+
    struct disk_cache *disk_cache;
 };
 
@@ -74,7 +78,13 @@ virgl_screen(struct pipe_screen *pipe)
 }
 
 bool
-virgl_has_readback_format(struct pipe_screen *screen, enum virgl_formats fmt);
+virgl_has_readback_format(struct pipe_screen *screen, enum virgl_formats fmt,
+                          bool allow_tweak);
+
+bool
+virgl_has_scanout_format(struct virgl_screen *vscreen,
+                         enum pipe_format format,
+                         bool may_emulate_bgra);
 
 /* GL_ARB_map_buffer_alignment requires 64 as the minimum alignment value.  In
  * addition to complying with the extension, a high enough alignment value is

@@ -30,13 +30,9 @@
 
 #include "pipe/p_screen.h"
 #include "pipe/p_defines.h"
+#include "util/list.h"
 
 #include "os/os_thread.h"
-
-struct rbug_list {
-   struct rbug_list *next;
-   struct rbug_list *prev;
-};
 
 
 struct rbug_screen
@@ -54,10 +50,10 @@ struct rbug_screen
    int num_resources;
    int num_surfaces;
    int num_transfers;
-   struct rbug_list contexts;
-   struct rbug_list resources;
-   struct rbug_list surfaces;
-   struct rbug_list transfers;
+   struct list_head contexts;
+   struct list_head resources;
+   struct list_head surfaces;
+   struct list_head transfers;
 };
 
 static inline struct rbug_screen *
@@ -69,7 +65,7 @@ rbug_screen(struct pipe_screen *screen)
 #define rbug_screen_add_to_list(scr, name, obj) \
    do {                                          \
       mtx_lock(&scr->list_mutex);          \
-      insert_at_head(&scr->name, &obj->list);    \
+      list_add(&scr->name, &obj->list);    \
       scr->num_##name++;                         \
       mtx_unlock(&scr->list_mutex);        \
    } while (0)
@@ -77,7 +73,7 @@ rbug_screen(struct pipe_screen *screen)
 #define rbug_screen_remove_from_list(scr, name, obj) \
    do {                                               \
       mtx_lock(&scr->list_mutex);               \
-      remove_from_list(&obj->list);                   \
+      list_del(&obj->list);                   \
       scr->num_##name--;                              \
       mtx_unlock(&scr->list_mutex);             \
    } while (0)

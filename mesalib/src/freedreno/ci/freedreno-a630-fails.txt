@@ -2,9 +2,6 @@
 # Broken in VK-GL-CTS e5c45899ed7e90fb616ccd1d3c66e6eded120684
 KHR-GL33.cull_distance.coverage,Fail
 
-# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463
-KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
-
 # Lots of errors like "[279] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]"
 KHR-GLES31.core.geometry_shader.layered_framebuffer.depth_support,Fail
 
@@ -34,25 +31,9 @@ bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.overlay,Fail
 bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.screen,Fail
 bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.softlight,Fail
 
-# Missing 16-bit storage access at vktAmberTestCase.cpp:422 (InternalError)
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat3,Fail
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat4,Fail
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat3,Fail
-dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat4,Fail
-
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3505
-dEQP-VK.subgroups.multiple_dispatches.uniform_subgroup_size,Fail
-
-# Showed up with VK-GL-CTS 1.3.1.0:
-spill-dEQP-VK.graphicsfuzz.cov-function-two-loops-limit-using-arguments-array-element-copies,Fail
-
 # Fails when TU_DEBUG=forcebin is set
 gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
 gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
-
-# Looks like a segfault, not assertion failure
-spill-dEQP-VK.graphicsfuzz.cov-nested-loops-float-bits-to-int-increment-array,Crash
-spill-dEQP-VK.graphicsfuzz.cov-two-nested-loops-switch-case-matrix-array-increment,Crash
 
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
@@ -66,13 +47,12 @@ glx@glx_ext_import_context@imported context has same context id,Fail
 glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
-glx@glx-make-current,Crash
-glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
-shaders@glsl-fs-fogscale,Fail
-shaders@glsl-fs-fogscale@gs-out and fs,Fail
+
+# "../src/freedreno/ir3/ir3_shader.h:968:ir3_link_add: Assertion `i < ARRAY_SIZE(l->var)' failed."
+shaders@glsl-max-varyings >max_varying_components,Crash
 
 # "MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
 #  gl-2.0-edgeflag: ../src/freedreno/ir3/ir3_context.c:411: ir3_context_error: Assertion `!""' failed."
@@ -90,20 +70,6 @@ spec@arb_depth_buffer_float@fbo-clear-formats stencil@GL_DEPTH32F_STENCIL8,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F NPOT,Fail
-spec@arb_depth_buffer_float@texwrap formats bordercolor,Fail
-spec@arb_depth_buffer_float@texwrap formats bordercolor@GL_DEPTH32F_STENCIL8- border color only,Fail
-spec@arb_depth_buffer_float@texwrap formats bordercolor@GL_DEPTH_COMPONENT32F- border color only,Fail
-spec@arb_depth_buffer_float@texwrap formats bordercolor-swizzled,Fail
-spec@arb_depth_buffer_float@texwrap formats bordercolor-swizzled@GL_DEPTH32F_STENCIL8- swizzled- border color only,Fail
-spec@arb_depth_buffer_float@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT32F- swizzled- border color only,Fail
-spec@arb_depth_texture@texwrap formats bordercolor,Fail
-spec@arb_depth_texture@texwrap formats bordercolor@GL_DEPTH_COMPONENT16- border color only,Fail
-spec@arb_depth_texture@texwrap formats bordercolor@GL_DEPTH_COMPONENT24- border color only,Fail
-spec@arb_depth_texture@texwrap formats bordercolor@GL_DEPTH_COMPONENT32- border color only,Fail
-spec@arb_depth_texture@texwrap formats bordercolor-swizzled,Fail
-spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT16- swizzled- border color only,Fail
-spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT24- swizzled- border color only,Fail
-spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT32- swizzled- border color only,Fail
 
 # "0 primitives generated:
 #  Incorrect number of prims generated.
@@ -113,8 +79,6 @@ spec@arb_direct_state_access@transformfeedback-bufferbase@general test,Fail
 spec@arb_direct_state_access@transformfeedback-bufferrange,Fail
 spec@arb_direct_state_access@transformfeedback-bufferrange@general test,Fail
 
-spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled,Fail
-spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled@GL_RGB565- swizzled- border color only,Fail
 spec@arb_occlusion_query@occlusion_query_order,Fail
 spec@arb_point_sprite@arb_point_sprite-interactions 1.0,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
@@ -147,6 +111,8 @@ spec@arb_sample_shading@samplemask 4 all@sample mask_in_one,Fail
 spec@arb_sample_shading@samplemask 4,Fail
 spec@arb_sample_shading@samplemask 4@noms mask_in_one,Fail
 spec@arb_sample_shading@samplemask 4@sample mask_in_one,Fail
+
+spec@arb_shader_image_load_store@execution@image-array-out-of-bounds-access-load,Crash
 
 # These 3 fails started to happen after piglit uprev with commit
 # 0ef03f824d1833a853d1a20b4be121089bb9246c
@@ -200,62 +166,14 @@ spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-quads,F
 spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-tris,Fail
 spec@arb_tessellation_shader@execution@vs-tes-vertex,Fail
 
-spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_BPTC_UNORM- swizzled- border color only,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT- swizzled- border color only,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT- swizzled- border color only,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM- swizzled- border color only,Fail
-spec@arb_texture_compression@texwrap formats bordercolor-swizzled,Fail
-spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA- swizzled- border color only,Fail
-spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB- swizzled- border color only,Fail
-spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
-spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGB16F- swizzled- border color only,Fail
-spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGB32F- swizzled- border color only,Fail
-spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGBA16F- swizzled- border color only,Fail
-spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGBA32F- swizzled- border color only,Fail
 spec@arb_texture_rectangle@1-1-linear-texture,Fail
-spec@arb_texture_rgb10_a2ui@texwrap formats bordercolor-swizzled,Fail
-spec@arb_texture_rgb10_a2ui@texwrap formats bordercolor-swizzled@GL_RGB10_A2UI- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats bordercolor-swizzled,Fail
-spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_R16- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_R8- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_RG16- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_RG8- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled,Fail
-spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_R16F- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_R32F- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_RG16F- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_RG32F- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_R16I- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_R16UI- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_R32I- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_R32UI- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_R8I- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_R8UI- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG16I- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG16UI- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG32I- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG32UI- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG8I- swizzled- border color only,Fail
-spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG8UI- swizzled- border color only,Fail
 
-spec@arb_texture_view@rendering-layers-image,Fail
-spec@arb_texture_view@rendering-layers-image@layers rendering of image1DArray,Fail
 spec@arb_timer_query@timestamp-get,Fail
 
 # "Expected 1 primitives written, got 0"
 # Note: no FS, rasterizer discard enabled.
 spec@arb_transform_feedback3@arb_transform_feedback3-ext_interleaved_two_bufs_vs,Fail
 
-spec@arb_transform_feedback3@gl_skipcomponents1-1,Fail
-spec@arb_transform_feedback3@gl_skipcomponents1234,Fail
-spec@arb_transform_feedback3@gl_skipcomponents1-2,Fail
-spec@arb_transform_feedback3@gl_skipcomponents1-3,Fail
-spec@arb_transform_feedback3@gl_skipcomponents1-gl_nextbuffer,Fail
-spec@arb_transform_feedback3@gl_skipcomponents2,Fail
-spec@arb_transform_feedback3@gl_skipcomponents3,Fail
-spec@arb_transform_feedback3@gl_skipcomponents4,Fail
 spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match,Fail
 
 spec@egl 1.4@eglterminate then unbind context,Fail
@@ -264,6 +182,47 @@ spec@egl_chromium_sync_control@conformance,Fail
 spec@egl_ext_protected_content@conformance,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
+
+# D32S8 skips (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT), others fail.
+# The test is importing a z buffer from tu, and rendering a blue fullscreen quad
+# in gl that zfails to leave the green clear color in the middle.
+#
+# TU sysmem mode gets green on the bottom half-ish with some noise at the boundary.
+# TU gmem mode gets fullscreen green.
+spec@ext_external_objects@vk-depth-display,Fail
+spec@ext_external_objects@vk-depth-display@D16,Fail
+spec@ext_external_objects@vk-depth-display@D24S8,Fail
+
+# "Failed to submit queue." from the test some of the time.  No validation failures.
+# When it doesn't fail with that message, gets a set of corrupted colors (supposed
+# to be vertical stripes).
+spec@ext_external_objects@vk-image-display,Fail
+spec@ext_external_objects@vk-image-display-muliple-textures,Fail
+spec@ext_external_objects@vk-image-display-overwrite,Fail
+
+# Linear cases seem to do fine, optimal tiling fails.
+spec@ext_external_objects@vk-image-overwrite,Fail
+spec@ext_external_objects@vk-image-overwrite@RGB 10 A2 UINT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGB 10 A2 UNORM optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGB 5 A1 UNORM optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 16 INT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 16 SFLOAT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 16 UINT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 32 INT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 32 UINT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 4 UNORM optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 8 INT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 8 SRGB optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 8 UINT optimal: Failed to initialize OpenGL FBO/RBO,Fail
+spec@ext_external_objects@vk-image-overwrite@RGBA 8 UNORM optimal: Failed to initialize OpenGL FBO/RBO,Fail
+
+spec@ext_external_objects@vk-semaphores,Fail
+spec@ext_external_objects@vk-semaphores-2,Fail
+
+# D32S8 skips (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT), D24S8 fails.
+spec@ext_external_objects@vk-stencil-display,Fail
+spec@ext_external_objects@vk-stencil-display@D24S8,Fail
+
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 
 spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 2,Fail
@@ -287,40 +246,9 @@ spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 color,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor-ff,Fail
-spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
-spec@ext_packed_depth_stencil@texwrap formats bordercolor,Fail
-spec@ext_packed_depth_stencil@texwrap formats bordercolor@GL_DEPTH24_STENCIL8- border color only,Fail
-spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled,Fail
-spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled@GL_DEPTH24_STENCIL8- swizzled- border color only,Fail
 spec@ext_packed_float@query-rgba-signed-components,Fail
-spec@ext_packed_float@texwrap formats bordercolor-swizzled,Fail
-spec@ext_packed_float@texwrap formats bordercolor-swizzled@GL_R11F_G11F_B10F- swizzled- border color only,Fail
 
-spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RED_RGTC1- swizzled- border color only,Fail
-spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RG_RGTC2- swizzled- border color only,Fail
-spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_SIGNED_RG_RGTC2- swizzled- border color only,Fail
-spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT1_EXT- swizzled- border color only,Fail
-spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT3_EXT- swizzled- border color only,Fail
-spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT5_EXT- swizzled- border color only,Fail
-spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_S3TC_DXT1_EXT- swizzled- border color only,Fail
 spec@ext_texture_integer@multisample-formats 4 gl_ext_texture_integer,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB16I- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB16UI- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB32I- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB32UI- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB8I- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB8UI- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA16I- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA16UI- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA32I- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA32UI- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA8I- swizzled- border color only,Fail
-spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA8UI- swizzled- border color only,Fail
-spec@ext_texture_shared_exponent@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_shared_exponent@texwrap formats bordercolor-swizzled@GL_RGB9_E5- swizzled- border color only,Fail
 
 # These failures go away with FD_MESA_DEBUG=noblit, but don't seem to be related
 # to the actual mipmap generation blits (which we do fall back on)
@@ -340,25 +268,6 @@ spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_LUMINANCE16_SNORM NPOT,Fail
 
 spec@ext_texture_snorm@multisample-formats 2 gl_ext_texture_snorm,Fail
 spec@ext_texture_snorm@multisample-formats 4 gl_ext_texture_snorm,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_R16_SNORM- swizzled- border color only,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_R8_SNORM- swizzled- border color only,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RG16_SNORM- swizzled- border color only,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RG8_SNORM- swizzled- border color only,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGB16_SNORM- swizzled- border color only,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGB8_SNORM- swizzled- border color only,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGBA16_SNORM- swizzled- border color only,Fail
-spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGBA8_SNORM- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats bordercolor-swizzled,Fail
-spec@ext_texture_srgb@texwrap formats bordercolor-swizzled@GL_SRGB8_ALPHA8- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats bordercolor-swizzled@GL_SRGB8- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled,Fail
-spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_S3TC_DXT1_EXT- swizzled- border color only,Fail
-spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB- swizzled- border color only,Fail
 spec@ext_transform_feedback@geometry-shaders-basic,Fail
 spec@ext_transform_feedback@intervening-read prims_generated,Fail
 spec@ext_transform_feedback@intervening-read prims_generated use_gs,Fail
@@ -370,38 +279,7 @@ spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
 spec@ext_transform_feedback@tessellation triangle_strip flat_first,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 1x129x9-98x129x9,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-const-accept,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-different-from-position,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-enables,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-equal-to-position,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-homogeneity,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-primitives-lines,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-primitives-points,Fail
-spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-primitives-triangle-strip,Fail
 
-# The precompile without UCP lowering triggers an assertion failure:
-# "shader_io_get_unique_index: Assertion `!"illegal slot in get unique index\n"'
-# failed." We shouldn't crash if clipvertex is written without actually doing
-# clipping, we should just drop the output on the floor.
-spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-const-accept,Crash
-spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-const-reject,Crash
-spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-different-from-position,Crash
-spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-enables,Crash
-spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-equal-to-position,Crash
-spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-homogeneity,Crash
-spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-primitives-triangle-strip,Crash
-
-# "src/freedreno/ir3/ir3_shader.h:864:ir3_find_output: Assertion `0' failed."
-# Reading undefined vertex outputs should be undefined, not crash.
-spec@glsl-1.50@execution@compatibility@gs-clamp-vertex-color,Crash
-spec@glsl-1.50@execution@compatibility@gs-ff-frag,Crash
-
-spec@glsl-1.50@execution@compatibility@gs-texcoord-array-2,Fail
-spec@glsl-1.50@execution@compatibility@gs-texcoord-array,Fail
-
-# "ir3_nir_lower_tess.c:111: shader_io_get_unique_index: Assertion `!"illegal slot in get unique index\n"' failed."
-# I think on VARYING_SLOT_COL0 from the VS.
-spec@glsl-1.50@execution@compatibility@vs-gs-ff-frag,Crash
 spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array-2,Crash
 spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array,Crash
 
@@ -461,40 +339,23 @@ spec@khr_texture_compression_astc@miptree-gles hdr,Fail
 spec@khr_texture_compression_astc@miptree-gles hdr@HDR Profile,Fail
 spec@khr_texture_compression_astc@miptree-gles ldr,Fail
 spec@khr_texture_compression_astc@miptree-gles ldr@LDR Profile,Fail
-spec@khr_texture_compression_astc@miptree-gles srgb,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-sd,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-sd@sRGB skip decode,Fail
-spec@khr_texture_compression_astc@miptree-gles srgb@sRGB decode,Fail
 spec@khr_texture_compression_astc@miptree-gl hdr,Fail
 spec@khr_texture_compression_astc@miptree-gl hdr@HDR Profile,Fail
 spec@khr_texture_compression_astc@miptree-gl ldr,Fail
 spec@khr_texture_compression_astc@miptree-gl ldr@LDR Profile,Fail
-spec@khr_texture_compression_astc@miptree-gl srgb,Fail
 spec@khr_texture_compression_astc@miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@miptree-gl srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@miptree-gl srgb-sd,Fail
 spec@khr_texture_compression_astc@miptree-gl srgb-sd@sRGB skip decode,Fail
-spec@khr_texture_compression_astc@miptree-gl srgb@sRGB decode,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles hdr,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles hdr@HDR Profile,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gles ldr,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gles ldr@LDR Profile,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb@sRGB decode,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gl ldr,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gl ldr@LDR Profile,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
-spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb@sRGB decode,Fail
 
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageLoad,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
 
@@ -533,21 +394,6 @@ spec@!opengl 1.1@polygon-mode-offset@config 6: Expected blue pixel in center,Fai
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on right edge,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on top edge,Fail
 spec@!opengl 1.1@polygon-mode-offset,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_R3_G3_B2- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB10_A2- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB10- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB12- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB16- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB4- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB5_A1- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB5- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB8- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA12- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA16- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA2- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA4- swizzled- border color only,Fail
-spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA8- swizzled- border color only,Fail
 spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
 
 # "MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
@@ -555,40 +401,44 @@ spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag,Crash
 spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Crash
 
-# "../src/freedreno/ir3/ir3_shader.h:843:ir3_find_output: Assertion `0' failed."
-spec@!opengl 2.0@vertex-program-two-side back2,Crash
-spec@!opengl 2.0@vertex-program-two-side back back2,Crash
-spec@!opengl 2.0@vertex-program-two-side back,Crash
-spec@!opengl 2.0@vertex-program-two-side back front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side back front2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled back back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled back,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled back front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled back front2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front back back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front back,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front back front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front back front2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side enabled front front2,Crash
-spec@!opengl 2.0@vertex-program-two-side front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side front2,Crash
-spec@!opengl 2.0@vertex-program-two-side front back2,Crash
-spec@!opengl 2.0@vertex-program-two-side front back back2,Crash
-spec@!opengl 2.0@vertex-program-two-side front back,Crash
-spec@!opengl 2.0@vertex-program-two-side front back front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side front back front2,Crash
-spec@!opengl 2.0@vertex-program-two-side front,Crash
-spec@!opengl 2.0@vertex-program-two-side front front2 back2,Crash
-spec@!opengl 2.0@vertex-program-two-side front front2,Crash
-
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Timeout
 spec@!opengl 3.1@primitive-restart-xfb generated,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims line cull-back pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-first,Fail
+spec@!opengl 3.2@gl-3.2-adj-prims pv-first,Fail
+
+spec@!opengl 1.0@depth-clear-precision-check,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth24,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth24_stencil8,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp,Fail
+
+bypass-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint.compatibility_depth_zero_stencil_zero_testing_depth,Fail
+bypass-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_depth,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3759
+# deqp-vk: ../src/freedreno/vulkan/tu_pipeline.c:3894: tu_pipeline_builder_init_graphics: Assertion `subpass->color_count == 0 || !create_info->pColorBlendState || subpass->color_count == create_info->pColorBlendState->attachmentCount' failed
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7152
+spec@ext_transform_feedback@builtin-varyings gl_culldistance,Fail

@@ -31,10 +31,10 @@ XkbAllocGeomOverlayRows \- Allocate rows in a overlay
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- overlay
+.I overlay
 section for which rows should be allocated
 .TP
-.I \- num_needed
+.I num_needed
 number of new rows required
 .SH DESCRIPTION
 .LP

@@ -221,6 +221,9 @@ test_one(unsigned verbose,
    }
 
    context = LLVMContextCreate();
+#if LLVM_VERSION_MAJOR >= 15
+   LLVMContextSetOpaquePointers(context, false);
+#endif
    gallivm = gallivm_create("test_module", context, NULL);
 
    func = add_conv_test(gallivm, src_type, num_srcs, dst_type, num_dsts);
@@ -235,8 +238,8 @@ test_one(unsigned verbose,
    for(i = 0; i < n && success; ++i) {
       unsigned src_stride = src_type.length*src_type.width/8;
       unsigned dst_stride = dst_type.length*dst_type.width/8;
-      PIPE_ALIGN_VAR(LP_MIN_VECTOR_ALIGN) uint8_t src[LP_MAX_VECTOR_LENGTH*LP_MAX_VECTOR_LENGTH];
-      PIPE_ALIGN_VAR(LP_MIN_VECTOR_ALIGN) uint8_t dst[LP_MAX_VECTOR_LENGTH*LP_MAX_VECTOR_LENGTH];
+      alignas(LP_MIN_VECTOR_ALIGN) uint8_t src[LP_MAX_VECTOR_LENGTH*LP_MAX_VECTOR_LENGTH];
+      alignas(LP_MIN_VECTOR_ALIGN) uint8_t dst[LP_MAX_VECTOR_LENGTH*LP_MAX_VECTOR_LENGTH];
       double fref[LP_MAX_VECTOR_LENGTH*LP_MAX_VECTOR_LENGTH];
       uint8_t ref[LP_MAX_VECTOR_LENGTH*LP_MAX_VECTOR_LENGTH];
       int64_t start_counter = 0;

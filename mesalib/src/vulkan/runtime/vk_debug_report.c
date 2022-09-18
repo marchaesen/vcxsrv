@@ -150,8 +150,9 @@ vk_debug_report(struct vk_instance *instance,
                 const char* pLayerPrefix,
                 const char *pMessage)
 {
-   VkDebugReportObjectTypeEXT object_type =
+   VkObjectType object_type =
       object ? object->type : VK_OBJECT_TYPE_UNKNOWN;
-   debug_report(instance, flags, object_type, (uint64_t)(uintptr_t)object,
-                location, messageCode, pLayerPrefix, pMessage);
+   debug_report(instance, flags, (VkDebugReportObjectTypeEXT)object_type,
+                (uint64_t)(uintptr_t)object, location, messageCode,
+                pLayerPrefix, pMessage);
 }

@@ -72,7 +72,7 @@ nu_handle_compare(const nir_lower_non_uniform_access_options *options,
    nir_component_mask_t channel_mask = ~0;
    if (options->callback)
       channel_mask = options->callback(handle->src, options->callback_data);
-   channel_mask &= BITFIELD_MASK(handle->handle->num_components);
+   channel_mask &= nir_component_mask(handle->handle->num_components);
 
    nir_ssa_def *channels[NIR_MAX_VEC_COMPONENTS];
    for (unsigned i = 0; i < handle->handle->num_components; i++)
@@ -272,6 +272,7 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
             case nir_intrinsic_image_atomic_fmax:
             case nir_intrinsic_image_size:
             case nir_intrinsic_image_samples:
+            case nir_intrinsic_image_samples_identical:
             case nir_intrinsic_bindless_image_load:
             case nir_intrinsic_bindless_image_sparse_load:
             case nir_intrinsic_bindless_image_store:
@@ -290,6 +291,7 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
             case nir_intrinsic_bindless_image_atomic_fmax:
             case nir_intrinsic_bindless_image_size:
             case nir_intrinsic_bindless_image_samples:
+            case nir_intrinsic_bindless_image_samples_identical:
             case nir_intrinsic_image_deref_load:
             case nir_intrinsic_image_deref_sparse_load:
             case nir_intrinsic_image_deref_store:
@@ -308,6 +310,7 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
             case nir_intrinsic_image_deref_atomic_fmax:
             case nir_intrinsic_image_deref_size:
             case nir_intrinsic_image_deref_samples:
+            case nir_intrinsic_image_deref_samples_identical:
                if ((options->types & nir_lower_non_uniform_image_access) &&
                    lower_non_uniform_access_intrin(options, &b, intrin, 0))
                   progress = true;

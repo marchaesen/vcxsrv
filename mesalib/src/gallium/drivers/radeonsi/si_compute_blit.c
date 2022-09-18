@@ -28,14 +28,68 @@
 #include "util/format_srgb.h"
 #include "util/u_helpers.h"
 
+static bool si_can_use_compute_blit(struct si_context *sctx, enum pipe_format format,
+                                    unsigned num_samples, bool is_store, bool has_dcc)
+{
+   /* TODO: This format fails AMD_TEST=imagecopy. */
+   if (format == PIPE_FORMAT_A8R8_UNORM && is_store)
+      return false;
+
+   /* MSAA image stores are broken. AMD_DEBUG=nofmask fixes them, implying that the FMASK
+    * expand pass doesn't work, but let's use the gfx blit, which should be faster because
+    * it doesn't require expanding the FMASK.
+    *
+    * TODO: Broken MSAA stores can cause app issues, though this issue might only affect
+    *       internal blits, not sure.
+    *
+    * EQAA image stores are also unimplemented, which should be rejected here after MSAA
+    * image stores are fixed.
+    */
+   if (num_samples > 1 && is_store)
+      return false;
+
+   if (util_format_is_depth_or_stencil(format))
+      return false;
+
+   /* Image stores support DCC since GFX10. */
+   if (has_dcc && is_store && sctx->gfx_level < GFX10)
+      return false;
+
+   return true;
+}
+
+static void si_use_compute_copy_for_float_formats(struct si_context *sctx,
+                                                  struct pipe_resource *texture,
+                                                  unsigned level)
+{
+   struct si_texture *tex = (struct si_texture *)texture;
+
+   /* If we are uploading into FP16 or R11G11B10_FLOAT via a blit, CB clobbers NaNs,
+    * so in order to preserve them exactly, we have to use the compute blit.
+    * The compute blit is used only when the destination doesn't have DCC, so
+    * disable it here, which is kinda a hack.
+    * If we are uploading into 32-bit floats with DCC via a blit, NaNs will also get
+    * lost so we need to disable DCC as well.
+    *
+    * This makes KHR-GL45.texture_view.view_classes pass on gfx9.
+    */
+   if (vi_dcc_enabled(tex, level) &&
+       util_format_is_float(texture->format) &&
+       /* Check if disabling DCC enables the compute copy. */
+       !si_can_use_compute_blit(sctx, texture->format, texture->nr_samples, true, true) &&
+       si_can_use_compute_blit(sctx, texture->format, texture->nr_samples, true, false)) {
+      si_texture_disable_dcc(sctx, tex);
+   }
+}
+
 /* Determine the cache policy. */
 static enum si_cache_policy get_cache_policy(struct si_context *sctx, enum si_coherency coher,
                                              uint64_t size)
 {
-   if ((sctx->chip_class >= GFX9 && (coher == SI_COHERENCY_CB_META ||
+   if ((sctx->gfx_level >= GFX9 && (coher == SI_COHERENCY_CB_META ||
                                      coher == SI_COHERENCY_DB_META ||
                                      coher == SI_COHERENCY_CP)) ||
-       (sctx->chip_class >= GFX7 && coher == SI_COHERENCY_SHADER))
+       (sctx->gfx_level >= GFX7 && coher == SI_COHERENCY_SHADER))
       return L2_LRU; /* it's faster if L2 doesn't evict anything  */
 
    return L2_BYPASS;
@@ -104,8 +158,8 @@ static void si_improve_sync_flags(struct si_context *sctx, struct pipe_resource 
    }
 }
 
-void si_launch_grid_internal(struct si_context *sctx, struct pipe_grid_info *info,
-                             void *shader, unsigned flags)
+static void si_launch_grid_internal(struct si_context *sctx, const struct pipe_grid_info *info,
+                                    void *shader, unsigned flags)
 {
    /* Wait for previous shaders to finish. */
    if (flags & SI_OP_SYNC_GE_BEFORE)
@@ -152,9 +206,20 @@ void si_launch_grid_internal(struct si_context *sctx, struct pipe_grid_info *inf
 
       if (flags & SI_OP_CS_IMAGE) {
          /* Make sure image stores are visible to CB, which doesn't use L2 on GFX6-8. */
-         sctx->flags |= sctx->chip_class <= GFX8 ? SI_CONTEXT_WB_L2 : 0;
+         sctx->flags |= sctx->gfx_level <= GFX8 ? SI_CONTEXT_WB_L2 : 0;
          /* Make sure image stores are visible to all CUs. */
          sctx->flags |= SI_CONTEXT_INV_VCACHE;
+         /* Make sure RBs see our DCC changes. */
+         if (sctx->gfx_level >= GFX10 && sctx->screen->info.tcc_rb_non_coherent) {
+            unsigned enabled_mask = sctx->images[PIPE_SHADER_COMPUTE].enabled_mask;
+            while (enabled_mask) {
+               int i = u_bit_scan(&enabled_mask);
+               if (sctx->images[PIPE_SHADER_COMPUTE].views[i].access & SI_IMAGE_ACCESS_ALLOW_DCC_STORE) {
+                  sctx->flags |= SI_CONTEXT_INV_L2;
+                  break;
+               }
+            }
+         }
       } else {
          /* Make sure buffer stores are visible to all CUs. */
          sctx->flags |= SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE | SI_CONTEXT_PFP_SYNC_ME;
@@ -243,7 +308,7 @@ void si_compute_clear_buffer_rmw(struct si_context *sctx, struct pipe_resource *
    sctx->cs_user_data[1] = ~writebitmask;
 
    if (!sctx->cs_clear_buffer_rmw)
-      sctx->cs_clear_buffer_rmw = si_create_clear_buffer_rmw_cs(&sctx->b);
+      sctx->cs_clear_buffer_rmw = si_create_clear_buffer_rmw_cs(sctx);
 
    si_launch_grid_internal_ssbos(sctx, &info, sctx->cs_clear_buffer_rmw, flags, coher,
                                  1, &sb, 0x1);
@@ -386,7 +451,7 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
    if (aligned_size >= 4) {
       uint64_t compute_min_size;
 
-      if (sctx->chip_class <= GFX8) {
+      if (sctx->gfx_level <= GFX8) {
          /* CP DMA clears are terribly slow with GTT on GFX6-8, which can always
           * happen due to BO evictions.
           */
@@ -396,6 +461,7 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
          compute_min_size = 4 * 1024;
       }
 
+      /* TODO: use compute for unaligned big sizes */
       if (method == SI_AUTO_SELECT_CLEAR_METHOD && (
            clear_value_size > 4 ||
            (clear_value_size == 4 && offset % 4 == 0 && size > compute_min_size))) {
@@ -420,20 +486,23 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
       assert(dst->target == PIPE_BUFFER);
       assert(size < 4);
 
-      pipe_buffer_write(&sctx->b, dst, offset, size, clear_value);
+      sctx->b.buffer_subdata(&sctx->b, dst,
+                             PIPE_MAP_WRITE |
+                             /* TC forbids drivers to invalidate buffers and infer unsychronized mappings,
+                              * so suppress those optimizations. */
+                             (sctx->tc ? TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED |
+                                         TC_TRANSFER_MAP_NO_INVALIDATE : 0),
+                             offset, size, clear_value);
    }
 }
 
 void si_screen_clear_buffer(struct si_screen *sscreen, struct pipe_resource *dst, uint64_t offset,
                             uint64_t size, unsigned value, unsigned flags)
 {
-   struct si_context *ctx = (struct si_context *)sscreen->aux_context;
-
-   simple_mtx_lock(&sscreen->aux_context_lock);
+   struct si_context *ctx = si_get_aux_context(sscreen);
    si_clear_buffer(ctx, dst, offset, size, &value, 4, flags,
                    SI_COHERENCY_SHADER, SI_AUTO_SELECT_CLEAR_METHOD);
-   sscreen->aux_context->flush(sscreen->aux_context, NULL, 0);
-   simple_mtx_unlock(&sscreen->aux_context_lock);
+   si_put_aux_context_flush(sscreen);
 }
 
 static void si_pipe_clear_buffer(struct pipe_context *ctx, struct pipe_resource *dst,
@@ -458,6 +527,7 @@ void si_copy_buffer(struct si_context *sctx, struct pipe_resource *dst, struct p
    si_improve_sync_flags(sctx, dst, src, &flags);
 
    /* Only use compute for VRAM copies on dGPUs. */
+   /* TODO: use compute for unaligned big sizes */
    if (sctx->screen->info.has_dedicated_vram && si_resource(dst)->domains & RADEON_DOMAIN_VRAM &&
        si_resource(src)->domains & RADEON_DOMAIN_VRAM && size > compute_min_size &&
        dst_offset % 4 == 0 && src_offset % 4 == 0 && size % 4 == 0) {
@@ -469,29 +539,118 @@ void si_copy_buffer(struct si_context *sctx, struct pipe_resource *dst, struct p
    }
 }
 
-void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, unsigned dst_level,
+static void
+set_work_size(struct pipe_grid_info *info, unsigned block_x, unsigned block_y, unsigned block_z,
+              unsigned work_x, unsigned work_y, unsigned work_z)
+{
+   info->block[0] = block_x;
+   info->block[1] = block_y;
+   info->block[2] = block_z;
+
+   unsigned work[3] = {work_x, work_y, work_z};
+   for (int i = 0; i < 3; ++i) {
+      info->last_block[i] = work[i] % info->block[i];
+      info->grid[i] = DIV_ROUND_UP(work[i], info->block[i]);
+   }
+}
+
+static void si_launch_grid_internal_images(struct si_context *sctx,
+                                           struct pipe_image_view *images,
+                                           unsigned num_images,
+                                           const struct pipe_grid_info *info,
+                                           void *shader, unsigned flags)
+{
+   struct pipe_image_view saved_image[2] = {};
+   assert(num_images <= ARRAY_SIZE(saved_image));
+
+   for (unsigned i = 0; i < num_images; i++) {
+      assert(sctx->b.screen->is_format_supported(sctx->b.screen, images[i].format,
+                                                 images[i].resource->target,
+                                                 images[i].resource->nr_samples,
+                                                 images[i].resource->nr_storage_samples,
+                                                 PIPE_BIND_SHADER_IMAGE));
+
+      /* Always allow DCC stores on gfx10+. */
+      if (sctx->gfx_level >= GFX10 &&
+          images[i].access & PIPE_IMAGE_ACCESS_WRITE &&
+          !(images[i].access & SI_IMAGE_ACCESS_DCC_OFF))
+         images[i].access |= SI_IMAGE_ACCESS_ALLOW_DCC_STORE;
+
+      /* Simplify the format according to what image stores support. */
+      if (images[i].access & PIPE_IMAGE_ACCESS_WRITE) {
+         images[i].format = util_format_linear(images[i].format); /* SRGB not supported */
+         images[i].format = util_format_luminance_to_red(images[i].format);
+         images[i].format = util_format_intensity_to_red(images[i].format);
+         images[i].format = util_format_rgbx_to_rgba(images[i].format); /* prevent partial writes */
+      }
+
+      /* Save the image. */
+      util_copy_image_view(&saved_image[i], &sctx->images[PIPE_SHADER_COMPUTE].views[i]);
+   }
+
+   /* This might invoke DCC decompression, so do it first. */
+   sctx->b.set_shader_images(&sctx->b, PIPE_SHADER_COMPUTE, 0, num_images, 0, images);
+
+   /* This should be done after set_shader_images. */
+   for (unsigned i = 0; i < num_images; i++) {
+      /* The driver doesn't decompress resources automatically here, so do it manually. */
+      si_decompress_subresource(&sctx->b, images[i].resource, PIPE_MASK_RGBAZS,
+                                images[i].u.tex.level, images[i].u.tex.first_layer,
+                                images[i].u.tex.last_layer,
+                                images[i].access & PIPE_IMAGE_ACCESS_WRITE);
+   }
+
+   /* This must be done before the compute shader. */
+   for (unsigned i = 0; i < num_images; i++) {
+      si_make_CB_shader_coherent(sctx, images[i].resource->nr_samples, true,
+            ((struct si_texture*)images[i].resource)->surface.u.gfx9.color.dcc.pipe_aligned);
+   }
+
+   si_launch_grid_internal(sctx, info, shader, flags | SI_OP_CS_IMAGE);
+
+   /* Restore images. */
+   sctx->b.set_shader_images(&sctx->b, PIPE_SHADER_COMPUTE, 0, num_images, 0, saved_image);
+   for (unsigned i = 0; i < num_images; i++)
+      pipe_resource_reference(&saved_image[i].resource, NULL);
+}
+
+bool si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, unsigned dst_level,
                            struct pipe_resource *src, unsigned src_level, unsigned dstx,
                            unsigned dsty, unsigned dstz, const struct pipe_box *src_box,
-                           bool is_dcc_decompress, unsigned flags)
+                           unsigned flags)
 {
-   struct pipe_context *ctx = &sctx->b;
    struct si_texture *ssrc = (struct si_texture*)src;
    struct si_texture *sdst = (struct si_texture*)dst;
-   unsigned width = src_box->width;
-   unsigned height = src_box->height;
-   unsigned depth = src_box->depth;
+
+   si_use_compute_copy_for_float_formats(sctx, dst, dst_level);
+
+   /* The compute copy is mandatory for compressed and subsampled formats because the gfx copy
+    * doesn't support them. In all other cases, call si_can_use_compute_blit.
+    *
+    * The format is identical (we only need to check the src format) except compressed formats,
+    * which can be paired with an equivalent integer format.
+    */
+   if (!util_format_is_compressed(src->format) &&
+       !util_format_is_compressed(dst->format) &&
+       !util_format_is_subsampled_422(src->format) &&
+       (!si_can_use_compute_blit(sctx, dst->format, dst->nr_samples, true,
+                                 vi_dcc_enabled(sdst, dst_level)) ||
+        !si_can_use_compute_blit(sctx, src->format, src->nr_samples, false,
+                                 vi_dcc_enabled(ssrc, src_level))))
+      return false;
+
    enum pipe_format src_format = util_format_linear(src->format);
    enum pipe_format dst_format = util_format_linear(dst->format);
    bool is_linear = ssrc->surface.is_linear || sdst->surface.is_linear;
 
    assert(util_format_is_subsampled_422(src_format) == util_format_is_subsampled_422(dst_format));
 
+   /* Interpret as integer values to avoid NaN issues */
    if (!vi_dcc_enabled(ssrc, src_level) &&
        !vi_dcc_enabled(sdst, dst_level) &&
        src_format == dst_format &&
        util_format_is_float(src_format) &&
        !util_format_is_compressed(src_format)) {
-      /* Interpret as integer values to avoid NaN issues */
       switch(util_format_get_blocksizebits(src_format)) {
         case 16:
           src_format = dst_format = PIPE_FORMAT_R16_UINT;
@@ -510,8 +669,49 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
       }
    }
 
+   /* Interpret compressed formats as UINT. */
+   struct pipe_box new_box;
+   unsigned src_access = 0, dst_access = 0;
+
+   /* Note that staging copies do compressed<->UINT, so one of the formats is already UINT. */
+   if (util_format_is_compressed(src_format) || util_format_is_compressed(dst_format)) {
+      if (util_format_is_compressed(src_format))
+         src_access |= SI_IMAGE_ACCESS_BLOCK_FORMAT_AS_UINT;
+      if (util_format_is_compressed(dst_format))
+         dst_access |= SI_IMAGE_ACCESS_BLOCK_FORMAT_AS_UINT;
+
+      dstx = util_format_get_nblocksx(dst_format, dstx);
+      dsty = util_format_get_nblocksy(dst_format, dsty);
+
+      new_box.x = util_format_get_nblocksx(src_format, src_box->x);
+      new_box.y = util_format_get_nblocksy(src_format, src_box->y);
+      new_box.z = src_box->z;
+      new_box.width = util_format_get_nblocksx(src_format, src_box->width);
+      new_box.height = util_format_get_nblocksy(src_format, src_box->height);
+      new_box.depth = src_box->depth;
+      src_box = &new_box;
+
+      if (ssrc->surface.bpe == 8)
+         src_format = dst_format = PIPE_FORMAT_R16G16B16A16_UINT; /* 64-bit block */
+      else
+         src_format = dst_format = PIPE_FORMAT_R32G32B32A32_UINT; /* 128-bit block */
+   }
+
    if (util_format_is_subsampled_422(src_format)) {
+      assert(src_format == dst_format);
+
+      src_access |= SI_IMAGE_ACCESS_BLOCK_FORMAT_AS_UINT;
+      dst_access |= SI_IMAGE_ACCESS_BLOCK_FORMAT_AS_UINT;
+
+      dstx = util_format_get_nblocksx(src_format, dstx);
+
+      new_box = *src_box;
+      new_box.x = util_format_get_nblocksx(src_format, src_box->x);
+      new_box.width = util_format_get_nblocksx(src_format, src_box->width);
+      src_box = &new_box;
+
       src_format = dst_format = PIPE_FORMAT_R32_UINT;
+
       /* Interpreting 422 subsampled format (16 bpp) as 32 bpp
        * should force us to divide src_box->x, dstx and width by 2.
        * But given that ac_surface allocates this format as 32 bpp
@@ -520,136 +720,68 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
        */
    }
 
-   if (width == 0 || height == 0)
-      return;
+   /* SNORM blitting has precision issues. Use the SINT equivalent instead, which doesn't
+    * force DCC decompression.
+    */
+   if (util_format_is_snorm(dst_format))
+      src_format = dst_format = util_format_snorm_to_sint(dst_format);
 
-   /* The driver doesn't decompress resources automatically here. */
-   si_decompress_subresource(ctx, dst, PIPE_MASK_RGBAZS, dst_level, dstz,
-                             dstz + src_box->depth - 1);
-   si_decompress_subresource(ctx, src, PIPE_MASK_RGBAZS, src_level, src_box->z,
-                             src_box->z + src_box->depth - 1);
-
-   /* src and dst have the same number of samples. */
-   si_make_CB_shader_coherent(sctx, src->nr_samples, true,
-                              ssrc->surface.u.gfx9.color.dcc.pipe_aligned);
-   if (sctx->chip_class >= GFX10) {
-      /* GFX10+ uses DCC stores so si_make_CB_shader_coherent is required for dst too */
-      si_make_CB_shader_coherent(sctx, dst->nr_samples, true,
-                                 sdst->surface.u.gfx9.color.dcc.pipe_aligned);
-   }
-
-   struct si_images *images = &sctx->images[PIPE_SHADER_COMPUTE];
-   struct pipe_image_view saved_image[2] = {0};
-   util_copy_image_view(&saved_image[0], &images->views[0]);
-   util_copy_image_view(&saved_image[1], &images->views[1]);
+   if (src_box->width == 0 || src_box->height == 0 || src_box->depth == 0)
+      return true; /* success - nothing to do */
 
    struct pipe_image_view image[2] = {0};
    image[0].resource = src;
-   image[0].shader_access = image[0].access = PIPE_IMAGE_ACCESS_READ;
+   image[0].shader_access = image[0].access = PIPE_IMAGE_ACCESS_READ | src_access;
    image[0].format = src_format;
    image[0].u.tex.level = src_level;
    image[0].u.tex.first_layer = 0;
-   image[0].u.tex.last_layer = src->target == PIPE_TEXTURE_3D ? u_minify(src->depth0, src_level) - 1
-                                                              : (unsigned)(src->array_size - 1);
+   image[0].u.tex.last_layer = util_max_layer(src, src_level);
    image[1].resource = dst;
-   image[1].shader_access = image[1].access = PIPE_IMAGE_ACCESS_WRITE;
+   image[1].shader_access = image[1].access = PIPE_IMAGE_ACCESS_WRITE | dst_access;
    image[1].format = dst_format;
    image[1].u.tex.level = dst_level;
    image[1].u.tex.first_layer = 0;
-   image[1].u.tex.last_layer = dst->target == PIPE_TEXTURE_3D ? u_minify(dst->depth0, dst_level) - 1
-                                                              : (unsigned)(dst->array_size - 1);
-
-   /* SNORM8 blitting has precision issues on some chips. Use the SINT
-    * equivalent instead, which doesn't force DCC decompression.
-    */
-   if (util_format_is_snorm8(dst->format)) {
-      image[0].format = image[1].format = util_format_snorm8_to_sint8(dst->format);
-   }
-
-   if (is_dcc_decompress)
-      image[1].access |= SI_IMAGE_ACCESS_DCC_OFF;
-   else if (sctx->chip_class >= GFX10)
-      image[1].access |= SI_IMAGE_ACCESS_ALLOW_DCC_STORE;
-
-   ctx->set_shader_images(ctx, PIPE_SHADER_COMPUTE, 0, 2, 0, image);
-
-   if (!is_dcc_decompress) {
-      sctx->cs_user_data[0] = src_box->x | (dstx << 16);
-      sctx->cs_user_data[1] = src_box->y | (dsty << 16);
-      sctx->cs_user_data[2] = src_box->z | (dstz << 16);
-   }
+   image[1].u.tex.last_layer = util_max_layer(dst, dst_level);
 
    struct pipe_grid_info info = {0};
 
-   if (is_dcc_decompress) {
-      /* The DCC decompression is a normal blit where the load is compressed
-       * and the store is uncompressed. The workgroup size is either equal to
-       * the DCC block size or a multiple thereof. The shader uses a barrier
-       * between loads and stores to safely overwrite each DCC block of pixels.
-       */
-      unsigned dim[3] = {src_box->width, src_box->height, src_box->depth};
+   bool dst_is_1d = dst->target == PIPE_TEXTURE_1D ||
+                    dst->target == PIPE_TEXTURE_1D_ARRAY;
+   bool src_is_1d = src->target == PIPE_TEXTURE_1D ||
+                    src->target == PIPE_TEXTURE_1D_ARRAY;
+   int block_x, block_y;
+   int block_z = 1;
 
-      assert(src == dst);
-      assert(dst->target != PIPE_TEXTURE_1D && dst->target != PIPE_TEXTURE_1D_ARRAY);
-
-      if (!sctx->cs_dcc_decompress)
-         sctx->cs_dcc_decompress = si_create_dcc_decompress_cs(ctx);
-
-      info.block[0] = ssrc->surface.u.gfx9.color.dcc_block_width;
-      info.block[1] = ssrc->surface.u.gfx9.color.dcc_block_height;
-      info.block[2] = ssrc->surface.u.gfx9.color.dcc_block_depth;
-
-      unsigned default_wave_size = si_determine_wave_size(sctx->screen, NULL);;
-
-      /* Make sure the block size is at least the same as wave size. */
-      while (info.block[0] * info.block[1] * info.block[2] < default_wave_size) {
-         info.block[0] *= 2;
-      }
-
-      for (unsigned i = 0; i < 3; i++) {
-         info.last_block[i] = dim[i] % info.block[i];
-         info.grid[i] = DIV_ROUND_UP(dim[i], info.block[i]);
-      }
-
-      si_launch_grid_internal(sctx, &info, sctx->cs_dcc_decompress, flags | SI_OP_CS_IMAGE);
-   } else if (dst->target == PIPE_TEXTURE_1D_ARRAY && src->target == PIPE_TEXTURE_1D_ARRAY) {
-      if (!sctx->cs_copy_image_1d_array)
-         sctx->cs_copy_image_1d_array = si_create_copy_image_compute_shader_1d_array(ctx);
-
-      info.block[0] = 64;
-      info.last_block[0] = width % 64;
-      info.block[1] = 1;
-      info.block[2] = 1;
-      info.grid[0] = DIV_ROUND_UP(width, 64);
-      info.grid[1] = depth;
-      info.grid[2] = 1;
-
-      si_launch_grid_internal(sctx, &info, sctx->cs_copy_image_1d_array, flags | SI_OP_CS_IMAGE);
+   /* Choose the block dimensions based on the copy area size. */
+   if (src_box->height <= 4) {
+      block_y = util_next_power_of_two(src_box->height);
+      block_x = 64 / block_y;
+   } else if (src_box->width <= 4) {
+      block_x = util_next_power_of_two(src_box->width);
+      block_y = 64 / block_x;
+   } else if (is_linear) {
+      block_x = 64;
+      block_y = 1;
    } else {
-      if (!sctx->cs_copy_image)
-         sctx->cs_copy_image = si_create_copy_image_compute_shader(ctx);
-
-      /* This is better for access over PCIe. */
-      if (is_linear) {
-         info.block[0] = 64;
-         info.block[1] = 1;
-      } else {
-         info.block[0] = 8;
-         info.block[1] = 8;
-      }
-      info.last_block[0] = width % info.block[0];
-      info.last_block[1] = height % info.block[1];
-      info.block[2] = 1;
-      info.grid[0] = DIV_ROUND_UP(width, info.block[0]);
-      info.grid[1] = DIV_ROUND_UP(height, info.block[1]);
-      info.grid[2] = depth;
-
-      si_launch_grid_internal(sctx, &info, sctx->cs_copy_image, flags | SI_OP_CS_IMAGE);
+      block_x = 8;
+      block_y = 8;
    }
 
-   ctx->set_shader_images(ctx, PIPE_SHADER_COMPUTE, 0, 2, 0, saved_image);
-   for (int i = 0; i < 2; i++)
-      pipe_resource_reference(&saved_image[i].resource, NULL);
+   sctx->cs_user_data[0] = src_box->x | (dstx << 16);
+   sctx->cs_user_data[1] = src_box->y | (dsty << 16);
+   sctx->cs_user_data[2] = src_box->z | (dstz << 16);
+
+   set_work_size(&info, block_x, block_y, block_z,
+                 src_box->width, src_box->height, src_box->depth);
+
+   void **copy_image_cs_ptr = &sctx->cs_copy_image[src_is_1d][dst_is_1d];
+   if (!*copy_image_cs_ptr)
+      *copy_image_cs_ptr = si_create_copy_image_cs(sctx, src_is_1d, dst_is_1d);
+
+   assert(*copy_image_cs_ptr);
+
+   si_launch_grid_internal_images(sctx, image, 2, &info, *copy_image_cs_ptr, flags);
+   return true;
 }
 
 void si_retile_dcc(struct si_context *sctx, struct si_texture *tex)
@@ -703,6 +835,8 @@ void gfx9_clear_dcc_msaa(struct si_context *sctx, struct pipe_resource *res, uin
 {
    struct si_texture *tex = (struct si_texture*)res;
 
+   assert(sctx->gfx_level < GFX11);
+
    /* Set the DCC buffer. */
    assert(tex->surface.meta_offset && tex->surface.meta_offset <= UINT_MAX);
    assert(tex->buffer.bo_size <= UINT_MAX);
@@ -754,6 +888,8 @@ void si_compute_expand_fmask(struct pipe_context *ctx, struct pipe_resource *tex
    unsigned log_fragments = util_logbase2(tex->nr_storage_samples);
    unsigned log_samples = util_logbase2(tex->nr_samples);
    assert(tex->nr_samples >= 2);
+
+   assert(sctx->gfx_level < GFX11);
 
    /* EQAA FMASK expansion is unimplemented. */
    if (tex->nr_samples != tex->nr_storage_samples)
@@ -831,16 +967,11 @@ void si_compute_clear_render_target(struct pipe_context *ctx, struct pipe_surfac
                                     bool render_condition_enabled)
 {
    struct si_context *sctx = (struct si_context *)ctx;
-   struct si_texture *tex = (struct si_texture*)dstsurf->texture;
    unsigned num_layers = dstsurf->u.tex.last_layer - dstsurf->u.tex.first_layer + 1;
    unsigned data[4 + sizeof(color->ui)] = {dstx, dsty, dstsurf->u.tex.first_layer, 0};
 
    if (width == 0 || height == 0)
       return;
-
-   /* The driver doesn't decompress resources automatically here. */
-   si_decompress_subresource(ctx, dstsurf->texture, PIPE_MASK_RGBA, dstsurf->u.tex.level,
-                             dstsurf->u.tex.first_layer, dstsurf->u.tex.last_layer);
 
    if (util_format_is_srgb(dstsurf->format)) {
       union pipe_color_union color_srgb;
@@ -852,15 +983,8 @@ void si_compute_clear_render_target(struct pipe_context *ctx, struct pipe_surfac
       memcpy(data + 4, color->ui, sizeof(color->ui));
    }
 
-   si_make_CB_shader_coherent(sctx, dstsurf->texture->nr_samples, true,
-                              tex->surface.u.gfx9.color.dcc.pipe_aligned);
-
    struct pipe_constant_buffer saved_cb = {};
    si_get_pipe_constant_buffer(sctx, PIPE_SHADER_COMPUTE, 0, &saved_cb);
-
-   struct si_images *images = &sctx->images[PIPE_SHADER_COMPUTE];
-   struct pipe_image_view saved_image = {0};
-   util_copy_image_view(&saved_image, &images->views[0]);
 
    struct pipe_constant_buffer cb = {};
    cb.buffer_size = sizeof(data);
@@ -869,13 +993,11 @@ void si_compute_clear_render_target(struct pipe_context *ctx, struct pipe_surfac
 
    struct pipe_image_view image = {0};
    image.resource = dstsurf->texture;
-   image.shader_access = image.access = PIPE_IMAGE_ACCESS_WRITE | SI_IMAGE_ACCESS_ALLOW_DCC_STORE;
+   image.shader_access = image.access = PIPE_IMAGE_ACCESS_WRITE;
    image.format = util_format_linear(dstsurf->format);
    image.u.tex.level = dstsurf->u.tex.level;
    image.u.tex.first_layer = 0; /* 3D images ignore first_layer (BASE_ARRAY) */
    image.u.tex.last_layer = dstsurf->u.tex.last_layer;
-
-   ctx->set_shader_images(ctx, PIPE_SHADER_COMPUTE, 0, 1, 0, &image);
 
    struct pipe_grid_info info = {0};
    void *shader;
@@ -907,10 +1029,109 @@ void si_compute_clear_render_target(struct pipe_context *ctx, struct pipe_surfac
       info.grid[2] = 1;
    }
 
-   si_launch_grid_internal(sctx, &info, shader, SI_OP_SYNC_BEFORE_AFTER | SI_OP_CS_IMAGE |
-                           (render_condition_enabled ? SI_OP_CS_RENDER_COND_ENABLE : 0));
+   si_launch_grid_internal_images(sctx, &image, 1, &info, shader,
+                                  SI_OP_SYNC_BEFORE_AFTER |
+                                  (render_condition_enabled ? SI_OP_CS_RENDER_COND_ENABLE : 0));
 
-   ctx->set_shader_images(ctx, PIPE_SHADER_COMPUTE, 0, 1, 0, &saved_image);
    ctx->set_constant_buffer(ctx, PIPE_SHADER_COMPUTE, 0, true, &saved_cb);
-   pipe_resource_reference(&saved_image.resource, NULL);
+}
+
+bool si_compute_blit(struct si_context *sctx, const struct pipe_blit_info *info)
+{
+   /* Compute blits require D16 right now (see the ISA).
+    *
+    * Testing on Navi21 showed that the compute blit is slightly slower than the gfx blit.
+    * The compute blit is even slower with DCC stores. VP13 CATIA_plane_pencil is a good test
+    * for that because it's mostly just blits.
+    *
+    * TODO: benchmark the performance on gfx11
+    */
+   if (sctx->gfx_level < GFX11)
+      return false;
+
+   if (!si_can_use_compute_blit(sctx, info->dst.format, info->dst.resource->nr_samples, true,
+                                vi_dcc_enabled((struct si_texture*)info->dst.resource,
+                                               info->dst.level)) ||
+       !si_can_use_compute_blit(sctx, info->src.format, info->src.resource->nr_samples, false,
+                                vi_dcc_enabled((struct si_texture*)info->src.resource,
+                                               info->src.level)))
+      return false;
+
+   if (info->alpha_blend ||
+       info->num_window_rectangles ||
+       info->scissor_enable ||
+       /* No scaling. */
+       info->dst.box.width != abs(info->src.box.width) ||
+       info->dst.box.height != abs(info->src.box.height) ||
+       info->dst.box.depth != abs(info->src.box.depth))
+      return false;
+
+   assert(info->src.box.depth >= 0);
+
+   /* Shader images. */
+   struct pipe_image_view image[2];
+   image[0].resource = info->src.resource;
+   image[0].shader_access = image[0].access = PIPE_IMAGE_ACCESS_READ;
+   image[0].format = info->src.format;
+   image[0].u.tex.level = info->src.level;
+   image[0].u.tex.first_layer = 0;
+   image[0].u.tex.last_layer = util_max_layer(info->src.resource, info->src.level);
+
+   image[1].resource = info->dst.resource;
+   image[1].shader_access = image[1].access = PIPE_IMAGE_ACCESS_WRITE;
+   image[1].format = info->dst.format;
+   image[1].u.tex.level = info->dst.level;
+   image[1].u.tex.first_layer = 0;
+   image[1].u.tex.last_layer = util_max_layer(info->dst.resource, info->dst.level);
+
+   /* Get the shader key. */
+   const struct util_format_description *dst_desc = util_format_description(info->dst.format);
+   unsigned i = util_format_get_first_non_void_channel(info->dst.format);
+   union si_compute_blit_shader_key options;
+   options.key = 0;
+
+   options.always_true = true;
+   options.src_is_1d = info->src.resource->target == PIPE_TEXTURE_1D ||
+                       info->src.resource->target == PIPE_TEXTURE_1D_ARRAY;
+   options.dst_is_1d = info->dst.resource->target == PIPE_TEXTURE_1D ||
+                       info->dst.resource->target == PIPE_TEXTURE_1D_ARRAY;
+   options.src_is_msaa = info->src.resource->nr_samples > 1;
+   options.dst_is_msaa = info->dst.resource->nr_samples > 1;
+   /* Resolving integer formats only copies sample 0. log2_samples is then unused. */
+   options.sample0_only = options.src_is_msaa && !options.dst_is_msaa &&
+                          util_format_is_pure_integer(info->src.format);
+   unsigned num_samples = MAX2(info->src.resource->nr_samples, info->dst.resource->nr_samples);
+   options.log2_samples = options.sample0_only ? 0 : util_logbase2(num_samples);
+   options.flip_x = info->src.box.width < 0;
+   options.flip_y = info->src.box.height < 0;
+   options.sint_to_uint = util_format_is_pure_sint(info->src.format) &&
+                          util_format_is_pure_uint(info->dst.format);
+   options.uint_to_sint = util_format_is_pure_uint(info->src.format) &&
+                          util_format_is_pure_sint(info->dst.format);
+   options.dst_is_srgb = util_format_is_srgb(info->dst.format);
+   options.fp16_rtz = !util_format_is_pure_integer(info->dst.format) &&
+                      (dst_desc->channel[i].size <= 10 ||
+                       (dst_desc->channel[i].type == UTIL_FORMAT_TYPE_FLOAT &&
+                        dst_desc->channel[i].size <= 16));
+
+   struct hash_entry *entry = _mesa_hash_table_search(sctx->cs_blit_shaders,
+                                                      (void*)(uintptr_t)options.key);
+   void *shader = entry ? entry->data : NULL;
+   if (!shader) {
+      shader = si_create_blit_cs(sctx, &options);
+      _mesa_hash_table_insert(sctx->cs_blit_shaders,
+                              (void*)(uintptr_t)options.key, shader);
+   }
+
+   sctx->cs_user_data[0] = (info->src.box.x & 0xffff) | ((info->dst.box.x & 0xffff) << 16);
+   sctx->cs_user_data[1] = (info->src.box.y & 0xffff) | ((info->dst.box.y & 0xffff) << 16);
+   sctx->cs_user_data[2] = (info->src.box.z & 0xffff) | ((info->dst.box.z & 0xffff) << 16);
+
+   struct pipe_grid_info grid = {0};
+   set_work_size(&grid, 8, 8, 1, info->dst.box.width, info->dst.box.height, info->dst.box.depth);
+
+   si_launch_grid_internal_images(sctx, image, 2, &grid, shader,
+                                  SI_OP_SYNC_BEFORE_AFTER |
+                                  (info->render_condition_enable ? SI_OP_CS_RENDER_COND_ENABLE : 0));
+   return true;
 }

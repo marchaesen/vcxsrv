@@ -9,20 +9,19 @@ xkb_symbols "se" {
 
     name[Group1]="Swedish";
 
+    key <TLDE>	{ [   section,    onehalf,    paragraph, threequarters]	};
     key <AE05>	{ [         5,    percent,     EuroSign,         cent ]	};
     key <AE11>	{ [      plus,   question,    backslash, questiondown ]	};
     key <AE12>	{ [dead_acute, dead_grave,    plusminus,      notsign ]	};
 
-
-    key <AC10>	{ [odiaeresis, Odiaeresis,       oslash,     Ooblique ]	};
+    key <AC10>	{ [odiaeresis, Odiaeresis,       oslash,       Oslash ]	};
     key <AC11>	{ [adiaeresis, Adiaeresis,           ae,           AE ]	};
-    key <TLDE>	{ [   section,    onehalf,    paragraph, threequarters]	};
-
     key <BKSL>	{ [apostrophe,   asterisk,        acute,     multiply ]	};
+
+    key <LSGT>  { [      less,     greater,         bar,    brokenbar ] };
 
     key <SPCE>	{ [     space,      space,        space, nobreakspace ]	};
 
-    key <LSGT>  { [      less,     greater,         bar,    brokenbar ] };
     include "kpdl(comma)"
 
     include "level3(ralt_switch)"
@@ -183,7 +182,7 @@ xkb_symbols "mac" {
     key <AE12> {	[           acute,           grave	]	};
     key <AD11> {	[	    aring,           Aring     	]	};
     key <AD12> {	[       diaeresis,     asciicircum, 	asciitilde			]	};
-    key <AC10> {	[      odiaeresis,      Odiaeresis, 	   oslash,	    Ooblique	]	};
+    key <AC10> {	[      odiaeresis,      Odiaeresis, 	   oslash,	      Oslash	]	};
     key <AC11> {	[      adiaeresis,      Adiaeresis,               ae,		AE	]	};
     key <BKSL> {	[      apostrophe,        asterisk,               at			]	};
     key <AB08> {	[           comma,       semicolon     	]	};

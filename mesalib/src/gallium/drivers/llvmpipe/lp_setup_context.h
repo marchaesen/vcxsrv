@@ -43,6 +43,7 @@
 #include "draw/draw_vbuf.h"
 #include "util/u_rect.h"
 #include "util/u_pack_color.h"
+#include "util/slab.h"
 
 #define LP_SETUP_NEW_FS          0x01
 #define LP_SETUP_NEW_CONSTANTS   0x02
@@ -55,8 +56,8 @@ struct lp_setup_variant;
 
 
 /** Max number of scenes */
-/* XXX: make multiple scenes per context work, see lp_setup_rasterize_scene */
-#define MAX_SCENES 1
+#define INITIAL_SCENES 4
+#define MAX_SCENES 64
 
 
 
@@ -89,10 +90,12 @@ struct lp_setup_context
    struct draw_stage *vbuf;
    unsigned num_threads;
    unsigned scene_idx;
+
+   struct slab_mempool scene_slab;
+   int num_active_scenes;
    struct lp_scene *scenes[MAX_SCENES];  /**< all the scenes */
    struct lp_scene *scene;               /**< current scene being built */
 
-   struct lp_fence *last_fence;
    struct llvmpipe_query *active_queries[LP_MAX_ACTIVE_BINNED_QUERIES];
    unsigned active_binned_queries;
 
@@ -135,7 +138,7 @@ struct lp_setup_context
       SETUP_CLEARED,    /**< scene exists but has only clears */
       SETUP_ACTIVE      /**< scene exists and has at least one draw/query */
    } state;
-   
+
    struct {
       const struct lp_rast_state *stored; /**< what's in the scene */
       struct lp_rast_state current;  /**< currently set state */
@@ -154,6 +157,7 @@ struct lp_setup_context
    struct {
       struct pipe_shader_buffer current;
    } ssbos[LP_MAX_TGSI_SHADER_BUFFERS];
+   uint32_t ssbo_write_mask;
 
    struct {
       struct pipe_image_view current;
@@ -164,34 +168,34 @@ struct lp_setup_context
       uint8_t *stored;
    } blend_color;
 
-
    struct {
       const struct lp_setup_variant *variant;
    } setup;
 
    unsigned dirty;   /**< bitmask of LP_SETUP_NEW_x bits */
 
-   void (*point)( struct lp_setup_context *,
-                  const float (*v0)[4]);
+   void (*point)(struct lp_setup_context *,
+                 const float (*v0)[4]);
 
-   void (*line)( struct lp_setup_context *,
-                 const float (*v0)[4],
-                 const float (*v1)[4]);
+   void (*line)(struct lp_setup_context *,
+                const float (*v0)[4],
+                const float (*v1)[4]);
 
-   void (*triangle)( struct lp_setup_context *,
-                     const float (*v0)[4],
-                     const float (*v1)[4],
-                     const float (*v2)[4]);
+   void (*triangle)(struct lp_setup_context *,
+                    const float (*v0)[4],
+                    const float (*v1)[4],
+                    const float (*v2)[4]);
 
    boolean
-   (*rect)( struct lp_setup_context *,
-            const float (*v0)[4],
-            const float (*v1)[4],
-            const float (*v2)[4],
-            const float (*v3)[4],
-            const float (*v4)[4],
-            const float (*v5)[4]);
+   (*rect)(struct lp_setup_context *,
+           const float (*v0)[4],
+           const float (*v1)[4],
+           const float (*v2)[4],
+           const float (*v3)[4],
+           const float (*v4)[4],
+           const float (*v5)[4]);
 };
+
 
 static inline void
 scissor_planes_needed(boolean scis_planes[4], const struct u_rect *bbox,
@@ -207,24 +211,36 @@ scissor_planes_needed(boolean scis_planes[4], const struct u_rect *bbox,
    scis_planes[3] = (bbox->y1 > scissor->y1);
 }
 
+
 void
 lp_setup_add_scissor_planes(const struct u_rect *scissor,
                             struct lp_rast_plane *plane_s,
                             boolean s_planes[4], bool multisample);
 
-void lp_setup_choose_triangle( struct lp_setup_context *setup );
-void lp_setup_choose_line( struct lp_setup_context *setup );
-void lp_setup_choose_point( struct lp_setup_context *setup );
-void lp_setup_choose_rect( struct lp_setup_context *setup );
+void
+lp_setup_choose_triangle(struct lp_setup_context *setup);
 
-void lp_setup_init_vbuf(struct lp_setup_context *setup);
+void
+lp_setup_choose_line(struct lp_setup_context *setup);
 
-boolean lp_setup_update_state( struct lp_setup_context *setup,
-                            boolean update_scene);
+void
+lp_setup_choose_point(struct lp_setup_context *setup);
 
-void lp_setup_destroy( struct lp_setup_context *setup );
+void
+lp_setup_choose_rect(struct lp_setup_context *setup);
 
-boolean lp_setup_flush_and_restart(struct lp_setup_context *setup);
+void
+lp_setup_init_vbuf(struct lp_setup_context *setup);
+
+boolean
+lp_setup_update_state(struct lp_setup_context *setup,
+                      boolean update_scene);
+
+void
+lp_setup_destroy(struct lp_setup_context *setup);
+
+boolean
+lp_setup_flush_and_restart(struct lp_setup_context *setup);
 
 boolean
 lp_setup_whole_tile(struct lp_setup_context *setup,
@@ -253,12 +269,12 @@ lp_rect_cw(struct lp_setup_context *setup,
            const float (*v2)[4],
            boolean frontfacing);
 
-void 
-lp_setup_triangle_ccw( struct lp_setup_context *setup,
-                       const float (*v0)[4],
-                       const float (*v1)[4],
-                       const float (*v2)[4],
-                       boolean front );
+void
+lp_setup_triangle_ccw(struct lp_setup_context *setup,
+                      const float (*v0)[4],
+                      const float (*v1)[4],
+                      const float (*v2)[4],
+                      boolean front);
 
 struct lp_rast_triangle *
 lp_setup_alloc_triangle(struct lp_scene *scene,

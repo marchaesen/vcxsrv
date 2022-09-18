@@ -45,8 +45,8 @@ XDrawArcs(
     LockDisplay(dpy);
     FlushGC(dpy, gc);
     GetReq(PolyArc,req);
-    req->drawable = d;
-    req->gc = gc->gid;
+    req->drawable = (CARD32) d;
+    req->gc = (CARD32) gc->gid;
     len = ((long)n_arcs) * arc_scale;
     SetReqLen(req, len, 1);
     len <<= 2; /* watch out for macros... */

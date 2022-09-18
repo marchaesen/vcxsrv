@@ -41,6 +41,9 @@ struct shim_device {
    /* Mapping from int fd to struct shim_fd *. */
    struct hash_table *fd_map;
 
+   /* Mapping from mmap offset to shim_bo */
+   struct hash_table_u64 *offset_map;
+
    mtx_t mem_lock;
    /* Heap from which shim_bo are allocated */
    struct util_vma_heap mem_heap;
@@ -54,6 +57,10 @@ struct shim_device {
 
    /* Returned by drmGetVersion(). */
    const char *driver_name;
+
+   /* Returned by drmGetBusid(). */
+   const char *unique;
+
    int version_major, version_minor, version_patchlevel;
    int bus_type;
 };
@@ -62,6 +69,7 @@ extern struct shim_device shim_device;
 
 struct shim_fd {
    int fd;
+   int refcount;
    mtx_t handle_lock;
    /* mapping from int gem handle to struct shim_bo *. */
    struct hash_table *handles;
@@ -80,12 +88,13 @@ void drm_shim_device_init(void);
 void drm_shim_override_file(const char *contents,
                             const char *path_format, ...) PRINTFLIKE(2, 3);
 void drm_shim_fd_register(int fd, struct shim_fd *shim_fd);
+void drm_shim_fd_unregister(int fd);
 struct shim_fd *drm_shim_fd_lookup(int fd);
 int drm_shim_ioctl(int fd, unsigned long request, void *arg);
 void *drm_shim_mmap(struct shim_fd *shim_fd, size_t length, int prot, int flags,
-                    int fd, off_t offset);
+                    int fd, off64_t offset);
 
-void drm_shim_bo_init(struct shim_bo *bo, size_t size);
+int drm_shim_bo_init(struct shim_bo *bo, size_t size);
 void drm_shim_bo_get(struct shim_bo *bo);
 void drm_shim_bo_put(struct shim_bo *bo);
 struct shim_bo *drm_shim_bo_lookup(struct shim_fd *shim_fd, int handle);

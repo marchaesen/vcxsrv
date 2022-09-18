@@ -30,22 +30,11 @@ xkb_symbols "level2" {
 // level3 & level3ns provide no-breaking spaces starting from level3
 // This is good for typographers but experience shows many users accidently
 // type no-breaking spaces on the CLI (resulting in errors)
-// Used by fr(latin9) and lt(std)
 partial
 xkb_symbols "level3" {
   key <SPCE> {
     type[Group1]="FOUR_LEVEL",
     symbols[Group1]= [ space, space, nobreakspace ]
-  };
-};
-
-// level3s kills fourth level
-// Used by ca(multix)
-partial
-xkb_symbols "level3s" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, space, nobreakspace, NoSymbol ]
   };
 };
 
@@ -132,25 +121,14 @@ xkb_symbols "zwnj2zwj3nb4" {
   };
 };
 
+
 // ZWNJ on level 2
 // NBSP on level 3
-// Used by ir(ku_ara), af(basic), af(ps), af(uz), af(fa-olpc), af(ps-olpc), af(uz-olpc)
 partial
 xkb_symbols "zwnj2nb3" {
   key <SPCE> {
     type[Group1]="FOUR_LEVEL",
     symbols[Group1]= [ space, 0x100200c, nobreakspace ]
-  };
-};
-
-
-// ZWNJ on level 2
-// NBSP on level 3
-partial
-xkb_symbols "zwnj2nb3s" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, 0x100200c, nobreakspace, NoSymbol ]
   };
 };
 

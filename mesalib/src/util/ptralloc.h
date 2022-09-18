@@ -19,7 +19,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- * 
+ *
  * Authors:
  *    Mike Blumenkrantz <michael.blumenkrantz@gmail.com>
  */
@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include "c99_compat.h"
 #include "macros.h"
 
 #ifdef __cplusplus

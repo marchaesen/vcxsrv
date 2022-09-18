@@ -51,7 +51,7 @@
 #include <stdio.h>
 
 /* Future improvement: Use realloc instead? */
-#define DEBUG_FLUSH_MAP_DEPTH 32
+#define DEBUG_FLUSH_MAP_DEPTH 64
 
 struct debug_map_item {
    struct debug_stack_frame *frame;

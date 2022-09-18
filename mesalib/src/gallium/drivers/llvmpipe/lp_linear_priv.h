@@ -29,8 +29,8 @@ struct lp_linear_sampler {
    int width;
    boolean axis_aligned;
 
-   PIPE_ALIGN_VAR(16) uint32_t row[64];
-   PIPE_ALIGN_VAR(16) uint32_t stretched_row[2][64];
+   alignas(16) uint32_t row[64];
+   alignas(16) uint32_t stretched_row[2][64];
 
    /**
     * y coordinate of the rows stored in the stretched_row.
@@ -60,7 +60,7 @@ struct lp_linear_interp {
 
    int width;                   /* rounded up to multiple of 4 */
 
-   PIPE_ALIGN_VAR(16) uint32_t row[64];
+   alignas(16) uint32_t row[64];
 };
 
 

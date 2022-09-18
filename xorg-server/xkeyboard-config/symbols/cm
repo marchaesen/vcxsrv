@@ -108,6 +108,7 @@ xkb_symbols "french"
 	include "latin"
 	name[Group1]="French (Cameroon)";
 
+	key <TLDE> { [twosuperior, asciitilde, notsign, notsign ] };
 	key <AE01> { [ ampersand, 1, onesuperior, exclamdown ] };
 	key <AE02> { [ eacute, 2, asciitilde, oneeighth ] };
 	key <AE03> { [ quotedbl, 3, numbersign, sterling ] };
@@ -130,9 +131,8 @@ xkb_symbols "french"
 	key <AC01> { [ q, Q, at, Greek_OMEGA ] };
 	key <AC10> { [ m, M, mu, masculine ] };
 	key <AC11> { [ ugrave, percent, dead_circumflex, dead_caron] };
-	key <TLDE> { [twosuperior, asciitilde, notsign, notsign ] };
-
 	key <BKSL> { [ asterisk, mu, dead_grave, dead_breve ] };
+
 	key <AB01> { [ w, W, lstroke, Lstroke ] };
 	key <AB07> { [ comma, U003F, dead_acute, dead_doubleacute ] };
 	key <AB08> { [ semicolon, period, U2022, multiply ] }; // bullet
@@ -443,6 +443,7 @@ xkb_symbols "mmuock" {
    include "level3(ralt_switch)"
 
    name[Group1]= "Mmuock";
+   key <TLDE> { [ dead_grave,  dead_tilde,          grave,    asciitilde ] };
    key <AE06> { [          6, asciicircum,          U0302                ] }; // tone 10
    key <AE07> { [          7,   ampersand,          U0311                ] }; // tone 12
    key <AE08> { [          8,    asterisk,          U030D                ] }; // tone 13
@@ -450,14 +451,16 @@ xkb_symbols "mmuock" {
    key <AE10> { [          0,  parenright,          U030A                ] }; // tone 6
    key <AE11> { [dead_macron,  underscore,          minus,        endash ] };
    key <AE12> { [      equal,        plus,          U030B, dead_belowdot ] }; // U030B = tone 8
+
    key <AD03> { [          e,           E,          U01DD,         U018E ] }; // U01DD = reversed E
    key <AD04> { [     scaron,      Scaron,              r,             R ] };
    key <AD07> { [          u,           U,    Greek_omega,   Greek_OMEGA ] };
    key <AD08> { [          i,           I,          U025B,         U0190 ] }; // U025B = open E
    key <AD09> { [          o,           O,      Greek_phi,     Greek_PHI ] };
    key <AD10> { [          p,           P,       Greek_pi,      Greek_PI ] };
-   key <AD11> { [     oslash,    Ooblique,    bracketleft,     braceleft ] };
+   key <AD11> { [     oslash,      Oslash,    bracketleft,     braceleft ] };
    key <AD12> { [Greek_sigma, Greek_SIGMA,   bracketright,    braceright ] }; 
+
    key <AC01> { [          a,           A,          U0303                ] }; // tone 0
    key <AC02> { [          s,           S,          U0304                ] }; // tone 1
    key <AC03> { [          d,           D,          U0301                ] }; // tone 3
@@ -469,12 +472,12 @@ xkb_symbols "mmuock" {
    key <AC09> { [          l,           L,          U0308                ] }; // tone 14
    key <AC10> { [         oe,          OE,      semicolon,         colon ] };
    key <AC11> { [ dead_acute,    quotedbl,     apostrophe                ] };
-   key <TLDE> { [ dead_grave,  dead_tilde,          grave,    asciitilde ] };
+   key <BKSL> { [         ae,          AE,      backslash,           bar ] };
+
    key <AB01> { [          z,           Z,          U01F3,         U01F2 ] }; // U01F3 = letter dz
    key <AB06> { [          n,           N,            eng,           ENG ] };
    key <AB08> { [      comma,        less,  guillemotleft,         U2039 ] };
    key <AB09> { [     period,     greater, guillemotright,         U203A ] };
-   key <BKSL> { [         ae,          AE,      backslash,           bar ] };
 
    include "cm(solidus_switch)"
 };

@@ -1,4 +1,0 @@
-dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.*
-dEQP-GLES2.functional.fragment_ops.random.*
-dEQP-GLES2.functional.fragment_ops.blend.equation_src_func_dst_func.*
-dEQP-GLES2.functional.fragment_ops.blend.rgb_func_alpha_func.*

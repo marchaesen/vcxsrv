@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-if with_perfetto
+if with_perfetto and dep_libdrm.found()
   subdir('pps')
 endif
 

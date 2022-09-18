@@ -165,14 +165,14 @@ svga_create_depth_stencil_state(struct pipe_context *pipe,
       ds->stencil_writemask = templ->stencil[1].writemask & 0xff;
 
       if (templ->stencil[1].valuemask != templ->stencil[0].valuemask) {
-         pipe_debug_message(&svga->debug.callback, CONFORMANCE,
+         util_debug_message(&svga->debug.callback, CONFORMANCE,
                             "two-sided stencil mask not supported "
                             "(front=0x%x, back=0x%x)",
                             templ->stencil[0].valuemask,
                             templ->stencil[1].valuemask);
       }
       if (templ->stencil[1].writemask != templ->stencil[0].writemask) {
-         pipe_debug_message(&svga->debug.callback, CONFORMANCE,
+         util_debug_message(&svga->debug.callback, CONFORMANCE,
                             "two-sided stencil writemask not supported "
                             "(front=0x%x, back=0x%x)",
                             templ->stencil[0].writemask,

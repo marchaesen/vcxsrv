@@ -1,7 +1,6 @@
 CALL(flush)
 CALL(callback)
 CALL(fence_server_sync)
-CALL(fence_server_signal)
 CALL(destroy_query)
 CALL(begin_query)
 CALL(end_query)

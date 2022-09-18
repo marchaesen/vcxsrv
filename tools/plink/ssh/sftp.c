@@ -21,7 +21,7 @@ static void fxp_internal_error(const char *msg);
  * Client-specific parts of the send- and receive-packet system.
  */
 
-bool sftp_send(struct sftp_packet *pkt)
+static bool sftp_send(struct sftp_packet *pkt)
 {
     bool ret;
     sftp_send_prepare(pkt);
@@ -283,8 +283,7 @@ bool fxp_init(void)
         return false;
     }
     if (remotever > SFTP_PROTO_VERSION) {
-        fxp_internal_error
-            ("remote protocol is more advanced than we support");
+        fxp_internal_error("remote protocol is more advanced than we support");
         sftp_pkt_free(pktin);
         return false;
     }
@@ -575,7 +574,7 @@ static bool fxp_got_attrs(struct sftp_packet *pktin, struct fxp_attrs *attrs)
 }
 
 bool fxp_stat_recv(struct sftp_packet *pktin, struct sftp_request *req,
-                  struct fxp_attrs *attrs)
+                   struct fxp_attrs *attrs)
 {
     sfree(req);
     if (pktin->type == SSH_FXP_ATTRS) {
@@ -737,7 +736,7 @@ struct fxp_names *fxp_readdir_recv(struct sftp_packet *pktin,
 {
     sfree(req);
     if (pktin->type == SSH_FXP_NAME) {
-        struct fxp_names *ret;
+        struct fxp_names *names;
         unsigned long i;
 
         i = get_uint32(pktin);
@@ -767,28 +766,28 @@ struct fxp_names *fxp_readdir_recv(struct sftp_packet *pktin,
             return NULL;
         }
 
-        ret = snew(struct fxp_names);
-        ret->nnames = i;
-        ret->names = snewn(ret->nnames, struct fxp_name);
-        for (i = 0; i < (unsigned long)ret->nnames; i++) {
-            ret->names[i].filename = mkstr(get_string(pktin));
-            ret->names[i].longname = mkstr(get_string(pktin));
-            get_fxp_attrs(pktin, &ret->names[i].attrs);
+        names = snew(struct fxp_names);
+        names->nnames = i;
+        names->names = snewn(names->nnames, struct fxp_name);
+        for (i = 0; i < (unsigned long)names->nnames; i++) {
+            names->names[i].filename = mkstr(get_string(pktin));
+            names->names[i].longname = mkstr(get_string(pktin));
+            get_fxp_attrs(pktin, &names->names[i].attrs);
         }
 
         if (get_err(pktin)) {
             fxp_internal_error("malformed FXP_NAME packet");
-            for (i = 0; i < (unsigned long)ret->nnames; i++) {
-                sfree(ret->names[i].filename);
-                sfree(ret->names[i].longname);
+            for (i = 0; i < (unsigned long)names->nnames; i++) {
+                sfree(names->names[i].filename);
+                sfree(names->names[i].longname);
             }
-            sfree(ret->names);
-            sfree(ret);
+            sfree(names->names);
+            sfree(names);
             sfree(pktin);
             return NULL;
         }
         sftp_pkt_free(pktin);
-        return ret;
+        return names;
     } else {
         fxp_got_status(pktin);
         sftp_pkt_free(pktin);
@@ -841,14 +840,14 @@ void fxp_free_names(struct fxp_names *names)
 /*
  * Duplicate an fxp_name structure.
  */
-struct fxp_name *fxp_dup_name(struct fxp_name *name)
+struct fxp_name *fxp_dup_name(struct fxp_name *orig)
 {
-    struct fxp_name *ret;
-    ret = snew(struct fxp_name);
-    ret->filename = dupstr(name->filename);
-    ret->longname = dupstr(name->longname);
-    ret->attrs = name->attrs;          /* structure copy */
-    return ret;
+    struct fxp_name *copy;
+    copy = snew(struct fxp_name);
+    copy->filename = dupstr(orig->filename);
+    copy->longname = dupstr(orig->longname);
+    copy->attrs = orig->attrs;          /* structure copy */
+    return copy;
 }
 
 /*

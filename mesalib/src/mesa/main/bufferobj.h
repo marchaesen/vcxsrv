@@ -79,6 +79,12 @@ GLboolean _mesa_bufferobj_data(struct gl_context *ctx,
                             GLenum usage,
                             GLbitfield storageFlags,
                             struct gl_buffer_object *obj);
+void
+_mesa_bufferobj_get_subdata(struct gl_context *ctx,
+                            GLintptrARB offset,
+                            GLsizeiptrARB size,
+                            void *data, struct gl_buffer_object *obj);
+
 void *_mesa_bufferobj_map_range(struct gl_context *ctx,
                                 GLintptr offset, GLsizeiptr length,
                                 GLbitfield access,

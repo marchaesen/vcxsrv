@@ -38,6 +38,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
 #include "util/debug.h"
+#include "util/os_file.h"
 #include "util/u_cpu_detect.h"
 #include "util/u_inlines.h"
 #include "util/format/u_format.h"
@@ -79,15 +80,6 @@
    default:                                       \
       unreachable("Unknown hardware generation"); \
    }
-
-static void
-iris_flush_frontbuffer(struct pipe_screen *_screen,
-                       struct pipe_context *_pipe,
-                       struct pipe_resource *resource,
-                       unsigned level, unsigned layer,
-                       void *context_private, struct pipe_box *box)
-{
-}
 
 static const char *
 iris_get_vendor(struct pipe_screen *pscreen)
@@ -152,6 +144,46 @@ iris_get_name(struct pipe_screen *pscreen)
 }
 
 static int
+iris_get_video_memory(struct iris_screen *screen)
+{
+   uint64_t vram = iris_bufmgr_vram_size(screen->bufmgr);
+   uint64_t sram = iris_bufmgr_sram_size(screen->bufmgr);
+   if (vram) {
+      return vram / (1024 * 1024);
+   } else if (sram) {
+      return sram / (1024 * 1024);
+   } else {
+      /* This is the old code path, it get the GGTT size from the kernel
+       * (which should always be 4Gb on Gfx8+).
+       *
+       * We should probably never end up here. This is just a fallback to get
+       * some kind of value in case os_get_available_system_memory fails.
+       */
+      const struct intel_device_info *devinfo = &screen->devinfo;
+      /* Once a batch uses more than 75% of the maximum mappable size, we
+       * assume that there's some fragmentation, and we start doing extra
+       * flushing, etc.  That's the big cliff apps will care about.
+       */
+      const unsigned gpu_mappable_megabytes =
+         (devinfo->aperture_bytes * 3 / 4) / (1024 * 1024);
+
+      const long system_memory_pages = sysconf(_SC_PHYS_PAGES);
+      const long system_page_size = sysconf(_SC_PAGE_SIZE);
+
+      if (system_memory_pages <= 0 || system_page_size <= 0)
+         return -1;
+
+      const uint64_t system_memory_bytes =
+         (uint64_t) system_memory_pages * (uint64_t) system_page_size;
+
+      const unsigned system_memory_megabytes =
+         (unsigned) (system_memory_bytes / (1024 * 1024));
+
+      return MIN2(system_memory_megabytes, gpu_mappable_megabytes);
+   }
+}
+
+static int
 iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 {
    struct iris_screen *screen = (struct iris_screen *)pscreen;
@@ -168,16 +200,15 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_BLEND_EQUATION_SEPARATE:
    case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
    case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-   case PIPE_CAP_VERTEX_SHADER_SATURATE:
    case PIPE_CAP_PRIMITIVE_RESTART:
    case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
    case PIPE_CAP_INDEP_BLEND_ENABLE:
    case PIPE_CAP_INDEP_BLEND_FUNC:
    case PIPE_CAP_RGB_OVERRIDE_DST_ALPHA_BLEND:
-   case PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER:
+   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
+   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
    case PIPE_CAP_DEPTH_CLIP_DISABLE:
-   case PIPE_CAP_TGSI_INSTANCEID:
+   case PIPE_CAP_VS_INSTANCEID:
    case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
    case PIPE_CAP_MIXED_COLORBUFFER_FORMATS:
    case PIPE_CAP_SEAMLESS_CUBE_MAP:
@@ -201,12 +232,11 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_MULTI_DRAW_INDIRECT:
    case PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS:
    case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
-   case PIPE_CAP_TGSI_VS_LAYER_VIEWPORT:
-   case PIPE_CAP_TGSI_TES_LAYER_VIEWPORT:
-   case PIPE_CAP_TGSI_FS_FINE_DERIVATIVE:
-   case PIPE_CAP_TGSI_PACK_HALF_FLOAT:
+   case PIPE_CAP_VS_LAYER_VIEWPORT:
+   case PIPE_CAP_TES_LAYER_VIEWPORT:
+   case PIPE_CAP_FS_FINE_DERIVATIVE:
+   case PIPE_CAP_SHADER_PACK_HALF_FLOAT:
    case PIPE_CAP_ACCELERATED:
-   case PIPE_CAP_UMA:
    case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
    case PIPE_CAP_CLIP_HALFZ:
    case PIPE_CAP_TGSI_TEXCOORD:
@@ -228,26 +258,25 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_QUERY_SO_OVERFLOW:
    case PIPE_CAP_QUERY_BUFFER_OBJECT:
    case PIPE_CAP_TGSI_TEX_TXF_LZ:
-   case PIPE_CAP_TGSI_TXQS:
-   case PIPE_CAP_TGSI_CLOCK:
-   case PIPE_CAP_TGSI_BALLOT:
+   case PIPE_CAP_TEXTURE_QUERY_SAMPLES:
+   case PIPE_CAP_SHADER_CLOCK:
+   case PIPE_CAP_SHADER_BALLOT:
    case PIPE_CAP_MULTISAMPLE_Z_RESOLVE:
    case PIPE_CAP_CLEAR_TEXTURE:
    case PIPE_CAP_CLEAR_SCISSORED:
-   case PIPE_CAP_TGSI_VOTE:
-   case PIPE_CAP_TGSI_VS_WINDOW_SPACE_POSITION:
+   case PIPE_CAP_SHADER_GROUP_VOTE:
+   case PIPE_CAP_VS_WINDOW_SPACE_POSITION:
    case PIPE_CAP_TEXTURE_GATHER_SM5:
-   case PIPE_CAP_TGSI_ARRAY_COMPONENTS:
+   case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
    case PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS:
    case PIPE_CAP_LOAD_CONSTBUF:
    case PIPE_CAP_NIR_COMPACT_ARRAYS:
    case PIPE_CAP_DRAW_PARAMETERS:
-   case PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL:
-   case PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL:
+   case PIPE_CAP_FS_POSITION_IS_SYSVAL:
+   case PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL:
    case PIPE_CAP_COMPUTE_SHADER_DERIVATIVES:
    case PIPE_CAP_INVALIDATE_BUFFER:
    case PIPE_CAP_SURFACE_REINTERPRET_BLOCKS:
-   case PIPE_CAP_CS_DERIVED_SYSTEM_VALUES_SUPPORTED:
    case PIPE_CAP_TEXTURE_SHADOW_LOD:
    case PIPE_CAP_SHADER_SAMPLES_IDENTICAL:
    case PIPE_CAP_GL_SPIRV:
@@ -258,7 +287,10 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
    case PIPE_CAP_FENCE_SIGNAL:
    case PIPE_CAP_IMAGE_STORE_FORMATTED:
+   case PIPE_CAP_LEGACY_MATH_RULES:
       return true;
+   case PIPE_CAP_UMA:
+      return iris_bufmgr_vram_size(screen->bufmgr) == 0;
    case PIPE_CAP_PREFER_BACK_BUFFER_REUSE:
       return false;
    case PIPE_CAP_FBFETCH:
@@ -301,13 +333,13 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return IRIS_MAP_BUFFER_ALIGNMENT;
    case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
       return 4;
-   case PIPE_CAP_MAX_SHADER_BUFFER_SIZE:
+   case PIPE_CAP_MAX_SHADER_BUFFER_SIZE_UINT:
       return 1 << 27;
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
       return 16; // XXX: u_screen says 256 is the minimum value...
    case PIPE_CAP_TEXTURE_TRANSFER_MODES:
       return PIPE_TEXTURE_TRANSFER_BLIT;
-   case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
+   case PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT:
       return IRIS_MAX_TEXTURE_BUFFER_SIZE;
    case PIPE_CAP_MAX_VIEWPORTS:
       return 16;
@@ -329,28 +361,8 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 0x8086;
    case PIPE_CAP_DEVICE_ID:
       return screen->pci_id;
-   case PIPE_CAP_VIDEO_MEMORY: {
-      /* Once a batch uses more than 75% of the maximum mappable size, we
-       * assume that there's some fragmentation, and we start doing extra
-       * flushing, etc.  That's the big cliff apps will care about.
-       */
-      const unsigned gpu_mappable_megabytes =
-         (devinfo->aperture_bytes * 3 / 4) / (1024 * 1024);
-
-      const long system_memory_pages = sysconf(_SC_PHYS_PAGES);
-      const long system_page_size = sysconf(_SC_PAGE_SIZE);
-
-      if (system_memory_pages <= 0 || system_page_size <= 0)
-         return -1;
-
-      const uint64_t system_memory_bytes =
-         (uint64_t) system_memory_pages * (uint64_t) system_page_size;
-
-      const unsigned system_memory_megabytes =
-         (unsigned) (system_memory_bytes / (1024 * 1024));
-
-      return MIN2(system_memory_megabytes, gpu_mappable_megabytes);
-   }
+   case PIPE_CAP_VIDEO_MEMORY:
+      return iris_get_video_memory(screen);
    case PIPE_CAP_MAX_SHADER_PATCH_VARYINGS:
    case PIPE_CAP_MAX_VARYINGS:
       return 32;
@@ -394,6 +406,9 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
        * separately.
        */
       return devinfo->ver >= 11;
+
+   case PIPE_CAP_QUERY_TIMESTAMP_BITS:
+      return TIMESTAMP_BITS;
 
    default:
       return u_pipe_screen_get_param_defaults(pscreen, param);
@@ -459,13 +474,13 @@ iris_get_shader_param(struct pipe_screen *pscreen,
       return stage == MESA_SHADER_VERTEX ? 16 : 32;
    case PIPE_SHADER_CAP_MAX_OUTPUTS:
       return 32;
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE:
+   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
       return 16 * 1024 * sizeof(float);
    case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
       return 16;
    case PIPE_SHADER_CAP_MAX_TEMPS:
       return 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
-   case PIPE_SHADER_CAP_TGSI_CONT_SUPPORTED:
+   case PIPE_SHADER_CAP_CONT_SUPPORTED:
       return 0;
    case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
@@ -504,16 +519,12 @@ iris_get_shader_param(struct pipe_screen *pscreen,
          irs |= 1 << PIPE_SHADER_IR_NIR_SERIALIZED;
       return irs;
    }
-   case PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED:
-   case PIPE_SHADER_CAP_TGSI_LDEXP_SUPPORTED:
+   case PIPE_SHADER_CAP_DROUND_SUPPORTED:
+   case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
       return 1;
-   case PIPE_SHADER_CAP_LOWER_IF_THRESHOLD:
-   case PIPE_SHADER_CAP_TGSI_SKIP_MERGE_REGISTERS:
-   case PIPE_SHADER_CAP_TGSI_DFRACEXP_DLDEXP_SUPPORTED:
-   case PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED:
+   case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
    case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
    case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-   case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
       return 0;
    default:
       unreachable("unknown shader param");
@@ -697,21 +708,21 @@ iris_get_default_l3_config(const struct intel_device_info *devinfo,
 static void
 iris_shader_debug_log(void *data, unsigned *id, const char *fmt, ...)
 {
-   struct pipe_debug_callback *dbg = data;
+   struct util_debug_callback *dbg = data;
    va_list args;
 
    if (!dbg->debug_message)
       return;
 
    va_start(args, fmt);
-   dbg->debug_message(dbg->data, id, PIPE_DEBUG_TYPE_SHADER_INFO, fmt, args);
+   dbg->debug_message(dbg->data, id, UTIL_DEBUG_TYPE_SHADER_INFO, fmt, args);
    va_end(args);
 }
 
 static void
 iris_shader_perf_log(void *data, unsigned *id, const char *fmt, ...)
 {
-   struct pipe_debug_callback *dbg = data;
+   struct util_debug_callback *dbg = data;
    va_list args;
    va_start(args, fmt);
 
@@ -723,7 +734,7 @@ iris_shader_perf_log(void *data, unsigned *id, const char *fmt, ...)
    }
 
    if (dbg->debug_message) {
-      dbg->debug_message(dbg->data, id, PIPE_DEBUG_TYPE_PERF_INFO, fmt, args);
+      dbg->debug_message(dbg->data, id, UTIL_DEBUG_TYPE_PERF_INFO, fmt, args);
    }
 
    va_end(args);
@@ -811,7 +822,7 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
       return NULL;
 
    screen->fd = iris_bufmgr_get_fd(screen->bufmgr);
-   screen->winsys_fd = fd;
+   screen->winsys_fd = os_dupfd_cloexec(fd);
 
    screen->id = iris_bufmgr_create_screen_id(screen->bufmgr);
 
@@ -832,6 +843,8 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
       driQueryOptionb(config->options, "always_flush_cache");
    screen->driconf.sync_compile =
       driQueryOptionb(config->options, "sync_compile");
+   screen->driconf.limit_trig_input_range =
+      driQueryOptionb(config->options, "limit_trig_input_range");
 
    screen->precompile = env_var_as_boolean("shader_precompile", true);
 
@@ -873,7 +886,6 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    pscreen->get_disk_shader_cache = iris_get_disk_shader_cache;
    pscreen->is_format_supported = iris_is_format_supported;
    pscreen->context_create = iris_create_context;
-   pscreen->flush_frontbuffer = iris_flush_frontbuffer;
    pscreen->get_timestamp = iris_get_timestamp;
    pscreen->query_memory_info = iris_query_memory_info;
    pscreen->get_driver_query_group_info = iris_get_monitor_group_info;

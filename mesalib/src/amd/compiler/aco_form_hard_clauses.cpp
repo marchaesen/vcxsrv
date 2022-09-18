@@ -78,7 +78,7 @@ form_hard_clauses(Program* program)
 
          clause_type type = clause_other;
          if (instr->isVMEM() && !instr->operands.empty()) {
-            if (program->chip_class == GFX10 && instr->isMIMG() &&
+            if (program->gfx_level == GFX10 && instr->isMIMG() &&
                 get_mimg_nsa_dwords(instr.get()) > 0)
                type = clause_other;
             else

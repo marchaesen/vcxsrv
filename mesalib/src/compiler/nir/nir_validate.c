@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir_xfb_info.h"
 #include "c11/threads.h"
 #include <assert.h>
 
@@ -100,8 +101,6 @@ typedef struct {
 
    /* map of instruction/var/etc to failed assert string */
    struct hash_table *errors;
-
-   struct set *shader_gc_list;
 } validate_state;
 
 static void
@@ -634,7 +633,6 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       if (glsl_type_is_boolean(dst->type))
          src_bit_sizes[1] |= 32;
       validate_assert(state, !nir_deref_mode_may_be(dst, nir_var_read_only_modes));
-      validate_assert(state, (nir_intrinsic_write_mask(instr) & ~((1 << instr->num_components) - 1)) == 0);
       break;
    }
 
@@ -822,6 +820,37 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 
    if (!vectorized_intrinsic(instr))
       validate_assert(state, instr->num_components == 0);
+
+   if (nir_intrinsic_has_write_mask(instr)) {
+      unsigned component_mask = BITFIELD_MASK(instr->num_components);
+      validate_assert(state, (nir_intrinsic_write_mask(instr) & ~component_mask) == 0);
+   }
+
+   if (nir_intrinsic_has_io_xfb(instr)) {
+      unsigned used_mask = 0;
+
+      for (unsigned i = 0; i < 4; i++) {
+         nir_io_xfb xfb = i < 2 ? nir_intrinsic_io_xfb(instr) :
+                                  nir_intrinsic_io_xfb2(instr);
+         unsigned xfb_mask = BITFIELD_RANGE(i, xfb.out[i % 2].num_components);
+
+         /* Each component can be used only once by transform feedback info. */
+         validate_assert(state, (xfb_mask & used_mask) == 0);
+         used_mask |= xfb_mask;
+      }
+   }
+
+   if (nir_intrinsic_has_io_semantics(instr) &&
+       !nir_intrinsic_infos[instr->intrinsic].has_dest) {
+      nir_io_semantics sem = nir_intrinsic_io_semantics(instr);
+
+      /* An output that has no effect shouldn't be present in the IR. */
+      validate_assert(state,
+                      (nir_slot_is_sysval_output(sem.location) &&
+                       !sem.no_sysval_output) ||
+                      (nir_slot_is_varying(sem.location) && !sem.no_varying) ||
+                      nir_instr_xfb_write_mask(instr));
+   }
 }
 
 static void
@@ -868,6 +897,31 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
          validate_assert(state, glsl_type_is_image(deref->type) ||
                                 glsl_type_is_texture(deref->type) ||
                                 glsl_type_is_sampler(deref->type));
+         switch (instr->op) {
+         case nir_texop_descriptor_amd:
+            break;
+         case nir_texop_lod:
+            validate_assert(state, nir_alu_type_get_base_type(instr->dest_type) == nir_type_float);
+            break;
+         case nir_texop_samples_identical:
+            validate_assert(state, nir_alu_type_get_base_type(instr->dest_type) == nir_type_bool);
+            break;
+         case nir_texop_txs:
+         case nir_texop_texture_samples:
+         case nir_texop_query_levels:
+         case nir_texop_fragment_mask_fetch_amd:
+         case nir_texop_txf_ms_mcs_intel:
+            validate_assert(state, nir_alu_type_get_base_type(instr->dest_type) == nir_type_int ||
+                                   nir_alu_type_get_base_type(instr->dest_type) == nir_type_uint);
+
+            break;
+         default:
+            validate_assert(state,
+                            glsl_get_sampler_result_type(deref->type) == GLSL_TYPE_VOID ||
+                            glsl_base_type_is_integer(glsl_get_sampler_result_type(deref->type)) ==
+                            (nir_alu_type_get_base_type(instr->dest_type) == nir_type_int ||
+                             nir_alu_type_get_base_type(instr->dest_type) == nir_type_uint));
+         }
          break;
       }
 
@@ -907,8 +961,9 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
 
    validate_dest(&instr->dest, state, 0, nir_tex_instr_dest_size(instr));
 
+   unsigned bit_size = nir_alu_type_get_type_size(instr->dest_type);
    validate_assert(state,
-                   nir_alu_type_get_type_size(instr->dest_type) ==
+                   (bit_size ? bit_size : 32) ==
                    nir_dest_bit_size(instr->dest));
 }
 
@@ -1054,8 +1109,6 @@ validate_instr(nir_instr *instr, validate_state *state)
    validate_assert(state, instr->block == state->block);
 
    state->instr = instr;
-
-   validate_assert(state, _mesa_set_search(state->shader_gc_list, instr));
 
    switch (instr->type) {
    case nir_instr_type_alu:
@@ -1588,6 +1641,11 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
    validate_assert(state, impl->function->impl == impl);
    validate_assert(state, impl->cf_node.parent == NULL);
 
+   if (impl->preamble) {
+      validate_assert(state, impl->function->is_entrypoint);
+      validate_assert(state, impl->preamble->is_preamble);
+   }
+
    validate_assert(state, exec_list_is_empty(&impl->end_block->instr_list));
    validate_assert(state, impl->end_block->successors[0] == NULL);
    validate_assert(state, impl->end_block->successors[1] == NULL);
@@ -1660,7 +1718,6 @@ init_validate_state(validate_state *state)
    state->blocks = _mesa_pointer_set_create(state->mem_ctx);
    state->var_defs = _mesa_pointer_hash_table_create(state->mem_ctx);
    state->errors = _mesa_pointer_hash_table_create(state->mem_ctx);
-   state->shader_gc_list = _mesa_pointer_set_create(state->mem_ctx);
 
    state->loop = NULL;
    state->instr = NULL;
@@ -1717,10 +1774,6 @@ nir_validate_shader(nir_shader *shader, const char *when)
    validate_state state;
    init_validate_state(&state);
 
-   list_for_each_entry(nir_instr, instr, &shader->gc_list, gc_node) {
-      _mesa_set_add(state.shader_gc_list, instr);
-   }
-
    state.shader = shader;
 
    nir_variable_mode valid_modes =
@@ -1732,6 +1785,7 @@ nir_validate_shader(nir_shader *shader, const char *when)
       nir_var_system_value |
       nir_var_mem_ssbo |
       nir_var_mem_shared |
+      nir_var_mem_global |
       nir_var_mem_push_const |
       nir_var_mem_constant |
       nir_var_image;
@@ -1744,6 +1798,10 @@ nir_validate_shader(nir_shader *shader, const char *when)
        shader->info.stage == MESA_SHADER_INTERSECTION)
       valid_modes |= nir_var_ray_hit_attrib;
 
+   if (shader->info.stage == MESA_SHADER_TASK ||
+       shader->info.stage == MESA_SHADER_MESH)
+      valid_modes |= nir_var_mem_task_payload;
+
    exec_list_validate(&shader->variables);
    nir_foreach_variable_in_shader(var, shader)
      validate_var_decl(var, valid_modes, &state);
@@ -1751,6 +1809,18 @@ nir_validate_shader(nir_shader *shader, const char *when)
    exec_list_validate(&shader->functions);
    foreach_list_typed(nir_function, func, node, &shader->functions) {
       validate_function(func, &state);
+   }
+
+   if (shader->xfb_info != NULL) {
+      /* At least validate that, if nir_shader::xfb_info exists, the shader
+       * has real transform feedback going on.
+       */
+      validate_assert(&state, shader->info.stage == MESA_SHADER_VERTEX ||
+                              shader->info.stage == MESA_SHADER_TESS_EVAL ||
+                              shader->info.stage == MESA_SHADER_GEOMETRY);
+      validate_assert(&state, shader->xfb_info->buffers_written != 0);
+      validate_assert(&state, shader->xfb_info->streams_written != 0);
+      validate_assert(&state, shader->xfb_info->output_count > 0);
    }
 
    if (_mesa_hash_table_num_entries(state.errors) > 0)

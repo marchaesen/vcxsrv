@@ -56,7 +56,7 @@ xkb_symbols "sun_type6" {
    key <AD06> { [              y,             Y,	leftarrow,           yen ] };
    key <AD07> { [              u,             U,	downarrow,       uparrow ] };
    key <AD08> { [              i,             I,	rightarrow,      idotless ] };
-   key <AD09> { [              o,             O,	oslash,      Ooblique ] };
+   key <AD09> { [              o,             O,	oslash,        Oslash ] };
    key <AD10> { [              p,             P,	thorn,         THORN ] };
    key <AD11> { [     udiaeresis,    Udiaeresis,	dead_diaeresis,dead_abovering ] };
    key <AD12> { [         otilde,        Otilde,	section,   dead_macron ] };

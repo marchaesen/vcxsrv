@@ -32,7 +32,6 @@
 
 #include "fd6_context.h"
 #include "fd6_emit.h"
-#include "fd6_format.h"
 #include "fd6_query.h"
 
 struct PACKED fd6_query_sample {
@@ -482,7 +481,7 @@ perfcntr_resume(struct fd_acc_query *aq, struct fd_batch *batch) assert_dt
       const struct fd_perfcntr_group *g = &screen->perfcntr_groups[entry->gid];
       unsigned counter_idx = counters_per_group[entry->gid]++;
 
-      debug_assert(counter_idx < g->num_counters);
+      assert(counter_idx < g->num_counters);
 
       OUT_PKT4(ring, g->counters[counter_idx].select_reg, 1);
       OUT_RING(ring, g->countables[entry->cid].selector);

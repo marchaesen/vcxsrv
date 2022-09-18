@@ -262,7 +262,9 @@ st_framebuffer_validate(struct gl_framebuffer *stfb,
 
       rb = stfb->Attachment[idx].Renderbuffer;
       assert(rb);
-      if (rb->texture == textures[i]) {
+      if (rb->texture == textures[i] &&
+          rb->Width == textures[i]->width0 &&
+          rb->Height == textures[i]->height0) {
          pipe_resource_reference(&textures[i], NULL);
          continue;
       }
@@ -898,6 +900,7 @@ st_context_teximage(struct st_context_iface *stctxi,
       _mesa_clear_texture_image(ctx, texImage);
       width = height = depth = 0;
    }
+   _mesa_update_texture_object_swizzle(ctx, texObj);
 
    pipe_resource_reference(&texObj->pt, tex);
    st_texture_release_all_sampler_views(st, texObj);

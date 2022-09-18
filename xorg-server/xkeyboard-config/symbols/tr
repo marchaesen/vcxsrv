@@ -10,6 +10,7 @@ xkb_symbols "basic" {
 
     name[Group1]="Turkish";
 
+    key <TLDE>  { [  quotedbl,     eacute,          less,        degree ] };
     key <AE01>  { [         1,    exclam,        greater,    exclamdown ] };
     key <AE02>  { [         2, apostrophe,      sterling,   twosuperior ] };
     key <AE03>  { [         3,asciicircum,    numbersign, threesuperior ] };
@@ -44,9 +45,8 @@ xkb_symbols "basic" {
     key <AC10>  { [  scedilla,   Scedilla,         acute,    dead_acute ] };
     key <AC11>  { type[group1] = "FOUR_LEVEL_SEMIALPHABETIC",
                   [         i,  Iabovedot,    apostrophe,    dead_caron ] };
-    key <TLDE>  { [  quotedbl,     eacute,          less,        degree ] };
-
     key <BKSL>  { [     comma,  semicolon,         grave,    dead_grave ] };
+
     key <LSGT>  { [      less,    greater,           bar,     brokenbar ] };
     key <AB08>  { [odiaeresis, Odiaeresis,      multiply,    VoidSymbol ] };
     key <AB09>  { [  ccedilla,   Ccedilla,periodcentered,      division ] };
@@ -82,6 +82,7 @@ xkb_symbols "f" {
 
     name[Group1]="Turkish (F)";
 
+    key <TLDE>  { [      plus,   asterisk,       notsign,     plusminus ] };
     key <AE01>  { [         1,     exclam,   onesuperior,    exclamdown ] };
     key <AE02>  { [         2,   quotedbl,   twosuperior,    VoidSymbol ] };
     key <AE03>  { [         3,asciicircum,    numbersign, threesuperior ] };
@@ -120,9 +121,9 @@ xkb_symbols "f" {
     key <AC09>  { [         l,          L,    VoidSymbol,    VoidSymbol ] };
     key <AC10>  { [         y,          Y,         acute,    dead_acute ] };
     key <AC11>  { [  scedilla,   Scedilla,    numbersign,    dead_caron ] };
-    key <TLDE>  { [      plus,   asterisk,       notsign,     plusminus ] };
-
     key <BKSL>  { [         x,          X,         grave,    dead_grave ] };
+
+    key <LSGT>  { [     less,     greater,           bar,     brokenbar ] };
     key <AB01>  { [         j,          J, guillemotleft,    less ] };
     key <AB02>  { [odiaeresis, Odiaeresis, guillemotright,   greater ] };
     key <AB03>  { [         v,          V, leftdoublequotemark, VoidSymbol ] };
@@ -133,7 +134,6 @@ xkb_symbols "f" {
     key <AB08>  { [         b,          B,      multiply,  nobreakspace ] };
     key <AB09>  { [    period,      colon,      division, dead_abovedot ] };
     key <AB10>  { [     comma,  semicolon,periodcentered,    VoidSymbol ] };
-    key <LSGT>  { [     less,     greater,           bar,     brokenbar ] };
 
     include "kpdl(comma)"
     include "level3(ralt_switch)"
@@ -145,6 +145,9 @@ xkb_symbols "e" {
 
     include "latin"
 
+    name[Group1]="Turkish (E)";
+
+    key <TLDE>  { [      plus,   asterisk,       notsign,     plusminus ] };
     key <AE01>  { [         1,     exclam,   onesuperior,    exclamdown ] };
     key <AE02>  { [         2,   quotedbl,   twosuperior,    VoidSymbol ] };
     key <AE03>  { [         3,asciicircum,    numbersign, threesuperior ] };
@@ -157,7 +160,6 @@ xkb_symbols "e" {
     key <AE11>  { [     slash,   question,     backslash,  questiondown ] };
     key <AE12>  { [     minus, underscore,           bar,    VoidSymbol ] };
 
-    name[Group1]="Turkish (E)";
     key <AD01>  { [         q,          Q,dead_diaeresis,dead_abovering ] };
     key <AD02>  { [         j,          J, guillemotleft,    less ] };
     key <AD03>  { [udiaeresis, Udiaeresis,   ucircumflex,   Ucircumflex ] };
@@ -170,14 +172,13 @@ xkb_symbols "e" {
     key <AD10>  { [         b,          B,      multiply,  nobreakspace ] };
     key <AD11>  { [         s,          S,       section,    VoidSymbol ] };
     key <AD12>  { [         p,          P,      sterling,    VoidSymbol ] };
-    
+
     key <AC01>  { [         e,          E,      EuroSign,    VoidSymbol ] };
     key <AC02>  { [         a,          A,   acircumflex,   Acircumflex ] };
     key <AC03>  { type[group1] = "FOUR_LEVEL_ALPHABETIC",
                   [         i,  Iabovedot,   icircumflex,   Icircumflex ] };
     key <AC04>  { type[group1] = "FOUR_LEVEL_SEMIALPHABETIC",
                   [  idotless,          I,     paragraph,    VoidSymbol ] };
-
     key <AC05>  { [         g,          G,    VoidSymbol,    VoidSymbol ] };
     key <AC06>  { [    gbreve,     Gbreve,    VoidSymbol,    VoidSymbol ] };
     key <AC07>  { [         l,          L,    VoidSymbol,    VoidSymbol ] };
@@ -185,9 +186,9 @@ xkb_symbols "e" {
     key <AC09>  { [         r,          R,    registered,    VoidSymbol ] };
     key <AC10>  { [         d,          D,           yen,    VoidSymbol ] };
     key <AC11>  { [         v,          V, leftdoublequotemark, VoidSymbol ] };
-
-    key <TLDE>  { [      plus,   asterisk,       notsign,     plusminus ] };
     key <BKSL>  { [     comma,  semicolon,periodcentered,    VoidSymbol ] };
+
+    key <LSGT>  { [     less,     greater,           bar,     brokenbar ] };
     key <AB01>  { [         x,          X,         grave,    dead_grave ] };
     key <AB02>  { [         w,          W,    asciitilde,    dead_breve ] };
     key <AB03>  { [odiaeresis, Odiaeresis, guillemotright,   greater ] };
@@ -198,7 +199,6 @@ xkb_symbols "e" {
     key <AB08>  { [         y,          Y,         acute,    dead_acute ] };
     key <AB09>  { [  scedilla,   Scedilla,    numbersign,    dead_caron ] };
     key <AB10>  { [    period,      colon,      division, dead_abovedot ] };
-    key <LSGT>  { [     less,     greater,           bar,     brokenbar ] };
 
     include "kpdl(comma)"
     include "level3(ralt_switch)"
@@ -292,6 +292,7 @@ xkb_symbols "intl" {
 
     name[Group1]="Turkish (intl., with dead keys)";
 
+    key <TLDE>  { type[group1] = "FOUR_LEVEL", [  quotedbl,     eacute,       plusminus,        degree ] };
     key <AE01>  { type[group1] = "FOUR_LEVEL", [         1,    exclam,      onesuperior,    exclamdown ] };
     key <AE02>  { type[group1] = "FOUR_LEVEL", [         2, apostrophe,        sterling,   twosuperior ] };
     key <AE03>  { type[group1] = "FOUR_LEVEL", [         3, dead_circumflex, numbersign, threesuperior ] };
@@ -324,11 +325,9 @@ xkb_symbols "intl" {
     key <AC09>  { [         l,          L,     VoidSymbol,    VoidSymbol ] };
     key <AC10>  { [  scedilla,   Scedilla,     dead_acute,    dead_acute ] };
     key <AC11>  { [         i,  Iabovedot,     apostrophe,    dead_caron ] };
-
-    key <TLDE>  { type[group1] = "FOUR_LEVEL", [  quotedbl,     eacute,       plusminus,        degree ] };
     key <BKSL>  { type[group1] = "FOUR_LEVEL", [     comma,  semicolon,      dead_grave,    dead_grave ] };
-    key <LSGT>  { type[group1] = "FOUR_LEVEL", [      less,    greater,             bar,     brokenbar ] };
 
+    key <LSGT>  { type[group1] = "FOUR_LEVEL", [      less,    greater,             bar,     brokenbar ] };
     key <AB08>  { [odiaeresis, Odiaeresis,       multiply,    VoidSymbol ] };
     key <AB09>  { [  ccedilla,   Ccedilla, periodcentered,      division ] };
     key <AB10>  { type[group1] = "FOUR_LEVEL", [    period,      colon,   dead_abovedot, dead_abovedot ] };
@@ -376,6 +375,7 @@ xkb_symbols "otk" {
 
     name[Group1]="Old Turkic";
 
+    key <TLDE> { [ quotedbl, guillemotleft, guillemotright, NoSymbol       ] };
     key <AE01> { [    U10C48,  NoSymbol,     1,      exclam ] };
     key <AE02> { [    U10C05,  NoSymbol,     2,    quotedbl ] };
     key <AE03> { [    U10C02,  NoSymbol,     3, asciicircum ] };
@@ -415,7 +415,7 @@ xkb_symbols "otk" {
     key <AC11> { [ U10C41,   U10C42,     endash, NoSymbol ] };
     key <BKSL> { [ U10C3F,   U10C40,     emdash, NoSymbol ] };
 
-    key <TLDE> { [ quotedbl, guillemotleft, guillemotright, NoSymbol       ] };
+    key <LSGT> { [    less,        greater,           plus, NoSymbol       ] };
     key <AB01> { [   U10C28,        U10C29,       NoSymbol, less           ] };
     key <AB02> { [   U10C2D,        U10C2E,         U10C2C, greater        ] };
     key <AB03> { [   U10C3D,      NoSymbol,      copyright, guillemotleft  ] };
@@ -426,7 +426,6 @@ xkb_symbols "otk" {
     key <AB08> { [   U10C20,      NoSymbol,       multiply, NoSymbol       ] };
     key <AB09> { [   U10C18,        U10C19,       division, NoSymbol       ] };
     key <AB10> { [    U2E31,        period,          minus, NoSymbol       ] };
-    key <LSGT> { [    less,        greater,           plus, NoSymbol       ] };
 
     include "kpdl(comma)"
     include "level3(ralt_switch)"
@@ -438,6 +437,7 @@ xkb_symbols "otkf" {
 
     name[Group1]="Old Turkic (F)";
 
+    key <TLDE> { [ quotedbl, guillemotleft, guillemotright, NoSymbol       ] };
     key <AE01> { [    U10C48,  NoSymbol,     1,      exclam ] };
     key <AE02> { [    U10C05,  NoSymbol,     2,    quotedbl ] };
     key <AE03> { [    U10C02,  NoSymbol,     3, asciicircum ] };
@@ -464,7 +464,6 @@ xkb_symbols "otkf" {
     key <AD11> { [ U10C13, NoSymbol,         at, NoSymbol ] };
     key <AD12> { [ U10C11,   U10C12, numbersign, NoSymbol ] };
 
-    
     key <AC01> { [ U10C43,   U10C44, bracketright, NoSymbol ] };
     key <AC02> { [ U10C41,   U10C42,       endash, NoSymbol ] };
     key <AC03> { [ U10C0F,   U10C10,       dollar, NoSymbol ] };
@@ -477,8 +476,8 @@ xkb_symbols "otkf" {
     key <AC10> { [ U10C14,   U10C15,  bracketleft, NoSymbol ] };
     key <AC11> { [ U10C16,   U10C17,          yen, NoSymbol ] };
     key <BKSL> { [ U10C2D,   U10C2E,       U10C2C, NoSymbol ] };
-       
-    key <TLDE> { [ quotedbl, guillemotleft, guillemotright, NoSymbol       ] };
+
+    key <LSGT> { [     less,       greater,           plus, NoSymbol       ] };
     key <AB01> { [   U10C34,        U10C35,       NoSymbol, less           ] };
     key <AB02> { [   U10C20,      NoSymbol,       multiply, greater        ] };
     key <AB03> { [   U10C09,        U10C0A,     registered, guillemotleft  ] };
@@ -489,7 +488,6 @@ xkb_symbols "otkf" {
     key <AB08> { [   U10C0B,        U10C0C,       NoSymbol, NoSymbol       ] };
     key <AB09> { [    U2E31,        period,          minus, NoSymbol       ] };
     key <AB10> { [   U10C3F,        U10C40,         emdash, NoSymbol       ] };
-    key <LSGT> { [     less,       greater,           plus, NoSymbol       ] };
 
     include "kpdl(comma)"
     include "level3(ralt_switch)"
@@ -501,7 +499,7 @@ xkb_symbols "ot" {
     name[Group1]= "Ottoman (Q)";
 
 
-    key <AE01> { [ 0x10006f1,	exclam,		quoteleft		] };
+    key <AE01> { [ 0x10006f1,	exclam,		grave			] };
     key <AE02> { [ 0x10006f2,	0x100066c,	at			] };
     key <AE03> { [ 0x10006f3,	0x100066b,	numbersign		] };
     key <AE04> { [ 0x10006f4,	0x100fdfc,	dollar			] };
@@ -516,7 +514,6 @@ xkb_symbols "ot" {
     key <TLDE> { [ quotedbl,    	division,         	VoidSymbol      ] };
     key <AE11> { [ minus,		Arabic_tatweel,		VoidSymbol	] };
     key <AE12> { [ equal,		plus,			VoidSymbol	] };
-    key <BKSL> { [ comma, 	 	bar,            	VoidSymbol  	] };
     key <SPCE> { [ space,		0x100200c,		VoidSymbol	] };
 
     key <AD01> { [ Arabic_qaf,		0x1000670,		VoidSymbol	] };
@@ -565,7 +562,7 @@ xkb_symbols "otf" {
     name[Group1]= "Ottoman (F)";
 
 
-    key <AE01> { [ 0x10006f1,	exclam,		quoteleft		] };
+    key <AE01> { [ 0x10006f1,	exclam,		grave			] };
     key <AE02> { [ 0x10006f2,	0x100066c,	at			] };
     key <AE03> { [ 0x10006f3,	0x100066b,	numbersign		] };
     key <AE04> { [ 0x10006f4,	0x100fdfc,	dollar			] };
@@ -580,7 +577,6 @@ xkb_symbols "otf" {
     key <TLDE> { [ quotedbl,    	division,         	VoidSymbol      ] };
     key <AE11> { [ minus,		Arabic_tatweel,		VoidSymbol	] };
     key <AE12> { [ equal,		plus,			VoidSymbol	] };
-    key <BKSL> { [ comma, 	 	bar,            	VoidSymbol  	] };
     key <SPCE> { [ space,		0x100200c,		VoidSymbol	] };
 
     key <AD01> { [ Arabic_feh,		Arabic_fathatan,	VoidSymbol	] };

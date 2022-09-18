@@ -124,7 +124,7 @@ ra_reg_is_dst(const struct ir3_register *reg)
          if (ra_reg_is_src((__srcreg = (__instr)->srcs[__i])))
 
 #define ra_foreach_dst_n(__dstreg, __n, __instr)                               \
-   foreach_dst_n(__dstreg, __n, instr)                                         \
+   foreach_dst_n(__dstreg, __n, __instr)                                         \
       if (ra_reg_is_dst(__dstreg))
 
 #define ra_foreach_dst(__dstreg, __instr)                                      \

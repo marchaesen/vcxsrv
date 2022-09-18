@@ -33,13 +33,13 @@ XkbGetSlowKeysDelay \- Gets the SlowKeys acceptance delay for a keyboard device
 .if t .ti +.5i
 .SH ARGUMENTS
 .TP
-.I \- display
+.I display
 connection to X server
 .TP
-.I \- device_spec
+.I device_spec
 device ID, or XkbUseCoreKbd
 .TP
-.I \- delay_rtrn
+.I delay_rtrn
 backfilled with SlowKeys delay, ms
 .SH DESCRIPTION
 .LP

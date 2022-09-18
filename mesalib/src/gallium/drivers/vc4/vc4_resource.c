@@ -45,7 +45,7 @@ vc4_resource_bo_alloc(struct vc4_resource *rsc)
         struct pipe_screen *pscreen = prsc->screen;
         struct vc4_bo *bo;
 
-        if (vc4_debug & VC4_DEBUG_SURFACE) {
+        if (VC4_DBG(SURFACE)) {
                 fprintf(stderr, "alloc %p: size %d + offset %d -> %d\n",
                         rsc,
                         rsc->slices[0].size,
@@ -153,14 +153,12 @@ vc4_resource_transfer_map(struct pipe_context *pctx,
                 rsc->initialized_buffers = ~0;
         }
 
-        trans = slab_alloc(&vc4->transfer_pool);
+        trans = slab_zalloc(&vc4->transfer_pool);
         if (!trans)
                 return NULL;
 
         /* XXX: Handle DONTBLOCK, DISCARD_RANGE, PERSISTENT, COHERENT. */
 
-        /* slab_alloc_st() doesn't zero: */
-        memset(trans, 0, sizeof(*trans));
         ptrans = &trans->base;
 
         pipe_resource_reference(&ptrans->resource, prsc);
@@ -412,7 +410,7 @@ vc4_setup_slices(struct vc4_resource *rsc, const char *caller)
 
                 offset += slice->size;
 
-                if (vc4_debug & VC4_DEBUG_SURFACE) {
+                if (VC4_DBG(SURFACE)) {
                         static const char tiling_chars[] = {
                                 [VC4_TILING_FORMAT_LINEAR] = 'R',
                                 [VC4_TILING_FORMAT_LT] = 'L',
@@ -1140,8 +1138,7 @@ vc4_resource_screen_init(struct pipe_screen *pscreen)
         pscreen->resource_get_param = vc4_resource_get_param;
         pscreen->resource_destroy = vc4_resource_destroy;
         pscreen->transfer_helper = u_transfer_helper_create(&transfer_vtbl,
-                                                            false, false,
-                                                            false, true);
+                                                            U_TRANSFER_HELPER_MSAA_MAP);
 
         /* Test if the kernel has GET_TILING; it will return -EINVAL if the
          * ioctl does not exist, but -ENOENT if we pass an impossible handle.

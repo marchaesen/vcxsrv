@@ -1109,7 +1109,7 @@ In X11R7 modular releases, these flags are set when running
       <row>
         <entry>OSI</entry>
         <entry>osi</entry>
-        <entry>name of an OSI adressable host.</entry>
+        <entry>name of an OSI addressable host.</entry>
         <entry>Not sure of the specifics yet.</entry>
       </row>
       <row>

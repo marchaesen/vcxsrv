@@ -531,7 +531,7 @@ _mesa_set_search_or_add_pre_hashed(struct set *set, uint32_t hash,
 {
    assert(set->key_hash_function == NULL ||
           hash == set->key_hash_function(key));
-   return set_search_or_add(set, hash, key, NULL);
+   return set_search_or_add(set, hash, key, found);
 }
 
 /**

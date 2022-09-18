@@ -72,7 +72,8 @@ struct svga_screen
       unsigned no_cache_index_buffers:1;
       unsigned tessellation:1;
       unsigned sampler_state_mapping:1;
-      unsigned pad:24;
+      unsigned nir:1;
+      unsigned pad:23;
    } debug;
 
    unsigned texture_timestamp;

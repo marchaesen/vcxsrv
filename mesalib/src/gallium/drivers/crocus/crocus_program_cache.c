@@ -334,13 +334,13 @@ void
 crocus_print_program_cache(struct crocus_context *ice)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct intel_device_info *devinfo = &screen->devinfo;
+   const struct brw_isa_info *isa = &screen->compiler->isa;
 
    hash_table_foreach(ice->shaders.cache, entry) {
       const struct keybox *keybox = entry->key;
       struct crocus_compiled_shader *shader = entry->data;
       fprintf(stderr, "%s:\n", cache_name(keybox->cache_id));
-      brw_disassemble(devinfo, ice->shaders.cache_bo_map + shader->offset, 0,
+      brw_disassemble(isa, ice->shaders.cache_bo_map + shader->offset, 0,
                       shader->prog_data->program_size, NULL, stderr);
    }
 }

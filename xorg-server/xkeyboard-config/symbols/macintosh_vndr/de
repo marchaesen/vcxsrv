@@ -30,7 +30,7 @@ xkb_symbols "basic" {
     key <AD06> {	[	  z,	Z		]	};
     key <AD07> {	[	  u,	U, diaeresis,    Aacute		]	};
     key <AD08> {	[	  i,	I,      slash,    Ucircumflex	]	};
-    key <AD09> {	[         o,    O,      oslash,   Ooblique	]	};
+    key <AD09> {	[         o,    O,      oslash,   Oslash	]	};
     key <AD11> {	[ udiaeresis,	Udiaeresis,  periodcentered, degree	]	};
     key <AD12> {	[      plus,	asterisk,  asciitilde			]	}; 
     key <AC01> {	[         a,    A,      aring,    Aring		]	};

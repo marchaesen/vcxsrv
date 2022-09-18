@@ -32,13 +32,13 @@ by name
 .BI "Atom " "name" "\^);"
 .SH ARGUMENTS
 .TP
-.I \- dpy
+.I dpy
 connection to the X server
 .TP
-.I \- xkb
+.I xkb
 keyboard description into which the geometry should be loaded
 .TP
-.I \- name
+.I name
 name of the geometry to be loaded
 .SH DESCRIPTION
 .LP

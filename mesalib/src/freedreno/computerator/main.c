@@ -236,11 +236,7 @@ main(int argc, char **argv)
       }
    }
 
-   int fd = drmOpenWithType("msm", NULL, DRM_NODE_RENDER);
-   if (fd < 0)
-      err(1, "could not open drm device");
-
-   struct fd_device *dev = fd_device_new(fd);
+   struct fd_device *dev = fd_device_open();
    struct fd_pipe *pipe = fd_pipe_new(dev, FD_PIPE_3D);
 
    const struct fd_dev_id *dev_id = fd_pipe_dev_id(pipe);
