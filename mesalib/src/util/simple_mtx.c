@@ -16,17 +16,16 @@ void _simple_mtx_plain_init_once(simple_mtx_t *mtx)
 void
 simple_mtx_init(simple_mtx_t *mtx, ASSERTED int type)
 {
-   const once_flag once = ONCE_FLAG_INIT;
+   const util_once_flag flag = UTIL_ONCE_FLAG_INIT;
    assert(type == mtx_plain);
-   mtx->initialized = false;
-   mtx->once = once;
+   mtx->flag = flag;
    _simple_mtx_init_with_once(mtx);
 }
 
 void
 simple_mtx_destroy(simple_mtx_t *mtx)
 {
-   if (mtx->initialized) {
+   if (mtx->flag.called) {
       mtx_destroy(&mtx->mtx);
    }
 }

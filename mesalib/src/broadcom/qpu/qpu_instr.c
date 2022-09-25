@@ -773,6 +773,12 @@ v3d_qpu_writes_unifa(const struct v3d_device_info *devinfo,
                     inst->alu.mul.waddr == V3D_QPU_WADDR_UNIFA) {
                         return true;
                 }
+
+                if (v3d_qpu_sig_writes_address(devinfo, &inst->sig) &&
+                    inst->sig_magic &&
+                    inst->sig_addr == V3D_QPU_WADDR_UNIFA) {
+                        return true;
+                }
         }
 
         return false;

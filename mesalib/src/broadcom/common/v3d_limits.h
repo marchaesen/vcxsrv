@@ -45,7 +45,7 @@
 #define V3D_MAX_POINT_SIZE 512.0f
 #define V3D_MAX_LINE_WIDTH 32
 
-#define V3D_MAX_BUFFER_RANGE (1 << 27)
+#define V3D_MAX_BUFFER_RANGE (1 << 30)
 
 /* Sub-pixel precission bits in the rasterizer */
 #define V3D_COORD_SHIFT 6

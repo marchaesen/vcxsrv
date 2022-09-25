@@ -427,29 +427,6 @@ __check_suid(void)
    return false;
 }
 
-/**
- * Define a getter for a debug option which specifies a 'FILE *'
- * to open, with additional checks for suid executables.  Note
- * that if the return is not NULL, the caller owns the 'FILE *'
- * reference.
- */
-#define DEBUG_GET_ONCE_FILE_OPTION(suffix, name, dfault, mode) \
-static FILE * \
-debug_get_option_ ## suffix (void) \
-{ \
-   static bool initialized = false; \
-   static const char * value; \
-   if (__check_suid()) \
-      return NULL; \
-   if (!initialized) { \
-      initialized = true; \
-      value = debug_get_option(name, dfault); \
-   } \
-   if (!value) \
-      return NULL; \
-   return fopen(value, mode); \
-}
-
 #define DEBUG_GET_ONCE_BOOL_OPTION(sufix, name, dfault) \
 static bool \
 debug_get_option_ ## sufix (void) \

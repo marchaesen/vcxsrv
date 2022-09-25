@@ -379,23 +379,23 @@ panfrost_bo_create(struct panfrost_device *dev, size_t size,
         if (flags & PAN_BO_GROWABLE)
                 assert(flags & PAN_BO_INVISIBLE);
 
-        /* Before creating a BO, we first want to check the cache but without
-         * waiting for BO readiness (BOs in the cache can still be referenced
-         * by jobs that are not finished yet).
-         * If the cached allocation fails we fall back on fresh BO allocation,
-         * and if that fails too, we try one more time to allocate from the
-         * cache, but this time we accept to wait.
+        /* Ideally, we get a BO that's ready in the cache, or allocate a fresh
+         * BO. If allocation fails, we can try waiting for something in the
+         * cache. But if there's no nothing suitable, we should flush the cache
+         * to make space for the new allocation.
          */
         bo = panfrost_bo_cache_fetch(dev, size, flags, label, true);
         if (!bo)
                 bo = panfrost_bo_alloc(dev, size, flags, label);
         if (!bo)
                 bo = panfrost_bo_cache_fetch(dev, size, flags, label, false);
-
-        assert(bo);
+        if (!bo) {
+                panfrost_bo_cache_evict_all(dev);
+                bo = panfrost_bo_alloc(dev, size, flags, label);
+        }
 
         if (!bo) {
-                fprintf(stderr, "BO creation failed\n");
+                unreachable("BO creation failed. We don't handle that yet.");
                 return NULL;
         }
 

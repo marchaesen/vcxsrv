@@ -115,7 +115,7 @@ agx_immediate(uint16_t imm)
 {
    return (agx_index) {
       .value = imm,
-      .size = AGX_SIZE_32,
+      .size = AGX_SIZE_16,
       .type = AGX_INDEX_IMMEDIATE,
    };
 }
@@ -741,6 +741,7 @@ void agx_compute_liveness(agx_context *ctx);
 void agx_liveness_ins_update(BITSET_WORD *live, agx_instr *I);
 
 bool agx_lower_resinfo(nir_shader *s);
+bool agx_nir_lower_array_texture(nir_shader *s);
 
 #ifdef __cplusplus
 } /* extern C */

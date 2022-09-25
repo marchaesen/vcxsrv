@@ -233,12 +233,10 @@ VkResult pvr_BindImageMemory2(VkDevice _device,
    return VK_SUCCESS;
 }
 
-void pvr_GetImageSubresourceLayout(VkDevice device,
-                                   VkImage _image,
-                                   const VkImageSubresource *subresource,
-                                   VkSubresourceLayout *layout)
+void pvr_get_image_subresource_layout(const struct pvr_image *image,
+                                      const VkImageSubresource *subresource,
+                                      VkSubresourceLayout *layout)
 {
-   PVR_FROM_HANDLE(pvr_image, image, _image);
    const struct pvr_mip_level *mip_level =
       &image->mip_levels[subresource->mipLevel];
 
@@ -251,6 +249,16 @@ void pvr_GetImageSubresourceLayout(VkDevice device,
    layout->depthPitch = mip_level->pitch * mip_level->height_pitch;
    layout->arrayPitch = image->layer_size;
    layout->size = mip_level->size;
+}
+
+void pvr_GetImageSubresourceLayout(VkDevice device,
+                                   VkImage _image,
+                                   const VkImageSubresource *subresource,
+                                   VkSubresourceLayout *layout)
+{
+   PVR_FROM_HANDLE(pvr_image, image, _image);
+
+   pvr_get_image_subresource_layout(image, subresource, layout);
 }
 
 VkResult pvr_CreateImageView(VkDevice _device,

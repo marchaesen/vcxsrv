@@ -481,12 +481,16 @@ struct pipe_h264_enc_picture_desc
    unsigned num_ref_idx_l0_active_minus1;
    unsigned num_ref_idx_l1_active_minus1;
    unsigned ref_idx_l0_list[32];
+   bool l0_is_long_term[32];
    unsigned ref_idx_l1_list[32];
+   bool l1_is_long_term[32];
    unsigned gop_size;
    unsigned num_temporal_layers;
    struct pipe_enc_quality_modes quality_modes;
 
    bool not_referenced;
+   bool is_ltr;
+   unsigned ltr_index;
    bool enable_vui;
    struct hash_table *frame_idx;
 

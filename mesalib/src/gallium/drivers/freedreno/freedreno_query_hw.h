@@ -35,7 +35,7 @@
 /*
  * HW Queries:
  *
- * See: https://github.com/freedreno/freedreno/wiki/Queries#hardware-queries
+ * See: https://gitlab.freedesktop.org/freedreno/freedreno/-/wikis/Queries#hardware-queries
  *
  * Hardware queries will be specific to gpu generation, but they need
  * some common infrastructure for triggering start/stop samples at

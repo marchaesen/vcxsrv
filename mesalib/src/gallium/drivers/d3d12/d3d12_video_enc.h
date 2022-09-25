@@ -78,11 +78,18 @@ d3d12_video_encoder_end_frame(struct pipe_video_codec * codec,
                               struct pipe_picture_desc *picture);
 
 /**
- * flush any outstanding command buffers to the hardware
- * should be called before a video_buffer is acessed by the gallium frontend again
+ * flush async any outstanding command buffers to the hardware
+ * and returns to the caller without waiting for completion
  */
 void
 d3d12_video_encoder_flush(struct pipe_video_codec *codec);
+
+/**
+ * Waits until the async work from the fenceValue has been completed in the device
+ * and releases the in-flight resources
+ */
+void
+d3d12_video_encoder_sync_completion(struct pipe_video_codec *codec, uint64_t fenceValueToWaitOn, uint64_t timeout_ns);
 
 ///
 /// Pipe video interface ends
@@ -108,11 +115,118 @@ DEFINE_ENUM_FLAG_OPERATORS(d3d12_video_encoder_config_dirty_flags);
 /// d3d12_video_encoder functions starts
 ///
 
+struct D3D12EncodeCapabilities
+{
+   bool m_fArrayOfTexturesDpb = false;
+
+   D3D12_VIDEO_ENCODER_SUPPORT_FLAGS                          m_SupportFlags = {};
+   D3D12_VIDEO_ENCODER_VALIDATION_FLAGS                       m_ValidationFlags = {};
+   D3D12_FEATURE_DATA_VIDEO_ENCODER_RESOLUTION_SUPPORT_LIMITS m_currentResolutionSupportCaps = {};
+   union
+   {
+      D3D12_VIDEO_ENCODER_PROFILE_H264 m_H264Profile;
+      D3D12_VIDEO_ENCODER_PROFILE_HEVC m_HEVCProfile;
+   } m_encoderSuggestedProfileDesc = {};
+
+   union
+   {
+      D3D12_VIDEO_ENCODER_LEVELS_H264                 m_H264LevelSetting;
+      D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC m_HEVCLevelSetting;
+   } m_encoderLevelSuggestedDesc = {};
+
+   union
+   {
+      D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_H264 m_H264CodecCaps;
+      D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC m_HEVCCodecCaps;
+   } m_encoderCodecSpecificConfigCaps = {};
+
+   // The maximum number of slices that the output of the current frame to be encoded will contain
+   uint32_t m_MaxSlicesInOutput = 0;
+
+   D3D12_FEATURE_DATA_VIDEO_ENCODER_RESOURCE_REQUIREMENTS m_ResourceRequirementsCaps = {};
+
+};
+
+struct D3D12EncodeConfiguration
+{
+   d3d12_video_encoder_config_dirty_flags m_ConfigDirtyFlags = d3d12_video_encoder_config_dirty_flag_none;
+
+   D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC m_currentResolution = {};
+   D3D12_BOX m_FrameCroppingCodecConfig = {};
+
+   D3D12_FEATURE_DATA_FORMAT_INFO m_encodeFormatInfo = {};
+
+   D3D12_VIDEO_ENCODER_CODEC m_encoderCodecDesc = {};
+
+   D3D12_VIDEO_ENCODER_SEQUENCE_CONTROL_FLAGS m_seqFlags = D3D12_VIDEO_ENCODER_SEQUENCE_CONTROL_FLAG_NONE;
+
+   /// As the following D3D12 Encode types have pointers in their structures, we need to keep a deep copy of them
+
+   union
+   {
+      D3D12_VIDEO_ENCODER_PROFILE_H264 m_H264Profile;
+      D3D12_VIDEO_ENCODER_PROFILE_HEVC m_HEVCProfile;
+   } m_encoderProfileDesc = {};
+
+   union
+   {
+      D3D12_VIDEO_ENCODER_LEVELS_H264                 m_H264LevelSetting;
+      D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC m_HEVCLevelSetting;
+   } m_encoderLevelDesc = {};
+
+   struct
+   {
+      D3D12_VIDEO_ENCODER_RATE_CONTROL_MODE  m_Mode = {};
+      D3D12_VIDEO_ENCODER_RATE_CONTROL_FLAGS m_Flags = {};
+      DXGI_RATIONAL                          m_FrameRate = {};
+      union
+      {
+         D3D12_VIDEO_ENCODER_RATE_CONTROL_CQP  m_Configuration_CQP;
+         D3D12_VIDEO_ENCODER_RATE_CONTROL_CBR  m_Configuration_CBR;
+         D3D12_VIDEO_ENCODER_RATE_CONTROL_VBR  m_Configuration_VBR;
+         D3D12_VIDEO_ENCODER_RATE_CONTROL_QVBR m_Configuration_QVBR;
+      } m_Config;
+   } m_encoderRateControlDesc = {};
+
+   union
+   {
+      D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 m_H264Config;
+      D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC m_HEVCConfig;
+   } m_encoderCodecSpecificConfigDesc = {};
+
+
+   D3D12_VIDEO_ENCODER_FRAME_SUBREGION_LAYOUT_MODE m_encoderSliceConfigMode = {};
+   union
+   {
+      D3D12_VIDEO_ENCODER_PICTURE_CONTROL_SUBREGIONS_LAYOUT_DATA_SLICES m_SlicesPartition_H264;
+      D3D12_VIDEO_ENCODER_PICTURE_CONTROL_SUBREGIONS_LAYOUT_DATA_SLICES m_SlicesPartition_HEVC;
+   } m_encoderSliceConfigDesc = {};
+
+   union
+   {
+      D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_H264 m_H264GroupOfPictures;
+      D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_HEVC m_HEVCGroupOfPictures;
+   } m_encoderGOPConfigDesc = {};
+
+   union
+   {
+      D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_H264 m_H264PicData;
+      D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC m_HEVCPicData;
+   } m_encoderPicParamsDesc = {};
+
+   D3D12_VIDEO_ENCODER_MOTION_ESTIMATION_PRECISION_MODE m_encoderMotionPrecisionLimit =
+      D3D12_VIDEO_ENCODER_MOTION_ESTIMATION_PRECISION_MODE_MAXIMUM;
+
+   D3D12_VIDEO_ENCODER_INTRA_REFRESH m_IntraRefresh = { D3D12_VIDEO_ENCODER_INTRA_REFRESH_MODE_NONE, 0 };
+   uint32_t                          m_IntraRefreshCurrentFrameIndex = 0;
+
+};
+
 struct d3d12_video_encoder
 {
-   struct pipe_video_codec base;
-   struct pipe_screen *    m_screen;
-   struct d3d12_screen *   m_pD3D12Screen;
+   struct pipe_video_codec base = {};
+   struct pipe_screen *    m_screen = nullptr;
+   struct d3d12_screen *   m_pD3D12Screen = nullptr;
 
    ///
    /// D3D12 objects and context info
@@ -122,136 +236,48 @@ struct d3d12_video_encoder
    const uint m_NodeIndex = 0u;
 
    ComPtr<ID3D12Fence> m_spFence;
-   uint                m_fenceValue = 1u;
+   uint64_t            m_fenceValue = 1u;
+   bool                m_bPendingWorkNotFlushed = false;
 
    ComPtr<ID3D12VideoDevice3>            m_spD3D12VideoDevice;
    ComPtr<ID3D12VideoEncoder>            m_spVideoEncoder;
    ComPtr<ID3D12VideoEncoderHeap>        m_spVideoEncoderHeap;
    ComPtr<ID3D12CommandQueue>            m_spEncodeCommandQueue;
-   ComPtr<ID3D12CommandAllocator>        m_spCommandAllocator;
    ComPtr<ID3D12VideoEncodeCommandList2> m_spEncodeCommandList;
    std::vector<D3D12_RESOURCE_BARRIER>   m_transitionsBeforeCloseCmdList;
 
    std::unique_ptr<d3d12_video_encoder_references_manager_interface> m_upDPBManager;
-   std::unique_ptr<d3d12_video_dpb_storage_manager_interface>        m_upDPBStorageManager;
+   std::shared_ptr<d3d12_video_dpb_storage_manager_interface>        m_upDPBStorageManager;
    std::unique_ptr<d3d12_video_bitstream_builder_interface>          m_upBitstreamBuilder;
 
-   bool m_needsGPUFlush = false;
-
-   ComPtr<ID3D12Resource> m_spResolvedMetadataBuffer;
-   ComPtr<ID3D12Resource> m_spMetadataOutputBuffer;
+   struct EncodedBitstreamResolvedMetadata
+   {
+      ComPtr<ID3D12Resource> spBuffer;
+      size_t bufferSize = 0;
+      size_t codecHeadersSize = 0;
+      ComPtr<ID3D12Resource> m_spMetadataOutputBuffer;
+   };
 
    std::vector<uint8_t> m_BitstreamHeadersBuffer;
+   std::vector<EncodedBitstreamResolvedMetadata> m_spEncodedFrameMetadata;
 
-   struct
+   struct D3D12EncodeCapabilities m_currentEncodeCapabilities = {};
+   struct D3D12EncodeConfiguration m_currentEncodeConfig = {};
+
+   struct InFlightEncodeResources
    {
-      bool m_fArrayOfTexturesDpb;
+      // In case of reconfigurations that trigger creation of new
+      // encoder or encoderheap or reference frames allocations
+      // we need to keep a reference alive to the ones that
+      // are currently in-flight
+      ComPtr<ID3D12VideoEncoder> m_spEncoder;
+      ComPtr<ID3D12VideoEncoderHeap> m_spEncoderHeap;
+      std::shared_ptr<d3d12_video_dpb_storage_manager_interface> m_References;
 
-      D3D12_VIDEO_ENCODER_SUPPORT_FLAGS                          m_SupportFlags;
-      D3D12_VIDEO_ENCODER_VALIDATION_FLAGS                       m_ValidationFlags;
-      D3D12_FEATURE_DATA_VIDEO_ENCODER_RESOLUTION_SUPPORT_LIMITS m_currentResolutionSupportCaps;
-      union
-      {
-         D3D12_VIDEO_ENCODER_PROFILE_H264 m_H264Profile;
-         D3D12_VIDEO_ENCODER_PROFILE_HEVC m_HEVCProfile;
-      } m_encoderSuggestedProfileDesc = {};
+      ComPtr<ID3D12CommandAllocator> m_spCommandAllocator;
+   };
 
-      union
-      {
-         D3D12_VIDEO_ENCODER_LEVELS_H264                 m_H264LevelSetting;
-         D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC m_HEVCLevelSetting;
-      } m_encoderLevelSuggestedDesc = {};
-
-      union
-      {
-         D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_H264 m_H264CodecCaps;
-         D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC m_HEVCCodecCaps;
-      } m_encoderCodecSpecificConfigCaps = {};
-
-      // Required size for the layout-resolved metadata buffer of current frame to be encoded
-      size_t m_resolvedLayoutMetadataBufferRequiredSize;
-
-      // The maximum number of slices that the output of the current frame to be encoded will contain
-      uint32_t m_MaxSlicesInOutput;
-
-      D3D12_FEATURE_DATA_VIDEO_ENCODER_RESOURCE_REQUIREMENTS m_ResourceRequirementsCaps;
-
-   } m_currentEncodeCapabilities;
-
-   struct
-   {
-      d3d12_video_encoder_config_dirty_flags m_ConfigDirtyFlags = d3d12_video_encoder_config_dirty_flag_none;
-
-      D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC m_currentResolution = {};
-      D3D12_BOX m_FrameCroppingCodecConfig = {};
-
-      D3D12_FEATURE_DATA_FORMAT_INFO m_encodeFormatInfo = {};
-
-      D3D12_VIDEO_ENCODER_CODEC m_encoderCodecDesc = {};
-
-      D3D12_VIDEO_ENCODER_SEQUENCE_CONTROL_FLAGS m_seqFlags = D3D12_VIDEO_ENCODER_SEQUENCE_CONTROL_FLAG_NONE;
-
-      /// As the following D3D12 Encode types have pointers in their structures, we need to keep a deep copy of them
-
-      union
-      {
-         D3D12_VIDEO_ENCODER_PROFILE_H264 m_H264Profile;
-         D3D12_VIDEO_ENCODER_PROFILE_HEVC m_HEVCProfile;
-      } m_encoderProfileDesc = {};
-
-      union
-      {
-         D3D12_VIDEO_ENCODER_LEVELS_H264                 m_H264LevelSetting;
-         D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC m_HEVCLevelSetting;
-      } m_encoderLevelDesc = {};
-
-      struct
-      {
-         D3D12_VIDEO_ENCODER_RATE_CONTROL_MODE  m_Mode;
-         D3D12_VIDEO_ENCODER_RATE_CONTROL_FLAGS m_Flags;
-         DXGI_RATIONAL                          m_FrameRate;
-         union
-         {
-            D3D12_VIDEO_ENCODER_RATE_CONTROL_CQP  m_Configuration_CQP;
-            D3D12_VIDEO_ENCODER_RATE_CONTROL_CBR  m_Configuration_CBR;
-            D3D12_VIDEO_ENCODER_RATE_CONTROL_VBR  m_Configuration_VBR;
-            D3D12_VIDEO_ENCODER_RATE_CONTROL_QVBR m_Configuration_QVBR;
-         } m_Config;
-      } m_encoderRateControlDesc = {};
-
-      union
-      {
-         D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 m_H264Config;
-         D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC m_HEVCConfig;
-      } m_encoderCodecSpecificConfigDesc = {};
-
-
-      D3D12_VIDEO_ENCODER_FRAME_SUBREGION_LAYOUT_MODE m_encoderSliceConfigMode;
-      union
-      {
-         D3D12_VIDEO_ENCODER_PICTURE_CONTROL_SUBREGIONS_LAYOUT_DATA_SLICES m_SlicesPartition_H264;
-         D3D12_VIDEO_ENCODER_PICTURE_CONTROL_SUBREGIONS_LAYOUT_DATA_SLICES m_SlicesPartition_HEVC;
-      } m_encoderSliceConfigDesc = {};
-
-      union
-      {
-         D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_H264 m_H264GroupOfPictures;
-         D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_HEVC m_HEVCGroupOfPictures;
-      } m_encoderGOPConfigDesc = {};
-
-      union
-      {
-         D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_H264 m_H264PicData;
-         D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC m_HEVCPicData;
-      } m_encoderPicParamsDesc = {};
-
-      D3D12_VIDEO_ENCODER_MOTION_ESTIMATION_PRECISION_MODE m_encoderMotionPrecisionLimit =
-         D3D12_VIDEO_ENCODER_MOTION_ESTIMATION_PRECISION_MODE_MAXIMUM;
-
-      D3D12_VIDEO_ENCODER_INTRA_REFRESH m_IntraRefresh = { D3D12_VIDEO_ENCODER_INTRA_REFRESH_MODE_NONE, 0 };
-      uint32_t                          m_IntraRefreshCurrentFrameIndex = 0;
-
-   } m_currentEncodeConfig;
+   std::vector<InFlightEncodeResources> m_inflightResourcesPool;
 };
 
 bool
@@ -319,6 +345,7 @@ d3d12_video_encoder_get_current_codec(struct d3d12_video_encoder *pD3D12Enc);
 bool d3d12_video_encoder_negotiate_requested_features_and_d3d12_driver_caps(struct d3d12_video_encoder *pD3D12Enc, D3D12_FEATURE_DATA_VIDEO_ENCODER_SUPPORT &capEncoderSupportData);
 bool d3d12_video_encoder_query_d3d12_driver_caps(struct d3d12_video_encoder *pD3D12Enc, D3D12_FEATURE_DATA_VIDEO_ENCODER_SUPPORT &capEncoderSupportData);
 bool d3d12_video_encoder_check_subregion_mode_support(struct d3d12_video_encoder *pD3D12Enc, D3D12_VIDEO_ENCODER_FRAME_SUBREGION_LAYOUT_MODE requestedSlicesMode);
+uint64_t d3d12_video_encoder_pool_current_index(struct d3d12_video_encoder *pD3D12Enc);
 
 ///
 /// d3d12_video_encoder functions ends

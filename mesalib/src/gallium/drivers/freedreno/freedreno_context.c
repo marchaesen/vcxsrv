@@ -701,6 +701,7 @@ fd_context_init_tc(struct pipe_context *pctx, unsigned flags)
          .create_fence = fd_fence_create_unflushed,
          .is_resource_busy = fd_resource_busy,
          .unsynchronized_get_device_reset_status = true,
+         .unsynchronized_create_fence_fd = true,
       },
       &ctx->tc);
 

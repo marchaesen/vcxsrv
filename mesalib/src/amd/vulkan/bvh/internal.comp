@@ -95,7 +95,6 @@ main(void)
 
    if (fill_header) {
       REF(radv_accel_struct_header) header = REF(radv_accel_struct_header)(args.bvh);
-      DEREF(header).root_node_offset = node_id;
 
       DEREF(header).aabb[0][0] = total_bounds.min.x;
       DEREF(header).aabb[0][1] = total_bounds.min.y;

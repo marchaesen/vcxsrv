@@ -259,7 +259,7 @@ void ra_checker::run_on(container_node* c) {
 		check_phi_src(r->target->phi, r->dep_id);
 		pop_stack();
 	} else if (c->is_repeat()) {
-		repeat_node *r = static_cast<repeat_node*>(c);
+		ASSERTED repeat_node *r = static_cast<repeat_node*>(c);
 		assert (r->target->loop_phi);
 
 		pop_stack();

@@ -118,7 +118,7 @@ iris_init_batch_measure(struct iris_context *ice, struct iris_batch *batch)
    struct iris_measure_batch *measure = batch->measure;
 
    measure->bo = iris_bo_alloc(bufmgr, "measure",
-                               config->batch_size * sizeof(uint64_t), 1,
+                               config->batch_size * sizeof(uint64_t), 8,
                                IRIS_MEMZONE_OTHER, BO_ALLOC_ZEROED);
    measure->base.timestamps = iris_bo_map(NULL, measure->bo, MAP_READ);
    measure->base.framebuffer =

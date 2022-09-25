@@ -357,6 +357,7 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_QUERY_SAMPLES:
    case PIPE_CAP_SHADER_GROUP_VOTE:
    case PIPE_CAP_SHADER_BALLOT:
+   case PIPE_CAP_IMAGE_ATOMIC_FLOAT_ADD:
    case PIPE_CAP_LOAD_CONSTBUF:
    case PIPE_CAP_TEXTURE_MULTISAMPLE:
    case PIPE_CAP_SAMPLE_SHADING:
@@ -366,9 +367,13 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_PACKED_UNIFORMS: {
       struct llvmpipe_screen *lscreen = llvmpipe_screen(screen);
       return !lscreen->use_tgsi;
+   }
+   case PIPE_CAP_ATOMIC_FLOAT_MINMAX: {
+      struct llvmpipe_screen *lscreen = llvmpipe_screen(screen);
+      return !lscreen->use_tgsi && LLVM_VERSION_MAJOR >= 15;
+   }
    case PIPE_CAP_NIR_IMAGES_AS_DEREF:
       return 0;
-   }
    default:
       return u_pipe_screen_get_param_defaults(screen, param);
    }

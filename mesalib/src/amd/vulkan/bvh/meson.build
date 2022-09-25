@@ -19,9 +19,10 @@
 # SOFTWARE.
 
 bvh_shaders = [
+  'copy.comp',
   'internal.comp',
   'leaf.comp',
-  'morton.comp'
+  'morton.comp',
 ]
 
 bvh_include_dir = meson.source_root() + '/src/amd/vulkan/bvh'

@@ -403,7 +403,7 @@ void BlockSheduler::schedule_block(Block& in_block, Shader::ShaderBlocks& out_bl
    while (collect_ready_type(exports_ready, cir.exports))
       schedule_exports(out_blocks, exports_ready);
 
-   bool fail = false;
+   ASSERTED bool fail = false;
 
    if (!cir.alu_groups.empty()) {
       std::cerr << "Unscheduled ALU groups:\n";

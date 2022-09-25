@@ -3207,7 +3207,20 @@ ntq_emit_load_unifa(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 struct qreg unifa = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_UNIFA);
                 if (!dynamic_src) {
                         if (!is_ssbo) {
-                                vir_MOV_dest(c, unifa, base_offset);
+                                /* Avoid the extra MOV to UNIFA by making
+                                 * ldunif load directly into it. We can't
+                                 * do this if we have not actually emitted
+                                 * ldunif and are instead reusing a previous
+                                 * one.
+                                 */
+                                struct qinst *inst =
+                                        (struct qinst *)c->cur_block->instructions.prev;
+                                if (inst == c->defs[base_offset.index]) {
+                                   inst->dst = unifa;
+                                   c->defs[base_offset.index] = NULL;
+                                } else {
+                                   vir_MOV_dest(c, unifa, base_offset);
+                                }
                         } else {
                                 vir_ADD_dest(c, unifa, base_offset,
                                              vir_uniform_ui(c, const_offset));

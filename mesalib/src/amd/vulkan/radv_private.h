@@ -943,6 +943,7 @@ struct radv_device {
    bool uses_device_generated_commands;
 };
 
+bool radv_device_set_pstate(struct radv_device *device, bool enable);
 bool radv_device_acquire_performance_counters(struct radv_device *device);
 void radv_device_release_performance_counters(struct radv_device *device);
 
@@ -2140,7 +2141,7 @@ bool radv_pipeline_has_ngg_passthrough(const struct radv_graphics_pipeline *pipe
 
 bool radv_pipeline_has_gs_copy_shader(const struct radv_pipeline *pipeline);
 
-struct radv_userdata_info *radv_lookup_user_sgpr(struct radv_pipeline *pipeline,
+struct radv_userdata_info *radv_lookup_user_sgpr(const struct radv_pipeline *pipeline,
                                                  gl_shader_stage stage, int idx);
 
 struct radv_shader *radv_get_shader(const struct radv_pipeline *pipeline, gl_shader_stage stage);
@@ -2623,7 +2624,6 @@ struct radv_sampler_ycbcr_conversion {
 struct radv_buffer_view {
    struct vk_object_base base;
    struct radeon_winsys_bo *bo;
-   VkFormat vk_format;
    uint64_t range; /**< VkBufferViewCreateInfo::range */
    uint32_t state[4];
 };
@@ -2721,6 +2721,10 @@ void radv_meta_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
                                    VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout _layout,
                                    uint32_t set, uint32_t descriptorWriteCount,
                                    const VkWriteDescriptorSet *pDescriptorWrites);
+
+void radv_make_texel_buffer_descriptor(struct radv_device *device, uint64_t va,
+                                       VkFormat vk_format, unsigned offset, unsigned range,
+                                       uint32_t *state);
 
 uint32_t radv_init_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
                        const VkImageSubresourceRange *range, uint32_t value);

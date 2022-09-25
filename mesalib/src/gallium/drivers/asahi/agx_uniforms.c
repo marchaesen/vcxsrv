@@ -88,24 +88,6 @@ agx_push_location_direct(struct agx_context *ctx, struct agx_push push,
             sizeof(ctx->blend_color), 8);
    }
 
-   case AGX_PUSH_ARRAY_SIZE_MINUS_1: {
-      struct agx_stage *st = &ctx->stage[stage];
-      unsigned count = st->texture_count;
-      struct agx_ptr ptr = agx_pool_alloc_aligned(&batch->pool, count * sizeof(uint16_t), 8);
-      uint16_t *d1 = ptr.cpu;
-
-      for (unsigned i = 0; i < count; ++i) {
-         unsigned array_size = 1;
-
-         if (st->textures[i])
-            array_size = st->textures[i]->base.texture->array_size;
-
-         d1[i] = array_size - 1;
-      }
-
-      return ptr.gpu;
-   }
-
    case AGX_PUSH_TEXTURE_BASE: {
       struct agx_ptr ptr = agx_pool_alloc_aligned(&batch->pool, sizeof(uint64_t), 8);
       uint64_t *address = ptr.cpu;

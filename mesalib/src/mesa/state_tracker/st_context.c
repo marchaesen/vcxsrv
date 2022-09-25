@@ -890,6 +890,9 @@ st_create_context(gl_api api, struct pipe_context *pipe,
    if (pipe->screen->get_param(pipe->screen, PIPE_CAP_INVALIDATE_BUFFER))
       ctx->has_invalidate_buffer = true;
 
+   if (pipe->screen->get_param(pipe->screen, PIPE_CAP_STRING_MARKER))
+      ctx->has_string_marker = true;
+
    st = st_create_context_priv(ctx, pipe, options);
    if (!st) {
       _mesa_free_context_data(ctx, true);

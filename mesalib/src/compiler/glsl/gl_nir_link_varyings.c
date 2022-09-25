@@ -366,7 +366,8 @@ xfb_decl_assign_location(struct xfb_decl *xfb_decl,
                                                 nir_var_shader_out,
                                                 disable_varying_packing,
                                                 xfb_enabled) ||
-            strcmp(xfb_decl->matched_candidate->toplevel_var->name, "gl_ClipDistance") == 0;
+            strcmp(xfb_decl->matched_candidate->toplevel_var->name, "gl_ClipDistance") == 0 ||
+            strcmp(xfb_decl->matched_candidate->toplevel_var->name, "gl_CullDistance") == 0;
 
          unsigned array_elem_size = xfb_decl->lowered_builtin_array_variable ?
             1 : (array_will_be_lowered ? vector_elements : 4) * matrix_cols * dmul;

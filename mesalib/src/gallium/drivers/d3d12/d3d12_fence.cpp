@@ -30,61 +30,10 @@
 
 #include <dxguids/dxguids.h>
 
-constexpr uint64_t NsPerMs = 1000000;
-constexpr uint64_t MaxTimeoutInNs = (uint64_t)UINT_MAX * NsPerMs;
-
-#ifdef _WIN32
-static void
-close_event(HANDLE event, int fd)
-{
-   if (event)
-      CloseHandle(event);
-}
-
-static HANDLE
-create_event(int *fd)
-{
-   *fd = -1;
-   return CreateEvent(NULL, FALSE, FALSE, NULL);
-}
-
-static bool
-wait_event(HANDLE event, int event_fd, uint64_t timeout_ns)
-{
-   DWORD timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? INFINITE : timeout_ns / NsPerMs;
-   return WaitForSingleObject(event, timeout_ms) == WAIT_OBJECT_0;
-}
-#else
-#include <sys/eventfd.h>
-#include <poll.h>
-#include <util/libsync.h>
-
-static void
-close_event(HANDLE event, int fd)
-{
-   if (fd != -1)
-      close(fd);
-}
-
-static HANDLE
-create_event(int *fd)
-{
-   *fd = eventfd(0, 0);
-   return (HANDLE)(size_t)*fd;
-}
-
-static bool
-wait_event(HANDLE event, int event_fd, uint64_t timeout_ns)
-{
-   int timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? -1 : timeout_ns / NsPerMs;
-   return sync_wait(event_fd, timeout_ms) == 0;
-}
-#endif
-
 static void
 destroy_fence(struct d3d12_fence *fence)
 {
-   close_event(fence->event, fence->event_fd);
+   d3d12_fence_close_event(fence->event, fence->event_fd);
    FREE(fence);
 }
 
@@ -99,7 +48,7 @@ d3d12_create_fence(struct d3d12_screen *screen)
 
    ret->cmdqueue_fence = screen->fence;
    ret->value = ++screen->fence_value;
-   ret->event = create_event(&ret->event_fd);
+   ret->event = d3d12_fence_create_event(&ret->event_fd);
    if (FAILED(screen->fence->SetEventOnCompletion(ret->value, ret->event)))
       goto fail;
    if (FAILED(screen->cmdqueue->Signal(screen->fence, ret->value)))
@@ -166,7 +115,7 @@ d3d12_fence_finish(struct d3d12_fence *fence, uint64_t timeout_ns)
    
    bool complete = fence->cmdqueue_fence->GetCompletedValue() >= fence->value;
    if (!complete && timeout_ns)
-      complete = wait_event(fence->event, fence->event_fd, timeout_ns);
+      complete = d3d12_fence_wait_event(fence->event, fence->event_fd, timeout_ns);
 
    fence->signaled = complete;
    return complete;

@@ -571,8 +571,11 @@ static void si_fence_server_signal(struct pipe_context *ctx, struct pipe_fence_h
     * operation.
     *
     * Forces a flush even if the GFX CS is empty.
+    *
+    * The flush must not be asynchronous because the kernel must receive
+    * the scheduled "signal" operation before any wait.
     */
-   si_flush_all_queues(ctx, NULL, PIPE_FLUSH_ASYNC, true);
+   si_flush_all_queues(ctx, NULL, 0, true);
 }
 
 static void si_fence_server_sync(struct pipe_context *ctx, struct pipe_fence_handle *fence)

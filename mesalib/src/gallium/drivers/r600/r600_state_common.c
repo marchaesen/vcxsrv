@@ -992,7 +992,7 @@ struct r600_pipe_shader_selector *r600_create_shader_state_tokens(struct pipe_co
 	} else if (ir == PIPE_SHADER_IR_NIR){
 		nir_shader *s = (nir_shader *)prog;
 
-		if (!(rscreen->b.debug_flags & DBG_NIR_PREFERRED)) {
+		if (rscreen->b.debug_flags & DBG_USE_TGSI) {
 			sel->tokens = (void *)nir_to_tgsi(s, ctx->screen);
 			ir = PIPE_SHADER_IR_TGSI;
 			tgsi_scan_shader(sel->tokens, &sel->info);

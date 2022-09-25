@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+#define FD_BO_NO_HARDPIN 1
+
 #include "fd6_const.h"
 #include "fd6_pack.h"
 
@@ -185,8 +187,8 @@ fd6_build_tess_consts(struct fd6_emit *emit)
 }
 
 static void
-fd6_emit_ubos(struct fd_context *ctx, const struct ir3_shader_variant *v,
-              struct fd_ringbuffer *ring, struct fd_constbuf_stateobj *constbuf)
+fd6_emit_ubos(const struct ir3_shader_variant *v, struct fd_ringbuffer *ring,
+              struct fd_constbuf_stateobj *constbuf)
 {
    const struct ir3_const_state *const_state = ir3_const_state(v);
    int num_ubos = const_state->num_ubos;
@@ -214,17 +216,6 @@ fd6_emit_ubos(struct fd_context *ctx, const struct ir3_shader_variant *v,
 
       struct pipe_constant_buffer *cb = &constbuf->cb[i];
 
-      /* If we have user pointers (constbuf 0, aka GL uniforms), upload them
-       * to a buffer now, and save it in the constbuf so that we don't have
-       * to reupload until they get changed.
-       */
-      if (cb->user_buffer) {
-         struct pipe_context *pctx = &ctx->base;
-         u_upload_data(pctx->stream_uploader, 0, cb->buffer_size, 64,
-                       cb->user_buffer, &cb->buffer_offset, &cb->buffer);
-         cb->user_buffer = NULL;
-      }
-
       if (cb->buffer) {
          int size_vec4s = DIV_ROUND_UP(cb->buffer_size, 16);
          OUT_RELOC(ring, fd_resource(cb->buffer)->bo, cb->buffer_offset,
@@ -236,58 +227,56 @@ fd6_emit_ubos(struct fd_context *ctx, const struct ir3_shader_variant *v,
    }
 }
 
-static unsigned
-user_consts_cmdstream_size(struct ir3_shader_variant *v)
+unsigned
+fd6_user_consts_cmdstream_size(struct ir3_shader_variant *v)
 {
+   if (!v)
+      return 0;
+
    struct ir3_const_state *const_state = ir3_const_state(v);
    struct ir3_ubo_analysis_state *ubo_state = &const_state->ubo_state;
+   unsigned packets, size;
 
-   if (unlikely(!ubo_state->cmdstream_size)) {
-      unsigned packets, size;
+   /* pre-calculate size required for userconst stateobj: */
+   ir3_user_consts_size(ubo_state, &packets, &size);
 
-      /* pre-calculate size required for userconst stateobj: */
-      ir3_user_consts_size(ubo_state, &packets, &size);
+   /* also account for UBO addresses: */
+   packets += 1;
+   size += 2 * const_state->num_ubos;
 
-      /* also account for UBO addresses: */
-      packets += 1;
-      size += 2 * const_state->num_ubos;
+   unsigned sizedwords = (4 * packets) + size;
+   return sizedwords * 4;
+}
 
-      unsigned sizedwords = (4 * packets) + size;
-      ubo_state->cmdstream_size = sizedwords * 4;
-   }
-
-   return ubo_state->cmdstream_size;
+static void
+emit_user_consts(const struct ir3_shader_variant *v,
+                 struct fd_ringbuffer *ring,
+                 struct fd_constbuf_stateobj *constbuf)
+{
+   ir3_emit_user_consts(v, ring, constbuf);
+   fd6_emit_ubos(v, ring, constbuf);
 }
 
 struct fd_ringbuffer *
 fd6_build_user_consts(struct fd6_emit *emit)
 {
-   static const enum pipe_shader_type types[] = {
-      PIPE_SHADER_VERTEX,   PIPE_SHADER_TESS_CTRL, PIPE_SHADER_TESS_EVAL,
-      PIPE_SHADER_GEOMETRY, PIPE_SHADER_FRAGMENT,
-   };
-   struct ir3_shader_variant *variants[] = {
-      emit->vs, emit->hs, emit->ds, emit->gs, emit->fs,
-   };
    struct fd_context *ctx = emit->ctx;
-   unsigned sz = 0;
-
-   for (unsigned i = 0; i < ARRAY_SIZE(types); i++) {
-      if (!variants[i])
-         continue;
-      sz += user_consts_cmdstream_size(variants[i]);
-   }
+   unsigned sz = emit->prog->user_consts_cmdstream_size;
 
    struct fd_ringbuffer *constobj =
       fd_submit_new_ringbuffer(ctx->batch->submit, sz, FD_RINGBUFFER_STREAMING);
 
-   for (unsigned i = 0; i < ARRAY_SIZE(types); i++) {
-      if (!variants[i])
-         continue;
-      ir3_emit_user_consts(ctx->screen, variants[i], constobj,
-                           &ctx->constbuf[types[i]]);
-      fd6_emit_ubos(ctx, variants[i], constobj, &ctx->constbuf[types[i]]);
+   /* TODO would be nice to templatize the variants (ie. HAS_GS and HAS_TESS) */
+
+   emit_user_consts(emit->vs, constobj, &ctx->constbuf[PIPE_SHADER_VERTEX]);
+   if (emit->hs) {
+      emit_user_consts(emit->hs, constobj, &ctx->constbuf[PIPE_SHADER_TESS_CTRL]);
+      emit_user_consts(emit->ds, constobj, &ctx->constbuf[PIPE_SHADER_TESS_EVAL]);
    }
+   if (emit->gs) {
+      emit_user_consts(emit->gs, constobj, &ctx->constbuf[PIPE_SHADER_GEOMETRY]);
+   }
+   emit_user_consts(emit->fs, constobj, &ctx->constbuf[PIPE_SHADER_FRAGMENT]);
 
    return constobj;
 }
@@ -343,7 +332,7 @@ fd6_emit_cs_consts(const struct ir3_shader_variant *v,
                    const struct pipe_grid_info *info)
 {
    ir3_emit_cs_consts(v, ring, ctx, info);
-   fd6_emit_ubos(ctx, v, ring, &ctx->constbuf[PIPE_SHADER_COMPUTE]);
+   fd6_emit_ubos(v, ring, &ctx->constbuf[PIPE_SHADER_COMPUTE]);
 }
 
 void

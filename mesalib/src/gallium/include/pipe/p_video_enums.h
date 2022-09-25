@@ -114,6 +114,21 @@ enum pipe_video_cap
    PIPE_VIDEO_CAP_ENC_HEVC_BLOCK_SIZES = 29,
    PIPE_VIDEO_CAP_ENC_HEVC_FEATURE_FLAGS = 30,
    PIPE_VIDEO_CAP_ENC_HEVC_PREDICTION_DIRECTION = 31,
+   /*
+      If reported by the driver, then pipe_video_codec.flush(...)
+      needs to be called after pipe_video_codec.end_frame(...)
+      to kick off the work in the device
+   */
+   PIPE_VIDEO_CAP_REQUIRES_FLUSH_ON_END_FRAME = 32,
+
+   /*
+      If reported by the driver, then multiple p_video_codec encode
+      operations can be asynchronously enqueued (and also flushed)
+      with different feedback values in the device before get_feedback
+      is called on them to synchronize. The device can block on begin_frame
+      when it has reached its maximum async depth capacity
+   */
+   PIPE_VIDEO_CAP_ENC_SUPPORTS_ASYNC_OPERATION = 33,
 };
 
 /* To be used with PIPE_VIDEO_CAP_VPP_ORIENTATION_MODES and for VPP state*/

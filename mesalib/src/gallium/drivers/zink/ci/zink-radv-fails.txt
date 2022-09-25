@@ -2,7 +2,6 @@ dEQP-GLES3.functional.shaders.texture_functions.textureprojlodoffset.sampler2dsh
 dEQP-GLES3.functional.shaders.texture_functions.textureprojoffset.sampler2dshadow_vertex,Fail
 
 # kopper
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export-tex,Crash
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_ust_test,Fail
 
 # #6115
@@ -32,16 +31,11 @@ glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 glx@glx-swap-copy,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-visuals-depth,Crash
-glx@glx-visuals-depth -pixmap,Crash
-glx@glx-visuals-stencil -pixmap,Crash
 
 # #6322
-spec@arb_framebuffer_object@fbo-attachments-blit-scaled-linear,Fail
 spec@arb_framebuffer_object@fbo-blit-scaled-linear,Fail
 
 
-spec@arb_viewport_array@display-list,Fail
 shaders@glsl-fs-pointcoord,Fail
 shaders@point-vertex-id divisor,Fail
 shaders@point-vertex-id gl_instanceid divisor,Fail
@@ -64,14 +58,6 @@ spec@arb_fragment_program_shadow@txp-shadow2drect,Fail
 spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-query,Fail
 spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-query@MS8,Fail
 spec@arb_framebuffer_object@fbo-gl_pointcoord,Fail
-spec@arb_framebuffer_srgb@blit renderbuffer linear_to_srgb downsample enabled clear,Fail
-spec@arb_framebuffer_srgb@blit renderbuffer linear_to_srgb downsample enabled render,Fail
-spec@arb_framebuffer_srgb@blit renderbuffer srgb_to_linear downsample enabled clear,Fail
-spec@arb_framebuffer_srgb@blit renderbuffer srgb_to_linear downsample enabled render,Fail
-spec@arb_framebuffer_srgb@blit texture linear_to_srgb downsample enabled clear,Fail
-spec@arb_framebuffer_srgb@blit texture linear_to_srgb downsample enabled render,Fail
-spec@arb_framebuffer_srgb@blit texture srgb_to_linear downsample enabled clear,Fail
-spec@arb_framebuffer_srgb@blit texture srgb_to_linear downsample enabled render,Fail
 spec@arb_get_program_binary@restore-sso-program,Fail
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-tf-separate,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
@@ -233,10 +219,6 @@ spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-cumulative,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
 spec@arb_tessellation_shader@arb_tessellation_shader-tes-gs-max-output -small -scan 1 50,Crash
-spec@arb_texture_float@multisample-formats 2 gl_arb_texture_float,Fail
-spec@arb_texture_float@multisample-formats 4 gl_arb_texture_float,Fail
-spec@arb_texture_float@multisample-formats 6 gl_arb_texture_float,Fail
-spec@arb_texture_float@multisample-formats 8 gl_arb_texture_float,Fail
 spec@arb_texture_rectangle@glsl-fs-shadow2drect-01,Fail
 spec@arb_texture_rectangle@glsl-fs-shadow2drect-03,Fail
 spec@arb_texture_rectangle@glsl-fs-shadow2drect-07,Fail
@@ -253,7 +235,6 @@ spec@egl_ext_protected_content@conformance,Fail
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
-spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 
 spec@ext_framebuffer_multisample@alpha-to-one-dual-src-blend 2,Fail
 spec@ext_framebuffer_multisample@alpha-to-one-dual-src-blend 4,Fail
@@ -285,13 +266,7 @@ spec@ext_framebuffer_multisample@sample-alpha-to-one 2,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 4,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 6,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 8,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_nv12,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
 spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_texture_array@glsl-fs-shadow1darray-01,Fail
 spec@ext_texture_array@glsl-fs-shadow1darray-03,Fail
@@ -378,16 +353,11 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageLoad,Fail
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail
 spec@oes_shader_io_blocks@compiler@layout-location-aliasing.vert,Fail
 spec@!opengl 1.0@gl-1.0-blend-func,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag-quads,Fail
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
-spec@!opengl 1.0@gl-1.0-rendermode-feedback,Crash
-spec@!opengl 1.0@rasterpos,Crash
 spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
 spec@!opengl 1.1@linestipple,Fail
@@ -418,3 +388,102 @@ spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
 spec@!opengl es 2.0@glsl-fs-pointcoord,Fail
+spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
+spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
+
+glx@glx-buffer-age,Fail
+glx@glx-buffer-age vblank_mode=0,Fail
+spec@!opengl 1.1@getteximage-formats,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ABGR_EXT and GL_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ABGR_EXT and GL_FLOAT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ABGR_EXT and GL_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ABGR_EXT and GL_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ABGR_EXT and GL_UNSIGNED_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ABGR_EXT and GL_UNSIGNED_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ABGR_EXT and GL_UNSIGNED_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ALPHA and GL_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ALPHA and GL_FLOAT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ALPHA and GL_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ALPHA and GL_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ALPHA and GL_UNSIGNED_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ALPHA and GL_UNSIGNED_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_ALPHA and GL_UNSIGNED_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_FLOAT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_INT_10_10_10_2,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_INT_2_10_10_10_REV,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_INT_8_8_8_8,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_INT_8_8_8_8_REV,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_SHORT_4_4_4_4,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_BGRA and GL_UNSIGNED_SHORT_4_4_4_4_REV,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_LUMINANCE_ALPHA and GL_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_LUMINANCE_ALPHA and GL_FLOAT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_LUMINANCE_ALPHA and GL_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_LUMINANCE_ALPHA and GL_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_LUMINANCE_ALPHA and GL_UNSIGNED_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_LUMINANCE_ALPHA and GL_UNSIGNED_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_LUMINANCE_ALPHA and GL_UNSIGNED_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_FLOAT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_BYTE,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_INT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_INT_10_10_10_2,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_INT_2_10_10_10_REV,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_INT_8_8_8_8,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_INT_8_8_8_8_REV,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_SHORT,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_SHORT_4_4_4_4,Fail
+spec@!opengl 1.1@teximage-colors gl_sluminance8_alpha8@GL_SLUMINANCE8_ALPHA8 texture with GL_RGBA and GL_UNSIGNED_SHORT_4_4_4_4_REV,Fail
+spec@arb_bindless_texture@illegal,Crash
+spec@arb_bindless_texture@legal,Crash
+spec@arb_direct_state_access@gettextureimage-formats,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_image,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_sampler,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_image,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_sampler,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_image,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_sampler,Fail
+spec@egl_nok_texture_from_pixmap@basic,Timeout
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88,Fail
+spec@ext_texture_array@fbo-depth-array stencil-draw,Fail
+spec@ext_texture_integer@multisample-fast-clear gl_ext_texture_integer,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats-s3tc,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats-s3tc@GL_COMPRESSED_SLUMINANCE_ALPHA,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats-s3tc@GL_COMPRESSED_SLUMINANCE_ALPHA NPOT,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats@GL_SLUMINANCE8_ALPHA8,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats@GL_SLUMINANCE8_ALPHA8 NPOT,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats@GL_SLUMINANCE_ALPHA,Fail
+spec@ext_texture_srgb@fbo-generatemipmap-formats@GL_SLUMINANCE_ALPHA NPOT,Fail
+spec@!opengl 1.0@gl-1.0-swapbuffers-behavior,Fail
+spec@!opengl 1.1@read-front,Fail
+spec@!opengl 1.1@read-front clear-front-first,Fail
+spec@!opengl 1.1@read-front samples=2,Fail
+spec@!opengl 1.1@read-front samples=4,Fail
+spec@!opengl 1.1@read-front samples=6,Fail
+spec@!opengl 1.1@read-front samples=8,Fail
+spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
+
+# Zink bug (RADV doesn't support shaderBufferFloat64AtomicAdd)
+spec@nv_shader_atomic_float@execution@ssbo-atomicadd-float,Crash
+
+# ACO bugs (pass with LLVM)
+spec@nv_shader_atomic_int64@execution@shared-atomicmax-int,Crash
+spec@nv_shader_atomic_int64@execution@shared-atomicmax-uint,Crash
+spec@nv_shader_atomic_int64@execution@shared-atomicmin-int,Crash
+spec@nv_shader_atomic_int64@execution@shared-atomicmin-uint,Crash
+spec@nv_shader_atomic_int64@execution@ssbo-atomicmax-int,Crash
+spec@nv_shader_atomic_int64@execution@ssbo-atomicmax-uint,Crash
+spec@nv_shader_atomic_int64@execution@ssbo-atomicmin-int,Crash
+spec@nv_shader_atomic_int64@execution@ssbo-atomicmin-uint,Crash

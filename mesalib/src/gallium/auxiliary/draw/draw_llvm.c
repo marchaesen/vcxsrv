@@ -430,9 +430,8 @@ create_gs_jit_context_type(struct gallivm_state *gallivm,
    return context_type;
 }
 
-
 static LLVMTypeRef
-create_gs_jit_input_type(struct gallivm_state *gallivm)
+create_gs_jit_input_type_deref(struct gallivm_state *gallivm)
 {
    LLVMTypeRef float_type = LLVMFloatTypeInContext(gallivm->context);
    LLVMTypeRef input_array;
@@ -440,9 +439,13 @@ create_gs_jit_input_type(struct gallivm_state *gallivm)
    input_array = LLVMVectorType(float_type, TGSI_NUM_CHANNELS); /* num primitives */
    input_array = LLVMArrayType(input_array, TGSI_NUM_CHANNELS); /* num channels */
    input_array = LLVMArrayType(input_array, PIPE_MAX_SHADER_INPUTS); /* num attrs per vertex */
-   input_array = LLVMPointerType(input_array, 0); /* num vertices per prim */
-
    return input_array;
+}
+
+static LLVMTypeRef
+create_gs_jit_input_type(struct gallivm_state *gallivm)
+{
+   return LLVMPointerType(create_gs_jit_input_type_deref(gallivm), 0); /* num vertices per prim */
 }
 
 /**
@@ -586,29 +589,37 @@ create_tcs_jit_context_type(struct gallivm_state *gallivm,
 }
 
 static LLVMTypeRef
-create_tcs_jit_input_type(struct gallivm_state *gallivm)
+create_tcs_jit_input_type_deref(struct gallivm_state *gallivm)
 {
    LLVMTypeRef float_type = LLVMFloatTypeInContext(gallivm->context);
    LLVMTypeRef input_array;
 
    input_array = LLVMArrayType(float_type, TGSI_NUM_CHANNELS); /* num channels */
    input_array = LLVMArrayType(input_array, NUM_TCS_INPUTS); /* num attrs per vertex */
-   input_array = LLVMPointerType(input_array, 0); /* num vertices per prim */
-
    return input_array;
 }
 
 static LLVMTypeRef
-create_tcs_jit_output_type(struct gallivm_state *gallivm)
+create_tcs_jit_input_type(struct gallivm_state *gallivm)
+{
+   return LLVMPointerType(create_tcs_jit_input_type_deref(gallivm), 0); /* num vertices per prim */
+}
+
+static LLVMTypeRef
+create_tcs_jit_output_type_deref(struct gallivm_state *gallivm)
 {
    LLVMTypeRef float_type = LLVMFloatTypeInContext(gallivm->context);
    LLVMTypeRef output_array;
 
    output_array = LLVMArrayType(float_type, TGSI_NUM_CHANNELS); /* num channels */
    output_array = LLVMArrayType(output_array, PIPE_MAX_SHADER_INPUTS); /* num attrs per vertex */
-   output_array = LLVMPointerType(output_array, 0); /* num vertices per prim */
-
    return output_array;
+}
+
+static LLVMTypeRef
+create_tcs_jit_output_type(struct gallivm_state *gallivm)
+{
+   return LLVMPointerType(create_tcs_jit_output_type_deref(gallivm), 0); /* num vertices per prim */
 }
 
 static LLVMTypeRef
@@ -1122,13 +1133,14 @@ store_aos(struct gallivm_state *gallivm,
    LLVMTypeRef data_ptr_type = LLVMPointerType(lp_build_vec_type(gallivm, lp_float32_vec4_type()), 0);
    LLVMBuilderRef builder = gallivm->builder;
    LLVMValueRef data_ptr = draw_jit_header_data(gallivm, io_type, io_ptr);
+   LLVMTypeRef data_type = LLVMStructGetTypeAtIndex(io_type, DRAW_JIT_VERTEX_DATA);
    LLVMValueRef indices[3];
 
    indices[0] = lp_build_const_int32(gallivm, 0);
    indices[1] = index;
    indices[2] = lp_build_const_int32(gallivm, 0);
 
-   data_ptr = LLVMBuildGEP(builder, data_ptr, indices, 3, "");
+   data_ptr = LLVMBuildGEP2(builder, data_type, data_ptr, indices, 3, "");
    data_ptr = LLVMBuildPointerCast(builder, data_ptr, data_ptr_type, "");
 
 #if DEBUG_STORE
@@ -1284,7 +1296,8 @@ convert_to_aos(struct gallivm_state *gallivm,
       LLVMValueRef aos[LP_MAX_VECTOR_WIDTH / 32];
       for (chan = 0; chan < TGSI_NUM_CHANNELS; ++chan) {
          if (outputs[attrib][chan]) {
-            LLVMValueRef out = LLVMBuildLoad(builder, outputs[attrib][chan], "");
+            LLVMTypeRef single_type = lp_build_vec_type(gallivm, soa_type);
+            LLVMValueRef out = LLVMBuildLoad2(builder, single_type, outputs[attrib][chan], "");
             lp_build_name(out, "output%u.%c", attrib, "xyzw"[chan]);
 #if DEBUG_STORE
             lp_build_printf(gallivm, "output %d : %d ",
@@ -1365,10 +1378,11 @@ store_clip(struct gallivm_state *gallivm,
       io_ptrs[i] = LLVMBuildGEP2(builder, io_type, io_ptr, &inds[i], 1, "");
    }
 
-   soa[0] = LLVMBuildLoad(builder, outputs[idx][0], ""); /*x0 x1 .. xn*/
-   soa[1] = LLVMBuildLoad(builder, outputs[idx][1], ""); /*y0 y1 .. yn*/
-   soa[2] = LLVMBuildLoad(builder, outputs[idx][2], ""); /*z0 z1 .. zn*/
-   soa[3] = LLVMBuildLoad(builder, outputs[idx][3], ""); /*w0 w1 .. wn*/
+   LLVMTypeRef single_type = lp_build_vec_type(gallivm, vs_type);
+   soa[0] = LLVMBuildLoad2(builder, single_type, outputs[idx][0], ""); /*x0 x1 .. xn*/
+   soa[1] = LLVMBuildLoad2(builder, single_type, outputs[idx][1], ""); /*y0 y1 .. yn*/
+   soa[2] = LLVMBuildLoad2(builder, single_type, outputs[idx][2], ""); /*z0 z1 .. zn*/
+   soa[3] = LLVMBuildLoad2(builder, single_type, outputs[idx][3], ""); /*w0 w1 .. wn*/
 
    for (i = 0; i < vs_type.length; i++) {
       clip_ptrs[i] = draw_jit_header_clip_pos(gallivm, io_type, io_ptrs[i]);
@@ -1584,6 +1598,8 @@ generate_clipmask(struct draw_llvm *llvm,
 
    if (clip_user) {
       LLVMValueRef planes_ptr = draw_jit_context_planes(gallivm, context_type, context_ptr);
+      LLVMTypeRef float_type = LLVMFloatTypeInContext(gallivm->context);
+      LLVMTypeRef planes_type = LLVMArrayType(LLVMArrayType(float_type, 4), DRAW_TOTAL_CLIP_PLANES);
       LLVMValueRef indices[3];
       LLVMValueRef is_nan_or_inf;
 
@@ -1618,7 +1634,7 @@ generate_clipmask(struct draw_llvm *llvm,
 
             for (int i = 0; i < 4; ++i) {
                indices[2] = lp_build_const_int32(gallivm, i);
-               plane_ptr = LLVMBuildGEP(builder, planes_ptr, indices, 3, "");
+               plane_ptr = LLVMBuildGEP2(builder, planes_type, planes_ptr, indices, 3, "");
                plane1 = LLVMBuildLoad2(builder, vs_elem_type, plane_ptr,
                                        (const char *[]){"plane_x", "plane_y", "plane_z", "plane_w"}[i]);
                planes = lp_build_broadcast(gallivm, vs_type_llvm, plane1);
@@ -1662,12 +1678,13 @@ generate_clipmask(struct draw_llvm *llvm,
 static LLVMValueRef
 clipmask_booli8(struct gallivm_state *gallivm,
                 const struct lp_type vs_type,
+                LLVMTypeRef clipmask_bool_type,
                 LLVMValueRef clipmask_bool_ptr,
                 boolean edgeflag_in_clipmask)
 {
    LLVMBuilderRef builder = gallivm->builder;
    LLVMTypeRef int8_type = LLVMInt8TypeInContext(gallivm->context);
-   LLVMValueRef clipmask_bool = LLVMBuildLoad(builder, clipmask_bool_ptr, "");
+   LLVMValueRef clipmask_bool = LLVMBuildLoad2(builder, clipmask_bool_type, clipmask_bool_ptr, "");
    LLVMValueRef ret;
    struct lp_build_context bldivec;
 
@@ -1712,6 +1729,10 @@ draw_gs_llvm_fetch_input(const struct lp_build_gs_iface *gs_iface,
    LLVMValueRef res;
    struct lp_type type = bld->type;
 
+   LLVMTypeRef float_type = LLVMFloatTypeInContext(gallivm->context);
+   LLVMTypeRef channel_vec_type = LLVMVectorType(float_type, TGSI_NUM_CHANNELS);
+   LLVMTypeRef input_array_type = create_gs_jit_input_type_deref(gallivm);
+
    if (is_vindex_indirect || is_aindex_indirect) {
       int i;
       res = bld->zero;
@@ -1734,8 +1755,8 @@ draw_gs_llvm_fetch_input(const struct lp_build_gs_iface *gs_iface,
          indices[1] = attr_chan_index;
          indices[2] = swizzle_index;
 
-         channel_vec = LLVMBuildGEP(builder, gs->input, indices, 3, "");
-         channel_vec = LLVMBuildLoad(builder, channel_vec, "");
+         channel_vec = LLVMBuildGEP2(builder, input_array_type, gs->input, indices, 3, "");
+         channel_vec = LLVMBuildLoad2(builder, channel_vec_type, channel_vec, "");
          value = LLVMBuildExtractElement(builder, channel_vec, idx, "");
 
          res = LLVMBuildInsertElement(builder, res, value, idx, "");
@@ -1745,8 +1766,8 @@ draw_gs_llvm_fetch_input(const struct lp_build_gs_iface *gs_iface,
       indices[1] = attrib_index;
       indices[2] = swizzle_index;
 
-      res = LLVMBuildGEP(builder, gs->input, indices, 3, "");
-      res = LLVMBuildLoad(builder, res, "");
+      res = LLVMBuildGEP2(builder, input_array_type, gs->input, indices, 3, "");
+      res = LLVMBuildLoad2(builder, channel_vec_type, res, "");
    }
 
    return res;
@@ -1832,9 +1853,11 @@ draw_gs_llvm_end_primitive(const struct lp_build_gs_iface *gs_base,
       lp_build_if(&ifthen, gallivm, this_cond);
       prims_emitted = LLVMBuildMul(gallivm->builder, prims_emitted, lp_build_const_int32(gallivm, variant->shader->base.num_vertex_streams), "");
       prims_emitted = LLVMBuildAdd(gallivm->builder, prims_emitted, lp_build_const_int32(gallivm, stream), "");
-      store_ptr = LLVMBuildGEP(builder, prim_lengts_ptr, &prims_emitted, 1, "");
-      store_ptr = LLVMBuildLoad(builder, store_ptr, "");
-      store_ptr = LLVMBuildGEP(builder, store_ptr, &ind, 1, "");
+      LLVMTypeRef int_type = LLVMInt32TypeInContext(gallivm->context);
+      LLVMTypeRef prim_lengths_type = LLVMPointerType(int_type, 0);
+      store_ptr = LLVMBuildGEP2(builder, prim_lengths_type, prim_lengts_ptr, &prims_emitted, 1, "");
+      store_ptr = LLVMBuildLoad2(builder, prim_lengths_type, store_ptr, "");
+      store_ptr = LLVMBuildGEP2(builder, int_type, store_ptr, &ind, 1, "");
       LLVMBuildStore(builder, num_vertices, store_ptr);
       lp_build_endif(&ifthen);
    }
@@ -1855,8 +1878,8 @@ draw_gs_llvm_epilogue(const struct lp_build_gs_iface *gs_base,
       draw_gs_jit_emitted_prims(variant, variant->context_ptr);
    LLVMValueRef stream_val = lp_build_const_int32(gallivm, stream);
 
-   emitted_verts_ptr = LLVMBuildGEP(builder, emitted_verts_ptr, &stream_val, 1, "");
-   emitted_prims_ptr = LLVMBuildGEP(builder, emitted_prims_ptr, &stream_val, 1, "");
+   emitted_verts_ptr = LLVMBuildGEP2(builder, LLVMTypeOf(total_emitted_vertices_vec), emitted_verts_ptr, &stream_val, 1, "");
+   emitted_prims_ptr = LLVMBuildGEP2(builder, LLVMTypeOf(emitted_prims_vec), emitted_prims_ptr, &stream_val, 1, "");
 
    LLVMBuildStore(builder, total_emitted_vertices_vec, emitted_verts_ptr);
    LLVMBuildStore(builder, emitted_prims_vec, emitted_prims_ptr);
@@ -2322,7 +2345,7 @@ draw_llvm_generate(struct draw_llvm *llvm, struct draw_llvm_variant *variant)
    draw_llvm_image_soa_destroy(image);
 
    /* return clipping boolean value for function */
-   ret = clipmask_booli8(gallivm, vs_type, clipmask_bool_ptr,
+   ret = clipmask_booli8(gallivm, vs_type, blduivec.vec_type, clipmask_bool_ptr,
                          enable_cliptest && key->need_edgeflags);
 
    LLVMBuildRet(builder, ret);
@@ -3081,6 +3104,8 @@ draw_tcs_llvm_emit_fetch_input(const struct lp_build_tcs_iface *tes_iface,
    LLVMValueRef indices[3];
    LLVMValueRef res;
    struct lp_type type = bld->type;
+   LLVMTypeRef input_type = create_tcs_jit_input_type_deref(gallivm);
+   LLVMTypeRef float_type = LLVMFloatTypeInContext(gallivm->context);
 
    if (is_vindex_indirect || is_aindex_indirect || is_sindex_indirect) {
       int i;
@@ -3110,18 +3135,16 @@ draw_tcs_llvm_emit_fetch_input(const struct lp_build_tcs_iface *tes_iface,
          indices[1] = attr_chan_index;
          indices[2] = swiz_chan_index;
 
-         channel_vec = LLVMBuildGEP(builder, tcs->input, indices, 3, "");
-         channel_vec = LLVMBuildLoad(builder, channel_vec, "");
-
+         channel_vec = LLVMBuildGEP2(builder, input_type, tcs->input, indices, 3, "");
+         channel_vec = LLVMBuildLoad2(builder, float_type, channel_vec, "");
          res = LLVMBuildInsertElement(builder, res, channel_vec, idx, "");
       }
    } else {
       indices[0] = vertex_index;
       indices[1] = attrib_index;
       indices[2] = swizzle_index;
-
-      res = LLVMBuildGEP(builder, tcs->input, indices, 3, "");
-      res = LLVMBuildLoad(builder, res, "");
+      res = LLVMBuildGEP2(builder, input_type, tcs->input, indices, 3, "");
+      res = LLVMBuildLoad2(builder, float_type, res, "");
       res = lp_build_broadcast_scalar(bld, res);
    }
    return res;
@@ -3144,6 +3167,8 @@ draw_tcs_llvm_emit_fetch_output(const struct lp_build_tcs_iface *tes_iface,
    LLVMValueRef indices[3];
    LLVMValueRef res;
    struct lp_type type = bld->type;
+   LLVMTypeRef output_type = create_tcs_jit_output_type_deref(gallivm);
+   LLVMTypeRef float_type = LLVMFloatTypeInContext(gallivm->context);
 
    if (is_vindex_indirect || is_aindex_indirect || is_sindex_indirect) {
       int i;
@@ -3173,8 +3198,8 @@ draw_tcs_llvm_emit_fetch_output(const struct lp_build_tcs_iface *tes_iface,
          indices[1] = attr_chan_index;
          indices[2] = swiz_chan_index;
 
-         channel_vec = LLVMBuildGEP(builder, tcs->output, indices, 3, "");
-         channel_vec = LLVMBuildLoad(builder, channel_vec, "");
+         channel_vec = LLVMBuildGEP2(builder, output_type, tcs->output, indices, 3, "");
+         channel_vec = LLVMBuildLoad2(builder, float_type, channel_vec, "");
 
          res = LLVMBuildInsertElement(builder, res, channel_vec, idx, "");
       }
@@ -3183,8 +3208,8 @@ draw_tcs_llvm_emit_fetch_output(const struct lp_build_tcs_iface *tes_iface,
       indices[1] = attrib_index;
       indices[2] = swizzle_index;
 
-      res = LLVMBuildGEP(builder, tcs->output, indices, 3, "");
-      res = LLVMBuildLoad(builder, res, "");
+      res = LLVMBuildGEP2(builder, output_type, tcs->output, indices, 3, "");
+      res = LLVMBuildLoad2(builder, float_type, res, "");
       res = lp_build_broadcast_scalar(bld, res);
    }
    return res;
@@ -3209,6 +3234,7 @@ draw_tcs_llvm_emit_store_output(const struct lp_build_tcs_iface *tes_iface,
    LLVMValueRef indices[3];
    LLVMValueRef res;
    struct lp_type type = bld->type;
+   LLVMTypeRef output_type = create_tcs_jit_output_type_deref(gallivm);
 
    if (is_vindex_indirect || is_aindex_indirect || is_sindex_indirect) {
       int i;
@@ -3238,7 +3264,7 @@ draw_tcs_llvm_emit_store_output(const struct lp_build_tcs_iface *tes_iface,
          indices[1] = attr_chan_index;
          indices[2] = swiz_chan_index;
 
-         channel_vec = LLVMBuildGEP(builder, tcs->output, indices, 3, "");
+         channel_vec = LLVMBuildGEP2(builder, output_type, tcs->output, indices, 3, "");
 
          res = LLVMBuildExtractElement(builder, value, idx, "");
 
@@ -3254,7 +3280,7 @@ draw_tcs_llvm_emit_store_output(const struct lp_build_tcs_iface *tes_iface,
       indices[1] = attrib_index;
       indices[2] = swizzle_index;
 
-      res = LLVMBuildGEP(builder, tcs->output, indices, 3, "");
+      res = LLVMBuildGEP2(builder, output_type, tcs->output, indices, 3, "");
       for (unsigned i = 0; i < type.length; ++i) {
          LLVMValueRef idx = lp_build_const_int32(gallivm, i);
          LLVMValueRef val = LLVMBuildExtractElement(builder, value, idx, "");

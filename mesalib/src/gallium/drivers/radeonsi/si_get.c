@@ -625,6 +625,19 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
             return 0;
       case PIPE_VIDEO_CAP_ENC_SUPPORTS_MAX_FRAME_SIZE:
          return (sscreen->info.family >= CHIP_RAVEN) ? 1 : 0;
+
+      case PIPE_VIDEO_CAP_ENC_HEVC_FEATURE_FLAGS:
+         if ((sscreen->info.family >= CHIP_RENOIR) &&
+                  (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN ||
+                   profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10)) {
+            union pipe_h265_enc_cap_features pipe_features;
+            pipe_features.value = 0;
+
+            pipe_features.bits.sao = PIPE_H265_ENC_FEATURE_SUPPORTED;
+            return pipe_features.value;
+         } else
+            return 0;
+
       default:
          return 0;
       }

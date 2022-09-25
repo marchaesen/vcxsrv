@@ -221,11 +221,10 @@ op("get_sr", (0x72, 0x7F | L, 4, _), dests = 1, imms = [SR])
 op("sample_mask", (0x7fc1, 0xffff, 6, _), dests = 0, srcs = 1, can_eliminate = False)
 
 # Essentially same encoding
-op("ld_tile", (0x49, 0x7F, 8, _), dests = 1, srcs = 0,
-      can_eliminate = False, imms = [FORMAT])
+op("ld_tile", (0x49, 0x7F, 8, _), dests = 1, srcs = 0, imms = [FORMAT, MASK])
 
 op("st_tile", (0x09, 0x7F, 8, _), dests = 0, srcs = 1,
-      can_eliminate = False, imms = [FORMAT])
+      can_eliminate = False, imms = [FORMAT, MASK])
 
 for (name, exact) in [("any", 0xC000), ("none", 0xC200)]:
    op("jmp_exec_" + name, (exact, (1 << 16) - 1, 6, _), dests = 0, srcs = 0,
@@ -272,3 +271,5 @@ op("p_split", _, srcs = 1, dests = 4)
 # Phis are special-cased in the IR as they (uniquely) can take an unbounded
 # number of source.
 op("phi", _, srcs = 0)
+
+op("unit_test", _, dests = 0, srcs = 1, can_eliminate = False)

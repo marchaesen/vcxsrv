@@ -4,8 +4,6 @@ GTF-GL46.gtf32.GL3Tests.draw_elements_base_vertex.draw_elements_base_vertex_inva
 
 KHR-Single-GL46.arrays_of_arrays_gl.AtomicUsage,Fail
 KHR-Single-GL46.arrays_of_arrays_gl.SubroutineFunctionCalls2,Crash
-dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_srgb_color,Fail
-dEQP-GLES31.functional.texture.border_clamp.range_clamp.nearest_srgb_color,Fail
 
 # Turnip has maxFragmentInputComponents = 124, while GL requires
 # gl_MaxFragmentInputComponents >= 128

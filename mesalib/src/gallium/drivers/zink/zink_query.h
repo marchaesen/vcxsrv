@@ -50,9 +50,6 @@ zink_start_conditional_render(struct zink_context *ctx);
 void
 zink_stop_conditional_render(struct zink_context *ctx);
 
-bool
-zink_check_conditional_render(struct zink_context *ctx);
-
 void
 zink_context_destroy_query_pools(struct zink_context *ctx);
 uint64_t

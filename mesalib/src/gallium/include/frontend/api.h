@@ -193,6 +193,8 @@ struct st_egl_image
 
    /* one of __DRI_YUV_RANGE_* */
    unsigned yuv_range;
+
+   bool imported_dmabuf;
 };
 
 /**

@@ -846,6 +846,7 @@ compile_vertex_list(struct gl_context *ctx)
                            vertex_to_index ? temp_vertices_buffer : save->vertex_store->buffer_in_ram,
                            node->cold->ib.obj);
    save->current_bo_bytes_used += total_vert_count * save->vertex_size * sizeof(fi_type);
+   node->cold->bo_bytes_used = save->current_bo_bytes_used;
 
   if (vertex_to_index) {
       _mesa_hash_table_destroy(vertex_to_index, _free_entry);
@@ -1874,6 +1875,21 @@ save_DrawRangeElements(GLenum mode, GLuint start, GLuint end,
    save_DrawElements(mode, count, type, indices);
 }
 
+void GLAPIENTRY
+save_DrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
+                                 GLsizei count, GLenum type,
+                                 const GLvoid *indices, GLint basevertex)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (end < start) {
+      _mesa_compile_error(ctx, GL_INVALID_VALUE,
+                          "glDrawRangeElementsBaseVertex(end < start)");
+      return;
+   }
+
+   save_DrawElementsBaseVertex(mode, count, type, indices, basevertex);
+}
 
 void GLAPIENTRY
 save_MultiDrawElementsEXT(GLenum mode, const GLsizei *count, GLenum type,

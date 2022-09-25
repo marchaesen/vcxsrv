@@ -159,6 +159,7 @@ try_pbo_readpixels(struct st_context *st, struct gl_renderbuffer *rb,
       struct pipe_sampler_view templ;
       struct pipe_sampler_view *sampler_view;
       struct pipe_sampler_state sampler = {0};
+      sampler.normalized_coords = true;
       const struct pipe_sampler_state *samplers[1] = {&sampler};
 
       u_sampler_view_default_template(&templ, texture, src_format);

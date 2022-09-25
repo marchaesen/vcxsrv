@@ -142,6 +142,7 @@ enum vtn_branch_type {
    vtn_branch_type_terminate_invocation,
    vtn_branch_type_ignore_intersection,
    vtn_branch_type_terminate_ray,
+   vtn_branch_type_emit_mesh_tasks,
    vtn_branch_type_return,
 };
 
@@ -717,6 +718,9 @@ struct vtn_builder {
 
    /* True if we need to ignore undef initializers */
    bool wa_llvm_spirv_ignore_workgroup_initializer;
+
+   /* True if we need to ignore OpReturn after OpEmitMeshTasksEXT. */
+   bool wa_ignore_return_after_emit_mesh_tasks;
 
    /* Workaround discard bugs in HLSL -> SPIR-V compilers */
    bool uses_demote_to_helper_invocation;

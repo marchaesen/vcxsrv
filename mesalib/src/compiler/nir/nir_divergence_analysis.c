@@ -154,6 +154,8 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_ring_es2gs_offset_amd:
    case nir_intrinsic_load_ring_task_draw_amd:
    case nir_intrinsic_load_ring_task_payload_amd:
+   case nir_intrinsic_load_sample_positions_amd:
+   case nir_intrinsic_load_rasterization_samples_amd:
    case nir_intrinsic_load_task_ring_entry_amd:
    case nir_intrinsic_load_task_ib_addr:
    case nir_intrinsic_load_task_ib_stride:
@@ -173,6 +175,7 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_tess_level_outer_default:
    case nir_intrinsic_load_scalar_arg_amd:
    case nir_intrinsic_load_smem_amd:
+   case nir_intrinsic_load_rt_dynamic_callable_stack_base_amd:
    case nir_intrinsic_load_global_const_block_intel:
    case nir_intrinsic_load_reloc_const_intel:
    case nir_intrinsic_load_global_block_intel:

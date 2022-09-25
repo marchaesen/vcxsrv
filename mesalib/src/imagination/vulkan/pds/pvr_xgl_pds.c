@@ -306,7 +306,7 @@ static uint32_t pvr_encode_direct_write(
 static uint32_t
 pvr_find_constant2(uint8_t *const_usage, uint8_t words, const char *const_name)
 {
-   uint32_t const_index = ~0U;
+   uint32_t const_index = ~0;
    uint32_t step = words;
    uint8_t mask = (1 << words) - 1;
 
@@ -325,7 +325,7 @@ pvr_find_constant2(uint8_t *const_usage, uint8_t words, const char *const_name)
    }
 
    unreachable("Unexpected: Space cannot be found for constant");
-   return ~0U;
+   return ~0;
 }
 
 #define PVR_MAX_PDS_TEMPS 32

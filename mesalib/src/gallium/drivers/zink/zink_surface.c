@@ -263,6 +263,9 @@ zink_create_surface(struct pipe_context *pctx,
       /* mutable not set by default */
       zink_resource_object_init_mutable(zink_context(pctx), res);
 
+   if (!zink_get_format(zink_screen(pctx->screen), templ->format))
+      return NULL;
+
    VkImageViewCreateInfo ivci = create_ivci(zink_screen(pctx->screen), res, templ,
                                             pres->target == PIPE_TEXTURE_3D ? target_2d[is_array] : pres->target);
 
@@ -320,16 +323,18 @@ zink_destroy_surface(struct zink_screen *screen, struct pipe_surface *psurface)
       _mesa_hash_table_remove(&res->surface_cache, he);
       simple_mtx_unlock(&res->surface_mtx);
    }
+   simple_mtx_lock(&res->obj->view_lock);
    if (surface->simage_view)
-      VKSCR(DestroyImageView)(screen->dev, surface->simage_view, NULL);
+      util_dynarray_append(&res->obj->views, VkImageView, surface->simage_view);
    if (surface->is_swapchain) {
       for (unsigned i = 0; i < surface->old_swapchain_size; i++)
-         VKSCR(DestroyImageView)(screen->dev, surface->old_swapchain[i], NULL);
+         util_dynarray_append(&res->obj->views, VkImageView, surface->old_swapchain[i]);
       for (unsigned i = 0; i < surface->swapchain_size; i++)
-         VKSCR(DestroyImageView)(screen->dev, surface->swapchain[i], NULL);
+         util_dynarray_append(&res->obj->views, VkImageView, surface->swapchain[i]);
       free(surface->swapchain);
    } else
-      VKSCR(DestroyImageView)(screen->dev, surface->image_view, NULL);
+      util_dynarray_append(&res->obj->views, VkImageView, surface->image_view);
+   simple_mtx_unlock(&res->obj->view_lock);
    pipe_resource_reference(&psurface->texture, NULL);
    FREE(surface);
 }
@@ -359,13 +364,10 @@ zink_rebind_surface(struct zink_context *ctx, struct pipe_surface **psurface)
 
    simple_mtx_lock(&res->surface_mtx);
    struct hash_entry *new_entry = _mesa_hash_table_search_pre_hashed(&res->surface_cache, hash, &ivci);
-   if (zink_batch_usage_exists(surface->batch_uses))
-      zink_batch_reference_surface(&ctx->batch, surface);
    if (new_entry) {
       /* reuse existing surface; old one will be cleaned up naturally */
       struct zink_surface *new_surface = new_entry->data;
       simple_mtx_unlock(&res->surface_mtx);
-      zink_batch_usage_set(&new_surface->batch_uses, ctx->batch.state);
       zink_surface_reference(screen, (struct zink_surface**)psurface, new_surface);
       return true;
    }
@@ -390,7 +392,6 @@ zink_rebind_surface(struct zink_context *ctx, struct pipe_surface **psurface)
    surface->info.flags = res->obj->vkflags;
    surface->info.usage = res->obj->vkusage;
    surface->info_hash = _mesa_hash_data(&surface->info, sizeof(surface->info));
-   zink_batch_usage_set(&surface->batch_uses, ctx->batch.state);
    simple_mtx_unlock(&res->surface_mtx);
    return true;
 }

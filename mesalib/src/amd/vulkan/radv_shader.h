@@ -63,6 +63,7 @@ struct radv_pipeline_key {
    uint32_t image_2d_view_of_3d : 1;
    uint32_t primitives_generated_query : 1;
    uint32_t dynamic_patch_control_points : 1;
+   uint32_t dynamic_rasterization_samples : 1;
 
    struct {
       uint32_t instance_rate_inputs;
@@ -149,10 +150,12 @@ enum radv_ud_index {
    AC_UD_VS_PROLOG_INPUTS,
    AC_UD_VS_MAX_UD,
    AC_UD_PS_EPILOG_PC,
+   AC_UD_PS_NUM_SAMPLES,
    AC_UD_PS_MAX_UD,
    AC_UD_CS_GRID_SIZE = AC_UD_SHADER_START,
    AC_UD_CS_SBT_DESCRIPTORS,
    AC_UD_CS_RAY_LAUNCH_SIZE_ADDR,
+   AC_UD_CS_RAY_DYNAMIC_CALLABLE_STACK_BASE,
    AC_UD_CS_TASK_RING_OFFSETS,
    AC_UD_CS_TASK_DRAW_ID,
    AC_UD_CS_TASK_IB,
@@ -345,6 +348,7 @@ struct radv_shader_info {
 
       bool uses_sbt;
       bool uses_ray_launch_size;
+      bool uses_dynamic_rt_callable_stack;
    } cs;
    struct {
       uint64_t tes_inputs_read;

@@ -1326,6 +1326,12 @@ update_scoreboard_for_chosen(struct choose_scoreboard *scoreboard,
                 }
         }
 
+        if (v3d_qpu_sig_writes_address(devinfo, &inst->sig) && inst->sig_magic) {
+                update_scoreboard_for_magic_waddr(scoreboard,
+                                                  inst->sig_addr,
+                                                  devinfo);
+        }
+
         if (inst->sig.ldvary)
                 scoreboard->last_ldvary_tick = scoreboard->tick;
 }

@@ -47,7 +47,6 @@
 #include "vk_instance.h"
 #include "vk_log.h"
 #include "vk_physical_device.h"
-#include "vk_shader_module.h"
 #include "vk_pipeline_cache.h"
 #include "wsi_common.h"
 

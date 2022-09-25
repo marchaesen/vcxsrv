@@ -2355,6 +2355,7 @@ void r600_bytecode_disasm(struct r600_bytecode *bc)
 		nliteral = 0;
 		last = 1;
 		LIST_FOR_EACH_ENTRY(alu, &cf->alu, list) {
+			const char chan[] = "xyzwt";
 			const char *omod_str[] = {"","*2","*4","/2"};
 			const struct alu_op_info *aop = r600_isa_alu(alu->op);
 			int o = 0;
@@ -2365,6 +2366,7 @@ void r600_bytecode_disasm(struct r600_bytecode *bc)
 				o += fprintf(stderr, "%4d ", ++ngr);
 			else
 				o += fprintf(stderr, "     ");
+			o += fprintf(stderr, "%c:", chan[alu->dst.chan]);
 			o += fprintf(stderr, "%c%c %c ", alu->execute_mask ? 'M':' ',
 					alu->update_pred ? 'P':' ',
 					alu->pred_sel ? alu->pred_sel==2 ? '0':'1':' ');
@@ -2733,8 +2735,7 @@ void *r600_create_vertex_fetch_shader(struct pipe_context *ctx,
 	uint32_t *bytecode;
 	int i, j, r, fs_size;
 	struct r600_fetch_shader *shader;
-	unsigned no_sb = rctx->screen->b.debug_flags & DBG_NO_SB ||
-                         (rctx->screen->b.debug_flags & DBG_NIR);
+	unsigned no_sb = rctx->screen->b.debug_flags & (DBG_NO_SB | DBG_NIR);
 	unsigned sb_disasm = !no_sb || (rctx->screen->b.debug_flags & DBG_SB_DISASM);
 
 	assert(count < 32);

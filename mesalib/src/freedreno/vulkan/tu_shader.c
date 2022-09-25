@@ -9,6 +9,7 @@
 #include "util/mesa-sha1.h"
 #include "nir/nir_xfb_info.h"
 #include "nir/nir_vulkan.h"
+#include "vk_pipeline.h"
 #include "vk_util.h"
 
 #include "ir3/ir3_nir.h"
@@ -81,15 +82,10 @@ tu_spirv_to_nir(struct tu_device *dev,
    const nir_shader_compiler_options *nir_options =
       ir3_get_compiler_options(dev->compiler);
 
-   struct vk_shader_module *module =
-      vk_shader_module_from_handle(stage_info->module);
-
    nir_shader *nir;
-   VkResult result = vk_shader_module_to_nir(&dev->vk, module,
-                                             stage, stage_info->pName,
-                                             stage_info->pSpecializationInfo,
-                                             &spirv_options, nir_options,
-                                             mem_ctx, &nir);
+   VkResult result =
+      vk_pipeline_shader_stage_to_nir(&dev->vk, stage_info, &spirv_options,
+                                      nir_options, mem_ctx, &nir);
    if (result != VK_SUCCESS)
       return NULL;
 
@@ -153,8 +149,8 @@ lower_load_push_constant(struct tu_device *dev,
        */
       base += dev->compiler->shared_consts_base_offset * 4;
    } else {
-      assert(base >= shader->push_consts.lo * 4);
-      base -= shader->push_consts.lo * 4;
+      assert(base >= shader->const_state.push_consts.lo * 4);
+      base -= shader->const_state.push_consts.lo * 4;
    }
 
    nir_ssa_def *load =
@@ -180,19 +176,32 @@ lower_vulkan_resource_index(nir_builder *b, nir_intrinsic_instr *instr,
    struct tu_descriptor_set_layout *set_layout = layout->set[set].layout;
    struct tu_descriptor_set_binding_layout *binding_layout =
       &set_layout->binding[binding];
-   uint32_t base;
+   nir_ssa_def *base;
 
    shader->active_desc_sets |= 1u << set;
 
    switch (binding_layout->type) {
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-      base = (layout->set[set].dynamic_offset_start +
-         binding_layout->dynamic_offset_offset) / (4 * A6XX_TEX_CONST_DWORDS);
+      if (layout->independent_sets) {
+         /* With independent sets, we don't know
+          * layout->set[set].dynamic_offset_start until after link time which
+          * with fast linking means after the shader is compiled. We have to
+          * get it from the const file instead.
+          */
+         base = nir_imm_int(b, binding_layout->dynamic_offset_offset / (4 * A6XX_TEX_CONST_DWORDS));
+         nir_ssa_def *dynamic_offset_start =
+            nir_load_uniform(b, 1, 32, nir_imm_int(b, 0),
+                             .base = shader->const_state.dynamic_offset_loc + set);
+         base = nir_iadd(b, base, dynamic_offset_start);
+      } else {
+         base = nir_imm_int(b, (layout->set[set].dynamic_offset_start +
+            binding_layout->dynamic_offset_offset) / (4 * A6XX_TEX_CONST_DWORDS));
+      }
       set = MAX_SETS;
       break;
    default:
-      base = binding_layout->offset / (4 * A6XX_TEX_CONST_DWORDS);
+      base = nir_imm_int(b, binding_layout->offset / (4 * A6XX_TEX_CONST_DWORDS));
       break;
    }
 
@@ -208,7 +217,7 @@ lower_vulkan_resource_index(nir_builder *b, nir_intrinsic_instr *instr,
    }
 
    nir_ssa_def *def = nir_vec3(b, nir_imm_int(b, set),
-                               nir_iadd(b, nir_imm_int(b, base),
+                               nir_iadd(b, base,
                                         nir_ishl(b, vulkan_idx, shift)),
                                shift);
 
@@ -360,7 +369,7 @@ build_bindless(struct tu_device *dev, nir_builder *b,
       const struct glsl_type *glsl_type = glsl_without_array(var->type);
       uint32_t idx = var->data.index * 2;
 
-      BITSET_SET_RANGE_INSIDE_WORD(b->shader->info.textures_used, idx * 2, ((idx * 2) + (bind_layout->array_size * 2)) - 1);
+      BITSET_SET_RANGE_INSIDE_WORD(b->shader->info.textures_used, idx, (idx + bind_layout->array_size * 2) - 1);
 
       /* D24S8 workaround: stencil of D24S8 will be sampled as uint */
       if (glsl_get_sampler_result_type(glsl_type) == GLSL_TYPE_UINT)
@@ -631,8 +640,8 @@ gather_push_constants(nir_shader *shader, struct tu_shader *tu_shader)
    }
 
    if (min >= max) {
-      tu_shader->push_consts.lo = 0;
-      tu_shader->push_consts.dwords = 0;
+      tu_shader->const_state.push_consts.lo = 0;
+      tu_shader->const_state.push_consts.dwords = 0;
       return;
    }
 
@@ -644,9 +653,9 @@ gather_push_constants(nir_shader *shader, struct tu_shader *tu_shader)
     * Note there's an alignment requirement of 16 dwords on OFFSET. Expand
     * the range and change units accordingly.
     */
-   tu_shader->push_consts.lo = (min / 4) / 4 * 4;
-   tu_shader->push_consts.dwords =
-      align(max, 16) / 4 - tu_shader->push_consts.lo;
+   tu_shader->const_state.push_consts.lo = (min / 4) / 4 * 4;
+   tu_shader->const_state.push_consts.dwords =
+      align(max, 16) / 4 - tu_shader->const_state.push_consts.lo;
 }
 
 static bool
@@ -656,6 +665,20 @@ tu_lower_io(nir_shader *shader, struct tu_device *dev,
 {
    if (!tu6_shared_constants_enable(layout, dev->compiler))
       gather_push_constants(shader, tu_shader);
+
+   struct tu_const_state *const_state = &tu_shader->const_state;
+   unsigned reserved_consts_vec4 =
+      align(DIV_ROUND_UP(const_state->push_consts.dwords, 4),
+            dev->compiler->const_upload_unit);
+
+   if (layout->independent_sets) {
+      const_state->dynamic_offset_loc = reserved_consts_vec4 * 4;
+      reserved_consts_vec4 += DIV_ROUND_UP(MAX_SETS, 4);
+   } else {
+      const_state->dynamic_offset_loc = UINT32_MAX;
+   }
+
+   tu_shader->reserved_user_consts_vec4 = reserved_consts_vec4;
 
    struct lower_instr_params params = {
       .dev = dev,
@@ -780,8 +803,7 @@ tu_shader_create(struct tu_device *dev,
    ir3_nir_lower_io_to_temporaries(nir);
 
    if (nir->info.stage == MESA_SHADER_VERTEX && key->multiview_mask) {
-      tu_nir_lower_multiview(nir, key->multiview_mask,
-                             &shader->multi_pos_output, dev);
+      tu_nir_lower_multiview(nir, key->multiview_mask, dev);
    }
 
    if (nir->info.stage == MESA_SHADER_FRAGMENT && key->force_sample_interp) {
@@ -847,14 +869,13 @@ tu_shader_create(struct tu_device *dev,
 
    ir3_finalize_nir(dev->compiler, nir);
 
-   uint32_t reserved_consts_vec4 = align(shader->push_consts.dwords, 16) / 4;
    bool shared_consts_enable = tu6_shared_constants_enable(layout, dev->compiler);
    if (shared_consts_enable)
-      assert(!shader->push_consts.dwords);
+      assert(!shader->const_state.push_consts.dwords);
 
    shader->ir3_shader =
       ir3_shader_from_nir(dev->compiler, nir, &(struct ir3_shader_options) {
-                           .reserved_user_consts = reserved_consts_vec4,
+                           .reserved_user_consts = shader->reserved_user_consts_vec4,
                            .shared_consts_enable = shared_consts_enable,
                            .api_wavesize = key->api_wavesize,
                            .real_wavesize = key->real_wavesize,

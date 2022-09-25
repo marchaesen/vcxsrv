@@ -154,6 +154,7 @@ struct glthread_state
 
    /** Whether GLThread is enabled. */
    bool enabled;
+   bool inside_begin_end;
 
    /** Display lists. */
    GLenum ListMode; /**< Zero if not inside display list, else list mode. */

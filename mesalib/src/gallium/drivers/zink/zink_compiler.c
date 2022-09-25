@@ -1051,6 +1051,7 @@ rewrite_bo_access_instr(nir_builder *b, nir_instr *instr, void *data)
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
    b->cursor = nir_before_instr(instr);
    switch (intr->intrinsic) {
+   case nir_intrinsic_ssbo_atomic_fadd:
    case nir_intrinsic_ssbo_atomic_add:
    case nir_intrinsic_ssbo_atomic_umin:
    case nir_intrinsic_ssbo_atomic_imin:
@@ -2380,6 +2381,7 @@ analyze_io(struct zink_shader *zs, nir_shader *shader)
             ret = true;
             break;
          }
+         case nir_intrinsic_ssbo_atomic_fadd:
          case nir_intrinsic_ssbo_atomic_add:
          case nir_intrinsic_ssbo_atomic_imin:
          case nir_intrinsic_ssbo_atomic_umin:
@@ -2844,7 +2846,7 @@ is_residency_code(nir_ssa_def *src)
    nir_instr *parent = src->parent_instr;
    while (1) {
       if (parent->type == nir_instr_type_intrinsic) {
-         nir_intrinsic_instr *intr = nir_instr_as_intrinsic(parent);
+         ASSERTED nir_intrinsic_instr *intr = nir_instr_as_intrinsic(parent);
          assert(intr->intrinsic == nir_intrinsic_is_sparse_texels_resident);
          return false;
       }
@@ -3234,33 +3236,39 @@ zink_shader_finalize(struct pipe_screen *pscreen, void *nirptr)
 }
 
 void
-zink_shader_free(struct zink_context *ctx, struct zink_shader *shader)
+zink_shader_free(struct zink_screen *screen, struct zink_shader *shader)
 {
    assert(shader->nir->info.stage != MESA_SHADER_COMPUTE);
    set_foreach(shader->programs, entry) {
       struct zink_gfx_program *prog = (void*)entry->key;
       gl_shader_stage stage = shader->nir->info.stage;
       assert(stage < ZINK_GFX_SHADER_COUNT);
-      if (!prog->base.removed && (stage != MESA_SHADER_TESS_CTRL || !shader->is_generated)) {
+      if (!prog->base.removed && prog->stages_present == prog->stages_remaining &&
+          (stage != MESA_SHADER_TESS_CTRL || !shader->is_generated)) {
          unsigned stages_present = prog->stages_present;
          if (prog->shaders[MESA_SHADER_TESS_CTRL] && prog->shaders[MESA_SHADER_TESS_CTRL]->is_generated)
             stages_present &= ~BITFIELD_BIT(MESA_SHADER_TESS_CTRL);
-         struct hash_table *ht = &ctx->program_cache[zink_program_cache_stages(stages_present)];
+         unsigned idx = zink_program_cache_stages(stages_present);
+         struct hash_table *ht = &prog->ctx->program_cache[idx];
+         simple_mtx_lock(&prog->ctx->program_lock[idx]);
          struct hash_entry *he = _mesa_hash_table_search(ht, prog->shaders);
          assert(he);
          _mesa_hash_table_remove(ht, he);
          prog->base.removed = true;
+         simple_mtx_unlock(&prog->ctx->program_lock[idx]);
       }
-      if (stage != MESA_SHADER_TESS_CTRL || !shader->is_generated)
+      if (stage != MESA_SHADER_TESS_CTRL || !shader->is_generated) {
          prog->shaders[stage] = NULL;
+         prog->stages_remaining &= ~BITFIELD_BIT(stage);
+      }
       /* only remove generated tcs during parent tes destruction */
       if (stage == MESA_SHADER_TESS_EVAL && shader->generated)
          prog->shaders[MESA_SHADER_TESS_CTRL] = NULL;
-      zink_gfx_program_reference(ctx, &prog, NULL);
+      zink_gfx_program_reference(screen, &prog, NULL);
    }
    if (shader->nir->info.stage == MESA_SHADER_TESS_EVAL && shader->generated) {
       /* automatically destroy generated tcs shaders when tes is destroyed */
-      zink_shader_free(ctx, shader->generated);
+      zink_shader_free(screen, shader->generated);
       shader->generated = NULL;
    }
    _mesa_set_destroy(shader->programs, NULL);

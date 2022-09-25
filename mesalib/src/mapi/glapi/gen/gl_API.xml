@@ -1155,7 +1155,8 @@
         <glx rop="3"/>
     </function>
 
-    <function name="Begin" deprecated="3.1" exec="vtxfmt">
+    <function name="Begin" deprecated="3.1" exec="vtxfmt"
+              marshal_call_after="ctx->GLThread.inside_begin_end = true;">
         <param name="mode" type="GLenum"/>
         <glx rop="4"/>
     </function>
@@ -1369,7 +1370,8 @@
         <glx rop="22"/>
     </function>
 
-    <function name="End" deprecated="3.1" exec="vtxfmt">
+    <function name="End" deprecated="3.1" exec="vtxfmt"
+              marshal_call_after="ctx->GLThread.inside_begin_end = false;">
         <glx rop="23"/>
     </function>
 
@@ -5555,7 +5557,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="ShaderSource" es2="2.0" marshal="custom" no_error="true">
+    <function name="ShaderSource" es2="2.0" no_error="true">
         <param name="shader" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="string" type="const GLchar * const *"/>
@@ -12861,6 +12863,50 @@
 </category>
 
 <category name="GL_MESA_internal_functions">
+    <!-- These functions exist because glthread converts all draws to these
+         and then calls them through the dispatch table, so this is a workaround
+         for the GL_INVALID_OPERATION errors with OpenGL ES 1.x. -->
+    <function name="InternalDrawArraysInstancedBaseInstance" es1="1.0"
+              alias="DrawArraysInstancedBaseInstance">
+        <param name="mode" type="GLenum"/>
+        <param name="first" type="GLint"/>
+        <param name="count" type="GLsizei"/>
+        <param name="instancecount" type="GLsizei"/>
+        <param name="baseinstance" type="GLuint"/>
+    </function>
+
+    <function name="InternalDrawElementsInstancedBaseVertexBaseInstance" es1="1.0"
+              alias="DrawElementsInstancedBaseVertexBaseInstance">
+        <param name="mode" type="GLenum"/>
+        <param name="count" type="GLsizei"/>
+        <param name="type" type="GLenum"/>
+        <param name="indices" type="const GLvoid *"/>
+        <param name="instancecount" type="GLsizei"/>
+        <param name="basevertex" type="GLint"/>
+        <param name="baseinstance" type="GLuint"/>
+    </function>
+
+    <function name="InternalDrawRangeElementsBaseVertex" es1="1.0"
+              alias="DrawRangeElementsBaseVertex">
+        <param name="mode" type="GLenum"/>
+        <param name="start" type="GLuint"/>
+        <param name="end" type="GLuint"/>
+        <param name="count" type="GLsizei"/>
+        <param name="type" type="GLenum"/>
+        <param name="indices" type="const GLvoid *"/>
+        <param name="basevertex" type="GLint"/>
+    </function>
+
+    <function name="InternalMultiDrawElementsBaseVertex" es1="1.0"
+              alias="MultiDrawElementsBaseVertex">
+        <param name="mode" type="GLenum"/>
+        <param name="count" type="const GLsizei *"/>
+        <param name="type" type="GLenum"/>
+        <param name="indices" type="const GLvoid * const *"/>
+        <param name="primcount" type="GLsizei"/>
+        <param name="basevertex" type="const GLint *"/>
+    </function>
+
     <!-- Internal function for glthread to implement BufferSubData as a GPU copy. -->
     <function name="InternalBufferSubDataCopyMESA" es2="2.0">
         <param name="srcBuffer" type="GLintptr"/> <!-- "struct gl_buffer_object *" really -->

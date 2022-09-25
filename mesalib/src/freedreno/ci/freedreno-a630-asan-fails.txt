@@ -1,1 +1,28 @@
 dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.12,Crash
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3759
+# deqp-vk: ../src/freedreno/vulkan/tu_pipeline.c:3894: tu_pipeline_builder_init_graphics: Assertion `subpass->color_count == 0 || !create_info->pColorBlendState || subpass->color_count == create_info->pColorBlendState->attachmentCount' failed
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash

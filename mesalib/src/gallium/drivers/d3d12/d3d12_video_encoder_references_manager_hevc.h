@@ -81,7 +81,7 @@ class d3d12_video_encoder_references_manager_hevc : public d3d12_video_encoder_r
    bool m_isCurrentFrameUsedAsReference = false;
    D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC m_curFrameState = {};
    std::vector<D3D12_VIDEO_ENCODER_REFERENCE_PICTURE_DESCRIPTOR_HEVC> m_curFrameStateDescriptorStorage;
-   unsigned int m_current_frame_idx;
+   unsigned int m_current_frame_idx = 0;
 };
 
 #endif

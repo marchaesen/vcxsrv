@@ -357,7 +357,8 @@ typedef struct rvcn_enc_reconstructed_picture_s {
 typedef struct rvcn_enc_picture_info_s
 {
    bool in_use;
-   uint32_t frame_num;
+   bool is_ltr;
+   uint32_t pic_num;
 } rvcn_enc_picture_info_t;
 
 typedef struct rvcn_enc_pre_encode_input_picture_s {
@@ -458,7 +459,9 @@ struct radeon_enc_pic {
    unsigned pic_order_cnt;
    unsigned pic_order_cnt_type;
    unsigned ref_idx_l0;
+   bool ref_idx_l0_is_ltr;
    unsigned ref_idx_l1;
+   bool ref_idx_l1_is_ltr;
    unsigned crop_left;
    unsigned crop_right;
    unsigned crop_top;
@@ -487,6 +490,8 @@ struct radeon_enc_pic {
    rvcn_enc_quality_modes_t quality_modes;
 
    bool not_referenced;
+   bool is_ltr;
+   unsigned ltr_idx;
    bool is_idr;
    bool is_even_frame;
    bool sample_adaptive_offset_enabled_flag;
@@ -598,6 +603,7 @@ struct radeon_encoder {
    bool need_feedback;
    unsigned dpb_size;
    rvcn_enc_picture_info_t dpb_info[RENCODE_MAX_NUM_RECONSTRUCTED_PICTURES];
+   unsigned max_ltr_idx;
 };
 
 void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer *buf,

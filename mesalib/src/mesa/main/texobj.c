@@ -2391,7 +2391,7 @@ texture_page_commitment(struct gl_context *ctx, GLenum target,
    }
 
    int px, py, pz;
-   bool ret = st_GetSparseTextureVirtualPageSize(
+   ASSERTED bool ret = st_GetSparseTextureVirtualPageSize(
       ctx, target, image->TexFormat, tex_obj->VirtualPageSizeIndex, &px, &py, &pz);
    assert(ret);
 

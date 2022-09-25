@@ -1944,7 +1944,7 @@ vn_physical_device_fix_image_format_info(
       dst = dst->pNext;
 
       if ((info->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) &&
-          !local_info->list.viewFormatCount) {
+          (!has_format_list || !local_info->list.viewFormatCount)) {
          /* 12.3. Images
           *
           * If tiling is VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT and flags

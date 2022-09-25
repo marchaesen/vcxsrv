@@ -6,3 +6,6 @@ VK_KHR_global_priority on RADV
 GL_KHR_blend_equation_advanced_coherent on zink
 VK_EXT_load_store_op_none on RADV
 VK_EXT_mutable_descriptor_type on RADV
+VK_EXT_shader_atomic_float on lvp
+VK_EXT_shader_atomic_float2 on lvp
+GL_NV_shader_atomic_float on llvmpipe

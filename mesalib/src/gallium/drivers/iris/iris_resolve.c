@@ -89,10 +89,14 @@ resolve_sampler_views(struct iris_context *ice,
                       bool *draw_aux_buffer_disabled,
                       bool consider_framebuffer)
 {
-   uint32_t views = info ? (shs->bound_sampler_views & info->textures_used[0]) : 0;
+   if (info == NULL)
+      return;
 
-   while (views) {
-      const int i = u_bit_scan(&views);
+   int i;
+   BITSET_FOREACH_SET(i, shs->bound_sampler_views, IRIS_MAX_TEXTURES) {
+      if (!BITSET_TEST(info->textures_used, i))
+         continue;
+
       struct iris_sampler_view *isv = shs->textures[i];
 
       if (isv->res->base.b.target != PIPE_BUFFER) {
@@ -121,10 +125,15 @@ resolve_image_views(struct iris_context *ice,
                     bool *draw_aux_buffer_disabled,
                     bool consider_framebuffer)
 {
-   uint32_t views = info ? (shs->bound_image_views & info->images_used[0]) : 0;
+   if (info == NULL)
+      return;
+
+   const uint64_t images_used =
+      (info->images_used[0] | ((uint64_t)info->images_used[1]) << 32);
+   uint64_t views = shs->bound_image_views & images_used;
 
    while (views) {
-      const int i = u_bit_scan(&views);
+      const int i = u_bit_scan64(&views);
       struct pipe_image_view *pview = &shs->image[i].base;
       struct iris_resource *res = (void *) pview->resource;
 
@@ -558,7 +567,7 @@ iris_hiz_exec(struct iris_context *ice,
               unsigned int num_layers, enum isl_aux_op op,
               bool update_clear_depth)
 {
-   struct intel_device_info *devinfo = &batch->screen->devinfo;
+   ASSERTED struct intel_device_info *devinfo = &batch->screen->devinfo;
 
    assert(iris_resource_level_has_hiz(devinfo, res, level));
    assert(op != ISL_AUX_OP_NONE);
@@ -848,7 +857,7 @@ iris_resource_set_aux_state(struct iris_context *ice,
                             enum isl_aux_state aux_state)
 {
    struct iris_screen *screen = (void *) ice->ctx.screen;
-   struct intel_device_info *devinfo = &screen->devinfo;
+   ASSERTED struct intel_device_info *devinfo = &screen->devinfo;
 
    num_layers = miptree_layer_range_length(res, level, start_layer, num_layers);
 

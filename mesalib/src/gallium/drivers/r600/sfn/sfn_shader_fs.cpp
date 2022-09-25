@@ -578,7 +578,7 @@ bool FragmentShader::read_prop(std::istream& is)
    string value;
    is >> value;
 
-   auto splitpos = value.find(':');
+   ASSERTED auto splitpos = value.find(':');
    assert(splitpos != string::npos);
 
    std::istringstream ival(value);
@@ -755,7 +755,7 @@ bool FragmentShaderEG::process_stage_intrinsic_hw(nir_intrinsic_instr *intr)
 bool FragmentShaderEG::load_interpolated_input_hw(nir_intrinsic_instr *intr)
 {
    auto& vf = value_factory();
-   auto param = nir_src_as_const_value(intr->src[1]);
+   ASSERTED auto param = nir_src_as_const_value(intr->src[1]);
    assert(param && "Indirect PS inputs not (yet) supported");
 
    int dest_num_comp = nir_dest_num_components(intr->dest);

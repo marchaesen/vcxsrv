@@ -81,10 +81,6 @@ dEQP-EGL.functional.wide_color.pbuffer_888_colorspace_srgb
 dEQP-EGL.functional.wide_color.window_8888_colorspace_default
 dEQP-EGL.functional.wide_color.window_8888_colorspace_srgb
 
-dEQP-VK.pipeline.multisample.alpha_to_coverage_unused_attachment.samples_2.alpha_opaque
-dEQP-VK.pipeline.multisample.alpha_to_coverage_unused_attachment.samples_4.alpha_opaque
-gmem-dEQP-VK.pipeline.monolithic.multisample.alpha_to_coverage_unused_attachment.samples_2.alpha_opaque
-
 # Started at least by Jan 2020, current as of May 2021
 dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
 

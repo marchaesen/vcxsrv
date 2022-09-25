@@ -157,19 +157,18 @@
 #define VK_GEOMETRY_TYPE_TRIANGLES_KHR 0
 #define VK_GEOMETRY_TYPE_AABBS_KHR     1
 
-#define TYPE(type, size)                                                                           \
-   layout(buffer_reference) buffer type##_ref                                                      \
+#define TYPE(type, align)                                                                          \
+   layout(buffer_reference, buffer_reference_align = align) buffer type##_ref                      \
    {                                                                                               \
       type value;                                                                                  \
-   };                                                                                              \
-   const uint32_t type##_size = size
+   };
 
 #define REF(type)  type##_ref
 #define VOID_REF   uint64_t
 #define NULL       0
 #define DEREF(var) var.value
 
-#define SIZEOF(type) type##_size
+#define SIZEOF(type) uint32_t(uint64_t(REF(type)(uint64_t(0))+1))
 
 #define OFFSET(ptr, offset) (uint64_t(ptr) + offset)
 
@@ -189,9 +188,11 @@ TYPE(uint64_t, 8);
 
 TYPE(float, 4);
 
-TYPE(vec2, 8);
-TYPE(vec3, 12);
-TYPE(vec4, 16);
+TYPE(vec2, 4);
+TYPE(vec3, 4);
+TYPE(vec4, 4);
+
+TYPE(uvec4, 16);
 
 TYPE(VOID_REF, 8);
 
@@ -220,26 +221,21 @@ struct AABB {
    vec3 min;
    vec3 max;
 };
-TYPE(AABB, 24);
+TYPE(AABB, 4);
 
 struct key_id_pair {
    uint32_t id;
    uint32_t key;
 };
-TYPE(key_id_pair, 8);
+TYPE(key_id_pair, 4);
 
-TYPE(radv_accel_struct_serialization_header, 56);
-TYPE(radv_accel_struct_header, 88);
-TYPE(radv_bvh_triangle_node, 64);
-TYPE(radv_bvh_aabb_node, 64);
-TYPE(radv_bvh_instance_node, 128);
-TYPE(radv_bvh_box16_node, 64);
-TYPE(radv_bvh_box32_node, 128);
-
-struct bvh_node {
-   uint8_t reserved[128];
-};
-TYPE(bvh_node, 128);
+TYPE(radv_accel_struct_serialization_header, 8);
+TYPE(radv_accel_struct_header, 8);
+TYPE(radv_bvh_triangle_node, 4);
+TYPE(radv_bvh_aabb_node, 4);
+TYPE(radv_bvh_instance_node, 8);
+TYPE(radv_bvh_box16_node, 4);
+TYPE(radv_bvh_box32_node, 4);
 
 uint32_t
 id_to_offset(uint32_t id)
@@ -260,6 +256,25 @@ pack_node_id(uint32_t offset, uint32_t type)
 }
 
 #define NULL_NODE_ID 0xFFFFFFFF
+
+AABB
+calculate_instance_node_bounds(radv_bvh_instance_node instance)
+{
+   AABB aabb;
+   radv_accel_struct_header header = DEREF(REF(radv_accel_struct_header)(instance.base_ptr));
+
+   for (uint32_t comp = 0; comp < 3; ++comp) {
+      aabb.min[comp] = instance.otw_matrix[comp][3];
+      aabb.max[comp] = instance.otw_matrix[comp][3];
+      for (uint32_t col = 0; col < 3; ++col) {
+         aabb.min[comp] += min(instance.otw_matrix[comp][col] * header.aabb[0][col],
+                               instance.otw_matrix[comp][col] * header.aabb[1][col]);
+         aabb.max[comp] += max(instance.otw_matrix[comp][col] * header.aabb[0][col],
+                               instance.otw_matrix[comp][col] * header.aabb[1][col]);
+      }
+   }
+   return aabb;
+}
 
 AABB
 calculate_node_bounds(VOID_REF bvh, uint32_t id)
@@ -296,14 +311,7 @@ calculate_node_bounds(VOID_REF bvh, uint32_t id)
    }
    case radv_bvh_node_instance: {
       radv_bvh_instance_node instance = DEREF(REF(radv_bvh_instance_node)(node));
-
-      aabb.min.x = instance.aabb[0][0];
-      aabb.min.y = instance.aabb[0][1];
-      aabb.min.z = instance.aabb[0][2];
-
-      aabb.max.x = instance.aabb[1][0];
-      aabb.max.y = instance.aabb[1][1];
-      aabb.max.z = instance.aabb[1][2];
+      aabb = calculate_instance_node_bounds(instance);
       break;
    }
    case radv_bvh_node_aabb: {

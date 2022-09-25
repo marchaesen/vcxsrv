@@ -619,7 +619,7 @@ bool alu_group_tracker::try_reserve(alu_node* n) {
 		alu_node *a = slots[i];
 		if (a) {
 			a->bc.bank_swizzle = save_bs[i];
-			bool b = gpr.try_reserve(a);
+			ASSERTED bool b = gpr.try_reserve(a);
 			assert(b);
 		}
 	}
@@ -2092,7 +2092,7 @@ bool alu_kcache_tracker::try_reserve(alu_group_tracker& gt) {
 
 	sb_set<unsigned> group_lines;
 
-	unsigned nl = kt.get_lines(group_lines);
+	ASSERTED unsigned nl = kt.get_lines(group_lines);
 	assert(nl);
 
 	sb_set<unsigned> clause_lines(lines);

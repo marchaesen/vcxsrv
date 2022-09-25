@@ -94,9 +94,9 @@ libvulkan_dzn = shared_library(
 )
 
 icd_file_name = 'libvulkan_dzn.so'
-module_dir = join_paths(get_option('prefix'), get_option('libdir'))
+icd_lib_path = join_paths(get_option('prefix'), get_option('libdir'))
 if with_platform_windows
-  module_dir = join_paths(get_option('prefix'), get_option('bindir'))
+  icd_lib_path = join_paths(get_option('prefix'), get_option('bindir'))
   icd_file_name = 'vulkan_dzn.dll'
 endif
 
@@ -104,7 +104,7 @@ endif
 icd_command = [
    prog_python, '@INPUT0@',
    '--api-version', '1.1', '--xml', '@INPUT1@',
-   '--lib-path', join_paths(module_dir, icd_file_name),
+   '--lib-path', join_paths(icd_lib_path, icd_file_name),
    '--out', '@OUTPUT@',
 ]
 

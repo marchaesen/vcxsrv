@@ -117,7 +117,7 @@ traces:
     freedreno-a630:
       checksum: 730692659fbb9eefa44d6b1a2df2fa8e
     zink-a630:
-      checksum: 165d3c13c8143fbc2265a55758afc04c
+      checksum: 2a31ee1a56b755dcf5975b31eacbec32
 
   behdad-glyphy/glyphy-v2.trace:
     freedreno-a306:

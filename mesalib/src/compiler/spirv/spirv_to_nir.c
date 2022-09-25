@@ -6298,34 +6298,18 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
          &b->nb, vtn_get_nir_ssa(b, w[1]), vtn_get_nir_ssa(b, w[2]));
       break;
 
-   case SpvOpEmitMeshTasksEXT: {
-      /* Launches mesh shader workgroups from the task shader.
-       * Arguments are: vec(x, y, z), payload pointer
-       */
-      nir_ssa_def *dimensions =
-         nir_vec3(&b->nb, vtn_get_nir_ssa(b, w[1]),
-                          vtn_get_nir_ssa(b, w[2]),
-                          vtn_get_nir_ssa(b, w[3]));
-
-      /* The payload variable is optional.
-       * We don't have a NULL deref in NIR, so just emit the explicit
-       * intrinsic when there is no payload.
-       */
-      if (count == 4)
-         nir_launch_mesh_workgroups(&b->nb, dimensions);
-      else if (count == 5)
-         nir_launch_mesh_workgroups_with_payload_deref(&b->nb, dimensions,
-                                                       vtn_get_nir_ssa(b, w[4]));
-      else
-         vtn_fail("Invalid EmitMeshTasksEXT.");
-      break;
-   }
-
    default:
       vtn_fail_with_opcode("Unhandled opcode", opcode);
    }
 
    return true;
+}
+
+static bool
+is_glslang(const struct vtn_builder *b)
+{
+   return b->generator_id == vtn_generator_glslang_reference_front_end ||
+          b->generator_id == vtn_generator_shaderc_over_glslang;
 }
 
 struct vtn_builder*
@@ -6375,9 +6359,7 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
     * commands.  Prior to that, we need to fix them up ourselves.  This
     * GLSLang fix caused them to bump to generator version 3.
     */
-   b->wa_glslang_cs_barrier =
-      (b->generator_id == vtn_generator_glslang_reference_front_end &&
-       generator_version < 3);
+   b->wa_glslang_cs_barrier = is_glslang(b) && generator_version < 3;
 
    /* Identifying the LLVM-SPIRV translator:
     *
@@ -6401,6 +6383,15 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
     */
    b->wa_llvm_spirv_ignore_workgroup_initializer =
       b->options->environment == NIR_SPIRV_OPENCL && is_llvm_spirv_translator;
+
+   /* Older versions of GLSLang would incorrectly emit OpReturn after
+    * OpEmitMeshTasksEXT. This is incorrect since the latter is already
+    * a terminator instruction.
+    *
+    * See https://github.com/KhronosGroup/glslang/issues/3020 for details.
+    */
+   b->wa_ignore_return_after_emit_mesh_tasks =
+      is_glslang(b) && generator_version < 11;
 
    /* words[2] == generator magic */
    unsigned value_id_bound = words[3];
@@ -6543,11 +6534,9 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
     *
     * Related glslang issue: https://github.com/KhronosGroup/glslang/issues/2416
     */
-   bool glslang = b->generator_id == vtn_generator_glslang_reference_front_end ||
-                  b->generator_id == vtn_generator_shaderc_over_glslang;
    bool dxsc = b->generator_id == vtn_generator_spiregg;
    b->convert_discard_to_demote = ((dxsc && !b->uses_demote_to_helper_invocation) ||
-                                   (glslang && b->source_lang == SpvSourceLanguageHLSL)) &&
+                                   (is_glslang(b) && b->source_lang == SpvSourceLanguageHLSL)) &&
                                   options->caps.demote_to_helper_invocation;
 
    if (!options->create_library && b->entry_point == NULL) {

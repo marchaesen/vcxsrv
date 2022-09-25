@@ -217,6 +217,7 @@ a6xx_gen2 = dict(
         indirect_draw_wfm_quirk = True,
         depth_bounds_require_depth_test_quirk = True, # TODO: check if true
         has_dp2acc = False, # TODO: check if true
+        has_8bpp_ubwc = False,
     )
 
 # a650:

@@ -266,6 +266,9 @@ libclc_add_generic_variants(nir_shader *shader)
       assert(generic_name[offset_1] == '1');
       generic_name[offset_1] = '4';
 
+      if (nir_shader_get_function_for_name(shader, generic_name))
+         continue;
+
       nir_function *gfunc = nir_function_create(shader, generic_name);
       gfunc->num_params = func->num_params;
       gfunc->params = ralloc_array(shader, nir_parameter, gfunc->num_params);

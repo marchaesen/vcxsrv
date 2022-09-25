@@ -1,0 +1,23 @@
+# No GPU hang, looked like cache flushing fail.
+dEQP-GLES3.functional.fbo.blit.conversion.rgba4_to_rgb565
+dEQP-GLES3.functional.fbo.blit.conversion.rgba4_to_rgba16f
+
+# No GPU hang, looks like one 2x2 quad was colored slightly off?
+dEQP-GLES3.functional.fbo.msaa.4_samples.depth_component16
+
+dEQP-GLES3.functional.transform_feedback.random_full_array_capture.separate.lines.4
+
+# Lines were the wrong colors on iteration 4/10.
+dEQP-GLES3.functional.transform_feedback.random.separate.lines.4
+
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16i_r16i.texture2d_array_to_cubemap
+
+# Looks like maybe the end of level 0 face 5 got overwritten, others were all
+# OK.  source is 7 levels 65x65x9, dst is 7 levels 65x65x1 cubemap
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16i_r16i.texture3d_to_cubemap
+
+# level 0 face 5 again, corruption in the middle this time though.  destination is 64x63, 1 level.
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16f_rg8.cubemap_to_texture2d_array
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16f_rg8i.cubemap_to_renderbuffer
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16f_r16ui.cubemap_to_renderbuffer
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16ui_r16ui.cubemap_to_renderbuffer

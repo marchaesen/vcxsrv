@@ -313,6 +313,16 @@ va_pack_source_format(const bi_instr *I)
 }
 
 static uint64_t
+va_pack_rhadd(const bi_instr *I)
+{
+   switch (I->round) {
+   case BI_ROUND_RTN: return 0; /* hadd */
+   case BI_ROUND_RTP: return BITFIELD_BIT(30); /* rhadd */
+   default: unreachable("Invalid round for HADD");
+   }
+}
+
+static uint64_t
 va_pack_alu(const bi_instr *I)
 {
    struct va_opcode_info info = valhall_opcodes[I->op];
@@ -517,6 +527,8 @@ va_pack_alu(const bi_instr *I)
       }
    }
 
+   if (info.saturate) hex |= (uint64_t) I->saturate << 30;
+   if (info.rhadd) hex |= va_pack_rhadd(I);
    if (info.clamp) hex |= (uint64_t) I->clamp << 32;
    if (info.round_mode) hex |= (uint64_t) I->round << 30;
    if (info.condition) hex |= (uint64_t) I->cmpf << 32;

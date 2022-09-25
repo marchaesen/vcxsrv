@@ -29,6 +29,7 @@
 #include "util/u_helpers.h"
 #include "util/u_memory.h"
 #include "util/u_string.h"
+#include "util/u_upload_mgr.h"
 
 #include "freedreno_context.h"
 #include "freedreno_gmem.h"
@@ -103,6 +104,14 @@ fd_set_min_samples(struct pipe_context *pctx, unsigned min_samples) in_dt
    fd_context_dirty(ctx, FD_DIRTY_MIN_SAMPLES);
 }
 
+static void
+upload_user_buffer(struct pipe_context *pctx, struct pipe_constant_buffer *cb)
+{
+   u_upload_data(pctx->stream_uploader, 0, cb->buffer_size, 64,
+                 cb->user_buffer, &cb->buffer_offset, &cb->buffer);
+   cb->user_buffer = NULL;
+}
+
 /* notes from calim on #dri-devel:
  * index==0 will be non-UBO (ie. glUniformXYZ()) all packed together padded
  * out to vec4's
@@ -128,6 +137,9 @@ fd_set_constant_buffer(struct pipe_context *pctx, enum pipe_shader_type shader,
       so->enabled_mask &= ~(1 << index);
       return;
    }
+
+   if (cb->user_buffer && ctx->screen->gen >= 6)
+      upload_user_buffer(pctx, &so->cb[index]);
 
    so->enabled_mask |= 1 << index;
 
@@ -599,6 +611,8 @@ fd_set_stream_output_targets(struct pipe_context *pctx, unsigned num_targets,
          ctx->streamout.verts_written = 0;
       }
 
+      if (so->targets[i])
+         fd_resource_set_usage(so->targets[i]->buffer, FD_DIRTY_STREAMOUT);
       pipe_so_target_reference(&so->targets[i], targets[i]);
    }
 

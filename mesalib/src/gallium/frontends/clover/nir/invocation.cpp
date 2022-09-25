@@ -396,9 +396,8 @@ binary clover::nir::spirv_to_nir(const binary &mod, const device &dev,
       NIR_PASS_V(nir, nir_lower_explicit_io, nir_var_mem_global,
                  spirv_options.global_addr_format);
 
-      struct nir_remove_dead_variables_options remove_dead_variables_options = {
-            .can_remove_var = can_remove_var,
-      };
+      struct nir_remove_dead_variables_options remove_dead_variables_options = {};
+      remove_dead_variables_options.can_remove_var = can_remove_var;
       NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_all, &remove_dead_variables_options);
 
       if (compiler_options->lower_int64_options)

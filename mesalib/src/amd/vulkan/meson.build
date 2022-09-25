@@ -188,6 +188,7 @@ libvulkan_radeon = shared_library(
   ],
   link_depends : [libvulkan_radeon_link_depends,],
   gnu_symbol_visibility : 'hidden',
+  name_prefix : host_machine.system() == 'windows' ? '' : 'lib',
   install : true,
 )
 
@@ -208,7 +209,7 @@ endif
 icd_lib_path = join_paths(get_option('prefix'), get_option('libdir'))
 icd_file_name = 'libvulkan_radeon.so'
 if with_platform_windows
-  icd_lib_path = '.'
+  icd_lib_path = join_paths(get_option('prefix'), get_option('bindir'))
   icd_file_name = 'vulkan_radeon.dll'
 endif
 

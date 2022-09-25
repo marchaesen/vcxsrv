@@ -965,6 +965,7 @@ static void ac_sqtt_dump_spm(const struct ac_spm_trace_data *spm_trace,
    fseek(output, file_offset, SEEK_SET);
 }
 
+#if defined(USE_LIBELF)
 static void ac_sqtt_dump_data(struct radeon_info *rad_info,
                               struct ac_thread_trace *thread_trace,
                               const struct ac_spm_trace_data *spm_trace,
@@ -1151,11 +1152,15 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
       ac_sqtt_dump_spm(spm_trace, file_offset, output);
    }
 }
+#endif
 
 int ac_dump_rgp_capture(struct radeon_info *info,
                         struct ac_thread_trace *thread_trace,
                         const struct ac_spm_trace_data *spm_trace)
 {
+#if !defined(USE_LIBELF)
+   return -1;
+#else
    char filename[2048];
    struct tm now;
    time_t t;
@@ -1178,4 +1183,5 @@ int ac_dump_rgp_capture(struct radeon_info *info,
 
    fclose(f);
    return 0;
+#endif
 }

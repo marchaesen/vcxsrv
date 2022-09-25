@@ -40,7 +40,7 @@ using clover::build_error;
 using namespace clover::llvm;
 using ::llvm::TargetMachine;
 
-#ifdef HAVE_CLOVER_NATIVE
+#if defined(USE_LIBELF)
 
 #include <libelf.h>
 #include <gelf.h>

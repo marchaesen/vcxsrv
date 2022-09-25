@@ -320,3 +320,9 @@ TEST_F(ValhallPacking, LdTileV3F16) {
                          BI_REGISTER_FORMAT_F16, BI_VECSIZE_V3),
         0x0078840423033c40);
 }
+
+TEST_F(ValhallPacking, Rhadd8) {
+   CASE(bi_hadd_v4s8_to(b, bi_register(0), bi_discard(bi_register(1)),
+                        bi_discard(bi_register(0)), BI_ROUND_RTP),
+        0x00aac000400b4041);
+}

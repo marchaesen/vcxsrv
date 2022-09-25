@@ -25,6 +25,8 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#define FD_BO_NO_HARDPIN 1
+
 #include "pipe/p_state.h"
 #include "util/format/u_format.h"
 #include "util/u_helpers.h"
@@ -837,6 +839,11 @@ build_ibo(struct fd6_emit *emit) assert_dt
       assert(ir3_shader_nibo(emit->gs) == 0);
    }
 
+   unsigned nibo = ir3_shader_nibo(emit->fs);
+
+   if (nibo == 0)
+      return NULL;
+
    struct fd_ringbuffer *ibo_state =
       fd6_build_ibo_state(ctx, emit->fs, PIPE_SHADER_FRAGMENT);
    struct fd_ringbuffer *ring = fd_submit_new_ringbuffer(
@@ -847,7 +854,7 @@ build_ibo(struct fd6_emit *emit) assert_dt
                      CP_LOAD_STATE6_0_STATE_TYPE(ST6_SHADER) |
                      CP_LOAD_STATE6_0_STATE_SRC(SS6_INDIRECT) |
                      CP_LOAD_STATE6_0_STATE_BLOCK(SB6_IBO) |
-                     CP_LOAD_STATE6_0_NUM_UNIT(ir3_shader_nibo(emit->fs)));
+                     CP_LOAD_STATE6_0_NUM_UNIT(nibo));
    OUT_RB(ring, ibo_state);
 
    OUT_PKT4(ring, REG_A6XX_SP_IBO, 2);
@@ -857,7 +864,7 @@ build_ibo(struct fd6_emit *emit) assert_dt
     * de-duplicate this from program->config_stateobj
     */
    OUT_PKT4(ring, REG_A6XX_SP_IBO_COUNT, 1);
-   OUT_RING(ring, ir3_shader_nibo(emit->fs));
+   OUT_RING(ring, nibo);
 
    fd_ringbuffer_del(ibo_state);
 

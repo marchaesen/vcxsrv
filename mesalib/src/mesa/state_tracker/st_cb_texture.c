@@ -191,7 +191,7 @@ copy_to_staging_dest(struct gl_context * ctx, struct pipe_resource *dst,
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct gl_texture_object *stObj = texImage->TexObject;
-   struct pipe_resource *src = stObj->pt;
+   ASSERTED struct pipe_resource *src = stObj->pt;
    enum pipe_format dst_format = dst->format;
    mesa_format mesa_format;
    GLenum gl_target = texImage->TexObject->Target;
@@ -1829,6 +1829,7 @@ try_pbo_download(struct st_context *st,
       struct pipe_sampler_view templ;
       struct pipe_sampler_view *sampler_view;
       struct pipe_sampler_state sampler = {0};
+      sampler.normalized_coords = true;
       const struct pipe_sampler_state *samplers[1] = {&sampler};
       unsigned level = texImage->TexObject->Attrib.MinLevel + texImage->Level;
       unsigned max_layer = util_max_layer(texture, level);

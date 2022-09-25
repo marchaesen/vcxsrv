@@ -255,14 +255,6 @@ fd_bo_mark_for_dump(struct fd_bo *bo)
    bo->reloc_flags |= FD_RELOC_DUMP;
 }
 
-uint64_t
-fd_bo_get_iova(struct fd_bo *bo)
-{
-   /* ancient kernels did not support this */
-   assert(bo->iova != 0);
-   return bo->iova;
-}
-
 struct fd_bo *
 fd_bo_ref(struct fd_bo *bo)
 {

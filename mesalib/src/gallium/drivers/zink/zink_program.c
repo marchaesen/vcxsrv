@@ -414,6 +414,7 @@ zink_gfx_program_update(struct zink_context *ctx)
    if (ctx->gfx_dirty) {
       struct zink_gfx_program *prog = NULL;
 
+      simple_mtx_lock(&ctx->program_lock[zink_program_cache_stages(ctx->shader_stages)]);
       struct hash_table *ht = &ctx->program_cache[zink_program_cache_stages(ctx->shader_stages)];
       const uint32_t hash = ctx->gfx_hash;
       struct hash_entry *entry = _mesa_hash_table_search_pre_hashed(ht, hash, ctx->gfx_stages);
@@ -432,6 +433,7 @@ zink_gfx_program_update(struct zink_context *ctx)
          _mesa_hash_table_insert_pre_hashed(ht, hash, prog->shaders, prog);
          generate_gfx_program_modules(ctx, zink_screen(ctx->base.screen), prog, &ctx->gfx_pipeline_state);
       }
+      simple_mtx_unlock(&ctx->program_lock[zink_program_cache_stages(ctx->shader_stages)]);
       if (prog && prog != ctx->curr_program)
          zink_batch_reference_program(&ctx->batch, &prog->base);
       if (ctx->curr_program)
@@ -624,6 +626,8 @@ zink_create_gfx_program(struct zink_context *ctx,
    if (!prog)
       goto fail;
 
+   prog->ctx = ctx;
+
    for (int i = 0; i < ZINK_GFX_SHADER_COUNT; ++i) {
       util_dynarray_init(&prog->shader_cache[i][0][0], NULL);
       util_dynarray_init(&prog->shader_cache[i][0][1], NULL);
@@ -640,6 +644,7 @@ zink_create_gfx_program(struct zink_context *ctx,
         zink_shader_tcs_create(screen, stages[MESA_SHADER_VERTEX], vertices_per_patch);
       prog->stages_present |= BITFIELD_BIT(MESA_SHADER_TESS_CTRL);
    }
+   prog->stages_remaining = prog->stages_present;
 
    assign_io(prog, prog->shaders);
 
@@ -670,7 +675,7 @@ zink_create_gfx_program(struct zink_context *ctx,
          simple_mtx_lock(&prog->shaders[i]->lock);
          _mesa_set_add(prog->shaders[i]->programs, prog);
          simple_mtx_unlock(&prog->shaders[i]->lock);
-         zink_gfx_program_reference(ctx, NULL, prog);
+         zink_gfx_program_reference(screen, NULL, prog);
          _mesa_sha1_update(&sctx, prog->shaders[i]->base.sha1, sizeof(prog->shaders[i]->base.sha1));
       }
    }
@@ -684,7 +689,7 @@ zink_create_gfx_program(struct zink_context *ctx,
 
 fail:
    if (prog)
-      zink_destroy_gfx_program(ctx, prog);
+      zink_destroy_gfx_program(screen, prog);
    return NULL;
 }
 
@@ -891,9 +896,8 @@ zink_program_num_bindings(const struct zink_program *pg, bool is_compute)
 }
 
 static void
-deinit_program(struct zink_context *ctx, struct zink_program *pg)
+deinit_program(struct zink_screen *screen, struct zink_program *pg)
 {
-   struct zink_screen *screen = zink_screen(ctx->base.screen);
    util_queue_fence_wait(&pg->cache_fence);
    if (pg->layout)
       VKSCR(DestroyPipelineLayout)(screen->dev, pg->layout, NULL);
@@ -904,11 +908,10 @@ deinit_program(struct zink_context *ctx, struct zink_program *pg)
 }
 
 void
-zink_destroy_gfx_program(struct zink_context *ctx,
+zink_destroy_gfx_program(struct zink_screen *screen,
                          struct zink_gfx_program *prog)
 {
-   struct zink_screen *screen = zink_screen(ctx->base.screen);
-   deinit_program(ctx, &prog->base);
+   deinit_program(screen, &prog->base);
 
    for (int i = 0; i < ZINK_GFX_SHADER_COUNT; ++i) {
       if (prog->shaders[i]) {
@@ -956,11 +959,10 @@ zink_destroy_gfx_program(struct zink_context *ctx,
 }
 
 void
-zink_destroy_compute_program(struct zink_context *ctx,
+zink_destroy_compute_program(struct zink_screen *screen,
                              struct zink_compute_program *comp)
 {
-   struct zink_screen *screen = zink_screen(ctx->base.screen);
-   deinit_program(ctx, &comp->base);
+   deinit_program(screen, &comp->base);
 
    if (comp->shader)
       _mesa_set_remove_key(comp->shader->programs, comp);
@@ -1261,13 +1263,13 @@ static void
 zink_delete_cs_shader_state(struct pipe_context *pctx, void *cso)
 {
    struct zink_compute_program *comp = cso;
-   zink_compute_program_reference(zink_context(pctx), &comp, NULL);
+   zink_compute_program_reference(zink_screen(pctx->screen), &comp, NULL);
 }
 
 void
 zink_delete_shader_state(struct pipe_context *pctx, void *cso)
 {
-   zink_shader_free(zink_context(pctx), cso);
+   zink_shader_free(zink_screen(pctx->screen), cso);
 }
 
 void *

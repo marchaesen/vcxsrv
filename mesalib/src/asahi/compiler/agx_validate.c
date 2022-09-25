@@ -88,6 +88,31 @@ agx_validate_block_form(agx_block *block)
    return true;
 }
 
+static bool
+agx_validate_sources(agx_instr *I)
+{
+   agx_foreach_src(I, s) {
+      agx_index src = I->src[s];
+
+      if (src.type == AGX_INDEX_IMMEDIATE) {
+         agx_validate_assert(!src.kill);
+         agx_validate_assert(!src.cache);
+         agx_validate_assert(!src.discard);
+
+         /* Immediates are encoded as 8-bit. For integers, they extend to
+          * 16-bit. For floating point, they are 8-bit minifloats. The 8-bit
+          * minifloats are a strict subset of 16-bit standard floats, so we
+          * treat them as such in the IR, with an implicit f16->f32 for 32-bit
+          * floating point operations.
+          */
+         agx_validate_assert(src.size == AGX_SIZE_16);
+         agx_validate_assert(src.value < 0x100);
+      }
+   }
+
+   return true;
+}
+
 void
 agx_validate(agx_context *ctx, const char *after)
 {
@@ -101,6 +126,14 @@ agx_validate(agx_context *ctx, const char *after)
          fprintf(stderr, "Invalid block form after %s\n", after);
          agx_print_block(block, stdout);
          fail = true;
+      }
+   }
+
+   agx_foreach_instr_global(ctx, I) {
+      if (!agx_validate_sources(I)) {
+            fprintf(stderr, "Invalid sources form after %s\n", after);
+            agx_print_instr(I, stdout);
+            fail = true;
       }
    }
 

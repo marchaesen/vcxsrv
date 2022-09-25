@@ -25,6 +25,8 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#define FD_BO_NO_HARDPIN 1
+
 #include "drm-uapi/drm_fourcc.h"
 
 #include "fd6_resource.h"

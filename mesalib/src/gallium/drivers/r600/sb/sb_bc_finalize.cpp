@@ -193,7 +193,7 @@ void bc_finalizer::finalize_if(region_node* r) {
 
 		assert(n_if->is_if());
 
-		container_node *repdep2 = static_cast<container_node*>(n_if->first);
+		ASSERTED container_node *repdep2 = static_cast<container_node*>(n_if->first);
 		assert(repdep2->is_depart() || repdep2->is_repeat());
 
 		cf_node *if_jump = sh.create_cf(CF_OP_JUMP);

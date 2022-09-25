@@ -414,6 +414,11 @@ struct zink_batch_usage {
    bool unflushed;
 };
 
+struct zink_batch_obj_list {
+   unsigned max_buffers;
+   unsigned num_buffers;
+   struct zink_resource_object **objs;
+};
 
 struct zink_batch_state {
    struct zink_fence fence;
@@ -433,14 +438,25 @@ struct zink_batch_state {
    struct util_dynarray acquires;
    struct util_dynarray acquire_flags;
    struct util_dynarray dead_swapchains;
+   struct util_dynarray unref_semaphores;
 
    struct util_queue_fence flush_completed;
 
    struct set programs;
 
-   struct set resources[2];
-   struct set surfaces;
-   struct set bufferviews;
+#define BUFFER_HASHLIST_SIZE 32768
+   /* buffer_indices_hashlist[hash(bo)] returns -1 if the bo
+    * isn't part of any buffer lists or the index where the bo could be found.
+    * Since 1) hash collisions of 2 different bo can happen and 2) we use a
+    * single hashlist for the 3 buffer list, this is only a hint.
+    * batch_find_resource uses this hint to speed up buffers look up.
+    */
+   int16_t buffer_indices_hashlist[BUFFER_HASHLIST_SIZE];
+   struct zink_batch_obj_list real_objs;
+   struct zink_batch_obj_list slab_objs;
+   struct zink_batch_obj_list sparse_objs;
+   struct zink_resource_object *last_added_obj;
+   struct util_dynarray swapchain_obj; //this doesn't have a zink_bo and must be handled differently
 
    struct util_dynarray unref_resources;
    struct util_dynarray bindless_releases[2];
@@ -781,7 +797,10 @@ struct zink_gfx_output_key {
 struct zink_gfx_program {
    struct zink_program base;
 
+   struct zink_context *ctx; //the owner context
+
    uint32_t stages_present; //mask of stages present in this program
+   uint32_t stages_remaining; //mask of zink_shader remaining in this program
    struct nir_shader *nir[ZINK_GFX_SHADER_COUNT];
 
    struct zink_shader_module *modules[ZINK_GFX_SHADER_COUNT]; // compute stage doesn't belong here
@@ -895,6 +914,8 @@ struct zink_resource_object {
    unsigned persistent_maps; //if nonzero, requires vkFlushMappedMemoryRanges during batch use
 
    VkBuffer storage_buffer;
+   simple_mtx_t view_lock;
+   struct util_dynarray views;
 
    union {
       VkBuffer buffer;
@@ -1107,6 +1128,9 @@ struct zink_screen {
 
    struct vk_dispatch_table vk;
 
+   void (*buffer_barrier)(struct zink_context *ctx, struct zink_resource *res, VkAccessFlags flags, VkPipelineStageFlags pipeline);
+   void (*image_barrier)(struct zink_context *ctx, struct zink_resource *res, VkImageLayout new_layout, VkAccessFlags flags, VkPipelineStageFlags pipeline);
+
    bool compact_descriptors;
    uint8_t desc_set_id[ZINK_MAX_DESCRIPTOR_SETS];
 
@@ -1118,10 +1142,6 @@ struct zink_screen {
 
    VkFormatProperties format_props[PIPE_FORMAT_COUNT];
    struct zink_modifier_prop modifier_props[PIPE_FORMAT_COUNT];
-   struct {
-      uint32_t image_view;
-      uint32_t buffer_view;
-   } null_descriptor_hashes;
 
    VkExtent2D maxSampleLocationGridSize[5];
 
@@ -1169,7 +1189,6 @@ struct zink_surface {
    VkImageView simage_view;//old iview after storage replacement/rebind
    void *obj; //backing resource object
    uint32_t hash;
-   struct zink_batch_usage *batch_uses;
 };
 
 /* wrapper object that preserves the gallium expectation of having
@@ -1232,7 +1251,6 @@ struct zink_framebuffer {
 struct zink_sampler_state {
    VkSampler sampler;
    VkSampler sampler_clamped;
-   struct zink_batch_usage *batch_uses;
    bool custom_border_color;
    bool emulate_nonseamless;
 };
@@ -1243,7 +1261,6 @@ struct zink_buffer_view {
    VkBufferViewCreateInfo bvci;
    VkBufferView buffer_view;
    uint32_t hash;
-   struct zink_batch_usage *batch_uses;
 };
 
 struct zink_sampler_view {
@@ -1381,6 +1398,7 @@ struct zink_context {
     * thus only 3 stages need to be considered, giving 2^3 = 8 program caches.
     */
    struct hash_table program_cache[8];
+   simple_mtx_t program_lock[8];
    uint32_t gfx_hash;
    struct zink_gfx_program *curr_program;
    struct set gfx_inputs;

@@ -374,6 +374,10 @@ lvp_shader_compile_to_ir(struct lvp_pipeline *pipeline,
          .int64 = (pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_INT64) == 1),
          .tessellation = true,
          .float_controls = true,
+         .float32_atomic_add = true,
+#if LLVM_VERSION_MAJOR >= 15
+         .float32_atomic_min_max = true,
+#endif
          .image_ms_array = true,
          .image_read_without_format = true,
          .image_write_without_format = true,

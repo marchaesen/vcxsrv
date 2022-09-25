@@ -315,7 +315,8 @@ d3d12_video_encoder_update_hevc_gop_configuration(struct d3d12_video_encoder *pD
 {
    // Only update GOP when it begins
    // This triggers DPB/encoder/heap re-creation, so only check on IDR when a GOP might change
-   if (picture->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR) {
+   if ((picture->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
+      || (picture->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_I)) {
       uint32_t GOPLength = picture->seq.intra_period;
       uint32_t PPicturePeriod = picture->seq.ip_period;
 

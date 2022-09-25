@@ -43,23 +43,25 @@ d3d12_video_processor_begin_frame(struct pipe_video_codec * codec,
     // Setup process frame arguments for output/target texture.
     struct d3d12_video_buffer *pOutputVideoBuffer = (struct d3d12_video_buffer *) target;
 
-    // Make the resources permanently resident for video use
-    d3d12_promote_to_permanent_residency(pD3D12Proc->m_pD3D12Screen, pOutputVideoBuffer->texture);
-
     ID3D12Resource *pDstD3D12Res = d3d12_resource_resource(pOutputVideoBuffer->texture);    
     auto dstDesc = GetDesc(pDstD3D12Res);
     pD3D12Proc->m_OutputArguments = {
+        //struct D3D12_VIDEO_PROCESS_OUTPUT_STREAM_ARGUMENTS args;
         {
             {
-                    pDstD3D12Res, // ID3D12Resource *pTexture2D;
-                    0, // UINT Subresource;
+                {
+                        pDstD3D12Res, // ID3D12Resource *pTexture2D;
+                        0, // UINT Subresource;
+                },
+                {
+                        NULL, // ID3D12Resource *pTexture2D;
+                        0 // UINT Subresource;
+                }
             },
-            {
-                    NULL, // ID3D12Resource *pTexture2D;
-                    0 // UINT Subresource;
-            }
+            { 0, 0, (int) dstDesc.Width, (int) dstDesc.Height }
         },
-        { 0, 0, (int) dstDesc.Width, (int) dstDesc.Height }
+        // struct d3d12_resource* buffer;
+        pOutputVideoBuffer,
     };
     
     debug_printf("d3d12_video_processor_begin_frame: Beginning new scene with Output ID3D12Resource: %p (%d %d)\n", pDstD3D12Res, (int) dstDesc.Width, (int) dstDesc.Height);
@@ -81,7 +83,7 @@ d3d12_video_processor_end_frame(struct pipe_video_codec * codec,
     }
 
     auto curOutputDesc = GetOutputStreamDesc(pD3D12Proc->m_spVideoProcessor.Get());
-    auto curOutputTexFmt = GetDesc(pD3D12Proc->m_OutputArguments.OutputStream[0].pTexture2D).Format;
+    auto curOutputTexFmt = GetDesc(pD3D12Proc->m_OutputArguments.args.OutputStream[0].pTexture2D).Format;
     
     bool inputFmtsMatch = pD3D12Proc->m_inputStreamDescs.size() == pD3D12Proc->m_ProcessInputs.size();
     unsigned curInputIdx = 0;
@@ -135,7 +137,7 @@ d3d12_video_processor_end_frame(struct pipe_video_codec * codec,
     // Schedule barrier transitions
     std::vector<D3D12_RESOURCE_BARRIER> barrier_transitions;
     barrier_transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(
-                                pD3D12Proc->m_OutputArguments.OutputStream[0].pTexture2D,
+                                pD3D12Proc->m_OutputArguments.args.OutputStream[0].pTexture2D,
                                 D3D12_RESOURCE_STATE_COMMON,
                                 D3D12_RESOURCE_STATE_VIDEO_PROCESS_WRITE));
 
@@ -149,7 +151,7 @@ d3d12_video_processor_end_frame(struct pipe_video_codec * codec,
 
     // Schedule process operation
 
-    pD3D12Proc->m_spCommandList->ProcessFrames1(pD3D12Proc->m_spVideoProcessor.Get(), &pD3D12Proc->m_OutputArguments, pD3D12Proc->m_ProcessInputs.size(), pD3D12Proc->m_ProcessInputs.data());
+    pD3D12Proc->m_spCommandList->ProcessFrames1(pD3D12Proc->m_spVideoProcessor.Get(), &pD3D12Proc->m_OutputArguments.args, pD3D12Proc->m_ProcessInputs.size(), pD3D12Proc->m_ProcessInputs.data());
 
     // Schedule reverse (back to common) transitions before command list closes for current frame
 
@@ -169,9 +171,6 @@ d3d12_video_processor_process_frame(struct pipe_video_codec *codec,
     // Get the underlying resources from the pipe_video_buffers
     struct d3d12_video_buffer *pInputVideoBuffer = (struct d3d12_video_buffer *) input_texture;
 
-    // Make the resources permanently resident for video use
-    d3d12_promote_to_permanent_residency(pD3D12Proc->m_pD3D12Screen, pInputVideoBuffer->texture);
-
     ID3D12Resource *pSrcD3D12Res = d3d12_resource_resource(pInputVideoBuffer->texture);
 
     // y0 = top
@@ -179,7 +178,7 @@ d3d12_video_processor_process_frame(struct pipe_video_codec *codec,
     // x1 = right
     // y1 = bottom
 
-    debug_printf("d3d12_video_processor_process_frame: Adding Input ID3D12Resource: %p to scene (Output target %p)\n", pSrcD3D12Res, pD3D12Proc->m_OutputArguments.OutputStream[0].pTexture2D);
+    debug_printf("d3d12_video_processor_process_frame: Adding Input ID3D12Resource: %p to scene (Output target %p)\n", pSrcD3D12Res, pD3D12Proc->m_OutputArguments.args.OutputStream[0].pTexture2D);
     debug_printf("d3d12_video_processor_process_frame: Input box: top: %d left: %d right: %d bottom: %d\n", process_properties->src_region.y0, process_properties->src_region.x0, process_properties->src_region.x1, process_properties->src_region.y1);
     debug_printf("d3d12_video_processor_process_frame: Output box: top: %d left: %d right: %d bottom: %d\n", process_properties->dst_region.y0, process_properties->dst_region.x0, process_properties->dst_region.x1, process_properties->dst_region.y1);
     debug_printf("d3d12_video_processor_process_frame: Requested alpha blend mode %d global alpha: %f \n", process_properties->blend.mode, process_properties->blend.global_alpha);
@@ -253,6 +252,7 @@ d3d12_video_processor_process_frame(struct pipe_video_codec *codec,
         InputArguments.Transform.DestinationRectangle.top, InputArguments.Transform.DestinationRectangle.left, InputArguments.Transform.DestinationRectangle.right, InputArguments.Transform.DestinationRectangle.bottom);
 
     pD3D12Proc->m_ProcessInputs.push_back(InputArguments);    
+    pD3D12Proc->m_InputBuffers.push_back(pInputVideoBuffer);
     
     ///
     /// Flush work to the GPU and blocking wait until GPU finishes
@@ -281,14 +281,22 @@ d3d12_video_processor_flush(struct pipe_video_codec * codec)
     assert(pD3D12Proc->m_spD3D12VideoDevice);
     assert(pD3D12Proc->m_spCommandQueue);
 
-    // Flush buffer_subdata batch and Wait the m_spCommandQueue for GPU upload completion
-    // before executing the current batch below. Input objects coming from the pipe_context (ie. input texture) must be fully finished working with before processor can read them.
-    struct pipe_fence_handle *completion_fence = NULL;
-    debug_printf("[d3d12_video_processor] d3d12_video_processor_flush - Flushing pD3D12Proc->m_pD3D12Context->base. and GPU sync between Video/Context queues before flushing Video Process Queue.\n");
-    pD3D12Proc->m_pD3D12Context->base.flush(&pD3D12Proc->m_pD3D12Context->base, &completion_fence, PIPE_FLUSH_ASYNC | PIPE_FLUSH_HINT_FINISH);
-    assert(completion_fence);
-    struct d3d12_fence *casted_completion_fence = d3d12_fence(completion_fence);
-    pD3D12Proc->m_spCommandQueue->Wait(casted_completion_fence->cmdqueue_fence, casted_completion_fence->value);   
+    // Make the resources permanently resident for video use
+    d3d12_promote_to_permanent_residency(pD3D12Proc->m_pD3D12Screen, pD3D12Proc->m_OutputArguments.buffer->texture);
+    // Synchronize against the resources that are going to be read/written to
+    d3d12_resource_wait_idle(d3d12_context(pD3D12Proc->base.context),
+                        pD3D12Proc->m_OutputArguments.buffer->texture,
+                        true /*wantToWrite*/);
+
+    for(auto curInput : pD3D12Proc->m_InputBuffers)
+    {
+        // Make the resources permanently resident for video use
+        d3d12_promote_to_permanent_residency(pD3D12Proc->m_pD3D12Screen, curInput->texture);
+        // Synchronize against the resources that are going to be read/written to
+        d3d12_resource_wait_idle(d3d12_context(pD3D12Proc->base.context),
+                            curInput->texture,
+                            false /*wantToWrite*/);
+    }
 
     debug_printf("[d3d12_video_processor] d3d12_video_processor_flush started. Will flush video queue work and CPU wait on "
                     "fenceValue: %d\n",
@@ -363,9 +371,8 @@ d3d12_video_processor_flush(struct pipe_video_codec * codec)
         pD3D12Proc->m_needsGPUFlush = false;
     }
     pD3D12Proc->m_ProcessInputs.clear();
+    pD3D12Proc->m_InputBuffers.clear();
     // Free the fence after completion finished
-    if(completion_fence)
-        pD3D12Proc->m_pD3D12Screen->base.fence_reference(&pD3D12Proc->m_pD3D12Screen->base, &completion_fence, NULL);
 
     return;
 

@@ -57,6 +57,7 @@ enum tu_debug_flags
    TU_DEBUG_PERF = 1 << 18,
    TU_DEBUG_NOLRZFC = 1 << 19,
    TU_DEBUG_DYNAMIC = 1 << 20,
+   TU_DEBUG_BOS = 1 << 21,
 };
 
 enum global_shader {
@@ -285,6 +286,9 @@ struct tu_device
    /* protects imported BOs creation/freeing */
    struct u_rwlock dma_bo_lock;
 
+   /* Tracking of name -> size allocated for TU_DEBUG_BOS */
+   struct hash_table *bo_sizes;
+
    /* This array holds all our 'struct tu_bo' allocations. We use this
     * so we can add a refcount to our BOs and check if a particular BO
     * was already allocated in this device using its GEM handle. This is
@@ -495,5 +499,12 @@ void
 tu_u_trace_submission_data_finish(
    struct tu_device *device,
    struct tu_u_trace_submission_data *submission_data);
+
+const char *
+tu_debug_bos_add(struct tu_device *dev, uint64_t size, const char *name);
+void
+tu_debug_bos_del(struct tu_device *dev, struct tu_bo *bo);
+void
+tu_debug_bos_print_stats(struct tu_device *dev);
 
 #endif /* TU_DEVICE_H */

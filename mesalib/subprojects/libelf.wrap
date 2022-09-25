@@ -1,6 +1,0 @@
-[wrap-git]
-directory = libelf-lfg-win32-1.1.0-freebsd-12.1.0
-
-url = https://github.com/LagFreeGames/libelf-lfg-win32.git
-revision = 1.1.0
-depth = 1

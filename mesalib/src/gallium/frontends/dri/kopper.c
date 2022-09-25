@@ -507,6 +507,12 @@ kopper_allocate_textures(struct dri_context *ctx,
    resized = (drawable->old_w != width ||
               drawable->old_h != height);
 
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
+
    /* First get the buffers from the loader */
    if (image) {
       if (!dri_image_drawable_get_buffers(drawable, &images,
@@ -717,6 +723,12 @@ kopper_flush_frontbuffer(struct dri_context *ctx,
    if (!ctx || statt != ST_ATTACHMENT_FRONT_LEFT)
       return false;
 
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
+
    if (drawable) {
       /* prevent recursion */
       if (drawable->flushing)
@@ -810,6 +822,12 @@ kopper_update_tex_buffer(struct dri_drawable *drawable,
    if (kscreen->has_dmabuf || cdraw->is_window || cdraw->info.bos.sType != VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR)
       return;
    int cpp = util_format_get_blocksize(res->format);
+
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
 
    get_drawable_info(dPriv, &x, &y, &w, &h);
 
@@ -912,6 +930,12 @@ kopperSwapBuffers(__DRIdrawable *dPriv)
    if (!ptex)
       return 0;
 
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
+
    drawable->texture_stamp = dPriv->lastStamp - 1;
    dri_flush(ctx->cPriv, dPriv, __DRI2_FLUSH_DRAWABLE | __DRI2_FLUSH_CONTEXT, __DRI2_THROTTLE_SWAPBUFFER);
    kopper_copy_to_front(ctx->st->pipe, dPriv, ptex);
@@ -1000,6 +1024,12 @@ kopperQueryBufferAge(__DRIdrawable *dPriv)
    struct pipe_resource *ptex = drawable->textures[ST_ATTACHMENT_BACK_LEFT] ?
                                 drawable->textures[ST_ATTACHMENT_BACK_LEFT] :
                                 drawable->textures[ST_ATTACHMENT_FRONT_LEFT];
+
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
 
    return zink_kopper_query_buffer_age(ctx->st->pipe, ptex);
 }

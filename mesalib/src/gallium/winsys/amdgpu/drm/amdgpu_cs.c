@@ -1610,6 +1610,8 @@ static void amdgpu_cs_submit_ib(void *job, void *gdata, int thread_index)
        * quite often, but it eventually succeeds after enough attempts. This happens frequently
        * with dEQP using NGG streamout.
        */
+      r = 0;
+
       do {
          /* Wait 1 ms and try again. */
          if (r == -ENOMEM)

@@ -55,7 +55,7 @@ enum rra_file_api {
 
 struct rra_file_chunk_description {
    char name[16];
-   bool is_zstd_compressed;
+   uint32_t is_zstd_compressed;
    enum rra_chunk_type type;
    uint64_t header_offset;
    uint64_t header_size;
@@ -197,10 +197,10 @@ static_assert(sizeof(struct rra_accel_struct_chunk_header) == 28,
 
 struct rra_accel_struct_post_build_info {
    uint32_t bvh_type : 1;
-   uint32_t : 5;
+   uint32_t reserved1 : 5;
    uint32_t tri_compression_mode : 2;
    uint32_t fp16_interior_mode : 2;
-   uint32_t : 6;
+   uint32_t reserved2 : 6;
    uint32_t build_flags : 16;
 };
 
@@ -373,7 +373,7 @@ rra_dump_blas_header(struct radv_accel_struct_header *header,
 }
 
 static void
-rra_dump_blas_geometry_infos(struct radv_accel_struct_geometry_info *geometry_infos, 
+rra_dump_blas_geometry_infos(struct radv_accel_struct_geometry_info *geometry_infos,
                              uint32_t geometry_count, FILE *output)
 {
    uint32_t accumulated_primitive_count = 0;
@@ -465,10 +465,9 @@ rra_validate_node(struct hash_table_u64 *accel_struct_vas, uint8_t *data,
             leaf_nodes_size, internal_nodes_size, parent_table_size, is_bottom_level);
       } else if (type == radv_bvh_node_instance) {
          struct radv_bvh_instance_node *src = (struct radv_bvh_instance_node *)(data + offset);
-         uint64_t blas_va = src->base_ptr & (~63UL);
-         if (!_mesa_hash_table_u64_search(accel_struct_vas, blas_va)) {
+         if (!_mesa_hash_table_u64_search(accel_struct_vas, src->base_ptr)) {
             rra_accel_struct_validation_fail(offset, "Invalid instance node pointer 0x%llx",
-                                             (unsigned long long)blas_va);
+                                             (unsigned long long)src->base_ptr);
             result = false;
          }
       }
@@ -503,36 +502,16 @@ rra_transcode_aabb_node(struct rra_aabb_node *dst, const struct radv_bvh_aabb_no
 static void
 rra_transcode_instance_node(struct rra_instance_node *dst, const struct radv_bvh_instance_node *src)
 {
-   /* Mask out root node offset from AS pointer to get the raw VA */
-   uint64_t blas_va = src->base_ptr & (~63UL);
-
    dst->custom_instance_id = src->custom_instance_and_mask & 0xffffff;
    dst->mask = src->custom_instance_and_mask >> 24;
    dst->sbt_offset = src->sbt_offset_and_flags & 0xffffff;
    dst->instance_flags = src->sbt_offset_and_flags >> 24;
-   dst->blas_va = (blas_va + sizeof(struct rra_accel_struct_metadata)) >> 3;
+   dst->blas_va = (src->base_ptr + sizeof(struct rra_accel_struct_metadata)) >> 3;
    dst->instance_id = src->instance_id;
    dst->blas_metadata_size = sizeof(struct rra_accel_struct_metadata);
 
-   float full_otw_matrix[16];
-   for (int row = 0; row < 3; ++row)
-      for (int col = 0; col < 3; ++col)
-         full_otw_matrix[row * 4 + col] = src->otw_matrix[row * 3 + col];
-
-   full_otw_matrix[3] = src->wto_matrix[3];
-   full_otw_matrix[7] = src->wto_matrix[7];
-   full_otw_matrix[11] = src->wto_matrix[11];
-
-   full_otw_matrix[12] = 0.0f;
-   full_otw_matrix[13] = 0.0f;
-   full_otw_matrix[14] = 0.0f;
-   full_otw_matrix[15] = 1.0f;
-
-   float full_wto_matrix[16];
-   util_invert_mat4x4(full_wto_matrix, full_otw_matrix);
-
-   memcpy(dst->wto_matrix, full_wto_matrix, sizeof(dst->wto_matrix));
-   memcpy(dst->otw_matrix, full_otw_matrix, sizeof(dst->otw_matrix));
+   memcpy(dst->wto_matrix, src->wto_matrix.values, sizeof(dst->wto_matrix));
+   memcpy(dst->otw_matrix, src->otw_matrix.values, sizeof(dst->otw_matrix));
 }
 
 static void
@@ -640,7 +619,7 @@ rra_dump_acceleration_structure(struct rra_copied_accel_struct *copied_struct,
       ((dst_leaf_nodes_size + dst_internal_nodes_size) / 64) * sizeof(uint32_t);
 
    /* convert root node id to offset */
-   uint32_t src_root_offset = (header->root_node_offset & ~7) << 3;
+   uint32_t src_root_offset = (RADV_BVH_ROOT_NODE & ~7) << 3;
 
    if (should_validate)
       if (!rra_validate_node(accel_struct_vas, data,
@@ -650,20 +629,20 @@ rra_dump_acceleration_structure(struct rra_copied_accel_struct *copied_struct,
          return VK_ERROR_VALIDATION_FAILED_EXT;
       }
 
-   uint32_t *node_parent_table = malloc(node_parent_table_size);
+   uint32_t *node_parent_table = calloc(node_parent_table_size, 1);
    if (!node_parent_table) {
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
 
    node_parent_table[rra_parent_table_index_from_offset(RRA_ROOT_NODE_OFFSET, node_parent_table_size)] = 0xffffffff;
-   
-   uint32_t *leaf_node_ids = malloc(primitive_count * sizeof(uint32_t));
+
+   uint32_t *leaf_node_ids = calloc(primitive_count, sizeof(uint32_t));
    if (!leaf_node_ids) {
       free(node_parent_table);
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
    uint8_t *dst_structure_data =
-      malloc(RRA_ROOT_NODE_OFFSET + dst_internal_nodes_size + dst_leaf_nodes_size);
+      calloc(RRA_ROOT_NODE_OFFSET + dst_internal_nodes_size + dst_leaf_nodes_size, 1);
    if (!dst_structure_data) {
       free(node_parent_table);
       free(leaf_node_ids);
@@ -941,7 +920,7 @@ fail:
 
 static VkResult
 rra_copy_acceleration_structures(VkQueue vk_queue, struct rra_accel_struct_copy *dst,
-                                 struct hash_entry **last_entry, uint32_t count,
+                                 struct hash_entry **entries, uint32_t count,
                                  uint32_t *copied_structure_count)
 {
    RADV_FROM_HANDLE(radv_queue, queue, vk_queue);
@@ -969,13 +948,7 @@ rra_copy_acceleration_structures(VkQueue vk_queue, struct rra_accel_struct_copy 
 
    uint64_t dst_offset = 0;
    for (uint32_t i = 0; i < count;) {
-      struct hash_entry *entry =
-         _mesa_hash_table_next_entry(device->rra_trace.accel_structs, *last_entry);
-
-      if (!entry)
-         break;
-
-      *last_entry = entry;
+      struct hash_entry *entry = entries[i];
 
       VkResult event_result = radv_GetEventStatus(vk_device, radv_event_to_handle(entry->data));
       if (event_result != VK_EVENT_SET) {
@@ -1005,7 +978,7 @@ rra_copy_acceleration_structures(VkQueue vk_queue, struct rra_accel_struct_copy 
 
       dst->copied_structures[i].handle = structure;
       dst->copied_structures[i].data = dst->map_data + dst_offset;
-      
+
       dst_offset += accel_struct->size;
 
       ++(*copied_structure_count);
@@ -1030,12 +1003,24 @@ fail:
    return result;
 }
 
+static int
+accel_struct_entry_cmp(const void *a, const void *b)
+{
+   struct hash_entry *entry_a = *(struct hash_entry *const *)a;
+   struct hash_entry *entry_b = *(struct hash_entry *const *)b;
+   const struct radv_acceleration_structure *s_a = entry_a->key;
+   const struct radv_acceleration_structure *s_b = entry_b->key;
+
+   return s_a->va > s_b->va ? 1 : s_a->va < s_b->va ? -1 : 0;
+}
+
 VkResult
 radv_rra_dump_trace(VkQueue vk_queue, char *filename)
 {
    RADV_FROM_HANDLE(radv_queue, queue, vk_queue);
    struct radv_device *device = queue->device;
    VkDevice vk_device = radv_device_to_handle(device);
+   struct hash_entry **hash_entries = NULL;
 
    uint32_t accel_struct_count = _mesa_hash_table_num_entries(device->rra_trace.accel_structs);
 
@@ -1071,12 +1056,26 @@ radv_rra_dump_trace(VkQueue vk_queue, char *filename)
    struct rra_accel_struct_copy copy = {0};
    result = rra_init_acceleration_structure_copy(vk_device, queue->vk.queue_family_index, &copy);
    if (result != VK_SUCCESS)
+      goto init_fail;
+
+   uint32_t struct_count = _mesa_hash_table_num_entries(device->rra_trace.accel_structs);
+   hash_entries = malloc(sizeof(*hash_entries) * struct_count);
+   if (!hash_entries) {
+      result = VK_ERROR_OUT_OF_HOST_MEMORY;
       goto fail;
+   }
 
    struct hash_entry *last_entry = NULL;
-   while (_mesa_hash_table_next_entry(device->rra_trace.accel_structs, last_entry)) {
+   for (unsigned i = 0;
+        (last_entry = _mesa_hash_table_next_entry(device->rra_trace.accel_structs, last_entry));
+        ++i)
+      hash_entries[i] = last_entry;
+
+   qsort(hash_entries, struct_count, sizeof(*hash_entries), accel_struct_entry_cmp);
+   for (unsigned j = 0; j < struct_count; j += RRA_COPY_BATCH_SIZE) {
       uint32_t copied_structure_count;
-      result = rra_copy_acceleration_structures(vk_queue, &copy, &last_entry, RRA_COPY_BATCH_SIZE,
+      result = rra_copy_acceleration_structures(vk_queue, &copy, hash_entries + j,
+                                                MIN2(RRA_COPY_BATCH_SIZE, struct_count - j),
                                                 &copied_structure_count);
       if (result != VK_SUCCESS)
          goto copy_fail;
@@ -1115,13 +1114,14 @@ radv_rra_dump_trace(VkQueue vk_queue, char *filename)
    /* All info is available, dump header now */
    fseek(file, 0, SEEK_SET);
    rra_dump_header(file, chunk_info_offset, file_end - chunk_info_offset);
-
-   fclose(file);
 copy_fail:
    radv_DestroyBuffer(vk_device, copy.buffer, NULL);
    radv_FreeMemory(vk_device, copy.memory, NULL);
    vk_common_DestroyCommandPool(vk_device, copy.pool, NULL);
+init_fail:
+   fclose(file);
 fail:
+   free(hash_entries);
    free(accel_struct_offsets);
    return result;
 }

@@ -43,7 +43,7 @@ bool AluGroup::add_instruction(AluInstr *instr)
       return false;
 
    if (instr->has_alu_flag(alu_is_trans)) {
-      auto opinfo = alu_ops.find(instr->opcode());
+      ASSERTED auto opinfo = alu_ops.find(instr->opcode());
       assert(opinfo->second.can_channel(AluOp::t, s_chip_class));
       if (add_trans_instructions(instr))
          return true;

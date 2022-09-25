@@ -38,6 +38,10 @@ _mesa_marshal_GetIntegerv(GLenum pname, GLint *p)
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   /* This will generate GL_INVALID_OPERATION, as it should. */
+   if (ctx->GLThread.inside_begin_end)
+      goto sync;
+
    /* TODO: Use get_hash_params.py to return values for items containing:
     * - CONST(
     * - CONTEXT_[A-Z]*(Const
@@ -54,7 +58,7 @@ _mesa_marshal_GetIntegerv(GLenum pname, GLint *p)
       *p = ctx->GLThread.AttribStackDepth;
       return;
    case GL_CLIENT_ACTIVE_TEXTURE:
-      *p = ctx->GLThread.ClientActiveTexture;
+      *p = GL_TEXTURE0 + ctx->GLThread.ClientActiveTexture;
       return;
    case GL_CLIENT_ATTRIB_STACK_DEPTH:
       *p = ctx->GLThread.ClientAttribStackTop;
@@ -127,6 +131,7 @@ _mesa_marshal_GetIntegerv(GLenum pname, GLint *p)
       return;
    }
 
+sync:
    _mesa_glthread_finish_before(ctx, "GetIntegerv");
    CALL_GetIntegerv(ctx->CurrentServerDispatch, (pname, p));
 }

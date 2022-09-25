@@ -265,6 +265,9 @@ d3d12_video_encoder_negotiate_current_h264_slices_configuration(struct d3d12_vid
                          "enable the OS environment variable D3D12_VIDEO_ENC_FALLBACK_SLICE_CONFIG");
          return false;
       }
+   } else {
+      debug_printf("[d3d12_video_encoder_h264] Requested slice control mode is full frame. m_SlicesPartition_H264.NumberOfSlicesPerFrame = %d - m_encoderSliceConfigMode = %d \n",
+      requestedSlicesConfig.NumberOfSlicesPerFrame, requestedSlicesMode);
    }
 
    if (!d3d12_video_encoder_compare_slice_config_h264_hevc(

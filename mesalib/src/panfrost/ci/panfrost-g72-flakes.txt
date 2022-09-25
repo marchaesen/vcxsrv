@@ -9,3 +9,5 @@ dEQP-GLES31.functional.draw_base_vertex.*
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask.*
 dEQP-GLES31.functional.texture.gather.*repeat_mirrored_repeat
 dEQP-GLES31.functional.blend_equation_advanced.msaa.hardlight
+
+dEQP-GLES31.functional.texture.gather.offsets.implementation_offset.2d.depth32f.size_pot.compare_greater.mirrored_repeat_clamp_to_edge

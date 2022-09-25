@@ -170,7 +170,6 @@ struct aco_stage_input {
 
    struct {
       uint32_t col_format;
-      uint8_t num_samples;
 
       /* Used to export alpha through MRTZ for alpha-to-coverage (GFX11+). */
       bool alpha_to_coverage_via_mrtz;

@@ -131,13 +131,10 @@ agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I,
          float f = fp16 ? _mesa_half_to_float(def->imm) : uif(def->imm);
          if (!agx_minifloat_exact(f)) continue;
 
-         value = agx_minifloat_encode(f);
-      } else if (value != def->imm) {
-         continue;
+         I->src[s] = agx_immediate_f(f);
+      } else if (value == def->imm) {
+         I->src[s] = agx_immediate(value);
       }
-
-      I->src[s].type = AGX_INDEX_IMMEDIATE;
-      I->src[s].value = value;
    }
 }
 

@@ -294,9 +294,6 @@ struct agx_resource {
     * resources.
     */
    struct agx_resource *separate_stencil;
-
-   /* Internal format, since many depth/stencil formats are emulated. */
-   enum pipe_format internal_format;
 };
 
 static inline struct agx_resource *

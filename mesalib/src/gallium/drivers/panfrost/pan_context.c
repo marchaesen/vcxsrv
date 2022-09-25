@@ -43,6 +43,7 @@
 #include "util/format/u_format.h"
 #include "util/u_prim.h"
 #include "util/u_prim_restart.h"
+#include "util/u_surface.h"
 #include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_from_mesa.h"
 #include "nir/tgsi_to_nir.h"
@@ -1098,6 +1099,7 @@ panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
 
         gallium->flush = panfrost_flush;
         gallium->clear = panfrost_clear;
+        gallium->clear_texture = util_clear_texture;
         gallium->texture_barrier = panfrost_texture_barrier;
         gallium->set_frontend_noop = panfrost_set_frontend_noop;
 

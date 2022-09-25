@@ -24,7 +24,7 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-/* NOTE: see https://github.com/freedreno/freedreno/wiki/A5xx-Queries */
+/* NOTE: see https://gitlab.freedesktop.org/freedreno/freedreno/-/wikis/A5xx-Queries */
 
 #include "freedreno_query_acc.h"
 #include "freedreno_resource.h"

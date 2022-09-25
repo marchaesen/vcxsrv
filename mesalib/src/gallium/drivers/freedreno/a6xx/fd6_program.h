@@ -58,6 +58,12 @@ struct fd6_program_state {
     * render targets.
     */
    uint32_t mrt_components;
+
+   /**
+    * Rather than calculating user consts state size each draw,
+    * calculate it up-front.
+    */
+   uint32_t user_consts_cmdstream_size;
 };
 
 static inline struct fd6_program_state *

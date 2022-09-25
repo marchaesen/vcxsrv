@@ -145,4 +145,7 @@
 /* Fallback input driver if the assigned driver fails */
 #mesondefine FALLBACK_INPUT_DRIVER
 
+/* Define if building the modesetting driver */
+#mesondefine HAVE_MODESETTING_DRIVER
+
 #endif /* _XORG_CONFIG_H_ */

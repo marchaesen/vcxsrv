@@ -20,6 +20,7 @@ OPT_INT(max_vram_map_size, 8196, "Maximum size of a buffer in VRAM to map direct
 OPT_BOOL(force_use_fma32, false, "Force use fma32 instruction for GPU family newer than gfx9")
 OPT_BOOL(dcc_msaa, false, "Enable DCC for MSAA")
 OPT_BOOL(mall_noalloc, false, "Don't use MALL (infinity cache)")
+OPT_BOOL(zerovram, false, "Zero all VRAM allocations")
 
 #undef OPT_BOOL
 #undef OPT_INT

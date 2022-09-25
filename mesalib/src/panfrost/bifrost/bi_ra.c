@@ -1049,6 +1049,8 @@ bi_out_of_ssa(bi_context *ctx)
                 }
         }
 
+        free(used);
+        free(multiple_uses);
         return first_reg;
 }
 

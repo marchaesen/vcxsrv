@@ -130,27 +130,7 @@ VkResult pvr_csb_emit_terminate(struct pvr_csb *csb);
 #define pvr_cmd_length(x) PVRX(x##_length)
 #define pvr_cmd_header(x) PVRX(x##_header)
 #define pvr_cmd_pack(x) PVRX(x##_pack)
-
-/**
- * \brief Packs a command/state into one or more dwords and stores them in the
- * memory pointed to by _dst.
- *
- * \param[out] _dst    Pointer to store the packed command/state.
- * \param[in] cmd      Command/state type.
- * \param[in,out] name Name to give to the command/state structure variable,
- *                     which contains the information to be packed and emitted.
- *                     This can be used by the caller to modify the command or
- *                     state information before it's packed.
- */
-#define pvr_csb_pack(_dst, cmd, name)                                 \
-   for (struct PVRX(cmd) name = { pvr_cmd_header(cmd) },              \
-                         *_loop_terminate = &name;                    \
-        __builtin_expect(_loop_terminate != NULL, 1);                 \
-        ({                                                            \
-           STATIC_ASSERT(sizeof(*(_dst)) == pvr_cmd_length(cmd) * 4); \
-           pvr_cmd_pack(cmd)((_dst), &name);                          \
-           _loop_terminate = NULL;                                    \
-        }))
+#define pvr_cmd_unpack(x) PVRX(x##_unpack)
 
 /**
  * \brief Merges dwords0 and dwords1 arrays and stores the result into the
@@ -207,5 +187,94 @@ VkResult pvr_csb_emit_terminate(struct pvr_csb *csb);
          break;                                         \
       *dw = dword;                                      \
    } while (0)
+
+/**
+ * \name Raw command/state buffer helpers.
+ * These provide functionality to read or write control/state words from/to a
+ * raw buffer, accessed through a pointer, with some extra checks.
+ *
+ * The raw buffer doesn't have to be related to a control stream builder object
+ * so these can be used with any cpu accessible buffer.
+ */
+/**@{*/
+
+/**
+ * \brief Packs a command/state into one or more dwords and stores them in the
+ * memory pointed to by _dst.
+ *
+ * \param[out] _dst    Pointer to store the packed command/state.
+ * \param[in] cmd      Command/state type.
+ * \param[in,out] name Name to give to the command/state structure variable,
+ *                     which contains the information to be packed and emitted.
+ *                     This can be used by the caller to modify the command or
+ *                     state information before it's packed.
+ */
+#define pvr_csb_pack(_dst, cmd, name)                                 \
+   for (struct PVRX(cmd) name = { pvr_cmd_header(cmd) },              \
+                         *_loop_terminate = &name;                    \
+        __builtin_expect(_loop_terminate != NULL, 1);                 \
+        ({                                                            \
+           STATIC_ASSERT(sizeof(*(_dst)) == pvr_cmd_length(cmd) * 4); \
+           pvr_cmd_pack(cmd)((_dst), &name);                          \
+           _loop_terminate = NULL;                                    \
+        }))
+
+/**
+ * \brief Unpacks one or more dwords into a command/state struct.
+ *
+ * Unlike pvr_csb_pack, this returns the stack-allocated struct directly
+ * since it is not needed afterwards.
+ *
+ * \param[in] _src     Pointer to read the packed command/state from.
+ * \param[in] cmd      Command/state type.
+ */
+#define pvr_csb_unpack(_src, cmd)                                \
+   ({                                                            \
+      struct PVRX(cmd) _name;                                    \
+      STATIC_ASSERT(sizeof(*(_src)) == pvr_cmd_length(cmd) * 4); \
+      pvr_cmd_unpack(cmd)((_src), &_name);                       \
+      _name;                                                     \
+   })
+
+/**
+ * \brief Writes a command/state word value into a raw buffer and advance.
+ *
+ * The buffer pointer is incremented appropriately based on the control stream
+ * word length.
+ *
+ * \param[in,out] dst Raw buffer pointer for writing.
+ * \param[in]     cmd Command/state type.
+ * \param[in]     val Pre-packed value to write.
+ */
+#define pvr_csb_write_value(dst, cmd, val)                                    \
+   do {                                                                       \
+      static_assert(sizeof(*(dst)) == pvr_cmd_length(cmd) * sizeof(uint32_t), \
+                    "Size mismatch");                                         \
+      static_assert(sizeof(*(dst)) == sizeof(val), "Size mismatch");          \
+      *(dst) = (val);                                                         \
+      (dst)++;                                                                \
+   } while (0)
+
+/**
+ * \brief Packs a command/state word struct and writes the value into a raw
+ * buffer and advance.
+ *
+ * The buffer pointer is incremented appropriately based on the control stream
+ * word length.
+ *
+ * \param[in,out] dst Raw buffer pointer for writing.
+ * \param[in]     cmd Command/state type.
+ * \param[in]     val Command/state struct to pack and write.
+ */
+#define pvr_csb_write_struct(dst, cmd, val)                                   \
+   do {                                                                       \
+      static_assert(sizeof(*(dst)) == pvr_cmd_length(cmd) * sizeof(uint32_t), \
+                    "Size mismatch");                                         \
+      pvr_cmd_pack(cmd)((dst), (val));                                        \
+      (dst)++;                                                                \
+   } while (0)
+
+/**@}*/
+/* End of \name Raw command/state buffer helpers. */
 
 #endif /* PVR_CSB_H */

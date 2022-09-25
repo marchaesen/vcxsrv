@@ -106,6 +106,9 @@ struct vk_device {
 
    struct {
       bool robustBufferAccess;
+      bool robustBufferAccess2;
+      bool robustImageAccess;
+      bool robustImageAccess2;
    } enabled_features;
 
    /** Device-level dispatch table */

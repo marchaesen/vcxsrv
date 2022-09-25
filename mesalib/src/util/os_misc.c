@@ -86,15 +86,19 @@ os_log_message(const char *message)
       /* one-time init */
       const char *filename = os_get_option("GALLIUM_LOG_FILE");
       if (filename) {
-         const char *mode = "w";
-         if (filename[0] == '+') {
-            /* If the filename is prefixed with '+' then open the file for
-             * appending instead of normal writing.
-             */
-            mode = "a";
+         if (strcmp(filename, "stdout") == 0) {
+            fout = stdout;
+         } else {
+            const char *mode = "w";
+            if (filename[0] == '+') {
+               /* If the filename is prefixed with '+' then open the file for
+                * appending instead of normal writing.
+                */
+               mode = "a";
             filename++; /* skip the '+' */
+            }
+            fout = fopen(filename, mode);
          }
-         fout = fopen(filename, mode);
       }
 #endif
       if (!fout)

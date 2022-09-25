@@ -48,7 +48,6 @@ struct blorp_batch;
 struct blorp_params;
 
 #define IRIS_MAX_TEXTURE_BUFFER_SIZE (1 << 27)
-#define IRIS_MAX_TEXTURE_SAMPLERS 32
 /* IRIS_MAX_ABOS and IRIS_MAX_SSBOS must be the same. */
 #define IRIS_MAX_ABOS 16
 #define IRIS_MAX_SSBOS 16
@@ -453,7 +452,8 @@ enum iris_surface_group {
    IRIS_SURFACE_GROUP_RENDER_TARGET,
    IRIS_SURFACE_GROUP_RENDER_TARGET_READ,
    IRIS_SURFACE_GROUP_CS_WORK_GROUPS,
-   IRIS_SURFACE_GROUP_TEXTURE,
+   IRIS_SURFACE_GROUP_TEXTURE_LOW64,
+   IRIS_SURFACE_GROUP_TEXTURE_HIGH64,
    IRIS_SURFACE_GROUP_IMAGE,
    IRIS_SURFACE_GROUP_UBO,
    IRIS_SURFACE_GROUP_SSBO,
@@ -559,18 +559,18 @@ struct iris_shader_state {
    struct iris_image_view image[PIPE_MAX_SHADER_IMAGES];
 
    struct iris_state_ref sampler_table;
-   struct iris_sampler_state *samplers[IRIS_MAX_TEXTURE_SAMPLERS];
-   struct iris_sampler_view *textures[IRIS_MAX_TEXTURE_SAMPLERS];
+   struct iris_sampler_state *samplers[IRIS_MAX_SAMPLERS];
+   struct iris_sampler_view *textures[IRIS_MAX_TEXTURES];
 
    /** Bitfield of which constant buffers are bound (non-null). */
    uint32_t bound_cbufs;
    uint32_t dirty_cbufs;
 
    /** Bitfield of which image views are bound (non-null). */
-   uint32_t bound_image_views;
+   uint64_t bound_image_views;
 
    /** Bitfield of which sampler views are bound (non-null). */
-   uint32_t bound_sampler_views;
+   BITSET_DECLARE(bound_sampler_views, IRIS_MAX_TEXTURES);
 
    /** Bitfield of which shader storage buffers are bound (non-null). */
    uint32_t bound_ssbos;

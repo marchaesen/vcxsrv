@@ -891,6 +891,12 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
       if (gfx_level <= GFX8 && info->max_se == 4 && multi_instances_smaller_than_primgroup)
          wd_switch_on_eop = true;
 
+      /* Hardware requirement when drawing primitives from a stream
+       * output buffer.
+       */
+      if (count_from_stream_output)
+         wd_switch_on_eop = true;
+
       /* Required on GFX7 and later. */
       if (info->max_se > 2 && !wd_switch_on_eop)
          ia_switch_on_eoi = true;
@@ -906,12 +912,6 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
       /* Instancing bug on Bonaire. */
       if (family == CHIP_BONAIRE && ia_switch_on_eoi && (instanced_draw || indirect_draw))
          partial_vs_wave = true;
-
-      /* Hardware requirement when drawing primitives from a stream
-       * output buffer.
-       */
-      if (count_from_stream_output)
-         wd_switch_on_eop = true;
 
       /* If the WD switch is false, the IA switch must be false too. */
       assert(wd_switch_on_eop || !ia_switch_on_eop);

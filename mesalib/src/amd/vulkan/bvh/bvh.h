@@ -33,6 +33,11 @@
 #define VK_UUID_SIZE 16
 #else
 #include <vulkan/vulkan.h>
+
+typedef struct {
+   float values[3][4];
+} mat3x4;
+
 #endif
 
 struct radv_accel_struct_serialization_header {
@@ -53,8 +58,8 @@ struct radv_accel_struct_geometry_info {
 };
 
 struct radv_accel_struct_header {
-   uint32_t root_node_offset;
    uint32_t reserved;
+   uint32_t reserved2;
    float aabb[2][3];
 
    /* Everything after this gets updated/copied from the CPU. */
@@ -94,18 +99,13 @@ struct radv_bvh_instance_node {
    /* lower 24 bits are the sbt offset, upper 8 bits are VkGeometryInstanceFlagsKHR */
    uint32_t sbt_offset_and_flags;
 
-   /* The translation component is actually a pre-translation instead of a post-translation. If you
-    * want to get a proper matrix out of it you need to apply the directional component of the
-    * matrix to it. The pre-translation of the world->object matrix is the same as the
-    * post-translation of the object->world matrix so this way we can share data between both
-    * matrices. */
-   float wto_matrix[12];
-   float aabb[2][3];
-   uint32_t instance_id;
+   mat3x4 wto_matrix;
 
-   /* Object to world matrix transposed from the initial transform. Translate part is store in the
-    * wto_matrix. */
-   float otw_matrix[9];
+   uint32_t instance_id;
+   uint32_t reserved[3];
+
+   /* Object to world matrix transposed from the initial transform. */
+   mat3x4 otw_matrix;
 };
 
 struct radv_bvh_box16_node {
@@ -118,5 +118,8 @@ struct radv_bvh_box32_node {
    float coords[4][2][3];
    uint32_t reserved[4];
 };
+
+/* 128 bytes of header & a box32 node */
+#define RADV_BVH_ROOT_NODE (0x10 + radv_bvh_node_internal)
 
 #endif

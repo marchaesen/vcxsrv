@@ -42,9 +42,8 @@ extern void r500FragmentProgramDump(struct radeon_compiler *c, void *user);
 
 extern const struct rc_swizzle_caps r500_swizzle_caps;
 
-extern int r500_transform_IF(
+extern void r500_transform_IF(
 	struct radeon_compiler * c,
-	struct rc_instruction * inst_if,
 	void* data);
 
 #endif

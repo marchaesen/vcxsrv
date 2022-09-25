@@ -50,13 +50,6 @@ subpixel_snap(float a)
 }
 
 
-static inline float
-fixed_to_float(int a)
-{
-   return a * (1.0f / FIXED_ONE);
-}
-
-
 /**
  * Alloc space for a new rectangle plus the input.a0/dadx/dady arrays
  * immediately after it.

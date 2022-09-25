@@ -75,7 +75,7 @@ iris_init_border_color_pool(struct iris_bufmgr *bufmgr,
    pool->ht = _mesa_hash_table_create(NULL, color_hash, color_equals);
 
    pool->bo = iris_bo_alloc(bufmgr, "border colors",
-                            IRIS_BORDER_COLOR_POOL_SIZE, 1,
+                            IRIS_BORDER_COLOR_POOL_SIZE, 64,
                             IRIS_MEMZONE_BORDER_COLOR_POOL, 0);
    pool->map = iris_bo_map(NULL, pool->bo, MAP_WRITE);
 

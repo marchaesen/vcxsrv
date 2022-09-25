@@ -83,7 +83,6 @@ struct ra_ctx {
    uint16_t sgpr_limit;
    uint16_t vgpr_limit;
    std::bitset<512> war_hint;
-   std::bitset<64> defs_done; /* see MAX_ARGS in aco_instruction_selection_setup.cpp */
 
    ra_test_policy policy;
 
@@ -380,16 +379,16 @@ UNUSED void
 print_reg(const RegisterFile& reg_file, PhysReg reg, bool has_adjacent_variable)
 {
    if (reg_file[reg] == 0xFFFFFFFF) {
-      printf("☐");
+      printf(u8"☐");
    } else if (reg_file[reg]) {
       const bool show_subdword_alloc = (reg_file[reg] == 0xF0000000);
       if (show_subdword_alloc) {
          const char* block_chars[] = {
             // clang-format off
-            "?", "▘", "▝", "▀",
-            "▖", "▌", "▞", "▛",
-            "▗", "▚", "▐", "▜",
-            "▄", "▙", "▟", "▉"
+            u8"?", u8"▘", u8"▝", u8"▀",
+            u8"▖", u8"▌", u8"▞", u8"▛",
+            u8"▗", u8"▚", u8"▐", u8"▜",
+            u8"▄", u8"▙", u8"▟", u8"▉"
             // clang-format on
          };
          unsigned index = 0;
@@ -402,14 +401,14 @@ print_reg(const RegisterFile& reg_file, PhysReg reg, bool has_adjacent_variable)
       } else {
          /* Indicate filled register slot */
          if (!has_adjacent_variable) {
-            printf("█");
+            printf(u8"█");
          } else {
             /* Use a slightly shorter box to leave a small gap between adjacent variables */
-            printf("▉");
+            printf(u8"▉");
          }
       }
    } else {
-      printf("·");
+      printf(u8"·");
    }
 }
 
@@ -2870,8 +2869,6 @@ register_allocation(Program* program, std::vector<IDSet>& live_out_per_block, ra
             instr->definitions[0].setFixed(instr->operands[2].physReg());
          }
 
-         ctx.defs_done.reset();
-
          /* handle fixed definitions first */
          for (unsigned i = 0; i < instr->definitions.size(); ++i) {
             auto& definition = instr->definitions[i];
@@ -2899,7 +2896,6 @@ register_allocation(Program* program, std::vector<IDSet>& live_out_per_block, ra
 
                update_renames(ctx, register_file, parallelcopy, instr, (UpdateRenames)0);
             }
-            ctx.defs_done.set(i);
 
             if (!definition.isTemp())
                continue;
@@ -2977,7 +2973,6 @@ register_allocation(Program* program, std::vector<IDSet>& live_out_per_block, ra
                definition->isFixed() &&
                ((definition->getTemp().type() == RegType::vgpr && definition->physReg() >= 256) ||
                 (definition->getTemp().type() != RegType::vgpr && definition->physReg() < 256)));
-            ctx.defs_done.set(i);
             ctx.assignments[definition->tempId()].set(*definition);
             register_file.fill(*definition);
          }

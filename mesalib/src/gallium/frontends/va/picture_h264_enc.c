@@ -40,6 +40,9 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
       context->desc.h264enc.frame_num = 0;
    context->desc.h264enc.not_referenced = !h264->pic_fields.bits.reference_pic_flag;
    context->desc.h264enc.pic_order_cnt = h264->CurrPic.TopFieldOrderCnt;
+   context->desc.h264enc.is_ltr = h264->CurrPic.flags & VA_PICTURE_H264_LONG_TERM_REFERENCE;
+   if (context->desc.h264enc.is_ltr)
+      context->desc.h264enc.ltr_index = h264->CurrPic.frame_idx;
    if (context->desc.h264enc.gop_cnt == 0)
       context->desc.h264enc.i_remain = context->gop_coeff;
    else if (context->desc.h264enc.frame_num == 1)
@@ -53,7 +56,12 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
                                             PIPE_USAGE_STREAM, coded_buf->size);
    context->coded_buf = coded_buf;
 
-   _mesa_hash_table_insert(context->desc.h264enc.frame_idx,
+   if (context->desc.h264enc.is_ltr)
+      _mesa_hash_table_insert(context->desc.h264enc.frame_idx,
+		       UINT_TO_PTR(h264->CurrPic.picture_id + 1),
+		       UINT_TO_PTR(context->desc.h264enc.ltr_index));
+   else
+      _mesa_hash_table_insert(context->desc.h264enc.frame_idx,
 		       UINT_TO_PTR(h264->CurrPic.picture_id + 1),
 		       UINT_TO_PTR(context->desc.h264enc.frame_num));
 
@@ -98,10 +106,14 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
       if (h264->RefPicList0[i].picture_id != VA_INVALID_ID) {
                context->desc.h264enc.ref_idx_l0_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
                                  UINT_TO_PTR(h264->RefPicList0[i].picture_id + 1)));
+               context->desc.h264enc.l0_is_long_term[i] = h264->RefPicList0[i].flags &
+		       					  VA_PICTURE_H264_LONG_TERM_REFERENCE;
       }
       if (h264->RefPicList1[i].picture_id != VA_INVALID_ID && h264->slice_type == 1) {
             context->desc.h264enc.ref_idx_l1_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
-                                 UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
+               			 UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
+            context->desc.h264enc.l1_is_long_term[i] = h264->RefPicList1[i].flags &
+		    				       VA_PICTURE_H264_LONG_TERM_REFERENCE;
       }
    }
 

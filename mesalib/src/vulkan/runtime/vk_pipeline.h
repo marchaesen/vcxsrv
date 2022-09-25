@@ -62,6 +62,19 @@ void
 vk_pipeline_hash_shader_stage(const VkPipelineShaderStageCreateInfo *info,
                               unsigned char *stage_sha1);
 
+struct vk_pipeline_robustness_state {
+   VkPipelineRobustnessBufferBehaviorEXT storage_buffers;
+   VkPipelineRobustnessBufferBehaviorEXT uniform_buffers;
+   VkPipelineRobustnessBufferBehaviorEXT vertex_inputs;
+   VkPipelineRobustnessImageBehaviorEXT images;
+};
+
+void
+vk_pipeline_robustness_state_fill(const struct vk_device *device,
+                                  struct vk_pipeline_robustness_state *rs,
+                                  const void *pipeline_pNext,
+                                  const void *shader_stage_pNext);
+
 #ifdef __cplusplus
 }
 #endif

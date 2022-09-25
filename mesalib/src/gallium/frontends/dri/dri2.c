@@ -453,6 +453,12 @@ dri2_allocate_textures(struct dri_context *ctx,
 
    assert(num_buffers <= __DRI_BUFFER_COUNT);
 
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
+
    /* First get the buffers from the loader */
    if (image) {
       if (!dri_image_drawable_get_buffers(drawable, &images,
@@ -751,6 +757,12 @@ dri2_flush_frontbuffer(struct dri_context *ctx,
    if (statt != ST_ATTACHMENT_FRONT_LEFT &&
        (!ctx->is_shared_buffer_bound || statt != ST_ATTACHMENT_BACK_LEFT))
          return false;
+
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
 
    if (drawable->stvis.samples > 1) {
       /* Resolve the buffer used for front rendering. */
@@ -1755,6 +1767,12 @@ dri2_blit_image(__DRIcontext *context, __DRIimage *dst, __DRIimage *src,
    if (!dst || !src)
       return;
 
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
+
    handle_in_fence(context, dst);
 
    memset(&blit, 0, sizeof(blit));
@@ -1807,6 +1825,12 @@ dri2_map_image(__DRIcontext *context, __DRIimage *image,
    if (plane >= dri2_get_mapping_by_format(image->dri_format)->nplanes)
       return NULL;
 
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
+
    handle_in_fence(context, image);
 
    struct pipe_resource *resource = image->texture;
@@ -1833,6 +1857,12 @@ dri2_unmap_image(__DRIcontext *context, __DRIimage *image, void *data)
 {
    struct dri_context *ctx = dri_context(context);
    struct pipe_context *pipe = ctx->st->pipe;
+
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
 
    pipe_texture_unmap(pipe, (struct pipe_transfer *)data);
 }
@@ -2007,6 +2037,10 @@ dri2_interop_export_object(__DRIcontext *_ctx,
    if ((target == GL_RENDERBUFFER || target == GL_ARRAY_BUFFER) &&
        in->miplevel != 0)
       return MESA_GLINTEROP_INVALID_MIP_LEVEL;
+
+   /* Wait for glthread to finish to get up-to-date GL object lookups. */
+   if (st->thread_finish)
+      st->thread_finish(st);
 
    /* Validate the OpenGL object and get pipe_resource. */
    simple_mtx_lock(&ctx->Shared->Mutex);

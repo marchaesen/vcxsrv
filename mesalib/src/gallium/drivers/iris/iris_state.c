@@ -2175,7 +2175,7 @@ iris_bind_sampler_states(struct pipe_context *ctx,
    gl_shader_stage stage = stage_from_pipe(p_stage);
    struct iris_shader_state *shs = &ice->state.shaders[stage];
 
-   assert(start + count <= IRIS_MAX_TEXTURE_SAMPLERS);
+   assert(start + count <= IRIS_MAX_SAMPLERS);
 
    bool dirty = false;
 
@@ -2209,7 +2209,7 @@ iris_upload_sampler_states(struct iris_context *ice, gl_shader_stage stage)
    /* We assume gallium frontends will call pipe->bind_sampler_states()
     * if the program's number of textures changes.
     */
-   unsigned count = info ? BITSET_LAST_BIT(info->textures_used) : 0;
+   unsigned count = info ? BITSET_LAST_BIT(info->samplers_used) : 0;
 
    if (!count)
       return;
@@ -2844,7 +2844,7 @@ iris_set_shader_images(struct pipe_context *ctx,
 #endif
 
    shs->bound_image_views &=
-      ~u_bit_consecutive(start_slot, count + unbind_num_trailing_slots);
+      ~u_bit_consecutive64(start_slot, count + unbind_num_trailing_slots);
 
    for (unsigned i = 0; i < count; i++) {
       struct iris_image_view *iv = &shs->image[start_slot + i];
@@ -2855,7 +2855,7 @@ iris_set_shader_images(struct pipe_context *ctx,
 
          util_copy_image_view(&iv->base, img);
 
-         shs->bound_image_views |= 1 << (start_slot + i);
+         shs->bound_image_views |= BITFIELD64_BIT(start_slot + i);
 
          res->bind_history |= PIPE_BIND_SHADER_IMAGE;
          res->bind_stages |= 1 << stage;
@@ -2959,8 +2959,11 @@ iris_set_sampler_views(struct pipe_context *ctx,
    struct iris_shader_state *shs = &ice->state.shaders[stage];
    unsigned i;
 
-   shs->bound_sampler_views &=
-      ~u_bit_consecutive(start, count + unbind_num_trailing_slots);
+   if (count == 0 && unbind_num_trailing_slots == 0)
+      return;
+
+   BITSET_CLEAR_RANGE(shs->bound_sampler_views, start,
+                      start + count + unbind_num_trailing_slots - 1);
 
    for (i = 0; i < count; i++) {
       struct pipe_sampler_view *pview = views ? views[i] : NULL;
@@ -2984,7 +2987,7 @@ iris_set_sampler_views(struct pipe_context *ctx,
          view->res->bind_history |= PIPE_BIND_SAMPLER_VIEW;
          view->res->bind_stages |= 1 << stage;
 
-         shs->bound_sampler_views |= 1 << (start + i);
+         BITSET_SET(shs->bound_sampler_views, start + i);
 
          update_surface_state_addrs(ice->state.surface_uploader,
                                     &view->surface_state, view->res->bo);
@@ -3200,8 +3203,14 @@ iris_set_viewport_states(struct pipe_context *ctx,
                          const struct pipe_viewport_state *states)
 {
    struct iris_context *ice = (struct iris_context *) ctx;
+   struct iris_screen *screen = (struct iris_screen *)ctx->screen;
 
    memcpy(&ice->state.viewports[start_slot], states, sizeof(*states) * count);
+
+   /* Fix depth test misrenderings by lowering translated depth range */
+   if (screen->driconf.lower_depth_range_rate != 1.0f)
+      ice->state.viewports[start_slot].translate[2] *=
+         screen->driconf.lower_depth_range_rate;
 
    ice->state.dirty |= IRIS_DIRTY_SF_CL_VIEWPORT;
 
@@ -5144,8 +5153,15 @@ iris_populate_binding_table(struct iris_context *ice,
       }
    }
 
-   foreach_surface_used(i, IRIS_SURFACE_GROUP_TEXTURE) {
+   foreach_surface_used(i, IRIS_SURFACE_GROUP_TEXTURE_LOW64) {
       struct iris_sampler_view *view = shs->textures[i];
+      uint32_t addr = view ? use_sampler_view(ice, batch, view)
+                           : use_null_surface(batch, ice);
+      push_bt_entry(addr);
+   }
+
+   foreach_surface_used(i, IRIS_SURFACE_GROUP_TEXTURE_HIGH64) {
+      struct iris_sampler_view *view = shs->textures[64 + i];
       uint32_t addr = view ? use_sampler_view(ice, batch, view)
                            : use_null_surface(batch, ice);
       push_bt_entry(addr);
@@ -6854,6 +6870,23 @@ flush_vbos(struct iris_context *ice, struct iris_batch *batch)
    }
 }
 
+static bool
+point_or_line_list(enum pipe_prim_type prim_type)
+{
+   switch (prim_type) {
+   case PIPE_PRIM_POINTS:
+   case PIPE_PRIM_LINES:
+   case PIPE_PRIM_LINE_STRIP:
+   case PIPE_PRIM_LINES_ADJACENCY:
+   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
+   case PIPE_PRIM_LINE_LOOP:
+      return true;
+   default:
+      return false;
+   }
+   return false;
+}
+
 static void
 iris_upload_render_state(struct iris_context *ice,
                          struct iris_batch *batch,
@@ -7075,6 +7108,17 @@ iris_upload_render_state(struct iris_context *ice,
          }
       }
    }
+
+#if GFX_VERx10 == 125
+   if (point_or_line_list(ice->state.prim_mode) ||
+       indirect || (sc->count == 1 || sc->count == 2)) {
+         iris_emit_pipe_control_write(batch, "Wa_14016118574",
+                                      PIPE_CONTROL_WRITE_IMMEDIATE,
+                                      batch->screen->workaround_bo,
+                                      batch->screen->workaround_address.offset,
+                                      0ull);
+   }
+#endif
 
    iris_batch_sync_region_end(batch);
 
@@ -7426,7 +7470,7 @@ iris_destroy_state(struct iris_context *ice)
          pipe_resource_reference(&shs->ssbo[i].buffer, NULL);
          pipe_resource_reference(&shs->ssbo_surf_state[i].res, NULL);
       }
-      for (int i = 0; i < IRIS_MAX_TEXTURE_SAMPLERS; i++) {
+      for (int i = 0; i < IRIS_MAX_TEXTURES; i++) {
          pipe_sampler_view_reference((struct pipe_sampler_view **)
                                      &shs->textures[i], NULL);
       }
@@ -7563,9 +7607,8 @@ iris_rebind_buffer(struct iris_context *ice,
       }
 
       if (res->bind_history & PIPE_BIND_SAMPLER_VIEW) {
-         uint32_t bound_sampler_views = shs->bound_sampler_views;
-         while (bound_sampler_views) {
-            const int i = u_bit_scan(&bound_sampler_views);
+         int i;
+         BITSET_FOREACH_SET(i, shs->bound_sampler_views, IRIS_MAX_TEXTURES) {
             struct iris_sampler_view *isv = shs->textures[i];
             struct iris_bo *bo = isv->res->bo;
 
@@ -7577,9 +7620,9 @@ iris_rebind_buffer(struct iris_context *ice,
       }
 
       if (res->bind_history & PIPE_BIND_SHADER_IMAGE) {
-         uint32_t bound_image_views = shs->bound_image_views;
+         uint64_t bound_image_views = shs->bound_image_views;
          while (bound_image_views) {
-            const int i = u_bit_scan(&bound_image_views);
+            const int i = u_bit_scan64(&bound_image_views);
             struct iris_image_view *iv = &shs->image[i];
             struct iris_bo *bo = iris_resource_bo(iv->base.resource);
 

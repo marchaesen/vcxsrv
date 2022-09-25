@@ -245,8 +245,7 @@ fail:
 }
 
 static bool is_nir_enabled(struct r600_common_screen *screen) {
-   return (screen->debug_flags & DBG_NIR_PREFERRED); /* &&
-       screen->family >= CHIP_CEDAR);*/
+   return !(screen->debug_flags & DBG_USE_TGSI);
 }
 
 /*
@@ -319,7 +318,7 @@ static int r600_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
 		return 1;
 
         case PIPE_CAP_NIR_ATOMICS_AS_DEREF:
-		return rscreen->b.debug_flags & DBG_NIR_PREFERRED;
+		return is_nir_enabled(&rscreen->b);
 
 	case PIPE_CAP_TEXTURE_TRANSFER_MODES:
 		return PIPE_TEXTURE_TRANSFER_BLIT;

@@ -353,6 +353,9 @@ struct pan_shader_info {
         bool writes_global;
         uint64_t outputs_written;
 
+        /* Floating point controls that the driver should try to honour */
+        bool ftz_fp16, ftz_fp32;
+
         unsigned sampler_count;
         unsigned texture_count;
         unsigned ubo_count;

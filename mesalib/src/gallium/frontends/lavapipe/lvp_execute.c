@@ -164,6 +164,7 @@ struct rendering_state {
 
    VkRect2D render_area;
    bool suspending;
+   bool render_cond;
    uint32_t color_att_count;
    struct lvp_render_attachment *color_att;
    struct lvp_render_attachment depth_att;
@@ -977,11 +978,11 @@ handle_pipeline_access(struct rendering_state *state, gl_shader_stage stage)
       state->iv[pstage][i].access = 0;
       state->iv[pstage][i].shader_access = 0;
    }
-   u_foreach_bit(idx, state->access[stage].images_read) {
+   u_foreach_bit64(idx, state->access[stage].images_read) {
       state->iv[pstage][idx].access |= PIPE_IMAGE_ACCESS_READ;
       state->iv[pstage][idx].shader_access |= PIPE_IMAGE_ACCESS_READ;
    }
-   u_foreach_bit(idx, state->access[stage].images_written) {
+   u_foreach_bit64(idx, state->access[stage].images_written) {
       state->iv[pstage][idx].access |= PIPE_IMAGE_ACCESS_WRITE;
       state->iv[pstage][idx].shader_access |= PIPE_IMAGE_ACCESS_WRITE;
    }
@@ -1486,6 +1487,9 @@ static void render_clear_fast(struct rendering_state *state)
       goto slow_clear;
 
    if (state->info.view_mask)
+      goto slow_clear;
+
+   if (state->render_cond)
       goto slow_clear;
 
    uint32_t buffers = 0;
@@ -2894,15 +2898,20 @@ static void handle_clear_ds_image(struct vk_cmd_queue_entry *cmd,
       uint32_t level_count = vk_image_subresource_level_count(&image->vk, range);
       for (unsigned j = 0; j < level_count; j++) {
          struct pipe_surface *surf;
-         unsigned width, height;
-
+         unsigned width, height, depth;
          width = u_minify(image->bo->width0, range->baseMipLevel + j);
          height = u_minify(image->bo->height0, range->baseMipLevel + j);
+
+         if (image->bo->target == PIPE_TEXTURE_3D)
+            depth = u_minify(image->bo->depth0, range->baseMipLevel + j);
+         else {
+            depth = vk_image_subresource_layer_count(&image->vk, range);
+         }
 
          surf = create_img_surface_bo(state, range,
                                       image->bo, image->bo->format,
                                       width, height,
-                                      0, vk_image_subresource_layer_count(&image->vk, range) - 1, j);
+                                      0, depth - 1, j);
 
          state->pctx->clear_depth_stencil(state->pctx,
                                           surf,
@@ -3439,6 +3448,7 @@ static void handle_begin_conditional_rendering(struct vk_cmd_queue_entry *cmd,
                                                struct rendering_state *state)
 {
    struct VkConditionalRenderingBeginInfoEXT *bcr = cmd->u.begin_conditional_rendering_ext.conditional_rendering_begin;
+   state->render_cond = true;
    state->pctx->render_condition_mem(state->pctx,
                                      lvp_buffer_from_handle(bcr->buffer)->bo,
                                      bcr->offset,
@@ -3447,6 +3457,7 @@ static void handle_begin_conditional_rendering(struct vk_cmd_queue_entry *cmd,
 
 static void handle_end_conditional_rendering(struct rendering_state *state)
 {
+   state->render_cond = false;
    state->pctx->render_condition_mem(state->pctx, NULL, 0, false);
 }
 

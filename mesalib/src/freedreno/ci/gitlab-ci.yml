@@ -96,6 +96,7 @@ a530_gl:
   extends:
     - .baremetal-deqp-test
     - .a530-test
+    - .test-manual-mr # Unstable as of kernel 5.19
   variables:
     DEQP_SUITE: freedreno-a530
   parallel: 6
@@ -124,24 +125,29 @@ a530-traces:
     PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a530"
     PIGLIT_RESULTS: "freedreno-a530-replay"
 
-a618_vk:
+.a618-test:
   extends:
     - .lava-test:arm64
-    - .turnip-rules
-  parallel: 9
   variables:
-    VK_DRIVER: freedreno
-    DEQP_SUITE: freedreno-a618-vk
-    GPU_VERSION: freedreno-a618
-    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
     DEVICE_TYPE: sc7180-trogdor-lazor-limozeen
     DTB: sc7180-trogdor-lazor-limozeen-nots-r5
     BOOT_METHOD: depthcharge
-    KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-sc7180-trogdor-lazor-limozeen
+    VK_DRIVER: freedreno
+    KERNEL_IMAGE_TYPE: ""
     # Increase the hangcheck timer for our spilling tests which bump up against
     # the .5s default.
     FREEDRENO_HANGCHECK_MS: 2000
+
+a618_vk:
+  extends:
+    - .a618-test
+    - .turnip-rules
+  parallel: 9
+  variables:
+    DEQP_SUITE: freedreno-a618-vk
+    GPU_VERSION: freedreno-a618
+    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
 
 a618_vk_full:
   extends:

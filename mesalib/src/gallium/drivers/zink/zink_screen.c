@@ -455,6 +455,7 @@ zink_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_NATIVE_FENCE_FD:
       return screen->instance_info.have_KHR_external_semaphore_capabilities && screen->info.have_KHR_external_semaphore_fd;
 
+   case PIPE_CAP_SHAREABLE_SHADERS:
    case PIPE_CAP_DEVICE_RESET_STATUS_QUERY:
    case PIPE_CAP_QUERY_MEMORY_INFO:
    case PIPE_CAP_NPOT_TEXTURES:
@@ -1496,12 +1497,21 @@ zink_flush_frontbuffer(struct pipe_screen *pscreen,
    struct zink_resource *res = zink_resource(pres);
    struct zink_context *ctx = zink_context(pctx);
 
-   /* if the surface has never been acquired, there's nothing to present,
-    * so this is a no-op */
-   if (!zink_is_swapchain(res) || (!zink_kopper_acquired(res->obj->dt, res->obj->dt_idx) && res->obj->last_dt_idx == UINT32_MAX))
+   /* if the surface is no longer a swapchain, this is a no-op */
+   if (!zink_is_swapchain(res))
       return;
 
    ctx = zink_tc_context_unwrap(pctx);
+
+   if (!zink_kopper_acquired(res->obj->dt, res->obj->dt_idx)) {
+      /* swapbuffers to an undefined surface: acquire and present garbage */
+      zink_kopper_acquire(ctx, res, UINT64_MAX);
+      ctx->needs_present = res;
+      /* set batch usage to submit acquire semaphore */
+      zink_batch_resource_usage_set(&ctx->batch, res, true, false);
+   }
+
+   /* handle any outstanding acquire submits (not just from above) */
    if (ctx->batch.swapchain || ctx->needs_present) {
       ctx->batch.has_work = true;
       pctx->flush(pctx, NULL, PIPE_FLUSH_END_OF_FRAME);
@@ -1511,15 +1521,9 @@ zink_flush_frontbuffer(struct pipe_screen *pscreen,
       }
    }
 
-   if (zink_kopper_acquired(res->obj->dt, res->obj->dt_idx))
-      zink_kopper_present_queue(screen, res);
-   else {
-      assert(res->obj->last_dt_idx != UINT32_MAX);
-      if (!zink_kopper_last_present_eq(res->obj->dt, res->obj->last_dt_idx)) {
-         zink_kopper_acquire_readback(ctx, res);
-         zink_kopper_present_readback(ctx, res);
-      }
-   }
+   /* always verify that this was acquired */
+   assert(zink_kopper_acquired(res->obj->dt, res->obj->dt_idx));
+   zink_kopper_present_queue(screen, res);
 }
 
 bool
@@ -2077,15 +2081,6 @@ zink_create_logical_device(struct zink_screen *screen)
 }
 
 static void
-pre_hash_descriptor_states(struct zink_screen *screen)
-{
-   VkImageViewCreateInfo null_info = {.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-   VkBufferViewCreateInfo null_binfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO};
-   screen->null_descriptor_hashes.image_view = _mesa_hash_data(&null_info, sizeof(VkImageViewCreateInfo));
-   screen->null_descriptor_hashes.buffer_view = _mesa_hash_data(&null_binfo, sizeof(VkBufferViewCreateInfo));
-}
-
-static void
 check_base_requirements(struct zink_screen *screen)
 {
    if (!screen->info.feats.features.logicOp ||
@@ -2382,7 +2377,6 @@ zink_internal_create_screen(const struct pipe_screen_config *config)
                         UTIL_QUEUE_INIT_RESIZE_IF_FULL | UTIL_QUEUE_INIT_SCALE_THREADS, screen))
       goto fail;
    populate_format_props(screen);
-   pre_hash_descriptor_states(screen);
 
    slab_create_parent(&screen->transfer_pool, sizeof(struct zink_transfer), 16);
 
@@ -2439,6 +2433,14 @@ zink_internal_create_screen(const struct pipe_screen_config *config)
    screen->base.create_vertex_state = zink_cache_create_vertex_state;
    screen->base.vertex_state_destroy = zink_cache_vertex_state_destroy;
    glsl_type_singleton_init_or_ref();
+
+   if (screen->info.have_vulkan13 || screen->info.have_KHR_synchronization2) {
+      screen->image_barrier = zink_resource_image_barrier2;
+      screen->buffer_barrier = zink_resource_buffer_barrier2;
+   } else {
+      screen->image_barrier = zink_resource_image_barrier;
+      screen->buffer_barrier = zink_resource_buffer_barrier;
+   }
 
    screen->copy_context = zink_context(screen->base.context_create(&screen->base, NULL, ZINK_CONTEXT_COPY_ONLY));
    if (!screen->copy_context) {

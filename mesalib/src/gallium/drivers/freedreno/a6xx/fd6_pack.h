@@ -50,6 +50,10 @@ struct fd_reg_pair {
       }                                                                        \
    } while (0)
 
+#if !FD_BO_NO_HARDPIN
+#  error 'Hardpin unsupported'
+#endif
+
 #define __ONE_REG(i, ...)                                                      \
    do {                                                                        \
       const struct fd_reg_pair regs[] = {__VA_ARGS__};                         \
@@ -57,10 +61,11 @@ struct fd_reg_pair {
       if (i < ARRAY_SIZE(regs) && (i == 0 || regs[i].reg > 0)) {               \
          __assert_eq(regs[0].reg + i, regs[i].reg);                            \
          if (regs[i].bo) {                                                     \
-            ring->cur = p;                                                     \
+            uint64_t *p64 = (uint64_t *)p;                                     \
+            *p64 = __reloc_iova(regs[i].bo, regs[i].bo_offset, regs[i].value,  \
+                                regs[i].bo_shift);                             \
             p += 2;                                                            \
-            OUT_RELOC(ring, regs[i].bo, regs[i].bo_offset, regs[i].value,      \
-                      regs[i].bo_shift);                                       \
+            fd_ringbuffer_attach_bo(ring, regs[i].bo);                         \
          } else {                                                              \
             *p++ = regs[i].value;                                              \
             if (regs[i].is_address)                                            \

@@ -1620,29 +1620,12 @@ VkResult pvr_emit_ppp_from_template(
       return result;
    }
 
-#define CS_WRITE(_dst, cmd, val)                                      \
-   do {                                                               \
-      static_assert(sizeof(*(_dst)) == pvr_cmd_length(cmd) * 4,       \
-                    "Size mismatch");                                 \
-      static_assert(sizeof(*(_dst)) == sizeof(val), "Size mismatch"); \
-      *(_dst) = val;                                                  \
-      (_dst) += pvr_cmd_length(cmd);                                  \
-   } while (0)
-
-#define CS_PACK_WRITE(_dst, cmd, val)                           \
-   do {                                                         \
-      static_assert(sizeof(*(_dst)) == pvr_cmd_length(cmd) * 4, \
-                    "Size mismatch");                           \
-      pvr_cmd_pack(cmd)((_dst), val);                           \
-      (_dst) += pvr_cmd_length(cmd);                            \
-   } while (0)
-
    stream = (uint32_t *)pvr_bo->bo->map;
 
-   CS_WRITE(stream, TA_STATE_HEADER, template->header);
-   CS_PACK_WRITE(stream, TA_STATE_ISPCTL, &template->config.ispctl);
-   CS_PACK_WRITE(stream, TA_STATE_ISPA, &template->config.ispa);
-   CS_WRITE(stream, TA_STATE_ISPB, template->ispb);
+   pvr_csb_write_value(stream, TA_STATE_HEADER, template->header);
+   pvr_csb_write_struct(stream, TA_STATE_ISPCTL, &template->config.ispctl);
+   pvr_csb_write_struct(stream, TA_STATE_ISPA, &template->config.ispa);
+   pvr_csb_write_value(stream, TA_STATE_ISPB, template->ispb);
 
    if (template->requires_pds_state) {
       static_assert(sizeof(*stream) == sizeof((*template->config.pds_state)[0]),
@@ -1651,23 +1634,24 @@ VkResult pvr_emit_ppp_from_template(
          *stream++ = (*template->config.pds_state)[i];
    }
 
-   CS_PACK_WRITE(stream, TA_REGION_CLIP0, &template->config.region_clip0);
-   CS_PACK_WRITE(stream, TA_REGION_CLIP1, &template->config.region_clip1);
-   CS_WRITE(stream, TA_WCLAMP, base->wclamp);
-   CS_PACK_WRITE(stream, TA_OUTPUT_SEL, &template->config.output_sel);
-   CS_WRITE(stream, TA_STATE_VARYING0, base->varying_word[0]);
-   CS_WRITE(stream, TA_STATE_VARYING1, base->varying_word[1]);
-   CS_WRITE(stream, TA_STATE_VARYING2, base->varying_word[2]);
-   CS_WRITE(stream, TA_STATE_PPP_CTRL, base->ppp_ctrl);
-   CS_WRITE(stream, TA_STATE_STREAM_OUT0, base->stream_out0);
+   pvr_csb_write_struct(stream,
+                        TA_REGION_CLIP0,
+                        &template->config.region_clip0);
+   pvr_csb_write_struct(stream,
+                        TA_REGION_CLIP1,
+                        &template->config.region_clip1);
+   pvr_csb_write_value(stream, TA_WCLAMP, base->wclamp);
+   pvr_csb_write_struct(stream, TA_OUTPUT_SEL, &template->config.output_sel);
+   pvr_csb_write_value(stream, TA_STATE_VARYING0, base->varying_word[0]);
+   pvr_csb_write_value(stream, TA_STATE_VARYING1, base->varying_word[1]);
+   pvr_csb_write_value(stream, TA_STATE_VARYING2, base->varying_word[2]);
+   pvr_csb_write_value(stream, TA_STATE_PPP_CTRL, base->ppp_ctrl);
+   pvr_csb_write_value(stream, TA_STATE_STREAM_OUT0, base->stream_out0);
 
    assert((uint64_t)(stream - (uint32_t *)pvr_bo->bo->map) == dword_count);
 
    pvr_bo_cpu_unmap(device, pvr_bo);
    stream = NULL;
-
-#undef CS_PACK_WRITE
-#undef CS_WRITE
 
    pvr_csb_emit (csb, VDMCTRL_PPP_STATE0, state) {
       state.word_count = dword_count;
@@ -2582,13 +2566,35 @@ VkResult pvr_GetEventStatus(VkDevice _device, VkEvent _event)
 
 VkResult pvr_SetEvent(VkDevice _device, VkEvent _event)
 {
-   assert(!"Unimplemented");
+   PVR_FROM_HANDLE(pvr_event, event, _event);
+
+   if (event->sync) {
+      PVR_FROM_HANDLE(pvr_device, device, _device);
+
+      const VkResult result = vk_sync_signal(&device->vk, event->sync, 0);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   event->state = PVR_EVENT_STATE_SET_BY_HOST;
+
    return VK_SUCCESS;
 }
 
 VkResult pvr_ResetEvent(VkDevice _device, VkEvent _event)
 {
-   assert(!"Unimplemented");
+   PVR_FROM_HANDLE(pvr_event, event, _event);
+
+   if (event->sync) {
+      PVR_FROM_HANDLE(pvr_device, device, _device);
+
+      const VkResult result = vk_sync_reset(&device->vk, event->sync);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   event->state = PVR_EVENT_STATE_RESET_BY_HOST;
+
    return VK_SUCCESS;
 }
 

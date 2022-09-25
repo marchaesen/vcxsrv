@@ -19,6 +19,7 @@
 
 #else /* One of the BSDs */
 
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/ioccom.h>
 

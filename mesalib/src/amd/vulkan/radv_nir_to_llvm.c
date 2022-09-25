@@ -190,47 +190,6 @@ create_function(struct radv_shader_context *ctx, gl_shader_stage stage, bool has
    }
 }
 
-static uint32_t
-radv_get_sample_pos_offset(uint32_t num_samples)
-{
-   uint32_t sample_pos_offset = 0;
-
-   switch (num_samples) {
-   case 2:
-      sample_pos_offset = 1;
-      break;
-   case 4:
-      sample_pos_offset = 3;
-      break;
-   case 8:
-      sample_pos_offset = 7;
-      break;
-   default:
-      break;
-   }
-   return sample_pos_offset;
-}
-
-static LLVMValueRef
-load_sample_position(struct ac_shader_abi *abi, LLVMValueRef sample_id)
-{
-   struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
-
-   LLVMValueRef result;
-   LLVMValueRef index = LLVMConstInt(ctx->ac.i32, RING_PS_SAMPLE_POSITIONS, false);
-   LLVMValueRef ptr = LLVMBuildGEP(ctx->ac.builder, ctx->ring_offsets, &index, 1, "");
-
-   ptr = LLVMBuildBitCast(ctx->ac.builder, ptr, ac_array_in_const_addr_space(ctx->ac.v2f32), "");
-
-   uint32_t sample_pos_offset = radv_get_sample_pos_offset(ctx->options->key.ps.num_samples);
-
-   sample_id = LLVMBuildAdd(ctx->ac.builder, sample_id,
-                            LLVMConstInt(ctx->ac.i32, sample_pos_offset, false), "");
-   result = ac_build_load_invariant(&ctx->ac, ptr, sample_id);
-
-   return result;
-}
-
 static void
 visit_emit_vertex_with_counter(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef vertexidx,
                                LLVMValueRef *addrs)
@@ -1444,8 +1403,6 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
       } else if (shaders[shader_idx]->info.stage == MESA_SHADER_TESS_EVAL) {
       } else if (shaders[shader_idx]->info.stage == MESA_SHADER_VERTEX) {
          ctx.abi.load_inputs = radv_load_vs_inputs;
-      } else if (shaders[shader_idx]->info.stage == MESA_SHADER_FRAGMENT) {
-         ctx.abi.load_sample_position = load_sample_position;
       }
 
       if (shader_idx && !(shaders[shader_idx]->info.stage == MESA_SHADER_GEOMETRY && info->is_ngg)) {
