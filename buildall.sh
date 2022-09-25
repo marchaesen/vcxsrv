@@ -59,24 +59,24 @@ if [[ "$BUILDDEPS" == "1" ]] ; then
 
 if [[ "$IS64" == "1" ]]; then
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo ./MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=x64 -m:$2
-		./MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=x64 -m:$2
+		echo MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=x64 -m:$2
+		MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=x64 -m:$2
-		./MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=x64 -m:$2
+		echo MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=x64 -m:$2
+		MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 else
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=Win32 -m:$2
-		./MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=Win32 -m:$2
+		echo MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=Win32 -m:$2
+		MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Release Multithreaded" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=Win32 -m:$2
-		./MSBuild.bat freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=Win32 -m:$2
+		echo MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=Win32 -m:$2
+		MSBuild.exe freetype/freetypevc10.sln -t:Build -p:Configuration="Debug Multithreaded" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 fi
@@ -91,7 +91,7 @@ if [[ "$BUILDRELEASE" == "1" ]] ; then
 		fi
 		cd release64
 
-		../../perl.bat ../Configure VC-WIN64A --release
+		perl.exe ../Configure VC-WIN64A --release
 	else
 
 		if [[ ! -d "release32" ]]; then
@@ -99,11 +99,11 @@ if [[ "$BUILDRELEASE" == "1" ]] ; then
 		fi
 		cd release32
 
-		../../perl.bat ../Configure VC-WIN32 --release
+		perl.exe ../Configure VC-WIN32 --release
 	fi
 	check-error 'Error executing perl'
 
-	../../nmake.bat
+	nmake.exe
 	check-error 'Error compiling openssl for release'
 
 	cd ../..
@@ -116,17 +116,17 @@ if [[ "$BUILDDEBUG" == "1" ]] ; then
 		  mkdir debug64
 		fi
 		cd debug64
-		../../perl.bat ../Configure VC-WIN64A --debug
+		perl.exe ../Configure VC-WIN64A --debug
 	else
 		if [[ ! -d "debug32" ]]; then
 		  mkdir debug32
 		fi
 		cd debug32
-		../../perl.bat ../Configure VC-WIN32 --debug
+		perl.exe ../Configure VC-WIN32 --debug
 	fi
 	check-error 'Error executing perl'
 
-	../../nmake.bat
+	nmake
 	check-error 'Error compiling openssl for debug'
 
 	cd ../..
@@ -134,11 +134,11 @@ fi
 
 cd pthreads
 if [[ "$BUILDRELEASE" == "1" ]] ; then
-	../nmake.bat VC-static
+	nmake.exe VC-static
 	check-error 'Error compiling pthreads for release'
 fi
 if [[ "$BUILDDEBUG" == "1" ]] ; then
-	../nmake.bat VC-static-debug
+	nmake.exe VC-static-debug
 	check-error 'Error compiling pthreads for debug'
 fi
 cd ..
@@ -151,13 +151,13 @@ if [[ "$IS64" == "1" ]]; then
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-  		./MSBuild.bat tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
+  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
 
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-  		./MSBuild.bat tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2
+  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi
@@ -182,12 +182,12 @@ else
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-  		./MSBuild.bat tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
+  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-  		./MSBuild.bat tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
+  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi

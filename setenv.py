@@ -1,11 +1,13 @@
 import os,sys
 
 import sys
+import subprocess
 
 if len(sys.argv)>1 and sys.argv[1]=="1":
-  os.system("cmd /c \"setenv.bat amd64 2> nul\"")
+  p=subprocess.Popen(["./setenv.bat","amd64"], stdout = subprocess.PIPE)
 else:
-  os.system("cmd /c \"setenv.bat x86 2> nul\"")
+  p=subprocess.Popen(["./setenv.bat","x86"], stdout = subprocess.PIPE)
+p.communicate()
 
 def readenv(filename):
   env={}

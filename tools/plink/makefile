@@ -32,8 +32,7 @@ CSRCS = settings.c \
  ldisc.c \
  callback.c \
  errsock.c \
- noterm.c \
- nullplug.c \
+ null-plug.c \
  clicons.c \
  console.c \
  x11disp.c \
@@ -43,9 +42,11 @@ CSRCS = settings.c \
  null-key.c \
  null-cipher.c \
  null-mac.c \
- null-lp.c
+ null-lp.c \
+ bidi.c \
+ terminal.c
 
-vpath %.c proxy stubs
+vpath %.c proxy stubs terminal
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
 load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
