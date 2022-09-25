@@ -4,10 +4,10 @@ if "%1"=="nox86" goto skipx86
 
 if exist vcxsrv.*.installer.exe del vcxsrv.*.installer.exe
 
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\x86\Microsoft.VC143.CRT\msvcp140.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\x86\Microsoft.VC143.CRT\vcruntime140.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\debug_nonredist\x86\Microsoft.VC143.DebugCRT\msvcp140d.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\debug_nonredist\x86\Microsoft.VC143.DebugCRT\vcruntime140d.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\x86\Microsoft.VC143.CRT\msvcp140.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\x86\Microsoft.VC143.CRT\vcruntime140.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\debug_nonredist\x86\Microsoft.VC143.DebugCRT\msvcp140d.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\debug_nonredist\x86\Microsoft.VC143.DebugCRT\vcruntime140d.dll"
 
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
 	if exist ..\obj\servrelease\vcxsrv.exe "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv.nsi
@@ -22,12 +22,12 @@ if "%1"=="nox64" goto skipx64
 
 if exist vcxsrv-64.*.installer.exe del vcxsrv-64.*.installer.exe
 
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\x64\Microsoft.VC143.CRT\msvcp140.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\x64\Microsoft.VC143.CRT\vcruntime140.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\x64\Microsoft.VC143.CRT\vcruntime140_1.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\debug_nonredist\x64\Microsoft.VC143.DebugCRT\msvcp140d.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\debug_nonredist\x64\Microsoft.VC143.DebugCRT\vcruntime140d.dll"
-copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.30.30704\debug_nonredist\x64\Microsoft.VC143.DebugCRT\vcruntime140_1d.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\x64\Microsoft.VC143.CRT\msvcp140.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\x64\Microsoft.VC143.CRT\vcruntime140.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\x64\Microsoft.VC143.CRT\vcruntime140_1.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\debug_nonredist\x64\Microsoft.VC143.DebugCRT\msvcp140d.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\debug_nonredist\x64\Microsoft.VC143.DebugCRT\vcruntime140d.dll"
+copy "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.32.31326\debug_nonredist\x64\Microsoft.VC143.DebugCRT\vcruntime140_1d.dll"
 
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
 	if exist ..\obj64\servrelease\vcxsrv.exe "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64.nsi
