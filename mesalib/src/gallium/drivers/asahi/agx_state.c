@@ -1193,20 +1193,68 @@ agx_delete_shader_state(struct pipe_context *ctx,
    free(so);
 }
 
-/* Pipeline consists of a sequence of binding commands followed by a set shader command */
+struct agx_usc_builder {
+   struct agx_ptr T;
+   uint8_t *head;
+
+#ifndef NDEBUG
+   size_t size;
+#endif
+};
+
+static struct agx_usc_builder
+agx_alloc_usc_control(struct agx_pool *pool,
+                      unsigned num_reg_bindings)
+{
+   STATIC_ASSERT(AGX_USC_TEXTURE_LENGTH == AGX_USC_UNIFORM_LENGTH);
+   STATIC_ASSERT(AGX_USC_SAMPLER_LENGTH == AGX_USC_UNIFORM_LENGTH);
+
+   size_t size = AGX_USC_UNIFORM_LENGTH * num_reg_bindings;
+
+   size += AGX_USC_SHARED_LENGTH;
+   size += AGX_USC_SHADER_LENGTH;
+   size += AGX_USC_REGISTERS_LENGTH;
+   size += MAX2(AGX_USC_NO_PRESHADER_LENGTH, AGX_USC_PRESHADER_LENGTH);
+   size += AGX_USC_FRAGMENT_PROPERTIES_LENGTH;
+
+   struct agx_usc_builder b = {
+      .T = agx_pool_alloc_aligned(pool, size, 64),
+
+#ifndef NDEBUG
+      .size = size,
+#endif
+   };
+
+   b.head = (uint8_t *) b.T.cpu;
+
+   return b;
+}
+
+static bool
+agx_usc_builder_validate(struct agx_usc_builder *b, size_t size)
+{
+#ifndef NDEBUG
+   assert(((b->head - (uint8_t *) b->T.cpu) + size) <= b->size);
+#endif
+
+   return true;
+}
+
+#define agx_usc_pack(b, struct_name, template) \
+   for (bool it = agx_usc_builder_validate((b), AGX_USC_##struct_name##_LENGTH); \
+        it; it = false, (b)->head += AGX_USC_##struct_name##_LENGTH) \
+      agx_pack((b)->head, USC_##struct_name, template)
+
+static uint32_t
+agx_usc_fini(struct agx_usc_builder *b)
+{
+   assert(b->T.gpu <= (1ull << 32) && "pipelines must be in low memory");
+   return b->T.gpu;
+}
+
 static uint32_t
 agx_build_pipeline(struct agx_context *ctx, struct agx_compiled_shader *cs, enum pipe_shader_type stage)
 {
-   /* Pipelines must be 64-byte aligned */
-   struct agx_ptr ptr = agx_pool_alloc_aligned(&ctx->batch->pipeline_pool,
-                        (cs->info.push_ranges * AGX_BIND_UNIFORM_LENGTH) +
-                        AGX_BIND_TEXTURE_LENGTH +
-                        AGX_BIND_SAMPLER_LENGTH +
-                        AGX_SET_SHADER_EXTENDED_LENGTH + 8,
-                        64);
-
-   uint8_t *record = ptr.cpu;
-
    unsigned nr_textures = ctx->stage[stage].texture_count;
    unsigned nr_samplers = ctx->stage[stage].sampler_count;
 
@@ -1235,25 +1283,26 @@ agx_build_pipeline(struct agx_context *ctx, struct agx_compiled_shader *cs, enum
          samplers[i] = sampler->desc;
    }
 
+   struct agx_usc_builder b =
+      agx_alloc_usc_control(&ctx->batch->pipeline_pool,
+                           cs->info.push_ranges + 2);
+
    if (nr_textures) {
-      agx_pack(record, BIND_TEXTURE, cfg) {
+      agx_usc_pack(&b, TEXTURE, cfg) {
          cfg.start = 0;
          cfg.count = nr_textures;
          cfg.buffer = T_tex.gpu;
       }
 
       ctx->batch->textures = T_tex.gpu;
-      record += AGX_BIND_TEXTURE_LENGTH;
    }
 
    if (nr_samplers) {
-      agx_pack(record, BIND_SAMPLER, cfg) {
+      agx_usc_pack(&b, SAMPLER, cfg) {
          cfg.start = 0;
          cfg.count = nr_samplers;
          cfg.buffer = T_samp.gpu;
       }
-
-      record += AGX_BIND_SAMPLER_LENGTH;
    }
 
    /* Must only upload uniforms after uploading textures so we can implement the
@@ -1262,95 +1311,83 @@ agx_build_pipeline(struct agx_context *ctx, struct agx_compiled_shader *cs, enum
    for (unsigned i = 0; i < cs->info.push_ranges; ++i) {
       struct agx_push push = cs->info.push[i];
 
-      agx_pack(record, BIND_UNIFORM, cfg) {
+      agx_usc_pack(&b, UNIFORM, cfg) {
          cfg.start_halfs = push.base;
          cfg.size_halfs = push.length;
          cfg.buffer = agx_push_location(ctx, push, stage);
       }
-
-      record += AGX_BIND_UNIFORM_LENGTH;
    }
 
-   /* TODO: Can we prepack this? */
+   agx_usc_pack(&b, SHARED, cfg) {
+      if (stage == PIPE_SHADER_FRAGMENT) {
+         cfg.uses_shared_memory = true;
+         cfg.shared_layout = AGX_SHARED_LAYOUT_32X32;
+         cfg.pixel_stride_in_8_bytes = 1;
+         cfg.shared_memory_per_threadgroup_in_256_bytes = 32;
+      } else {
+         cfg.shared_layout = AGX_SHARED_LAYOUT_VERTEX_COMPUTE;
+      }
+   }
+
+   agx_usc_pack(&b, SHADER, cfg) {
+      cfg.loads_varyings = (stage == PIPE_SHADER_FRAGMENT);
+      cfg.code = cs->bo->ptr.gpu;
+      cfg.unk_2 = (stage == PIPE_SHADER_FRAGMENT) ? 2 : 3;
+   }
+
+   agx_usc_pack(&b, REGISTERS, cfg) {
+      cfg.register_quadwords = 0;
+      cfg.unk_1 = (stage == PIPE_SHADER_FRAGMENT);
+   }
+
    if (stage == PIPE_SHADER_FRAGMENT) {
-      bool writes_sample_mask = ctx->fs->info.writes_sample_mask;
-
-      agx_pack(record, SET_SHADER_EXTENDED, cfg) {
-         cfg.code = cs->bo->ptr.gpu;
-         cfg.register_quadwords = 0;
-         cfg.unk_3 = 0x8d;
-         cfg.unk_1 = 0x2010bd;
-         cfg.unk_2 = 0x0d;
-         cfg.loads_varyings = true;
-         cfg.fragment_parameters.early_z_testing = !writes_sample_mask;
-         cfg.unk_4 = 0x800;
-         cfg.preshader_unk = 0xc080;
-         cfg.spill_size = 0x2;
+      agx_usc_pack(&b, FRAGMENT_PROPERTIES, cfg) {
+         bool writes_sample_mask = ctx->fs->info.writes_sample_mask;
+         cfg.early_z_testing = !writes_sample_mask;
+         cfg.unk_4 = 0x2;
+         cfg.unk_5 = 0x0;
       }
-
-      record += AGX_SET_SHADER_EXTENDED_LENGTH;
-   } else {
-      agx_pack(record, SET_SHADER, cfg) {
-         cfg.code = cs->bo->ptr.gpu;
-         cfg.register_quadwords = 0;
-         cfg.unk_2b = cs->info.varyings.vs.nr_index;
-         cfg.unk_2 = 0x0d;
-      }
-
-      record += AGX_SET_SHADER_LENGTH;
    }
 
-   /* End pipeline */
-   memset(record, 0, 8);
-   assert(ptr.gpu < (1ull << 32));
-   return ptr.gpu;
+   agx_usc_pack(&b, NO_PRESHADER, cfg);
+
+   return agx_usc_fini(&b);
 }
 
 /* Internal pipelines (TODO: refactor?) */
 uint64_t
 agx_build_clear_pipeline(struct agx_context *ctx, uint32_t code, uint64_t clear_buf)
 {
-   struct agx_ptr ptr = agx_pool_alloc_aligned(&ctx->batch->pipeline_pool,
-                        (1 * AGX_BIND_UNIFORM_LENGTH) +
-                        AGX_SET_SHADER_EXTENDED_LENGTH + 8,
-                        64);
+   struct agx_usc_builder b =
+      agx_alloc_usc_control(&ctx->batch->pipeline_pool, 1);
 
-   uint8_t *record = ptr.cpu;
-
-   agx_pack(record, BIND_UNIFORM, cfg) {
+   agx_usc_pack(&b, UNIFORM, cfg) {
       cfg.start_halfs = (6 * 2);
       cfg.size_halfs = 4;
       cfg.buffer = clear_buf;
    }
 
-   record += AGX_BIND_UNIFORM_LENGTH;
-
-   /* TODO: Can we prepack this? */
-   agx_pack(record, SET_SHADER, cfg) {
-      cfg.code = code;
-      cfg.unk_1 = 0x2010bd;
-      cfg.unk_2 = 0x0d;
-      cfg.unk_3 = 0x8d;
-      cfg.register_quadwords = 1;
+   agx_usc_pack(&b, SHARED, cfg) {
+      cfg.uses_shared_memory = true;
+      cfg.shared_layout = AGX_SHARED_LAYOUT_32X32;
+      cfg.pixel_stride_in_8_bytes = 1;
+      cfg.shared_memory_per_threadgroup_in_256_bytes = 32;
    }
 
-   record += AGX_SET_SHADER_LENGTH;
+   agx_usc_pack(&b, SHADER, cfg) {
+      cfg.code = code;
+      cfg.unk_2 = 3;
+   }
 
-   /* End pipeline */
-   memset(record, 0, 8);
-   return ptr.gpu;
+   agx_usc_pack(&b, REGISTERS, cfg) cfg.register_quadwords = 1;
+   agx_usc_pack(&b, NO_PRESHADER, cfg);
+
+   return agx_usc_fini(&b);
 }
 
 uint64_t
 agx_build_reload_pipeline(struct agx_context *ctx, uint32_t code, struct pipe_surface *surf)
 {
-   struct agx_ptr ptr = agx_pool_alloc_aligned(&ctx->batch->pipeline_pool,
-                        (1 * AGX_BIND_TEXTURE_LENGTH) +
-                        (1 * AGX_BIND_SAMPLER_LENGTH) +
-                        AGX_SET_SHADER_EXTENDED_LENGTH + 8,
-                        64);
-
-   uint8_t *record = ptr.cpu;
    struct agx_ptr sampler = agx_pool_alloc_aligned(&ctx->batch->pool, AGX_SAMPLER_LENGTH, 64);
    struct agx_ptr texture = agx_pool_alloc_aligned(&ctx->batch->pool, AGX_TEXTURE_LENGTH, 64);
 
@@ -1396,91 +1433,72 @@ agx_build_reload_pipeline(struct agx_context *ctx, uint32_t code, struct pipe_su
          cfg.unk_tiled = true;
    }
 
-   agx_pack(record, BIND_TEXTURE, cfg) {
+   struct agx_usc_builder b =
+      agx_alloc_usc_control(&ctx->batch->pipeline_pool, 2);
+
+   agx_usc_pack(&b, TEXTURE, cfg) {
       cfg.start = 0;
       cfg.count = 1;
       cfg.buffer = texture.gpu;
    }
 
-   record += AGX_BIND_TEXTURE_LENGTH;
-
-   agx_pack(record, BIND_SAMPLER, cfg) {
+   agx_usc_pack(&b, SAMPLER, cfg) {
       cfg.start = 0;
       cfg.count = 1;
       cfg.buffer = sampler.gpu;
    }
 
-   record += AGX_BIND_SAMPLER_LENGTH;
-
-   /* TODO: Can we prepack this? */
-   agx_pack(record, SET_SHADER_EXTENDED, cfg) {
-      cfg.code = code;
-      cfg.register_quadwords = 0;
-      cfg.unk_3 = 0x8d;
-      cfg.unk_2 = 0x0d;
-      cfg.unk_4 = 0;
-      cfg.fragment_parameters.unk_1 = 0x880100;
-      cfg.fragment_parameters.early_z_testing = false;
-      cfg.fragment_parameters.unk_2 = false;
-      cfg.fragment_parameters.unk_3 = 0;
-      cfg.preshader_mode = 0; // XXX
+   agx_usc_pack(&b, SHARED, cfg) {
+      cfg.uses_shared_memory = true;
+      cfg.shared_layout = AGX_SHARED_LAYOUT_32X32;
+      cfg.pixel_stride_in_8_bytes = 1;
+      cfg.shared_memory_per_threadgroup_in_256_bytes = 32;
    }
 
-   record += AGX_SET_SHADER_EXTENDED_LENGTH;
+   agx_usc_pack(&b, SHADER, cfg) {
+      cfg.code = code;
+      cfg.unk_2 = 3;
+   }
 
-   /* End pipeline */
-   memset(record, 0, 8);
-   return ptr.gpu;
+   agx_usc_pack(&b, REGISTERS, cfg) cfg.register_quadwords = 0;
+   agx_usc_pack(&b, NO_PRESHADER, cfg);
+
+   return agx_usc_fini(&b);
 }
 
 uint64_t
 agx_build_store_pipeline(struct agx_context *ctx, uint32_t code,
                          uint64_t render_target)
 {
-   struct agx_ptr ptr = agx_pool_alloc_aligned(&ctx->batch->pipeline_pool,
-                        (1 * AGX_BIND_TEXTURE_LENGTH) +
-                        (1 * AGX_BIND_UNIFORM_LENGTH) +
-                        AGX_SET_SHADER_EXTENDED_LENGTH + 8,
-                        64);
+   struct agx_usc_builder b =
+      agx_alloc_usc_control(&ctx->batch->pipeline_pool, 2);
 
-   uint8_t *record = ptr.cpu;
-
-   agx_pack(record, BIND_TEXTURE, cfg) {
+   agx_usc_pack(&b, TEXTURE, cfg) {
       cfg.start = 0;
       cfg.count = 1;
       cfg.buffer = render_target;
    }
 
-   record += AGX_BIND_TEXTURE_LENGTH;
-
    uint32_t unk[] = { 0, ~0 };
 
-   agx_pack(record, BIND_UNIFORM, cfg) {
+   agx_usc_pack(&b, UNIFORM, cfg) {
       cfg.start_halfs = 4;
       cfg.size_halfs = 4;
       cfg.buffer = agx_pool_upload_aligned(&ctx->batch->pool, unk, sizeof(unk), 16);
    }
 
-   record += AGX_BIND_UNIFORM_LENGTH;
-
-   /* TODO: Can we prepack this? */
-   agx_pack(record, SET_SHADER_EXTENDED, cfg) {
-      cfg.code = code;
-      cfg.register_quadwords = 1;
-      cfg.unk_2 = 0xd;
-      cfg.unk_3 = 0x8d;
-      cfg.fragment_parameters.unk_1 = 0x880100;
-      cfg.fragment_parameters.early_z_testing = false;
-      cfg.fragment_parameters.unk_2 = false;
-      cfg.fragment_parameters.unk_3 = 0;
-      cfg.preshader_mode = 0; // XXX
+   agx_usc_pack(&b, SHARED, cfg) {
+      cfg.uses_shared_memory = true;
+      cfg.shared_layout = AGX_SHARED_LAYOUT_32X32;
+      cfg.pixel_stride_in_8_bytes = 1;
+      cfg.shared_memory_per_threadgroup_in_256_bytes = 32;
    }
 
-   record += AGX_SET_SHADER_EXTENDED_LENGTH;
+   agx_usc_pack(&b, SHADER, cfg) cfg.code = code;
+   agx_usc_pack(&b, REGISTERS, cfg) cfg.register_quadwords = 1;
+   agx_usc_pack(&b, NO_PRESHADER, cfg);
 
-   /* End pipeline */
-   memset(record, 0, 8);
-   return ptr.gpu;
+   return agx_usc_fini(&b);
 }
 
 void
@@ -1792,7 +1810,7 @@ agx_ensure_cmdbuf_has_space(struct agx_batch *batch, size_t space)
    struct agx_ptr T = agx_pool_alloc_aligned(&batch->pool, size, 256);
 
    /* Jump from the old command buffer to the new command buffer */
-   agx_pack(batch->encoder_current, STREAM_LINK, cfg) {
+   agx_pack(batch->encoder_current, VDM_STREAM_LINK, cfg) {
       cfg.target_lo = T.gpu & BITFIELD_MASK(32);
       cfg.target_hi = T.gpu >> 32;
    }

@@ -82,7 +82,7 @@ is_dynamic(VkDescriptorType type)
 
 static uint32_t
 mutable_descriptor_size(struct tu_device *dev,
-                        const VkMutableDescriptorTypeListVALVE *list)
+                        const VkMutableDescriptorTypeListEXT *list)
 {
    uint32_t max_size = 0;
 
@@ -110,10 +110,10 @@ tu_CreateDescriptorSetLayout(
       vk_find_struct_const(
          pCreateInfo->pNext,
          DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO);
-   const VkMutableDescriptorTypeCreateInfoVALVE *mutable_info =
+   const VkMutableDescriptorTypeCreateInfoEXT *mutable_info =
       vk_find_struct_const(
          pCreateInfo->pNext,
-         MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE);
+         MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT);
 
    uint32_t num_bindings = 0;
    uint32_t immutable_sampler_count = 0;
@@ -184,7 +184,7 @@ tu_CreateDescriptorSetLayout(
       set_layout->binding[b].dynamic_offset_offset = dynamic_offset_size;
       set_layout->binding[b].shader_stages = binding->stageFlags;
 
-      if (binding->descriptorType == VK_DESCRIPTOR_TYPE_MUTABLE_VALVE) {
+      if (binding->descriptorType == VK_DESCRIPTOR_TYPE_MUTABLE_EXT) {
          /* For mutable descriptor types we must allocate a size that fits the
           * largest descriptor type that the binding can mutate to.
           */
@@ -286,10 +286,10 @@ tu_GetDescriptorSetLayoutSupport(
       vk_find_struct(
          (void *) pCreateInfo->pNext,
          DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_LAYOUT_SUPPORT);
-   const VkMutableDescriptorTypeCreateInfoVALVE *mutable_info =
+   const VkMutableDescriptorTypeCreateInfoEXT *mutable_info =
       vk_find_struct_const(
          pCreateInfo->pNext,
-         MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE);
+         MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT);
 
    if (variable_count) {
       variable_count->maxVariableDescriptorCount = 0;
@@ -304,8 +304,8 @@ tu_GetDescriptorSetLayoutSupport(
 
       if (is_dynamic(binding->descriptorType)) {
          descriptor_sz = 0;
-      } else if (binding->descriptorType == VK_DESCRIPTOR_TYPE_MUTABLE_VALVE) {
-         const VkMutableDescriptorTypeListVALVE *list =
+      } else if (binding->descriptorType == VK_DESCRIPTOR_TYPE_MUTABLE_EXT) {
+         const VkMutableDescriptorTypeListEXT *list =
             &mutable_info->pMutableDescriptorTypeLists[i];
 
          for (uint32_t j = 0; j < list->descriptorTypeCount; j++) {
@@ -410,6 +410,46 @@ sha1_update_descriptor_set_layout(struct mesa_sha1 *ctx,
  * just multiple descriptor set layouts pasted together.
  */
 
+void
+tu_pipeline_layout_init(struct tu_pipeline_layout *layout)
+{
+   unsigned dynamic_offset_size = 0;
+
+   for (uint32_t set = 0; set < layout->num_sets; set++) {
+      assert(set < MAX_SETS);
+      layout->set[set].dynamic_offset_start = dynamic_offset_size;
+
+      if (layout->set[set].layout)
+         dynamic_offset_size += layout->set[set].layout->dynamic_offset_size;
+   }
+
+   layout->dynamic_offset_size = dynamic_offset_size;
+
+   /* We only care about INDEPENDENT_SETS for dynamic-offset descriptors,
+    * where all the descriptors from all the sets are combined into one set
+    * and we have to provide the dynamic_offset_start dynamically with fast
+    * linking.
+    */
+   if (dynamic_offset_size == 0) {
+      layout->independent_sets = false;
+   }
+
+   struct mesa_sha1 ctx;
+   _mesa_sha1_init(&ctx);
+   for (unsigned s = 0; s < layout->num_sets; s++) {
+      if (layout->set[s].layout)
+         sha1_update_descriptor_set_layout(&ctx, layout->set[s].layout);
+      _mesa_sha1_update(&ctx, &layout->set[s].dynamic_offset_start,
+                        sizeof(layout->set[s].dynamic_offset_start));
+   }
+   _mesa_sha1_update(&ctx, &layout->num_sets, sizeof(layout->num_sets));
+   _mesa_sha1_update(&ctx, &layout->push_constant_size,
+                     sizeof(layout->push_constant_size));
+   _mesa_sha1_update(&ctx, &layout->independent_sets,
+                     sizeof(layout->independent_sets));
+   _mesa_sha1_final(&ctx, layout->sha1);
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 tu_CreatePipelineLayout(VkDevice _device,
                         const VkPipelineLayoutCreateInfo *pCreateInfo,
@@ -428,23 +468,16 @@ tu_CreatePipelineLayout(VkDevice _device,
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    layout->num_sets = pCreateInfo->setLayoutCount;
-   layout->dynamic_offset_size = 0;
-
-   unsigned dynamic_offset_size = 0;
-
    for (uint32_t set = 0; set < pCreateInfo->setLayoutCount; set++) {
       TU_FROM_HANDLE(tu_descriptor_set_layout, set_layout,
                      pCreateInfo->pSetLayouts[set]);
 
       assert(set < MAX_SETS);
       layout->set[set].layout = set_layout;
-      layout->set[set].dynamic_offset_start = dynamic_offset_size;
-      vk_descriptor_set_layout_ref(&set_layout->vk);
-
-      dynamic_offset_size += set_layout->dynamic_offset_size;
+      if (set_layout)
+         vk_descriptor_set_layout_ref(&set_layout->vk);
    }
 
-   layout->dynamic_offset_size = dynamic_offset_size;
    layout->push_constant_size = 0;
 
    for (unsigned i = 0; i < pCreateInfo->pushConstantRangeCount; ++i) {
@@ -454,18 +487,10 @@ tu_CreatePipelineLayout(VkDevice _device,
    }
 
    layout->push_constant_size = align(layout->push_constant_size, 16);
+   layout->independent_sets =
+      pCreateInfo->flags & VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT;
 
-   struct mesa_sha1 ctx;
-   _mesa_sha1_init(&ctx);
-   for (unsigned s = 0; s < layout->num_sets; s++) {
-      sha1_update_descriptor_set_layout(&ctx, layout->set[s].layout);
-      _mesa_sha1_update(&ctx, &layout->set[s].dynamic_offset_start,
-                        sizeof(layout->set[s].dynamic_offset_start));
-   }
-   _mesa_sha1_update(&ctx, &layout->num_sets, sizeof(layout->num_sets));
-   _mesa_sha1_update(&ctx, &layout->push_constant_size,
-                     sizeof(layout->push_constant_size));
-   _mesa_sha1_final(&ctx, layout->sha1);
+   tu_pipeline_layout_init(layout);
 
    *pPipelineLayout = tu_pipeline_layout_to_handle(layout);
 
@@ -483,8 +508,10 @@ tu_DestroyPipelineLayout(VkDevice _device,
    if (!pipeline_layout)
       return;
 
-   for (uint32_t i = 0; i < pipeline_layout->num_sets; i++)
-      vk_descriptor_set_layout_unref(&device->vk, &pipeline_layout->set[i].layout->vk);
+   for (uint32_t i = 0; i < pipeline_layout->num_sets; i++) {
+      if (pipeline_layout->set[i].layout)
+         vk_descriptor_set_layout_unref(&device->vk, &pipeline_layout->set[i].layout->vk);
+   }
 
    vk_object_free(&device->vk, pAllocator, pipeline_layout);
 }
@@ -669,9 +696,9 @@ tu_CreateDescriptorPool(VkDevice _device,
    uint64_t bo_size = 0, dynamic_size = 0;
    VkResult ret;
 
-   const VkMutableDescriptorTypeCreateInfoVALVE *mutable_info =
+   const VkMutableDescriptorTypeCreateInfoEXT *mutable_info =
       vk_find_struct_const( pCreateInfo->pNext,
-         MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE);
+         MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT);
 
    const VkDescriptorPoolInlineUniformBlockCreateInfo *inline_info =
       vk_find_struct_const(pCreateInfo->pNext,
@@ -696,7 +723,7 @@ tu_CreateDescriptorPool(VkDevice _device,
          dynamic_size += descriptor_size(device, NULL, pool_size->type) *
             pool_size->descriptorCount;
          break;
-      case VK_DESCRIPTOR_TYPE_MUTABLE_VALVE:
+      case VK_DESCRIPTOR_TYPE_MUTABLE_EXT:
          if (mutable_info && i < mutable_info->mutableDescriptorTypeListCount &&
              mutable_info->pMutableDescriptorTypeLists[i].descriptorTypeCount > 0) {
             bo_size +=
@@ -738,8 +765,8 @@ tu_CreateDescriptorPool(VkDevice _device,
    }
 
    if (bo_size) {
-      if (!(pCreateInfo->flags & VK_DESCRIPTOR_POOL_CREATE_HOST_ONLY_BIT_VALVE)) {
-         ret = tu_bo_init_new(device, &pool->bo, bo_size, TU_BO_ALLOC_ALLOW_DUMP);
+      if (!(pCreateInfo->flags & VK_DESCRIPTOR_POOL_CREATE_HOST_ONLY_BIT_EXT)) {
+         ret = tu_bo_init_new(device, &pool->bo, bo_size, TU_BO_ALLOC_ALLOW_DUMP, "descriptor pool");
          if (ret)
             goto fail_alloc;
 

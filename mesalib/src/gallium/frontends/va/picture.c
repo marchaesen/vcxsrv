@@ -91,7 +91,6 @@ vlVaBeginPicture(VADriverContextP ctx, VAContextID context_id, VASurfaceID rende
                               PIPE_VIDEO_ENTRYPOINT_PROCESSING,
                               PIPE_VIDEO_CAP_SUPPORTED)) {
          context->needs_begin_frame = true;
-         context->vpp_needs_flush_on_endpic = true;
       }
 
       return VA_STATUS_SUCCESS;
@@ -790,7 +789,7 @@ vlVaEndPicture(VADriverContextP ctx, VAContextID context_id)
    vlVaContext *context;
    vlVaBuffer *coded_buf;
    vlVaSurface *surf;
-   void *feedback;
+   void *feedback = NULL;
    struct pipe_screen *screen;
    bool supported;
    bool realloc = false;
@@ -930,40 +929,46 @@ vlVaEndPicture(VADriverContextP ctx, VAContextID context_id)
       context->decoder->begin_frame(context->decoder, context->target, &context->desc.base);
       context->decoder->encode_bitstream(context->decoder, context->target,
                                          coded_buf->derived_surface.resource, &feedback);
+      coded_buf->feedback = feedback;
+      coded_buf->ctx = context_id;
       surf->feedback = feedback;
       surf->coded_buf = coded_buf;
+      coded_buf->associated_encode_input_surf = context->target_id;
    }
 
    context->decoder->end_frame(context->decoder, context->target, &context->desc.base);
-   if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE &&
-      u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC) {
-      int idr_period = context->desc.h264enc.gop_size / context->gop_coeff;
-      int p_remain_in_idr = idr_period - context->desc.h264enc.frame_num;
-      surf->frame_num_cnt = context->desc.h264enc.frame_num_cnt;
-      surf->force_flushed = false;
-      if (context->first_single_submitted) {
-         context->decoder->flush(context->decoder);
-         context->first_single_submitted = false;
-         surf->force_flushed = true;
-      }
-      if (p_remain_in_idr == 1) {
-         if ((context->desc.h264enc.frame_num_cnt % 2) != 0) {
-            context->decoder->flush(context->decoder);
-            context->first_single_submitted = true;
-         }
-         else
-            context->first_single_submitted = false;
-         surf->force_flushed = true;
-      }
-      if (!context->desc.h264enc.not_referenced)
-         context->desc.h264enc.frame_num++;
-   } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE &&
-              u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_HEVC)
-      context->desc.h265enc.frame_num++;
-   else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING &&
-            context->vpp_needs_flush_on_endpic) {
+
+   if (drv->pipe->screen->get_video_param(drv->pipe->screen,
+                           context->decoder->profile,
+                           context->decoder->entrypoint,
+                           PIPE_VIDEO_CAP_REQUIRES_FLUSH_ON_END_FRAME))
       context->decoder->flush(context->decoder);
-      context->vpp_needs_flush_on_endpic = false;
+   else {
+      if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE &&
+         u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC) {
+         int idr_period = context->desc.h264enc.gop_size / context->gop_coeff;
+         int p_remain_in_idr = idr_period - context->desc.h264enc.frame_num;
+         surf->frame_num_cnt = context->desc.h264enc.frame_num_cnt;
+         surf->force_flushed = false;
+         if (context->first_single_submitted) {
+            context->decoder->flush(context->decoder);
+            context->first_single_submitted = false;
+            surf->force_flushed = true;
+         }
+         if (p_remain_in_idr == 1) {
+            if ((context->desc.h264enc.frame_num_cnt % 2) != 0) {
+               context->decoder->flush(context->decoder);
+               context->first_single_submitted = true;
+            }
+            else
+               context->first_single_submitted = false;
+            surf->force_flushed = true;
+         }
+         if (!context->desc.h264enc.not_referenced)
+            context->desc.h264enc.frame_num++;
+      } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE &&
+               u_reduce_video_profile(context->templat.profile) == PIPE_VIDEO_FORMAT_HEVC)
+         context->desc.h265enc.frame_num++;
    }
 
    mtx_unlock(&drv->mutex);

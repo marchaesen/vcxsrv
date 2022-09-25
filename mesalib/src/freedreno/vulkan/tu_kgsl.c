@@ -73,7 +73,8 @@ tu_bo_init_new_explicit_iova(struct tu_device *dev,
                              struct tu_bo **out_bo,
                              uint64_t size,
                              uint64_t client_iova,
-                             enum tu_bo_alloc_flags flags)
+                             enum tu_bo_alloc_flags flags,
+                             const char *name)
 {
    assert(client_iova == 0);
 
@@ -101,6 +102,7 @@ tu_bo_init_new_explicit_iova(struct tu_device *dev,
       .size = req.mmapsize,
       .iova = req.gpuaddr,
       .refcnt = 1,
+      .name = tu_debug_bos_add(dev, req.mmapsize, name),
    };
 
    *out_bo = bo;
@@ -149,6 +151,7 @@ tu_bo_init_dmabuf(struct tu_device *dev,
       .size = info_req.size,
       .iova = info_req.gpuaddr,
       .refcnt = 1,
+      .name = tu_debug_bos_add(dev, info_req.size, "dmabuf"),
    };
 
    *out_bo = bo;
@@ -542,6 +545,9 @@ tu_QueueSubmit2(VkQueue _queue,
          }
       }
    }
+
+   tu_debug_bos_print_stats(queue->device);
+
 fail:
    vk_free(&queue->device->vk.alloc, cmds);
 

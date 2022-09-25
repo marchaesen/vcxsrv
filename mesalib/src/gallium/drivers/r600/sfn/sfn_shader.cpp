@@ -251,7 +251,7 @@ bool Shader::read_output(std::istream& is)
       int sid = int_from_string_with_prefix(value, "SID:");
       output.set_sid(sid);
       is >> value;
-      int spi_sid = int_from_string_with_prefix(value, "SPI_SID:");
+      ASSERTED int spi_sid = int_from_string_with_prefix(value, "SPI_SID:");
       assert(spi_sid == output.spi_sid());
    }
 
@@ -282,7 +282,7 @@ bool Shader::read_input(std::istream& is)
          int sid = int_from_string_with_prefix(value, "SID:");
          input.set_sid(sid);
       } else if (value.substr(0, 8) == "SPI_SID:") {
-         int spi_sid = int_from_string_with_prefix(value, "SPI_SID:");
+         ASSERTED int spi_sid = int_from_string_with_prefix(value, "SPI_SID:");
          assert(spi_sid == input.spi_sid());
       } else if (value.substr(0, 7) == "INTERP:") {
          interp = int_from_string_with_prefix(value, "INTERP:");

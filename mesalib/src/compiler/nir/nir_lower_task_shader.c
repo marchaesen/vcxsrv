@@ -320,7 +320,7 @@ lower_task_intrin(nir_builder *b,
 }
 
 static bool
-uses_task_payload_atomics(nir_shader *shader)
+requires_payload_in_shared(nir_shader *shader, bool atomics, bool small_types)
 {
    nir_foreach_function(func, shader) {
       if (!func->impl)
@@ -347,7 +347,17 @@ uses_task_payload_atomics(nir_shader *shader)
                case nir_intrinsic_task_payload_atomic_fmin:
                case nir_intrinsic_task_payload_atomic_fmax:
                case nir_intrinsic_task_payload_atomic_fcomp_swap:
-                  return true;
+                  if (atomics)
+                     return true;
+                  break;
+               case nir_intrinsic_load_task_payload:
+                  if (small_types && nir_dest_bit_size(intrin->dest) < 32)
+                     return true;
+                  break;
+               case nir_intrinsic_store_task_payload:
+                  if (small_types && nir_src_bit_size(intrin->src[0]) < 32)
+                     return true;
+                  break;
                default:
                   break;
             }
@@ -407,12 +417,15 @@ nir_lower_task_shader(nir_shader *shader,
        * If the shader already had a launch_mesh_workgroups by any chance,
        * this will be removed.
        */
-      builder.cursor = nir_after_cf_list(&builder.impl->body);
+      nir_block *last_block = nir_impl_last_block(impl);
+      builder.cursor = nir_after_block_before_jump(last_block);
       nir_launch_mesh_workgroups(&builder, nir_imm_zero(&builder, 3, 32));
    }
 
-   bool payload_in_shared = options.payload_to_shared_for_atomics &&
-                            uses_task_payload_atomics(shader);
+   bool atomics = options.payload_to_shared_for_atomics;
+   bool small_types = options.payload_to_shared_for_small_types;
+   bool payload_in_shared = (atomics || small_types) &&
+                            requires_payload_in_shared(shader, atomics, small_types);
 
    lower_task_state state = {
       .payload_shared_addr = ALIGN(shader->info.shared_size, 16),

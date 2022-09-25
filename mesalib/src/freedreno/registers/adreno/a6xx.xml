@@ -2196,7 +2196,7 @@ to upconvert to 32b float internally?
 		<bitfield name="BINH" low="8" high="14" shr="4" type="uint"/>
 	</reg32>
 	<reg32 offset="0x88d4" name="RB_WINDOW_OFFSET2" type="a6xx_reg_xy"/>
-	<reg32 offset="0x88d5" name="RB_MSAA_CNTL">
+	<reg32 offset="0x88d5" name="RB_BLIT_GMEM_MSAA_CNTL">
 		<bitfield name="SAMPLES" low="3" high="4" type="a3xx_msaa_samples"/>
 	</reg32>
 	<reg32 offset="0x88d6" name="RB_BLIT_BASE_GMEM" low="12" high="31" shr="12"/>

@@ -39,44 +39,43 @@ enum tu_dynamic_state
 
 struct cache_entry;
 
-struct tu_pipeline_cache
-{
-   struct vk_object_base base;
-
-   struct tu_device *device;
-   pthread_mutex_t mutex;
-
-   uint32_t total_size;
-   uint32_t table_size;
-   uint32_t kernel_count;
-   struct cache_entry **hash_table;
-   bool modified;
-
-   VkAllocationCallbacks alloc;
-};
-VK_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline_cache, base, VkPipelineCache,
-                               VK_OBJECT_TYPE_PIPELINE_CACHE)
-
 struct tu_lrz_pipeline
 {
    uint32_t force_disable_mask;
-   bool fs_has_kill;
+
+   struct {
+      bool has_kill;
+      bool force_early_z;
+      bool early_fragment_tests;
+   } fs;
+
    bool force_late_z;
-   bool early_fragment_tests;
 };
 
 struct tu_compiled_shaders
 {
    struct vk_pipeline_cache_object base;
 
-   struct tu_push_constant_range push_consts[MESA_SHADER_STAGES];
+   struct tu_const_state const_state[MESA_SHADER_STAGES];
    uint8_t active_desc_sets;
-   bool multi_pos_output;
 
    struct ir3_shader_variant *variants[MESA_SHADER_STAGES];
+
+   struct ir3_shader_variant *safe_const_variants[MESA_SHADER_STAGES];
+};
+
+struct tu_nir_shaders
+{
+   struct vk_pipeline_cache_object base;
+
+   /* This is optional, and is only filled out when a library pipeline is
+    * compiled with RETAIN_LINK_TIME_OPTIMIZATION_INFO.
+    */
+   nir_shader *nir[MESA_SHADER_STAGES];
 };
 
 extern const struct vk_pipeline_cache_object_ops tu_shaders_ops;
+extern const struct vk_pipeline_cache_object_ops tu_nir_shaders_ops;
 
 static bool inline
 tu6_shared_constants_enable(const struct tu_pipeline_layout *layout,
@@ -92,7 +91,7 @@ struct tu_program_descriptor_linkage
 
    uint32_t constlen;
 
-   struct tu_push_constant_range push_consts;
+   struct tu_const_state tu_const_state;
 };
 
 struct tu_pipeline_executable {
@@ -116,7 +115,6 @@ struct tu_pipeline
    /* Separate BO for private memory since it should GPU writable */
    struct tu_bo *pvtmem_bo;
 
-   bool need_indirect_descriptor_sets;
    VkShaderStageFlags active_stages;
    uint32_t active_desc_sets;
 
@@ -126,33 +124,70 @@ struct tu_pipeline
    uint32_t dynamic_state_mask;
    struct tu_draw_state dynamic_state[TU_DYNAMIC_STATE_COUNT];
 
+   VkGraphicsPipelineLibraryFlagsEXT state;
+
    /* for dynamic states which use the same register: */
-   uint32_t gras_su_cntl, gras_su_cntl_mask;
-   uint32_t rb_depth_cntl, rb_depth_cntl_mask;
-   uint32_t rb_stencil_cntl, rb_stencil_cntl_mask;
-   uint32_t pc_raster_cntl, pc_raster_cntl_mask;
-   uint32_t vpc_unknown_9107, vpc_unknown_9107_mask;
-   uint32_t stencil_wrmask;
+   struct {
+      uint32_t gras_su_cntl, gras_su_cntl_mask;
+      uint32_t pc_raster_cntl, pc_raster_cntl_mask;
+      uint32_t vpc_unknown_9107, vpc_unknown_9107_mask;
+      enum a5xx_line_mode line_mode;
+      bool provoking_vertex_last;
 
-   unsigned num_rts;
-   uint32_t rb_mrt_control[MAX_RTS], rb_mrt_control_mask;
-   uint32_t rb_mrt_blend_control[MAX_RTS];
-   uint32_t sp_blend_cntl, sp_blend_cntl_mask;
-   uint32_t rb_blend_cntl, rb_blend_cntl_mask;
-   uint32_t color_write_enable, blend_enable;
-   bool logic_op_enabled, rop_reads_dst;
-   bool rasterizer_discard;
+      uint32_t multiview_mask;
 
-   bool rb_depth_cntl_disable;
+      struct tu_draw_state state;
+   } rast;
 
-   enum a5xx_line_mode line_mode;
+   struct {
+      uint32_t rb_depth_cntl, rb_depth_cntl_mask;
+      uint32_t rb_stencil_cntl, rb_stencil_cntl_mask;
+      uint32_t stencil_wrmask;
+      bool raster_order_attachment_access;
+      bool write_enable;
+   } ds;
+
+   struct {
+      unsigned num_rts;
+      uint32_t rb_mrt_control[MAX_RTS], rb_mrt_control_mask;
+      uint32_t rb_mrt_blend_control[MAX_RTS];
+      uint32_t sp_blend_cntl, sp_blend_cntl_mask;
+      uint32_t rb_blend_cntl, rb_blend_cntl_mask;
+      uint32_t color_write_enable, blend_enable;
+      bool logic_op_enabled, rop_reads_dst;
+      bool raster_order_attachment_access;
+   } blend;
+
+   /* Misc. info from the fragment output interface state that is used
+    * elsewhere.
+    */
+   struct {
+      /* memory bandwidth cost (in bytes) for color attachments */
+      uint32_t color_bandwidth_per_sample;
+      uint32_t depth_cpp_per_sample;
+      uint32_t stencil_cpp_per_sample;
+
+      bool rb_depth_cntl_disable;
+
+      VkSampleCountFlagBits samples;
+
+      bool subpass_feedback_loop_color, subpass_feedback_loop_ds;
+      bool feedback_loop_may_involve_textures;
+   } output;
+
+   /* In other words - framebuffer fetch support */
+   struct {
+      /* If the pipeline sets SINGLE_PRIM_MODE for sysmem. */
+      bool sysmem_single_prim_mode;
+      struct tu_draw_state state_sysmem, state_gmem;
+   } prim_order;
 
    /* draw states for the pipeline */
-   struct tu_draw_state load_state, rast_state;
-   struct tu_draw_state prim_order_state_sysmem, prim_order_state_gmem;
+   struct tu_draw_state load_state;
 
-   /* for vertex buffers state */
-   uint32_t num_vbs;
+   struct {
+      uint32_t num_vbs;
+   } vi;
 
    struct tu_push_constant_range shared_consts;
 
@@ -174,6 +209,7 @@ struct tu_pipeline
    struct
    {
       uint32_t patch_type;
+      uint32_t patch_control_points;
       uint32_t param_stride;
       bool upper_left_domain_origin;
    } tess;
@@ -184,24 +220,36 @@ struct tu_pipeline
       uint32_t subgroup_size;
    } compute;
 
-   bool provoking_vertex_last;
-
    struct tu_lrz_pipeline lrz;
 
-   /* In other words - framebuffer fetch support */
-   bool raster_order_attachment_access;
-   bool subpass_feedback_loop_ds;
-   bool feedback_loop_may_involve_textures;
-   /* If the pipeline sets SINGLE_PRIM_MODE for sysmem. */
-   bool sysmem_single_prim_mode;
+   struct {
+      bool z_negative_one_to_one;
+   } viewport;
 
-   bool z_negative_one_to_one;
+   /* Used only for libraries. compiled_shaders only contains variants compiled
+    * by this pipeline, and it owns them, so when it is freed they disappear.
+    * Similarly, nir_shaders owns the link-time NIR. shaders points to the
+    * shaders from this pipeline and all libraries included in it, for
+    * convenience.
+    */
+   struct tu_compiled_shaders *compiled_shaders;
+   struct tu_nir_shaders *nir_shaders;
+   struct {
+      nir_shader *nir;
+      struct tu_shader_key key;
+      struct tu_const_state const_state;
+      struct ir3_shader_variant *variant, *safe_const_variant;
+   } shaders[MESA_SHADER_FRAGMENT + 1];
 
-   /* memory bandwidth cost (in bytes) for color attachments */
-   uint32_t color_bandwidth_per_sample;
+   struct ir3_shader_key ir3_key;
 
-   uint32_t depth_cpp_per_sample;
-   uint32_t stencil_cpp_per_sample;
+   /* Used for libraries, to stitch together an overall layout for the final
+    * pipeline.
+    */
+   struct tu_descriptor_set_layout *layouts[MAX_SETS];
+   unsigned num_sets;
+   unsigned push_constant_size;
+   bool independent_sets;
 
    void *executables_mem_ctx;
    /* tu_pipeline_executable */

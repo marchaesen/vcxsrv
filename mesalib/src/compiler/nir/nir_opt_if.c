@@ -942,7 +942,7 @@ opt_if_phi_is_condition(nir_builder *b, nir_if *nif)
 {
    /* Grab pointers to the last then/else blocks for looking in the phis. */
    nir_block *then_block = nir_if_last_then_block(nif);
-   nir_block *else_block = nir_if_last_else_block(nif);
+   ASSERTED nir_block *else_block = nir_if_last_else_block(nif);
    nir_ssa_def *cond = nif->condition.ssa;
    bool progress = false;
 

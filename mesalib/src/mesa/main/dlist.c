@@ -739,6 +739,11 @@ void mesa_print_display_list(GLuint list);
 static void
 vbo_destroy_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node)
 {
+   struct gl_buffer_object *bo = node->cold->VAO[0]->BufferBinding[0].BufferObj;
+
+   if (_mesa_bufferobj_mapped(bo, MAP_INTERNAL))
+      _mesa_bufferobj_unmap(ctx, bo, MAP_INTERNAL);
+
    for (gl_vertex_processing_mode mode = VP_MODE_FF; mode < VP_MODE_MAX; ++mode) {
       _mesa_reference_vao(ctx, &node->cold->VAO[mode], NULL);
       if (node->private_refcount[mode]) {

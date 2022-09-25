@@ -2069,6 +2069,12 @@ try_opt_ldunif(struct v3d_compile *c, uint32_t index, struct qreg *unif)
         if (!prev_inst)
                 return false;
 
+        /* Only reuse the ldunif result if it was written to a temp register,
+         * otherwise there may be special restrictions (for example, ldunif
+         * may write directly to unifa, which is a write-only register).
+         */
+        if (prev_inst->dst.file != QFILE_TEMP)
+                return false;
 
         list_for_each_entry_from(struct qinst, inst, prev_inst->link.next,
                                  &c->cur_block->instructions, link) {

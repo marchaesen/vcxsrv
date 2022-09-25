@@ -544,11 +544,11 @@ ir3_setup_used_key(struct ir3_shader *shader)
       }
 
       /* Only used for deciding on behavior of
-       * nir_intrinsic_load_barycentric_sample, or the centroid demotion
+       * nir_intrinsic_load_barycentric_sample and the centroid demotion
        * on older HW.
        */
-      key->msaa = info->fs.uses_sample_qualifier ||
-                  (shader->compiler->gen < 6 &&
+      key->msaa = shader->compiler->gen < 6 &&
+                  (info->fs.uses_sample_qualifier ||
                    (BITSET_TEST(info->system_values_read,
                                 SYSTEM_VALUE_BARYCENTRIC_PERSP_CENTROID) ||
                     BITSET_TEST(info->system_values_read,
@@ -615,16 +615,18 @@ ir3_trim_constlen(struct ir3_shader_variant **variants,
 {
    unsigned constlens[MESA_SHADER_STAGES] = {};
 
+   bool shared_consts_enable = false;
+
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (variants[i])
+      if (variants[i]) {
          constlens[i] = variants[i]->constlen;
+         shared_consts_enable =
+            ir3_const_state(variants[i])->shared_consts_enable;
+      }
    }
 
    uint32_t trimmed = 0;
    STATIC_ASSERT(MESA_SHADER_STAGES <= 8 * sizeof(trimmed));
-
-   bool shared_consts_enable =
-      ir3_const_state(variants[MESA_SHADER_VERTEX])->shared_consts_enable;
 
    /* Use a hw quirk for geometry shared consts, not matched with actual
     * shared consts size (on a6xx).

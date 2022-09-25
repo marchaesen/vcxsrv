@@ -500,7 +500,7 @@ int bc_builder::build_alu(alu_node* n) {
 
 int bc_builder::build_fetch_tex(fetch_node* n) {
 	const bc_fetch &bc = n->bc;
-	const fetch_op_info *fop = bc.op_ptr;
+	ASSERTED const fetch_op_info *fop = bc.op_ptr;
 
 	assert(!(fop->flags & FF_VTX));
 
@@ -564,7 +564,7 @@ int bc_builder::build_fetch_tex(fetch_node* n) {
 
 int bc_builder::build_fetch_gds(fetch_node *n) {
 	const bc_fetch &bc = n->bc;
-	const fetch_op_info *fop = bc.op_ptr;
+	ASSERTED const fetch_op_info *fop = bc.op_ptr;
 	unsigned gds_op = (ctx.fetch_opcode(bc.op) >> 8) & 0x3f;
 	unsigned mem_op = 4;
 	assert(fop->flags & FF_GDS);
@@ -604,7 +604,7 @@ int bc_builder::build_fetch_gds(fetch_node *n) {
 
 int bc_builder::build_fetch_vtx(fetch_node* n) {
 	const bc_fetch &bc = n->bc;
-	const fetch_op_info *fop = bc.op_ptr;
+	ASSERTED const fetch_op_info *fop = bc.op_ptr;
 
 	assert(fop->flags & FF_VTX);
 
@@ -703,7 +703,7 @@ int bc_builder::build_fetch_vtx(fetch_node* n) {
 
 int bc_builder::build_fetch_mem(fetch_node* n) {
 	const bc_fetch &bc = n->bc;
-	const fetch_op_info *fop = bc.op_ptr;
+	ASSERTED const fetch_op_info *fop = bc.op_ptr;
 
 	assert(fop->flags & FF_MEM);
 

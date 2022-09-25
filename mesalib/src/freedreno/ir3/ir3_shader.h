@@ -128,8 +128,6 @@ struct ir3_ubo_analysis_state {
    struct ir3_ubo_range range[IR3_MAX_UBO_PUSH_RANGES];
    uint32_t num_enabled;
    uint32_t size;
-   uint32_t
-      cmdstream_size; /* for per-gen backend to stash required cmdstream size */
 };
 
 /**
@@ -569,6 +567,12 @@ struct ir3_shader_variant {
    unsigned pvtmem_size;
    /* Whether we should use the new per-wave layout rather than per-fiber. */
    bool pvtmem_per_wave;
+
+   /* Whether multi-position output is enabled. */
+   bool multi_pos_output;
+
+   /* Whether dual-source blending is enabled. */
+   bool dual_src_blend;
 
    /* Size in bytes of required shared memory */
    unsigned shared_size;

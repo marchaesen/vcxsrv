@@ -115,9 +115,6 @@ traces:
   glmark2/shadow-v2.trace:
     gl-radeonsi-stoney:
       checksum: 9215a1525dfe5b12999652b3a3ba05d8
-  glmark2/terrain-v2.trace:
-    gl-radeonsi-stoney:
-      checksum: 80a1bba6ff969c9a82c68de0306f2b61
   glmark2/texture:texture-filter=linear-v2.trace:
     gl-radeonsi-stoney:
       checksum: 928479421abda4823a673393cd59ff81

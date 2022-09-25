@@ -1587,6 +1587,29 @@ panfrost_emit_const_buf(struct panfrost_batch *batch,
         return ubos.gpu;
 }
 
+/*
+ * Choose the number of WLS instances to allocate. This must be a power-of-two.
+ * The number of WLS instances limits the number of concurrent tasks on a given
+ * shader core, setting to the (rounded) total number of tasks avoids any
+ * throttling. Smaller values save memory at the expense of possible throttling.
+ *
+ * With indirect dispatch, we don't know at launch-time how many tasks will be
+ * needed, so we use a conservative value that's unlikely to cause slowdown in
+ * practice without wasting too much memory.
+ */
+static unsigned
+panfrost_choose_wls_instance_count(const struct pipe_grid_info *grid)
+{
+        if (grid->indirect) {
+                /* May need tuning in the future, conservative guess */
+                return 128;
+        } else {
+                return util_next_power_of_two(grid->grid[0]) *
+                       util_next_power_of_two(grid->grid[1]) *
+                       util_next_power_of_two(grid->grid[2]);
+        }
+}
+
 static mali_ptr
 panfrost_emit_shared_memory(struct panfrost_batch *batch,
                             const struct pipe_grid_info *grid)
@@ -1601,9 +1624,7 @@ panfrost_emit_shared_memory(struct panfrost_batch *batch,
         struct pan_tls_info info = {
                 .tls.size = ss->info.tls_size,
                 .wls.size = ss->info.wls_size,
-                .wls.dim.x = grid->grid[0],
-                .wls.dim.y = grid->grid[1],
-                .wls.dim.z = grid->grid[2],
+                .wls.instances = panfrost_choose_wls_instance_count(grid),
         };
 
         if (ss->info.tls_size) {
@@ -1616,10 +1637,8 @@ panfrost_emit_shared_memory(struct panfrost_batch *batch,
         }
 
         if (ss->info.wls_size) {
-                unsigned size =
-                        pan_wls_adjust_size(info.wls.size) *
-                        pan_wls_instances(&info.wls.dim) *
-                        dev->core_id_range;
+                unsigned size = pan_wls_adjust_size(info.wls.size) *
+                                info.wls.instances * dev->core_id_range;
 
                 struct panfrost_bo *bo =
                         panfrost_batch_get_shared_memory(batch, size, 1);
@@ -3228,6 +3247,14 @@ panfrost_emit_primitive(struct panfrost_context *ctx,
 
 #if PAN_ARCH >= 9
 static mali_ptr
+panfrost_upload_wa_sampler(struct panfrost_batch *batch)
+{
+        struct panfrost_ptr T = pan_pool_alloc_desc(&batch->pool.base, SAMPLER);
+        pan_pack(T.cpu, SAMPLER, cfg);
+        return T.gpu;
+}
+
+static mali_ptr
 panfrost_emit_resources(struct panfrost_batch *batch,
                         enum pipe_shader_type stage,
                         mali_ptr ubos, unsigned ubo_count)
@@ -3248,9 +3275,17 @@ panfrost_emit_resources(struct panfrost_batch *batch,
                                      batch->textures[stage],
                                      ctx->sampler_view_count[stage]);
 
-        panfrost_make_resource_table(T, PAN_TABLE_SAMPLER,
-                                     batch->samplers[stage],
-                                     ctx->sampler_count[stage]);
+
+        if (ctx->sampler_count[stage]) {
+                panfrost_make_resource_table(T, PAN_TABLE_SAMPLER,
+                                             batch->samplers[stage],
+                                             ctx->sampler_count[stage]);
+        } else {
+                /* We always need at least 1 sampler for txf to work */
+                panfrost_make_resource_table(T, PAN_TABLE_SAMPLER,
+                                             panfrost_upload_wa_sampler(batch),
+                                             1);
+        }
 
         panfrost_make_resource_table(T, PAN_TABLE_IMAGE,
                                      batch->images[stage],
@@ -4138,12 +4173,7 @@ panfrost_launch_grid(struct pipe_context *pipe,
 
         struct panfrost_batch *batch = panfrost_get_batch_for_fbo(ctx);
 
-        struct panfrost_shader_state *cs =
-                &ctx->shader[PIPE_SHADER_COMPUTE]->variants[0];
-
-        /* Indirect dispatch can't handle workgroup local storage since that
-         * would require dynamic memory allocation. Bail in this case. */
-        if (info->indirect && ((cs->info.wls_size != 0) || !PAN_GPU_INDIRECTS)) {
+        if (info->indirect && !PAN_GPU_INDIRECTS) {
                 struct pipe_transfer *transfer;
                 uint32_t *params = pipe_buffer_map_range(pipe, info->indirect,
                                 info->indirect_offset,
@@ -4189,6 +4219,9 @@ panfrost_launch_grid(struct pipe_context *pipe,
         if (info->indirect)
                 num_wg[0] = num_wg[1] = num_wg[2] = 1;
 
+        /* Conservatively assume workgroup size changes every launch */
+        ctx->dirty |= PAN_DIRTY_PARAMS;
+
         panfrost_update_shader_state(batch, PIPE_SHADER_COMPUTE);
 
 #if PAN_ARCH <= 7
@@ -4215,6 +4248,9 @@ panfrost_launch_grid(struct pipe_context *pipe,
                 cfg.samplers = batch->samplers[PIPE_SHADER_COMPUTE];
         }
 #else
+        struct panfrost_shader_state *cs =
+                &ctx->shader[PIPE_SHADER_COMPUTE]->variants[0];
+
         pan_section_pack(t.cpu, COMPUTE_JOB, PAYLOAD, cfg) {
                 cfg.workgroup_size_x = info->block[0];
                 cfg.workgroup_size_y = info->block[1];
@@ -4616,6 +4652,25 @@ panfrost_create_blend_state(struct pipe_context *pipe,
         return so;
 }
 
+#if PAN_ARCH >= 9
+static enum mali_flush_to_zero_mode
+panfrost_ftz_mode(struct pan_shader_info *info)
+{
+        if (info->ftz_fp32) {
+                if (info->ftz_fp16)
+                        return MALI_FLUSH_TO_ZERO_MODE_ALWAYS;
+                else
+                        return MALI_FLUSH_TO_ZERO_MODE_DX11;
+        } else {
+                /* We don't have a "flush FP16, preserve FP32" mode, but APIs
+                 * should not be able to generate that.
+                 */
+                assert(!info->ftz_fp16 && !info->ftz_fp32);
+                return MALI_FLUSH_TO_ZERO_MODE_PRESERVE_SUBNORMALS;
+        }
+}
+#endif
+
 static void
 prepare_shader(struct panfrost_shader_state *state,
             struct panfrost_pool *pool, bool upload)
@@ -4663,6 +4718,7 @@ prepare_shader(struct panfrost_shader_state *state,
                 cfg.register_allocation = pan_register_allocation(state->info.work_reg_count);
                 cfg.binary = state->bin.gpu;
                 cfg.preload.r48_r63 = (state->info.preload >> 48);
+                cfg.flush_to_zero_mode = panfrost_ftz_mode(&state->info);
 
                 if (cfg.stage == MALI_SHADER_STAGE_FRAGMENT)
                         cfg.requires_helper_threads = state->info.contains_barrier;
@@ -4678,6 +4734,7 @@ prepare_shader(struct panfrost_shader_state *state,
                 cfg.register_allocation = pan_register_allocation(state->info.work_reg_count);
                 cfg.binary = state->bin.gpu + state->info.vs.no_psiz_offset;
                 cfg.preload.r48_r63 = (state->info.preload >> 48);
+                cfg.flush_to_zero_mode = panfrost_ftz_mode(&state->info);
         }
 
         if (!secondary_enable)
@@ -4691,6 +4748,7 @@ prepare_shader(struct panfrost_shader_state *state,
                 cfg.register_allocation = pan_register_allocation(work_count);
                 cfg.binary = state->bin.gpu + state->info.vs.secondary_offset;
                 cfg.preload.r48_r63 = (state->info.vs.secondary_preload >> 48);
+                cfg.flush_to_zero_mode = panfrost_ftz_mode(&state->info);
         }
 #endif
 }

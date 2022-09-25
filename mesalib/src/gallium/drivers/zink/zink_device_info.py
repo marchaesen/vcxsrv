@@ -269,6 +269,7 @@ EXTENSIONS = [
 VERSIONS = [
     Version((1,1,0), (1,1)),
     Version((1,2,0), (1,2)),
+    Version((1,3,0), (1,3)),
 ]
 
 # There exists some inconsistencies regarding the enum constants, fix them.

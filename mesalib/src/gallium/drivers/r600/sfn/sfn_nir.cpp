@@ -801,8 +801,7 @@ int r600_shader_from_nir(struct r600_context *rctx,
    NIR_PASS_V(sh, nir_convert_from_ssa, true);
    NIR_PASS_V(sh, nir_opt_dce);
 
-   if ((rctx->screen->b.debug_flags & DBG_NIR_PREFERRED) &&
-       (rctx->screen->b.debug_flags & DBG_ALL_SHADERS)) {
+   if (rctx->screen->b.debug_flags & DBG_ALL_SHADERS) {
       fprintf(stderr, "-- NIR --------------------------------------------------------\n");
       struct nir_function *func = (struct nir_function *)exec_list_get_head(&sh->functions);
       nir_index_ssa_defs(func->impl);

@@ -147,23 +147,19 @@ simple_mtx_assert_locked(simple_mtx_t *mtx)
 #else /* !UTIL_FUTEX_SUPPORTED */
 
 typedef struct simple_mtx_t {
-   bool initialized;
-   once_flag once;
+   util_once_flag flag;
    mtx_t mtx;
 } simple_mtx_t;
 
-#define _SIMPLE_MTX_INITIALIZER_NP { false, ONCE_FLAG_INIT }
+#define _SIMPLE_MTX_INITIALIZER_NP { UTIL_ONCE_FLAG_INIT }
 
 void _simple_mtx_plain_init_once(simple_mtx_t *mtx);
 
 static inline void
 _simple_mtx_init_with_once(simple_mtx_t *mtx)
 {
-   if (unlikely(!mtx->initialized)) {
-      util_call_once_with_context(&mtx->once, mtx,
-         (util_call_once_callback_t)_simple_mtx_plain_init_once);
-      mtx->initialized = true;
-   }
+   util_call_once_data(&mtx->flag,
+      (util_call_once_data_func)_simple_mtx_plain_init_once, mtx);
 }
 
 void

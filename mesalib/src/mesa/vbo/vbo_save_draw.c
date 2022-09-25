@@ -137,6 +137,7 @@ bind_vertex_list(struct gl_context *ctx,
                  const struct vbo_save_vertex_list *node)
 {
    const gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
+
    _mesa_set_draw_vao(ctx, node->cold->VAO[mode], _vbo_get_vao_filter(mode));
 }
 
@@ -146,14 +147,26 @@ loopback_vertex_list(struct gl_context *ctx,
                      const struct vbo_save_vertex_list *list)
 {
    struct gl_buffer_object *bo = list->cold->VAO[0]->BufferBinding[0].BufferObj;
-   void *buffer = _mesa_bufferobj_map_range(ctx, 0, bo->Size, GL_MAP_READ_BIT, /* ? */
-                                            bo, MAP_INTERNAL);
+   void *buffer = NULL;
+
+   /* Reuse BO mapping when possible to avoid costly mapping on every glCallList(). */
+   if (_mesa_bufferobj_mapped(bo, MAP_INTERNAL)) {
+      if (list->cold->bo_bytes_used <= bo->Mappings[MAP_INTERNAL].Length)
+         buffer = bo->Mappings[MAP_INTERNAL].Pointer;
+      else
+         _mesa_bufferobj_unmap(ctx, bo, MAP_INTERNAL);
+   }
+
+   if (!buffer && list->cold->bo_bytes_used)
+      buffer = _mesa_bufferobj_map_range(ctx, 0, list->cold->bo_bytes_used, GL_MAP_READ_BIT,
+                                         bo, MAP_INTERNAL);
 
    /* TODO: in this case, we shouldn't create a bo at all and instead keep
     * the in-RAM buffer. */
    _vbo_loopback_vertex_list(ctx, list, buffer);
 
-   _mesa_bufferobj_unmap(ctx, bo, MAP_INTERNAL);
+   if (!ctx->Const.AllowMappedBuffersDuringExecution && buffer)
+      _mesa_bufferobj_unmap(ctx, bo, MAP_INTERNAL);
 }
 
 

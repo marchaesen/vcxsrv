@@ -85,6 +85,18 @@ rebind_resource_in_ctx(struct fd_context *ctx,
       }
    }
 
+   /* xfb/so buffers: */
+   if (rsc->dirty & FD_DIRTY_STREAMOUT) {
+      struct fd_streamout_stateobj *so = &ctx->streamout;
+
+      for (unsigned i = 0;
+            i < so->num_targets && !(ctx->dirty & FD_DIRTY_STREAMOUT);
+            i++) {
+         if (so->targets[i]->buffer == prsc)
+            fd_context_dirty(ctx, FD_DIRTY_STREAMOUT);
+      }
+   }
+
    const enum fd_dirty_3d_state per_stage_dirty =
       FD_DIRTY_CONST | FD_DIRTY_TEX | FD_DIRTY_IMAGE | FD_DIRTY_SSBO;
 

@@ -138,7 +138,7 @@ static VkResult pvr_srv_sync_wait_many(struct vk_device *device,
    if (!poll_fds)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   if (abs_timeout_ns != 0U && abs_timeout_ns != ~0U) {
+   if (abs_timeout_ns != 0UL && abs_timeout_ns != ~0) {
       /* Syncobj timeouts are signed. */
       abs_timeout_ns = MIN2(abs_timeout_ns, (uint64_t)INT64_MAX);
       pvr_start_timeout(&end_time, abs_timeout_ns);
@@ -172,7 +172,7 @@ static VkResult pvr_srv_sync_wait_many(struct vk_device *device,
 
    /* FIXME: Fix device loss handling. */
    do {
-      if (abs_timeout_ns == ~0U) {
+      if (abs_timeout_ns == ~0) {
          ppoll_ret = ppoll(poll_fds, wait_count, NULL, NULL);
       } else {
          struct timespec remaining_time;

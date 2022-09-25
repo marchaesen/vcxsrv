@@ -174,7 +174,6 @@ static VAStatus vlVaVidEngineBlit(vlVaDriver *drv, vlVaContext *context,
       context->needs_begin_frame = false;
    }
    context->decoder->process_frame(context->decoder, src, &context->desc.vidproc);
-   context->vpp_needs_flush_on_endpic = true;
 
    return VA_STATUS_SUCCESS;
 }

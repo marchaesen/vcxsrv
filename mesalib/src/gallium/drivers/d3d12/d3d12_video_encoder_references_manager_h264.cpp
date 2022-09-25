@@ -365,6 +365,9 @@ d3d12_video_encoder_references_manager_h264::print_dpb()
          dpbContents += "}\n";
       }
 
+      debug_printf("[D3D12 Video Encoder Picture Manager H264] DPB Current output reconstructed picture %p subresource %d\n",
+                     m_CurrentFrameReferencesData.ReconstructedPicTexture.pReconstructedPicture,
+                     m_CurrentFrameReferencesData.ReconstructedPicTexture.ReconstructedPictureSubresource);
       debug_printf("[D3D12 Video Encoder Picture Manager H264] DPB has %d frames - DPB references for frame with POC "
                     "%d (frame_num: %d) are: \n %s \n",
                     m_rDPBStorageManager.get_number_of_pics_in_dpb(),

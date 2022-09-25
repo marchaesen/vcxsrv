@@ -285,6 +285,25 @@ get_texcoord_provenance(const nir_tex_src *texcoord,
 
 
 /*
+ * Check if all the values of a nir_load_const_instr are 32-bit
+ * floats in the range [0,1].  If so, return true, else return false.
+ */
+static bool
+check_load_const_in_zero_one(const nir_load_const_instr *load)
+{
+   if (load->def.bit_size != 32)
+      return false;
+   for (unsigned c = 0; c < load->def.num_components; c++) {
+      float val = load->value[c].f32;
+      if (val < 0.0 || val > 1.0 || isnan(val)) {
+         return false;
+      }
+   }
+   return true;
+}
+
+
+/*
  * Examine the NIR shader to determine if it's "linear".
  */
 static bool
@@ -296,8 +315,14 @@ llvmpipe_nir_fn_is_linear_compat(const struct nir_shader *shader,
       nir_foreach_instr_safe(instr, block) {
          switch (instr->type) {
          case nir_instr_type_deref:
-         case nir_instr_type_load_const:
             break;
+         case nir_instr_type_load_const: {
+            nir_load_const_instr *load = nir_instr_as_load_const(instr);
+            if (!check_load_const_in_zero_one(load)) {
+               return false;
+            }
+            break;
+         }
          case nir_instr_type_intrinsic: {
             nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
             if (intrin->intrinsic != nir_intrinsic_load_deref &&
@@ -384,14 +409,8 @@ llvmpipe_nir_fn_is_linear_compat(const struct nir_shader *shader,
                   if (nir_src_is_const(alu->src[s].src)) {
                      nir_load_const_instr *load =
                         nir_instr_as_load_const(alu->src[s].src.ssa->parent_instr);
-
-                     if (load->def.bit_size != 32)
+                     if (!check_load_const_in_zero_one(load)) {
                         return false;
-                     for (unsigned c = 0; c < load->def.num_components; c++) {
-                        if (load->value[c].f32 < 0.0 || load->value[c].f32 > 1.0) {
-                           info->unclamped_immediates = true;
-                           return false;
-                        }
                      }
                   }
                }
@@ -437,7 +456,6 @@ llvmpipe_fs_analyse_nir(struct lp_fragment_shader *shader)
        shader->info.base.num_outputs == 1 &&
        !shader->info.indirect_textures &&
        !shader->info.sampler_texture_units_different &&
-       !shader->info.unclamped_immediates &&
        shader->info.num_texs <= LP_MAX_LINEAR_TEXTURES &&
        llvmpipe_nir_is_linear_compat(shader->base.ir.nir, &shader->info)) {
       shader->kind = LP_FS_KIND_LLVM_LINEAR;

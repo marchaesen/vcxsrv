@@ -151,8 +151,7 @@ ir3_emit_constant_data(struct fd_screen *screen,
  * shader).
  */
 static inline void
-ir3_emit_user_consts(struct fd_screen *screen,
-                     const struct ir3_shader_variant *v,
+ir3_emit_user_consts(const struct ir3_shader_variant *v,
                      struct fd_ringbuffer *ring,
                      struct fd_constbuf_stateobj *constbuf)
 {
@@ -420,7 +419,7 @@ emit_common_consts(const struct ir3_shader_variant *v,
 
       ring_wfi(ctx->batch, ring);
 
-      ir3_emit_user_consts(ctx->screen, v, ring, constbuf);
+      ir3_emit_user_consts(v, ring, constbuf);
       ir3_emit_ubos(ctx, v, ring, constbuf);
       if (shader_dirty)
          ir3_emit_immediates(ctx->screen, v, ring);

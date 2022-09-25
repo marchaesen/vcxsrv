@@ -206,20 +206,18 @@ dri_create_context(gl_api api, const struct gl_config * visual,
 
    /* Do this last. */
    if (ctx->st->start_thread &&
-         driQueryOptionb(&screen->dev->option_cache, "mesa_glthread")) {
+       driQueryOptionb(&screen->dev->option_cache, "mesa_glthread")) {
+      bool safe = true;
 
-      if (backgroundCallable && backgroundCallable->base.version >= 2 &&
-            backgroundCallable->isThreadSafe) {
+      /* This is only needed by X11/DRI2, which can be unsafe. */
+      if (backgroundCallable &&
+          backgroundCallable->base.version >= 2 &&
+          backgroundCallable->isThreadSafe &&
+          !backgroundCallable->isThreadSafe(cPriv->loaderPrivate))
+         safe = false;
 
-         if (backgroundCallable->isThreadSafe(cPriv->loaderPrivate))
-            ctx->st->start_thread(ctx->st);
-         else
-            fprintf(stderr, "dri_create_context: glthread isn't thread safe "
-                  "- missing call XInitThreads\n");
-      } else {
-         fprintf(stderr, "dri_create_context: requested glthread but driver "
-               "is missing backgroundCallable V2 extension\n");
-      }
+      if (safe)
+         ctx->st->start_thread(ctx->st);
    }
 
    *error = __DRI_CTX_ERROR_SUCCESS;
@@ -237,6 +235,12 @@ void
 dri_destroy_context(__DRIcontext * cPriv)
 {
    struct dri_context *ctx = dri_context(cPriv);
+
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
 
    if (ctx->hud) {
       hud_destroy(ctx->hud, ctx->st->cso_context);
@@ -290,6 +294,12 @@ dri_make_current(__DRIcontext * cPriv,
    struct dri_context *ctx = dri_context(cPriv);
    struct dri_drawable *draw = dri_drawable(driDrawPriv);
    struct dri_drawable *read = dri_drawable(driReadPriv);
+
+   /* Wait for glthread to finish because we can't use st_context from
+    * multiple threads.
+    */
+   if (ctx->st->thread_finish)
+      ctx->st->thread_finish(ctx->st);
 
    if (!draw && !read)
       return ctx->stapi->make_current(ctx->stapi, ctx->st, NULL, NULL);

@@ -508,7 +508,9 @@ SOFTWARE.
     <field name="sample_pos" start="16" end="16" type="bool"/>
     <field name="pipe_enable" start="12" end="15" type="PIPE_NUM"/>
     <field name="valid_id" start="4" end="9" type="uint"/>
-    <field name="upass_start" start="0" end="3" type="uint"/>
+    <field name="upass_start" start="0" end="3" type="uint">
+      <define name="SIZE_MAX" value="15"/>
+    </field>
   </struct>
 
   <struct name="ISP_ZLSCTL" length="2">

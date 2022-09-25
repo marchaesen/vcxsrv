@@ -1191,11 +1191,9 @@ write_combined_image_sampler_descriptor(struct radv_device *device,
 }
 
 static ALWAYS_INLINE void
-write_sampler_descriptor(struct radv_device *device, unsigned *dst,
-                         const VkDescriptorImageInfo *image_info)
+write_sampler_descriptor(unsigned *dst, VkSampler _sampler)
 {
-   RADV_FROM_HANDLE(radv_sampler, sampler, image_info->sampler);
-
+   RADV_FROM_HANDLE(radv_sampler, sampler, _sampler);
    memcpy(dst, sampler->state, 16);
 }
 
@@ -1291,7 +1289,8 @@ radv_update_descriptor_sets_impl(struct radv_device *device, struct radv_cmd_buf
          }
          case VK_DESCRIPTOR_TYPE_SAMPLER:
             if (!binding_layout->immutable_samplers_offset) {
-               write_sampler_descriptor(device, ptr, writeset->pImageInfo + j);
+               const VkDescriptorImageInfo *pImageInfo = writeset->pImageInfo + j;
+               write_sampler_descriptor(ptr, pImageInfo->sampler);
             } else if (copy_immutable_samplers) {
                unsigned idx = writeset->dstArrayElement + j;
                memcpy(ptr, samplers + 4 * idx, 16);
@@ -1583,8 +1582,10 @@ radv_update_descriptor_set_with_template_impl(struct radv_device *device,
             }
             break;
          case VK_DESCRIPTOR_TYPE_SAMPLER:
-            if (templ->entry[i].has_sampler)
-               write_sampler_descriptor(device, pDst, (struct VkDescriptorImageInfo *)pSrc);
+            if (templ->entry[i].has_sampler) {
+               const VkDescriptorImageInfo *pImageInfo = (struct VkDescriptorImageInfo *)pSrc;
+               write_sampler_descriptor(pDst, pImageInfo->sampler);
+            }
             else if (cmd_buffer && templ->entry[i].immutable_samplers)
                memcpy(pDst, templ->entry[i].immutable_samplers + 4 * j, 16);
             break;

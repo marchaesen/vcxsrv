@@ -1621,6 +1621,10 @@ v3dv_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
       .maxDescriptorSetUpdateAfterBindInlineUniformBlocks =
          MAX_INLINE_UNIFORM_BUFFERS,
       .maxBufferSize = V3D_MAX_BUFFER_RANGE,
+      .storageTexelBufferOffsetAlignmentBytes = V3D_TMU_TEXEL_ALIGN,
+      .storageTexelBufferOffsetSingleTexelAlignment = false,
+      .uniformTexelBufferOffsetAlignmentBytes = V3D_TMU_TEXEL_ALIGN,
+      .uniformTexelBufferOffsetSingleTexelAlignment = false,
    };
 
    VkPhysicalDeviceVulkan12Properties vk12 = {
@@ -1763,15 +1767,6 @@ v3dv_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
           * never provide this extension.
           */
          break;
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT: {
-         VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT *props =
-            (VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT *)ext;
-         props->storageTexelBufferOffsetAlignmentBytes = V3D_TMU_TEXEL_ALIGN;
-         props->storageTexelBufferOffsetSingleTexelAlignment = false;
-         props->uniformTexelBufferOffsetAlignmentBytes = V3D_TMU_TEXEL_ALIGN;
-         props->uniformTexelBufferOffsetSingleTexelAlignment = false;
-         break;
-      }
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MODULE_IDENTIFIER_PROPERTIES_EXT: {
          VkPhysicalDeviceShaderModuleIdentifierPropertiesEXT *props =
             (VkPhysicalDeviceShaderModuleIdentifierPropertiesEXT *)ext;

@@ -7,22 +7,24 @@
 
 struct util_call_once_context_t
 {
-   void *context;
-   util_call_once_callback_t callback;
+   const void *data;
+   util_call_once_data_func func;
 };
 
 static thread_local struct util_call_once_context_t call_once_context;
 
-static void util_call_once_with_context_callback(void)
+static void
+util_call_once_data_slow_once(void)
 {
    struct util_call_once_context_t *once_context = &call_once_context;
-   once_context->callback(once_context->context);
+   once_context->func(once_context->data);
 }
 
-void util_call_once_with_context(once_flag *once, void *context, util_call_once_callback_t callback)
+void
+util_call_once_data_slow(once_flag *once, util_call_once_data_func func, const void *data)
 {
    struct util_call_once_context_t *once_context = &call_once_context;
-   once_context->context = context;
-   once_context->callback = callback;
-   call_once(once, util_call_once_with_context_callback);
+   once_context->data = data;
+   once_context->func = func;
+   call_once(once, util_call_once_data_slow_once);
 }

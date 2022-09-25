@@ -465,6 +465,9 @@ struct threaded_context_options {
     * safe to call without synchronizing with driver thread.
     */
    bool unsynchronized_get_device_reset_status;
+
+   /* If true, create_fence_fd doesn't access the context in the driver. */
+   bool unsynchronized_create_fence_fd;
 };
 
 struct threaded_context {

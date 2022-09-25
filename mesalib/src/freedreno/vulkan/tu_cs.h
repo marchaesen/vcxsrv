@@ -77,6 +77,7 @@ struct tu_cs
    uint32_t *cur;
    uint32_t *reserved_end;
    uint32_t *end;
+   const char *name;
 
    struct tu_device *device;
    enum tu_cs_mode mode;
@@ -111,7 +112,7 @@ void
 tu_cs_init(struct tu_cs *cs,
            struct tu_device *device,
            enum tu_cs_mode mode,
-           uint32_t initial_size);
+           uint32_t initial_size, const char *name);
 
 void
 tu_cs_init_external(struct tu_cs *cs, struct tu_device *device,

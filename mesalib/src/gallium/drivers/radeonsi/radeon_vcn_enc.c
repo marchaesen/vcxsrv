@@ -52,6 +52,15 @@ static void radeon_vcn_enc_quality_modes(struct radeon_encoder *enc,
    p->vbaq_mode = in->vbaq_mode ? RENCODE_VBAQ_AUTO : RENCODE_VBAQ_NONE;
 }
 
+/* to process invalid frame rate */
+static void radeon_vcn_enc_invalid_frame_rate(uint32_t *den, uint32_t *num)
+{
+   if (*den == 0 || *num == 0) {
+      *den = 1;
+      *num = 30;
+   }
+}
+
 static uint32_t radeon_vcn_per_frame_integer(uint32_t bitrate, uint32_t den, uint32_t num)
 {
    uint64_t rate_den = (uint64_t)bitrate * (uint64_t)den;
@@ -68,6 +77,8 @@ static uint32_t radeon_vcn_per_frame_frac(uint32_t bitrate, uint32_t den, uint32
 }
 static void radeon_vcn_enc_get_param(struct radeon_encoder *enc, struct pipe_picture_desc *picture)
 {
+   uint32_t frame_rate_den, frame_rate_num;
+
    if (u_reduce_video_profile(picture->profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC) {
       struct pipe_h264_enc_picture_desc *pic = (struct pipe_h264_enc_picture_desc *)picture;
       enc->enc_pic.picture_type = pic->picture_type;
@@ -78,9 +89,13 @@ static void radeon_vcn_enc_get_param(struct radeon_encoder *enc, struct pipe_pic
       enc->enc_pic.pic_order_cnt = pic->pic_order_cnt;
       enc->enc_pic.pic_order_cnt_type = pic->pic_order_cnt_type;
       enc->enc_pic.ref_idx_l0 = pic->ref_idx_l0_list[0];
+      enc->enc_pic.ref_idx_l0_is_ltr = pic->l0_is_long_term[0];
       enc->enc_pic.ref_idx_l1 = pic->ref_idx_l1_list[0];
+      enc->enc_pic.ref_idx_l1_is_ltr = pic->l1_is_long_term[0];
       enc->enc_pic.not_referenced = pic->not_referenced;
       enc->enc_pic.is_idr = (pic->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR);
+      enc->enc_pic.is_ltr = pic->is_ltr;
+      enc->enc_pic.ltr_idx = pic->is_ltr ? pic->ltr_index : 0;
       if (pic->pic_ctrl.enc_frame_cropping_flag) {
          enc->enc_pic.crop_left = pic->pic_ctrl.enc_frame_crop_left_offset;
          enc->enc_pic.crop_right = pic->pic_ctrl.enc_frame_crop_right_offset;
@@ -97,21 +112,24 @@ static void radeon_vcn_enc_get_param(struct radeon_encoder *enc, struct pipe_pic
       for (int i = 0; i < enc->enc_pic.num_temporal_layers; i++) {
          enc->enc_pic.rc_layer_init[i].target_bit_rate = pic->rate_ctrl[i].target_bitrate;
          enc->enc_pic.rc_layer_init[i].peak_bit_rate = pic->rate_ctrl[i].peak_bitrate;
-         enc->enc_pic.rc_layer_init[i].frame_rate_num = pic->rate_ctrl[i].frame_rate_num;
-         enc->enc_pic.rc_layer_init[i].frame_rate_den = pic->rate_ctrl[i].frame_rate_den;
+         frame_rate_den = pic->rate_ctrl[i].frame_rate_den;
+         frame_rate_num = pic->rate_ctrl[i].frame_rate_num;
+         radeon_vcn_enc_invalid_frame_rate(&frame_rate_den, &frame_rate_num);
+         enc->enc_pic.rc_layer_init[i].frame_rate_den = frame_rate_den;
+         enc->enc_pic.rc_layer_init[i].frame_rate_num = frame_rate_num;
          enc->enc_pic.rc_layer_init[i].vbv_buffer_size = pic->rate_ctrl[i].vbv_buffer_size;
          enc->enc_pic.rc_layer_init[i].avg_target_bits_per_picture =
                radeon_vcn_per_frame_integer(pic->rate_ctrl[i].target_bitrate,
-                                            pic->rate_ctrl[i].frame_rate_den,
-                                            pic->rate_ctrl[i].frame_rate_num);
+                                            frame_rate_den,
+                                            frame_rate_num);
          enc->enc_pic.rc_layer_init[i].peak_bits_per_picture_integer =
                radeon_vcn_per_frame_integer(pic->rate_ctrl[i].peak_bitrate,
-                                            pic->rate_ctrl[i].frame_rate_den,
-                                            pic->rate_ctrl[i].frame_rate_num);
+                                            frame_rate_den,
+                                            frame_rate_num);
          enc->enc_pic.rc_layer_init[i].peak_bits_per_picture_fractional =
                radeon_vcn_per_frame_frac(pic->rate_ctrl[i].peak_bitrate,
-                                         pic->rate_ctrl[i].frame_rate_den,
-                                         pic->rate_ctrl[i].frame_rate_num);
+                                         frame_rate_den,
+                                         frame_rate_num);
       }
       enc->enc_pic.rc_session_init.vbv_buffer_level = pic->rate_ctrl[0].vbv_buf_lv;
       enc->enc_pic.rc_per_pic.qp = pic->quant_i_frames;
@@ -230,21 +248,24 @@ static void radeon_vcn_enc_get_param(struct radeon_encoder *enc, struct pipe_pic
       enc->enc_pic.hevc_spec_misc.quarter_pel_enabled = 1;
       enc->enc_pic.rc_layer_init[0].target_bit_rate = pic->rc.target_bitrate;
       enc->enc_pic.rc_layer_init[0].peak_bit_rate = pic->rc.peak_bitrate;
-      enc->enc_pic.rc_layer_init[0].frame_rate_num = pic->rc.frame_rate_num;
-      enc->enc_pic.rc_layer_init[0].frame_rate_den = pic->rc.frame_rate_den;
+      frame_rate_den = pic->rc.frame_rate_den;
+      frame_rate_num = pic->rc.frame_rate_num;
+      radeon_vcn_enc_invalid_frame_rate(&frame_rate_den, &frame_rate_num);
+      enc->enc_pic.rc_layer_init[0].frame_rate_den = frame_rate_den;
+      enc->enc_pic.rc_layer_init[0].frame_rate_num = frame_rate_num;
       enc->enc_pic.rc_layer_init[0].vbv_buffer_size = pic->rc.vbv_buffer_size;
       enc->enc_pic.rc_layer_init[0].avg_target_bits_per_picture =
                radeon_vcn_per_frame_integer(pic->rc.target_bitrate,
-                                            pic->rc.frame_rate_den,
-                                            pic->rc.frame_rate_num);
+                                            frame_rate_den,
+                                            frame_rate_num);
       enc->enc_pic.rc_layer_init[0].peak_bits_per_picture_integer =
                radeon_vcn_per_frame_integer(pic->rc.peak_bitrate,
-                                            pic->rc.frame_rate_den,
-                                            pic->rc.frame_rate_num);
+                                            frame_rate_den,
+                                            frame_rate_num);
       enc->enc_pic.rc_layer_init[0].peak_bits_per_picture_fractional =
                radeon_vcn_per_frame_frac(pic->rc.peak_bitrate,
-                                         pic->rc.frame_rate_den,
-                                         pic->rc.frame_rate_num);
+                                         frame_rate_den,
+                                         frame_rate_num);
       enc->enc_pic.rc_session_init.vbv_buffer_level = pic->rc.vbv_buf_lv;
       enc->enc_pic.rc_per_pic.qp = pic->rc.quant_i_frames;
       enc->enc_pic.rc_per_pic.min_qp_app = pic->rc.min_qp;
@@ -362,6 +383,7 @@ static int setup_dpb(struct radeon_encoder *enc)
    enc_pic->ctx_buf.num_reconstructed_pictures = num_reconstructed_pictures;
    enc_pic->ctx_buf.colloc_buffer_offset = 0;
    enc->dpb_size = offset;
+   enc->max_ltr_idx = 0;
 
    return offset;
 }

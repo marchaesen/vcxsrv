@@ -139,24 +139,15 @@ static nir_function *mangle_and_find(struct vtn_builder *b,
                                      struct vtn_type **src_types)
 {
    char *mname;
-   nir_function *found = NULL;
 
    vtn_opencl_mangle(name, const_mask, num_srcs, src_types, &mname);
+
    /* try and find in current shader first. */
-   nir_foreach_function(funcs, b->shader) {
-      if (!strcmp(funcs->name, mname)) {
-         found = funcs;
-         break;
-      }
-   }
+   nir_function *found = nir_shader_get_function_for_name(b->shader, mname);
+
    /* if not found here find in clc shader and create a decl mirroring it */
    if (!found && b->options->clc_shader && b->options->clc_shader != b->shader) {
-      nir_foreach_function(funcs, b->options->clc_shader) {
-         if (!strcmp(funcs->name, mname)) {
-            found = funcs;
-            break;
-         }
-      }
+      found = nir_shader_get_function_for_name(b->options->clc_shader, mname);
       if (found) {
          nir_function *decl = nir_function_create(b->shader, mname);
          decl->num_params = found->num_params;
@@ -603,9 +594,16 @@ handle_core(struct vtn_builder *b, uint32_t opcode,
       break;
    }
    case SpvOpGroupWaitEvents: {
-      src_types[0] = get_vtn_type_for_glsl_type(b, glsl_int_type());
-      if (!call_mangled_function(b, "wait_group_events", 0, num_srcs, src_types, dest_type, srcs, &ret_deref))
-         return NULL;
+      /* libclc and clang don't agree on the mangling of this function.
+       * The libclc we have uses a __local pointer but clang gives us generic
+       * pointers.  Fortunately, the whole function is just a barrier.
+       */
+      nir_scoped_barrier(&b->nb, .execution_scope = NIR_SCOPE_WORKGROUP,
+                                 .memory_scope = NIR_SCOPE_WORKGROUP,
+                                 .memory_semantics = NIR_MEMORY_ACQUIRE |
+                                                     NIR_MEMORY_RELEASE,
+                                 .memory_modes = nir_var_mem_shared |
+                                                 nir_var_mem_global);
       break;
    }
    default:

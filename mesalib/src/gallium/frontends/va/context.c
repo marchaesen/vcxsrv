@@ -99,6 +99,10 @@ static struct VADriverVTable vtable =
    NULL, /* vaQueryProcessingRate */
    &vlVaExportSurfaceHandle,
 #endif
+#if VA_CHECK_VERSION(1, 15, 0)
+   NULL, /* vaSyncSurface2 */
+   &vlVaSyncBuffer,
+#endif
 };
 
 static struct VADriverVTableVPP vtable_vpp =

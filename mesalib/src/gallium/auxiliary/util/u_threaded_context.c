@@ -2961,7 +2961,9 @@ tc_create_fence_fd(struct pipe_context *_pipe,
    struct threaded_context *tc = threaded_context(_pipe);
    struct pipe_context *pipe = tc->pipe;
 
-   tc_sync(tc);
+   if (!tc->options.unsynchronized_create_fence_fd)
+      tc_sync(tc);
+
    pipe->create_fence_fd(pipe, fence, fd, type);
 }
 

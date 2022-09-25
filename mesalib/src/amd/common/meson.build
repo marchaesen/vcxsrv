@@ -73,8 +73,6 @@ amd_common_files = files(
   'ac_shader_util.h',
   'ac_gpu_info.c',
   'ac_gpu_info.h',
-  'ac_rtld.c',
-  'ac_rtld.h',
   'ac_surface.c',
   'ac_surface.h',
   'ac_debug.c',
@@ -89,7 +87,6 @@ amd_common_files = files(
   'ac_rgp.h',
   'ac_msgpack.c',
   'ac_msgpack.h',
-  'ac_rgp_elf_object_pack.c',
   'ac_nir.c',
   'ac_nir.h',
   'ac_nir_opt_outputs.c',
@@ -104,6 +101,14 @@ amd_common_files = files(
   'ac_perfcounter.c',
   'ac_perfcounter.h',
 )
+
+if dep_elf.found()
+  amd_common_files += files(
+    'ac_rtld.c',
+    'ac_rtld.h',
+    'ac_rgp_elf_object_pack.c',
+  )
+endif
 
 libamd_common = static_library(
   'amd_common',

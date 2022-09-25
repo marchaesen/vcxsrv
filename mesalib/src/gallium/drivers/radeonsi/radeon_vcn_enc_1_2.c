@@ -865,8 +865,17 @@ static void radeon_enc_slice_header(struct radeon_encoder *enc)
    if (enc->enc_pic.picture_type != PIPE_H2645_ENC_PICTURE_TYPE_IDR) {
       radeon_enc_code_fixed_bits(enc, 0x0, 1);
 
+      /* long-term reference */
+      if (enc->enc_pic.ref_idx_l0_is_ltr) {
+         radeon_enc_code_fixed_bits(enc, 0x1, 1);            /* ref_pic_list_modification_flag_l0 */
+         radeon_enc_code_ue(enc, 0x2);                       /* modification_of_pic_nums_idc */
+         radeon_enc_code_ue(enc, enc->enc_pic.ref_idx_l0);   /* long_term_pic_num */
+         radeon_enc_code_ue(enc, 0x3);
+      }
+
+      /* short-term reference */
       /* list_mod_diff_pic_minus1 != 0 */
-      if (enc->enc_pic.frame_num - enc->enc_pic.ref_idx_l0 > 1) {
+      else if (enc->enc_pic.frame_num - enc->enc_pic.ref_idx_l0 > 1) {
          radeon_enc_code_fixed_bits(enc, 0x1, 1);  /* ref_pic_list_modification_flag_l0 */
          radeon_enc_code_ue(enc, 0x0);             /* modification_of_pic_nums_idc */
          /* abs_diff_pic_num_minus1 */
@@ -878,10 +887,22 @@ static void radeon_enc_slice_header(struct radeon_encoder *enc)
 
    if (enc->enc_pic.is_idr) {
       radeon_enc_code_fixed_bits(enc, 0x0, 1);
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);
-   } else if (!enc->enc_pic.not_referenced)
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);
-
+      if (enc->enc_pic.is_ltr)
+         radeon_enc_code_fixed_bits(enc, 0x1, 1); /* long_term_reference_flag */
+      else 
+         radeon_enc_code_fixed_bits(enc, 0x0, 1);
+   } else if (!enc->enc_pic.not_referenced) {
+      if (enc->enc_pic.is_ltr) {
+         radeon_enc_code_fixed_bits(enc, 0x1, 1);
+         radeon_enc_code_ue(enc, 0x4); /* memory_management_control_operation */
+         radeon_enc_code_ue(enc, enc->max_ltr_idx + 1); /* max_long_term_frame_idx_plus1 */
+         radeon_enc_code_ue(enc, 0x6); /*memory_management_control_operation */
+         radeon_enc_code_ue(enc, enc->enc_pic.ltr_idx); /* long_term_frame_idx */
+         radeon_enc_code_ue(enc, 0x0); /*memory_management_control_operation end*/
+      } else 
+         radeon_enc_code_fixed_bits(enc, 0x0, 1);  
+   }
+      
    if ((enc->enc_pic.picture_type != PIPE_H2645_ENC_PICTURE_TYPE_IDR) &&
        (enc->enc_pic.spec_misc.cabac_enable))
       radeon_enc_code_ue(enc, enc->enc_pic.spec_misc.cabac_init_idc);
@@ -1312,17 +1333,42 @@ static void destroy(struct radeon_encoder *enc)
    *enc->p_task_size = (enc->total_task_size);
 }
 
-static int find_short_ref_idx(struct radeon_encoder *enc, int frame_num)
+static int find_ref_idx(struct radeon_encoder *enc, int pic_num, bool is_ltr)
 {
-   for (int i = 0; i < enc->base.max_references + 1; i++)
-      if (enc->dpb_info[i].frame_num == frame_num && enc->dpb_info[i].in_use)
+   for (int i = 0; i < enc->base.max_references + 1; i++) {
+      if (enc->dpb_info[i].pic_num == pic_num && 
+	  enc->dpb_info[i].in_use && 
+	  enc->dpb_info[i].is_ltr == is_ltr) 
          return i;
+   }
 
    return -1;
 }
 
 static int get_picture_storage(struct radeon_encoder *enc)
 {
+   if (enc->enc_pic.is_ltr) {
+      if (enc->enc_pic.is_idr) {
+         enc->enc_pic.ltr_idx = 0;
+         enc->max_ltr_idx = 0;
+      }
+      /* 
+         find ltr with the same ltr_idx to replace
+         if this is a new ltr_idx, increase max_ltr_idx and use the normal logic to find slot
+      */
+     if (enc->enc_pic.ltr_idx <= enc->max_ltr_idx) {
+        for (int i = 0; i < enc->base.max_references + 1; i++) {
+            if (enc->dpb_info[i].in_use && 
+		enc->dpb_info[i].is_ltr && 
+		enc->enc_pic.ltr_idx == enc->dpb_info[i].pic_num) {
+               enc->dpb_info[i].in_use = FALSE;
+               return i;
+            }
+         }
+     } else
+        enc->max_ltr_idx = enc->enc_pic.ltr_idx;
+   }
+ 
    for (int i = 0; i < enc->base.max_references + 1; i++) {
       if (!enc->dpb_info[i].in_use) {
          memset(&(enc->dpb_info[i]), 0, sizeof(rvcn_enc_picture_info_t));
@@ -1334,8 +1380,8 @@ static int get_picture_storage(struct radeon_encoder *enc)
    unsigned int oldest_frame_num = 0xFFFFFFFF;
    int oldest_idx = -1;
    for (int i = 0; i < enc->base.max_references + 1; i++)
-      if (enc->dpb_info[i].frame_num < oldest_frame_num) {
-         oldest_frame_num = enc->dpb_info[i].frame_num;
+      if (!enc->dpb_info[i].is_ltr && enc->dpb_info[i].pic_num < oldest_frame_num) {
+         oldest_frame_num = enc->dpb_info[i].pic_num;
          oldest_idx = i;
       }
 
@@ -1358,12 +1404,18 @@ static void manage_dpb_before_encode(struct radeon_encoder *enc)
    current_pic_idx = get_picture_storage(enc);
    assert(current_pic_idx >= 0);
 
-   int ref0_idx = find_short_ref_idx(enc, enc->enc_pic.ref_idx_l0);
+   int ref0_idx = find_ref_idx(enc, enc->enc_pic.ref_idx_l0, enc->enc_pic.ref_idx_l0_is_ltr);
 
    if (!enc->enc_pic.not_referenced)
       enc->dpb_info[current_pic_idx].in_use = TRUE;
 
-   enc->dpb_info[current_pic_idx].frame_num = enc->enc_pic.frame_num;
+   if (enc->enc_pic.is_ltr) {
+      enc->dpb_info[current_pic_idx].pic_num = enc->enc_pic.ltr_idx;
+      enc->dpb_info[current_pic_idx].is_ltr = TRUE;
+   } else {
+      enc->dpb_info[current_pic_idx].pic_num = enc->enc_pic.frame_num;
+      enc->dpb_info[current_pic_idx].is_ltr = FALSE;
+   }
 
    if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
       enc->enc_pic.enc_params.reference_picture_index = 0xFFFFFFFF;

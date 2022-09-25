@@ -352,6 +352,7 @@ if with_tests
     'tests/string_buffer_test.cpp',
     'tests/timespec_test.cpp',
     'tests/u_atomic_test.cpp',
+    'tests/u_call_once_test.cpp',
     'tests/u_debug_stack_test.cpp',
     'tests/u_printf_test.cpp',
     'tests/u_qsort_test.cpp',

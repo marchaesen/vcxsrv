@@ -25,6 +25,8 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#define FD_BO_NO_HARDPIN 1
+
 #include "util/format_srgb.h"
 #include "util/half_float.h"
 #include "util/u_dump.h"

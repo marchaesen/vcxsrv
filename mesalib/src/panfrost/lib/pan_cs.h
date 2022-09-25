@@ -85,7 +85,7 @@ struct pan_tls_info {
         } tls;
 
         struct {
-                struct pan_compute_dim dim;
+                unsigned instances;
                 mali_ptr ptr;
                 unsigned size;
         } wls;

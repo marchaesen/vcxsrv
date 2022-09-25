@@ -30,13 +30,23 @@
  * recombine swizzles where we can as an optimization.
  */
 
-static void
-bi_lower_swizzle_16(bi_context *ctx, bi_instr *ins, unsigned src)
+static bool
+bi_swizzle_replicates_8(enum bi_swizzle swz)
 {
-        /* Identity is ok */
-        if (ins->src[src].swizzle == BI_SWIZZLE_H01)
-                return;
+        switch (swz) {
+        case BI_SWIZZLE_B0000:
+        case BI_SWIZZLE_B1111:
+        case BI_SWIZZLE_B2222:
+        case BI_SWIZZLE_B3333:
+                return true;
+        default:
+                return false;
+        }
+}
 
+static void
+lower_swizzle(bi_context *ctx, bi_instr *ins, unsigned src)
+{
         /* TODO: Use the opcode table and be a lot more methodical about this... */
         switch (ins->op) {
         /* Some instructions used with 16-bit data never have swizzles */
@@ -91,6 +101,31 @@ bi_lower_swizzle_16(bi_context *ctx, bi_instr *ins, unsigned src)
                 else
                         break;
 
+        /* No swizzles supported */
+        case BI_OPCODE_HADD_V4U8:
+        case BI_OPCODE_HADD_V4S8:
+        case BI_OPCODE_CLZ_V4U8:
+        case BI_OPCODE_IDP_V4I8:
+        case BI_OPCODE_IABS_V4S8:
+        case BI_OPCODE_ICMP_V4I8:
+        case BI_OPCODE_ICMP_V4U8:
+        case BI_OPCODE_MUX_V4I8:
+        case BI_OPCODE_IADD_IMM_V4I8:
+                break;
+
+        case BI_OPCODE_LSHIFT_AND_V4I8:
+        case BI_OPCODE_LSHIFT_OR_V4I8:
+        case BI_OPCODE_LSHIFT_XOR_V4I8:
+        case BI_OPCODE_RSHIFT_AND_V4I8:
+        case BI_OPCODE_RSHIFT_OR_V4I8:
+        case BI_OPCODE_RSHIFT_XOR_V4I8:
+                /* Last source allows identity or replication */
+                if (src == 2 && bi_swizzle_replicates_8(ins->src[src].swizzle))
+                        return;
+
+                /* Others do not allow swizzles */
+                break;
+
         /* We don't want to deal with reswizzling logic in modifier prop. Move
          * the swizzle outside, it's easier for clamp propagation. */
         case BI_OPCODE_FCLAMP_V2F16:
@@ -132,22 +167,16 @@ bi_lower_swizzle_16(bi_context *ctx, bi_instr *ins, unsigned src)
 
         /* Lower it away */
         bi_builder b = bi_init_builder(ctx, bi_before_instr(ins));
-        bi_replace_src(ins, src, bi_swz_v2i16(&b, ins->src[src]));
-        ins->src[src].swizzle = BI_SWIZZLE_H01;
-}
 
-static bool
-bi_swizzle_replicates_8(enum bi_swizzle swz)
-{
-        switch (swz) {
-        case BI_SWIZZLE_B0000:
-        case BI_SWIZZLE_B1111:
-        case BI_SWIZZLE_B2222:
-        case BI_SWIZZLE_B3333:
-                return true;
-        default:
-                return false;
-        }
+        bool is_8 = (bi_opcode_props[ins->op].size == BI_SIZE_8);
+        bi_index orig = ins->src[src];
+        bi_index stripped = bi_replace_index(bi_null(), orig);
+        stripped.swizzle = ins->src[src].swizzle;
+
+        bi_index swz = is_8 ? bi_swz_v4i8(&b, stripped) : bi_swz_v2i16(&b, stripped);
+
+        bi_replace_src(ins, src, swz);
+        ins->src[src].swizzle = BI_SWIZZLE_H01;
 }
 
 static bool
@@ -241,8 +270,10 @@ bi_lower_swizzle(bi_context *ctx)
 {
         bi_foreach_instr_global_safe(ctx, ins) {
                 bi_foreach_src(ins, s) {
-                        if (!bi_is_null(ins->src[s]))
-                                bi_lower_swizzle_16(ctx, ins, s);
+                        if (bi_is_null(ins->src[s])) continue;
+                        if (ins->src[s].swizzle == BI_SWIZZLE_H01) continue;
+
+                        lower_swizzle(ctx, ins, s);
                 }
         }
 

@@ -41,8 +41,6 @@ dEQP-GLES2.functional.rasterization.primitives.lines_wide,Fail
 dEQP-GLES2.functional.rasterization.primitives.line_strip_wide,Fail,Fail
 dEQP-GLES2.functional.rasterization.primitives.line_loop_wide,Fail
 
-dEQP-GLES2.functional.shaders.indexing.tmp_array.float_dynamic_write_dynamic_loop_read_fragment,Fail
-
 dEQP-GLES2.functional.shaders.random.texture.fragment.141,Fail
 
 dEQP-GLES2.functional.shaders.return.return_in_dynamic_loop_dynamic_fragment,Fail

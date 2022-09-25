@@ -444,7 +444,7 @@ Vulkan 1.1 -- all DONE: anv, lvp, radv, tu, vn
   VK_KHR_storage_buffer_storage_class                   DONE (anv, lvp, panvk, radv, tu, v3dv, vn)
   VK_KHR_variable_pointers                              DONE (anv, lvp, panvk, radv, tu, v3dv, vn)
 
-Vulkan 1.2 -- all DONE: anv, vn
+Vulkan 1.2 -- all DONE: anv, tu, vn
 
   VK_KHR_8bit_storage                                   DONE (anv/gen8+, lvp, radv, v3dv, vn)
   VK_KHR_buffer_device_address                          DONE (anv/gen8+, lvp, radv, tu, v3dv, vn)
@@ -471,7 +471,7 @@ Vulkan 1.2 -- all DONE: anv, vn
   VK_EXT_separate_stencil_usage                         DONE (anv, lvp, radv, tu, v3dv, vn)
   VK_EXT_shader_viewport_index_layer                    DONE (anv, lvp, radv, tu, vn)
 
-Vulkan 1.3 -- all DONE: anv, radv, lvp
+Vulkan 1.3 -- all DONE: anv, radv, tu, lvp
 
   VK_KHR_copy_commands2                                 DONE (anv, lvp, panvk, radv, tu, v3dv, vn)
   VK_KHR_dynamic_rendering                              DONE (anv, dzn, lvp, radv, tu, vn)
@@ -577,8 +577,8 @@ Khronos extensions that are not part of any Vulkan version:
   VK_EXT_rasterization_order_attachment_access          DONE (lvp, tu)
   VK_EXT_robustness2                                    DONE (anv, lvp, radv, tu, vn)
   VK_EXT_sample_locations                               DONE (anv, radv/gfx9-, tu/a650)
-  VK_EXT_shader_atomic_float                            DONE (anv, radv)
-  VK_EXT_shader_atomic_float2                           DONE (anv/gen9+, radv)
+  VK_EXT_shader_atomic_float                            DONE (anv, lvp, radv)
+  VK_EXT_shader_atomic_float2                           DONE (anv/gen9+, lvp, radv)
   VK_EXT_shader_image_atomic_int64                      DONE (radv)
   VK_EXT_shader_stencil_export                          DONE (anv/gen9+, lvp, radv, tu, vn)
   VK_EXT_shader_subgroup_ballot                         DONE (anv, lvp, radv)
@@ -615,7 +615,7 @@ Khronos extensions that are not part of any Vulkan version:
   VK_AMD_shader_trinary_minmax                          DONE (radv)
   VK_AMD_texture_gather_bias_lod                        DONE (radv)
   VK_ARM_rasterization_order_attachment_access          DONE (lvp, tu)
-  VK_EXT_mutable_descriptor_type                        DONE (radv)
+  VK_EXT_mutable_descriptor_type                        DONE (anv, radv, tu)
 
 
 OpenCL 1.0 -- all DONE:

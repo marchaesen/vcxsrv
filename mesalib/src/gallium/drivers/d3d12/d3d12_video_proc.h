@@ -80,6 +80,12 @@ d3d12_video_processor_flush(struct pipe_video_codec *codec);
 /// d3d12_video_processor functions starts
 ///
 
+struct d3d12_video_processor_output_context
+{
+   struct D3D12_VIDEO_PROCESS_OUTPUT_STREAM_ARGUMENTS args;
+   struct d3d12_video_buffer* buffer;
+};
+
 struct d3d12_video_processor
 {
    struct pipe_video_codec base;
@@ -109,8 +115,9 @@ struct d3d12_video_processor
    std::vector<D3D12_RESOURCE_BARRIER> m_transitionsBeforeCloseCmdList;
 
    // Current state between begin and end frame
-   D3D12_VIDEO_PROCESS_OUTPUT_STREAM_ARGUMENTS m_OutputArguments;
+   d3d12_video_processor_output_context m_OutputArguments;
    std::vector<D3D12_VIDEO_PROCESS_INPUT_STREAM_ARGUMENTS1> m_ProcessInputs;
+   std::vector<struct d3d12_video_buffer*> m_InputBuffers;
 
    // Indicates if GPU commands have not been flushed and are pending.
    bool m_needsGPUFlush = false;

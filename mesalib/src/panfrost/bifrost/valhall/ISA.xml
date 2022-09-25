@@ -1599,7 +1599,7 @@
     <desc>
       Used as a primitive for various bitwise operations.
     </desc>
-    <src/>
+    <src swizzle="true"/>
   </ins>
 
   <ins name="CLZ.v4u8" title="Count leading zeroes" dests="1" opcode="0x91" opcode2="0x6" unit="CVT">
@@ -1822,7 +1822,7 @@
     <ins name="IADD.v4u8" opcode="0xA2"/>
     <ins name="IADD.s32" opcode="0xA8"/>
     <ins name="IADD.v2s16" opcode="0xA9"/>
-    <ins name="IADD.v4s8" opcode="0x1A2"/>
+    <ins name="IADD.v4s8" opcode="0xAA"/>
     <ins name="IADD.u64" opcode="0x1A3"/>
     <ins name="IADD.s64" opcode="0x1AB"/>
     <!-- <ins name="IADD.s32" opcode="0x1A0"/> -->
@@ -1843,7 +1843,7 @@
     <ins name="ISUB.v4u8" opcode="0xA2"/>
     <ins name="ISUB.s32" opcode="0xA8"/>
     <ins name="ISUB.v2s16" opcode="0xA9"/>
-    <ins name="ISUB.v4s8" opcode="0x1A2"/>
+    <ins name="ISUB.v4s8" opcode="0xAA"/>
     <ins name="ISUB.u64" opcode="0x1A3"/>
     <ins name="ISUB.s64" opcode="0x1AB"/>
     <desc>$A - B$ with optional saturation</desc>
@@ -1886,7 +1886,7 @@
     <ins name="IMUL.v4i8" opcode="0xA2"/>
     <ins name="IMUL.s32" opcode="0xA8"/>
     <ins name="IMUL.v2s16" opcode="0xA9"/>
-    <ins name="IMUL.v4s8" opcode="0x1A2"/>
+    <ins name="IMUL.v4s8" opcode="0xAA"/>
     <ins name="IMULD.u64" opcode="0x1A3"/>
     <!-- <ins name="IMUL.s32" opcode="0x1A0"/> -->
     <desc>
@@ -1907,7 +1907,7 @@
     <ins name="HADD.v4u8" opcode="0xA2"/>
     <ins name="HADD.s32" opcode="0xA8"/>
     <ins name="HADD.v2s16" opcode="0xA9"/>
-    <ins name="HADD.v4s8" opcode="0x1A2"/>
+    <ins name="HADD.v4s8" opcode="0xAA"/>
     <mod name="rhadd" start="30" size="1"/>
     <src widen="true">A</src>
     <src widen="true">B</src>
@@ -1924,7 +1924,7 @@
     <ins name="CLPER.v4u8" opcode="0xA2"/>
     <ins name="CLPER.s32" opcode="0xA8"/>
     <ins name="CLPER.v2s16" opcode="0xA9"/>
-    <ins name="CLPER.v4s8" opcode="0x1A2"/>
+    <ins name="CLPER.v4s8" opcode="0xAA"/>
     <ins name="CLPER.u64" opcode="0x1A3"/>
     <ins name="CLPER.s64" opcode="0x1AB"/>
     <!-- <ins name="CLPER.s32" opcode="0x1A0"/> -->

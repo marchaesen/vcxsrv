@@ -23,6 +23,7 @@
 
 #include "drm-uapi/msm_drm.h"
 #include "util/debug.h"
+#include "util/hash_table.h"
 #include "util/timespec.h"
 #include "util/os_time.h"
 
@@ -224,6 +225,7 @@ tu_gem_info(const struct tu_device *dev, uint32_t gem_handle, uint32_t info)
    return req.value;
 }
 
+
 static VkResult
 tu_allocate_userspace_iova(struct tu_device *dev,
                            uint32_t gem_handle,
@@ -295,7 +297,8 @@ tu_bo_init(struct tu_device *dev,
            uint32_t gem_handle,
            uint64_t size,
            uint64_t client_iova,
-           enum tu_bo_alloc_flags flags)
+           enum tu_bo_alloc_flags flags,
+           const char *name)
 {
    VkResult result = VK_SUCCESS;
    uint64_t iova = 0;
@@ -311,6 +314,8 @@ tu_bo_init(struct tu_device *dev,
 
    if (result != VK_SUCCESS)
       goto fail_bo_list;
+
+   name = tu_debug_bos_add(dev, size, name);
 
    mtx_lock(&dev->bo_mutex);
    uint32_t idx = dev->bo_count++;
@@ -344,6 +349,7 @@ tu_bo_init(struct tu_device *dev,
       .iova = iova,
       .refcnt = 1,
       .bo_list_idx = idx,
+      .name = name,
    };
 
    mtx_unlock(&dev->bo_mutex);
@@ -355,12 +361,44 @@ fail_bo_list:
    return result;
 }
 
+/**
+ * Sets the name in the kernel so that the contents of /debug/dri/0/gem are more
+ * useful.
+ *
+ * We skip this on release builds (when we're also not doing BO debugging) to
+ * reduce overhead.
+ */
+static void
+tu_bo_set_kernel_name(struct tu_device *dev, struct tu_bo *bo, const char *name)
+{
+   bool kernel_bo_names = dev->bo_sizes != NULL;
+#ifdef DEBUG
+   kernel_bo_names = true;
+#endif
+   if (!kernel_bo_names)
+      return;
+
+   struct drm_msm_gem_info req = {
+      .handle = bo->gem_handle,
+      .info = MSM_INFO_SET_NAME,
+      .value = (uintptr_t)(void *)name,
+      .len = strlen(name),
+   };
+
+   int ret = drmCommandWrite(dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
+   if (ret) {
+      mesa_logw_once("Failed to set BO name with DRM_MSM_GEM_INFO: %d",
+                     ret);
+   }
+}
+
 VkResult
 tu_bo_init_new_explicit_iova(struct tu_device *dev,
                              struct tu_bo **out_bo,
                              uint64_t size,
                              uint64_t client_iova,
-                             enum tu_bo_alloc_flags flags)
+                             enum tu_bo_alloc_flags flags,
+                             const char *name)
 {
    /* TODO: Choose better flags. As of 2018-11-12, freedreno/drm/msm_bo.c
     * always sets `flags = MSM_BO_WC`, and we copy that behavior here.
@@ -382,12 +420,15 @@ tu_bo_init_new_explicit_iova(struct tu_device *dev,
    assert(bo && bo->gem_handle == 0);
 
    VkResult result =
-      tu_bo_init(dev, bo, req.handle, size, client_iova, flags);
+      tu_bo_init(dev, bo, req.handle, size, client_iova, flags, name);
 
    if (result != VK_SUCCESS)
       memset(bo, 0, sizeof(*bo));
    else
       *out_bo = bo;
+
+   /* We don't use bo->name here because for the !TU_DEBUG=bo case bo->name is NULL. */
+   tu_bo_set_kernel_name(dev, bo, name);
 
    return result;
 }
@@ -431,7 +472,7 @@ tu_bo_init_dmabuf(struct tu_device *dev,
    }
 
    VkResult result =
-      tu_bo_init(dev, bo, gem_handle, size, 0, TU_BO_ALLOC_NO_FLAGS);
+      tu_bo_init(dev, bo, gem_handle, size, 0, TU_BO_ALLOC_NO_FLAGS, "dmabuf");
 
    if (result != VK_SUCCESS)
       memset(bo, 0, sizeof(*bo));
@@ -487,6 +528,8 @@ tu_bo_finish(struct tu_device *dev, struct tu_bo *bo)
 
    if (bo->map)
       munmap(bo->map, bo->size);
+
+   tu_debug_bos_del(dev, bo);
 
    mtx_lock(&dev->bo_mutex);
    dev->bo_count--;
@@ -604,10 +647,13 @@ tu_timeline_sync_reset(struct vk_device *vk_device,
 static VkResult
 drm_syncobj_wait(struct tu_device *device,
                  uint32_t *handles, uint32_t count_handles,
-                 int64_t timeout_nsec, bool wait_all)
+                 uint64_t timeout_nsec, bool wait_all)
 {
    uint32_t syncobj_wait_flags = DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT;
    if (wait_all) syncobj_wait_flags |= DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL;
+
+   /* syncobj absolute timeouts are signed.  clamp OS_TIMEOUT_INFINITE down. */
+   timeout_nsec = MIN2(timeout_nsec, (uint64_t)INT64_MAX);
 
    int err = drmSyncobjWait(device->fd, handles,
                             count_handles, timeout_nsec,
@@ -1141,6 +1187,8 @@ tu_queue_submit_locked(struct tu_queue *queue, struct tu_queue_submit *submit)
                                  &req, sizeof(req));
 
    mtx_unlock(&queue->device->bo_mutex);
+
+   tu_debug_bos_print_stats(queue->device);
 
    if (ret)
       return vk_device_set_lost(&queue->device->vk, "submit failed: %m");

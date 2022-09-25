@@ -132,7 +132,7 @@ zink_create_gfx_program(struct zink_context *ctx,
                         unsigned vertices_per_patch);
 
 void
-zink_destroy_gfx_program(struct zink_context *ctx,
+zink_destroy_gfx_program(struct zink_screen *screen,
                          struct zink_gfx_program *prog);
 
 void
@@ -145,7 +145,7 @@ void
 debug_describe_zink_gfx_program(char* buf, const struct zink_gfx_program *ptr);
 
 static inline bool
-zink_gfx_program_reference(struct zink_context *ctx,
+zink_gfx_program_reference(struct zink_screen *screen,
                            struct zink_gfx_program **dst,
                            struct zink_gfx_program *src)
 {
@@ -154,7 +154,7 @@ zink_gfx_program_reference(struct zink_context *ctx,
 
    if (pipe_reference_described(old_dst ? &old_dst->base.reference : NULL, &src->base.reference,
                                 (debug_reference_descriptor)debug_describe_zink_gfx_program)) {
-      zink_destroy_gfx_program(ctx, old_dst);
+      zink_destroy_gfx_program(screen, old_dst);
       ret = true;
    }
    if (dst) *dst = src;
@@ -162,14 +162,14 @@ zink_gfx_program_reference(struct zink_context *ctx,
 }
 
 void
-zink_destroy_compute_program(struct zink_context *ctx,
+zink_destroy_compute_program(struct zink_screen *screen,
                              struct zink_compute_program *comp);
 
 void
 debug_describe_zink_compute_program(char* buf, const struct zink_compute_program *ptr);
 
 static inline bool
-zink_compute_program_reference(struct zink_context *ctx,
+zink_compute_program_reference(struct zink_screen *screen,
                            struct zink_compute_program **dst,
                            struct zink_compute_program *src)
 {
@@ -178,7 +178,7 @@ zink_compute_program_reference(struct zink_context *ctx,
 
    if (pipe_reference_described(old_dst ? &old_dst->base.reference : NULL, &src->base.reference,
                                 (debug_reference_descriptor)debug_describe_zink_compute_program)) {
-      zink_destroy_compute_program(ctx, old_dst);
+      zink_destroy_compute_program(screen, old_dst);
       ret = true;
    }
    if (dst) *dst = src;
@@ -186,7 +186,7 @@ zink_compute_program_reference(struct zink_context *ctx,
 }
 
 static inline bool
-zink_program_reference(struct zink_context *ctx,
+zink_program_reference(struct zink_screen *screen,
                        struct zink_program **dst,
                        struct zink_program *src)
 {
@@ -195,10 +195,10 @@ zink_program_reference(struct zink_context *ctx,
       return false;
    if (pg->is_compute) {
       struct zink_compute_program *comp = (struct zink_compute_program*)pg;
-      return zink_compute_program_reference(ctx, &comp, NULL);
+      return zink_compute_program_reference(screen, &comp, NULL);
    } else {
       struct zink_gfx_program *prog = (struct zink_gfx_program*)pg;
-      return zink_gfx_program_reference(ctx, &prog, NULL);
+      return zink_gfx_program_reference(screen, &prog, NULL);
    }
 }
 

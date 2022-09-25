@@ -918,8 +918,6 @@ static int convert_rgb_to_alpha(
 					rc_mask_to_swizzle(old_mask));
 			new_index = i;
 			*new_regvalp = *old_regvalp;
-			*old_regvalp = NULL;
-			new_regvalp = get_reg_valuep(s, RC_FILE_TEMPORARY, i, 3);
 			break;
 		}
 	}

@@ -169,7 +169,7 @@ vk_object_base_from_u64_handle(uint64_t handle, VkObjectType obj_type)
  *                      VK_OBJECT_TYPE_IMAGE
  */
 #define VK_DEFINE_NONDISP_HANDLE_CASTS(__driver_type, __base, __VkType, __VK_TYPE) \
-   static inline struct __driver_type *                                    \
+   UNUSED static inline struct __driver_type *                             \
    __driver_type ## _from_handle(__VkType _handle)                         \
    {                                                                       \
       struct vk_object_base *base =                                        \
@@ -179,7 +179,7 @@ vk_object_base_from_u64_handle(uint64_t handle, VkObjectType obj_type)
       return (struct __driver_type *)base;                                 \
    }                                                                       \
                                                                            \
-   static inline __VkType                                                  \
+   UNUSED static inline __VkType                                           \
    __driver_type ## _to_handle(struct __driver_type *_obj)                 \
    {                                                                       \
       vk_object_base_assert_valid(&_obj->__base, __VK_TYPE);               \

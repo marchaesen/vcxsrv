@@ -164,6 +164,7 @@ if with_tests
       files(
         'test/test-constant-fold.cpp',
         'test/test-dual-texture.cpp',
+        'test/test-lower-swizzle.cpp',
         'test/test-message-preload.cpp',
 	'test/test-optimizer.cpp',
 	'test/test-pack-formats.cpp',

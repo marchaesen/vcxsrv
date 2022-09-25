@@ -117,60 +117,24 @@ clear_in_rp(struct pipe_context *pctx,
 }
 
 static struct zink_framebuffer_clear_data *
+add_new_clear(struct zink_framebuffer_clear *fb_clear)
+{
+   struct zink_framebuffer_clear_data cd = {0};
+   util_dynarray_append(&fb_clear->clears, struct zink_framebuffer_clear_data, cd);
+   return zink_fb_clear_element(fb_clear, zink_fb_clear_count(fb_clear) - 1);
+}
+
+static struct zink_framebuffer_clear_data *
 get_clear_data(struct zink_context *ctx, struct zink_framebuffer_clear *fb_clear, const struct pipe_scissor_state *scissor_state)
 {
-   struct zink_framebuffer_clear_data *clear = NULL;
    unsigned num_clears = zink_fb_clear_count(fb_clear);
    if (num_clears) {
       struct zink_framebuffer_clear_data *last_clear = zink_fb_clear_element(fb_clear, num_clears - 1);
       /* if we're completely overwriting the previous clear, merge this into the previous clear */
       if (!scissor_state || (last_clear->has_scissor && scissor_states_equal(&last_clear->scissor, scissor_state)))
-         clear = last_clear;
+         return last_clear;
    }
-   if (!clear) {
-      struct zink_framebuffer_clear_data cd = {0};
-      util_dynarray_append(&fb_clear->clears, struct zink_framebuffer_clear_data, cd);
-      clear = zink_fb_clear_element(fb_clear, zink_fb_clear_count(fb_clear) - 1);
-   }
-   return clear;
-}
-
-static void
-clamp_color(const struct util_format_description *desc, union pipe_color_union *dst, const union pipe_color_union *src, unsigned i)
-{
-   int non_void = util_format_get_first_non_void_channel(desc->format);
-   switch (desc->channel[i].type) {
-   case UTIL_FORMAT_TYPE_VOID:
-      if (desc->channel[non_void].type == UTIL_FORMAT_TYPE_FLOAT) {
-         dst->f[i] = uif(UINT32_MAX);
-      } else {
-         if (desc->channel[non_void].normalized)
-            dst->f[i] = 1.0;
-         else if (desc->channel[non_void].type == UTIL_FORMAT_TYPE_SIGNED)
-            dst->i[i] = INT32_MAX;
-         else
-            dst->ui[i] = UINT32_MAX;
-      }
-      break;
-   case UTIL_FORMAT_TYPE_SIGNED:
-      if (desc->channel[i].normalized)
-         dst->i[i] = src->i[i];
-      else {
-         dst->i[i] = MAX2(src->i[i], -(1<<(desc->channel[i].size - 1)));
-         dst->i[i] = MIN2(dst->i[i], (1 << (desc->channel[i].size - 1)) - 1);
-      }
-      break;
-   case UTIL_FORMAT_TYPE_UNSIGNED:
-      if (desc->channel[i].normalized)
-         dst->ui[i] = src->ui[i];
-      else
-         dst->ui[i] = MIN2(src->ui[i], BITFIELD_MASK(desc->channel[i].size));
-      break;
-   case UTIL_FORMAT_TYPE_FIXED:
-   case UTIL_FORMAT_TYPE_FLOAT:
-      dst->ui[i] = src->ui[i];
-      break;
-   }
+   return add_new_clear(fb_clear);
 }
 
 void
@@ -184,9 +148,6 @@ zink_clear(struct pipe_context *pctx,
    struct pipe_framebuffer_state *fb = &ctx->fb_state;
    struct zink_batch *batch = &ctx->batch;
    bool needs_rp = false;
-
-   if (unlikely(!zink_screen(pctx->screen)->info.have_EXT_conditional_rendering && !zink_check_conditional_render(ctx)))
-      return;
 
    if (scissor_state) {
       struct u_rect scissor = {scissor_state->minx, scissor_state->maxx, scissor_state->miny, scissor_state->maxy};
@@ -245,7 +206,30 @@ zink_clear(struct pipe_context *pctx,
       union pipe_color_union color;
       color.f[0] = color.f[1] = color.f[2] = 0;
       color.f[3] = 1.0;
-      pctx->clear(pctx, void_clears, NULL, &color, 0, 0);
+      for (unsigned i = 0; i < fb->nr_cbufs; i++) {
+         if ((void_clears & (PIPE_CLEAR_COLOR0 << i)) && fb->cbufs[i]) {
+            struct zink_framebuffer_clear *fb_clear = &ctx->fb_clears[i];
+            unsigned num_clears = zink_fb_clear_count(fb_clear);
+            if (num_clears) {
+               if (zink_fb_clear_first_needs_explicit(fb_clear)) {
+                  /* a scissored clear exists:
+                   * - extend the clear array
+                   * - shift existing clears back by one position
+                   * - inject void clear base of array
+                   */
+                  add_new_clear(fb_clear);
+                  struct zink_framebuffer_clear_data *clear = fb_clear->clears.data;
+                  memcpy(clear + 1, clear, num_clears);
+                  memcpy(&clear->color, &color, sizeof(color));
+               } else {
+                  /* no void clear needed */
+               }
+               void_clears &= ~(PIPE_CLEAR_COLOR0 << i);
+            }
+         }
+      }
+      if (void_clears)
+         pctx->clear(pctx, void_clears, NULL, &color, 0, 0);
    }
 
    if (buffers & PIPE_CLEAR_COLOR) {
@@ -272,13 +256,13 @@ zink_clear(struct pipe_context *pctx,
                   tmp.ui[2] = 0;
                   tmp.ui[3] = 0;
                } else if (util_format_is_luminance(psurf->format)) {
-                  tmp.ui[1] = tmp.ui[0];
-                  tmp.ui[2] = tmp.ui[0];
+                  tmp.ui[1] = 0;
+                  tmp.ui[2] = 0;
                   tmp.f[3] = 1.0;
                } else if (util_format_is_luminance_alpha(psurf->format)) {
-                  tmp.f[3] = tmp.ui[1];
-                  tmp.ui[1] = tmp.ui[0];
-                  tmp.ui[2] = tmp.ui[0];
+                  tmp.ui[1] = tmp.ui[3];
+                  tmp.ui[2] = 0;
+                  tmp.f[3] = 1.0;
                } else /* zink_format_is_red_alpha */ {
                   tmp.ui[1] = tmp.ui[3];
                   tmp.ui[2] = 0;
@@ -287,7 +271,7 @@ zink_clear(struct pipe_context *pctx,
                color = &tmp;
             }
             for (unsigned i = 0; i < 4; i++)
-               clamp_color(desc, &clear->color, color, i);
+               zink_format_clamp_channel_color(desc, &clear->color, color, i);
             if (zink_fb_clear_first_needs_explicit(fb_clear))
                ctx->rp_clears_enabled &= ~(PIPE_CLEAR_COLOR0 << i);
             else
@@ -520,7 +504,7 @@ zink_clear_buffer(struct pipe_context *pctx,
       zink_batch_no_rp(ctx);
       zink_batch_reference_resource_rw(batch, res, true);
       util_range_add(&res->base.b, &res->valid_buffer_range, offset, offset + size);
-      zink_resource_buffer_barrier(ctx, res, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+      zink_screen(ctx->base.screen)->buffer_barrier(ctx, res, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
       res->obj->unordered_read = res->obj->unordered_write = false;
       VKCTX(CmdFillBuffer)(batch->state->cmdbuf, res->obj->buffer, offset, size, *(uint32_t*)clear_value);
       return;
@@ -757,5 +741,29 @@ zink_fb_clears_apply_region(struct zink_context *ctx, struct pipe_resource *pres
       if (ctx->fb_state.zsbuf && ctx->fb_state.zsbuf->texture == pres) {
          fb_clears_apply_or_discard_internal(ctx, pres, region, false, true, PIPE_MAX_COLOR_BUFS);
       }
+   }
+}
+
+void
+zink_fb_clear_rewrite(struct zink_context *ctx, unsigned idx, enum pipe_format before, enum pipe_format after)
+{
+   /* if the values for the clear color are incompatible, they must be rewritten;
+    * this occurs if:
+    * - the formats' srgb-ness does not match
+    * - the formats' signedness does not match
+    */
+   const struct util_format_description *bdesc = util_format_description(before);
+   const struct util_format_description *adesc = util_format_description(after);
+   bool bsigned = bdesc->channel[util_format_get_first_non_void_channel(before)].type == UTIL_FORMAT_TYPE_SIGNED;
+   bool asigned = adesc->channel[util_format_get_first_non_void_channel(after)].type == UTIL_FORMAT_TYPE_SIGNED;
+   if (util_format_is_srgb(before) == util_format_is_srgb(after) &&
+       bsigned == asigned)
+      return;
+   struct zink_framebuffer_clear *fb_clear = &ctx->fb_clears[idx];
+   for (int j = 0; j < zink_fb_clear_count(fb_clear); j++) {
+      struct zink_framebuffer_clear_data *clear = zink_fb_clear_element(fb_clear, j);
+      uint32_t data[4];
+      util_format_pack_rgba(before, data, clear->color.ui, 1);
+      util_format_unpack_rgba(after, clear->color.ui, data, 1);
    }
 }

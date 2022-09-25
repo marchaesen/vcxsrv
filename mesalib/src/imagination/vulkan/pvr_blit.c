@@ -42,6 +42,16 @@ void pvr_CmdBlitImage2KHR(VkCommandBuffer commandBuffer,
    assert(!"Unimplemented");
 }
 
+VkResult
+pvr_copy_or_resolve_color_image_region(struct pvr_cmd_buffer *cmd_buffer,
+                                       const struct pvr_image *src,
+                                       const struct pvr_image *dst,
+                                       const VkImageCopy2 *region)
+{
+   assert(!"Unimplemented");
+   return VK_SUCCESS;
+}
+
 void pvr_CmdCopyImageToBuffer2KHR(
    VkCommandBuffer commandBuffer,
    const VkCopyImageToBufferInfo2 *pCopyImageToBufferInfo)

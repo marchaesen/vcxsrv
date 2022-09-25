@@ -243,6 +243,11 @@ typedef struct shader_info {
 
    enum gl_subgroup_size subgroup_size;
 
+   /**
+    * Uses subgroup intrinsics which can communicate across a quad.
+    */
+   bool uses_wide_subgroup_intrinsics;
+
    /* Transform feedback buffer strides in dwords, max. 1K - 4. */
    uint8_t xfb_stride[MAX_XFB_BUFFERS];
 
@@ -500,11 +505,6 @@ typedef struct shader_info {
           *   AddressingModelPhysical64: 64
           */
          unsigned ptr_size;
-
-         /**
-          * Uses subgroup intrinsics which can communicate across a quad.
-          */
-         bool uses_wide_subgroup_intrinsics;
       } cs;
 
       /* Applies to both TCS and TES. */

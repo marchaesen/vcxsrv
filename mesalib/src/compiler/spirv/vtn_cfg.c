@@ -304,9 +304,16 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpTerminateInvocation:
    case SpvOpIgnoreIntersectionKHR:
    case SpvOpTerminateRayKHR:
+   case SpvOpEmitMeshTasksEXT:
    case SpvOpReturn:
    case SpvOpReturnValue:
    case SpvOpUnreachable:
+      if (b->wa_ignore_return_after_emit_mesh_tasks &&
+          opcode == SpvOpReturn && !b->block) {
+            /* At this point block was already reset by
+             * SpvOpEmitMeshTasksEXT. */
+            break;
+      }
       vtn_assert(b->block && b->block->branch == NULL);
       b->block->branch = w;
       b->block = NULL;
@@ -382,7 +389,7 @@ vtn_cf_node_find_##_type(struct vtn_cf_node *node)          \
    return (struct vtn_##_type *)node;                       \
 }
 
-VTN_DECL_CF_NODE_FIND(if)
+UNUSED VTN_DECL_CF_NODE_FIND(if)
 VTN_DECL_CF_NODE_FIND(loop)
 VTN_DECL_CF_NODE_FIND(case)
 VTN_DECL_CF_NODE_FIND(switch)
@@ -750,6 +757,10 @@ vtn_process_block(struct vtn_builder *b,
       block->branch_type = vtn_branch_type_terminate_ray;
       return NULL;
 
+   case SpvOpEmitMeshTasksEXT:
+      block->branch_type = vtn_branch_type_emit_mesh_tasks;
+      return NULL;
+
    case SpvOpBranchConditional: {
       struct vtn_value *cond_val = vtn_untyped_value(b, block->branch[1]);
       vtn_fail_if(!cond_val->type ||
@@ -974,7 +985,25 @@ vtn_handle_phi_second_pass(struct vtn_builder *b, SpvOp opcode,
 }
 
 static void
+vtn_emit_ret_store(struct vtn_builder *b, const struct vtn_block *block)
+{
+   if ((*block->branch & SpvOpCodeMask) != SpvOpReturnValue)
+      return;
+
+   vtn_fail_if(b->func->type->return_type->base_type == vtn_base_type_void,
+               "Return with a value from a function returning void");
+   struct vtn_ssa_value *src = vtn_ssa_value(b, block->branch[1]);
+   const struct glsl_type *ret_type =
+      glsl_get_bare_type(b->func->type->return_type->type);
+   nir_deref_instr *ret_deref =
+      nir_build_deref_cast(&b->nb, nir_load_param(&b->nb, 0),
+                           nir_var_function_temp, ret_type, 0);
+   vtn_local_store(b, src, ret_deref, 0);
+}
+
+static void
 vtn_emit_branch(struct vtn_builder *b, enum vtn_branch_type branch_type,
+                const struct vtn_block *block,
                 nir_variable *switch_fall_var, bool *has_switch_break)
 {
    switch (branch_type) {
@@ -995,6 +1024,8 @@ vtn_emit_branch(struct vtn_builder *b, enum vtn_branch_type branch_type,
    case vtn_branch_type_loop_back_edge:
       break;
    case vtn_branch_type_return:
+      vtn_assert(block);
+      vtn_emit_ret_store(b, block);
       nir_jump(&b->nb, nir_jump_return);
       break;
    case vtn_branch_type_discard:
@@ -1014,6 +1045,37 @@ vtn_emit_branch(struct vtn_builder *b, enum vtn_branch_type branch_type,
       nir_terminate_ray(&b->nb);
       nir_jump(&b->nb, nir_jump_halt);
       break;
+   case vtn_branch_type_emit_mesh_tasks: {
+      assert(block);
+      assert(block->branch);
+
+      const uint32_t *w = block->branch;
+      vtn_assert((w[0] & SpvOpCodeMask) == SpvOpEmitMeshTasksEXT);
+
+      /* Launches mesh shader workgroups from the task shader.
+       * Arguments are: vec(x, y, z), payload pointer
+       */
+      nir_ssa_def *dimensions =
+         nir_vec3(&b->nb, vtn_get_nir_ssa(b, w[1]),
+                          vtn_get_nir_ssa(b, w[2]),
+                          vtn_get_nir_ssa(b, w[3]));
+
+      /* The payload variable is optional.
+       * We don't have a NULL deref in NIR, so just emit the explicit
+       * intrinsic when there is no payload.
+       */
+      const unsigned count = w[0] >> SpvWordCountShift;
+      if (count == 4)
+         nir_launch_mesh_workgroups(&b->nb, dimensions);
+      else if (count == 5)
+         nir_launch_mesh_workgroups_with_payload_deref(&b->nb, dimensions,
+                                                       vtn_get_nir_ssa(b, w[4]));
+      else
+         vtn_fail("Invalid EmitMeshTasksEXT.");
+
+      nir_jump(&b->nb, nir_jump_halt);
+      break;
+   }
    default:
       vtn_fail("Invalid branch type");
    }
@@ -1079,23 +1141,6 @@ vtn_selection_control(struct vtn_builder *b, struct vtn_if *vtn_if)
 }
 
 static void
-vtn_emit_ret_store(struct vtn_builder *b, struct vtn_block *block)
-{
-   if ((*block->branch & SpvOpCodeMask) != SpvOpReturnValue)
-      return;
-
-   vtn_fail_if(b->func->type->return_type->base_type == vtn_base_type_void,
-               "Return with a value from a function returning void");
-   struct vtn_ssa_value *src = vtn_ssa_value(b, block->branch[1]);
-   const struct glsl_type *ret_type =
-      glsl_get_bare_type(b->func->type->return_type->type);
-   nir_deref_instr *ret_deref =
-      nir_build_deref_cast(&b->nb, nir_load_param(&b->nb, 0),
-                           nir_var_function_temp, ret_type, 0);
-   vtn_local_store(b, src, ret_deref, 0);
-}
-
-static void
 vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
                             nir_variable *switch_fall_var,
                             bool *has_switch_break,
@@ -1117,10 +1162,8 @@ vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
 
          block->end_nop = nir_nop(&b->nb);
 
-         vtn_emit_ret_store(b, block);
-
          if (block->branch_type != vtn_branch_type_none) {
-            vtn_emit_branch(b, block->branch_type,
+            vtn_emit_branch(b, block->branch_type, block,
                             switch_fall_var, has_switch_break);
             return;
          }
@@ -1142,7 +1185,7 @@ vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
                vtn_emit_cf_list_structured(b, &vtn_if->then_body,
                                            switch_fall_var, &sw_break, handler);
             } else {
-               vtn_emit_branch(b, vtn_if->then_type, switch_fall_var, &sw_break);
+               vtn_emit_branch(b, vtn_if->then_type, NULL, switch_fall_var, &sw_break);
             }
             break;
          }
@@ -1156,7 +1199,7 @@ vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
             vtn_emit_cf_list_structured(b, &vtn_if->then_body,
                                         switch_fall_var, &sw_break, handler);
          } else {
-            vtn_emit_branch(b, vtn_if->then_type, switch_fall_var, &sw_break);
+            vtn_emit_branch(b, vtn_if->then_type, NULL, switch_fall_var, &sw_break);
          }
 
          nir_push_else(&b->nb, nif);
@@ -1164,7 +1207,7 @@ vtn_emit_cf_list_structured(struct vtn_builder *b, struct list_head *cf_list,
             vtn_emit_cf_list_structured(b, &vtn_if->else_body,
                                         switch_fall_var, &sw_break, handler);
          } else {
-            vtn_emit_branch(b, vtn_if->else_type, switch_fall_var, &sw_break);
+            vtn_emit_branch(b, vtn_if->else_type, NULL, switch_fall_var, &sw_break);
          }
 
          nir_pop_if(&b->nb, nif);

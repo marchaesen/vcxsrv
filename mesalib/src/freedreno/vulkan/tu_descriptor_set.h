@@ -93,6 +93,8 @@ struct tu_pipeline_layout
       uint32_t dynamic_offset_start;
    } set[MAX_SETS];
 
+   bool independent_sets;
+
    uint32_t num_sets;
    uint32_t push_constant_size;
    uint32_t dynamic_offset_size;
@@ -101,6 +103,8 @@ struct tu_pipeline_layout
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline_layout, base, VkPipelineLayout,
                                VK_OBJECT_TYPE_PIPELINE_LAYOUT)
+
+void tu_pipeline_layout_init(struct tu_pipeline_layout *layout);
 
 struct tu_descriptor_set
 {

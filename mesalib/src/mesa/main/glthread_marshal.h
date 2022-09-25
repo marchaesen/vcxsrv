@@ -487,6 +487,10 @@ _mesa_glthread_Disable(struct gl_context *ctx, GLenum cap)
 static inline int
 _mesa_glthread_IsEnabled(struct gl_context *ctx, GLenum cap)
 {
+   /* This will generate GL_INVALID_OPERATION, as it should. */
+   if (ctx->GLThread.inside_begin_end)
+      return -1;
+
    switch (cap) {
    case GL_CULL_FACE:
       return ctx->GLThread.CullFace;

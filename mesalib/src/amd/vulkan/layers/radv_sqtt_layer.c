@@ -349,6 +349,10 @@ radv_handle_thread_trace(VkQueue _queue)
       radv_end_thread_trace(queue);
       thread_trace_enabled = false;
 
+      if (!radv_device_set_pstate(queue->device, false)) {
+         fprintf(stderr, "radv: Failed to restore previous pstate, ignoring.\n");
+      }
+
       /* TODO: Do something better than this whole sync. */
       queue->device->vk.dispatch_table.QueueWaitIdle(_queue);
 
@@ -384,7 +388,8 @@ radv_handle_thread_trace(VkQueue _queue)
 #endif
 
       if (frame_trigger || file_trigger || resize_trigger) {
-         if (ac_check_profile_state(&queue->device->physical_device->rad_info)) {
+         if (!radv_device_set_pstate(queue->device, true) ||
+             ac_check_profile_state(&queue->device->physical_device->rad_info)) {
             fprintf(stderr, "radv: Canceling RGP trace request as a hang condition has been "
                             "detected. Force the GPU into a profiling mode with e.g. "
                             "\"echo profile_peak  > "

@@ -396,7 +396,9 @@ draw_arrays(GLenum mode, GLint first, GLsizei count, GLsizei instance_count,
     * for possible GL errors.
     */
    if (ctx->API == API_OPENGL_CORE || !user_buffer_mask ||
-       count <= 0 || instance_count <= 0) {
+       count <= 0 || instance_count <= 0 ||
+       /* This will just generate GL_INVALID_OPERATION, as it should. */
+       (!compiled_into_dlist && ctx->GLThread.ListMode)) {
       draw_arrays_async(ctx, mode, first, count, instance_count, baseinstance);
       return;
    }
@@ -794,7 +796,9 @@ draw_elements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices,
    if (ctx->API == API_OPENGL_CORE ||
        count <= 0 || instance_count <= 0 || max_index < min_index ||
        !is_index_type_valid(type) ||
-       (!user_buffer_mask && !has_user_indices)) {
+       (!user_buffer_mask && !has_user_indices) ||
+       /* This will just generate GL_INVALID_OPERATION, as it should. */
+       (!compiled_into_dlist && ctx->GLThread.ListMode)) {
       draw_elements_async(ctx, mode, count, type, indices, instance_count,
                           basevertex, baseinstance, index_bounds_valid,
                           min_index, max_index);
@@ -1198,7 +1202,7 @@ _mesa_marshal_DrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
                                           GLsizei count, GLenum type,
                                           const GLvoid *indices, GLint basevertex)
 {
-   draw_elements(mode, count, type, indices, 1, basevertex, 0, true, start, end, false);
+   draw_elements(mode, count, type, indices, 1, basevertex, 0, true, start, end, true);
 }
 
 void GLAPIENTRY

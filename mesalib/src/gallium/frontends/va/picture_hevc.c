@@ -25,6 +25,7 @@
  *
  **************************************************************************/
 
+#include "util/macros.h"
 #include "vl/vl_zscan.h"
 #include "va_private.h"
 
@@ -233,7 +234,7 @@ void vlVaHandleSliceParameterBufferHEVC(vlVaContext *context, vlVaBuffer *buf)
    }
    context->desc.h265.UseRefPicList = true;
 
-   const size_t max_pipe_hevc_slices = ARRAY_SIZE(context->desc.h265.slice_parameter.slice_data_offset);
+   ASSERTED const size_t max_pipe_hevc_slices = ARRAY_SIZE(context->desc.h265.slice_parameter.slice_data_offset);
    assert(context->desc.h265.slice_parameter.slice_count < max_pipe_hevc_slices);
 
    context->desc.h265.slice_parameter.slice_info_present = true;

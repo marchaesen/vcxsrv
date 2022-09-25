@@ -99,6 +99,13 @@ void
 zink_destroy_resource_object(struct zink_screen *screen, struct zink_resource_object *obj)
 {
    if (obj->is_buffer) {
+      while (util_dynarray_contains(&obj->views, VkBufferView))
+         VKSCR(DestroyBufferView)(screen->dev, util_dynarray_pop(&obj->views, VkBufferView), NULL);
+   } else {
+      while (util_dynarray_contains(&obj->views, VkImageView))
+         VKSCR(DestroyImageView)(screen->dev, util_dynarray_pop(&obj->views, VkImageView), NULL);
+   }
+   if (obj->is_buffer) {
       VKSCR(DestroyBuffer)(screen->dev, obj->buffer, NULL);
       VKSCR(DestroyBuffer)(screen->dev, obj->storage_buffer, NULL);
    } else if (obj->dt) {
@@ -111,6 +118,7 @@ zink_destroy_resource_object(struct zink_screen *screen, struct zink_resource_ob
 #endif
    }
 
+   simple_mtx_destroy(&obj->view_lock);
    if (obj->dt) {
       FREE(obj->bo); //this is a dummy struct
    } else
@@ -564,6 +572,8 @@ resource_object_create(struct zink_screen *screen, const struct pipe_resource *t
    struct zink_resource_object *obj = CALLOC_STRUCT(zink_resource_object);
    if (!obj)
       return NULL;
+   simple_mtx_init(&obj->view_lock, mtx_plain);
+   util_dynarray_init(&obj->views, NULL);
    obj->last_dt_idx = obj->dt_idx = UINT32_MAX; //TODO: unionize
 
    VkMemoryRequirements reqs = {0};
@@ -1247,7 +1257,7 @@ add_resource_bind(struct zink_context *ctx, struct zink_resource *res, unsigned 
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    assert((res->base.b.bind & bind) == 0);
-   zink_resource_image_barrier(ctx, res, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, 0);
+   zink_screen(ctx->base.screen)->image_barrier(ctx, res, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, 0);
    res->base.b.bind |= bind;
    struct zink_resource_object *old_obj = res->obj;
    if (bind & ZINK_BIND_DMABUF && !res->modifiers_count && screen->info.have_EXT_image_drm_format_modifier) {
@@ -2217,17 +2227,17 @@ zink_resource_setup_transfer_layouts(struct zink_context *ctx, struct zink_resou
        * VK_IMAGE_LAYOUT_GENERAL. And since this isn't a present-related
        * operation, VK_IMAGE_LAYOUT_GENERAL seems most appropriate.
        */
-      zink_resource_image_barrier(ctx, src,
+      zink_screen(ctx->base.screen)->image_barrier(ctx, src,
                                   VK_IMAGE_LAYOUT_GENERAL,
                                   VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
                                   VK_PIPELINE_STAGE_TRANSFER_BIT);
    } else {
-      zink_resource_image_barrier(ctx, src,
+      zink_screen(ctx->base.screen)->image_barrier(ctx, src,
                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                   VK_ACCESS_TRANSFER_READ_BIT,
                                   VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-      zink_resource_image_barrier(ctx, dst,
+      zink_screen(ctx->base.screen)->image_barrier(ctx, dst,
                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                   VK_ACCESS_TRANSFER_WRITE_BIT,
                                   VK_PIPELINE_STAGE_TRANSFER_BIT);

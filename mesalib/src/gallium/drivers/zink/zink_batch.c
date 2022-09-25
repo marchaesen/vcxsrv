@@ -20,6 +20,26 @@ debug_describe_zink_batch_state(char *buf, const struct zink_batch_state *ptr)
    sprintf(buf, "zink_batch_state");
 }
 
+static void
+reset_obj(struct zink_batch_state *bs, struct zink_resource_object *obj)
+{
+   if (!zink_resource_object_usage_unset(obj, bs)) {
+      obj->unordered_read = false;
+      obj->unordered_write = false;
+      obj->access = 0;
+      obj->access_stage = 0;
+   }
+   util_dynarray_append(&bs->unref_resources, struct zink_resource_object*, obj);
+}
+
+static void
+reset_obj_list(struct zink_batch_state *bs, struct zink_batch_obj_list *list)
+{
+   for (unsigned i = 0; i < list->num_buffers; i++)
+      reset_obj(bs, list->objs[i]);
+   list->num_buffers = 0;
+}
+
 void
 zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
 {
@@ -30,16 +50,12 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
       mesa_loge("ZINK: vkResetCommandPool failed (%s)", vk_Result_to_str(result));
 
    /* unref all used resources */
-   for (unsigned i = 0; i < ARRAY_SIZE(bs->resources); i++) {
-      set_foreach_remove(&bs->resources[i], entry) {
-         struct zink_resource_object *obj = (struct zink_resource_object *)entry->key;
-         if (!zink_resource_object_usage_unset(obj, bs)) {
-            obj->unordered_read = obj->unordered_write = false;
-            obj->access = 0;
-            obj->access_stage = 0;
-         }
-         util_dynarray_append(&bs->unref_resources, struct zink_resource_object*, obj);
-      }
+   reset_obj_list(bs, &bs->real_objs);
+   reset_obj_list(bs, &bs->slab_objs);
+   reset_obj_list(bs, &bs->sparse_objs);
+   while (util_dynarray_contains(&bs->swapchain_obj, struct zink_resource_object*)) {
+      struct zink_resource_object *obj = util_dynarray_pop(&bs->swapchain_obj, struct zink_resource_object*);
+      reset_obj(bs, obj);
    }
 
    for (unsigned i = 0; i < 2; i++) {
@@ -54,17 +70,6 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
    set_foreach_remove(&bs->active_queries, entry) {
       struct zink_query *query = (void*)entry->key;
       zink_prune_query(screen, bs, query);
-   }
-
-   set_foreach_remove(&bs->surfaces, entry) {
-      struct zink_surface *surf = (struct zink_surface *)entry->key;
-      zink_batch_usage_unset(&surf->batch_uses, bs);
-      zink_surface_reference(screen, &surf, NULL);
-   }
-   set_foreach_remove(&bs->bufferviews, entry) {
-      struct zink_buffer_view *buffer_view = (struct zink_buffer_view *)entry->key;
-      zink_batch_usage_unset(&buffer_view->batch_uses, bs);
-      zink_buffer_view_reference(screen, &buffer_view, NULL);
    }
 
    util_dynarray_foreach(&bs->dead_framebuffers, struct zink_framebuffer*, fb) {
@@ -82,18 +87,19 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
    set_foreach_remove(&bs->programs, entry) {
       struct zink_program *pg = (struct zink_program*)entry->key;
       zink_batch_usage_unset(&pg->batch_uses, bs);
-      zink_program_reference(ctx, &pg, NULL);
+      zink_program_reference(screen, &pg, NULL);
    }
 
    bs->resource_size = 0;
    bs->signal_semaphore = VK_NULL_HANDLE;
-   while (util_dynarray_contains(&bs->wait_semaphores, VkSemaphore))
-      VKSCR(DestroySemaphore)(screen->dev, util_dynarray_pop(&bs->wait_semaphores, VkSemaphore), NULL);
    util_dynarray_clear(&bs->wait_semaphore_stages);
 
    bs->present = VK_NULL_HANDLE;
-   while (util_dynarray_contains(&bs->acquires, VkSemaphore))
-      VKSCR(DestroySemaphore)(screen->dev, util_dynarray_pop(&bs->acquires, VkSemaphore), NULL);
+   memcpy(&bs->unref_semaphores, &bs->acquires, sizeof(struct util_dynarray));
+   util_dynarray_init(&bs->acquires, NULL);
+   while (util_dynarray_contains(&bs->wait_semaphores, VkSemaphore))
+      util_dynarray_append(&bs->unref_semaphores, VkSemaphore, util_dynarray_pop(&bs->wait_semaphores, VkSemaphore));
+   util_dynarray_init(&bs->wait_semaphores, NULL);
    bs->swapchain = NULL;
 
    while (util_dynarray_contains(&bs->dead_swapchains, VkImageView))
@@ -110,6 +116,7 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
    bs->fence.batch_id = 0;
    bs->usage.usage = 0;
    bs->next = NULL;
+   bs->last_added_obj = NULL;
 }
 
 static void
@@ -119,6 +126,8 @@ unref_resources(struct zink_screen *screen, struct zink_batch_state *bs)
       struct zink_resource_object *obj = util_dynarray_pop(&bs->unref_resources, struct zink_resource_object*);
       zink_resource_object_reference(screen, &obj, NULL);
    }
+   while (util_dynarray_contains(&bs->unref_semaphores, VkSemaphore))
+      VKSCR(DestroySemaphore)(screen->dev, util_dynarray_pop(&bs->unref_semaphores, VkSemaphore), NULL);
 }
 
 void
@@ -173,12 +182,14 @@ zink_batch_state_destroy(struct zink_screen *screen, struct zink_batch_state *bs
    if (bs->cmdpool)
       VKSCR(DestroyCommandPool)(screen->dev, bs->cmdpool, NULL);
 
+   util_dynarray_fini(&bs->swapchain_obj);
    util_dynarray_fini(&bs->zombie_samplers);
    util_dynarray_fini(&bs->dead_framebuffers);
    util_dynarray_fini(&bs->unref_resources);
    util_dynarray_fini(&bs->bindless_releases[0]);
    util_dynarray_fini(&bs->bindless_releases[1]);
    util_dynarray_fini(&bs->acquires);
+   util_dynarray_fini(&bs->unref_semaphores);
    util_dynarray_fini(&bs->acquire_flags);
    util_dynarray_fini(&bs->dead_swapchains);
    zink_batch_descriptor_deinit(screen, bs);
@@ -223,10 +234,6 @@ create_batch_state(struct zink_context *ctx)
 
    bs->ctx = ctx;
 
-   SET_CREATE_OR_FAIL(&bs->resources[0]);
-   SET_CREATE_OR_FAIL(&bs->resources[1]);
-   SET_CREATE_OR_FAIL(&bs->surfaces);
-   SET_CREATE_OR_FAIL(&bs->bufferviews);
    SET_CREATE_OR_FAIL(&bs->programs);
    SET_CREATE_OR_FAIL(&bs->active_queries);
    util_dynarray_init(&bs->wait_semaphores, NULL);
@@ -236,13 +243,16 @@ create_batch_state(struct zink_context *ctx)
    util_dynarray_init(&bs->persistent_resources, NULL);
    util_dynarray_init(&bs->unref_resources, NULL);
    util_dynarray_init(&bs->acquires, NULL);
+   util_dynarray_init(&bs->unref_semaphores, NULL);
    util_dynarray_init(&bs->acquire_flags, NULL);
    util_dynarray_init(&bs->dead_swapchains, NULL);
    util_dynarray_init(&bs->bindless_releases[0], NULL);
    util_dynarray_init(&bs->bindless_releases[1], NULL);
+   util_dynarray_init(&bs->swapchain_obj, NULL);
 
    cnd_init(&bs->usage.flush);
    mtx_init(&bs->usage.mtx, mtx_plain);
+   memset(&bs->buffer_indices_hashlist, -1, sizeof(bs->buffer_indices_hashlist));
 
    if (!zink_batch_descriptor_init(screen, bs))
       goto fail;
@@ -358,6 +368,7 @@ post_submit(void *data, void *gdata, int thread_index)
    } else if (bs->ctx->batch_states_count > 5000) {
       zink_screen_timeline_wait(screen, bs->fence.batch_id - 2500, PIPE_TIMEOUT_INFINITE);
    }
+   memset(&bs->buffer_indices_hashlist, -1, sizeof(bs->buffer_indices_hashlist));
 }
 
 static void
@@ -467,7 +478,7 @@ zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    struct zink_batch_state *bs;
 
-   if (ctx->oom_flush || ctx->batch_states_count > 10) {
+   if (ctx->oom_flush || ctx->batch_states_count > 25) {
       assert(!ctx->batch_states_count || ctx->batch_states);
       while (ctx->batch_states) {
          bs = ctx->batch_states;
@@ -519,6 +530,35 @@ zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
    }
 }
 
+static int
+batch_find_resource(struct zink_batch_state *bs, struct zink_resource_object *obj, struct zink_batch_obj_list *list)
+{
+   unsigned hash = obj->bo->unique_id & (BUFFER_HASHLIST_SIZE-1);
+   int i = bs->buffer_indices_hashlist[hash];
+
+   /* not found or found */
+   if (i < 0 || (i < list->num_buffers && list->objs[i] == obj))
+      return i;
+
+   /* Hash collision, look for the BO in the list of list->objs linearly. */
+   for (int i = list->num_buffers - 1; i >= 0; i--) {
+      if (list->objs[i] == obj) {
+         /* Put this buffer in the hash list.
+          * This will prevent additional hash collisions if there are
+          * several consecutive lookup_buffer calls for the same buffer.
+          *
+          * Example: Assuming list->objs A,B,C collide in the hash list,
+          * the following sequence of list->objs:
+          *         AAAAAAAAAAABBBBBBBBBBBBBBCCCCCCCC
+          * will collide here: ^ and here:   ^,
+          * meaning that we should get very few collisions in the end. */
+         bs->buffer_indices_hashlist[hash] = i & (BUFFER_HASHLIST_SIZE-1);
+         return i;
+      }
+   }
+   return -1;
+}
+
 void
 zink_batch_reference_resource_rw(struct zink_batch *batch, struct zink_resource *res, bool write)
 {
@@ -558,54 +598,71 @@ check_oom_flush(struct zink_context *ctx, const struct zink_batch *batch)
 void
 zink_batch_reference_resource(struct zink_batch *batch, struct zink_resource *res)
 {
-   if (!batch_ptr_add_usage(batch, &batch->state->resources[res->obj->is_buffer], res->obj))
-      return;
-   pipe_reference(NULL, &res->obj->reference);
-   batch->state->resource_size += res->obj->size;
-   check_oom_flush(batch->state->ctx, batch);
-   batch->has_work = true;
+   if (!zink_batch_reference_resource_move(batch, res))
+      zink_resource_object_reference(NULL, NULL, res->obj);
 }
 
-void
+bool
 zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resource *res)
 {
-   if (!batch_ptr_add_usage(batch, &batch->state->resources[res->obj->is_buffer], res->obj))
-      return;
-   batch->state->resource_size += res->obj->size;
+   struct zink_batch_state *bs = batch->state;
+
+   if (zink_is_swapchain(res)) {
+      struct zink_resource_object **swapchains = bs->swapchain_obj.data;
+      unsigned count = util_dynarray_num_elements(&bs->swapchain_obj, struct zink_resource_object*);
+      for (unsigned i = 0; i < count; i++) {
+         if (swapchains[i] == res->obj)
+            return true;
+      }
+      util_dynarray_append(&bs->swapchain_obj, struct zink_resource_object*, res->obj);
+      return false;
+   }
+   /* Fast exit for no-op calls.
+    * This is very effective with suballocators and linear uploaders that
+    * are outside of the winsys.
+    */
+   if (res->obj == bs->last_added_obj)
+      return true;
+
+   struct zink_bo *bo = res->obj->bo;
+   struct zink_batch_obj_list *list;
+   if (!(res->base.b.flags & PIPE_RESOURCE_FLAG_SPARSE)) {
+      if (!bo->mem) {
+         list = &bs->slab_objs;
+      } else {
+         list = &bs->real_objs;
+      }
+   } else {
+      list = &bs->sparse_objs;
+   }
+   int idx = batch_find_resource(bs, res->obj, list);
+   if (idx >= 0)
+      return true;
+
+   if (list->num_buffers >= list->max_buffers) {
+      unsigned new_max = MAX2(list->max_buffers + 16, (unsigned)(list->max_buffers * 1.3));
+      struct zink_resource_object **objs = realloc(list->objs, new_max * sizeof(void*));
+      if (!objs) {
+         /* things are about to go dramatically wrong anyway */
+         mesa_loge("zink: buffer list realloc failed due to oom!\n");
+         abort();
+      }
+      list->objs = objs;
+      list->max_buffers = new_max;
+   }
+   idx = list->num_buffers++;
+   list->objs[idx] = res->obj;
+   unsigned hash = bo->unique_id & (BUFFER_HASHLIST_SIZE-1);
+   bs->buffer_indices_hashlist[hash] = idx & 0x7fff;
+   bs->last_added_obj = res->obj;
+   if (!(res->base.b.flags & PIPE_RESOURCE_FLAG_SPARSE)) {
+      bs->resource_size += res->obj->size;
+   } else {
+      // TODO: check backing pages
+   }
    check_oom_flush(batch->state->ctx, batch);
    batch->has_work = true;
-}
-
-void
-zink_batch_reference_bufferview(struct zink_batch *batch, struct zink_buffer_view *buffer_view)
-{
-   if (!batch_ptr_add_usage(batch, &batch->state->bufferviews, buffer_view))
-      return;
-   pipe_reference(NULL, &buffer_view->reference);
-   batch->has_work = true;
-}
-
-void
-zink_batch_reference_surface(struct zink_batch *batch, struct zink_surface *surface)
-{
-   if (!batch_ptr_add_usage(batch, &batch->state->surfaces, surface))
-      return;
-   struct pipe_surface *surf = NULL;
-   pipe_surface_reference(&surf, &surface->base);
-   batch->has_work = true;
-}
-
-void
-zink_batch_reference_sampler_view(struct zink_batch *batch,
-                                  struct zink_sampler_view *sv)
-{
-   if (sv->base.target == PIPE_BUFFER)
-      zink_batch_reference_bufferview(batch, sv->buffer_view);
-   else {
-      zink_batch_reference_surface(batch, sv->image_view);
-      if (sv->cube_array)
-         zink_batch_reference_surface(batch, sv->cube_array);
-   }
+   return false;
 }
 
 void
@@ -618,16 +675,6 @@ zink_batch_reference_program(struct zink_batch *batch,
    pipe_reference(NULL, &pg->reference);
    zink_batch_usage_set(&pg->batch_uses, batch->state);
    batch->has_work = true;
-}
-
-void
-zink_batch_reference_image_view(struct zink_batch *batch,
-                                struct zink_image_view *image_view)
-{
-   if (image_view->base.resource->target == PIPE_BUFFER)
-      zink_batch_reference_bufferview(batch, image_view->buffer_view);
-   else
-      zink_batch_reference_surface(batch, image_view->surface);
 }
 
 bool

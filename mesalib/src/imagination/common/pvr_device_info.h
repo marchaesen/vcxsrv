@@ -267,6 +267,7 @@ struct pvr_device_features {
    bool has_num_raster_pipes : 1;
    bool has_num_user_clip_planes : 1;
    bool has_paired_tiles : 1;
+   bool has_pbe2_in_xe : 1;
    bool has_pds_ddmadt : 1;
    bool has_robust_buffer_access : 1;
    bool has_roguexe : 1;
@@ -277,6 +278,7 @@ struct pvr_device_features {
    bool has_slc_cache_line_size_bits : 1;
    bool has_slc_mcu_cache_controls : 1;
    bool has_tf_bicubic_filter : 1;
+   bool has_tile_per_usc : 1;
    bool has_tile_size_16x16 : 1;
    bool has_tile_size_x : 1;
    bool has_tile_size_y : 1;

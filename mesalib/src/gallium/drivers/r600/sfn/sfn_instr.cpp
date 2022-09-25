@@ -33,6 +33,7 @@
 #include "sfn_instr_controlflow.h"
 
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <numeric>
 

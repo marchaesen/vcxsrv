@@ -2348,7 +2348,7 @@ static void visit_store_output(struct ac_nir_context *ctx, nir_intrinsic_instr *
    unsigned writemask = nir_intrinsic_write_mask(instr);
    unsigned component = nir_intrinsic_component(instr);
    LLVMValueRef src = ac_to_float(&ctx->ac, get_src(ctx, instr->src[0]));
-   nir_src offset = *nir_get_io_offset_src(instr);
+   ASSERTED nir_src offset = *nir_get_io_offset_src(instr);
 
    /* No indirect indexing is allowed here. */
    assert(nir_src_is_const(offset) && nir_src_as_uint(offset) == 0);
@@ -3605,6 +3605,7 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
    case nir_intrinsic_load_tcs_num_patches_amd:
    case nir_intrinsic_load_hs_out_patch_data_offset_amd:
    case nir_intrinsic_load_clip_half_line_width_amd:
+   case nir_intrinsic_load_num_vertices_per_primitive_amd:
    case nir_intrinsic_load_cull_ccw_amd:
    case nir_intrinsic_load_cull_any_enabled_amd:
    case nir_intrinsic_load_cull_back_face_enabled_amd:
@@ -3615,6 +3616,9 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
       break;
    case nir_intrinsic_load_user_clip_plane:
       result = ctx->abi->load_user_clip_plane(ctx->abi, nir_intrinsic_ucp_id(instr));
+      break;
+   case nir_intrinsic_load_streamout_buffer_amd:
+      result = ctx->abi->load_streamout_buffer(ctx->abi, nir_intrinsic_base(instr));
       break;
    case nir_intrinsic_load_ordered_id_amd:
       result = ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->gs_tg_info), 0, 12);

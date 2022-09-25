@@ -145,7 +145,6 @@ radv_aco_convert_pipe_key(struct aco_stage_input *aco_info,
    ASSIGN_FIELD_CP(vs.vertex_binding_align);
    ASSIGN_FIELD(tcs.tess_input_vertices);
    ASSIGN_FIELD(ps.col_format);
-   ASSIGN_FIELD(ps.num_samples);
    ASSIGN_FIELD(ps.alpha_to_coverage_via_mrtz);
 }
 

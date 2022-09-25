@@ -286,6 +286,9 @@ typedef struct {
    VABufferInfo export_state;
    unsigned int coded_size;
    struct pipe_video_buffer *derived_image_buffer;
+   void *feedback;
+   VASurfaceID associated_encode_input_surf;
+   VAContextID ctx;
 } vlVaBuffer;
 
 typedef struct {
@@ -328,7 +331,6 @@ typedef struct {
    bool first_single_submitted;
    int gop_coeff;
    bool needs_begin_frame;
-   bool vpp_needs_flush_on_endpic;
    void *blit_cs;
    int packed_header_type;
 } vlVaContext;
@@ -457,6 +459,7 @@ VAStatus vlVaQueryVideoProcFilterCaps(VADriverContextP ctx, VAContextID context,
                                       void *filter_caps, unsigned int *num_filter_caps);
 VAStatus vlVaQueryVideoProcPipelineCaps(VADriverContextP ctx, VAContextID context, VABufferID *filters,
                                         unsigned int num_filters, VAProcPipelineCaps *pipeline_cap);
+VAStatus vlVaSyncBuffer(VADriverContextP ctx, VABufferID buf_id, uint64_t timeout_ns);
 
 // internal functions
 VAStatus vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);

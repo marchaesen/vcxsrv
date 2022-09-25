@@ -95,6 +95,8 @@ struct va_opcode_info {
    bool has_dest : 1;
    bool is_signed : 1;
    bool clamp : 1;
+   bool saturate : 1;
+   bool rhadd : 1;
    bool round_mode : 1;
    bool condition : 1;
    bool result_type : 1;

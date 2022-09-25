@@ -765,6 +765,8 @@ crocus_screen_create(int fd, const struct pipe_screen_config *config)
       driQueryOptionb(config->options, "always_flush_cache");
    screen->driconf.limit_trig_input_range =
       driQueryOptionb(config->options, "limit_trig_input_range");
+   screen->driconf.lower_depth_range_rate =
+      driQueryOptionf(config->options, "lower_depth_range_rate");
 
    screen->precompile = env_var_as_boolean("shader_precompile", true);
 

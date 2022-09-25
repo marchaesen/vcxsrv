@@ -36,6 +36,19 @@ zink-anv-tgl:
     HWCI_START_XORG: 1
     GPU_VERSION: zink-anv-tgl
 
+zink-tu-a618:
+  extends:
+    - .a618-test
+    - .zink-turnip-rules
+    - .test-manual-mr
+  variables:
+    FLAKES_CHANNEL: "#zink-ci"
+    MESA_LOADER_DRIVER_OVERRIDE: "zink"
+    DEQP_SUITE: zink-freedreno-a618
+    HWCI_START_XORG: 1
+    GPU_VERSION: zink-freedreno-a618
+    JOB_TIMEOUT: 120
+
 zink-freedreno-a630-traces:
   extends:
     - a630-traces

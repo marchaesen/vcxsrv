@@ -217,11 +217,21 @@ rogue_max_compute_shared_registers(const struct pvr_device_info *dev_info)
 }
 
 static inline uint32_t
+rogue_get_max_num_cores(const struct pvr_device_info *dev_info)
+{
+   if (PVR_HAS_FEATURE(dev_info, gpu_multicore_support) &&
+       PVR_HAS_FEATURE(dev_info, xpu_max_slaves)) {
+      return PVR_GET_FEATURE_VALUE(dev_info, xpu_max_slaves, 0U) + 1U;
+   }
+
+   return 1U;
+}
+
+static inline uint32_t
 rogue_get_cdm_context_resume_buffer_size(const struct pvr_device_info *dev_info)
 {
    if (PVR_HAS_FEATURE(dev_info, gpu_multicore_support)) {
-      const uint32_t max_num_cores =
-         PVR_GET_FEATURE_VALUE(dev_info, xpu_max_slaves, 0U) + 1U;
+      const uint32_t max_num_cores = rogue_get_max_num_cores(dev_info);
       const uint32_t cache_line_size = rogue_get_slc_cache_line_size(dev_info);
       const uint32_t cdm_context_resume_buffer_stride =
          ALIGN_POT(ROGUE_LLS_CDM_CONTEXT_RESUME_BUFFER_SIZE, cache_line_size);

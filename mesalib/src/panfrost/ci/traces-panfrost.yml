@@ -83,11 +83,6 @@ traces:
   glmark2/desktop:windows=4:effect=shadow-v2.trace:
     gl-panfrost-t860:
       checksum: 044a380037f706827c0afa4214bef4ad
-  glmark2/terrain-v2.trace:
-    gl-panfrost-t860:
-      label: [crash]
-      checksum: 8cc39e8323bd33a696fb14de47305073
-      text: INSTR_INVALID_ENC faults that I can't reproduce locally
   glmark2/effect2d:kernel=0,1,0;1,-4,1;0,1,0;-v2.trace:
     gl-panfrost-t860:
       checksum: 4472d33cd46351290a602f98adb338b9

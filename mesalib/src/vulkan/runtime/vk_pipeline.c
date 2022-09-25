@@ -23,6 +23,7 @@
 
 #include "vk_pipeline.h"
 
+#include "vk_device.h"
 #include "vk_log.h"
 #include "vk_nir.h"
 #include "vk_shader_module.h"
@@ -202,4 +203,75 @@ vk_pipeline_hash_shader_stage(const VkPipelineShaderStageCreateInfo *info,
    _mesa_sha1_update(&ctx, &req_subgroup_size, sizeof(req_subgroup_size));
 
    _mesa_sha1_final(&ctx, stage_sha1);
+}
+
+static VkPipelineRobustnessBufferBehaviorEXT
+vk_device_default_robust_buffer_behavior(const struct vk_device *device)
+{
+   if (device->enabled_features.robustBufferAccess2) {
+      return VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT;
+   } else if (device->enabled_features.robustBufferAccess) {
+      return VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
+   } else {
+      return VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED_EXT;
+   }
+}
+
+static VkPipelineRobustnessImageBehaviorEXT
+vk_device_default_robust_image_behavior(const struct vk_device *device)
+{
+   if (device->enabled_features.robustImageAccess2) {
+      return VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS_2_EXT;
+   } else if (device->enabled_features.robustImageAccess) {
+      return VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS_EXT;
+   } else {
+      return VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED_EXT;
+   }
+}
+
+void
+vk_pipeline_robustness_state_fill(const struct vk_device *device,
+                                  struct vk_pipeline_robustness_state *rs,
+                                  const void *pipeline_pNext,
+                                  const void *shader_stage_pNext)
+{
+   rs->uniform_buffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT;
+   rs->storage_buffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT;
+   rs->vertex_inputs = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT;
+   rs->images = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT_EXT;
+
+   const VkPipelineRobustnessCreateInfoEXT *shader_info =
+      vk_find_struct_const(shader_stage_pNext,
+                           PIPELINE_ROBUSTNESS_CREATE_INFO_EXT);
+   if (shader_info) {
+      rs->storage_buffers = shader_info->storageBuffers;
+      rs->uniform_buffers = shader_info->uniformBuffers;
+      rs->vertex_inputs = shader_info->vertexInputs;
+      rs->images = shader_info->images;
+   } else {
+      const VkPipelineRobustnessCreateInfoEXT *pipeline_info =
+         vk_find_struct_const(pipeline_pNext,
+                              PIPELINE_ROBUSTNESS_CREATE_INFO_EXT);
+      if (pipeline_info) {
+         rs->storage_buffers = pipeline_info->storageBuffers;
+         rs->uniform_buffers = pipeline_info->uniformBuffers;
+         rs->vertex_inputs = pipeline_info->vertexInputs;
+         rs->images = pipeline_info->images;
+      }
+   }
+
+   if (rs->storage_buffers ==
+       VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT)
+      rs->storage_buffers = vk_device_default_robust_buffer_behavior(device);
+
+   if (rs->uniform_buffers ==
+       VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT)
+      rs->uniform_buffers = vk_device_default_robust_buffer_behavior(device);
+
+   if (rs->vertex_inputs ==
+       VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT)
+      rs->vertex_inputs = vk_device_default_robust_buffer_behavior(device);
+
+   if (rs->images == VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT_EXT)
+      rs->images = vk_device_default_robust_image_behavior(device);
 }

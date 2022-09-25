@@ -586,7 +586,6 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
       case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH:
       case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH10:
       {
-         supportsProfile = true;
          D3D12_VIDEO_ENCODER_PROFILE_DESC profDesc = {};
          D3D12_VIDEO_ENCODER_PROFILE_H264 profH264 =
             d3d12_video_encoder_convert_profile_to_d3d12_enc_profile_h264(profile);
@@ -609,18 +608,10 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
             uint32_t constraintset3flag = false;
             d3d12_video_encoder_convert_from_d3d12_level_h264(maxLvlSettingH264, maxLvlSpec, constraintset3flag);
             supportsProfile = true;
-         }
 
-         if (supportsProfile) {
             DXGI_FORMAT encodeFormat = d3d12_convert_pipe_video_profile_to_dxgi_format(profile);
             supportsProfile = supportsProfile &&
                               d3d12_video_encode_max_supported_resolution(codecDesc, maxRes, spD3D12VideoDevice.Get());
-            supportsProfile = supportsProfile && d3d12_video_encode_max_supported_slices(codecDesc,
-                                                                                         maxRes,
-                                                                                         encodeFormat,
-                                                                                         maxSlices,
-                                                                                         spD3D12VideoDevice.Get(),
-                                                                                         d3d12_codec_support);
 
             D3D12_VIDEO_ENCODER_PROFILE_DESC profile;
             profile.pH264Profile = &profH264;
@@ -632,6 +623,15 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                                                                                      profile,
                                                                                      level,
                                                                                      spD3D12VideoDevice.Get());
+            if (supportedSliceStructures == PIPE_VIDEO_CAP_SLICE_STRUCTURE_NONE)
+               maxSlices = 0;
+            else
+               supportsProfile = supportsProfile && d3d12_video_encode_max_supported_slices(codecDesc,
+                                                                                         maxRes,
+                                                                                         encodeFormat,
+                                                                                         maxSlices,
+                                                                                         spD3D12VideoDevice.Get(),
+                                                                                         d3d12_codec_support);
             maxReferencesPerFrame =
                d3d12_video_encode_supported_references_per_frame_structures(codecDesc,
                                                                             profile,
@@ -641,7 +641,6 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
       case PIPE_VIDEO_PROFILE_HEVC_MAIN:
       case PIPE_VIDEO_PROFILE_HEVC_MAIN_10:
       {
-         supportsProfile = true;
          D3D12_VIDEO_ENCODER_PROFILE_DESC profDesc = {};
          D3D12_VIDEO_ENCODER_PROFILE_HEVC profHEVC =
             d3d12_video_encoder_convert_profile_to_d3d12_enc_profile_hevc(profile);
@@ -663,9 +662,6 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                                                                 spD3D12VideoDevice.Get())) {
             d3d12_video_encoder_convert_from_d3d12_level_hevc(maxLvlSettingHEVC.Level, maxLvlSpec);
             supportsProfile = true;
-         }
-
-         if (supportsProfile) {
 
             D3D12_VIDEO_ENCODER_PROFILE_DESC d3d12_profile;
             d3d12_profile.pHEVCProfile = &profHEVC;
@@ -779,7 +775,11 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
             DXGI_FORMAT encodeFormat = d3d12_convert_pipe_video_profile_to_dxgi_format(profile);
             supportsProfile = supportsProfile &&
                               d3d12_video_encode_max_supported_resolution(codecDesc, maxRes, spD3D12VideoDevice.Get());
-            supportsProfile = supportsProfile && d3d12_video_encode_max_supported_slices(codecDesc,
+
+            if (supportedSliceStructures == PIPE_VIDEO_CAP_SLICE_STRUCTURE_NONE)
+               maxSlices = 0;
+            else
+               supportsProfile = supportsProfile && d3d12_video_encode_max_supported_slices(codecDesc,
                                                                                          maxRes,
                                                                                          encodeFormat,
                                                                                          maxSlices,
@@ -801,6 +801,12 @@ d3d12_screen_get_video_param_decode(struct pipe_screen *pscreen,
                                     enum pipe_video_cap param)
 {
    switch (param) {
+      case PIPE_VIDEO_CAP_REQUIRES_FLUSH_ON_END_FRAME:
+         /* As sometimes we need to copy the output
+            and sync with the context, we handle the
+            flush internally on end frame for decode
+         */
+         return 0;
       case PIPE_VIDEO_CAP_NPOT_TEXTURES:
          return 1;
       case PIPE_VIDEO_CAP_MAX_WIDTH:
@@ -919,6 +925,8 @@ d3d12_screen_get_video_param_postproc(struct pipe_screen *pscreen,
                                     enum pipe_video_cap param)
 {
    switch (param) {
+      case PIPE_VIDEO_CAP_REQUIRES_FLUSH_ON_END_FRAME:
+         return 1;
       case PIPE_VIDEO_CAP_NPOT_TEXTURES:
          return 1;
       case PIPE_VIDEO_CAP_MAX_WIDTH:
@@ -1036,6 +1044,10 @@ d3d12_screen_get_video_param_encode(struct pipe_screen *pscreen,
    struct d3d12_encode_codec_support codec_specific_support;
    memset(&codec_specific_support, 0, sizeof(codec_specific_support));
    switch (param) {
+      case PIPE_VIDEO_CAP_ENC_SUPPORTS_ASYNC_OPERATION:
+         return D3D12_VIDEO_ENC_ASYNC;
+      case PIPE_VIDEO_CAP_REQUIRES_FLUSH_ON_END_FRAME:
+         return 1;
       case PIPE_VIDEO_CAP_NPOT_TEXTURES:
          return 1;
       case PIPE_VIDEO_CAP_MAX_WIDTH:

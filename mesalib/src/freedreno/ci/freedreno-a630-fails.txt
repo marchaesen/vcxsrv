@@ -431,6 +431,22 @@ dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_
 dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
 dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
 dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
 gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
 gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
 gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
@@ -439,6 +455,22 @@ gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachme
 gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
 gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
 gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
+gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
 
 # https://gitlab.freedesktop.org/mesa/mesa/-/issues/7152
 spec@ext_transform_feedback@builtin-varyings gl_culldistance,Fail

@@ -190,7 +190,11 @@ egd_tables_h = custom_target(
 
 r600_c_args = []
 if with_gallium_opencl
-  r600_c_args += '-DHAVE_OPENCL'
+  if dep_elf.found()
+    r600_c_args += '-DHAVE_OPENCL'
+  else
+    warning('r600 requires libelf to support opencl.')
+  endif
 endif
 
 r600_cpp_args = []

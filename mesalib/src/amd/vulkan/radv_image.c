@@ -704,14 +704,12 @@ radv_compose_swizzle(const struct util_format_description *desc, const VkCompone
    }
 }
 
-static void
-radv_make_buffer_descriptor(struct radv_device *device, struct radv_buffer *buffer,
-                            VkFormat vk_format, unsigned offset, unsigned range, uint32_t *state)
+void
+radv_make_texel_buffer_descriptor(struct radv_device *device, uint64_t va, VkFormat vk_format,
+                                  unsigned offset, unsigned range, uint32_t *state)
 {
    const struct util_format_description *desc;
    unsigned stride;
-   uint64_t gpu_address = radv_buffer_get_va(buffer->bo);
-   uint64_t va = gpu_address + buffer->offset;
    unsigned num_format, data_format;
    int first_non_void;
    enum pipe_swizzle swizzle[4];
@@ -2548,15 +2546,15 @@ radv_buffer_view_init(struct radv_buffer_view *view, struct radv_device *device,
                       const VkBufferViewCreateInfo *pCreateInfo)
 {
    RADV_FROM_HANDLE(radv_buffer, buffer, pCreateInfo->buffer);
+   uint64_t va = radv_buffer_get_va(buffer->bo) + buffer->offset;
 
    vk_object_base_init(&device->vk, &view->base, VK_OBJECT_TYPE_BUFFER_VIEW);
 
    view->bo = buffer->bo;
    view->range = vk_buffer_range(&buffer->vk, pCreateInfo->offset, pCreateInfo->range);
-   view->vk_format = pCreateInfo->format;
 
-   radv_make_buffer_descriptor(device, buffer, view->vk_format, pCreateInfo->offset, view->range,
-                               view->state);
+   radv_make_texel_buffer_descriptor(device, va, pCreateInfo->format, pCreateInfo->offset,
+                                     view->range, view->state);
 }
 
 void

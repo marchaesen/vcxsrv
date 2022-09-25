@@ -1336,7 +1336,9 @@ static unsigned si_get_vs_out_cntl(const struct si_shader_selector *sel,
           S_02881C_USE_VTX_RENDER_TARGET_INDX(sel->info.writes_layer) |
           S_02881C_USE_VTX_VIEWPORT_INDX(sel->info.writes_viewport_index) |
           S_02881C_VS_OUT_MISC_VEC_ENA(misc_vec_ena) |
-          S_02881C_VS_OUT_MISC_SIDE_BUS_ENA(misc_vec_ena);
+          S_02881C_VS_OUT_MISC_SIDE_BUS_ENA(misc_vec_ena ||
+                                            (sel->screen->info.gfx_level >= GFX10_3 &&
+                                             shader->info.nr_pos_exports > 1));
 }
 
 /**

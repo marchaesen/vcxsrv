@@ -1303,6 +1303,9 @@ store("global_amd", [1, 1], indices=[BASE, ACCESS, ALIGN_MUL, ALIGN_OFFSET, WRIT
 # Same as shared_atomic_add, but with GDS. src[] = {store_val, gds_addr, m0}
 intrinsic("gds_atomic_add_amd",  src_comp=[1, 1, 1], dest_comp=1, indices=[BASE])
 
+# src[] = { sample_id, num_samples }
+intrinsic("load_sample_positions_amd", src_comp=[1, 1], dest_comp=2, flags=[CAN_ELIMINATE, CAN_REORDER])
+
 # Descriptor where TCS outputs are stored for TES
 system_value("ring_tess_offchip_amd", 4)
 system_value("ring_tess_offchip_offset_amd", 1)
@@ -1331,6 +1334,8 @@ system_value("tcs_num_patches_amd", 1)
 system_value("tess_rel_patch_id_amd", 1)
 # Vertex offsets used for GS per-vertex inputs
 system_value("gs_vertex_offset_amd", 1, [BASE])
+# Number of rasterization samples
+system_value("rasterization_samples_amd", 1)
 
 # AMD merged shader intrinsics
 
@@ -1397,6 +1402,9 @@ system_value("intersection_opaque_amd", 1, bit_sizes=[1])
 
 # Used for indirect ray tracing.
 system_value("ray_launch_size_addr_amd", 1, bit_sizes=[64])
+
+# Scratch base of callable stack for ray tracing.
+system_value("rt_dynamic_callable_stack_base_amd", 1)
 
 # Load forced VRS rates.
 intrinsic("load_force_vrs_rates_amd", dest_comp=1, bit_sizes=[32], flags=[CAN_ELIMINATE, CAN_REORDER])

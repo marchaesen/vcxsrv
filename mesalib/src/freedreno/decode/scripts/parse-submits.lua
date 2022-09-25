@@ -359,7 +359,7 @@ function draw(primtype, nindx)
 			push_mrt(r.RB_MRT[n].BUF_INFO.COLOR_FORMAT,
 				r.GRAS_SC_SCREEN_SCISSOR[0].BR.X + 1,
 				r.GRAS_SC_SCREEN_SCISSOR[0].BR.Y + 1,
-				r.RB_MSAA_CNTL.SAMPLES,
+				r.RB_BLIT_GMEM_MSAA_CNTL.SAMPLES,
 				r.RB_MRT[n].BASE,
 				r.RB_MRT_FLAG_BUFFER[n].ADDR,
 				r.RB_MRT[n].BASE_GMEM)
@@ -372,7 +372,7 @@ function draw(primtype, nindx)
 		push_mrt(r.RB_DEPTH_BUFFER_INFO.DEPTH_FORMAT,
 			r.GRAS_SC_SCREEN_SCISSOR[0].BR.X + 1,
 			r.GRAS_SC_SCREEN_SCISSOR[0].BR.Y + 1,
-			r.RB_MSAA_CNTL.SAMPLES,
+			r.RB_BLIT_GMEM_MSAA_CNTL.SAMPLES,
 			depthbase,
 			r.RB_DEPTH_FLAG_BUFFER_BASE,
 			r.RB_DEPTH_BUFFER_BASE_GMEM)

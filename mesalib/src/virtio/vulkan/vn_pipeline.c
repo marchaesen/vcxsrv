@@ -666,14 +666,11 @@ vn_invalidate_pipeline_creation_feedback(const VkBaseInStructure *chain)
    if (!feedback_info)
       return;
 
-   feedback_info->pPipelineCreationFeedback->flags &=
-      ~VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT;
+   feedback_info->pPipelineCreationFeedback->flags = 0;
 
    for (uint32_t i = 0; i < feedback_info->pipelineStageCreationFeedbackCount;
-        i++) {
-      feedback_info->pPipelineStageCreationFeedbacks[i].flags &=
-         ~VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT;
-   }
+        i++)
+      feedback_info->pPipelineStageCreationFeedbacks[i].flags = 0;
 }
 
 VkResult

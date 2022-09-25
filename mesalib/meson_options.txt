@@ -182,12 +182,6 @@ option(
   description : 'build gallium "clover" OpenCL frontend with SPIR-V binary support.',
 )
 option(
-  'opencl-native',
-  type : 'boolean',
-  value : true,
-  description : 'build gallium "clover" OpenCL frontend with native LLVM codegen support.',
-)
-option(
   'static-libclc',
   type : 'array',
   value : [],

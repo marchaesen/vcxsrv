@@ -1657,7 +1657,7 @@ emit_so_outputs(struct ntv_context *ctx,
                for (unsigned c = 0; c < so_output.num_components; c++) {
                   components[c] = so_output.start_component + c;
                   /* this is the second half of a 2 * vec4 array */
-                  if (slot == VARYING_SLOT_CLIP_DIST1)
+                  if (slot == VARYING_SLOT_CLIP_DIST1 || slot == VARYING_SLOT_CULL_DIST1)
                      components[c] += 4;
                }
                /* OpVectorShuffle can select vector members into a differently-sized vector */
@@ -1688,7 +1688,7 @@ emit_so_outputs(struct ntv_context *ctx,
                 uint32_t member = so_output.start_component + c;
                 SpvId base_type = get_glsl_basetype(ctx, glsl_get_base_type(bare_type));
 
-                if (slot == VARYING_SLOT_CLIP_DIST1)
+                if (slot == VARYING_SLOT_CLIP_DIST1 || slot == VARYING_SLOT_CULL_DIST1)
                    member += 4;
                 components[idx] = spirv_builder_emit_composite_extract(&ctx->builder, base_type, src, &member, 1);
                 if (glsl_type_is_64bit(bare_type)) {

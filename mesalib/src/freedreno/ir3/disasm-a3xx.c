@@ -406,9 +406,6 @@ static const struct opc_info {
 #undef OPC
 };
 
-#define GETINFO(instr)                                                         \
-   (&(opcs[((instr)->opc_cat << NOPC_BITS) | instr_opc(instr, ctx->gpu_id)]))
-
 const char *
 disasm_a3xx_instr_name(opc_t opc)
 {

@@ -93,7 +93,7 @@ build_mask_linear(int32_t c, int32_t dcdx, int32_t dcdy)
 }
 
 
-static inline void
+UNUSED static inline void
 build_masks(int32_t c,
             int32_t cdiff,
             int32_t dcdx,

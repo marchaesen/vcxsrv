@@ -882,7 +882,7 @@ radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer, VkPipelineBindPoint bi
 }
 
 struct radv_userdata_info *
-radv_lookup_user_sgpr(struct radv_pipeline *pipeline, gl_shader_stage stage, int idx)
+radv_lookup_user_sgpr(const struct radv_pipeline *pipeline, gl_shader_stage stage, int idx)
 {
    struct radv_shader *shader = radv_get_shader(pipeline, stage);
    return &shader->info.user_sgprs_locs.shader_data[idx];
@@ -8557,6 +8557,14 @@ radv_trace_rays(struct radv_cmd_buffer *cmd_buffer, const VkTraceRaysIndirectCom
    if (size_loc->sgpr_idx != -1) {
       radv_emit_shader_pointer(cmd_buffer->device, cmd_buffer->cs,
                                base_reg + size_loc->sgpr_idx * 4, launch_size_va, true);
+   }
+
+   struct radv_userdata_info *base_loc = radv_lookup_user_sgpr(
+      &pipeline->base, MESA_SHADER_COMPUTE, AC_UD_CS_RAY_DYNAMIC_CALLABLE_STACK_BASE);
+   if (base_loc->sgpr_idx != -1) {
+      struct radv_shader_info *cs_info = &pipeline->base.shaders[MESA_SHADER_COMPUTE]->info;
+      radeon_set_sh_reg(cmd_buffer->cs, R_00B900_COMPUTE_USER_DATA_0 + base_loc->sgpr_idx * 4,
+                        pipeline->base.scratch_bytes_per_wave / cs_info->wave_size);
    }
 
    radv_dispatch(cmd_buffer, &info, pipeline, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR);

@@ -14,7 +14,7 @@ void
 tu_cs_init(struct tu_cs *cs,
            struct tu_device *device,
            enum tu_cs_mode mode,
-           uint32_t initial_size)
+           uint32_t initial_size, const char *name)
 {
    assert(mode != TU_CS_MODE_EXTERNAL);
 
@@ -23,6 +23,7 @@ tu_cs_init(struct tu_cs *cs,
    cs->device = device;
    cs->mode = mode;
    cs->next_bo_size = initial_size;
+   cs->name = name;
 }
 
 /**
@@ -128,7 +129,7 @@ tu_cs_add_bo(struct tu_cs *cs, uint32_t size)
 
    VkResult result =
       tu_bo_init_new(cs->device, &new_bo, size * sizeof(uint32_t),
-                     TU_BO_ALLOC_GPU_READ_ONLY | TU_BO_ALLOC_ALLOW_DUMP);
+                     TU_BO_ALLOC_GPU_READ_ONLY | TU_BO_ALLOC_ALLOW_DUMP, cs->name);
    if (result != VK_SUCCESS) {
       return result;
    }

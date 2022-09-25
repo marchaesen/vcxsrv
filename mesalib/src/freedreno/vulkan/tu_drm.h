@@ -51,6 +51,7 @@ struct tu_bo
    uint64_t size;
    uint64_t iova;
    void *map;
+   const char *name; /* pointer to device->bo_sizes's entry's name */
    int32_t refcnt;
 
 #ifndef TU_USE_KGSL
@@ -72,13 +73,13 @@ tu_bo_init_new_explicit_iova(struct tu_device *dev,
                              struct tu_bo **out_bo,
                              uint64_t size,
                              uint64_t client_iova,
-                             enum tu_bo_alloc_flags flags);
+                             enum tu_bo_alloc_flags flags, const char *name);
 
 static inline VkResult
 tu_bo_init_new(struct tu_device *dev, struct tu_bo **out_bo, uint64_t size,
-               enum tu_bo_alloc_flags flags)
+               enum tu_bo_alloc_flags flags, const char *name)
 {
-   return tu_bo_init_new_explicit_iova(dev, out_bo, size, 0, flags);
+   return tu_bo_init_new_explicit_iova(dev, out_bo, size, 0, flags, name);
 }
 
 VkResult

@@ -27,8 +27,6 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 
-#include <gelf.h>
-#include <libelf.h>
 #include <sid.h>
 #include <stdio.h>
 

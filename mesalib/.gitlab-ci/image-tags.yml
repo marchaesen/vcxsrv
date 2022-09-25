@@ -1,6 +1,6 @@
 variables:
    DEBIAN_X86_BUILD_BASE_IMAGE: "debian/x86_build-base"
-   DEBIAN_BASE_TAG: "2022-09-12-virglrenderer"
+   DEBIAN_BASE_TAG: "2022-09-19-kernel"
 
    DEBIAN_X86_BUILD_IMAGE_PATH: "debian/x86_build"
    DEBIAN_BUILD_TAG: "2022-09-14-add-jq"
@@ -15,7 +15,7 @@ variables:
    DEBIAN_X86_TEST_VK_TAG: "2022-09-14-add-jq"
 
    FEDORA_X86_BUILD_TAG: "2022-08-25-shellcheck"
-   KERNEL_ROOTFS_TAG: "2022-09-14-add-jq"
+   KERNEL_ROOTFS_TAG: "2022-09-19-kernel"
 
    WINDOWS_X64_VS_PATH: "windows/x64_vs"
    WINDOWS_X64_VS_TAG: "2022-08-17-bump"

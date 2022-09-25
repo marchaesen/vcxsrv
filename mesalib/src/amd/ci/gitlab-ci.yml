@@ -249,6 +249,27 @@ gles-navi10-valve:
   variables:
     GPU_VERSION: zink-radv
 
+############### piglit
+.piglit-test-valve:
+  extends:
+    - .b2c-test-radv-gl
+    # Keep all the piglit jobs as manual trigger jobs for now, until we
+    # have enough resources to meet the throughput requirements for
+    # automatic pre-merge in the Mesa CI.
+    - .test-manual-mr
+  variables:
+    B2C_JOB_SUCCESS_REGEX: '^\+ PIGLIT_EXITCODE=0\r$'
+    B2C_TEST_SCRIPT: ./install/piglit/piglit-runner.sh
+    PIGLIT_PROFILES: all
+    PIGLIT_PLATFORM: gbm
+
+piglit-navi10-valve:
+  extends:
+    - .piglit-test-valve
+    - .navi10-test-valve
+  variables:
+    GPU_VERSION: zink-radv
+
 ############### Fossilize
 radv-fossils:
   extends:

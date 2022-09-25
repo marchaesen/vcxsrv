@@ -65,4 +65,14 @@ struct internal_args {
    uint32_t fill_count;
 };
 
+#define RADV_COPY_MODE_COPY        0
+#define RADV_COPY_MODE_SERIALIZE   1
+#define RADV_COPY_MODE_DESERIALIZE 2
+
+struct copy_args {
+   VOID_REF src_addr;
+   VOID_REF dst_addr;
+   uint32_t mode;
+};
+
 #endif

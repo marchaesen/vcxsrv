@@ -111,6 +111,8 @@ struct ac_shader_abi {
 
    LLVMValueRef (*load_user_clip_plane)(struct ac_shader_abi *abi, unsigned ucp_id);
 
+   LLVMValueRef (*load_streamout_buffer)(struct ac_shader_abi *abi, unsigned buffer);
+
    LLVMValueRef (*emit_fbfetch)(struct ac_shader_abi *abi);
 
    LLVMValueRef (*intrinsic_load)(struct ac_shader_abi *abi, nir_intrinsic_op op);

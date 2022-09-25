@@ -18,6 +18,7 @@
 #include "util/disk_cache.h"
 #include "util/driconf.h"
 #include "util/os_misc.h"
+#include "vk_shader_module.h"
 #include "vk_sampler.h"
 #include "vk_util.h"
 
@@ -72,7 +73,7 @@ tu_device_get_cache_uuid(struct tu_physical_device *device, void *uuid)
    return 0;
 }
 
-#define TU_API_VERSION VK_MAKE_VERSION(1, 2, VK_HEADER_VERSION)
+#define TU_API_VERSION VK_MAKE_VERSION(1, 3, VK_HEADER_VERSION)
 
 VKAPI_ATTR VkResult VKAPI_CALL
 tu_EnumerateInstanceVersion(uint32_t *pApiVersion)
@@ -236,11 +237,15 @@ get_device_extensions(const struct tu_physical_device *device,
       .EXT_non_seamless_cube_map = true,
       .EXT_tooling_info = true,
       .EXT_inline_uniform_block = true,
+      .EXT_mutable_descriptor_type = true,
+      .KHR_pipeline_library = true,
+      .EXT_graphics_pipeline_library = true,
    };
 }
 
 static const struct vk_pipeline_cache_object_ops *const cache_import_ops[] = {
    &tu_shaders_ops,
+   &tu_nir_shaders_ops,
    NULL,
 };
 
@@ -390,6 +395,7 @@ static const struct debug_control tu_debug_options[] = {
    { "unaligned_store", TU_DEBUG_UNALIGNED_STORE },
    { "log_skip_gmem_ops", TU_DEBUG_LOG_SKIP_GMEM_OPS },
    { "dynamic", TU_DEBUG_DYNAMIC },
+   { "bos", TU_DEBUG_BOS },
    { NULL, 0 }
 };
 
@@ -796,9 +802,9 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          features->transformFeedbackPreservesProvokingVertex = true;
          break;
       }
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_VALVE: {
-         VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE *features =
-            (VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE *)ext;
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT: {
+         VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT *features =
+            (VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT *)ext;
          features->mutableDescriptorType = true;
          break;
       }
@@ -901,6 +907,12 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          VkPhysicalDeviceMultiDrawFeaturesEXT *features =
             (VkPhysicalDeviceMultiDrawFeaturesEXT *)ext;
          features->multiDraw = true;
+         break;
+      }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT: {
+         VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT *features =
+            (VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT *)ext;
+         features->graphicsPipelineLibrary = true;
          break;
       }
 
@@ -1013,7 +1025,7 @@ tu_get_physical_device_properties_1_2(struct tu_physical_device *pdevice,
    p->maxPerStageDescriptorUpdateAfterBindStorageBuffers = max_descriptor_set_size;
    p->maxPerStageDescriptorUpdateAfterBindSampledImages  = max_descriptor_set_size;
    p->maxPerStageDescriptorUpdateAfterBindStorageImages  = max_descriptor_set_size;
-   p->maxPerStageDescriptorUpdateAfterBindInputAttachments = max_descriptor_set_size;
+   p->maxPerStageDescriptorUpdateAfterBindInputAttachments = MAX_RTS;
    p->maxPerStageUpdateAfterBindResources                = max_descriptor_set_size;
    p->maxDescriptorSetUpdateAfterBindSamplers            = max_descriptor_set_size;
    p->maxDescriptorSetUpdateAfterBindUniformBuffers      = max_descriptor_set_size;
@@ -1022,7 +1034,7 @@ tu_get_physical_device_properties_1_2(struct tu_physical_device *pdevice,
    p->maxDescriptorSetUpdateAfterBindStorageBuffersDynamic = MAX_DYNAMIC_STORAGE_BUFFERS;
    p->maxDescriptorSetUpdateAfterBindSampledImages       = max_descriptor_set_size;
    p->maxDescriptorSetUpdateAfterBindStorageImages       = max_descriptor_set_size;
-   p->maxDescriptorSetUpdateAfterBindInputAttachments    = max_descriptor_set_size;
+   p->maxDescriptorSetUpdateAfterBindInputAttachments    = MAX_RTS;
 
    p->supportedDepthResolveModes    = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
    p->supportedStencilResolveModes  = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
@@ -1368,6 +1380,13 @@ tu_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
          properties->maxMultiDrawCount = 2048;
          break;
       }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT: {
+         VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT *props =
+            (VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT *)ext;
+         props->graphicsPipelineLibraryFastLinking = true;
+         props->graphicsPipelineLibraryIndependentInterpolationDecoration = true;
+         break;
+      }
       default:
          break;
       }
@@ -1615,7 +1634,7 @@ tu_trace_create_ts_buffer(struct u_trace_context *utctx, uint32_t size)
       container_of(utctx, struct tu_device, trace_context);
 
    struct tu_bo *bo;
-   tu_bo_init_new(device, &bo, size, false);
+   tu_bo_init_new(device, &bo, size, false, "trace");
 
    return bo;
 }
@@ -1740,7 +1759,7 @@ tu_create_copy_timestamp_cs(struct tu_cmd_buffer *cmdbuf, struct tu_cs** cs,
    }
 
    tu_cs_init(*cs, cmdbuf->device, TU_CS_MODE_GROW,
-              list_length(&cmdbuf->trace.trace_chunks) * 6 + 3);
+              list_length(&cmdbuf->trace.trace_chunks) * 6 + 3, "trace copy timestamp cs");
 
    tu_cs_begin(*cs);
 
@@ -1932,6 +1951,9 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
    u_rwlock_init(&device->dma_bo_lock);
    pthread_mutex_init(&device->submit_mutex, NULL);
 
+   if (device->instance->debug_flags & TU_DEBUG_BOS)
+      device->bo_sizes = _mesa_hash_table_create(NULL, _mesa_hash_string, _mesa_key_string_equal);
+
 #ifndef TU_USE_KGSL
    vk_device_set_drm_fd(&device->vk, device->fd);
 #endif
@@ -1996,7 +2018,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
                            128 * 1024, 0);
 
    result = tu_bo_init_new(device, &device->global_bo, global_size,
-                           TU_BO_ALLOC_ALLOW_DUMP);
+                           TU_BO_ALLOC_ALLOW_DUMP, "global");
    if (result != VK_SUCCESS) {
       vk_startup_errorf(device->instance, result, "BO init");
       goto fail_global_bo;
@@ -2062,7 +2084,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       }
 
       cs = device->perfcntrs_pass_cs;
-      tu_cs_init(cs, device, TU_CS_MODE_SUB_STREAM, 96);
+      tu_cs_init(cs, device, TU_CS_MODE_SUB_STREAM, 96, "perfcntrs cs");
 
       for (unsigned i = 0; i < 32; i++) {
          struct tu_cs sub_cs;
@@ -2223,6 +2245,7 @@ tu_DestroyDevice(VkDevice _device, const VkAllocationCallbacks *pAllocator)
    u_rwlock_destroy(&device->dma_bo_lock);
 
    pthread_cond_destroy(&device->timeline_cond);
+   _mesa_hash_table_destroy(device->bo_sizes, NULL);
    vk_free(&device->vk.alloc, device->bo_list);
    vk_device_finish(&device->vk);
    vk_free(&device->vk.alloc, device);
@@ -2260,7 +2283,7 @@ tu_get_scratch_bo(struct tu_device *dev, uint64_t size, struct tu_bo **bo)
 
    unsigned bo_size = 1ull << size_log2;
    VkResult result = tu_bo_init_new(dev, &dev->scratch_bos[index].bo, bo_size,
-                                    TU_BO_ALLOC_NO_FLAGS);
+                                    TU_BO_ALLOC_NO_FLAGS, "scratch");
    if (result != VK_SUCCESS) {
       mtx_unlock(&dev->scratch_bos[index].construct_mtx);
       return result;
@@ -2432,11 +2455,14 @@ tu_AllocateMemory(VkDevice _device,
          alloc_flags |= TU_BO_ALLOC_REPLAYABLE;
       }
 
-      result = tu_bo_init_new_explicit_iova(device, &mem->bo,
-                                            pAllocateInfo->allocationSize,
-                                            client_address, alloc_flags);
+      char name[64] = "vkAllocateMemory()";
+      if (device->bo_sizes)
+         snprintf(name, ARRAY_SIZE(name), "vkAllocateMemory(%ldkb)",
+                  (long)DIV_ROUND_UP(pAllocateInfo->allocationSize, 1024));
+      result = tu_bo_init_new_explicit_iova(
+         device, &mem->bo, pAllocateInfo->allocationSize, client_address,
+         alloc_flags, name);
    }
-
 
    if (result == VK_SUCCESS) {
       mem_heap_used = p_atomic_add_return(&mem_heap->used, mem->bo->size);
@@ -2654,7 +2680,7 @@ tu_CreateEvent(VkDevice _device,
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    VkResult result = tu_bo_init_new(device, &event->bo, 0x1000,
-                                    TU_BO_ALLOC_NO_FLAGS);
+                                    TU_BO_ALLOC_NO_FLAGS, "event");
    if (result != VK_SUCCESS)
       goto fail_alloc;
 
@@ -3056,17 +3082,6 @@ tu_GetMemoryFdPropertiesKHR(VkDevice _device,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-tu_GetPhysicalDeviceExternalFenceProperties(
-   VkPhysicalDevice physicalDevice,
-   const VkPhysicalDeviceExternalFenceInfo *pExternalFenceInfo,
-   VkExternalFenceProperties *pExternalFenceProperties)
-{
-   pExternalFenceProperties->exportFromImportedHandleTypes = 0;
-   pExternalFenceProperties->compatibleHandleTypes = 0;
-   pExternalFenceProperties->externalFenceFeatures = 0;
-}
-
-VKAPI_ATTR void VKAPI_CALL
 tu_GetDeviceGroupPeerMemoryFeatures(
    VkDevice device,
    uint32_t heapIndex,
@@ -3119,4 +3134,107 @@ uint64_t tu_GetDeviceMemoryOpaqueCaptureAddress(
 {
    TU_FROM_HANDLE(tu_device_memory, mem, pInfo->memory);
    return mem->bo->iova;
+}
+
+struct tu_debug_bos_entry {
+   uint32_t count;
+   uint64_t size;
+   const char *name;
+};
+
+const char *
+tu_debug_bos_add(struct tu_device *dev, uint64_t size, const char *name)
+{
+   assert(name);
+
+   if (likely(!dev->bo_sizes))
+      return NULL;
+
+   mtx_lock(&dev->bo_mutex);
+   struct hash_entry *entry = _mesa_hash_table_search(dev->bo_sizes, name);
+   struct tu_debug_bos_entry *debug_bos;
+
+   if (!entry) {
+      debug_bos = calloc(1, sizeof(struct tu_debug_bos_entry));
+      debug_bos->name = strdup(name);
+      _mesa_hash_table_insert(dev->bo_sizes, debug_bos->name, debug_bos);
+   } else {
+      debug_bos = entry->data;
+   }
+
+   debug_bos->count++;
+   debug_bos->size += align(size, 4096);
+   mtx_unlock(&dev->bo_mutex);
+
+   return debug_bos->name;
+}
+
+void
+tu_debug_bos_del(struct tu_device *dev, struct tu_bo *bo)
+{
+   if (likely(!dev->bo_sizes) || !bo->name)
+      return;
+
+   mtx_lock(&dev->bo_mutex);
+   struct hash_entry *entry =
+      _mesa_hash_table_search(dev->bo_sizes, bo->name);
+   /* If we're finishing the BO, it should have been added already */
+   assert(entry);
+
+   struct tu_debug_bos_entry *debug_bos = entry->data;
+   debug_bos->count--;
+   debug_bos->size -= align(bo->size, 4096);
+   if (!debug_bos->count) {
+      _mesa_hash_table_remove(dev->bo_sizes, entry);
+      free((void *) debug_bos->name);
+      free(debug_bos);
+   }
+   mtx_unlock(&dev->bo_mutex);
+}
+
+static int debug_bos_count_compare(const void *in_a, const void *in_b)
+{
+   struct tu_debug_bos_entry *a = *(struct tu_debug_bos_entry **)in_a;
+   struct tu_debug_bos_entry *b = *(struct tu_debug_bos_entry **)in_b;
+   return a->count - b->count;
+}
+
+void
+tu_debug_bos_print_stats(struct tu_device *dev)
+{
+   if (likely(!dev->bo_sizes))
+      return;
+
+   mtx_lock(&dev->bo_mutex);
+
+   /* Put the HT's sizes data in an array so we can sort by number of allocations. */
+   struct util_dynarray dyn;
+   util_dynarray_init(&dyn, NULL);
+
+   uint32_t size = 0;
+   uint32_t count = 0;
+   hash_table_foreach(dev->bo_sizes, entry)
+   {
+      struct tu_debug_bos_entry *debug_bos = (void *) entry->data;
+      util_dynarray_append(&dyn, struct tu_debug_bos_entry *, debug_bos);
+      size += debug_bos->size / 1024;
+      count += debug_bos->count;
+   }
+
+   qsort(dyn.data,
+         util_dynarray_num_elements(&dyn, struct tu_debug_bos_entry *),
+         sizeof(struct tu_debug_bos_entryos_entry *), debug_bos_count_compare);
+
+   util_dynarray_foreach(&dyn, struct tu_debug_bos_entry *, entryp)
+   {
+      struct tu_debug_bos_entry *debug_bos = *entryp;
+      mesa_logi("%30s: %4d bos, %lld kb\n", debug_bos->name, debug_bos->count,
+                (long long) (debug_bos->size / 1024));
+   }
+
+   mesa_logi("submitted %d bos (%d MB)\n", count, DIV_ROUND_UP(size, 1024));
+
+   util_dynarray_fini(&dyn);
+
+   mtx_unlock(&dev->bo_mutex);
 }

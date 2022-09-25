@@ -279,7 +279,7 @@ llvmpipe_fs_variant_linear_llvm(struct llvmpipe_context *lp,
     */
 
    char func_name[256];
-   snprintf(func_name, sizeof(func_name), "fs_variant_linear");
+   snprintf(func_name, sizeof(func_name), "fs_variant_linear2");
 
    LLVMTypeRef ret_type = pint8t;
    LLVMTypeRef arg_types[4];

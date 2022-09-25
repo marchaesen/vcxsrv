@@ -397,3 +397,81 @@ vlVaReleaseBufferHandle(VADriverContextP ctx, VABufferID buf_id)
 
    return VA_STATUS_SUCCESS;
 }
+
+#if VA_CHECK_VERSION(1, 15, 0)
+VAStatus
+vlVaSyncBuffer(VADriverContextP ctx, VABufferID buf_id, uint64_t timeout_ns)
+{
+   vlVaDriver *drv;
+   vlVaContext *context;
+   vlVaBuffer *buf;
+
+   if (!ctx)
+      return VA_STATUS_ERROR_INVALID_CONTEXT;
+
+   drv = VL_VA_DRIVER(ctx);
+   if (!drv)
+      return VA_STATUS_ERROR_INVALID_CONTEXT;
+
+   /* Some apps like ffmpeg check for vaSyncBuffer to be present
+      to do async enqueuing of multiple vaEndPicture encode calls
+      before calling vaSyncBuffer with a pre-defined latency
+      If vaSyncBuffer is not implemented, they fallback to the
+      usual synchronous pairs of { vaEndPicture + vaSyncSurface }
+
+      As this might require the driver to support multiple
+      operations and/or store multiple feedback values before sync
+      fallback to backward compatible behaviour unless driver
+      explicitly supports PIPE_VIDEO_CAP_ENC_SUPPORTS_ASYNC_OPERATION
+   */
+   if (!drv->pipe->screen->get_video_param(drv->pipe->screen,
+                              PIPE_VIDEO_PROFILE_UNKNOWN,
+                              PIPE_VIDEO_ENTRYPOINT_ENCODE,
+                              PIPE_VIDEO_CAP_ENC_SUPPORTS_ASYNC_OPERATION))
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
+
+   /* vaSyncBuffer spec states that "If timeout is zero, the function returns immediately." */
+   if (timeout_ns == 0)
+      return VA_STATUS_ERROR_TIMEDOUT;
+
+   if (timeout_ns != VA_TIMEOUT_INFINITE)
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
+
+   mtx_lock(&drv->mutex);
+   buf = handle_table_get(drv->htab, buf_id);
+
+   if (!buf) {
+      mtx_unlock(&drv->mutex);
+      return VA_STATUS_ERROR_INVALID_BUFFER;
+   }
+
+   if (!buf->feedback) {
+      /* No outstanding operation: nothing to do. */
+      mtx_unlock(&drv->mutex);
+      return VA_STATUS_SUCCESS;
+   }
+
+   context = handle_table_get(drv->htab, buf->ctx);
+   if (!context) {
+      mtx_unlock(&drv->mutex);
+      return VA_STATUS_ERROR_INVALID_CONTEXT;
+   }
+
+   vlVaSurface* surf = handle_table_get(drv->htab, buf->associated_encode_input_surf);
+
+   if ((buf->feedback) && (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE)) {
+      context->decoder->get_feedback(context->decoder, buf->feedback, &(buf->coded_size));
+      buf->feedback = NULL;
+      /* Also mark the associated render target (encode source texture) surface as done
+         in case they call vaSyncSurface on it to avoid getting the feedback twice*/
+      if(surf)
+      {
+         surf->feedback = NULL;
+         buf->associated_encode_input_surf = VA_INVALID_ID;
+      }
+   }
+
+   mtx_unlock(&drv->mutex);
+   return VA_STATUS_SUCCESS;
+}
+#endif

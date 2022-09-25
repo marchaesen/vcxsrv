@@ -465,9 +465,6 @@ radv_thread_trace_init(struct radv_device *device)
    if (!radv_thread_trace_init_bo(device))
       return false;
 
-   if (!radv_device_acquire_performance_counters(device))
-      return false;
-
    list_inithead(&thread_trace_data->rgp_pso_correlation.record);
    simple_mtx_init(&thread_trace_data->rgp_pso_correlation.lock, mtx_plain);
 

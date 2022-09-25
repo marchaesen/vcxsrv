@@ -167,7 +167,10 @@ agx_resource_create(struct pipe_screen *screen,
 
    nresource->modifier = agx_select_modifier(nresource);
    nresource->mipmapped = (templ->last_level > 0);
-   nresource->internal_format = nresource->base.format;
+
+   assert(templ->format != PIPE_FORMAT_Z24X8_UNORM &&
+          templ->format != PIPE_FORMAT_Z24_UNORM_S8_UINT &&
+          "u_transfer_helper should have lowered");
 
    nresource->layout = (struct ail_layout) {
       .tiling = (nresource->modifier == DRM_FORMAT_MOD_LINEAR) ?
@@ -282,10 +285,10 @@ agx_transfer_map(struct pipe_context *pctx,
 
    if (rsrc->modifier == DRM_FORMAT_MOD_APPLE_TWIDDLED) {
       transfer->base.stride =
-         util_format_get_stride(resource->format, box->width);
+         util_format_get_stride(rsrc->layout.format, box->width);
 
       transfer->base.layer_stride =
-         util_format_get_2d_size(resource->format, transfer->base.stride,
+         util_format_get_2d_size(rsrc->layout.format, transfer->base.stride,
                                  box->height);
 
       transfer->map = calloc(transfer->base.layer_stride, box->depth);
@@ -1139,7 +1142,7 @@ agx_resource_get_stencil(struct pipe_resource *prsrc)
 static enum pipe_format
 agx_resource_get_internal_format(struct pipe_resource *prsrc)
 {
-   return agx_resource(prsrc)->internal_format;
+   return agx_resource(prsrc)->layout.format;
 }
 
 static const struct u_transfer_vtbl transfer_vtbl = {

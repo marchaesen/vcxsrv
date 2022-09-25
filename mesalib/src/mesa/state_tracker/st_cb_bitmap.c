@@ -561,7 +561,8 @@ init_bitmap_state(struct st_context *st)
    st->bitmap.sampler.min_img_filter = PIPE_TEX_FILTER_NEAREST;
    st->bitmap.sampler.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
    st->bitmap.sampler.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
-   st->bitmap.sampler.normalized_coords = st->internal_target == PIPE_TEXTURE_2D;
+   st->bitmap.sampler.normalized_coords = st->internal_target == PIPE_TEXTURE_2D ||
+                                          (st->internal_target == PIPE_TEXTURE_RECT && st->lower_rect_tex);
 
    /* init baseline rasterizer state once */
    memset(&st->bitmap.rasterizer, 0, sizeof(st->bitmap.rasterizer));

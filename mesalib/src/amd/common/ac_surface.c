@@ -2321,7 +2321,7 @@ static int gfx9_compute_surface(struct ac_addrlib *addrlib, const struct radeon_
       AddrSurfInfoIn.swizzleMode = ac_modifier_gfx9_swizzle_mode(surf->modifier);
    }
 
-   surf->u.gfx9.resource_type = AddrSurfInfoIn.resourceType;
+   surf->u.gfx9.resource_type = (enum gfx9_resource_type)AddrSurfInfoIn.resourceType;
    surf->has_stencil = !!(surf->flags & RADEON_SURF_SBUFFER);
 
    surf->num_meta_levels = 0;
@@ -3043,7 +3043,7 @@ ac_surface_addr_from_coord(struct ac_addrlib *addrlib, const struct radeon_info 
    input.numSamples = surf_info->samples;
    input.numFrags = surf_info->samples;
    input.swizzleMode = surf->u.gfx9.swizzle_mode;
-   input.resourceType = surf->u.gfx9.resource_type;
+   input.resourceType = (AddrResourceType)surf->u.gfx9.resource_type;
    input.pipeBankXor = surf->tile_swizzle;
    input.bpp = surf->bpe * 8;
    input.x = x;
@@ -3066,7 +3066,7 @@ ac_surface_compute_nbc_view(struct ac_addrlib *addrlib, const struct radeon_info
    ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT input = {0};
    input.size = sizeof(ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT);
    input.swizzleMode = surf->u.gfx9.swizzle_mode;
-   input.resourceType = surf->u.gfx9.resource_type;
+   input.resourceType = (AddrResourceType)surf->u.gfx9.resource_type;
    switch (surf->bpe) {
    case 8:
       input.format = ADDR_FMT_BC1;

@@ -32,7 +32,7 @@
 #include "pvr_device_info.h"
 #include "util/u_math.h"
 
-#define PVR_MAX_COLOR_ATTACHMENTS 8U /* Number of PBE emit registers. */
+#define PVR_MAX_COLOR_ATTACHMENTS PVR_NUM_PBE_EMIT_REGS
 #define PVR_MAX_QUEUES 2U
 #define PVR_MAX_VIEWPORTS 1U
 #define PVR_MAX_NEG_OFFSCREEN_OFFSET 4096U

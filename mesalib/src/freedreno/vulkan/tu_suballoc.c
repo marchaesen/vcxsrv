@@ -81,7 +81,7 @@ tu_suballoc_bo_alloc(struct tu_suballoc_bo *suballoc_bo,
    if (!suballoc->bo) {
       VkResult result = tu_bo_init_new(suballoc->dev, &suballoc->bo,
                                        alloc_size,
-                                       suballoc->flags);
+                                       suballoc->flags, "suballoc");
       if (result != VK_SUCCESS)
          return result;
    }

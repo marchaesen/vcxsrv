@@ -140,4 +140,5 @@ stw_translate_image(struct stw_image *in, struct st_egl_image *out)
    out->format = in->format;
    out->layer = in->layer;
    out->level = in->level;
+   out->imported_dmabuf = false;
 }

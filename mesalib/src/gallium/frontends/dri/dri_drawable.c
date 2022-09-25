@@ -415,6 +415,12 @@ notify_before_flush_cb(void* _args)
    struct st_context_iface *st = args->ctx->st;
    struct pipe_context *pipe = st->pipe;
 
+   /* Wait for glthread to finish because we can't use pipe_context from
+    * multiple threads.
+    */
+   if (st->thread_finish)
+      st->thread_finish(st);
+
    if (args->drawable->stvis.samples > 1 &&
        (args->reason == __DRI2_THROTTLE_SWAPBUFFER ||
         args->reason == __DRI2_THROTTLE_COPYSUBBUFFER)) {

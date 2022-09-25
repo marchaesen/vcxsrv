@@ -224,7 +224,12 @@ zink_get_gfx_pipeline(struct zink_context *ctx,
       VkPipeline pipeline = VK_NULL_HANDLE;
       if (HAVE_LIB &&
           /* TODO: if there's ever a dynamic render extension with input attachments */
-          !ctx->gfx_pipeline_state.render_pass) {
+          !ctx->gfx_pipeline_state.render_pass &&
+          /* TODO: is sample shading even possible to handle with GPL? */
+          !ctx->gfx_stages[MESA_SHADER_FRAGMENT]->nir->info.fs.uses_sample_shading &&
+          !zink_get_fs_key(ctx)->fbfetch_ms &&
+          !ctx->gfx_pipeline_state.force_persample_interp &&
+          !ctx->gfx_pipeline_state.min_samples) {
          ctx->gfx_pipeline_state.gkey = ctx->gfx_pipeline_state.rast_state;
          struct set_entry *he = NULL;
          /* TODO: this will eventually be pre-populated by async shader compile */

@@ -148,7 +148,7 @@ bool TCSShader::read_prop(std::istream& is)
    string value;
    is >> value;
 
-   auto splitpos = value.find(':');
+   ASSERTED auto splitpos = value.find(':');
    assert(splitpos != string::npos);
 
    std::istringstream ival(value);

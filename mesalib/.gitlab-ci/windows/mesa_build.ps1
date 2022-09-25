@@ -51,6 +51,9 @@ meson `
 -Dgallium-drivers="swrast,d3d12,zink" `
 -Dshared-glapi=enabled `
 -Dgles2=enabled `
+-Dgallium-opencl=icd `
+-Dgallium-rusticl=false `
+-Dopencl-spirv=true `
 -Dmicrosoft-clc=enabled `
 -Dstatic-libclc=all `
 -Dspirv-to-dxil=true `

@@ -833,8 +833,9 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_write_invocation_amd:
       if (shader->info.stage == MESA_SHADER_FRAGMENT)
          shader->info.fs.needs_all_helper_invocations = true;
-      if (shader->info.stage == MESA_SHADER_COMPUTE)
-         shader->info.cs.uses_wide_subgroup_intrinsics = true;
+      if (shader->info.stage == MESA_SHADER_COMPUTE ||
+          gl_shader_stage_is_mesh(shader->info.stage))
+         shader->info.uses_wide_subgroup_intrinsics = true;
       break;
 
    case nir_intrinsic_end_primitive:

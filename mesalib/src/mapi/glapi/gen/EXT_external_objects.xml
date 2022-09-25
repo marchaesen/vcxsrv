@@ -220,7 +220,7 @@
         <param name="srcLayouts" type="const GLenum *" count="numTextureBarriers"/>
     </function>
 
-    <function name="SignalSemaphoreEXT" es2="3.2">
+    <function name="SignalSemaphoreEXT" es2="3.2" marshal="sync">
         <param name="semaphore" type="GLuint"/>
         <param name="numBufferBarriers" type="GLuint"/>
         <param name="buffers" type="const GLuint *" count="numBufferBarriers"/>

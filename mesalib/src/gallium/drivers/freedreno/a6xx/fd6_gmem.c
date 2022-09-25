@@ -25,6 +25,8 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#define FD_BO_NO_HARDPIN 1
+
 #include <stdio.h>
 
 #include "pipe/p_state.h"
@@ -787,8 +789,8 @@ emit_msaa(struct fd_ringbuffer *ring, unsigned nr)
             A6XX_RB_DEST_MSAA_CNTL_SAMPLES(samples) |
                COND(samples == MSAA_ONE, A6XX_RB_DEST_MSAA_CNTL_MSAA_DISABLE));
 
-   OUT_PKT4(ring, REG_A6XX_RB_MSAA_CNTL, 1);
-   OUT_RING(ring, A6XX_RB_MSAA_CNTL_SAMPLES(samples));
+   OUT_PKT4(ring, REG_A6XX_RB_BLIT_GMEM_MSAA_CNTL, 1);
+   OUT_RING(ring, A6XX_RB_BLIT_GMEM_MSAA_CNTL_SAMPLES(samples));
 }
 
 static void prepare_tile_setup_ib(struct fd_batch *batch);

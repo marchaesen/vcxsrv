@@ -44,10 +44,6 @@ if with_opencl_icd
   clover_cpp_args += '-DHAVE_CLOVER_ICD'
 endif
 
-if with_opencl_native
-  clover_spirv_cpp_args += '-DHAVE_CLOVER_NATIVE'
-endif
-
 if with_opencl_spirv
   clover_spirv_cpp_args += '-DHAVE_CLOVER_SPIRV'
 endif

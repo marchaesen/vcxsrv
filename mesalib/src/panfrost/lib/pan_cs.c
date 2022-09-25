@@ -74,6 +74,7 @@ mali_sampling_mode(const struct pan_image_view *view)
         return MALI_MSAA_SINGLE;
 }
 
+#if PAN_ARCH >= 5
 static inline enum mali_sample_pattern
 pan_sample_pattern(unsigned samples)
 {
@@ -85,6 +86,7 @@ pan_sample_pattern(unsigned samples)
         default: unreachable("Unsupported sample count");
         }
 }
+#endif
 
 int
 GENX(pan_select_crc_rt)(const struct pan_fb_info *fb, unsigned tile_size)
@@ -566,7 +568,7 @@ GENX(pan_emit_tls)(const struct pan_tls_info *info,
                         assert((info->wls.ptr & 0xffffffff00000000ULL) == ((info->wls.ptr + info->wls.size - 1) & 0xffffffff00000000ULL));
                         cfg.wls_base_pointer = info->wls.ptr;
                         unsigned wls_size = pan_wls_adjust_size(info->wls.size);
-                        cfg.wls_instances = pan_wls_instances(&info->wls.dim);
+                        cfg.wls_instances = info->wls.instances;
                         cfg.wls_size_scale = util_logbase2(wls_size) + 1;
                 } else {
                         cfg.wls_instances = MALI_LOCAL_STORAGE_NO_WORKGROUP_MEM;
