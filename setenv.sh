@@ -12,5 +12,5 @@ export MHMAKECONF=$DIR
 export PYTHON3=/mnt/c/Python39/python.exe
 export IS64=$1
 
-export CC="cl -FS"
-export WSLENV="$WSLENV:MHMAKECONF/l:PYTHON3/l:IS64/l:CC/l"
+export CFLAGS="-FS"
+export WSLENV="$WSLENV:MHMAKECONF/l:PYTHON3/l:IS64/l:CFLAGS/l"

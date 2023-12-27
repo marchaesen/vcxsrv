@@ -1,8 +1,8 @@
 /*
- * Copyright 2013-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2013-2023 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2012, Intel Corporation. All Rights Reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
@@ -13,6 +13,7 @@
  */
 
 #include <openssl/opensslconf.h>
+#include "internal/common.h"
 #include "rsaz_exp.h"
 
 #ifndef RSAZ_ENABLED
@@ -31,16 +32,8 @@ void rsaz_1024_scatter5_avx2(void *tbl, const void *val, int i);
 void rsaz_1024_gather5_avx2(void *val, const void *tbl, int i);
 void rsaz_1024_red2norm_avx2(void *norm, const void *red);
 
-#if defined(__GNUC__)
-# define ALIGN64        __attribute__((aligned(64)))
-#elif defined(_MSC_VER)
-# define ALIGN64        __declspec(align(64))
-#elif defined(__SUNPRO_C)
-# define ALIGN64
+#if defined(__SUNPRO_C)
 # pragma align 64(one,two80)
-#else
-/* not fatal, might hurt performance a little */
-# define ALIGN64
 #endif
 
 ALIGN64 static const BN_ULONG one[40] = {
@@ -66,6 +59,7 @@ void RSAZ_1024_mod_exp_avx2(BN_ULONG result_norm[16],
     unsigned char *R2 = table_s; /* borrow */
     int index;
     int wvalue;
+    BN_ULONG tmp[16];
 
     if ((((size_t)p_str & 4095) + 320) >> 12) {
         result = p_str;
@@ -237,7 +231,10 @@ void RSAZ_1024_mod_exp_avx2(BN_ULONG result_norm[16],
 
     rsaz_1024_red2norm_avx2(result_norm, result);
 
+    bn_reduce_once_in_place(result_norm, /*carry=*/0, m_norm, tmp, 16);
+
     OPENSSL_cleanse(storage, sizeof(storage));
+    OPENSSL_cleanse(tmp, sizeof(tmp));
 }
 
 /*
@@ -266,6 +263,7 @@ void RSAZ_512_mod_exp(BN_ULONG result[8],
     unsigned char *p_str = (unsigned char *)exponent;
     int index;
     unsigned int wvalue;
+    BN_ULONG tmp[8];
 
     /* table[0] = 1_inv */
     temp[0] = 0 - m[0];
@@ -309,7 +307,10 @@ void RSAZ_512_mod_exp(BN_ULONG result[8],
     /* from Montgomery */
     rsaz_512_mul_by_one(result, temp, m, k0);
 
+    bn_reduce_once_in_place(result, /*carry=*/0, m, tmp, 8);
+
     OPENSSL_cleanse(storage, sizeof(storage));
+    OPENSSL_cleanse(tmp, sizeof(tmp));
 }
 
 #endif

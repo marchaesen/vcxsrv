@@ -125,7 +125,7 @@ if [[ "$BUILDDEBUG" == "1" ]] ; then
 	fi
 	check-error 'Error executing perl'
 
-	nmake.exe
+	jom.exe /J$2
 	check-error 'Error compiling openssl for debug'
 
 	cd ../..
