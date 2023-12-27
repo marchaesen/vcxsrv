@@ -49,9 +49,8 @@ which python.exe > /dev/null 2>&1
 check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2.7.exe /usr/bin/python.exe)'
 
 # c:\perl should have a copy of strawberry perl portable edition
-which /mnt/c/perl/perl/bin/perl.exe > /dev/null 2>&1
+which perl.exe > /dev/null 2>&1
 check-error 'Please install strawberry perl portable edition into c:\perl'
-export PATH=/mnt/c/perl/perl/bin:$PATH
 
 # echo script lines from now one
 #set -v
