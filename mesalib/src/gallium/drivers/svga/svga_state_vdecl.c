@@ -79,8 +79,8 @@ emit_hw_vs_vdecl(struct svga_context *svga, uint64_t dirty)
       buffer = svga_buffer(vb->buffer.resource);
       if (buffer->uploaded.start > offset) {
          tmp_neg_bias = buffer->uploaded.start - offset;
-         if (vb->stride)
-            tmp_neg_bias = (tmp_neg_bias + vb->stride - 1) / vb->stride;
+         if (ve[i].src_stride)
+            tmp_neg_bias = (tmp_neg_bias + ve[i].src_stride - 1) / ve[i].src_stride;
          neg_bias = MAX2(neg_bias, tmp_neg_bias);
       }
    }
@@ -103,14 +103,14 @@ emit_hw_vs_vdecl(struct svga_context *svga, uint64_t dirty)
       decls[i].identity.method = SVGA3D_DECLMETHOD_DEFAULT;
       decls[i].identity.usage = usage;
       decls[i].identity.usageIndex = index;
-      decls[i].array.stride = vb->stride;
+      decls[i].array.stride = ve[i].src_stride;
 
       /* Compensate for partially uploaded vbo, and
        * for the negative index bias.
        */
       decls[i].array.offset = (vb->buffer_offset
                            + ve[i].src_offset
-			   + neg_bias * vb->stride
+			   + neg_bias * ve[i].src_stride
 			   - buffer->uploaded.start);
 
       assert(decls[i].array.offset >= 0);

@@ -31,7 +31,6 @@ include = [
     "dEQP-VK.glsl.texture_functions.query.texturequerylevels.*",
     "dEQP-VK.glsl.operator.*",
     "dEQP-VK.image.image_size.*",
-    "dEQP-VK.image.load_store.with_format.*",
     "dEQP-VK.pipeline.depth.format.d24_unorm_s8_uint.depth_test_disabled.depth_write_enabled",
     "dEQP-VK.pipeline.image.suballocation.sampling_type.*.view_type.2d*",
     "dEQP-VK.pipeline.input_assembly.*",

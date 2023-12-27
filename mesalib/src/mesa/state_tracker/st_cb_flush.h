@@ -30,7 +30,7 @@
 #define ST_CB_FLUSH_H
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 struct dd_function_table;
 struct pipe_fence_handle;

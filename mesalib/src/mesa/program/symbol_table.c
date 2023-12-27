@@ -102,11 +102,9 @@ _mesa_symbol_table_pop_scope(struct _mesa_symbol_table *table)
            /* If there is a symbol with this name in an outer scope update
             * the hash table to point to it.
             */
-           hte->key = sym->next_with_same_name->name;
            hte->data = sym->next_with_same_name;
         } else {
            _mesa_hash_table_remove(table->ht, hte);
-           free(sym->name);
         }
 
         free(sym);
@@ -178,12 +176,14 @@ _mesa_symbol_table_add_symbol(struct _mesa_symbol_table *table,
                               const char *name, void *declaration)
 {
    struct symbol *new_sym;
-   struct symbol *sym = find_symbol(table, name);
+   uint32_t hash = _mesa_hash_string(name);
+   struct hash_entry *entry = _mesa_hash_table_search_pre_hashed(table->ht, hash, name);
+   struct symbol *sym = entry ? entry->data : NULL;
 
    if (sym && sym->depth == table->depth)
       return -1;
 
-   new_sym = calloc(1, sizeof(*sym));
+   new_sym = calloc(1, sizeof(*sym) + (sym ? 0 : (strlen(name) + 1)));
    if (new_sym == NULL) {
       _mesa_error_no_memory(__func__);
       return -1;
@@ -193,13 +193,13 @@ _mesa_symbol_table_add_symbol(struct _mesa_symbol_table *table,
       /* Store link to symbol in outer scope with the same name */
       new_sym->next_with_same_name = sym;
       new_sym->name = sym->name;
+
+      entry->data = new_sym;
    } else {
-      new_sym->name = strdup(name);
-      if (new_sym->name == NULL) {
-         free(new_sym);
-         _mesa_error_no_memory(__func__);
-         return -1;
-      }
+      new_sym->name = (char *)(new_sym + 1);
+      strcpy(new_sym->name, name);
+
+      _mesa_hash_table_insert_pre_hashed(table->ht, hash, new_sym->name, new_sym);
    }
 
    new_sym->next_with_same_scope = table->current_scope->symbols;
@@ -207,8 +207,6 @@ _mesa_symbol_table_add_symbol(struct _mesa_symbol_table *table,
    new_sym->depth = table->depth;
 
    table->current_scope->symbols = new_sym;
-
-   _mesa_hash_table_insert(table->ht, new_sym->name, new_sym);
 
    return 0;
 }
@@ -252,7 +250,7 @@ _mesa_symbol_table_add_global_symbol(struct _mesa_symbol_table *table,
       /* empty */
    }
 
-   sym = calloc(1, sizeof(*sym));
+   sym = calloc(1, sizeof(*sym) + (inner_sym ? 0 : strlen(name) + 1));
    if (sym == NULL) {
       _mesa_error_no_memory(__func__);
       return -1;
@@ -266,12 +264,8 @@ _mesa_symbol_table_add_global_symbol(struct _mesa_symbol_table *table,
 
       sym->name = inner_sym->name;
    } else {
-      sym->name = strdup(name);
-      if (sym->name == NULL) {
-         free(sym);
-         _mesa_error_no_memory(__func__);
-         return -1;
-      }
+      sym->name = (char *)(sym + 1);
+      strcpy(sym->name, name);
    }
 
    sym->next_with_same_scope = top_scope->symbols;
@@ -305,8 +299,20 @@ _mesa_symbol_table_ctor(void)
 void
 _mesa_symbol_table_dtor(struct _mesa_symbol_table *table)
 {
-   while (table->current_scope != NULL) {
-      _mesa_symbol_table_pop_scope(table);
+   /* Free all the scopes and symbols left in the table.  This is like repeated
+    * _mesa_symbol_table_pop_scope(), but not maintining the hash table as we
+    * blow it all away.
+    */
+   while (table->current_scope) {
+      struct scope_level *scope = table->current_scope;
+      table->current_scope = scope->next;
+
+      while (scope->symbols) {
+         struct symbol *sym = scope->symbols;
+         scope->symbols = sym->next_with_same_scope;
+         free(sym);
+      }
+      free(scope);
    }
 
    _mesa_hash_table_destroy(table->ht, NULL);

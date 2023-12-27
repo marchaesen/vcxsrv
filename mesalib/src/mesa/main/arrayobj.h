@@ -27,7 +27,7 @@
 #ifndef ARRAYOBJ_H
 #define ARRAYOBJ_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "mtypes.h"
 #include "glformats.h"
 #include "vbo/vbo.h"
@@ -152,73 +152,61 @@ _mesa_vao_enable_to_vp_inputs(gl_attribute_map_mode mode, GLbitfield enabled)
    }
 }
 
-
 /**
- * Helper functions for consuming backends to walk the
- * ctx->Array._DrawVAO for driver side array setup.
- * Note that mesa provides preprocessed minimal binding information
- * in the VAO. See _mesa_update_vao_derived_arrays for documentation.
- */
-
-/**
- * Return enabled vertex attribute bits for draw.
+ * Return enabled vertex arrays. The bitmask is trimmed based on POS/GENERIC0
+ * remapping, and generic varyings are masked out for fixed-func shaders.
  */
 static inline GLbitfield
-_mesa_draw_array_bits(const struct gl_context *ctx)
+_mesa_get_enabled_vertex_arrays(const struct gl_context *ctx)
 {
-   return ctx->Array._DrawVAOEnabledAttribs;
+   return ctx->VertexProgram._VPModeInputFilter &
+          ctx->Array._DrawVAO->_EnabledWithMapMode;
 }
 
 
 /**
- * Return enabled buffer object vertex attribute bits for draw.
+ * Return the enabled user (= non-VBO) attrib mask and the non-zero divisor
+ * attrib mask for the draw.
  *
- * Needs the a fully updated VAO ready for draw.
+ * Needs a fully updated VAO ready for draw.
  */
-static inline GLbitfield
-_mesa_draw_vbo_array_bits(const struct gl_context *ctx)
+static inline void
+_mesa_get_derived_vao_masks(const struct gl_context *ctx,
+                            const GLbitfield enabled_attribs,
+                            GLbitfield *enabled_user_attribs,
+                            GLbitfield *nonzero_divisor_attribs)
 {
    const struct gl_vertex_array_object *const vao = ctx->Array._DrawVAO;
-   assert(!vao->NewVertexBuffers && !vao->NewVertexElements);
-   return vao->_EffEnabledVBO & ctx->Array._DrawVAOEnabledAttribs;
-}
+   const GLbitfield enabled = vao->Enabled;
+   const GLbitfield enabled_nonuser = enabled & vao->VertexAttribBufferMask;
+   const GLbitfield enabled_nonzero_divisor = enabled & vao->NonZeroDivisorMask;
 
+   *enabled_user_attribs = ~enabled_nonuser & enabled_attribs;
+   *nonzero_divisor_attribs = enabled_nonzero_divisor & enabled_attribs;
 
-/**
- * Return enabled user space vertex attribute bits for draw.
- *
- * Needs the a fully updated VAO ready for draw.
- */
-static inline GLbitfield
-_mesa_draw_user_array_bits(const struct gl_context *ctx)
-{
-   const struct gl_vertex_array_object *const vao = ctx->Array._DrawVAO;
-   assert(!vao->NewVertexBuffers && !vao->NewVertexElements);
-   return ~vao->_EffEnabledVBO & ctx->Array._DrawVAOEnabledAttribs;
-}
+   switch (vao->_AttributeMapMode) {
+   case ATTRIBUTE_MAP_MODE_POSITION:
+      /* Copy VERT_ATTRIB_POS enable bit into GENERIC0 position */
+      *enabled_user_attribs =
+         (*enabled_user_attribs & ~VERT_BIT_GENERIC0) |
+         ((*enabled_user_attribs & VERT_BIT_POS) << VERT_ATTRIB_GENERIC0);
+      *nonzero_divisor_attribs =
+         (*nonzero_divisor_attribs & ~VERT_BIT_GENERIC0) |
+         ((*nonzero_divisor_attribs & VERT_BIT_POS) << VERT_ATTRIB_GENERIC0);
+      break;
 
-
-/**
- * Return which enabled vertex attributes have a non-zero instance divisor.
- *
- * Needs the a fully updated VAO ready for draw.
- */
-static inline GLbitfield
-_mesa_draw_nonzero_divisor_bits(const struct gl_context *ctx)
-{
-   const struct gl_vertex_array_object *const vao = ctx->Array._DrawVAO;
-   assert(!vao->NewVertexBuffers && !vao->NewVertexElements);
-   return vao->_EffEnabledNonZeroDivisor & ctx->Array._DrawVAOEnabledAttribs;
-}
-
-
-/**
- * Return enabled current values attribute bits for draw.
- */
-static inline GLbitfield
-_mesa_draw_current_bits(const struct gl_context *ctx)
-{
-   return ~ctx->Array._DrawVAOEnabledAttribs & VERT_BIT_ALL;
+   case ATTRIBUTE_MAP_MODE_GENERIC0:
+      /* Copy VERT_ATTRIB_GENERIC0 enable bit into POS position */
+      *enabled_user_attribs =
+         (*enabled_user_attribs & ~VERT_BIT_POS) |
+         ((*enabled_user_attribs & VERT_BIT_GENERIC0) >> VERT_ATTRIB_GENERIC0);
+      *nonzero_divisor_attribs =
+         (*nonzero_divisor_attribs & ~VERT_BIT_POS) |
+         ((*nonzero_divisor_attribs & VERT_BIT_GENERIC0) >> VERT_ATTRIB_GENERIC0);
+      break;
+   default:
+      break;
+   }
 }
 
 
@@ -231,7 +219,6 @@ static inline const struct gl_vertex_buffer_binding*
 _mesa_draw_buffer_binding_from_attrib(const struct gl_vertex_array_object *vao,
                                       const struct gl_array_attributes *attrib)
 {
-   assert(!vao->NewVertexBuffers && !vao->NewVertexElements);
    return &vao->BufferBinding[attrib->_EffBufferBindingIndex];
 }
 
@@ -243,20 +230,8 @@ static inline const struct gl_array_attributes*
 _mesa_draw_array_attrib(const struct gl_vertex_array_object *vao,
                         gl_vert_attrib attr)
 {
-   assert(!vao->NewVertexBuffers && !vao->NewVertexElements);
    const gl_attribute_map_mode map_mode = vao->_AttributeMapMode;
    return &vao->VertexAttrib[_mesa_vao_attribute_map[map_mode][attr]];
-}
-
-
-/**
- * Return a vertex array vertex format provided the attribute number.
- */
-static inline const struct gl_vertex_format *
-_mesa_draw_array_format(const struct gl_vertex_array_object *vao,
-                        gl_vert_attrib attr)
-{
-   return &_mesa_draw_array_attrib(vao, attr)->Format;
 }
 
 
@@ -316,26 +291,6 @@ static inline const struct gl_array_attributes*
 _mesa_draw_current_attrib(const struct gl_context *ctx, gl_vert_attrib attr)
 {
    return _vbo_current_attrib(ctx, attr);
-}
-
-
-/**
- * Return a current value vertex format provided the attribute number.
- */
-static inline const struct gl_vertex_format *
-_mesa_draw_current_format(const struct gl_context *ctx, gl_vert_attrib attr)
-{
-   return &_vbo_current_attrib(ctx, attr)->Format;
-}
-
-
-/**
- * Return true if we have the VERT_ATTRIB_EDGEFLAG array enabled.
- */
-static inline bool
-_mesa_draw_edge_flag_array_enabled(const struct gl_context *ctx)
-{
-   return ctx->Array._DrawVAOEnabledAttribs & VERT_BIT_EDGEFLAG;
 }
 
 

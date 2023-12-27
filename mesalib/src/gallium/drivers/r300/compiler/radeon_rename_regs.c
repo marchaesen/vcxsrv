@@ -48,9 +48,7 @@
  */
 void rc_rename_regs(struct radeon_compiler *c, void *user)
 {
-	unsigned int used_length;
 	struct rc_instruction * inst;
-	unsigned char * used;
 	struct rc_list * variables;
 	struct rc_list * var_ptr;
 
@@ -62,11 +60,6 @@ void rc_rename_regs(struct radeon_compiler *c, void *user)
 			return;
 	}
 
-	used_length = MIN2(2 * rc_recompute_ips(c), RC_REGISTER_MAX_INDEX);
-	used = memory_pool_malloc(&c->Pool, sizeof(unsigned char) * used_length);
-	memset(used, 0, sizeof(unsigned char) * used_length);
-
-	rc_get_used_temporaries(c, used, used_length);
 	variables = rc_get_variables(c);
 
 	for (var_ptr = variables; var_ptr; var_ptr = var_ptr->Next) {
@@ -78,8 +71,7 @@ void rc_rename_regs(struct radeon_compiler *c, void *user)
 			continue;
 		}
 
-		new_index = rc_find_free_temporary_list(c, used, used_length,
-						RC_MASK_XYZW);
+		new_index = rc_find_free_temporary(c);
 		if (new_index < 0) {
 			rc_error(c, "Ran out of temporary registers\n");
 			return;

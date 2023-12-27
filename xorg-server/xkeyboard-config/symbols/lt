@@ -8,7 +8,6 @@ default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
     include "latin"
-    include "level3(ralt_switch)"
 
     name[Group1]="Lithuanian";
 
@@ -29,6 +28,8 @@ xkb_symbols "basic" {
     key <AD03> {[            NoSymbol,     NoSymbol, EuroSign,      sterling ]};
 
     key <LSGT> {[              endash,     EuroSign                          ]};
+
+    include "level3(ralt_switch)"
 };
 
 // Similar to the above, but with the Lithuanian letters on 3rd and 4th levels.
@@ -36,7 +37,6 @@ partial alphanumeric_keys modifier_keys
 xkb_symbols "us" {
 
     include "latin"
-    include "level3(ralt_switch)"
 
     name[Group1]="Lithuanian (US)";
 
@@ -57,6 +57,8 @@ xkb_symbols "us" {
     key <AD03> {[ NoSymbol,      NoSymbol,            EuroSign,     sterling ]};
 
     key <LSGT> {[   endash,      EuroSign                                    ]};
+
+    include "level3(ralt_switch)"
 };
 
 // Lithuanian keymap LST 1582:2000 (described at http://ims.mii.lt/klav/).
@@ -70,9 +72,6 @@ partial alphanumeric_keys modifier_keys
 xkb_symbols "std" {
 
     include "latin"
-    include "nbsp(level3)"
-    include "kpdl(comma)"
-    include "level3(ralt_switch)"
 
     name[Group1]="Lithuanian (standard)";
 
@@ -108,21 +107,24 @@ xkb_symbols "std" {
     key <AB08> {[       ccaron,      Ccaron,  doublelowquotemark ]};
     key <AB09> {[            f,           F, leftdoublequotemark ]};
     key <AB10> {[      eogonek,     Eogonek,           backslash ]};
+
+    key <SPCE> {[        space,       space,        nobreakspace ]};
+
+    include "kpdl(comma)"
+    include "level3(ralt_switch)"
 };
 
-// Lithuanian keymap LST 1205-92 (also know as IBM layout).
-// This standard was made deprecated by LST 1582:2000 above.
-//
-// Made by Piter PUNK <piterpk@terra.com.br>
-// Minor modifications and cleanup by Rimas Kudelis, 2010
+// Lithuanian keymap based on the old LST 1205-92 standard (also known as IBM layout).
+// https://web.archive.org/web/20060629123341/http://www.kada.lt/litwin/Kbdlta.gif
+// "Programmer mode" is implemented partially: just the symbols that are missing on
+// the first two levels are available via AltGr (instead of via a dead tilde key).
+// Originally by Piter PUNK <piterpk@terra.com.br>, 2006.
 partial alphanumeric_keys modifier_keys
 xkb_symbols "ibm" {
 
     include "latin"
-    include "nbsp(level3)"
-    include "level3(ralt_switch)"
 
-    name[Group1]="Lithuanian (IBM LST 1205-92)";
+    name[Group1]="Lithuanian (IBM)";
 
     key <TLDE> {[              grave,          asciitilde,          acute               ]};
     key <AE01> {[             exclam,                   1                               ]};
@@ -133,8 +135,8 @@ xkb_symbols "ibm" {
     key <AE06> {[              comma,                   6,    asciicircum               ]};
     key <AE07> {[             period,                   7,      ampersand               ]};
     key <AE08> {[           question,                   8,       asterisk               ]};
-    key <AE09> {[          parenleft,                   9                               ]};
-    key <AE10> {[         parenright,                   0                               ]};
+    key <AE09> {[          parenleft,                   9,      braceleft               ]};
+    key <AE10> {[         parenright,                   0,     braceright               ]};
     key <AE11> {[         underscore,               minus,         endash               ]};
     key <AE12> {[               plus,               equal                               ]};
 
@@ -148,10 +150,15 @@ xkb_symbols "ibm" {
     key <AC11> {[          eabovedot,           Eabovedot,     apostrophe,     quotedbl ]};
 
     key <LSGT> {[               less,             greater,         endash               ]};
+    key <AB01> {[                  z,                   Z, guillemotleft, guillemotright]};
     key <AB02> {[            umacron,             Umacron,              x,            X ]};
     key <AB08> {[             ccaron,              Ccaron,          comma,         less ]};
     key <AB09> {[             scaron,              Scaron,         period,      greater ]};
     key <AB10> {[            eogonek,             Eogonek,          slash,     question ]};
+
+    key <SPCE> {[              space,               space,   nobreakspace,         none ]};
+
+    include "level3(ralt_switch)"
 };
 
 // LEKP and LEKPa layouts 1.0
@@ -161,9 +168,6 @@ xkb_symbols "ibm" {
 // Minor cleanup by Rimas Kudelis, 2010
 partial alphanumeric_keys modifier_keys
 xkb_symbols "lekp" {
-
-    include "capslock(backspace)"
-    include "level3(ralt_switch)"
 
     name[Group1]="Lithuanian (LEKP)";
 
@@ -218,6 +222,9 @@ xkb_symbols "lekp" {
     key <AB08> {[      umacron,             Umacron,          less ]};
     key <AB09> {[      aogonek,             Aogonek,       greater ]};
     key <AB10> {[            h,                   H                ]};
+
+    include "capslock(backspace)"
+    include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys modifier_keys
@@ -265,8 +272,6 @@ xkb_symbols "sgs" {
 partial alphanumeric_keys modifier_keys
 xkb_symbols "ratise" {
 
-    include "level3(ralt_switch)"
-
     name[Group1]="Lithuanian (Ratise)";
 
     key <TLDE> { [       plus,     section,                grave,              acute ] };
@@ -274,7 +279,7 @@ xkb_symbols "ratise" {
     key <AE02> { [      colon,          at,            0x10027E8,          0x1002190 ] }; // MATHEMATICAL LEFT ANGLE BRACKET; LEFTWARDS ARROW
     key <AE03> { [     period,  numbersign,            0x10027E9,          0x1002192 ] }; // MATHEMATICAL RIGHT ANGLE BRACKET; RIGHTWARDS ARROW
     key <AE04> { [   asterisk,      dollar, rightdoublequotemark,           sterling ] };
-    key <AE05> { [ underscore,     percent,             ellipsis,          0x1002030 ] }; // PER MILLE SIGN
+    key <AE05> { [ underscore,     percent,             ellipsis,           permille ] };
     key <AE06> { [     emdash,         bar,          asciicircum,          brokenbar ] };
     key <AE07> { [      equal,   ampersand,                    7,           notequal ] };
     key <AE08> { [      comma,        less,                    8,      lessthanequal ] };
@@ -282,6 +287,8 @@ xkb_symbols "ratise" {
     key <AE10> { [      slash,   backslash,             division,          0x1002016 ] }; // DOUBLE VERTICAL LINE
     key <AE11> { [          w,           W,          Greek_OMEGA,             ssharp ] };
     key <AE12> { [   question,  asciitilde,            0x1002248,       questiondown ] }; // ALMOST EQUAL TO
+
+    key <TAB>  { [        Tab,ISO_Left_Tab,            Multi_key                     ] }; // AltGr+Tab is Compose
 
     key <AD01> { [    umacron,     Umacron,  leftsinglequotemark,          0x100203A ] }; // SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
     key <AD02> { [  eabovedot,   Eabovedot,          bracketleft,     dead_abovering ] };
@@ -318,13 +325,14 @@ xkb_symbols "ratise" {
     key <AB06> { [          v,           V,           squareroot,          0x10025CA ] }; // LOZENGE
     key <AB07> { [          m,           M,                    0,                 mu ] };
     key <AB08> { [          d,           D,               period,       doubledagger ] };
-    key <AB09> { [     scaron,      Scaron,                comma,          0x10000B7 ] }; // MIDDLE DOT
+    key <AB09> { [     scaron,      Scaron,                comma,     periodcentered ] };
     key <AB10> { [     ccaron,      Ccaron,                 plus,          plusminus ] };
 
     key <SPCE> { [      space,       space,                space,       nobreakspace ] };
 
-    key <TAB>  { [        Tab,ISO_Left_Tab,            Multi_key                     ] }; // Tab as Multi_key (Compose)
+    include "level3(ralt_switch)"
 };
+
 
 // EXTRAS:
 

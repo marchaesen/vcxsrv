@@ -47,7 +47,7 @@ softpipe_fence_finish(struct pipe_screen *screen,
                       uint64_t timeout)
 {
    assert(fence);
-   return TRUE;
+   return true;
 }
 
 

@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "draw_validate.h"
 #include "bufferobj.h"
 #include "context.h"

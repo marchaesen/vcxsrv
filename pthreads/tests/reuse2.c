@@ -90,9 +90,9 @@ void * func(void * arg)
 
   InterlockedIncrement(&done);
 
-  return (void *) 0; 
+  return (void *) 0;
 }
- 
+
 int
 main()
 {
@@ -100,8 +100,8 @@ main()
   pthread_attr_t attr;
   int i;
   unsigned int notUnique = 0,
-	       totalHandles = 0,
-	       reuseMax = 0,
+	       totalHandles = 0;
+  size_t       reuseMax = 0,
 	       reuseMin = NUMTHREADS;
 
   assert(pthread_attr_init(&attr) == 0);
@@ -126,7 +126,7 @@ main()
     {
       if (t[i].p != NULL)
         {
-          unsigned int j, thisMax;
+          size_t j, thisMax;
 
           thisMax = t[i].x;
 
@@ -158,8 +158,8 @@ main()
    */
   printf("For %d total threads:\n", NUMTHREADS);
   printf("Non-unique IDs = %d\n", notUnique);
-  printf("Reuse maximum  = %d\n", reuseMax + 1);
-  printf("Reuse minimum  = %d\n", reuseMin + 1);
+  printf("Reuse maximum  = %zd\n", reuseMax + 1);
+  printf("Reuse minimum  = %zd\n", reuseMin + 1);
   printf("Total handles  = %d\n", totalHandles);
 
   return 0;

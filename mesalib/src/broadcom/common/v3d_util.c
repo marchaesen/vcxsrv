@@ -87,10 +87,37 @@ v3d_csd_choose_workgroups_per_supergroup(struct v3d_device_info *devinfo,
    return best_wgs_per_sg;
 }
 
+#define V3D71_TLB_COLOR_SIZE     (16 * 1024)
+#define V3D71_TLB_DETPH_SIZE     (16 * 1024)
+#define V3D71_TLB_AUX_DETPH_SIZE  (8 * 1024)
+
+static bool
+tile_size_valid(uint32_t pixel_count, uint32_t color_bpp, uint32_t depth_bpp)
+{
+   /* First, we check if we can fit this tile size allocating the depth
+    * TLB memory to color.
+    */
+   if (pixel_count * depth_bpp <= V3D71_TLB_AUX_DETPH_SIZE &&
+       pixel_count * color_bpp <= V3D71_TLB_COLOR_SIZE + V3D71_TLB_DETPH_SIZE) {
+      return true;
+   }
+
+   /* Otherwise the tile must fit in the main TLB buffers */
+   return pixel_count * depth_bpp <= V3D71_TLB_DETPH_SIZE &&
+          pixel_count * color_bpp <= V3D71_TLB_COLOR_SIZE;
+}
+
 void
-v3d_choose_tile_size(uint32_t color_attachment_count, uint32_t max_color_bpp,
-                     bool msaa, bool double_buffer,
-                     uint32_t *width, uint32_t *height)
+v3d_choose_tile_size(const struct v3d_device_info *devinfo,
+                     uint32_t color_attachment_count,
+                     /* V3D 4.x max internal bpp of all RTs */
+                     uint32_t max_internal_bpp,
+                     /* V3D 7.x accumulated bpp for all RTs (in bytes) */
+                     uint32_t total_color_bpp,
+                     bool msaa,
+                     bool double_buffer,
+                     uint32_t *width,
+                     uint32_t *height)
 {
    static const uint8_t tile_sizes[] = {
       64, 64,
@@ -103,19 +130,65 @@ v3d_choose_tile_size(uint32_t color_attachment_count, uint32_t max_color_bpp,
    };
 
    uint32_t idx = 0;
-   if (color_attachment_count > 2)
-      idx += 2;
-   else if (color_attachment_count > 1)
-      idx += 1;
+   if (devinfo->ver >= 71) {
+      /* In V3D 7.x, we use the actual bpp used by color attachments to compute
+       * the tile size instead of the maximum bpp. This may allow us to choose a
+       * larger tile size than we would in 4.x in scenarios with multiple RTs
+       * with different bpps.
+       *
+       * Also, the TLB has an auxiliary buffer of 8KB that will be automatically
+       * used for depth instead of the main 16KB depth TLB buffer when the depth
+       * tile fits in the auxiliary buffer, allowing the hardware to allocate
+       * the 16KB from the main depth TLB to the color TLB. If we can do that,
+       * then we are effectively doubling the memory we have for color and we
+       * can also select a larger tile size. This is necessary to support
+       * the most expensive configuration: 8x128bpp RTs + MSAA.
+       *
+       * FIXME: the docs state that depth TLB memory can be used for color
+       * if depth testing is not used by setting the 'depth disable' bit in the
+       * rendering configuration. However, this comes with a requirement that
+       * occlussion queries must not be active. We need to clarify if this means
+       * active at the point at which we emit a tile rendering configuration
+       * item, meaning that the we have a query spanning a full render pass
+       * (this is something we can tell before we emit the rendering
+       * configuration item) or active in the subpass for which we are enabling
+       * the bit (which we can't tell until later, when we record commands for
+       * the subpass). If it is the latter, then we cannot use this feature.
+       *
+       * FIXME: pending handling double_buffer.
+       */
+      const uint32_t color_bpp = total_color_bpp * (msaa ? 4 : 1);
+      const uint32_t depth_bpp = 4 * (msaa ? 4 : 1);
+      do {
+         const uint32_t tile_w = tile_sizes[idx * 2];
+         const uint32_t tile_h = tile_sizes[idx * 2 + 1];
+         if (tile_size_valid(tile_w * tile_h, color_bpp, depth_bpp))
+            break;
+         idx++;
+      } while (idx < ARRAY_SIZE(tile_sizes) / 2);
 
-   /* MSAA and double-buffer are mutually exclusive */
-   assert(!msaa || !double_buffer);
-   if (msaa)
-      idx += 2;
-   else if (double_buffer)
-      idx += 1;
+      /* FIXME: pending handling double_buffer */
+      assert(!double_buffer);
+   } else {
+      /* On V3D 4.x tile size is selected based on the number of RTs, the
+       * maximum bpp across all of them and whether 4x MSAA is used.
+       */
+      if (color_attachment_count > 4)
+         idx += 3;
+      else if (color_attachment_count > 2)
+         idx += 2;
+      else if (color_attachment_count > 1)
+         idx += 1;
 
-   idx += max_color_bpp;
+      /* MSAA and double-buffer are mutually exclusive */
+      assert(!msaa || !double_buffer);
+      if (msaa)
+         idx += 2;
+      else if (double_buffer)
+         idx += 1;
+
+      idx += max_internal_bpp;
+   }
 
    assert(idx < ARRAY_SIZE(tile_sizes) / 2);
 
@@ -148,25 +221,52 @@ v3d_translate_pipe_swizzle(enum pipe_swizzle swizzle)
  * draw packets.
  */
 uint32_t
-v3d_hw_prim_type(enum pipe_prim_type prim_type)
+v3d_hw_prim_type(enum mesa_prim prim_type)
 {
    switch (prim_type) {
-   case PIPE_PRIM_POINTS:
-   case PIPE_PRIM_LINES:
-   case PIPE_PRIM_LINE_LOOP:
-   case PIPE_PRIM_LINE_STRIP:
-   case PIPE_PRIM_TRIANGLES:
-   case PIPE_PRIM_TRIANGLE_STRIP:
-   case PIPE_PRIM_TRIANGLE_FAN:
+   case MESA_PRIM_POINTS:
+   case MESA_PRIM_LINES:
+   case MESA_PRIM_LINE_LOOP:
+   case MESA_PRIM_LINE_STRIP:
+   case MESA_PRIM_TRIANGLES:
+   case MESA_PRIM_TRIANGLE_STRIP:
+   case MESA_PRIM_TRIANGLE_FAN:
       return prim_type;
 
-   case PIPE_PRIM_LINES_ADJACENCY:
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-   case PIPE_PRIM_TRIANGLES_ADJACENCY:
-   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-      return 8 + (prim_type - PIPE_PRIM_LINES_ADJACENCY);
+   case MESA_PRIM_LINES_ADJACENCY:
+   case MESA_PRIM_LINE_STRIP_ADJACENCY:
+   case MESA_PRIM_TRIANGLES_ADJACENCY:
+   case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
+      return 8 + (prim_type - MESA_PRIM_LINES_ADJACENCY);
 
    default:
       unreachable("Unsupported primitive type");
    }
+}
+
+uint32_t
+v3d_internal_bpp_words(uint32_t internal_bpp)
+{
+        switch (internal_bpp) {
+        case 0 /* V3D_INTERNAL_BPP_32 */:
+                return 1;
+        case 1 /* V3D_INTERNAL_BPP_64 */:
+                return 2;
+        case 2 /* V3D_INTERNAL_BPP_128 */:
+                return 4;
+        default:
+                unreachable("Unsupported internal BPP");
+        }
+}
+
+uint32_t
+v3d_compute_rt_row_row_stride_128_bits(uint32_t tile_width,
+                                       uint32_t bpp)
+{
+        /* stride in multiples of 128 bits, and covers 2 rows. This is the
+         * reason we divide by 2 instead of 4, as we divide number of 32-bit
+         * words per row by 2.
+         */
+
+        return (tile_width * bpp) / 2;
 }

@@ -56,10 +56,10 @@ util_qsort_r(void *base, size_t nmemb, size_t size,
              int (*compar)(const void *, const void *, void *),
              void *arg)
 {
-#if HAVE_GNU_QSORT_R
+#if defined(HAVE_GNU_QSORT_R)
    /* GNU extension added in glibc 2.8 */
    qsort_r(base, nmemb, size, compar, arg);
-#elif HAVE_BSD_QSORT_R
+#elif defined(HAVE_BSD_QSORT_R)
    /* BSD/macOS qsort_r takes "arg" before the comparison function and it
     * pass the "arg" before the elements.
     */

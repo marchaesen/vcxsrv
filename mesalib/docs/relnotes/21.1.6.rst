@@ -88,7 +88,7 @@ Ian Romanick (1):
 
 - nir/gcm: Clear out pass_flags before starting
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - iris: Re-emit MEDIA_VFE_STATE for variable group size shaders
 - anv: Handle errors properly in anv_i915_query

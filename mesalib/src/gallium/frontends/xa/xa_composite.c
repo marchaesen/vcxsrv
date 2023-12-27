@@ -99,7 +99,7 @@ xa_convert_blend_for_luminance(unsigned factor)
     return factor;
 }
 
-static boolean
+static bool
 blend_for_op(struct xa_composite_blend *blend,
 	     enum xa_composite_op op,
 	     struct xa_picture *src_pic,
@@ -109,7 +109,7 @@ blend_for_op(struct xa_composite_blend *blend,
     const int num_blends =
 	sizeof(xa_blends)/sizeof(struct xa_composite_blend);
     int i;
-    boolean supported = FALSE;
+    bool supported = false;
 
     /*
      * our default in case something goes wrong
@@ -119,7 +119,7 @@ blend_for_op(struct xa_composite_blend *blend,
     for (i = 0; i < num_blends; ++i) {
 	if (xa_blends[i].op == op) {
 	    *blend = xa_blends[i];
-	    supported = TRUE;
+	    supported = true;
             break;
 	}
     }
@@ -128,7 +128,7 @@ blend_for_op(struct xa_composite_blend *blend,
      * No component alpha yet.
      */
     if (mask_pic && mask_pic->component_alpha && blend->alpha_src)
-	return FALSE;
+	return false;
 
     if (!dst_pic->srf)
 	return supported;
@@ -173,7 +173,7 @@ xa_repeat_to_gallium(int mode)
     return PIPE_TEX_WRAP_REPEAT;
 }
 
-static inline boolean
+static inline bool
 xa_filter_to_gallium(int xrender_filter, int *out_filter)
 {
 
@@ -186,9 +186,9 @@ xa_filter_to_gallium(int xrender_filter, int *out_filter)
 	break;
     default:
 	*out_filter = PIPE_TEX_FILTER_NEAREST;
-	return FALSE;
+	return false;
     }
-    return TRUE;
+    return true;
 }
 
 static int
@@ -208,17 +208,17 @@ xa_is_filter_accelerated(struct xa_picture *pic)
  *
  * \returns TRUE if accelerated, FALSE otherwise.
  */
-static boolean
+static bool
 xa_src_pict_is_accelerated(const union xa_source_pict *src_pic)
 {
     if (!src_pic)
-        return TRUE;
+        return true;
 
     if (src_pic->type == xa_src_pict_solid_fill ||
         src_pic->type == xa_src_pict_float_solid_fill)
-        return TRUE;
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 XA_EXPORT int
@@ -276,8 +276,8 @@ static unsigned int
 picture_format_fixups(struct xa_picture *src_pic,
 		      int mask)
 {
-    boolean set_alpha = FALSE;
-    boolean swizzle = FALSE;
+    bool set_alpha = false;
+    bool swizzle = false;
     unsigned ret = 0;
     struct xa_surface *src = src_pic->srf;
     enum xa_formats src_hw_format, src_pic_format;
@@ -343,10 +343,10 @@ xa_src_in_mask(float src[4], const float mask[4])
  * to upload the solid color and also the solid color itself used as an input
  * to the fragment shader.
  */
-static boolean
+static bool
 xa_handle_src_pict(struct xa_context *ctx,
                    const union xa_source_pict *src_pict,
-                   boolean is_mask)
+                   bool is_mask)
 {
     float solid_color[4];
 
@@ -359,7 +359,7 @@ xa_handle_src_pict(struct xa_context *ctx,
                sizeof(solid_color));
         break;
     default:
-        return FALSE;
+        return false;
     }
 
     if (is_mask && ctx->has_solid_src)
@@ -368,11 +368,11 @@ xa_handle_src_pict(struct xa_context *ctx,
         memcpy(ctx->solid_color, solid_color, sizeof(solid_color));
 
     if (is_mask)
-        ctx->has_solid_mask = TRUE;
+        ctx->has_solid_mask = true;
     else
-        ctx->has_solid_src = TRUE;
+        ctx->has_solid_src = true;
 
-    return TRUE;
+    return true;
 }
 
 static int
@@ -384,8 +384,8 @@ bind_shaders(struct xa_context *ctx, const struct xa_composite *comp)
     struct xa_picture *mask_pic = comp->mask;
     struct xa_picture *dst_pic = comp->dst;
 
-    ctx->has_solid_src = FALSE;
-    ctx->has_solid_mask = FALSE;
+    ctx->has_solid_src = false;
+    ctx->has_solid_mask = false;
 
     if (dst_pic && xa_format_type(dst_pic->pict_format) !=
         xa_format_type(xa_surface_format(dst_pic->srf)))
@@ -470,7 +470,6 @@ bind_samplers(struct xa_context *ctx,
 	src_sampler.min_img_filter = filter;
 	src_sampler.mag_img_filter = filter;
 	src_sampler.min_mip_filter = PIPE_TEX_MIPFILTER_NEAREST;
-	src_sampler.normalized_coords = 1;
 	samplers[0] = &src_sampler;
 	u_sampler_view_default_template(&view_templ,
 					src_pic->srf->tex,+					src_pic->srf->tex->format);
@@ -491,7 +490,6 @@ bind_samplers(struct xa_context *ctx,
 	mask_sampler.min_img_filter = filter;
 	mask_sampler.mag_img_filter = filter;
 	src_sampler.min_mip_filter = PIPE_TEX_MIPFILTER_NEAREST;
-	mask_sampler.normalized_coords = 1;
         samplers[num_samplers] = &mask_sampler;
 	u_sampler_view_default_template(&view_templ,
 					mask_pic->srf->tex,
@@ -574,8 +572,8 @@ xa_composite_done(struct xa_context *ctx)
     renderer_draw_flush(ctx);
 
     ctx->comp = NULL;
-    ctx->has_solid_src = FALSE;
-    ctx->has_solid_mask = FALSE;
+    ctx->has_solid_src = false;
+    ctx->has_solid_mask = false;
     xa_ctx_sampler_views_destroy(ctx);
 }
 

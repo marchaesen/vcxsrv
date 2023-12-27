@@ -8,17 +8,17 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- state.xml     (  27197 bytes, from 2022-04-19 10:41:23)
-- common.xml    (  35468 bytes, from 2020-10-28 12:56:03)
-- common_3d.xml (  15058 bytes, from 2020-10-28 12:56:03)
-- state_hi.xml  (  34803 bytes, from 2020-10-28 12:56:03)
-- copyright.xml (   1597 bytes, from 2020-10-28 12:56:03)
-- state_2d.xml  (  51552 bytes, from 2020-10-28 12:56:03)
-- state_3d.xml  (  84410 bytes, from 2022-04-18 16:27:58)
-- state_blt.xml (  14252 bytes, from 2020-10-28 12:56:03)
-- state_vg.xml  (   5975 bytes, from 2020-10-28 12:56:03)
+- state.xml     (  28218 bytes, from 2023-11-13 11:29:31)
+- common.xml    (  35465 bytes, from 2023-11-13 11:29:31)
+- common_3d.xml (  15069 bytes, from 2023-11-13 11:29:31)
+- state_hi.xml  (  34935 bytes, from 2023-11-13 11:29:31)
+- copyright.xml (   1597 bytes, from 2018-02-10 13:09:26)
+- state_2d.xml  (  52271 bytes, from 2023-09-13 13:37:23)
+- state_3d.xml  (  86123 bytes, from 2023-11-13 12:42:26)
+- state_blt.xml (  14424 bytes, from 2023-09-13 13:37:23)
+- state_vg.xml  (   5975 bytes, from 2018-02-10 13:09:26)
 
-Copyright (C) 2012-2022 by the following authors:
+Copyright (C) 2012-2023 by the following authors:
 - Wladimir J. van der Laan <laanwj@gmail.com>
 - Christian Gmeiner <christian.gmeiner@gmail.com>
 - Lucas Stach <l.stach@pengutronix.de>
@@ -400,7 +400,16 @@ DEALINGS IN THE SOFTWARE.
 
 #define VIVS_GL_FENCE_OUT_DATA_LOW				0x0000386c
 
-#define VIVS_GL_HALTI5_UNK03884					0x00003884
+#define VIVS_GL_USC_CONTROL					0x00003884
+#define VIVS_GL_USC_CONTROL_L1_CACHE_RATIO__MASK		0x00000007
+#define VIVS_GL_USC_CONTROL_L1_CACHE_RATIO__SHIFT		0
+#define VIVS_GL_USC_CONTROL_L1_CACHE_RATIO(x)			(((x) << VIVS_GL_USC_CONTROL_L1_CACHE_RATIO__SHIFT) & VIVS_GL_USC_CONTROL_L1_CACHE_RATIO__MASK)
+#define VIVS_GL_USC_CONTROL_ATTRIB_CACHE_RATIO__MASK		0x00000f00
+#define VIVS_GL_USC_CONTROL_ATTRIB_CACHE_RATIO__SHIFT		8
+#define VIVS_GL_USC_CONTROL_ATTRIB_CACHE_RATIO(x)		(((x) << VIVS_GL_USC_CONTROL_ATTRIB_CACHE_RATIO__SHIFT) & VIVS_GL_USC_CONTROL_ATTRIB_CACHE_RATIO__MASK)
+#define VIVS_GL_USC_CONTROL_UNK16__MASK				0x001f0000
+#define VIVS_GL_USC_CONTROL_UNK16__SHIFT			16
+#define VIVS_GL_USC_CONTROL_UNK16(x)				(((x) << VIVS_GL_USC_CONTROL_UNK16__SHIFT) & VIVS_GL_USC_CONTROL_UNK16__MASK)
 
 #define VIVS_GL_HALTI5_SH_SPECIALS				0x00003888
 #define VIVS_GL_HALTI5_SH_SPECIALS_VS_PSIZE_OUT__MASK		0x0000007f
@@ -433,6 +442,30 @@ DEALINGS IN THE SOFTWARE.
 #define VIVS_GL_SECURITY_UNK3900				0x00003900
 
 #define VIVS_GL_SECURITY_UNK3904				0x00003904
+
+#define VIVS_GL_NN_CONFIG					0x00003930
+#define VIVS_GL_NN_CONFIG_UNK0__MASK				0x00000003
+#define VIVS_GL_NN_CONFIG_UNK0__SHIFT				0
+#define VIVS_GL_NN_CONFIG_UNK0(x)				(((x) << VIVS_GL_NN_CONFIG_UNK0__SHIFT) & VIVS_GL_NN_CONFIG_UNK0__MASK)
+#define VIVS_GL_NN_CONFIG_DISABLE_ZDPN				0x00000004
+#define VIVS_GL_NN_CONFIG_DISABLE_SWTILING			0x00000008
+#define VIVS_GL_NN_CONFIG_SMALL_BATCH				0x00000010
+#define VIVS_GL_NN_CONFIG_DDR_BURST_SIZE__MASK			0x00000060
+#define VIVS_GL_NN_CONFIG_DDR_BURST_SIZE__SHIFT			5
+#define VIVS_GL_NN_CONFIG_DDR_BURST_SIZE(x)			(((x) << VIVS_GL_NN_CONFIG_DDR_BURST_SIZE__SHIFT) & VIVS_GL_NN_CONFIG_DDR_BURST_SIZE__MASK)
+#define VIVS_GL_NN_CONFIG_UNK7					0x00000080
+#define VIVS_GL_NN_CONFIG_NN_CORE_COUNT__MASK			0x00000f00
+#define VIVS_GL_NN_CONFIG_NN_CORE_COUNT__SHIFT			8
+#define VIVS_GL_NN_CONFIG_NN_CORE_COUNT(x)			(((x) << VIVS_GL_NN_CONFIG_NN_CORE_COUNT__SHIFT) & VIVS_GL_NN_CONFIG_NN_CORE_COUNT__MASK)
+#define VIVS_GL_NN_CONFIG_UNK12					0x00001000
+
+#define VIVS_GL_SRAM_REMAP_ADDRESS				0x00003938
+
+#define VIVS_GL_OCB_REMAP_START					0x0000393c
+
+#define VIVS_GL_OCB_REMAP_END					0x00003940
+
+#define VIVS_GL_TP_CONFIG					0x0000394c
 
 #define VIVS_GL_UNK03A00					0x00003a00
 

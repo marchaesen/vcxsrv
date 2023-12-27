@@ -66,7 +66,7 @@ Did it used to work in a previous Mesa version? It can greatly help to know when
 
 ### API captures (if applicable, optional)
 
-Consider recording a [GFXReconstruct](https://github.com/LunarG/gfxreconstruct/blob/dev/USAGE_desktop.md) (preferred), [RenderDoc](https://renderdoc.org/), or [apitrace](https://github.com/apitrace/apitrace/blob/master/docs/USAGE.markdown) capture of the issue with the RADV driver active. This can tremendously help when debugging issues, but you're still encouraged to report issues if you can't provide a capture file.
+Consider recording a [GFXReconstruct](https://github.com/LunarG/gfxreconstruct/blob/dev/USAGE_desktop_Vulkan.md) (preferred), [RenderDoc](https://renderdoc.org/), or [apitrace](https://github.com/apitrace/apitrace/blob/master/docs/USAGE.markdown) capture of the issue with the RADV driver active. This can tremendously help when debugging issues, but you're still encouraged to report issues if you can't provide a capture file.
 
 ### Further information (optional)
 

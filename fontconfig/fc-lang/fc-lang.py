@@ -251,7 +251,7 @@ if __name__=='__main__':
     print('#define fcLangCharSetIndices (fcLangData.langIndices)')
     print('#define fcLangCharSetIndicesInv (fcLangData.langIndicesInv)')
 
-    assert len(sets) < 256 # FIXME: need to change index type to 16-bit below then
+    assert len(sets) < 65536 # FIXME: need to change index type to 32-bit below then
 
     print('''
 static const struct {{
@@ -262,7 +262,7 @@ static const struct {{
     {}       langIndices[{}];
     {}       langIndicesInv[{}];
 }} fcLangData = {{'''.format(len(sets), len(leaves), tn, tn,
-                             'FcChar8 ', len(sets), 'FcChar8 ', len(sets)))
+                             'FcChar16 ', len(sets), 'FcChar16 ', len(sets)))
 
     # Dump sets
     print('{')

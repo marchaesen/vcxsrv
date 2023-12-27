@@ -28,7 +28,7 @@
 /**
  * @file
  * Hash table implementation.
- * 
+ *
  * This file provides a hash implementation that is capable of dealing
  * with collisions. It stores colliding entries in linked list. All
  * functions operating on the hash return an iterator. The iterator
@@ -37,14 +37,14 @@
  * iterate over the entries to find the exact entry among ones that
  * had the same key (e.g. memcmp could be used on the data to check
  * that)
- * 
+ *
  * @author Zack Rusin <zackr@vmware.com>
  */
 
 #ifndef CSO_HASH_H
 #define CSO_HASH_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,7 +59,7 @@ struct cso_node {
 
 struct cso_hash_iter {
    struct cso_hash *hash;
-   struct cso_node  *node;
+   struct cso_node *node;
 };
 
 struct cso_hash {
@@ -72,11 +72,15 @@ struct cso_hash {
    int numBuckets;
 };
 
-void cso_hash_init(struct cso_hash *hash);
-void cso_hash_deinit(struct cso_hash *hash);
 
+void
+cso_hash_init(struct cso_hash *hash);
 
-int cso_hash_size(struct cso_hash *hash);
+void
+cso_hash_deinit(struct cso_hash *hash);
+
+int
+cso_hash_size(const struct cso_hash *hash);
 
 
 /**
@@ -85,8 +89,10 @@ int cso_hash_size(struct cso_hash *hash);
  * in the collision list.
  * Function returns iterator pointing to the inserted item in the hash.
  */
-struct cso_hash_iter cso_hash_insert(struct cso_hash *hash, unsigned key,
-                                     void *data);
+struct cso_hash_iter
+cso_hash_insert(struct cso_hash *hash, unsigned key, void *data);
+
+
 /**
  * Removes the item pointed to by the current iterator from the hash.
  * Note that the data itself is not erased and if it was a malloc'ed pointer
@@ -94,21 +100,23 @@ struct cso_hash_iter cso_hash_insert(struct cso_hash *hash, unsigned key,
  * Function returns iterator pointing to the item after the removed one in
  * the hash.
  */
-struct cso_hash_iter cso_hash_erase(struct cso_hash *hash, struct cso_hash_iter iter);
+struct cso_hash_iter
+cso_hash_erase(struct cso_hash *hash, struct cso_hash_iter iter);
 
-void *cso_hash_take(struct cso_hash *hash, unsigned key);
+void *
+cso_hash_take(struct cso_hash *hash, unsigned key);
 
-
-
-struct cso_hash_iter cso_hash_first_node(struct cso_hash *hash);
+struct cso_hash_iter
+cso_hash_first_node(struct cso_hash *hash);
 
 /**
  * Returns true if a value with the given key exists in the hash
  */
-bool cso_hash_contains(struct cso_hash *hash, unsigned key);
+bool
+cso_hash_contains(struct cso_hash *hash, unsigned key);
 
-
-unsigned cso_hash_iter_key(struct cso_hash_iter iter);
+unsigned
+cso_hash_iter_key(struct cso_hash_iter iter);
 
 
 /**
@@ -116,18 +124,22 @@ unsigned cso_hash_iter_key(struct cso_hash_iter iter);
  * comparison to see which entry in the list is a direct copy of our template
  * and returns that entry.
  */
-void *cso_hash_find_data_from_template(struct cso_hash *hash,
-				       unsigned hash_key,
-				       void *templ,
-				       int size);
+void *
+cso_hash_find_data_from_template(struct cso_hash *hash,
+                                 unsigned hash_key,
+                                 void *templ,
+                                 int size);
 
-struct cso_node *cso_hash_data_next(struct cso_node *node);
+struct cso_node *
+cso_hash_data_next(struct cso_node *node);
+
 
 static inline bool
 cso_hash_iter_is_null(struct cso_hash_iter iter)
 {
    return !iter.node || iter.node == iter.hash->end;
 }
+
 
 static inline void *
 cso_hash_iter_data(struct cso_hash_iter iter)
@@ -136,6 +148,7 @@ cso_hash_iter_data(struct cso_hash_iter iter)
       return NULL;
    return iter.node->value;
 }
+
 
 static inline struct cso_node **
 cso_hash_find_node(struct cso_hash *hash, unsigned akey)
@@ -153,6 +166,7 @@ cso_hash_find_node(struct cso_hash *hash, unsigned akey)
    return node;
 }
 
+
 /**
  * Return an iterator pointing to the first entry in the collision list.
  */
@@ -163,6 +177,7 @@ cso_hash_find(struct cso_hash *hash, unsigned key)
    struct cso_hash_iter iter = {hash, *nextNode};
    return iter;
 }
+
 
 static inline struct cso_hash_iter
 cso_hash_iter_next(struct cso_hash_iter iter)

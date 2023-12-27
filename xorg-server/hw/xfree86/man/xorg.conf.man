@@ -677,6 +677,8 @@ Possible values are
 or
 .BR sync .
 Unset by default.
+.BI "Option \*qAllowByteSwappedClients\*q  \*q" boolean \*q
+Allow clients with a different byte-order than the server. Disabled by default.
 .SH "MODULE SECTION"
 The
 .B Module
@@ -1296,7 +1298,20 @@ This option specifies that the matched device should be treated as the
 primary GPU, replacing the selection of the GPU used as output by the
 firmware. If multiple output devices match an OutputClass section with
 the PrimaryGPU option set, the first one enumerated becomes the primary GPU.
-.PP
+.TP 7
+.BI "Option \*qHotplugDriver\*q \*q" driver \*q
+This option specifies that the matched driver should be used to handle a
+hot-plugged GPU device.
+The module specified by
+.I driver
+will be loaded during setup of the GPU device.
+If loading of this module fails or there is no driver by that name, the
+modesetting driver will be used, which is the default behavior.
+If multiple output devices match an
+.B OutputClass
+section with the
+.B HotplugDriver
+option, the first one enumerated becomes the hotplug driver.
 A
 .B OutputClass
 Section may contain
@@ -2080,6 +2095,14 @@ This option specifies a space-separated list of OpenGL vendor libraries to
 use for the screen. This may be used to select an alternate implementation
 for development, debugging, or alternate feature sets.
 Default: mesa.
+.TP 7
+.BI "Option \*RenderingAPI\*q \*q" string \*q
+This option specifies an rendering API for use in conjunction with Glamor
+accel method. You can specify OpenGL with a value "gl" and OpenGL ES with a 
+value "es", and the default is both, when Glamor fallbacks to GLES if GL 2.1 is
+not available. This may be useful for embedded and old cards, where GL ES
+feature set works faster than GL feature set.
+Default: gl.
 .TP 7
 .BI "Option \*qInitPrimary\*q \*q" boolean \*q
 Use the Int10 module to initialize the primary graphics card.

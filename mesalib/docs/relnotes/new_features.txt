@@ -1,11 +1,20 @@
-GL_ARB_shader_clock on llvmpipe
-VK_KHR_shader_clock on lavapipe
-Mesa-DB, the new single file cache type
-VK_EXT_attachment_feedback_loop_layout on RADV, lavapipe
-VK_KHR_global_priority on RADV
-GL_KHR_blend_equation_advanced_coherent on zink
-VK_EXT_load_store_op_none on RADV
-VK_EXT_mutable_descriptor_type on RADV
-VK_EXT_shader_atomic_float on lvp
-VK_EXT_shader_atomic_float2 on lvp
-GL_NV_shader_atomic_float on llvmpipe
+New features
+------------
+VK_EXT_image_compression_control on RADV
+VK_EXT_device_fault on RADV
+OpenGL 3.3 on Asahi
+Geometry shaders on Asahi
+GL_ARB_texture_cube_map_array on Asahi
+GL_ARB_clip_control on Asahi
+GL_ARB_timer_query on Asahi
+GL_EXT_disjoint_timer_query on Asahi
+GL_ARB_base_instance on Asahi
+OpenGL 4.6 (up from 4.2) on d3d12
+VK_EXT_depth_clamp_zero_one on RADV
+GL_ARB_shader_texture_image_samples on Asahi
+GL_ARB_indirect_parameters on Asahi
+GL_ARB_viewport_array on Asahi
+GL_ARB_fragment_layer_viewport on Asahi
+GL_ARB_cull_distance on Asahi
+VK_KHR_calibrated_timestamps on RADV
+VK_KHR_vertex_attribute_divisor on RADV

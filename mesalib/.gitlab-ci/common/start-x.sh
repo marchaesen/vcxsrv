@@ -13,7 +13,7 @@ fi
 xinit /bin/sh "${_XORG_SCRIPT}" -- /usr/bin/Xorg vt45 -noreset -s 0 -dpms -logfile /Xorg.0.log &
 
 # Wait for xorg to be ready for connections.
-for i in 1 2 3 4 5; do
+for _ in 1 2 3 4 5; do
     if [ -e "${_FLAG_FILE}" ]; then
         break
     fi

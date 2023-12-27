@@ -212,6 +212,9 @@ _XimRegisterIMInstantiateCallback(
     if( xim ) {
 	lock = True;
 	xim->methods->close( (XIM)xim );
+	/* XIMs must be freed manually after being opened; close just
+	   does the protocol to deinitialize the IM.  */
+	XFree( xim );
 	lock = False;
 	icb->call = True;
 	callback( display, client_data, NULL );

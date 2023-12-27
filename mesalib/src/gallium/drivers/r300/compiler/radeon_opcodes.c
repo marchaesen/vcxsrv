@@ -61,13 +61,6 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 		.HasDstReg = 1
 	},
 	{
-		.Opcode = RC_OPCODE_CEIL,
-		.Name = "CEIL",
-		.NumSrcRegs = 1,
-		.HasDstReg = 1,
-		.IsComponentwise = 1
-	},
-	{
 		.Opcode = RC_OPCODE_CMP,
 		.Name = "CMP",
 		.NumSrcRegs = 3,
@@ -138,13 +131,6 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 		.Name = "EXP",
 		.NumSrcRegs = 1,
 		.HasDstReg = 1
-	},
-	{
-		.Opcode = RC_OPCODE_FLR,
-		.Name = "FLR",
-		.NumSrcRegs = 1,
-		.HasDstReg = 1,
-		.IsComponentwise = 1
 	},
 	{
 		.Opcode = RC_OPCODE_FRC,
@@ -293,13 +279,6 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 		.Opcode = RC_OPCODE_SNE,
 		.Name = "SNE",
 		.NumSrcRegs = 2,
-		.HasDstReg = 1,
-		.IsComponentwise = 1
-	},
-	{
-		.Opcode = RC_OPCODE_SSG,
-		.Name = "SSG",
-		.NumSrcRegs = 1,
 		.HasDstReg = 1,
 		.IsComponentwise = 1
 	},

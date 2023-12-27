@@ -83,7 +83,7 @@ Jan Vesely (1):
 
 -  radeonsi: Bump number of allowed global buffers to 32
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  spirv: Use the right bit-size for spec constant ops
 -  blorp: Emit a dummy 3DSTATE_WM prior to 3DSTATE_WM_HZ_OP

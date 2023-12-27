@@ -143,6 +143,7 @@ static const FcConstant _FcBaseConstants[] = {
     { (FcChar8 *) "light",	    "weight",   FC_WEIGHT_LIGHT, },
     { (FcChar8 *) "book",	    "weight",	FC_WEIGHT_BOOK, },
     { (FcChar8 *) "regular",	    "weight",   FC_WEIGHT_REGULAR, },
+    { (FcChar8 *) "normal",	    "weight",	FC_WEIGHT_NORMAL, },
     { (FcChar8 *) "medium",	    "weight",   FC_WEIGHT_MEDIUM, },
     { (FcChar8 *) "demibold",	    "weight",   FC_WEIGHT_DEMIBOLD, },
     { (FcChar8 *) "semibold",	    "weight",   FC_WEIGHT_DEMIBOLD, },
@@ -151,6 +152,8 @@ static const FcConstant _FcBaseConstants[] = {
     { (FcChar8 *) "ultrabold",	    "weight",   FC_WEIGHT_EXTRABOLD, },
     { (FcChar8 *) "black",	    "weight",   FC_WEIGHT_BLACK, },
     { (FcChar8 *) "heavy",	    "weight",	FC_WEIGHT_HEAVY, },
+    { (FcChar8 *) "extrablack",     "weight",	FC_WEIGHT_EXTRABLACK, },
+    { (FcChar8 *) "ultrablack",     "weight",	FC_WEIGHT_ULTRABLACK, },
 
     { (FcChar8 *) "roman",	    "slant",    FC_SLANT_ROMAN, },
     { (FcChar8 *) "italic",	    "slant",    FC_SLANT_ITALIC, },
@@ -228,6 +231,19 @@ FcNameGetConstant (const FcChar8 *string)
     return 0;
 }
 
+const FcConstant *
+FcNameGetConstantFor (const FcChar8 *string, const char *object)
+{
+    unsigned int	    i;
+
+    for (i = 0; i < NUM_FC_CONSTANTS; i++)
+	if (!FcStrCmpIgnoreCase (string, _FcBaseConstants[i].name) &&
+	    !FcStrCmpIgnoreCase ((const FcChar8 *)object, (const FcChar8 *)_FcBaseConstants[i].object))
+	    return &_FcBaseConstants[i];
+
+    return 0;
+}
+
 FcBool
 FcNameConstant (const FcChar8 *string, int *result)
 {
@@ -246,13 +262,19 @@ FcNameConstantWithObjectCheck (const FcChar8 *string, const char *object, int *r
 {
     const FcConstant	*c;
 
-    if ((c = FcNameGetConstant(string)))
+    if ((c = FcNameGetConstantFor(string, object)))
+    {
+	*result = c->value;
+	return FcTrue;
+    }
+    else if ((c = FcNameGetConstant(string)))
     {
 	if (strcmp (c->object, object) != 0)
 	{
 	    fprintf (stderr, "Fontconfig error: Unexpected constant name `%s' used for object `%s': should be `%s'\n", string, object, c->object);
 	    return FcFalse;
 	}
+	/* Unlikely to reach out */
 	*result = c->value;
 	return FcTrue;
     }
@@ -655,7 +677,7 @@ FcNameUnparseEscaped (FcPattern *pat, FcBool escape)
 	if (!strcmp (o->object, FC_FAMILY) ||
 	    !strcmp (o->object, FC_SIZE))
 	    continue;
-    
+
 	e = FcPatternObjectFindElt (pat, id);
 	if (e)
 	{

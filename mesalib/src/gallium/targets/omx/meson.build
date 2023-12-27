@@ -25,9 +25,11 @@
 omx_link_args = []
 omx_link_depends = []
 
+omx_sym = configure_file(input : 'omx.sym.in', output : 'omx.sym', configuration : sym_config)
+
 if with_ld_version_script
-  omx_link_args += ['-Wl,--version-script', join_paths(meson.current_source_dir(), 'omx.sym')]
-  omx_link_depends += files('omx.sym')
+  omx_link_args += ['-Wl,--version-script', join_paths(meson.current_build_dir(), 'omx.sym')]
+  omx_link_depends += omx_sym
 endif
 
 libomx_gallium = shared_library(

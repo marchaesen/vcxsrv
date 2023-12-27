@@ -71,7 +71,7 @@ Eric Engestrom (1):
 
 -  vulkan/wsi/display: check if wsi_swapchain_init() succeeded
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv,radv: Implement vkAcquireNextImage2
 

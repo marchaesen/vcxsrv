@@ -23,9 +23,7 @@ d3d10_sw_def = custom_target(
   'd3d10_sw.def',
   input: 'd3d10_sw.def.in',
   output : 'd3d10_sw.def',
-  command : [prog_python, gen_vs_module_defs_py,
-             '--in_file', '@INPUT@', '--out_file', '@OUTPUT@',
-             '--compiler_id', cc.get_argument_syntax(), '--cpu_family', host_machine.cpu_family()]
+  command : gen_vs_module_defs_normal_command,
 )
 
 libd3d10sw = shared_library(

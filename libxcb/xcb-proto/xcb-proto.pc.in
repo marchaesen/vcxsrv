@@ -2,9 +2,9 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 datarootdir=@datarootdir@
 datadir=@datadir@
-libdir=@libdir@
-xcbincludedir=@xcbincludedir@
-pythondir=@pythondir@
+xcbincludedir=${pc_sysrootdir}@xcbincludedir@
+PYTHON_PREFIX=@PYTHON_PREFIX@
+pythondir=${pc_sysrootdir}@pythondir@
 
 Name: XCB Proto
 Description: X protocol descriptions for XCB

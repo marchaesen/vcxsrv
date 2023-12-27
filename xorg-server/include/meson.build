@@ -115,6 +115,8 @@ conf_data.set('GBM_BO_WITH_MODIFIERS',
               build_glamor and gbm_dep.found() and gbm_dep.version().version_compare('>= 17.1') ? '1' : false)
 conf_data.set('GBM_BO_FD_FOR_PLANE',
               build_glamor and gbm_dep.found() and gbm_dep.version().version_compare('>= 21.1') ? '1' : false)
+conf_data.set('GBM_BO_WITH_MODIFIERS2',
+              build_glamor and gbm_dep.found() and gbm_dep.version().version_compare('>= 21.3') ? '1' : false)
 
 conf_data.set_quoted('SERVER_MISC_CONFIG_PATH', serverconfigdir)
 conf_data.set_quoted('PROJECTROOT', get_option('prefix'))
@@ -133,6 +135,8 @@ conf_data.set('HAVE_FNMATCH_H', cc.has_header('fnmatch.h') ? '1' : false)
 conf_data.set('HAVE_LINUX_AGPGART_H', cc.has_header('linux/agpgart.h') ? '1' : false)
 conf_data.set('HAVE_STRINGS_H', cc.has_header('strings.h') ? '1' : false)
 conf_data.set('HAVE_SYS_AGPGART_H', cc.has_header('sys/agpgart.h') ? '1' : false)
+conf_data.set('HAVE_SYS_UCRED_H', cc.has_header('sys/ucred.h') ? '1' : false)
+conf_data.set('HAVE_SYS_UN_H', cc.has_header('sys/un.h') ? '1' : false)
 conf_data.set('HAVE_SYS_UTSNAME_H', cc.has_header('sys/utsname.h') ? '1' : false)
 conf_data.set('HAVE_SYS_SYSMACROS_H', cc.has_header('sys/sysmacros.h') ? '1' : false)
 
@@ -173,6 +177,7 @@ conf_data.set('HAVE_TIMINGSAFE_MEMCMP', cc.has_function('timingsafe_memcmp') ? '
 conf_data.set('HAVE_VASPRINTF', cc.has_function('vasprintf') ? '1' : false)
 conf_data.set('HAVE_VSNPRINTF', cc.has_function('vsnprintf') ? '1' : false)
 conf_data.set('HAVE_WALKCONTEXT', cc.has_function('walkcontext') ? '1' : false)
+conf_data.set('HAVE_XUCRED_CR_PID', cc.has_member('struct xucred', 'cr_pid', prefix : '#include <sys/ucred.h>') ? '1' : false)
 
 conf_data.set('BUSFAULT', conf_data.get('HAVE_SIGACTION'))
 
@@ -189,7 +194,7 @@ if cc.has_header_symbol('sys/socket.h', 'SCM_RIGHTS')
 endif
 
 if conf_data.get('HAVE_GETPEEREID').to_int() == 0 and conf_data.get('HAVE_GETPEERUCRED').to_int() == 0
-    if not cc.has_header_symbol('sys/socket.h', 'SO_PEERCRED')
+    if not cc.has_header_symbol('sys/socket.h', 'SO_PEERCRED', args: '-D_GNU_SOURCE')
         conf_data.set('NO_LOCAL_CLIENT_CRED', 1)
     endif
 endif
@@ -376,7 +381,7 @@ xorg_data.set('HAVE_SYS_VT_H', cc.has_header('sys/vt.h') ? '1' : false)
 xorg_data.set('HAVE_MODESETTING_DRIVER', build_modesetting ? '1' : false)
 
 if host_machine.system() == 'freebsd' or host_machine.system() == 'dragonfly'
-    if host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'x86_64'
+    if host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'x86_64' or host_machine.cpu_family() == 'aarch64'
         xorg_data.set('USE_DEV_IO', '1')
     endif
 elif host_machine.system() == 'netbsd'
@@ -418,6 +423,8 @@ xwayland_data.set('XWL_HAS_GLAMOR', build_glamor and (gbm_dep.found() or build_e
 xwayland_data.set('XWL_HAS_EGLSTREAM', build_eglstream ? '1' : false)
 xwayland_data.set('XWL_HAS_LIBDECOR', have_libdecor ? '1' : false)
 xwayland_data.set('XWL_HAS_XWAYLAND_EXTENSION', xwaylandproto_dep.found() ? '1' : false)
+xwayland_data.set('XWL_HAS_EI', build_ei)
+xwayland_data.set('XWL_HAS_EI_PORTAL', build_ei_portal)
 
 configure_file(output : 'xwayland-config.h',
                input : 'xwayland-config.h.meson.in',

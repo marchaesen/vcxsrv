@@ -1,6 +1,11 @@
 /*
  * Copyright © 2022 Imagination Technologies Ltd.
  *
+ * based in part on tu driver which is:
+ * Copyright © 2016 Red Hat.
+ * Copyright © 2016 Bas Nieuwenhuizen
+ * Copyright © 2015 Intel Corporation
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -28,16 +33,20 @@
 #include <stdint.h>
 #include <vulkan/vulkan.h>
 
+#include "pvr_types.h"
+#include "pvr_winsys.h"
 #include "util/list.h"
 #include "util/macros.h"
+#include "util/simple_mtx.h"
 
 struct pvr_device;
+struct pvr_dump_ctx;
 struct pvr_winsys_bo;
 struct pvr_winsys_vma;
 struct pvr_winsys_heap;
 
 struct pvr_bo {
-   /* Since multiple components (csb, caching logic, etc) can make use of
+   /* Since multiple components (csb, caching logic, etc.) can make use of
     * linking buffers in a list, we add 'link' in pvr_bo to avoid an extra
     * level of structure inheritance. It's the responsibility of the buffer
     * user to manage the list and remove the buffer from the list before
@@ -47,6 +56,42 @@ struct pvr_bo {
 
    struct pvr_winsys_bo *bo;
    struct pvr_winsys_vma *vma;
+   uint32_t ref_count;
+};
+
+struct pvr_suballocator {
+   /* Pointer to the pvr_device this allocator is associated with */
+   struct pvr_device *device;
+   /* Pointer to one heap type (e.g. general, pds or usc) */
+   struct pvr_winsys_heap *heap;
+   /* Minimum size of the pvr_bo shared across multiple sub-allocations */
+   uint32_t default_size;
+
+   /* Mutex to protect access to all of the members below this point */
+   simple_mtx_t mtx;
+
+   /* Current buffer object where sub-allocations are made from */
+   struct pvr_bo *bo;
+   /* Previous buffer that can be used when a new buffer object is needed */
+   struct pvr_bo *bo_cached;
+   /* Track from where to start the next sub-allocation */
+   uint32_t next_offset;
+};
+
+struct pvr_suballoc_bo {
+   /* Since multiple components (command buffer, clear, descriptor sets,
+    * pipeline, SPM, etc.) can make use of linking sub-allocated bo(s), we
+    * add 'link' in pvr_suballoc_bo and avoid one extra level of structure
+    * inheritance. It is users' responsibility to manage the linked list,
+    * to remove sub-allocations before freeing it.
+    */
+   struct list_head link;
+
+   struct pvr_suballocator *allocator;
+   struct pvr_bo *bo;
+   pvr_dev_addr_t dev_addr;
+   uint64_t offset;
+   uint32_t size;
 };
 
 /**
@@ -71,11 +116,6 @@ struct pvr_bo {
  * firmware processor.
  */
 #define PVR_BO_ALLOC_FLAG_PM_FW_PROTECT BITFIELD_BIT(3U)
-/**
- * \brief Flag passed to #pvr_bo_alloc() to indicate that the buffer should be
- * zeroed at allocation time.
- */
-#define PVR_BO_ALLOC_FLAG_ZERO_ON_ALLOC BITFIELD_BIT(4U)
 
 VkResult pvr_bo_alloc(struct pvr_device *device,
                       struct pvr_winsys_heap *heap,
@@ -83,8 +123,44 @@ VkResult pvr_bo_alloc(struct pvr_device *device,
                       uint64_t alignment,
                       uint64_t flags,
                       struct pvr_bo **const bo_out);
-void *pvr_bo_cpu_map(struct pvr_device *device, struct pvr_bo *bo);
+VkResult pvr_bo_cpu_map(struct pvr_device *device, struct pvr_bo *bo);
 void pvr_bo_cpu_unmap(struct pvr_device *device, struct pvr_bo *bo);
 void pvr_bo_free(struct pvr_device *device, struct pvr_bo *bo);
+
+void pvr_bo_suballocator_init(struct pvr_suballocator *allocator,
+                              struct pvr_winsys_heap *heap,
+                              struct pvr_device *device,
+                              uint32_t default_size);
+void pvr_bo_suballocator_fini(struct pvr_suballocator *suballoc);
+VkResult pvr_bo_suballoc(struct pvr_suballocator *allocator,
+                         uint32_t size,
+                         uint32_t alignment,
+                         bool zero_on_alloc,
+                         struct pvr_suballoc_bo **const suballoc_bo_out);
+void pvr_bo_suballoc_free(struct pvr_suballoc_bo *suballoc_bo);
+void *pvr_bo_suballoc_get_map_addr(const struct pvr_suballoc_bo *suballoc_bo);
+
+#if defined(HAVE_VALGRIND)
+VkResult pvr_bo_cpu_map_unchanged(struct pvr_device *device,
+                                  struct pvr_bo *pvr_bo);
+#else /* defined(HAVE_VALGRIND) */
+static ALWAYS_INLINE VkResult
+pvr_bo_cpu_map_unchanged(struct pvr_device *device, struct pvr_bo *pvr_bo)
+{
+   return pvr_bo_cpu_map(device, pvr_bo);
+}
+#endif /* defined(HAVE_VALGRIND) */
+
+struct pvr_bo_store;
+
+VkResult pvr_bo_store_create(struct pvr_device *device);
+void pvr_bo_store_destroy(struct pvr_device *device);
+struct pvr_bo *pvr_bo_store_lookup(struct pvr_device *device,
+                                   pvr_dev_addr_t addr);
+bool pvr_bo_store_dump(struct pvr_device *device);
+
+void pvr_bo_list_dump(struct pvr_dump_ctx *ctx,
+                      const struct list_head *bo_list,
+                      uint32_t bo_size);
 
 #endif /* PVR_BO_H */

@@ -52,7 +52,7 @@
 
 #define error(fmt, args...) do {			\
 		rc_error(&c->Base, "%s::%s(): " fmt "\n",	\
-			__FILE__, __FUNCTION__, ##args);	\
+			__FILE__, __func__, ##args);	\
 	} while(0)
 
 
@@ -188,7 +188,7 @@ static uint32_t translate_alu_result_op(struct r300_fragment_program_compiler * 
 	case RC_COMPARE_FUNC_GEQUAL: return R500_INST_ALU_RESULT_OP_GE;
 	case RC_COMPARE_FUNC_NOTEQUAL: return R500_INST_ALU_RESULT_OP_NE;
 	default:
-		rc_error(&c->Base, "%s: unsupported compare func %i\n", __FUNCTION__, func);
+		rc_error(&c->Base, "%s: unsupported compare func %i\n", __func__, func);
 		return 0;
 	}
 }
@@ -281,8 +281,10 @@ static void emit_paired(struct r300_fragment_program_compiler *c, struct rc_pair
 
 	code->inst[ip].inst4 |= R500_ALPHA_ADDRD(inst->Alpha.DestIndex);
 	code->inst[ip].inst5 |= R500_ALU_RGBA_ADDRD(inst->RGB.DestIndex);
-	use_temporary(code, inst->Alpha.DestIndex);
-	use_temporary(code, inst->RGB.DestIndex);
+	if (inst->Alpha.WriteMask)
+		use_temporary(code, inst->Alpha.DestIndex);
+	if (inst->RGB.WriteMask)
+		use_temporary(code, inst->RGB.DestIndex);
 
 	if (inst->RGB.Saturate)
 		code->inst[ip].inst0 |= R500_INST_RGB_CLAMP;
@@ -562,7 +564,7 @@ static void emit_flowcontrol(struct emit_state * s, struct rc_instruction * inst
 	
 	case RC_OPCODE_ELSE:
 		if (!s->CurrentBranchDepth) {
-			rc_error(s->C, "%s: got ELSE outside a branch", __FUNCTION__);
+			rc_error(s->C, "%s: got ELSE outside a branch", __func__);
 			return;
 		}
 
@@ -574,7 +576,7 @@ static void emit_flowcontrol(struct emit_state * s, struct rc_instruction * inst
 
 	case RC_OPCODE_ENDIF:
 		if (!s->CurrentBranchDepth) {
-			rc_error(s->C, "%s: got ELSE outside a branch", __FUNCTION__);
+			rc_error(s->C, "%s: got ELSE outside a branch", __func__);
 			return;
 		}
 
@@ -619,7 +621,7 @@ static void emit_flowcontrol(struct emit_state * s, struct rc_instruction * inst
 		s->CurrentBranchDepth--;
 		break;
 	default:
-		rc_error(s->C, "%s: unknown opcode %s\n", __FUNCTION__, rc_get_opcode_info(inst->U.I.Opcode)->Name);
+		rc_error(s->C, "%s: unknown opcode %s\n", __func__, rc_get_opcode_info(inst->U.I.Opcode)->Name);
 	}
 }
 

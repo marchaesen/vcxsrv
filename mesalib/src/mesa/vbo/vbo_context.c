@@ -31,6 +31,7 @@
 #include "main/api_arrayelt.h"
 #include "main/arrayobj.h"
 #include "main/varray.h"
+#include "main/context.h"
 #include "util/u_memory.h"
 #include "vbo.h"
 #include "vbo_private.h"
@@ -162,12 +163,8 @@ _vbo_CreateContext(struct gl_context *ctx)
    /* make sure all VBO_ATTRIB_ values can fit in an unsigned byte */
    STATIC_ASSERT(VBO_ATTRIB_MAX <= 255);
 
-   /* Hook our functions into exec and compile dispatch tables.  These
-    * will pretty much be permanently installed, which means that the
-    * vtxfmt mechanism can be removed now.
-    */
    vbo_exec_init(ctx);
-   if (ctx->API == API_OPENGL_COMPAT)
+   if (_mesa_is_desktop_gl_compat(ctx))
       vbo_save_init(ctx);
 
    vbo->VAO = _mesa_new_vao(ctx, ~((GLuint)0));
@@ -188,7 +185,7 @@ _vbo_DestroyContext(struct gl_context *ctx)
 
    if (vbo) {
       vbo_exec_destroy(ctx);
-      if (ctx->API == API_OPENGL_COMPAT)
+      if (_mesa_is_desktop_gl_compat(ctx))
          vbo_save_destroy(ctx);
       _mesa_reference_vao(ctx, &vbo->VAO, NULL);
    }

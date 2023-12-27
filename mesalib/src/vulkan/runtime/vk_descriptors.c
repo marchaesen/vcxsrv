@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "vk_descriptors.h"
+#include "vk_common_entrypoints.h"
 #include "util/macros.h"
 
 static int
@@ -52,5 +53,51 @@ vk_create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings, unsigned
    memcpy(*sorted_bindings, bindings, count * sizeof(VkDescriptorSetLayoutBinding));
    qsort(*sorted_bindings, count, sizeof(VkDescriptorSetLayoutBinding), binding_compare);
  
+   return VK_SUCCESS;
+}
+
+/*
+ * For drivers that don't have mutable state in buffers, images, image views, or
+ * samplers, there's no need to save/restore anything to get the same
+ * descriptor back as long as the user uses the same GPU virtual address. In
+ * this case, the following EXT_descriptor_buffer functions are trivial.
+ */
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_GetBufferOpaqueCaptureDescriptorDataEXT(VkDevice device,
+                                                  const VkBufferCaptureDescriptorDataInfoEXT *pInfo,
+                                                  void *pData)
+{
+   return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_GetImageOpaqueCaptureDescriptorDataEXT(VkDevice device,
+                                                 const VkImageCaptureDescriptorDataInfoEXT *pInfo,
+                                                 void *pData)
+{
+   return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_GetImageViewOpaqueCaptureDescriptorDataEXT(VkDevice device,
+                                                     const VkImageViewCaptureDescriptorDataInfoEXT *pInfo,
+                                                     void *pData)
+{
+   return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_GetSamplerOpaqueCaptureDescriptorDataEXT(VkDevice _device,
+                                                   const VkSamplerCaptureDescriptorDataInfoEXT *pInfo,
+                                                   void *pData)
+{
+   return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_GetAccelerationStructureOpaqueCaptureDescriptorDataEXT(VkDevice device,
+                                                                 const VkAccelerationStructureCaptureDescriptorDataInfoEXT *pInfo,
+                                                                 void *pData)
+{
    return VK_SUCCESS;
 }

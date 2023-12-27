@@ -35,6 +35,7 @@
 
 struct fd_context;
 struct fd_query;
+struct fd_resource;
 
 struct fd_query_funcs {
    void (*destroy_query)(struct fd_context *ctx, struct fd_query *q) dt;
@@ -42,6 +43,11 @@ struct fd_query_funcs {
    void (*end_query)(struct fd_context *ctx, struct fd_query *q) dt;
    bool (*get_query_result)(struct fd_context *ctx, struct fd_query *q,
                             bool wait, union pipe_query_result *result);
+   void (*get_query_result_resource)(struct fd_context *ctx, struct fd_query *q,
+                                     enum pipe_query_flags flags,
+                                     enum pipe_query_value_type result_type,
+                                     int index, struct fd_resource *dst,
+                                     unsigned offset) dt;
 };
 
 struct fd_query {
@@ -125,6 +131,12 @@ pidx(unsigned query_type)
       return 5;
    case PIPE_QUERY_PRIMITIVES_EMITTED:
       return 6;
+   case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
+      return 7;
+   case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
+      return 8;
+   case PIPE_QUERY_PIPELINE_STATISTICS_SINGLE:
+      return 9;
 
    default:
       return -1;

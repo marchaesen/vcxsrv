@@ -133,7 +133,7 @@ Ilia Mirkin (1):
 
 -  glsl: fix recording of variables for XFB in TCS shaders
 
-Jason Ekstrand (10):
+Faith Ekstrand (10):
 
 -  intel/fs: Bail in optimize_extract_to_float if we have modifiers
 -  compiler/types: Add a contains_64bit helper

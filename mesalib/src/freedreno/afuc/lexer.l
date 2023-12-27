@@ -47,6 +47,7 @@ extern YYSTYPE yylval;
 "$"[a-zA-Z][a-zA-Z0-9]*           yylval.num = parse_reg(yytext); return T_REGISTER;
 "b"[0-9][0-9]*                    yylval.num = parse_bit(yytext); return T_BIT;
 "@"[a-zA-Z_][a-zA-Z0-9_]*         yylval.num = parse_control_reg(yytext); return T_CONTROL_REG;
+"%"[a-zA-Z_][a-zA-Z0-9_]*         yylval.num = parse_sqe_reg(yytext); return T_SQE_REG;
 "#"[a-zA-Z_][a-zA-Z0-9_]*         yylval.str = strdup(yytext+1);  return T_LABEL_REF; /* label reference */
 [a-zA-Z_][a-zA-Z0-9_]*":"         yylval.str = parse_label_decl(yytext); return T_LABEL_DECL; /* label declaration */
 "["[0-9a-fA-F][0-9a-fA-F]*"]"     yylval.num = parse_literal(yytext); return T_LITERAL;
@@ -69,10 +70,17 @@ extern YYSTYPE yylval;
 "min"                             return TOKEN(T_OP_MIN);
 "max"                             return TOKEN(T_OP_MAX);
 "cmp"                             return TOKEN(T_OP_CMP);
+"bic"                             return TOKEN(T_OP_BIC);
 "msb"                             return TOKEN(T_OP_MSB);
+"setbit"                          return TOKEN(T_OP_SETBIT);
+"clrbit"                          return TOKEN(T_OP_CLRBIT);
+"ubfx"                            return TOKEN(T_OP_UBFX);
+"bfi"                             return TOKEN(T_OP_BFI);
 "mov"                             return TOKEN(T_OP_MOV);
 "cwrite"                          return TOKEN(T_OP_CWRITE);
 "cread"                           return TOKEN(T_OP_CREAD);
+"swrite"                          return TOKEN(T_OP_SWRITE);
+"sread"                           return TOKEN(T_OP_SREAD);
 "store"                           return TOKEN(T_OP_STORE);
 "load"                            return TOKEN(T_OP_LOAD);
 "brne"                            return TOKEN(T_OP_BRNE);
@@ -86,12 +94,14 @@ extern YYSTYPE yylval;
 "setsecure"			  return TOKEN(T_OP_SETSECURE);
 "<<"                              return TOKEN(T_LSHIFT);
 "(rep)"                           return TOKEN(T_REP);
-"(xmov"[1-3]")"	                  yylval.num = yytext[5] - '\0'; return T_XMOV;
+"(xmov"[1-3]")"	                  yylval.num = yytext[5] - '0'; return T_XMOV;
+"(sds"[1-3]")"                    yylval.num = yytext[4] - '0'; return T_SDS;
 
 ","                               return ',';
 "["                               return '[';
 "]"                               return ']';
 "+"                               return '+';
+"!"                               return '!';
 
 .                                 fprintf(stderr, "error at line %d: Unknown token: %s\n", yyget_lineno(), yytext); yyterminate();
 

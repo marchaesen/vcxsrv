@@ -29,8 +29,6 @@
 
 extern Bool XkbInitIncludePath(void);
 
-extern void XkbClearIncludePath(void);
-
 extern void XkbAddDefaultDirectoriesToPath(void);
 
 extern Bool XkbAddDirectoryToPath(const char *  /* dir */
@@ -39,18 +37,18 @@ extern Bool XkbAddDirectoryToPath(const char *  /* dir */
 extern char *XkbDirectoryForInclude(unsigned    /* type */
     );
 
-extern FILE *XkbFindFileInPath(char * /* name */ ,
+extern FILE *XkbFindFileInPath(const char * /* name */ ,
                                unsigned /* type */ ,
                                char **  /* pathRtrn */
     );
 
-extern void *XkbAddFileToCache(char * /* name */ ,
+extern void *XkbAddFileToCache(const char * /* name */ ,
                                unsigned /* type */ ,
                                char * /* path */ ,
                                void *   /* data */
     );
 
-extern void *XkbFindFileInCache(char * /* name */ ,
+extern void *XkbFindFileInCache(const char * /* name */ ,
                                 unsigned /* type */ ,
                                 char ** /* pathRtrn */
     );

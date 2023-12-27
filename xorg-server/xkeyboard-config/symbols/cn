@@ -1,6 +1,6 @@
-//
-// Default Chinese is the same as American
-//
+// Keyboard layouts for China.
+
+// The default Chinese layout is the same as the American.
 default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "us(basic)"

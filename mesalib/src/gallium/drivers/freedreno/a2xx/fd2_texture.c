@@ -101,7 +101,7 @@ fd2_sampler_state_create(struct pipe_context *pctx,
 
    /* TODO
     * cso->max_anisotropy
-    * cso->normalized_coords (dealt with by shader for rect textures?)
+    * cso->unnormalized_coords (dealt with by shader for rect textures?)
     */
 
    /* SQ_TEX0_PITCH() must be OR'd in later when we know the bound texture: */

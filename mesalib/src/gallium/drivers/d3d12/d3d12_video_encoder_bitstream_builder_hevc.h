@@ -46,6 +46,7 @@ class d3d12_video_bitstream_builder_hevc : public d3d12_video_bitstream_builder_
                   HevcVideoParameterSet* pVPSStruct = nullptr);
 
    void build_sps(const HevcVideoParameterSet& parentVPS,
+                  const struct pipe_h265_enc_seq_param & seqData,
                   uint8_t seq_parameter_set_id,
                   const D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC& encodeResolution,
                   const D3D12_BOX& crop_window_upper_layer,
@@ -79,12 +80,10 @@ class d3d12_video_bitstream_builder_hevc : public d3d12_video_bitstream_builder_
    void print_pps(const HevcPicParameterSet& pps);
    void print_rps(const HevcSeqParameterSet* sps, UINT stRpsIdx);
 
-   uint32_t m_activeVPSIndex = 0;
-   uint32_t m_activeSPSIndex = 0;
-   uint32_t m_activePPSIndex = 0;
-   HevcVideoParameterSet m_latest_vps = {};
-   HevcSeqParameterSet m_latest_sps = {};
-   HevcPicParameterSet m_latest_pps = {};
+   std::vector<uint8_t>& get_active_pps()
+   {
+      return m_activePPS;
+   };
 
    HevcVideoParameterSet get_latest_vps()
    {
@@ -133,6 +132,13 @@ class d3d12_video_bitstream_builder_hevc : public d3d12_video_bitstream_builder_
 
  private:
    d3d12_video_nalu_writer_hevc m_hevcEncoder;
+   uint32_t m_activeVPSIndex = 0;
+   uint32_t m_activeSPSIndex = 0;
+   uint32_t m_activePPSIndex = 0;
+   HevcVideoParameterSet m_latest_vps = {};
+   HevcSeqParameterSet m_latest_sps = {};
+   HevcPicParameterSet m_latest_pps = {};
+   std::vector<uint8_t> m_activePPS;
 
    void init_profile_tier_level(HEVCProfileTierLevel *ptl, uint8_t HEVCProfileIdc, uint8_t HEVCLevelIdc, bool isHighTier);
 };

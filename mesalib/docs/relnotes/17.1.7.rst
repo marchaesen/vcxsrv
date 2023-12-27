@@ -97,7 +97,7 @@ Ilia Mirkin (3):
 -  nv50/ir: fix srcMask computation for TG4 and TXF
 -  nv50/ir: fix TXQ srcMask
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv/formats: Allow sampling on depth-only formats on gen7
 

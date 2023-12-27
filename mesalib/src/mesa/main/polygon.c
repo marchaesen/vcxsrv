@@ -28,7 +28,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "context.h"
 #include "draw_validate.h"
@@ -39,6 +39,7 @@
 #include "polygon.h"
 #include "mtypes.h"
 #include "api_exec_decl.h"
+#include "varray.h"
 
 #include "state_tracker/st_context.h"
 
@@ -183,7 +184,7 @@ polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
 
    switch (face) {
    case GL_FRONT:
-      if (!no_error && ctx->API == API_OPENGL_CORE) {
+      if (!no_error && _mesa_is_desktop_gl_core(ctx)) {
          _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(face)" );
          return;
       }
@@ -193,6 +194,7 @@ polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
                      GL_POLYGON_BIT);
       ctx->NewDriverState |= ST_NEW_RASTERIZER;
       ctx->Polygon.FrontMode = mode;
+      _mesa_update_edgeflag_state_vao(ctx);
       break;
    case GL_FRONT_AND_BACK:
       if (ctx->Polygon.FrontMode == mode && ctx->Polygon.BackMode == mode)
@@ -202,9 +204,10 @@ polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
       ctx->NewDriverState |= ST_NEW_RASTERIZER;
       ctx->Polygon.FrontMode = mode;
       ctx->Polygon.BackMode = mode;
+      _mesa_update_edgeflag_state_vao(ctx);
       break;
    case GL_BACK:
-      if (!no_error && ctx->API == API_OPENGL_CORE) {
+      if (!no_error && _mesa_is_desktop_gl_core(ctx)) {
          _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(face)" );
          return;
       }
@@ -214,6 +217,7 @@ polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
                      GL_POLYGON_BIT);
       ctx->NewDriverState |= ST_NEW_RASTERIZER;
       ctx->Polygon.BackMode = mode;
+      _mesa_update_edgeflag_state_vao(ctx);
       break;
    default:
       if (!no_error)

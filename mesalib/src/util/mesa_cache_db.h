@@ -62,6 +62,19 @@ bool
 mesa_cache_db_entry_write(struct mesa_cache_db *db,
                           const uint8_t *cache_key_160bit,
                           const void *blob, size_t blob_size);
+
+bool
+mesa_cache_db_entry_remove(struct mesa_cache_db *db,
+                           const uint8_t *cache_key_160bit);
+
+bool
+mesa_db_wipe_path(const char *cache_path);
+
+bool
+mesa_cache_db_has_space(struct mesa_cache_db *db, size_t blob_size);
+
+double
+mesa_cache_db_eviction_score(struct mesa_cache_db *db);
 #else
 static inline bool
 mesa_cache_db_open(struct mesa_cache_db *db, const char *cache_path)
@@ -100,6 +113,31 @@ mesa_cache_db_entry_write(struct mesa_cache_db *db,
                           const void *blob, size_t blob_size)
 {
    return false;
+}
+
+static inline bool
+mesa_cache_db_entry_remove(struct mesa_cache_db *db,
+                           const uint8_t *cache_key_160bit)
+{
+   return false;
+}
+
+static inline bool
+mesa_db_wipe_path(const char *cache_path)
+{
+   return false;
+}
+
+static inline bool
+mesa_cache_db_has_space(struct mesa_cache_db *db, size_t blob_size)
+{
+   return false;
+}
+
+static inline double
+mesa_cache_db_eviction_score(struct mesa_cache_db *db)
+{
+   return 0;
 }
 #endif /* DETECT_OS_WINDOWS */
 

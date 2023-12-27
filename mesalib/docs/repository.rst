@@ -85,9 +85,9 @@ Windows Users
 -------------
 
 If you're `using Git on
-Windows <https://git.wiki.kernel.org/index.php/WindowsInstall>`__ you'll
-want to enable automatic CR/LF conversion in your local copy of the
-repository:
+Windows <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git#_installing_on_windows>`__
+you'll want to enable automatic CR/LF conversion in your local copy of
+the repository:
 
 .. code-block:: console
 
@@ -187,5 +187,5 @@ Developer Git Tips
       git config --global branch.autosetuprebase=always
 
    See `Understanding Git
-   Conceptually <https://www.eecs.harvard.edu/~cduan/technical/git/>`__
+   Conceptually <https://www.cduan.com/technical/git/>`__
    for a fairly clear explanation about all of this.

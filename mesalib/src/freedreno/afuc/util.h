@@ -33,6 +33,9 @@
 unsigned afuc_control_reg(const char *name);
 char * afuc_control_reg_name(unsigned id);
 
+unsigned afuc_sqe_reg(const char *name);
+char * afuc_sqe_reg_name(unsigned id);
+
 unsigned afuc_pipe_reg(const char *name);
 char * afuc_pipe_reg_name(unsigned id);
 bool afuc_pipe_reg_is_void(unsigned id);

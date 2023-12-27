@@ -28,6 +28,10 @@ struct pipe_screen;
 struct sw_winsys;
 typedef struct _LUID LUID;
 
+#ifdef _WIN32
+#include <unknwn.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,6 +39,10 @@ extern "C" {
 #ifdef _WIN32
 struct pipe_screen *
 d3d12_create_dxgi_screen(struct sw_winsys *winsys, LUID *adapter_luid);
+
+struct pipe_screen *
+d3d12_create_dxcore_screen_from_d3d12_device(struct sw_winsys *winsys, IUnknown* pDevUnknown, LUID **out_adapter_luid);
+
 #endif
 
 struct pipe_screen *

@@ -1,6 +1,6 @@
 
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -32,7 +32,7 @@
 #include "svga_reg.h"
 #include "svga3d_reg.h"
 
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 #include "util/list.h"
 
@@ -70,10 +70,11 @@ struct svga_host_surface_cache_key
    uint32_t sampleCount:5;
    uint32_t scanout:1;
    uint32_t coherent:1;
+   uint32_t persistent:1;
 };
 
 
-struct svga_host_surface_cache_entry 
+struct svga_host_surface_cache_entry
 {
    /** 
     * Head for the LRU list, svga_host_surface_cache::unused, and
@@ -148,13 +149,13 @@ svga_screen_cache_init(struct svga_screen *svgascreen);
 struct svga_winsys_surface *
 svga_screen_surface_create(struct svga_screen *svgascreen,
                            unsigned bind_flags, enum pipe_resource_usage usage,
-                           boolean *invalidated,
+                           bool *invalidated,
                            struct svga_host_surface_cache_key *key);
 
 void
 svga_screen_surface_destroy(struct svga_screen *svgascreen,
                             const struct svga_host_surface_cache_key *key,
-                            boolean to_invalidate,
+                            bool to_invalidate,
                             struct svga_winsys_surface **handle);
 
 void

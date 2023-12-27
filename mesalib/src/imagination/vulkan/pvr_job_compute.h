@@ -33,9 +33,7 @@ struct vk_sync;
 
 VkResult pvr_compute_job_submit(struct pvr_compute_ctx *ctx,
                                 struct pvr_sub_cmd_compute *sub_cmd,
-                                struct vk_sync **waits,
-                                uint32_t wait_count,
-                                uint32_t *stage_flags,
+                                struct vk_sync *wait,
                                 struct vk_sync *signal_sync);
 
 #endif /* PVR_JOB_COMPUTE_H */

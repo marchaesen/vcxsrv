@@ -2852,10 +2852,10 @@ converted to an unsigned int.
 </para>
 
 
-<indexterm significance="preferred" zone="XkbSAActionSetCtrls"><primary><function>XkbSAActionSetCtrls</function></primary></indexterm>
-<funcsynopsis id="XkbSAActionSetCtrls">
+<indexterm significance="preferred" zone="XkbActionSetCtrls"><primary><function>XkbActionSetCtrls</function></primary></indexterm>
+<funcsynopsis id="XkbActionSetCtrls">
   <funcprototype>
-    <funcdef>void <function>XkbSAActionSetCtrls</function></funcdef>
+    <funcdef>void <function>XkbActionSetCtrls</function></funcdef>
 <!-- (
 <parameter>act, ctrls</parameter>
 )                        /* macro */ -->
@@ -2888,7 +2888,7 @@ converted to an unsigned int.
 </variablelist>
 
 <para>
-<function>XkbSAActionSetCtrls</function>
+<function>XkbActionSetCtrls</function>
 sets the
 <structfield>ctrls0</structfield>
 through

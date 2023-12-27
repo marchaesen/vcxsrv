@@ -25,7 +25,6 @@
 #include <vulkan/vulkan.h>
 
 #include "hwdef/rogue_hw_defs.h"
-#include "pipe/p_defines.h"
 #include "pvr_csb.h"
 #include "pvr_device_info.h"
 #include "pvr_formats.h"
@@ -64,7 +63,7 @@ static enum ROGUE_TEXSTATE_SWIZ pvr_get_hw_swizzle(VkComponentSwizzle comp,
 
 VkResult
 pvr_pack_tex_state(struct pvr_device *device,
-                   struct pvr_texture_state_info *info,
+                   const struct pvr_texture_state_info *info,
                    uint64_t state[static const ROGUE_NUM_TEXSTATE_IMAGE_WORDS])
 {
    const struct pvr_device_info *dev_info = &device->pdevice->dev_info;
@@ -130,7 +129,13 @@ pvr_pack_tex_state(struct pvr_device *device,
          unreachable("Unknown memory layout");
       }
 
-      word0.texformat = pvr_get_tex_format(info->format);
+      /* When sampling from a combined D/S image, the TPU will default to only
+       * the depth aspect.
+       * The driver must select the correct single aspect format when sampling
+       * to avoid this.
+       */
+      word0.texformat =
+         pvr_get_tex_format_aspect(info->format, info->aspect_mask);
       word0.smpcnt = util_logbase2(info->sample_count);
       word0.swiz0 =
          pvr_get_hw_swizzle(VK_COMPONENT_SWIZZLE_R, info->swizzle[0]);
@@ -212,7 +217,8 @@ pvr_pack_tex_state(struct pvr_device *device,
             if (iview_type == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
                array_layers /= 6;
 
-            word1.depth = array_layers - 1;
+            if (array_layers > 0)
+               word1.depth = array_layers - 1;
          }
 
          word1.texaddr = PVR_DEV_ADDR_OFFSET(info->addr, info->offset);

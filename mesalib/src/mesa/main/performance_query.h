@@ -29,7 +29,7 @@
 #ifndef PERFORMANCE_QUERY_H
 #define PERFORMANCE_QUERY_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 extern void
 _mesa_init_performance_queries(struct gl_context *ctx);

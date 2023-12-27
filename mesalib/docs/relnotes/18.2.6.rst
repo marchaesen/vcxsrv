@@ -106,7 +106,7 @@ Gert Wollny (3):
 -  r600: clean up the GS ring buffers when the context is destroyed
 -  glsl: free or reuse memory allocated for TF varying
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  nir/lower_alu_to_scalar: Don't try to lower unpack_32_2x16
 -  anv: Put robust buffer access in the pipeline hash

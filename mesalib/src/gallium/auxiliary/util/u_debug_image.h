@@ -28,8 +28,8 @@
 #define U_DEBUG_IMAGE_H
 
 
-#include "pipe/p_compiler.h"
-#include "pipe/p_format.h"
+#include "util/compiler.h"
+#include "util/format/u_formats.h"
 
 
 #ifdef DEBUG
@@ -60,7 +60,7 @@ void debug_dump_float_rgba_bmp(const char *filename,
                                float *rgba, unsigned stride);
 void debug_dump_ubyte_rgba_bmp(const char *filename,
                                unsigned width, unsigned height,
-                               const ubyte *rgba, unsigned stride);
+                               const uint8_t *rgba, unsigned stride);
 #else
 #define debug_dump_image(prefix, format, cpp, width, height, stride, data) ((void)0)
 #define debug_dump_surface(pipe, prefix, surface) ((void)0)

@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "frontend/sw_winsys.h"
 
 void gdi_sw_display( struct sw_winsys *winsys,

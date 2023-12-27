@@ -69,7 +69,7 @@ Ian Romanick (4):
 -  i965/vec4: Properly handle sign(-abs(x))
 -  i965/fs: Properly handle sign(-abs(x))
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  intel/fs: Split instructions low to high in lower_simd_width
 -  anv: Be more careful about hashing pipeline layouts

@@ -29,7 +29,7 @@
  */
 
 static int
-coord_offset(nir_ssa_def *ssa)
+coord_offset(nir_def *ssa)
 {
    nir_instr *parent_instr = ssa->parent_instr;
 
@@ -45,19 +45,18 @@ coord_offset(nir_ssa_def *ssa)
       if (alu->op != nir_op_vec2)
          return -1;
 
-      if (!alu->src[0].src.is_ssa)
+      int base_src_offset = coord_offset(alu->src[0].src.ssa);
+      if (base_src_offset < 0)
          return -1;
 
-      int base_offset =
-         coord_offset(alu->src[0].src.ssa) + alu->src[0].swizzle[0];
+      int base_offset = base_src_offset + alu->src[0].swizzle[0];
 
       /* NOTE it might be possible to support more than 2D? */
       for (int i = 1; i < 2; i++) {
-         if (!alu->src[i].src.is_ssa)
+         int nth_src_offset = coord_offset(alu->src[i].src.ssa);
+         if (nth_src_offset < 0)
             return -1;
-
-         int nth_offset =
-            coord_offset(alu->src[i].src.ssa) + alu->src[i].swizzle[0];
+         int nth_offset = nth_src_offset + alu->src[i].swizzle[0];
 
          if (nth_offset != (base_offset + i))
             return -1;
@@ -74,16 +73,21 @@ coord_offset(nir_ssa_def *ssa)
    if (input->intrinsic != nir_intrinsic_load_interpolated_input)
       return -1;
 
-   /* limit to load_barycentric_pixel, other interpolation modes don't seem
-    * to be supported:
-    */
-   if (!input->src[0].is_ssa)
+   /* Happens with lowered load_barycentric_at_offset */
+   if (input->src[0].ssa->parent_instr->type != nir_instr_type_intrinsic)
       return -1;
 
    nir_intrinsic_instr *interp =
       nir_instr_as_intrinsic(input->src[0].ssa->parent_instr);
 
    if (interp->intrinsic != nir_intrinsic_load_barycentric_pixel)
+      return -1;
+
+   /* interpolation modes such as noperspective aren't covered by the other
+    * test, we need to explicitly check for them here.
+    */
+   unsigned interp_mode = nir_intrinsic_interp_mode(interp);
+   if (interp_mode != INTERP_MODE_NONE && interp_mode != INTERP_MODE_SMOOTH)
       return -1;
 
    /* we also need a const input offset: */
@@ -97,7 +101,7 @@ coord_offset(nir_ssa_def *ssa)
 }
 
 int
-ir3_nir_coord_offset(nir_ssa_def *ssa)
+ir3_nir_coord_offset(nir_def *ssa)
 {
 
    assert(ssa->num_components == 2);
@@ -181,7 +185,6 @@ lower_tex_prefetch_block(nir_block *block)
       int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
       /* First source should be the sampling coordinate. */
       nir_tex_src *coord = &tex->src[idx];
-      assert(coord->src.is_ssa);
 
       if (ir3_nir_coord_offset(coord->src.ssa) >= 0) {
          tex->op = nir_texop_tex_prefetch;

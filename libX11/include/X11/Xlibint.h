@@ -43,6 +43,10 @@ from The Open Group.
 #include <X11/Xproto.h>		/* to declare xEvent */
 #include <X11/XlibConf.h>	/* for configured options like XTHREADS */
 
+#ifdef XTHREADS
+#include <X11/Xthreads.h>
+#endif
+
 /* The Xlib structs are full of implicit padding to properly align members.
    We can't clean that up without breaking ABI, so tell clang not to bother
    complaining about it. */
@@ -207,6 +211,10 @@ struct _XDisplay
 
 	XIOErrorExitHandler exit_handler;
 	void *exit_handler_data;
+	CARD32 in_ifevent;
+#ifdef XTHREADS
+	xthread_t ifevent_thread;
+#endif
 };
 
 #define XAllocIDs(dpy,ids,n) (*(dpy)->idlist_alloc)(dpy,ids,n)

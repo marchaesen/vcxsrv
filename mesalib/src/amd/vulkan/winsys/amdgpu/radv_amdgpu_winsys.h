@@ -52,9 +52,9 @@ struct radv_amdgpu_winsys {
    bool reserve_vmid;
    uint64_t perftest;
 
-   uint64_t allocated_vram;
-   uint64_t allocated_vram_vis;
-   uint64_t allocated_gtt;
+   alignas(8) uint64_t allocated_vram;
+   alignas(8) uint64_t allocated_vram_vis;
+   alignas(8) uint64_t allocated_gtt;
 
    /* Global BO list */
    struct {

@@ -49,6 +49,24 @@
     "precision mediump float;\n"  \
     "#endif\n"
 
+#define GLAMOR_DEFAULT_POINT_SIZE  \
+    "#ifdef GL_ES\n"              \
+    "       gl_PointSize = 1.0;\n"  \
+    "#endif\n"
+
+#define GLAMOR_COMPAT_DEFINES_VS  \
+    "#define in attribute\n" \
+    "#define out varying\n"  \
+
+#define GLAMOR_COMPAT_DEFINES_FS  \
+    "#if __VERSION__ < 130\n" \
+    "#define in varying\n"  \
+    "#define frag_color gl_FragColor\n" \
+    "#define texture texture2D\n" \
+    "#else\n" \
+    "out vec4 frag_color;\n" \
+    "#endif\n"
+
 #include "glyphstr.h"
 
 #include "glamor_debug.h"
@@ -111,6 +129,7 @@ enum shader_mask {
 enum shader_dest_swizzle {
     SHADER_DEST_SWIZZLE_DEFAULT,
     SHADER_DEST_SWIZZLE_ALPHA_TO_RED,
+    SHADER_DEST_SWIZZLE_IGNORE_ALPHA,
     SHADER_DEST_SWIZZLE_COUNT,
 };
 
@@ -175,6 +194,13 @@ struct glamor_format {
      * just before upload)
      */
     Bool rendering_supported;
+    /**
+     * Whether image with this depth is framebuffer-complete in GL.
+     * This flag is set on GL ES when rendering is supported without
+     * conversion, but reading from framebuffer can bring some caveats
+     * like different format combination or incomplete framebuffer.
+     */
+    Bool texture_only;
 };
 
 struct glamor_saved_procs {
@@ -216,6 +242,7 @@ typedef struct glamor_screen_private {
     Bool has_dual_blend;
     Bool has_clear_texture;
     Bool has_texture_swizzle;
+    Bool has_rg;
     Bool is_core_profile;
     Bool can_copyplane;
     Bool use_gpu_shader4;
@@ -309,10 +336,12 @@ typedef struct glamor_screen_private {
     int flags;
     ScreenPtr screen;
     int dri3_enabled;
+    char *glvnd_vendor;
 
     Bool suppress_gl_out_of_memory_logging;
     Bool logged_any_fbo_allocation_failure;
     Bool logged_any_pbo_allocation_failure;
+    Bool dirty;
 
     /* xv */
     glamor_program xv_prog;
@@ -510,6 +539,30 @@ glamor_pixmap_hcnt(glamor_pixmap_private *priv)
 #define glamor_pixmap_loop(priv, box_index)                            \
     for (box_index = 0; box_index < glamor_pixmap_hcnt(priv) *         \
              glamor_pixmap_wcnt(priv); box_index++)                    \
+
+static inline int
+glamor_drawable_effective_depth(DrawablePtr drawable)
+{
+    WindowPtr window;
+
+    if (drawable->type != DRAWABLE_WINDOW ||
+        drawable->depth != 32)
+        return drawable->depth;
+
+    window = (WindowPtr)drawable;
+    window = window->parent;
+    while (window && window->parent) {
+        /* A depth 32 window with any depth 24 ancestors (other than the root
+         * window) effectively behaves like depth 24
+         */
+        if (window->drawable.depth == 24)
+            return 24;
+
+        window = window->parent;
+    }
+
+    return 32;
+}
 
 /* GC private structure. Currently holds only any computed dash pixmap */
 
@@ -869,7 +922,7 @@ glamor_solid(PixmapPtr pixmap, int x, int y, int width, int height,
              unsigned long fg_pixel);
 
 void
-glamor_solid_boxes(PixmapPtr pixmap,
+glamor_solid_boxes(DrawablePtr drawable,
                    BoxPtr box, int nbox, unsigned long fg_pixel);
 
 
@@ -892,6 +945,9 @@ typedef struct {
     RegionRec clip;
     PixmapPtr src_pix[3];       /* y, u, v for planar */
     int src_pix_w, src_pix_h;
+    /* Port optimization */
+    int prev_fmt;
+    glamor_program xv_prog;
 } glamor_port_private;
 
 extern XvAttributeRec glamor_xv_attributes[];

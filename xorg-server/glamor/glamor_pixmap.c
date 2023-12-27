@@ -39,7 +39,7 @@ void
 glamor_get_drawable_deltas(DrawablePtr drawable, PixmapPtr pixmap,
                            int *x, int *y)
 {
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
     if (drawable->type == DRAWABLE_WINDOW) {
         *x = -pixmap->screen_x;
         *y = -pixmap->screen_y;

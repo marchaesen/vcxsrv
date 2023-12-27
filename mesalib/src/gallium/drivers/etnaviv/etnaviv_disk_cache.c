@@ -34,7 +34,7 @@
 void
 etna_disk_cache_init(struct etna_compiler *compiler, const char *renderer)
 {
-   if (etna_mesa_debug & ETNA_DBG_NOCACHE)
+   if (DBG_ENABLED(ETNA_DBG_NOCACHE))
       return;
 
    const struct build_id_note *note =
@@ -100,11 +100,11 @@ retrieve_variant(struct blob_reader *blob, struct etna_shader_variant *v)
    blob_copy_bytes(blob, v->code, 4 * v->code_size);
 
    blob_copy_bytes(blob, &v->uniforms.count, sizeof(v->uniforms.count));
-   v->uniforms.contents = malloc(v->uniforms.count * sizeof(v->uniforms.contents));
-   v->uniforms.data = malloc(v->uniforms.count * sizeof(v->uniforms.data));
+   v->uniforms.contents = malloc(v->uniforms.count * sizeof(*v->uniforms.contents));
+   v->uniforms.data = malloc(v->uniforms.count * sizeof(*v->uniforms.data));
 
-   blob_copy_bytes(blob, v->uniforms.contents, v->uniforms.count * sizeof(v->uniforms.contents));
-   blob_copy_bytes(blob, v->uniforms.data, v->uniforms.count * sizeof(v->uniforms.data));
+   blob_copy_bytes(blob, v->uniforms.contents, v->uniforms.count * sizeof(*v->uniforms.contents));
+   blob_copy_bytes(blob, v->uniforms.data, v->uniforms.count * sizeof(*v->uniforms.data));
 }
 
 static void
@@ -116,8 +116,8 @@ store_variant(struct blob *blob, const struct etna_shader_variant *v)
    blob_write_bytes(blob, v->code, 4 * v->code_size);
 
    blob_write_bytes(blob, &v->uniforms.count, sizeof(v->uniforms.count));
-   blob_write_bytes(blob, v->uniforms.contents, imm_count * sizeof(v->uniforms.contents));
-   blob_write_bytes(blob, v->uniforms.data, imm_count * sizeof(v->uniforms.data));
+   blob_write_bytes(blob, v->uniforms.contents, imm_count * sizeof(*v->uniforms.contents));
+   blob_write_bytes(blob, v->uniforms.data, imm_count * sizeof(*v->uniforms.data));
 }
 
 bool

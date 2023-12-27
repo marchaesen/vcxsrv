@@ -41,6 +41,8 @@ extern _X_EXPORT Bool CompositeRegisterImplicitRedirectionException(ScreenPtr pS
 
 
 extern _X_EXPORT Bool compIsAlternateVisual(ScreenPtr pScreen, XID visual);
+Bool CompositeIsImplicitRedirectException(ScreenPtr pScreen,
+                                          XID parentVisual, XID winVisual);
 extern _X_EXPORT RESTYPE CompositeClientWindowType;
 
 #endif                          /* _COMPOSITEEXT_H_ */

@@ -30,7 +30,7 @@
 #include "etnaviv_context.h"
 #include "etnaviv_internal.h"
 #include "etnaviv_shader.h"
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_shader_tokens.h"
 #include "compiler/shader_enums.h"
 #include "util/disk_cache.h"
@@ -161,7 +161,7 @@ etna_compile_shader(struct etna_shader_variant *shader);
 void
 etna_dump_shader(const struct etna_shader_variant *shader);
 
-bool
+void
 etna_link_shader(struct etna_shader_link_info *info,
                  const struct etna_shader_variant *vs,
                  const struct etna_shader_variant *fs);

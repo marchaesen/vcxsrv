@@ -20,7 +20,7 @@
 
 config_h = configure_file(
   configuration : config,
-  output : 'config.h'
+  output : 'pixman-config.h'
 )
 
 version_h = configure_file(
@@ -31,7 +31,8 @@ version_h = configure_file(
 )
 
 libpixman_extra_cargs = []
-if cc.has_function_attribute('dllexport')
+default_library = get_option('default_library')
+if default_library != 'static' and cc.has_function_attribute('dllexport')
   libpixman_extra_cargs = ['-DPIXMAN_API=__declspec(dllexport)']
 endif
 
@@ -134,5 +135,9 @@ idep_pixman = declare_dependency(
   link_with: libpixman,
   include_directories : inc_pixman,
 )
+
+if meson.version().version_compare('>= 0.54.0')
+  meson.override_dependency('pixman-1', idep_pixman)
+endif
 
 install_headers('pixman.h', subdir : 'pixman-1')

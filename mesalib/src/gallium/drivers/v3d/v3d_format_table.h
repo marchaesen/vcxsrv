@@ -30,10 +30,10 @@ struct v3d_format {
         /** Set if the pipe format is defined in the table. */
         bool present;
 
-        /** One of V3D33_OUTPUT_IMAGE_FORMAT_*, or OUTPUT_IMAGE_FORMAT_NO */
+        /** One of V3D42_OUTPUT_IMAGE_FORMAT_*, or OUTPUT_IMAGE_FORMAT_NO */
         uint8_t rt_type;
 
-        /** One of V3D33_TEXTURE_DATA_FORMAT_*. */
+        /** One of V3D42_TEXTURE_DATA_FORMAT_*. */
         uint8_t tex_type;
 
         /**

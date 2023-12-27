@@ -21,55 +21,55 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-@RET@		FcRange *
-@FUNC@		FcRangeCopy
-@TYPE1@		const FcRange *			@ARG1@		range
-@PURPOSE@	Copy a range object
+@RET@           FcRange *
+@FUNC@          FcRangeCopy
+@TYPE1@         const FcRange *                 @ARG1@          range
+@PURPOSE@       Copy a range object
 @DESC@
 <function>FcRangeCopy</function> creates a new FcRange object and
 populates it with the contents of <parameter>range</parameter>.
-@SINCE@		2.11.91
+@SINCE@         2.11.91
 @@
 
-@RET@		FcRange *
-@FUNC@		FcRangeCreateDouble
-@TYPE1@		double				@ARG1@		begin
-@TYPE2@		double				@ARG2@		end
-@PURPOSE@	create a range object for double
+@RET@           FcRange *
+@FUNC@          FcRangeCreateDouble
+@TYPE1@         double                          @ARG1@          begin
+@TYPE2@         double                          @ARG2@          end
+@PURPOSE@       create a range object for double
 @DESC@
 <function>FcRangeCreateDouble</function> creates a new FcRange object with
 double sized value.
-@SINCE@		2.11.91
+@SINCE@         2.11.91
 @@
 
-@RET@		FcRange *
-@FUNC@		FcRangeCreateInteger
-@TYPE1@		int				@ARG1@		begin
-@TYPE2@		int				@ARG2@		end
-@PURPOSE@	create a range object for integer
+@RET@           FcRange *
+@FUNC@          FcRangeCreateInteger
+@TYPE1@         int                             @ARG1@          begin
+@TYPE2@         int                             @ARG2@          end
+@PURPOSE@       create a range object for integer
 @DESC@
 <function>FcRangeCreateInteger</function> creates a new FcRange object with
 integer sized value.
-@SINCE@		2.11.91
+@SINCE@         2.11.91
 @@
 
-@RET@		void
-@FUNC@		FcRangeDestroy
-@TYPE1@		FcRange *			@ARG1@		range
-@PURPOSE@	destroy a range object
+@RET@           void
+@FUNC@          FcRangeDestroy
+@TYPE1@         FcRange *                       @ARG1@          range
+@PURPOSE@       destroy a range object
 @DESC@
 <function>FcRangeDestroy</function> destroys a FcRange object, freeing
 all memory associated with it.
-@SINCE@		2.11.91
+@SINCE@         2.11.91
 @@
 
-@RET@		FcBool
-@FUNC@		FcRangeGetDouble
-@TYPE1@		const FcRange *			@ARG1@		range
-@TYPE2@		double *      			@ARG2@		begin
-@TYPE3@		double *			@ARG3@		end
-@PURPOSE@	Get the range in double
+@RET@           FcBool
+@FUNC@          FcRangeGetDouble
+@TYPE1@         const FcRange *                 @ARG1@          range
+@TYPE2@         double *                        @ARG2@          begin
+@TYPE3@         double *                        @ARG3@          end
+@PURPOSE@       Get the range in double
 @DESC@
 Returns in <parameter>begin</parameter> and <parameter>end</parameter> as the range.
-@SINCE@		2.11.91
+@SINCE@         2.11.91
 @@

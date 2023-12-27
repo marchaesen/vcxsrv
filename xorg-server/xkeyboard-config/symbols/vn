@@ -1,10 +1,9 @@
+// Keyboard layouts for Vietnam.
+
 // Vietnamese keyboard layout, somehow based on TCVN 5712:1993.
-// Originally by Le Hong Boi <le.hong.boi@bigfoot.com>
-// August 1999
-// Further modified by Ashley Clark <aclark@debian.org>
-// July 2000 for X 4.0
-// Changed accents into combining marks by Samuel Thibault <samuel.thibault@ens-lyon.org>
-// July 2009
+// Original author: Le Hong Boi <le.hong.boi@bigfoot.com>, 1999.
+// Modified by Ashley Clark <aclark@debian.org>, 2000.
+// Accents to combining marks, Samuel Thibault <samuel.thibault@ens-lyon.org>, 2009.
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {

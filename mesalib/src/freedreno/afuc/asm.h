@@ -30,37 +30,12 @@
 
 extern int gpuver;
 
-/**
- * Intermediate representation for an instruction, before final encoding.
- * This mostly exists because we need to resolve label offset's in a 2nd
- * pass, but also so that parser.y doesn't really need to care so much
- * about the different encodings for 2src regs vs 1src+immed, or mnemonics
- */
-struct asm_instruction {
-   int tok;
-   int dst;
-   int src1;
-   int src2;
-   int immed;
-   int shift;
-   int bit;
-   int xmov;
-   uint32_t literal;
-   const char *label;
-
-   bool has_immed : 1;
-   bool has_shift : 1;
-   bool has_bit : 1;
-   bool is_literal : 1;
-   bool rep : 1;
-};
-
 struct asm_label {
    unsigned offset;
    const char *label;
 };
 
-struct asm_instruction *next_instr(int tok);
+struct afuc_instr *next_instr(afuc_opc opc);
 void decl_label(const char *str);
 
 static inline uint32_t
@@ -115,6 +90,7 @@ parse_bit(const char *str)
 }
 
 unsigned parse_control_reg(const char *name);
+unsigned parse_sqe_reg(const char *name);
 
 /* string trailing ':' off label: */
 static inline const char *

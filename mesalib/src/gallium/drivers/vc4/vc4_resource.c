@@ -26,6 +26,7 @@
 #include "util/u_memory.h"
 #include "util/format/u_format.h"
 #include "util/u_inlines.h"
+#include "util/u_resource.h"
 #include "util/u_surface.h"
 #include "util/u_transfer_helper.h"
 #include "util/u_upload_mgr.h"
@@ -95,6 +96,46 @@ vc4_resource_transfer_unmap(struct pipe_context *pctx,
         slab_free(&vc4->transfer_pool, ptrans);
 }
 
+static void
+vc4_map_usage_prep(struct pipe_context *pctx,
+                   struct pipe_resource *prsc,
+                   unsigned usage)
+{
+        struct vc4_context *vc4 = vc4_context(pctx);
+        struct vc4_resource *rsc = vc4_resource(prsc);
+
+        if (usage & PIPE_MAP_DISCARD_WHOLE_RESOURCE) {
+                if (vc4_resource_bo_alloc(rsc)) {
+                        /* If it might be bound as one of our vertex buffers,
+                         * make sure we re-emit vertex buffer state.
+                         */
+                        if (prsc->bind & PIPE_BIND_VERTEX_BUFFER)
+                                vc4->dirty |= VC4_DIRTY_VTXBUF;
+                        if (prsc->bind & PIPE_BIND_CONSTANT_BUFFER)
+                                vc4->dirty |= VC4_DIRTY_CONSTBUF;
+                } else {
+                        /* If we failed to reallocate, flush users so that we
+                         * don't violate any syncing requirements.
+                         */
+                        vc4_flush_jobs_reading_resource(vc4, prsc);
+                }
+        } else if (!(usage & PIPE_MAP_UNSYNCHRONIZED)) {
+                /* If we're writing and the buffer is being used by the CL, we
+                 * have to flush the CL first. If we're only reading, we need
+                 * to flush if the CL has written our buffer.
+                 */
+                if (usage & PIPE_MAP_WRITE)
+                        vc4_flush_jobs_reading_resource(vc4, prsc);
+                else
+                        vc4_flush_jobs_writing_resource(vc4, prsc);
+        }
+
+        if (usage & PIPE_MAP_WRITE) {
+                rsc->writes++;
+                rsc->initialized_buffers = ~0;
+        }
+}
+
 static void *
 vc4_resource_transfer_map(struct pipe_context *pctx,
                           struct pipe_resource *prsc,
@@ -124,34 +165,7 @@ vc4_resource_transfer_map(struct pipe_context *pctx,
                 usage |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
         }
 
-        if (usage & PIPE_MAP_DISCARD_WHOLE_RESOURCE) {
-                if (vc4_resource_bo_alloc(rsc)) {
-                        /* If it might be bound as one of our vertex buffers,
-                         * make sure we re-emit vertex buffer state.
-                         */
-                        if (prsc->bind & PIPE_BIND_VERTEX_BUFFER)
-                                vc4->dirty |= VC4_DIRTY_VTXBUF;
-                } else {
-                        /* If we failed to reallocate, flush users so that we
-                         * don't violate any syncing requirements.
-                         */
-                        vc4_flush_jobs_reading_resource(vc4, prsc);
-                }
-        } else if (!(usage & PIPE_MAP_UNSYNCHRONIZED)) {
-                /* If we're writing and the buffer is being used by the CL, we
-                 * have to flush the CL first.  If we're only reading, we need
-                 * to flush if the CL has written our buffer.
-                 */
-                if (usage & PIPE_MAP_WRITE)
-                        vc4_flush_jobs_reading_resource(vc4, prsc);
-                else
-                        vc4_flush_jobs_writing_resource(vc4, prsc);
-        }
-
-        if (usage & PIPE_MAP_WRITE) {
-                rsc->writes++;
-                rsc->initialized_buffers = ~0;
-        }
+        vc4_map_usage_prep(pctx, prsc, usage);
 
         trans = slab_zalloc(&vc4->transfer_pool);
         if (!trans)
@@ -226,7 +240,7 @@ vc4_texture_subdata(struct pipe_context *pctx,
                     const struct pipe_box *box,
                     const void *data,
                     unsigned stride,
-                    unsigned layer_stride)
+                    uintptr_t layer_stride)
 {
         struct vc4_resource *rsc = vc4_resource(prsc);
         struct vc4_resource_slice *slice = &rsc->slices[level];
@@ -240,8 +254,12 @@ vc4_texture_subdata(struct pipe_context *pctx,
         }
 
         /* Otherwise, map and store the texture data directly into the tiled
-         * texture.
+         * texture.  Note that gallium's texture_subdata may be called with
+         * obvious usage flags missing!
          */
+        vc4_map_usage_prep(pctx, prsc, usage | (PIPE_MAP_WRITE |
+                                                PIPE_MAP_DISCARD_RANGE));
+
         void *buf;
         if (usage & PIPE_MAP_UNSYNCHRONIZED)
                 buf = vc4_bo_map_unsynchronized(rsc->bo);
@@ -333,17 +351,21 @@ vc4_resource_get_param(struct pipe_screen *pscreen,
                        enum pipe_resource_param param,
                        unsigned usage, uint64_t *value)
 {
-        struct vc4_resource *rsc = vc4_resource(prsc);
+        struct vc4_resource *rsc =
+                (struct vc4_resource *)util_resource_at_index(prsc, plane);
 
         switch (param) {
         case PIPE_RESOURCE_PARAM_STRIDE:
                 *value = rsc->slices[level].stride;
                 return true;
         case PIPE_RESOURCE_PARAM_OFFSET:
-                *value = 0;
+                *value = rsc->slices[level].offset;
                 return true;
         case PIPE_RESOURCE_PARAM_MODIFIER:
                 *value = vc4_resource_modifier(rsc);
+                return true;
+        case PIPE_RESOURCE_PARAM_NPLANES:
+                *value = util_resource_num(prsc);
                 return true;
         default:
                 return false;
@@ -1058,7 +1080,7 @@ vc4_update_shadow_baselevel_texture(struct pipe_context *pctx,
                                 },
                                 .format = orig->base.format,
                         },
-                        .mask = ~0,
+                        .mask = util_format_get_mask(orig->base.format),
                 };
                 pctx->blit(pctx, &info);
         }

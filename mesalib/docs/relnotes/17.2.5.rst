@@ -73,7 +73,7 @@ Gert Wollny (1):
 -  r600/sb: bail out if prepare_alu_group() doesn't find a proper
    scheduling
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  spirv: Claim support for the simple memory model
 -  i965/blorp: Use blorp_to_isl_format for src_isl_format in

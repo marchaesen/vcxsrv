@@ -110,7 +110,10 @@ libvc4 = static_library(
   link_with: libvc4_neon,
   c_args : [vc4_c_args],
   gnu_symbol_visibility : 'hidden',
-  dependencies : [dep_simpenrose, dep_libdrm, dep_valgrind, idep_nir_headers],
+  dependencies : [
+    dep_simpenrose, dep_libdrm, dep_valgrind,
+    idep_nir_headers, idep_mesautil,
+  ],
   build_by_default : false,
 )
 

@@ -37,7 +37,7 @@
 
 #include <stdio.h>
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "util/u_memory.h"
 #include "frontend/sw_winsys.h"
 #include "null_sw_winsys.h"

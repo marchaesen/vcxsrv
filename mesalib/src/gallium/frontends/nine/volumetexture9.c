@@ -59,7 +59,7 @@ NineVolumeTexture9_ctor( struct NineVolumeTexture9 *This,
     user_assert(!(Usage & D3DUSAGE_AUTOGENMIPMAP), D3DERR_INVALIDCALL);
 
     pf = d3d9_to_pipe_format_checked(screen, Format, PIPE_TEXTURE_3D, 0,
-                                     PIPE_BIND_SAMPLER_VIEW, FALSE,
+                                     PIPE_BIND_SAMPLER_VIEW, false,
                                      Pool == D3DPOOL_SCRATCH);
 
     if (pf == PIPE_FORMAT_NONE)
@@ -213,7 +213,7 @@ NineVolumeTexture9_AddDirtyBox( struct NineVolumeTexture9 *This,
     }
 
     if (This->base.base.pool == D3DPOOL_MANAGED) {
-        This->base.managed.dirty = TRUE;
+        This->base.managed.dirty = true;
         BASETEX_REGISTER_UPDATE(&This->base);
     }
 

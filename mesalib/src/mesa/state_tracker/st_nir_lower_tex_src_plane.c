@@ -145,14 +145,10 @@ lower_tex_src_plane_block(nir_builder *b, lower_tex_src_state *state, nir_block 
             assert(samp);
 
             nir_deref_instr *tex_deref_instr = nir_build_deref_var(b, samp);
-            nir_ssa_def *tex_deref = &tex_deref_instr->dest.ssa;
+            nir_def *tex_deref = &tex_deref_instr->def;
 
-            nir_instr_rewrite_src(&tex->instr,
-                                  &tex->src[tex_index].src,
-                                  nir_src_for_ssa(tex_deref));
-            nir_instr_rewrite_src(&tex->instr,
-                                  &tex->src[samp_index].src,
-                                  nir_src_for_ssa(tex_deref));
+            nir_src_rewrite(&tex->src[tex_index].src, tex_deref);
+            nir_src_rewrite(&tex->src[samp_index].src, tex_deref);
          } else {
             /* For others we need to update texture_index */
             assume(tex->texture_index == tex->sampler_index);
@@ -167,8 +163,7 @@ lower_tex_src_plane_block(nir_builder *b, lower_tex_src_state *state, nir_block 
 static void
 lower_tex_src_plane_impl(lower_tex_src_state *state, nir_function_impl *impl)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_foreach_block(block, impl) {
       lower_tex_src_plane_block(&b, state, block);
@@ -190,8 +185,7 @@ st_nir_lower_tex_src_plane(struct nir_shader *shader, unsigned free_slots,
 
    assign_extra_samplers(&state, free_slots);
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         lower_tex_src_plane_impl(&state, function->impl);
+   nir_foreach_function_impl(impl, shader) {
+      lower_tex_src_plane_impl(&state, impl);
    }
 }

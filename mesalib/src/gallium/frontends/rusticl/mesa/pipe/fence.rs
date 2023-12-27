@@ -1,8 +1,21 @@
 use crate::pipe::screen::*;
 
+use libc_rust_gen::close;
 use mesa_rust_gen::*;
 
 use std::sync::Arc;
+
+pub struct FenceFd {
+    pub fd: i32,
+}
+
+impl Drop for FenceFd {
+    fn drop(&mut self) {
+        unsafe {
+            close(self.fd);
+        }
+    }
+}
 
 pub struct PipeFence {
     fence: *mut pipe_fence_handle,

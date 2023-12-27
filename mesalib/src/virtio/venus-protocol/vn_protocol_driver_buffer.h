@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_BUFFER_H
 #define VN_PROTOCOL_DRIVER_BUFFER_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkExternalMemoryBufferCreateInfo chain */
@@ -1083,7 +1083,7 @@ static inline VkDeviceAddress vn_decode_vkGetBufferDeviceAddress_reply(struct vn
     return ret;
 }
 
-static inline void vn_submit_vkGetBufferMemoryRequirements(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetBufferMemoryRequirements(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1095,16 +1095,16 @@ static inline void vn_submit_vkGetBufferMemoryRequirements(struct vn_instance *v
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetBufferMemoryRequirements_reply(device, buffer, pMemoryRequirements) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetBufferMemoryRequirements(enc, cmd_flags, device, buffer, pMemoryRequirements);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkBindBufferMemory(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkBindBufferMemory(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1116,16 +1116,16 @@ static inline void vn_submit_vkBindBufferMemory(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkBindBufferMemory_reply(device, buffer, memory, memoryOffset) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkBindBufferMemory(enc, cmd_flags, device, buffer, memory, memoryOffset);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCreateBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1137,16 +1137,16 @@ static inline void vn_submit_vkCreateBuffer(struct vn_instance *vn_instance, VkC
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateBuffer_reply(device, pCreateInfo, pAllocator, pBuffer) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateBuffer(enc, cmd_flags, device, pCreateInfo, pAllocator, pBuffer);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1158,16 +1158,16 @@ static inline void vn_submit_vkDestroyBuffer(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyBuffer_reply(device, buffer, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyBuffer(enc, cmd_flags, device, buffer, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkBindBufferMemory2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, uint32_t bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkBindBufferMemory2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, uint32_t bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1179,16 +1179,16 @@ static inline void vn_submit_vkBindBufferMemory2(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkBindBufferMemory2_reply(device, bindInfoCount, pBindInfos) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkBindBufferMemory2(enc, cmd_flags, device, bindInfoCount, pBindInfos);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetBufferMemoryRequirements2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetBufferMemoryRequirements2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1200,16 +1200,16 @@ static inline void vn_submit_vkGetBufferMemoryRequirements2(struct vn_instance *
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetBufferMemoryRequirements2_reply(device, pInfo, pMemoryRequirements) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetBufferMemoryRequirements2(enc, cmd_flags, device, pInfo, pMemoryRequirements);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetDeviceBufferMemoryRequirements(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetDeviceBufferMemoryRequirements(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1221,16 +1221,16 @@ static inline void vn_submit_vkGetDeviceBufferMemoryRequirements(struct vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetDeviceBufferMemoryRequirements_reply(device, pInfo, pMemoryRequirements) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetDeviceBufferMemoryRequirements(enc, cmd_flags, device, pInfo, pMemoryRequirements);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetBufferOpaqueCaptureAddress(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferDeviceAddressInfo* pInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetBufferOpaqueCaptureAddress(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferDeviceAddressInfo* pInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1242,16 +1242,16 @@ static inline void vn_submit_vkGetBufferOpaqueCaptureAddress(struct vn_instance 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetBufferOpaqueCaptureAddress_reply(device, pInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetBufferOpaqueCaptureAddress(enc, cmd_flags, device, pInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetBufferDeviceAddress(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferDeviceAddressInfo* pInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetBufferDeviceAddress(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkBufferDeviceAddressInfo* pInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1263,199 +1263,199 @@ static inline void vn_submit_vkGetBufferDeviceAddress(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetBufferDeviceAddress_reply(device, pInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetBufferDeviceAddress(enc, cmd_flags, device, pInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_call_vkGetBufferMemoryRequirements(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements)
+static inline void vn_call_vkGetBufferMemoryRequirements(struct vn_ring *vn_ring, VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferMemoryRequirements(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, pMemoryRequirements, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferMemoryRequirements(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, pMemoryRequirements, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkGetBufferMemoryRequirements_reply(dec, device, buffer, pMemoryRequirements);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkGetBufferMemoryRequirements(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements)
+static inline void vn_async_vkGetBufferMemoryRequirements(struct vn_ring *vn_ring, VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferMemoryRequirements(vn_instance, 0, device, buffer, pMemoryRequirements, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferMemoryRequirements(vn_ring, 0, device, buffer, pMemoryRequirements, &submit);
 }
 
-static inline VkResult vn_call_vkBindBufferMemory(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset)
+static inline VkResult vn_call_vkBindBufferMemory(struct vn_ring *vn_ring, VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkBindBufferMemory(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, memory, memoryOffset, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkBindBufferMemory(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, memory, memoryOffset, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkBindBufferMemory_reply(dec, device, buffer, memory, memoryOffset);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkBindBufferMemory(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset)
+static inline void vn_async_vkBindBufferMemory(struct vn_ring *vn_ring, VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkBindBufferMemory(vn_instance, 0, device, buffer, memory, memoryOffset, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkBindBufferMemory(vn_ring, 0, device, buffer, memory, memoryOffset, &submit);
 }
 
-static inline VkResult vn_call_vkCreateBuffer(struct vn_instance *vn_instance, VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer)
+static inline VkResult vn_call_vkCreateBuffer(struct vn_ring *vn_ring, VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pBuffer, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pBuffer, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateBuffer_reply(dec, device, pCreateInfo, pAllocator, pBuffer);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateBuffer(struct vn_instance *vn_instance, VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer)
+static inline void vn_async_vkCreateBuffer(struct vn_ring *vn_ring, VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateBuffer(vn_instance, 0, device, pCreateInfo, pAllocator, pBuffer, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateBuffer(vn_ring, 0, device, pCreateInfo, pAllocator, pBuffer, &submit);
 }
 
-static inline void vn_call_vkDestroyBuffer(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyBuffer(struct vn_ring *vn_ring, VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyBuffer_reply(dec, device, buffer, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyBuffer(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyBuffer(struct vn_ring *vn_ring, VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyBuffer(vn_instance, 0, device, buffer, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyBuffer(vn_ring, 0, device, buffer, pAllocator, &submit);
 }
 
-static inline VkResult vn_call_vkBindBufferMemory2(struct vn_instance *vn_instance, VkDevice device, uint32_t bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos)
+static inline VkResult vn_call_vkBindBufferMemory2(struct vn_ring *vn_ring, VkDevice device, uint32_t bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkBindBufferMemory2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, bindInfoCount, pBindInfos, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkBindBufferMemory2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, bindInfoCount, pBindInfos, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkBindBufferMemory2_reply(dec, device, bindInfoCount, pBindInfos);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkBindBufferMemory2(struct vn_instance *vn_instance, VkDevice device, uint32_t bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos)
+static inline void vn_async_vkBindBufferMemory2(struct vn_ring *vn_ring, VkDevice device, uint32_t bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkBindBufferMemory2(vn_instance, 0, device, bindInfoCount, pBindInfos, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkBindBufferMemory2(vn_ring, 0, device, bindInfoCount, pBindInfos, &submit);
 }
 
-static inline void vn_call_vkGetBufferMemoryRequirements2(struct vn_instance *vn_instance, VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements)
+static inline void vn_call_vkGetBufferMemoryRequirements2(struct vn_ring *vn_ring, VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferMemoryRequirements2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, pMemoryRequirements, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferMemoryRequirements2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, pMemoryRequirements, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkGetBufferMemoryRequirements2_reply(dec, device, pInfo, pMemoryRequirements);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkGetBufferMemoryRequirements2(struct vn_instance *vn_instance, VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements)
+static inline void vn_async_vkGetBufferMemoryRequirements2(struct vn_ring *vn_ring, VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferMemoryRequirements2(vn_instance, 0, device, pInfo, pMemoryRequirements, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferMemoryRequirements2(vn_ring, 0, device, pInfo, pMemoryRequirements, &submit);
 }
 
-static inline void vn_call_vkGetDeviceBufferMemoryRequirements(struct vn_instance *vn_instance, VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements)
+static inline void vn_call_vkGetDeviceBufferMemoryRequirements(struct vn_ring *vn_ring, VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetDeviceBufferMemoryRequirements(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, pMemoryRequirements, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetDeviceBufferMemoryRequirements(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, pMemoryRequirements, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkGetDeviceBufferMemoryRequirements_reply(dec, device, pInfo, pMemoryRequirements);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkGetDeviceBufferMemoryRequirements(struct vn_instance *vn_instance, VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements)
+static inline void vn_async_vkGetDeviceBufferMemoryRequirements(struct vn_ring *vn_ring, VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetDeviceBufferMemoryRequirements(vn_instance, 0, device, pInfo, pMemoryRequirements, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetDeviceBufferMemoryRequirements(vn_ring, 0, device, pInfo, pMemoryRequirements, &submit);
 }
 
-static inline uint64_t vn_call_vkGetBufferOpaqueCaptureAddress(struct vn_instance *vn_instance, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
+static inline uint64_t vn_call_vkGetBufferOpaqueCaptureAddress(struct vn_ring *vn_ring, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferOpaqueCaptureAddress(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferOpaqueCaptureAddress(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const uint64_t ret = vn_decode_vkGetBufferOpaqueCaptureAddress_reply(dec, device, pInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkGetBufferOpaqueCaptureAddress(struct vn_instance *vn_instance, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
+static inline void vn_async_vkGetBufferOpaqueCaptureAddress(struct vn_ring *vn_ring, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferOpaqueCaptureAddress(vn_instance, 0, device, pInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferOpaqueCaptureAddress(vn_ring, 0, device, pInfo, &submit);
 }
 
-static inline VkDeviceAddress vn_call_vkGetBufferDeviceAddress(struct vn_instance *vn_instance, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
+static inline VkDeviceAddress vn_call_vkGetBufferDeviceAddress(struct vn_ring *vn_ring, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferDeviceAddress(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferDeviceAddress(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkDeviceAddress ret = vn_decode_vkGetBufferDeviceAddress_reply(dec, device, pInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkGetBufferDeviceAddress(struct vn_instance *vn_instance, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
+static inline void vn_async_vkGetBufferDeviceAddress(struct vn_ring *vn_ring, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetBufferDeviceAddress(vn_instance, 0, device, pInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetBufferDeviceAddress(vn_ring, 0, device, pInfo, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_BUFFER_H */

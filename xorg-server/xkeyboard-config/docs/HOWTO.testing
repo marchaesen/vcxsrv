@@ -1,5 +1,5 @@
 A mini-HOWTO test the XKB config without modifying the system configuration.
-(Only tested with XFree86 4.3+.) 
+(Only tested with XFree86 4.3+.)
 
 First see what your configuration is. Note the model and layout.
    $ setxkbmap -print

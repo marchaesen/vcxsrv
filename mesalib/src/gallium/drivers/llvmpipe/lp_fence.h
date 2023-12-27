@@ -30,7 +30,7 @@
 #define LP_FENCE_H
 
 
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
 
@@ -46,7 +46,7 @@ struct lp_fence
    mtx_t mutex;
    cnd_t signalled;
 
-   boolean issued;
+   bool issued;
    unsigned rank;
    unsigned count;
 };
@@ -59,13 +59,13 @@ lp_fence_create(unsigned rank);
 void
 lp_fence_signal(struct lp_fence *fence);
 
-boolean
+bool
 lp_fence_signalled(struct lp_fence *fence);
 
 void
 lp_fence_wait(struct lp_fence *fence);
 
-boolean
+bool
 lp_fence_timedwait(struct lp_fence *fence, uint64_t timeout);
 
 void
@@ -88,7 +88,7 @@ lp_fence_reference(struct lp_fence **ptr,
    *ptr = f;
 }
 
-static inline boolean
+static inline bool
 lp_fence_issued(const struct lp_fence *fence)
 {
    return fence->issued;

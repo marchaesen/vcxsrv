@@ -82,13 +82,13 @@ libaco_files = files(
   'aco_validate.cpp',
 )
 
-cpp_args_aco = cpp.get_supported_arguments(['-fno-exceptions', '-fno-rtti', '-Wimplicit-fallthrough', '-Wshadow', '-DNOMINMAX'])
+cpp_args_aco = cpp.get_supported_arguments(['-fno-exceptions', '-fno-rtti', '-Wimplicit-fallthrough', '-Wshadow'])
 
 _libaco = static_library(
   'aco',
   [libaco_files, aco_opcodes_c, aco_opcodes_h, aco_builder_h],
   include_directories : [
-   inc_include, inc_src, inc_compiler, inc_amd, inc_amd_common,
+   inc_include, inc_src, inc_amd, inc_amd_common,
   ],
   dependencies : [
     dep_llvm, dep_thread, dep_valgrind, idep_nir_headers, idep_amdgfxregs_h, idep_mesautil,
@@ -102,4 +102,5 @@ _libaco = static_library(
 idep_aco = declare_dependency(
   include_directories : include_directories('.'),
   link_with : _libaco,
+  sources : [aco_opcodes_h, aco_builder_h],
 )

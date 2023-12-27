@@ -90,84 +90,6 @@ util_translate_prim_restart_data(unsigned index_size,
    }
 }
 
-/**
- * Translate an index buffer for primitive restart.
- * Create a new index buffer which is a copy of the original index buffer
- * except that instances of 'restart_index' are converted to 0xffff or
- * 0xffffffff.
- * Also, index buffers using 1-byte indexes are converted to 2-byte indexes.
- */
-enum pipe_error
-util_translate_prim_restart_ib(struct pipe_context *context,
-                               const struct pipe_draw_info *info,
-                               const struct pipe_draw_indirect_info *indirect_info,
-                               const struct pipe_draw_start_count_bias *draw,
-                               struct pipe_resource **dst_buffer)
-{
-   struct pipe_screen *screen = context->screen;
-   struct pipe_transfer *src_transfer = NULL, *dst_transfer = NULL;
-   void *src_map = NULL, *dst_map = NULL;
-   const unsigned src_index_size = info->index_size;
-   unsigned dst_index_size;
-   DrawElementsIndirectCommand indirect;
-   unsigned count = draw->count;
-   unsigned start = draw->start;
-
-   /* 1-byte indexes are converted to 2-byte indexes, 4-byte stays 4-byte */
-   dst_index_size = MAX2(2, info->index_size);
-   assert(dst_index_size == 2 || dst_index_size == 4);
-
-   if (indirect_info && indirect_info->buffer) {
-      indirect = read_indirect_elements(context, indirect_info);
-      count = indirect.count;
-      start = indirect.firstIndex;
-   }
-
-   /* Create new index buffer */
-   *dst_buffer = pipe_buffer_create(screen, PIPE_BIND_INDEX_BUFFER,
-                                    PIPE_USAGE_STREAM,
-                                    count * dst_index_size);
-   if (!*dst_buffer)
-      goto error;
-
-   /* Map new / dest index buffer */
-   dst_map = pipe_buffer_map(context, *dst_buffer,
-                             PIPE_MAP_WRITE, &dst_transfer);
-   if (!dst_map)
-      goto error;
-
-   if (info->has_user_indices)
-      src_map = (unsigned char*)info->index.user + start * src_index_size;
-   else
-      /* Map original / src index buffer */
-      src_map = pipe_buffer_map_range(context, info->index.resource,
-                                      start * src_index_size,
-                                      count * src_index_size,
-                                      PIPE_MAP_READ,
-                                      &src_transfer);
-   if (!src_map)
-      goto error;
-
-   util_translate_prim_restart_data(src_index_size, src_map, dst_map,
-                                    count, info->restart_index);
-
-   if (src_transfer)
-      pipe_buffer_unmap(context, src_transfer);
-   pipe_buffer_unmap(context, dst_transfer);
-
-   return PIPE_OK;
-
-error:
-   if (src_transfer)
-      pipe_buffer_unmap(context, src_transfer);
-   if (dst_transfer)
-      pipe_buffer_unmap(context, dst_transfer);
-   if (*dst_buffer)
-      pipe_resource_reference(dst_buffer, NULL);
-   return PIPE_ERROR_OUT_OF_MEMORY;
-}
-
-
 /** Helper structs for util_draw_vbo_without_prim_restart() */
 
 struct range_info {
@@ -182,18 +104,18 @@ struct range_info {
  * Helper function for util_draw_vbo_without_prim_restart()
  * \return true for success, false if out of memory
  */
-static boolean
-add_range(enum pipe_prim_type mode, struct range_info *info, unsigned start, unsigned count, unsigned index_bias)
+static bool
+add_range(enum mesa_prim mode, struct range_info *info, unsigned start, unsigned count, unsigned index_bias)
 {
    /* degenerate primitive: ignore */
    if (!u_trim_pipe_prim(mode, (unsigned*)&count))
-      return TRUE;
+      return true;
 
    if (info->max == 0) {
       info->max = 10;
       info->draws = MALLOC(info->max * sizeof(struct pipe_draw_start_count_bias));
       if (!info->draws) {
-         return FALSE;
+         return false;
       }
    }
    else if (info->count == info->max) {
@@ -202,7 +124,7 @@ add_range(enum pipe_prim_type mode, struct range_info *info, unsigned start, uns
                              info->max * sizeof(struct pipe_draw_start_count_bias),
                              2 * info->max * sizeof(struct pipe_draw_start_count_bias));
       if (!info->draws) {
-         return FALSE;
+         return false;
       }
 
       info->max *= 2;
@@ -217,7 +139,7 @@ add_range(enum pipe_prim_type mode, struct range_info *info, unsigned start, uns
    info->count++;
    info->total_index_count += count;
 
-   return TRUE;
+   return true;
 }
 
 struct pipe_draw_start_count_bias *
@@ -348,7 +270,7 @@ util_draw_vbo_without_prim_restart(struct pipe_context *context,
    if (src_transfer)
       pipe_buffer_unmap(context, src_transfer);
 
-   new_info.primitive_restart = FALSE;
+   new_info.primitive_restart = false;
    new_info.index_bounds_valid = true;
    if (direct_draws)
       context->draw_vbo(context, &new_info, drawid_offset, NULL, direct_draws, num_draws);

@@ -1906,7 +1906,7 @@ Jan Beich (1):
 
 - meson: disable -Werror=thread-safety on FreeBSD
 
-Jason Ekstrand (192):
+Faith Ekstrand (192):
 
 - intel/dev: Handle CHV CS thread weirdness in get_device_info_from_fd
 - intel/dev: Put the device name in intel_device_info
@@ -3255,7 +3255,7 @@ Mike Blumenkrantz (480):
 - zink: stop leaking resource surface cache hash tables
 - zink: rework in-use batch states hash table to be a singly-linked list
 - zink: ci updates
-- zink: move glx@glx-multi-window-single-context to flakes
+- zink: move glx\@glx-multi-window-single-context to flakes
 - radv: don't use invalid stride for triggering vertex state change
 - radv: dynamically calculate misaligned_mask for dynamic vertex input
 - radv: pre-calc "simple" dynamic vertex input values

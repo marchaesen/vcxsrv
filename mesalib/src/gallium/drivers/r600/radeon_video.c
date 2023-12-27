@@ -224,7 +224,7 @@ int rvid_get_video_param(struct pipe_screen *screen,
 	enum pipe_video_format codec = u_reduce_video_profile(profile);
 	struct radeon_info info;
 
-	rscreen->ws->query_info(rscreen->ws, &info, false, false);
+	rscreen->ws->query_info(rscreen->ws, &info);
 
 	if (entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
 		switch (param) {

@@ -1,24 +1,14 @@
-BasedOnStyle: LLVM
+
+BasedOnStyle: InheritParentConfig
+DisableFormat: false
+
 AlwaysBreakAfterReturnType: TopLevel
 BinPackParameters: false
-BraceWrapping:
-  AfterControlStatement: false
-  AfterEnum: false
-  AfterFunction: true
-  AfterStruct: false
-  BeforeElse: false
-  SplitEmptyFunction: true
-BreakBeforeBraces: Custom
+
 ColumnLimit: 78
-ContinuationIndentWidth: 3
+
 Cpp11BracedListStyle: false
-ForEachMacros:
-  - list_for_each_entry
-  - list_for_each_entry_safe
-  - vk_outarray_append
-  - vk_outarray_append_typed
-  - vk_foreach_struct
-  - vk_foreach_struct_const
+
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex:           '^"vn_common.h"$'
@@ -31,9 +21,5 @@ IncludeCategories:
     Priority:        2
   - Regex:           '.*'
     Priority:        1
-IndentWidth: 3
-PenaltyBreakBeforeFirstCallParameter: 1
-PenaltyExcessCharacter: 100
-SpaceAfterCStyleCast: false
-SpaceBeforeCpp11BracedList: false
+
 SpaceBeforeParens: ControlStatementsExceptForEachMacros

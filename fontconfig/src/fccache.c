@@ -287,7 +287,7 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
 	ret = FcFalse;
 	goto bail;
     }
-	
+
     while ((cache_dir = FcStrListNext (list)))
     {
 	if (sysroot)
@@ -381,7 +381,7 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
     list = FcStrListCreate (config->cacheDirs);
     if (!list)
         return FcFalse;
-	
+
     while ((cache_dir = FcStrListNext (list)))
     {
         FcChar8	*cache_hashed;
@@ -794,20 +794,17 @@ FcCacheFini (void)
 {
     int		    i;
 
-    for (i = 0; i < FC_CACHE_MAX_LEVEL; i++)
+    if (FcDebug() & FC_DBG_CACHE)
     {
-	if (FcDebug() & FC_DBG_CACHE)
+	for (i = 0; i < FC_CACHE_MAX_LEVEL; i++)
 	{
 	    if (fcCacheChains[i] != NULL)
 	    {
 		FcCacheSkip *s = fcCacheChains[i];
-		printf("Fontconfig error: not freed %p (dir: %s, refcount %" FC_ATOMIC_INT_FORMAT ")\n", s->cache, FcCacheDir(s->cache), s->ref.count);
+		fprintf(stderr, "Fontconfig error: not freed %p (dir: %s, refcount %" FC_ATOMIC_INT_FORMAT ")\n", s->cache, FcCacheDir(s->cache), s->ref.count);
 	    }
 	}
-	else
-	    assert (fcCacheChains[i] == NULL);
     }
-    assert (fcCacheMaxLevel == 0);
 
     free_lock ();
 }
@@ -1019,7 +1016,7 @@ FcDirCacheMapFd (FcConfig *config, int fd, struct stat *fd_stat, struct stat *di
     /* Mark allocated caches so they're freed rather than unmapped */
     if (allocated)
 	cache->magic = FC_CACHE_MAGIC_ALLOC;
-	
+
     return cache;
 }
 
@@ -1711,7 +1708,7 @@ FcCacheCopySet args1(const FcCache *c)
     for (i = 0; i < old->nfont; i++)
     {
 	FcPattern   *font = FcFontSetFont (old, i);
-	
+
 	FcPatternReference (font);
 	if (!FcFontSetAdd (new, font))
 	{

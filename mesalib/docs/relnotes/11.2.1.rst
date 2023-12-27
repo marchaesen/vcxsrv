@@ -59,7 +59,7 @@ Iurie Salomov (1):
 
 -  va: check null context in vlVaDestroyContext
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  i965/tiled_memcopy: Add aligned mem_copy parameters to the [de]tiling
    functions

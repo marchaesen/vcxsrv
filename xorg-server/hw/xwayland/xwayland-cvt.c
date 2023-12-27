@@ -29,30 +29,48 @@
 
 #include "xwayland-cvt.h"
 
-RRModePtr
-xwayland_cvt(int hdisplay, int vdisplay, float vrefresh, Bool reduced,
-             Bool interlaced)
+static void
+xwayland_modeinfo_from_cvt(xRRModeInfo *modeinfo,
+                           int hdisplay, int vdisplay, float vrefresh,
+                           Bool reduced, Bool interlaced)
 {
     struct libxcvt_mode_info *libxcvt_mode_info;
-    char name[128];
-    xRRModeInfo modeinfo;
 
     libxcvt_mode_info =
         libxcvt_gen_mode_info(hdisplay, vdisplay, vrefresh, reduced, interlaced);
 
-    memset(&modeinfo, 0, sizeof modeinfo);
-    modeinfo.width      = libxcvt_mode_info->hdisplay;
-    modeinfo.height     = libxcvt_mode_info->vdisplay;
-    modeinfo.dotClock   = libxcvt_mode_info->dot_clock * 1000.0;
-    modeinfo.hSyncStart = libxcvt_mode_info->hsync_start;
-    modeinfo.hSyncEnd   = libxcvt_mode_info->hsync_end;
-    modeinfo.hTotal     = libxcvt_mode_info->htotal;
-    modeinfo.vSyncStart = libxcvt_mode_info->vsync_start;
-    modeinfo.vSyncEnd   = libxcvt_mode_info->vsync_end;
-    modeinfo.vTotal     = libxcvt_mode_info->vtotal;
-    modeinfo.modeFlags  = libxcvt_mode_info->mode_flags;
+    modeinfo->width      = libxcvt_mode_info->hdisplay;
+    modeinfo->height     = libxcvt_mode_info->vdisplay;
+    modeinfo->dotClock   = libxcvt_mode_info->dot_clock * 1000.0;
+    modeinfo->hSyncStart = libxcvt_mode_info->hsync_start;
+    modeinfo->hSyncEnd   = libxcvt_mode_info->hsync_end;
+    modeinfo->hTotal     = libxcvt_mode_info->htotal;
+    modeinfo->vSyncStart = libxcvt_mode_info->vsync_start;
+    modeinfo->vSyncEnd   = libxcvt_mode_info->vsync_end;
+    modeinfo->vTotal     = libxcvt_mode_info->vtotal;
+    modeinfo->modeFlags  = libxcvt_mode_info->mode_flags;
 
     free(libxcvt_mode_info);
+}
+
+RRModePtr
+xwayland_cvt(int hdisplay, int vdisplay, float vrefresh, Bool reduced,
+             Bool interlaced)
+{
+    char name[128];
+    xRRModeInfo modeinfo = { 0, };
+
+    xwayland_modeinfo_from_cvt(&modeinfo,
+                               hdisplay, vdisplay, vrefresh, reduced, interlaced);
+
+    /* Horizontal granularity in libxcvt is 8, so if our horizontal size is not
+     * divisible by 8, libxcvt will round it up, and we will advertise a wrong
+     * size to our XRandR clients.
+     * Force the width/height (i.e. simply increase blanking which should not
+     * hurt anything), keeping the rest of the CVT mode timings unchanged.
+     */
+    modeinfo.width = hdisplay;
+    modeinfo.height = vdisplay;
 
     snprintf(name, sizeof name, "%dx%d",
              modeinfo.width, modeinfo.height);

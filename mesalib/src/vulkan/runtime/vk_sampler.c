@@ -22,7 +22,10 @@
  */
 
 #include "vk_sampler.h"
+
+#include "vk_format.h"
 #include "vk_util.h"
+#include "vk_ycbcr_conversion.h"
 
 VkClearColorValue
 vk_border_color_value(VkBorderColor color)
@@ -68,8 +71,7 @@ VkClearColorValue
 vk_sampler_border_color_value(const VkSamplerCreateInfo *pCreateInfo,
                               VkFormat *format_out)
 {
-   if (pCreateInfo->borderColor == VK_BORDER_COLOR_FLOAT_CUSTOM_EXT ||
-       pCreateInfo->borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT) {
+   if (vk_border_color_is_custom(pCreateInfo->borderColor)) {
       const VkSamplerCustomBorderColorCreateInfoEXT *border_color_info =
          vk_find_struct_const(pCreateInfo->pNext,
                               SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT);
@@ -85,3 +87,83 @@ vk_sampler_border_color_value(const VkSamplerCreateInfo *pCreateInfo,
    }
 }
 
+void *
+vk_sampler_create(struct vk_device *device,
+                  const VkSamplerCreateInfo *pCreateInfo,
+                  const VkAllocationCallbacks *alloc,
+                  size_t size)
+{
+   struct vk_sampler *sampler;
+
+   sampler = vk_object_zalloc(device, alloc, size, VK_OBJECT_TYPE_SAMPLER);
+   if (!sampler)
+      return NULL;
+
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+
+   sampler->format = VK_FORMAT_UNDEFINED;
+   sampler->border_color = pCreateInfo->borderColor;
+   sampler->reduction_mode = VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE;
+
+   if (!vk_border_color_is_custom(pCreateInfo->borderColor)) {
+      sampler->border_color_value =
+         vk_border_color_value(pCreateInfo->borderColor);
+   }
+
+   vk_foreach_struct_const(ext, pCreateInfo->pNext) {
+      switch (ext->sType) {
+      case VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT: {
+         const VkSamplerCustomBorderColorCreateInfoEXT *cbc_info = (void *)ext;
+         if (!vk_border_color_is_custom(pCreateInfo->borderColor))
+            break;
+
+         sampler->border_color_value = cbc_info->customBorderColor;
+         if (cbc_info->format != VK_FORMAT_UNDEFINED)
+            sampler->format = cbc_info->format;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO: {
+         const VkSamplerReductionModeCreateInfo *rm_info = (void *)ext;
+         sampler->reduction_mode = rm_info->reductionMode;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO: {
+         const VkSamplerYcbcrConversionInfo *yc_info = (void *)ext;
+         VK_FROM_HANDLE(vk_ycbcr_conversion, conversion, yc_info->conversion);
+
+         /* From the Vulkan 1.2.259 spec:
+          *
+          *    "A VkSamplerYcbcrConversionInfo must be provided for samplers
+          *    to be used with image views that access
+          *    VK_IMAGE_ASPECT_COLOR_BIT if the format is one of the formats
+          *    that require a sampler YCbCr conversion, or if the image view
+          *    has an external format."
+          *
+          * This means that on Android we can end up with one of these even if
+          * YCbCr isn't being used at all. Leave sampler->ycbcr_conversion NULL
+          * if it isn't a YCbCr format.
+          */
+         if (vk_format_get_ycbcr_info(conversion->state.format) == NULL)
+            break;
+
+         sampler->ycbcr_conversion = conversion;
+         sampler->format = conversion->state.format;
+         break;
+      }
+      default:
+         break;
+      }
+   }
+
+   return sampler;
+}
+
+void
+vk_sampler_destroy(struct vk_device *device,
+                   const VkAllocationCallbacks *alloc,
+                   struct vk_sampler *sampler)
+{
+   vk_object_free(device, alloc, sampler);
+}

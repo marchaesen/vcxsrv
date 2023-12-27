@@ -1,16 +1,11 @@
-// Bosnian, Croatian, Serbian and Slovenian XKB keyboard mappings.
-//
+// Keyboard layouts for Serbia.
+
 // Derived from "Danube" D.2 from 2003-05-12,
 // which is available at http://srpski.org/dunav/.
 //
 // Original authors:
-//  Danilo Segan (Данило Шеган) <danilo@kvota.net>
-//  Chusslove Illich (Часлав Илић) <caslav.ilic@gmx.net>
-//
-// Danilo Segan <danilo@kvota.net>:
-// - Modified for inclusion in XFree86.
-// - Further modifications on 2005-08-18 to support Bosnian,
-//   Croatian and Slovenian in xkeyboard-config.
+//   Danilo Segan (Данило Шеган) <danilo@kvota.net>
+//   Chusslove Illich (Часлав Илић) <caslav.ilic@gmx.net>
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {
@@ -126,14 +121,14 @@ xkb_symbols "twoletter" {
 
     // Letters which are written in latin transcription with two characters.
     key <AD01> { type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
-               [ U1C9,           U1C8,          any, U1C7 ] }; // q
+                 [ U01C9,          U01C8,         any,  U01C7 ] }; // ǉ ǈ . Ǉ
     key <AD02> { type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
-               [ U1CC,           U1CB,          any, U1CA ] }; // w
+                 [ U01CC,          U01CB,         any,  U01CA ] }; // ǌ ǋ . Ǌ
     key <AB02> { type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
-               [ U1C6,           U1C5,          any, U1C4 ] }; // x
+                 [ U01C6,          U01C5,         any,  U01C4 ] }; // ǆ ǅ . Ǆ
 
     // Also replace letter Y with Zcaron, since Y is of no use any longer.
-    key <AB01> { [ zcaron,         Zcaron        ] }; // z
+    key <AB01> { [ zcaron,         Zcaron        ] };
 };
 
 hidden partial alphanumeric_keys
@@ -187,7 +182,7 @@ xkb_symbols "latlevel3" {
     key <AB03> { [ any, any,   cent,                copyright        ] }; // c
     key <AB04> { [ any, any,   at,                  grave            ] }; // v
     key <AB05> { [ any, any,   braceleft,           apostrophe       ] }; // b
-    key <AB06> { [ any, any,   braceright,          braceright       ] }; // n
+    key <AB06> { [ any, any,   braceright,          acute            ] }; // n
     key <AB07> { [ any, any,   section,             masculine        ] }; // m
     key <AB08> { [ any, any,   less,                multiply         ] }; // , <
     key <AB09> { [ any, any,   greater,             division         ] }; // . >

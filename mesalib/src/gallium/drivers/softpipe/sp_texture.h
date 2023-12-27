@@ -62,8 +62,8 @@ struct softpipe_resource
 
    /* True if texture images are power-of-two in all dimensions:
     */
-   boolean pot;
-   boolean userBuffer;
+   bool pot;
+   bool userBuffer;
 
    unsigned timestamp;
 };

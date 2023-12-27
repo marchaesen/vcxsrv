@@ -85,7 +85,7 @@ Erik Faye-Lund (2):
 - mesa: handle GL_FRONT after translating to it
 - st/mesa: use roundf instead of floorf for lod-bias rounding
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - intel/fs/swsb: SCHEDULING_FENCE only emits SYNC_NOP
 - nir/liveness: Consider if uses in nir_ssa_defs_interfere

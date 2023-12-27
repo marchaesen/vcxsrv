@@ -55,7 +55,7 @@ NineDevice9Ex_ctor( struct NineDevice9Ex *This,
                             pScreen, pCreationParameters, pCaps,
                             pPresentationParameters,
                             (IDirect3D9 *)pD3D9Ex, pPresentationGroup, pCTX,
-                            TRUE, pFullscreenDisplayMode, minorVersionNum);
+                            true, pFullscreenDisplayMode, minorVersionNum);
 }
 
 static void

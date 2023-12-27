@@ -113,7 +113,7 @@ class Extension:
             match_os = re.match(".*win32$", original)
 
             # try to match extensions with alphanumeric names, like robustness2
-            match_alphanumeric = re.match("([a-z]+)(\d+)", original)
+            match_alphanumeric = re.match(r"([a-z]+)(\d+)", original)
 
             if match_types is not None or match_os is not None:
                 return original.upper()

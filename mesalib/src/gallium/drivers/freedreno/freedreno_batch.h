@@ -45,7 +45,53 @@ struct fd_resource;
 struct fd_batch_key;
 struct fd_batch_result;
 
-/* A batch tracks everything about a cmdstream batch/submit, including the
+/**
+ * A subpass is a fragment of a batch potentially starting with a clear.
+ * If the app does a mid-batch clear, that clear and subsequent draws
+ * can be split out into another sub-pass.  At gmem time, the appropriate
+ * sysmem or gmem clears can be interleaved with the CP_INDIRECT_BUFFER
+ * to the subpass's draw cmdstream.
+ *
+ * For depth clears, a replacement LRZ buffer can be allocated (clear
+ * still inserted into the prologue cmdstream since it needs be executed
+ * even in sysmem or if we aren't binning, since later batches could
+ * depend in the LRZ state).  The alternative would be to invalidate
+ * LRZ for draws after the start of the new subpass.
+ */
+struct fd_batch_subpass {
+   struct list_head node;
+
+   /** draw pass cmdstream: */
+   struct fd_ringbuffer *draw;
+
+   /** for the gmem code to stash per tile per subpass clears */
+   struct fd_ringbuffer *subpass_clears;
+
+   BITMASK_ENUM(fd_buffer_mask) fast_cleared;
+
+   union pipe_color_union clear_color[MAX_RENDER_TARGETS];
+   double clear_depth;
+   unsigned clear_stencil;
+
+   /**
+    * The number of draws emitted to this subpass.  If it is greater than
+    * zero, a clear triggers creating a new subpass (because clears must
+    * always come at the start of a subpass).
+    */
+   unsigned num_draws;
+
+   /**
+    * If a subpass starts with a LRZ clear, it gets a new LRZ buffer.
+    * The fd_resource::lrz always tracks the current lrz buffer, but at
+    * binning/gmem time we need to know what was the current lrz buffer
+    * at the time draws were emitted to the subpass.  Which is tracked
+    * here.
+    */
+   struct fd_bo *lrz;
+};
+
+/**
+ * A batch tracks everything about a cmdstream batch/submit, including the
  * ringbuffers used for binning, draw, and gmem cmds, list of associated
  * fd_resource-s, etc.
  */
@@ -64,31 +110,19 @@ struct fd_batch {
 
    struct fd_context *ctx;
 
-   /* emit_lock serializes cmdstream emission and flush.  Acquire before
-    * screen->lock.
-    */
-   simple_mtx_t submit_lock;
-
    /* do we need to mem2gmem before rendering.  We don't, if for example,
     * there was a glClear() that invalidated the entire previous buffer
     * contents.  Keep track of which buffer(s) are cleared, or needs
     * restore.  Masks of PIPE_CLEAR_*
     *
     * The 'cleared' bits will be set for buffers which are *entirely*
-    * cleared, and 'partial_cleared' bits will be set if you must
-    * check cleared_scissor.
+    * cleared.
     *
     * The 'invalidated' bits are set for cleared buffers, and buffers
     * where the contents are undefined, ie. what we don't need to restore
     * to gmem.
     */
-   enum {
-      /* align bitmask values w/ PIPE_CLEAR_*.. since that is convenient.. */
-      FD_BUFFER_COLOR = PIPE_CLEAR_COLOR,
-      FD_BUFFER_DEPTH = PIPE_CLEAR_DEPTH,
-      FD_BUFFER_STENCIL = PIPE_CLEAR_STENCIL,
-      FD_BUFFER_ALL = FD_BUFFER_COLOR | FD_BUFFER_DEPTH | FD_BUFFER_STENCIL,
-   } invalidated, cleared, fast_cleared, restore, resolve;
+   BITMASK_ENUM(fd_buffer_mask) invalidated, cleared, restore, resolve;
 
    /* is this a non-draw batch (ie compute/blit which has no pfb state)? */
    bool nondraw : 1;
@@ -107,12 +141,15 @@ struct fd_batch {
     * color_logic_Op (since those functions are disabled when by-
     * passing GMEM.
     */
-   enum fd_gmem_reason gmem_reason;
+   BITMASK_ENUM(fd_gmem_reason) gmem_reason;
 
    /* At submit time, once we've decided that this batch will use GMEM
     * rendering, the appropriate gmem state is looked up:
     */
    const struct fd_gmem_stateobj *gmem_state;
+
+   /* Driver specific barrier/flush flags: */
+   unsigned barrier;
 
    /* A calculated "draw cost" value for the batch, which tries to
     * estimate the bandwidth-per-sample of all the draws according
@@ -161,6 +198,9 @@ struct fd_batch {
    /* Track the maximal bounds of the scissor of all the draws within a
     * batch.  Used at the tile rendering step (fd_gmem_render_tiles(),
     * mem2gmem/gmem2mem) to avoid needlessly moving data in/out of gmem.
+    *
+    * Note that unlike gallium state, maxx/maxy are inclusive (for
+    * fully covered 512x512 the scissor would be 0,0+511,511)
     */
    struct pipe_scissor_state max_scissor;
 
@@ -196,7 +236,24 @@ struct fd_batch {
 
    struct fd_submit *submit;
 
-   /** draw pass cmdstream: */
+   /**
+    * List of fd_batch_subpass.
+    */
+   struct list_head subpasses;
+
+#define foreach_subpass(subpass, batch) \
+   list_for_each_entry (struct fd_batch_subpass, subpass, &batch->subpasses, node)
+#define foreach_subpass_safe(subpass, batch) \
+   list_for_each_entry_safe (struct fd_batch_subpass, subpass, &batch->subpasses, node)
+
+   /**
+    * The current subpass.
+    */
+   struct fd_batch_subpass *subpass;
+
+   /**
+    * just a reference to the current subpass's draw cmds for backwards compat.
+    */
    struct fd_ringbuffer *draw;
    /** binning pass cmdstream: */
    struct fd_ringbuffer *binning;
@@ -207,14 +264,13 @@ struct fd_batch {
    struct fd_ringbuffer *prologue;
 
    /** epilogue cmdstream (executed after each tile): */
+   struct fd_ringbuffer *tile_epilogue;
+
+   /** epilogue cmdstream (executed after all tiles): */
    struct fd_ringbuffer *epilogue;
 
-   struct fd_ringbuffer *tile_setup;
-   struct fd_ringbuffer *tile_fini;
-
-   union pipe_color_union clear_color[MAX_RENDER_TARGETS];
-   double clear_depth;
-   unsigned clear_stencil;
+   struct fd_ringbuffer *tile_loads;
+   struct fd_ringbuffer *tile_store;
 
    /**
     * hw query related state:
@@ -224,6 +280,13 @@ struct fd_batch {
     * submit, reset to zero on next submit.
     */
    uint32_t next_sample_offset;
+
+   /* The # of pipeline-stats queries running.  In case of nested
+    * queries using {START/STOP}_{PRIMITIVE,FRAGMENT,COMPUTE}_CNTRS,
+    * we need to start only on the first one and stop only on the
+    * last one.
+    */
+   uint8_t pipeline_stats_queries_active[3];
 
    /* cached samples (in case multiple queries need to reference
     * the same sample snapshot)
@@ -259,7 +322,10 @@ struct fd_batch {
 
 struct fd_batch *fd_batch_create(struct fd_context *ctx, bool nondraw);
 
-void fd_batch_reset(struct fd_batch *batch) assert_dt;
+struct fd_batch_subpass *fd_batch_create_subpass(struct fd_batch *batch) assert_dt;
+
+void fd_batch_set_fb(struct fd_batch *batch, const struct pipe_framebuffer_state *pfb) assert_dt;
+
 void fd_batch_flush(struct fd_batch *batch) assert_dt;
 bool fd_batch_has_dep(struct fd_batch *batch, struct fd_batch *dep) assert_dt;
 void fd_batch_add_dep(struct fd_batch *batch, struct fd_batch *dep) assert_dt;
@@ -276,6 +342,7 @@ struct fd_batch_key *fd_batch_key_clone(void *mem_ctx,
 
 /* not called directly: */
 void __fd_batch_describe(char *buf, const struct fd_batch *batch) assert_dt;
+void __fd_batch_destroy_locked(struct fd_batch *batch);
 void __fd_batch_destroy(struct fd_batch *batch);
 
 /*
@@ -305,7 +372,7 @@ fd_batch_reference_locked(struct fd_batch **ptr, struct fd_batch *batch)
    if (pipe_reference_described(
           &(*ptr)->reference, &batch->reference,
           (debug_reference_descriptor)__fd_batch_describe))
-      __fd_batch_destroy(old_batch);
+      __fd_batch_destroy_locked(old_batch);
 
    *ptr = batch;
 }
@@ -314,35 +381,13 @@ static inline void
 fd_batch_reference(struct fd_batch **ptr, struct fd_batch *batch)
 {
    struct fd_batch *old_batch = *ptr;
-   struct fd_context *ctx = old_batch ? old_batch->ctx : NULL;
 
-   if (ctx)
-      fd_screen_lock(ctx->screen);
+   if (pipe_reference_described(
+          &(*ptr)->reference, &batch->reference,
+          (debug_reference_descriptor)__fd_batch_describe))
+      __fd_batch_destroy(old_batch);
 
-   fd_batch_reference_locked(ptr, batch);
-
-   if (ctx)
-      fd_screen_unlock(ctx->screen);
-}
-
-static inline void
-fd_batch_unlock_submit(struct fd_batch *batch)
-{
-   simple_mtx_unlock(&batch->submit_lock);
-}
-
-/**
- * Returns true if emit-lock was acquired, false if failed to acquire lock,
- * ie. batch already flushed.
- */
-static inline bool MUST_CHECK
-fd_batch_lock_submit(struct fd_batch *batch)
-{
-   simple_mtx_lock(&batch->submit_lock);
-   bool ret = !batch->flushed;
-   if (!ret)
-      fd_batch_unlock_submit(batch);
-   return ret;
+   *ptr = batch;
 }
 
 /**
@@ -353,7 +398,7 @@ static inline void
 fd_batch_needs_flush(struct fd_batch *batch)
 {
    batch->needs_flush = true;
-   fd_fence_ref(&batch->ctx->last_fence, NULL);
+   fd_pipe_fence_ref(&batch->ctx->last_fence, NULL);
 }
 
 /* Since we reorder batches and can pause/resume queries (notably for disabling
@@ -365,8 +410,10 @@ fd_batch_update_queries(struct fd_batch *batch) assert_dt
 {
    struct fd_context *ctx = batch->ctx;
 
-   if (ctx->query_update_batch)
-      ctx->query_update_batch(batch, false);
+   if (!(ctx->dirty & FD_DIRTY_QUERY))
+      return;
+
+   ctx->query_update_batch(batch, false);
 }
 
 static inline void
@@ -374,8 +421,7 @@ fd_batch_finish_queries(struct fd_batch *batch) assert_dt
 {
    struct fd_context *ctx = batch->ctx;
 
-   if (ctx->query_update_batch)
-      ctx->query_update_batch(batch, true);
+   ctx->query_update_batch(batch, true);
 }
 
 static inline void
@@ -398,6 +444,18 @@ fd_event_write(struct fd_batch *batch, struct fd_ringbuffer *ring,
 }
 
 /* Get per-tile epilogue */
+static inline struct fd_ringbuffer *
+fd_batch_get_tile_epilogue(struct fd_batch *batch)
+{
+   if (batch->tile_epilogue == NULL) {
+      batch->tile_epilogue = fd_submit_new_ringbuffer(batch->submit, 0x1000,
+                                                 FD_RINGBUFFER_GROWABLE);
+   }
+
+   return batch->tile_epilogue;
+}
+
+/* Get epilogue run after all tiles*/
 static inline struct fd_ringbuffer *
 fd_batch_get_epilogue(struct fd_batch *batch)
 {

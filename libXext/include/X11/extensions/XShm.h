@@ -38,7 +38,7 @@ typedef unsigned long ShmSeg;
 typedef struct {
     int	type;		    /* of event */
     unsigned long serial;   /* # of last request processed by server */
-    Bool send_event;	    /* true if this came frome a SendEvent request */
+    Bool send_event;	    /* true if this came from a SendEvent request */
     Display *display;	    /* Display the event was read from */
     Drawable drawable;	    /* drawable of request */
     int major_code;	    /* ShmReqCode */

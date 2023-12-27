@@ -28,6 +28,7 @@
 
 #include "fd2_program.h"
 #include "freedreno_util.h"
+#include "nir_legacy.h"
 
 static const nir_shader_compiler_options options = {
    .lower_fpow = true,
@@ -121,7 +122,6 @@ ir2_optimize_nir(nir_shader *s, bool lower)
       debug_printf("----------------------\n");
    }
 
-   OPT_V(s, nir_lower_regs_to_ssa);
    OPT_V(s, nir_lower_vars_to_ssa);
    OPT_V(s, nir_lower_indirect_derefs, nir_var_shader_in | nir_var_shader_out,
          UINT32_MAX);
@@ -228,22 +228,26 @@ update_range(struct ir2_context *ctx, struct ir2_reg *reg)
 }
 
 static struct ir2_src
-make_src(struct ir2_context *ctx, nir_src src)
+make_legacy_src(struct ir2_context *ctx, nir_legacy_src src)
 {
    struct ir2_src res = {};
    struct ir2_reg *reg;
 
-   nir_const_value *const_value = nir_src_as_const_value(src);
+   /* Handle constants specially */
+   if (src.is_ssa) {
+      nir_const_value *const_value =
+         nir_src_as_const_value(nir_src_for_ssa(src.ssa));
 
-   if (const_value) {
-      assert(src.is_ssa);
-      float c[src.ssa->num_components];
-      nir_const_value_to_array(c, const_value, src.ssa->num_components, f32);
-      return load_const(ctx, c, src.ssa->num_components);
+      if (const_value) {
+         float c[src.ssa->num_components];
+         nir_const_value_to_array(c, const_value, src.ssa->num_components, f32);
+         return load_const(ctx, c, src.ssa->num_components);
+      }
    }
 
+   /* Otherwise translate the SSA def or register */
    if (!src.is_ssa) {
-      res.num = src.reg.reg->index;
+      res.num = src.reg.handle->index;
       res.type = IR2_SRC_REG;
       reg = &ctx->reg[res.num];
    } else {
@@ -257,21 +261,33 @@ make_src(struct ir2_context *ctx, nir_src src)
    return res;
 }
 
+static struct ir2_src
+make_src(struct ir2_context *ctx, nir_src src)
+{
+   return make_legacy_src(ctx, nir_legacy_chase_src(&src));
+}
+
 static void
-set_index(struct ir2_context *ctx, nir_dest *dst, struct ir2_instr *instr)
+set_legacy_index(struct ir2_context *ctx, nir_legacy_dest dst,
+                 struct ir2_instr *instr)
 {
    struct ir2_reg *reg = &instr->ssa;
 
-   if (dst->is_ssa) {
-      ctx->ssa_map[dst->ssa.index] = instr->idx;
+   if (dst.is_ssa) {
+      ctx->ssa_map[dst.ssa->index] = instr->idx;
    } else {
-      assert(instr->is_ssa);
-      reg = &ctx->reg[dst->reg.reg->index];
+      reg = &ctx->reg[dst.reg.handle->index];
 
       instr->is_ssa = false;
       instr->reg = reg;
    }
    update_range(ctx, reg);
+}
+
+static void
+set_index(struct ir2_context *ctx, nir_def *def, struct ir2_instr *instr)
+{
+   set_legacy_index(ctx, nir_legacy_chase_dest(def), instr);
 }
 
 static struct ir2_instr *
@@ -365,23 +381,23 @@ instr_create_alu_reg(struct ir2_context *ctx, nir_op opcode, uint8_t write_mask,
 }
 
 static struct ir2_instr *
-instr_create_alu_dest(struct ir2_context *ctx, nir_op opcode, nir_dest *dst)
+instr_create_alu_dest(struct ir2_context *ctx, nir_op opcode, nir_def *def)
 {
    struct ir2_instr *instr;
-   instr = instr_create_alu(ctx, opcode, nir_dest_num_components(*dst));
-   set_index(ctx, dst, instr);
+   instr = instr_create_alu(ctx, opcode, def->num_components);
+   set_index(ctx, def, instr);
    return instr;
 }
 
 static struct ir2_instr *
-ir2_instr_create_fetch(struct ir2_context *ctx, nir_dest *dst,
+ir2_instr_create_fetch(struct ir2_context *ctx, nir_def *def,
                        instr_fetch_opc_t opc)
 {
    struct ir2_instr *instr = ir2_instr_create(ctx, IR2_FETCH);
    instr->fetch.opc = opc;
    instr->src_count = 1;
-   instr->ssa.ncomp = nir_dest_num_components(*dst);
-   set_index(ctx, dst, instr);
+   instr->ssa.ncomp = def->num_components;
+   set_index(ctx, def, instr);
    return instr;
 }
 
@@ -391,7 +407,6 @@ make_src_noconst(struct ir2_context *ctx, nir_src src)
    struct ir2_instr *instr;
 
    if (nir_src_as_const_value(src)) {
-      assert(src.is_ssa);
       instr = instr_create_alu(ctx, nir_op_mov, src.ssa->num_components);
       instr->src[0] = make_src(ctx, src);
       return ir2_src(instr->idx, 0, IR2_SRC_SSA);
@@ -404,24 +419,29 @@ static void
 emit_alu(struct ir2_context *ctx, nir_alu_instr *alu)
 {
    const nir_op_info *info = &nir_op_infos[alu->op];
-   nir_dest *dst = &alu->dest.dest;
+   nir_def *def = &alu->def;
    struct ir2_instr *instr;
    struct ir2_src tmp;
    unsigned ncomp;
 
+   /* Don't emit modifiers that are totally folded */
+   if (((alu->op == nir_op_fneg) || (alu->op == nir_op_fabs)) &&
+       nir_legacy_float_mod_folds(alu))
+      return;
+
+   if ((alu->op == nir_op_fsat) && nir_legacy_fsat_folds(alu))
+      return;
+
    /* get the number of dst components */
-   if (dst->is_ssa) {
-      ncomp = dst->ssa.num_components;
-   } else {
-      ncomp = 0;
-      for (int i = 0; i < 4; i++)
-         ncomp += !!(alu->dest.write_mask & 1 << i);
-   }
+   ncomp = def->num_components;
 
    instr = instr_create_alu(ctx, alu->op, ncomp);
-   set_index(ctx, dst, instr);
-   instr->alu.saturate = alu->dest.saturate;
-   instr->alu.write_mask = alu->dest.write_mask;
+
+   nir_legacy_alu_dest legacy_dest =
+      nir_legacy_chase_alu_dest(&alu->def);
+   set_legacy_index(ctx, legacy_dest.dest, instr);
+   instr->alu.saturate = legacy_dest.fsat;
+   instr->alu.write_mask = legacy_dest.write_mask;
 
    for (int i = 0; i < info->num_inputs; i++) {
       nir_alu_src *src = &alu->src[i];
@@ -429,15 +449,18 @@ emit_alu(struct ir2_context *ctx, nir_alu_instr *alu)
       /* compress swizzle with writemask when applicable */
       unsigned swiz = 0, j = 0;
       for (int i = 0; i < 4; i++) {
-         if (!(alu->dest.write_mask & 1 << i) && !info->output_size)
+         if (!(legacy_dest.write_mask & 1 << i) && !info->output_size)
             continue;
          swiz |= swiz_set(src->swizzle[i], j++);
       }
 
-      instr->src[i] = make_src(ctx, src->src);
+      nir_legacy_alu_src legacy_src =
+         nir_legacy_chase_alu_src(src, true /* fuse_abs */);
+
+      instr->src[i] = make_legacy_src(ctx, legacy_src.src);
       instr->src[i].swizzle = swiz_merge(instr->src[i].swizzle, swiz);
-      instr->src[i].negate = src->negate;
-      instr->src[i].abs = src->abs;
+      instr->src[i].negate = legacy_src.fneg;
+      instr->src[i].abs = legacy_src.fabs;
    }
 
    /* workarounds for NIR ops that don't map directly to a2xx ops */
@@ -490,13 +513,13 @@ emit_alu(struct ir2_context *ctx, nir_alu_instr *alu)
 }
 
 static void
-load_input(struct ir2_context *ctx, nir_dest *dst, unsigned idx)
+load_input(struct ir2_context *ctx, nir_def *def, unsigned idx)
 {
    struct ir2_instr *instr;
    int slot = -1;
 
    if (ctx->so->type == MESA_SHADER_VERTEX) {
-      instr = ir2_instr_create_fetch(ctx, dst, 0);
+      instr = ir2_instr_create_fetch(ctx, def, 0);
       instr->src[0] = ir2_src(0, 0, IR2_SRC_INPUT);
       instr->fetch.vtx.const_idx = 20 + (idx / 3);
       instr->fetch.vtx.const_idx_sel = idx % 3;
@@ -532,11 +555,11 @@ load_input(struct ir2_context *ctx, nir_dest *dst, unsigned idx)
       instr->src[0] = ir2_src(ctx->f->fragcoord, IR2_SWIZZLE_Y, IR2_SRC_INPUT);
 
       unsigned reg_idx = instr->reg - ctx->reg; /* XXX */
-      instr = instr_create_alu_dest(ctx, nir_op_mov, dst);
+      instr = instr_create_alu_dest(ctx, nir_op_mov, def);
       instr->src[0] = ir2_src(reg_idx, 0, IR2_SRC_REG);
       break;
    default:
-      instr = instr_create_alu_dest(ctx, nir_op_mov, dst);
+      instr = instr_create_alu_dest(ctx, nir_op_mov, def);
       instr->src[0] = ir2_src(idx, 0, IR2_SRC_INPUT);
       break;
    }
@@ -600,8 +623,14 @@ emit_intrinsic(struct ir2_context *ctx, nir_intrinsic_instr *intr)
    unsigned idx;
 
    switch (intr->intrinsic) {
+   case nir_intrinsic_decl_reg:
+   case nir_intrinsic_load_reg:
+   case nir_intrinsic_store_reg:
+      /* Nothing to do for these */
+      break;
+
    case nir_intrinsic_load_input:
-      load_input(ctx, &intr->dest, nir_intrinsic_base(intr));
+      load_input(ctx, &intr->def, nir_intrinsic_base(intr));
       break;
    case nir_intrinsic_store_output:
       store_output(ctx, intr->src[0], output_slot(ctx, intr),
@@ -612,7 +641,7 @@ emit_intrinsic(struct ir2_context *ctx, nir_intrinsic_instr *intr)
       assert(const_offset); /* TODO can be false in ES2? */
       idx = nir_intrinsic_base(intr);
       idx += (uint32_t)const_offset[0].f32;
-      instr = instr_create_alu_dest(ctx, nir_op_mov, &intr->dest);
+      instr = instr_create_alu_dest(ctx, nir_op_mov, &intr->def);
       instr->src[0] = ir2_src(idx, 0, IR2_SRC_CONST);
       break;
    case nir_intrinsic_discard:
@@ -639,7 +668,7 @@ emit_intrinsic(struct ir2_context *ctx, nir_intrinsic_instr *intr)
       struct ir2_instr *tmp = instr_create_alu(ctx, nir_op_frcp, 1);
       tmp->src[0] = ir2_src(ctx->f->inputs_count, 0, IR2_SRC_INPUT);
 
-      instr = instr_create_alu_dest(ctx, nir_op_sge, &intr->dest);
+      instr = instr_create_alu_dest(ctx, nir_op_sge, &intr->def);
       instr->src[0] = ir2_src(tmp->idx, 0, IR2_SRC_SSA);
       instr->src[1] = ir2_zero(ctx);
       break;
@@ -647,7 +676,7 @@ emit_intrinsic(struct ir2_context *ctx, nir_intrinsic_instr *intr)
       /* param.zw (note: abs might be needed like fragcoord in param.xy?) */
       ctx->so->need_param = true;
 
-      instr = instr_create_alu_dest(ctx, nir_op_mov, &intr->dest);
+      instr = instr_create_alu_dest(ctx, nir_op_mov, &intr->def);
       instr->src[0] =
          ir2_src(ctx->f->inputs_count, IR2_SWIZZLE_ZW, IR2_SRC_INPUT);
       break;
@@ -740,7 +769,7 @@ emit_tex(struct ir2_context *ctx, nir_tex_instr *tex)
       /* TODO: lod/bias transformed by src_coord.z ? */
    }
 
-   instr = ir2_instr_create_fetch(ctx, &tex->dest, TEX_FETCH);
+   instr = ir2_instr_create_fetch(ctx, &tex->def, TEX_FETCH);
    instr->src[0] = src_coord;
    instr->src[0].swizzle = is_cube ? IR2_SWIZZLE_YXW : 0;
    instr->fetch.tex.is_cube = is_cube;
@@ -760,11 +789,11 @@ static void
 setup_input(struct ir2_context *ctx, nir_variable *in)
 {
    struct fd2_shader_stateobj *so = ctx->so;
-   ASSERTED unsigned array_len = MAX2(glsl_get_length(in->type), 1);
    unsigned n = in->data.driver_location;
    unsigned slot = in->data.location;
 
-   assert(array_len == 1);
+   assert(glsl_type_is_vector_or_scalar(in->type) ||
+          glsl_type_is_unsized_array(in->type));
 
    /* handle later */
    if (ctx->so->type == MESA_SHADER_VERTEX)
@@ -790,14 +819,13 @@ setup_input(struct ir2_context *ctx, nir_variable *in)
 }
 
 static void
-emit_undef(struct ir2_context *ctx, nir_ssa_undef_instr *undef)
+emit_undef(struct ir2_context *ctx, nir_undef_instr *undef)
 {
    /* TODO we don't want to emit anything for undefs */
 
    struct ir2_instr *instr;
 
-   instr = instr_create_alu_dest(
-      ctx, nir_op_mov, &(nir_dest){.ssa = undef->def, .is_ssa = true});
+   instr = instr_create_alu_dest(ctx, nir_op_mov, &undef->def);
    instr->src[0] = ir2_src(0, 0, IR2_SRC_CONST);
 }
 
@@ -823,8 +851,8 @@ emit_instr(struct ir2_context *ctx, nir_instr *instr)
    case nir_instr_type_jump:
       ctx->block_has_jump[ctx->block_idx] = true;
       break;
-   case nir_instr_type_ssa_undef:
-      emit_undef(ctx, nir_instr_as_ssa_undef(instr));
+   case nir_instr_type_undef:
+      emit_undef(ctx, nir_instr_as_undef(instr));
       break;
    default:
       break;
@@ -1019,6 +1047,7 @@ loop_last_block(struct exec_list *list)
 static void
 emit_loop(struct ir2_context *ctx, nir_loop *nloop)
 {
+   assert(!nir_loop_has_continue_construct(nloop));
    ctx->loop_last_block[++ctx->loop_depth] = loop_last_block(&nloop->body);
    emit_cf_list(ctx, &nloop->body);
    ctx->loop_depth--;
@@ -1111,20 +1140,18 @@ ir2_nir_compile(struct ir2_context *ctx, bool binning)
    OPT_V(ctx->nir, nir_opt_move, nir_move_comparisons);
 
    OPT_V(ctx->nir, nir_lower_int_to_float);
-   OPT_V(ctx->nir, nir_lower_bool_to_float);
+   OPT_V(ctx->nir, nir_lower_bool_to_float, true);
    while (OPT(ctx->nir, nir_opt_algebraic))
       ;
    OPT_V(ctx->nir, nir_opt_algebraic_late);
-   OPT_V(ctx->nir, nir_lower_to_source_mods, nir_lower_all_source_mods);
-
    OPT_V(ctx->nir, nir_lower_alu_to_scalar, ir2_alu_to_scalar_filter_cb, NULL);
-
-   OPT_V(ctx->nir, nir_lower_locals_to_regs);
 
    OPT_V(ctx->nir, nir_convert_from_ssa, true);
 
-   OPT_V(ctx->nir, nir_move_vec_src_uses_to_dest);
-   OPT_V(ctx->nir, nir_lower_vec_to_movs, NULL, NULL);
+   OPT_V(ctx->nir, nir_move_vec_src_uses_to_dest, false);
+   OPT_V(ctx->nir, nir_lower_vec_to_regs, NULL, NULL);
+
+   OPT_V(ctx->nir, nir_legacy_trivialize, true);
 
    OPT_V(ctx->nir, nir_opt_dce);
 
@@ -1166,9 +1193,10 @@ ir2_nir_compile(struct ir2_context *ctx, bool binning)
    /* And emit the body: */
    nir_function_impl *fxn = nir_shader_get_entrypoint(ctx->nir);
 
-   nir_foreach_register (reg, &fxn->registers) {
-      ctx->reg[reg->index].ncomp = reg->num_components;
-      ctx->reg_count = MAX2(ctx->reg_count, reg->index + 1);
+   nir_foreach_reg_decl (decl, fxn) {
+      assert(decl->def.index < ARRAY_SIZE(ctx->reg));
+      ctx->reg[decl->def.index].ncomp = nir_intrinsic_num_components(decl);
+      ctx->reg_count = MAX2(ctx->reg_count, decl->def.index + 1);
    }
 
    nir_metadata_require(fxn, nir_metadata_block_index);

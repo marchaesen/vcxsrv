@@ -34,17 +34,17 @@
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
 #include "spirv/nir_spirv.h"
-#include "util/debug.h"
+#include "util/blend.h"
 #include "util/mesa-sha1.h"
 #include "util/u_atomic.h"
+#include "util/u_debug.h"
+#include "vk_blend.h"
 #include "vk_format.h"
 #include "vk_util.h"
 
 #include "panfrost/util/pan_lower_framebuffer.h"
 
-
-struct panvk_pipeline_builder
-{
+struct panvk_pipeline_builder {
    struct panvk_device *device;
    struct panvk_pipeline_cache *cache;
    const VkAllocationCallbacks *alloc;
@@ -78,9 +78,8 @@ panvk_pipeline_builder_create_pipeline(struct panvk_pipeline_builder *builder,
 {
    struct panvk_device *dev = builder->device;
 
-   struct panvk_pipeline *pipeline =
-      vk_object_zalloc(&dev->vk, builder->alloc,
-                       sizeof(*pipeline), VK_OBJECT_TYPE_PIPELINE);
+   struct panvk_pipeline *pipeline = vk_object_zalloc(
+      &dev->vk, builder->alloc, sizeof(*pipeline), VK_OBJECT_TYPE_PIPELINE);
    if (!pipeline)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -95,7 +94,8 @@ panvk_pipeline_builder_finish(struct panvk_pipeline_builder *builder)
    for (uint32_t i = 0; i < MESA_SHADER_STAGES; i++) {
       if (!builder->shaders[i])
          continue;
-      panvk_shader_destroy(builder->device, builder->shaders[i], builder->alloc);
+      panvk_shader_destroy(builder->device, builder->shaders[i],
+                           builder->alloc);
    }
 }
 
@@ -110,12 +110,10 @@ panvk_pipeline_builder_compile_shaders(struct panvk_pipeline_builder *builder,
                                        struct panvk_pipeline *pipeline)
 {
    const VkPipelineShaderStageCreateInfo *stage_infos[MESA_SHADER_STAGES] = {
-      NULL
-   };
+      NULL};
    const VkPipelineShaderStageCreateInfo *stages =
-      builder->create_info.gfx ?
-      builder->create_info.gfx->pStages :
-      &builder->create_info.compute->stage;
+      builder->create_info.gfx ? builder->create_info.gfx->pStages
+                               : &builder->create_info.compute->stage;
    unsigned stage_count =
       builder->create_info.gfx ? builder->create_info.gfx->stageCount : 1;
 
@@ -133,16 +131,15 @@ panvk_pipeline_builder_compile_shaders(struct panvk_pipeline_builder *builder,
 
       struct panvk_shader *shader;
 
-      shader = panvk_per_arch(shader_create)(builder->device, stage, stage_info,
-                                             builder->layout,
-                                             PANVK_SYSVAL_UBO_INDEX,
-                                             &pipeline->blend.state,
-                                             panvk_pipeline_static_state(pipeline,
-                                                                         VK_DYNAMIC_STATE_BLEND_CONSTANTS),
-                                             builder->alloc);
+      shader = panvk_per_arch(shader_create)(
+         builder->device, stage, stage_info, builder->layout,
+         PANVK_SYSVAL_UBO_INDEX, &pipeline->blend.state,
+         panvk_pipeline_static_state(pipeline,
+                                     VK_DYNAMIC_STATE_BLEND_CONSTANTS),
+         builder->alloc);
       if (!shader)
          return VK_ERROR_OUT_OF_HOST_MEMORY;
- 
+
       builder->shaders[stage] = shader;
       builder->shader_total_size = ALIGN_POT(builder->shader_total_size, 128);
       builder->stages[stage].shader_offset = builder->shader_total_size;
@@ -165,8 +162,7 @@ panvk_pipeline_builder_upload_shaders(struct panvk_pipeline_builder *builder,
 
    struct panfrost_bo *bin_bo =
       panfrost_bo_create(&builder->device->physical_device->pdev,
-                         builder->shader_total_size, PAN_BO_EXECUTE,
-                         "Shader");
+                         builder->shader_total_size, PAN_BO_EXECUTE, "Shader");
 
    pipeline->binary_bo = bin_bo;
    panfrost_bo_mmap(bin_bo);
@@ -184,25 +180,11 @@ panvk_pipeline_builder_upload_shaders(struct panvk_pipeline_builder *builder,
    return VK_SUCCESS;
 }
 
-static bool
-panvk_pipeline_static_sysval(struct panvk_pipeline *pipeline,
-                             unsigned id)
-{
-   switch (id) {
-   case PAN_SYSVAL_VIEWPORT_SCALE:
-   case PAN_SYSVAL_VIEWPORT_OFFSET:
-      return panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_VIEWPORT);
-   default:
-      return false;
-   }
-}
-
 static void
-panvk_pipeline_builder_alloc_static_state_bo(struct panvk_pipeline_builder *builder,
-                                             struct panvk_pipeline *pipeline)
+panvk_pipeline_builder_alloc_static_state_bo(
+   struct panvk_pipeline_builder *builder, struct panvk_pipeline *pipeline)
 {
-   struct panfrost_device *pdev =
-      &builder->device->physical_device->pdev;
+   struct panfrost_device *pdev = &builder->device->physical_device->pdev;
    unsigned bo_size = 0;
 
    for (uint32_t i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -242,7 +224,6 @@ panvk_pipeline_builder_init_sysvals(struct panvk_pipeline_builder *builder,
 {
    const struct panvk_shader *shader = builder->shaders[stage];
 
-   pipeline->sysvals[stage].ids = shader->info.sysvals;
    pipeline->sysvals[stage].ubo_idx = shader->sysval_ubo;
 }
 
@@ -277,15 +258,18 @@ panvk_pipeline_builder_init_shaders(struct panvk_pipeline_builder *builder,
 
       /* Handle empty shaders gracefully */
       if (util_dynarray_num_elements(&builder->shaders[i]->binary, uint8_t)) {
-         shader_ptr = pipeline->binary_bo->ptr.gpu +
-                      builder->stages[i].shader_offset;
+         shader_ptr =
+            pipeline->binary_bo->ptr.gpu + builder->stages[i].shader_offset;
       }
 
       if (i != MESA_SHADER_FRAGMENT) {
-         void *rsd = pipeline->state_bo->ptr.cpu + builder->stages[i].rsd_offset;
-         mali_ptr gpu_rsd = pipeline->state_bo->ptr.gpu + builder->stages[i].rsd_offset;
+         void *rsd =
+            pipeline->state_bo->ptr.cpu + builder->stages[i].rsd_offset;
+         mali_ptr gpu_rsd =
+            pipeline->state_bo->ptr.gpu + builder->stages[i].rsd_offset;
 
-         panvk_per_arch(emit_non_fs_rsd)(builder->device, &shader->info, shader_ptr, rsd);
+         panvk_per_arch(emit_non_fs_rsd)(builder->device, &shader->info,
+                                         shader_ptr, rsd);
          pipeline->rsds[i] = gpu_rsd;
       }
 
@@ -296,8 +280,10 @@ panvk_pipeline_builder_init_shaders(struct panvk_pipeline_builder *builder,
    }
 
    if (builder->create_info.gfx && !pipeline->fs.dynamic_rsd) {
-      void *rsd = pipeline->state_bo->ptr.cpu + builder->stages[MESA_SHADER_FRAGMENT].rsd_offset;
-      mali_ptr gpu_rsd = pipeline->state_bo->ptr.gpu + builder->stages[MESA_SHADER_FRAGMENT].rsd_offset;
+      void *rsd = pipeline->state_bo->ptr.cpu +
+                  builder->stages[MESA_SHADER_FRAGMENT].rsd_offset;
+      mali_ptr gpu_rsd = pipeline->state_bo->ptr.gpu +
+                         builder->stages[MESA_SHADER_FRAGMENT].rsd_offset;
       void *bd = rsd + pan_size(RENDERER_STATE);
 
       panvk_per_arch(emit_base_fs_rsd)(builder->device, pipeline, rsd);
@@ -308,18 +294,18 @@ panvk_pipeline_builder_init_shaders(struct panvk_pipeline_builder *builder,
 
       pipeline->rsds[MESA_SHADER_FRAGMENT] = gpu_rsd;
    } else if (builder->create_info.gfx) {
-      panvk_per_arch(emit_base_fs_rsd)(builder->device, pipeline, &pipeline->fs.rsd_template);
-      for (unsigned rt = 0; rt < MAX2(pipeline->blend.state.rt_count, 1); rt++) {
+      panvk_per_arch(emit_base_fs_rsd)(builder->device, pipeline,
+                                       &pipeline->fs.rsd_template);
+      for (unsigned rt = 0; rt < MAX2(pipeline->blend.state.rt_count, 1);
+           rt++) {
          panvk_per_arch(emit_blend)(builder->device, pipeline, rt,
                                     &pipeline->blend.bd_template[rt]);
       }
    }
 
-   pipeline->num_ubos = PANVK_NUM_BUILTIN_UBOS +
-                        builder->layout->num_ubos +
+   pipeline->num_ubos = PANVK_NUM_BUILTIN_UBOS + builder->layout->num_ubos +
                         builder->layout->num_dyn_ubos;
 }
-
 
 static void
 panvk_pipeline_builder_parse_viewport(struct panvk_pipeline_builder *builder,
@@ -335,17 +321,18 @@ panvk_pipeline_builder_parse_viewport(struct panvk_pipeline_builder *builder,
        panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_VIEWPORT) &&
        panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_SCISSOR)) {
       void *vpd = pipeline->state_bo->ptr.cpu + builder->vpd_offset;
-      panvk_per_arch(emit_viewport)(builder->create_info.gfx->pViewportState->pViewports,
-                                    builder->create_info.gfx->pViewportState->pScissors,
-                                    vpd);
-      pipeline->vpd = pipeline->state_bo->ptr.gpu +
-                      builder->vpd_offset;
+      panvk_per_arch(emit_viewport)(
+         builder->create_info.gfx->pViewportState->pViewports,
+         builder->create_info.gfx->pViewportState->pScissors, vpd);
+      pipeline->vpd = pipeline->state_bo->ptr.gpu + builder->vpd_offset;
    }
    if (panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_VIEWPORT))
-      pipeline->viewport = builder->create_info.gfx->pViewportState->pViewports[0];
+      pipeline->viewport =
+         builder->create_info.gfx->pViewportState->pViewports[0];
 
    if (panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_SCISSOR))
-      pipeline->scissor = builder->create_info.gfx->pViewportState->pScissors[0];
+      pipeline->scissor =
+         builder->create_info.gfx->pViewportState->pScissors[0];
 }
 
 static void
@@ -368,7 +355,6 @@ panvk_pipeline_builder_parse_dynamic(struct panvk_pipeline_builder *builder,
          unreachable("unsupported dynamic state");
       }
    }
-
 }
 
 static enum mali_draw_mode
@@ -398,109 +384,13 @@ translate_prim_topology(VkPrimitiveTopology in)
 }
 
 static void
-panvk_pipeline_builder_parse_input_assembly(struct panvk_pipeline_builder *builder,
-                                            struct panvk_pipeline *pipeline)
+panvk_pipeline_builder_parse_input_assembly(
+   struct panvk_pipeline_builder *builder, struct panvk_pipeline *pipeline)
 {
    pipeline->ia.primitive_restart =
       builder->create_info.gfx->pInputAssemblyState->primitiveRestartEnable;
-   pipeline->ia.topology =
-      translate_prim_topology(builder->create_info.gfx->pInputAssemblyState->topology);
-}
-
-static enum pipe_logicop
-translate_logicop(VkLogicOp in)
-{
-   switch (in) {
-   case VK_LOGIC_OP_CLEAR: return PIPE_LOGICOP_CLEAR;
-   case VK_LOGIC_OP_AND: return PIPE_LOGICOP_AND;
-   case VK_LOGIC_OP_AND_REVERSE: return PIPE_LOGICOP_AND_REVERSE;
-   case VK_LOGIC_OP_COPY: return PIPE_LOGICOP_COPY;
-   case VK_LOGIC_OP_AND_INVERTED: return PIPE_LOGICOP_AND_INVERTED;
-   case VK_LOGIC_OP_NO_OP: return PIPE_LOGICOP_NOOP;
-   case VK_LOGIC_OP_XOR: return PIPE_LOGICOP_XOR;
-   case VK_LOGIC_OP_OR: return PIPE_LOGICOP_OR;
-   case VK_LOGIC_OP_NOR: return PIPE_LOGICOP_NOR;
-   case VK_LOGIC_OP_EQUIVALENT: return PIPE_LOGICOP_EQUIV;
-   case VK_LOGIC_OP_INVERT: return PIPE_LOGICOP_INVERT;
-   case VK_LOGIC_OP_OR_REVERSE: return PIPE_LOGICOP_OR_REVERSE;
-   case VK_LOGIC_OP_COPY_INVERTED: return PIPE_LOGICOP_COPY_INVERTED;
-   case VK_LOGIC_OP_OR_INVERTED: return PIPE_LOGICOP_OR_INVERTED;
-   case VK_LOGIC_OP_NAND: return PIPE_LOGICOP_NAND;
-   case VK_LOGIC_OP_SET: return PIPE_LOGICOP_SET;
-   default: unreachable("Invalid logicop");
-   }
-}
-
-static enum blend_func
-translate_blend_op(VkBlendOp in)
-{
-   switch (in) {
-   case VK_BLEND_OP_ADD: return BLEND_FUNC_ADD;
-   case VK_BLEND_OP_SUBTRACT: return BLEND_FUNC_SUBTRACT;
-   case VK_BLEND_OP_REVERSE_SUBTRACT: return BLEND_FUNC_REVERSE_SUBTRACT;
-   case VK_BLEND_OP_MIN: return BLEND_FUNC_MIN;
-   case VK_BLEND_OP_MAX: return BLEND_FUNC_MAX;
-   default: unreachable("Invalid blend op");
-   }
-}
-
-static enum blend_factor
-translate_blend_factor(VkBlendFactor in, bool dest_has_alpha)
-{
-   switch (in) {
-   case VK_BLEND_FACTOR_ZERO:
-   case VK_BLEND_FACTOR_ONE:
-      return BLEND_FACTOR_ZERO;
-   case VK_BLEND_FACTOR_SRC_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR:
-      return BLEND_FACTOR_SRC_COLOR;
-   case VK_BLEND_FACTOR_DST_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR:
-      return BLEND_FACTOR_DST_COLOR;
-   case VK_BLEND_FACTOR_SRC_ALPHA:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA:
-      return BLEND_FACTOR_SRC_ALPHA;
-   case VK_BLEND_FACTOR_DST_ALPHA:
-   case VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
-      return dest_has_alpha ? BLEND_FACTOR_DST_ALPHA : BLEND_FACTOR_ZERO;
-   case VK_BLEND_FACTOR_CONSTANT_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:
-      return BLEND_FACTOR_CONSTANT_COLOR;
-   case VK_BLEND_FACTOR_CONSTANT_ALPHA:
-   case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA:
-      return BLEND_FACTOR_CONSTANT_ALPHA;
-   case VK_BLEND_FACTOR_SRC1_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR:
-      return BLEND_FACTOR_SRC1_COLOR;
-   case VK_BLEND_FACTOR_SRC1_ALPHA:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA:
-      return BLEND_FACTOR_SRC1_ALPHA;
-   case VK_BLEND_FACTOR_SRC_ALPHA_SATURATE:
-      return BLEND_FACTOR_SRC_ALPHA_SATURATE;
-   default: unreachable("Invalid blend factor");
-   }
-}
-
-static bool
-inverted_blend_factor(VkBlendFactor in, bool dest_has_alpha)
-{
-   switch (in) {
-   case VK_BLEND_FACTOR_ONE:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA:
-   case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR:
-   case VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA:
-      return true;
-   case VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
-      return dest_has_alpha ? true : false;
-   case VK_BLEND_FACTOR_DST_ALPHA:
-      return !dest_has_alpha ? true : false;
-   default:
-      return false;
-   }
+   pipeline->ia.topology = translate_prim_topology(
+      builder->create_info.gfx->pInputAssemblyState->topology);
 }
 
 bool
@@ -540,8 +430,9 @@ panvk_pipeline_builder_parse_color_blend(struct panvk_pipeline_builder *builder,
    pipeline->blend.state.logicop_enable =
       builder->create_info.gfx->pColorBlendState->logicOpEnable;
    pipeline->blend.state.logicop_func =
-      translate_logicop(builder->create_info.gfx->pColorBlendState->logicOp);
-   pipeline->blend.state.rt_count = util_last_bit(builder->active_color_attachments);
+      vk_logic_op_to_pipe(builder->create_info.gfx->pColorBlendState->logicOp);
+   pipeline->blend.state.rt_count =
+      util_last_bit(builder->active_color_attachments);
    memcpy(pipeline->blend.state.constants,
           builder->create_info.gfx->pColorBlendState->blendConstants,
           sizeof(pipeline->blend.state.constants));
@@ -555,25 +446,39 @@ panvk_pipeline_builder_parse_color_blend(struct panvk_pipeline_builder *builder,
 
       bool dest_has_alpha = util_format_has_alpha(out->format);
 
-      out->nr_samples = builder->create_info.gfx->pMultisampleState->rasterizationSamples;
+      out->nr_samples =
+         builder->create_info.gfx->pMultisampleState->rasterizationSamples;
       out->equation.blend_enable = in->blendEnable;
       out->equation.color_mask = in->colorWriteMask;
-      out->equation.rgb_func = translate_blend_op(in->colorBlendOp);
-      out->equation.rgb_src_factor = translate_blend_factor(in->srcColorBlendFactor, dest_has_alpha);
-      out->equation.rgb_invert_src_factor = inverted_blend_factor(in->srcColorBlendFactor, dest_has_alpha);
-      out->equation.rgb_dst_factor = translate_blend_factor(in->dstColorBlendFactor, dest_has_alpha);
-      out->equation.rgb_invert_dst_factor = inverted_blend_factor(in->dstColorBlendFactor, dest_has_alpha);
-      out->equation.alpha_func = translate_blend_op(in->alphaBlendOp);
-      out->equation.alpha_src_factor = translate_blend_factor(in->srcAlphaBlendFactor, dest_has_alpha);
-      out->equation.alpha_invert_src_factor = inverted_blend_factor(in->srcAlphaBlendFactor, dest_has_alpha);
-      out->equation.alpha_dst_factor = translate_blend_factor(in->dstAlphaBlendFactor, dest_has_alpha);
-      out->equation.alpha_invert_dst_factor = inverted_blend_factor(in->dstAlphaBlendFactor, dest_has_alpha);
+      out->equation.rgb_func = vk_blend_op_to_pipe(in->colorBlendOp);
+      out->equation.rgb_src_factor =
+         vk_blend_factor_to_pipe(in->srcColorBlendFactor);
+      out->equation.rgb_dst_factor =
+         vk_blend_factor_to_pipe(in->dstColorBlendFactor);
+      out->equation.alpha_func = vk_blend_op_to_pipe(in->alphaBlendOp);
+      out->equation.alpha_src_factor =
+         vk_blend_factor_to_pipe(in->srcAlphaBlendFactor);
+      out->equation.alpha_dst_factor =
+         vk_blend_factor_to_pipe(in->dstAlphaBlendFactor);
+
+      if (!dest_has_alpha) {
+         out->equation.rgb_src_factor =
+            util_blend_dst_alpha_to_one(out->equation.rgb_src_factor);
+         out->equation.rgb_dst_factor =
+            util_blend_dst_alpha_to_one(out->equation.rgb_dst_factor);
+
+         out->equation.alpha_src_factor =
+            util_blend_dst_alpha_to_one(out->equation.alpha_src_factor);
+         out->equation.alpha_dst_factor =
+            util_blend_dst_alpha_to_one(out->equation.alpha_dst_factor);
+      }
 
       pipeline->blend.reads_dest |= pan_blend_reads_dest(out->equation);
 
       unsigned constant_mask =
-         panvk_per_arch(blend_needs_lowering)(pdev, &pipeline->blend.state, i) ?
-         0 : pan_blend_constant_mask(out->equation);
+         panvk_per_arch(blend_needs_lowering)(pdev, &pipeline->blend.state, i)
+            ? 0
+            : pan_blend_constant_mask(out->equation);
       pipeline->blend.constant[i].index = ffs(constant_mask) - 1;
       if (constant_mask) {
          /* On Bifrost, the blend constant is expressed with a UNORM of the
@@ -588,8 +493,8 @@ panvk_pipeline_builder_parse_color_blend(struct panvk_pipeline_builder *builder,
          unsigned chan_size = 0;
          for (unsigned c = 0; c < format_desc->nr_channels; c++)
             chan_size = MAX2(format_desc->channel[c].size, chan_size);
-         pipeline->blend.constant[i].bifrost_factor =
-            ((1 << chan_size) - 1) << (16 - chan_size);
+         pipeline->blend.constant[i].bifrost_factor = ((1 << chan_size) - 1)
+                                                      << (16 - chan_size);
       }
    }
 }
@@ -598,31 +503,43 @@ static void
 panvk_pipeline_builder_parse_multisample(struct panvk_pipeline_builder *builder,
                                          struct panvk_pipeline *pipeline)
 {
-   unsigned nr_samples =
-      MAX2(builder->create_info.gfx->pMultisampleState->rasterizationSamples, 1);
+   unsigned nr_samples = MAX2(
+      builder->create_info.gfx->pMultisampleState->rasterizationSamples, 1);
 
    pipeline->ms.rast_samples =
       builder->create_info.gfx->pMultisampleState->rasterizationSamples;
    pipeline->ms.sample_mask =
-      builder->create_info.gfx->pMultisampleState->pSampleMask ?
-      builder->create_info.gfx->pMultisampleState->pSampleMask[0] : UINT16_MAX;
+      builder->create_info.gfx->pMultisampleState->pSampleMask
+         ? builder->create_info.gfx->pMultisampleState->pSampleMask[0]
+         : UINT16_MAX;
    pipeline->ms.min_samples =
-      MAX2(builder->create_info.gfx->pMultisampleState->minSampleShading * nr_samples, 1);
+      MAX2(builder->create_info.gfx->pMultisampleState->minSampleShading *
+              nr_samples,
+           1);
 }
 
 static enum mali_stencil_op
 translate_stencil_op(VkStencilOp in)
 {
    switch (in) {
-   case VK_STENCIL_OP_KEEP: return MALI_STENCIL_OP_KEEP;
-   case VK_STENCIL_OP_ZERO: return MALI_STENCIL_OP_ZERO;
-   case VK_STENCIL_OP_REPLACE: return MALI_STENCIL_OP_REPLACE;
-   case VK_STENCIL_OP_INCREMENT_AND_CLAMP: return MALI_STENCIL_OP_INCR_SAT;
-   case VK_STENCIL_OP_DECREMENT_AND_CLAMP: return MALI_STENCIL_OP_DECR_SAT;
-   case VK_STENCIL_OP_INCREMENT_AND_WRAP: return MALI_STENCIL_OP_INCR_WRAP;
-   case VK_STENCIL_OP_DECREMENT_AND_WRAP: return MALI_STENCIL_OP_DECR_WRAP;
-   case VK_STENCIL_OP_INVERT: return MALI_STENCIL_OP_INVERT;
-   default: unreachable("Invalid stencil op");
+   case VK_STENCIL_OP_KEEP:
+      return MALI_STENCIL_OP_KEEP;
+   case VK_STENCIL_OP_ZERO:
+      return MALI_STENCIL_OP_ZERO;
+   case VK_STENCIL_OP_REPLACE:
+      return MALI_STENCIL_OP_REPLACE;
+   case VK_STENCIL_OP_INCREMENT_AND_CLAMP:
+      return MALI_STENCIL_OP_INCR_SAT;
+   case VK_STENCIL_OP_DECREMENT_AND_CLAMP:
+      return MALI_STENCIL_OP_DECR_SAT;
+   case VK_STENCIL_OP_INCREMENT_AND_WRAP:
+      return MALI_STENCIL_OP_INCR_WRAP;
+   case VK_STENCIL_OP_DECREMENT_AND_WRAP:
+      return MALI_STENCIL_OP_DECR_WRAP;
+   case VK_STENCIL_OP_INVERT:
+      return MALI_STENCIL_OP_INVERT;
+   default:
+      unreachable("Invalid stencil op");
    }
 }
 
@@ -633,7 +550,8 @@ panvk_pipeline_builder_parse_zs(struct panvk_pipeline_builder *builder,
    if (!builder->use_depth_stencil_attachment)
       return;
 
-   pipeline->zs.z_test = builder->create_info.gfx->pDepthStencilState->depthTestEnable;
+   pipeline->zs.z_test =
+      builder->create_info.gfx->pDepthStencilState->depthTestEnable;
 
    /* The Vulkan spec says:
     *
@@ -644,34 +562,36 @@ panvk_pipeline_builder_parse_zs(struct panvk_pipeline_builder *builder,
     * The hardware does not make this distinction, though, so we AND in the
     * condition ourselves.
     */
-   pipeline->zs.z_write = pipeline->zs.z_test &&
+   pipeline->zs.z_write =
+      pipeline->zs.z_test &&
       builder->create_info.gfx->pDepthStencilState->depthWriteEnable;
 
-   pipeline->zs.z_compare_func =
-      panvk_per_arch(translate_compare_func)(builder->create_info.gfx->pDepthStencilState->depthCompareOp);
-   pipeline->zs.s_test = builder->create_info.gfx->pDepthStencilState->stencilTestEnable;
-   pipeline->zs.s_front.fail_op =
-      translate_stencil_op(builder->create_info.gfx->pDepthStencilState->front.failOp);
-   pipeline->zs.s_front.pass_op =
-      translate_stencil_op(builder->create_info.gfx->pDepthStencilState->front.passOp);
-   pipeline->zs.s_front.z_fail_op =
-      translate_stencil_op(builder->create_info.gfx->pDepthStencilState->front.depthFailOp);
-   pipeline->zs.s_front.compare_func =
-      panvk_per_arch(translate_compare_func)(builder->create_info.gfx->pDepthStencilState->front.compareOp);
+   pipeline->zs.z_compare_func = panvk_per_arch(translate_compare_func)(
+      builder->create_info.gfx->pDepthStencilState->depthCompareOp);
+   pipeline->zs.s_test =
+      builder->create_info.gfx->pDepthStencilState->stencilTestEnable;
+   pipeline->zs.s_front.fail_op = translate_stencil_op(
+      builder->create_info.gfx->pDepthStencilState->front.failOp);
+   pipeline->zs.s_front.pass_op = translate_stencil_op(
+      builder->create_info.gfx->pDepthStencilState->front.passOp);
+   pipeline->zs.s_front.z_fail_op = translate_stencil_op(
+      builder->create_info.gfx->pDepthStencilState->front.depthFailOp);
+   pipeline->zs.s_front.compare_func = panvk_per_arch(translate_compare_func)(
+      builder->create_info.gfx->pDepthStencilState->front.compareOp);
    pipeline->zs.s_front.compare_mask =
       builder->create_info.gfx->pDepthStencilState->front.compareMask;
    pipeline->zs.s_front.write_mask =
       builder->create_info.gfx->pDepthStencilState->front.writeMask;
    pipeline->zs.s_front.ref =
       builder->create_info.gfx->pDepthStencilState->front.reference;
-   pipeline->zs.s_back.fail_op =
-      translate_stencil_op(builder->create_info.gfx->pDepthStencilState->back.failOp);
-   pipeline->zs.s_back.pass_op =
-      translate_stencil_op(builder->create_info.gfx->pDepthStencilState->back.passOp);
-   pipeline->zs.s_back.z_fail_op =
-      translate_stencil_op(builder->create_info.gfx->pDepthStencilState->back.depthFailOp);
-   pipeline->zs.s_back.compare_func =
-      panvk_per_arch(translate_compare_func)(builder->create_info.gfx->pDepthStencilState->back.compareOp);
+   pipeline->zs.s_back.fail_op = translate_stencil_op(
+      builder->create_info.gfx->pDepthStencilState->back.failOp);
+   pipeline->zs.s_back.pass_op = translate_stencil_op(
+      builder->create_info.gfx->pDepthStencilState->back.passOp);
+   pipeline->zs.s_back.z_fail_op = translate_stencil_op(
+      builder->create_info.gfx->pDepthStencilState->back.depthFailOp);
+   pipeline->zs.s_back.compare_func = panvk_per_arch(translate_compare_func)(
+      builder->create_info.gfx->pDepthStencilState->back.compareOp);
    pipeline->zs.s_back.compare_mask =
       builder->create_info.gfx->pDepthStencilState->back.compareMask;
    pipeline->zs.s_back.write_mask =
@@ -684,17 +604,29 @@ static void
 panvk_pipeline_builder_parse_rast(struct panvk_pipeline_builder *builder,
                                   struct panvk_pipeline *pipeline)
 {
-   pipeline->rast.clamp_depth = builder->create_info.gfx->pRasterizationState->depthClampEnable;
-   pipeline->rast.depth_bias.enable = builder->create_info.gfx->pRasterizationState->depthBiasEnable;
+   pipeline->rast.clamp_depth =
+      builder->create_info.gfx->pRasterizationState->depthClampEnable;
+   pipeline->rast.depth_bias.enable =
+      builder->create_info.gfx->pRasterizationState->depthBiasEnable;
    pipeline->rast.depth_bias.constant_factor =
       builder->create_info.gfx->pRasterizationState->depthBiasConstantFactor;
-   pipeline->rast.depth_bias.clamp = builder->create_info.gfx->pRasterizationState->depthBiasClamp;
-   pipeline->rast.depth_bias.slope_factor = builder->create_info.gfx->pRasterizationState->depthBiasSlopeFactor;
-   pipeline->rast.front_ccw = builder->create_info.gfx->pRasterizationState->frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
-   pipeline->rast.cull_front_face = builder->create_info.gfx->pRasterizationState->cullMode & VK_CULL_MODE_FRONT_BIT;
-   pipeline->rast.cull_back_face = builder->create_info.gfx->pRasterizationState->cullMode & VK_CULL_MODE_BACK_BIT;
-   pipeline->rast.line_width = builder->create_info.gfx->pRasterizationState->lineWidth;
-   pipeline->rast.enable = !builder->create_info.gfx->pRasterizationState->rasterizerDiscardEnable;
+   pipeline->rast.depth_bias.clamp =
+      builder->create_info.gfx->pRasterizationState->depthBiasClamp;
+   pipeline->rast.depth_bias.slope_factor =
+      builder->create_info.gfx->pRasterizationState->depthBiasSlopeFactor;
+   pipeline->rast.front_ccw =
+      builder->create_info.gfx->pRasterizationState->frontFace ==
+      VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   pipeline->rast.cull_front_face =
+      builder->create_info.gfx->pRasterizationState->cullMode &
+      VK_CULL_MODE_FRONT_BIT;
+   pipeline->rast.cull_back_face =
+      builder->create_info.gfx->pRasterizationState->cullMode &
+      VK_CULL_MODE_BACK_BIT;
+   pipeline->rast.line_width =
+      builder->create_info.gfx->pRasterizationState->lineWidth;
+   pipeline->rast.enable =
+      !builder->create_info.gfx->pRasterizationState->rasterizerDiscardEnable;
 }
 
 static bool
@@ -706,24 +638,24 @@ panvk_fs_required(struct panvk_pipeline *pipeline)
    if (info->fs.sidefx)
       return true;
 
-    /* If colour is written we need to execute */
-    const struct pan_blend_state *blend = &pipeline->blend.state;
-    for (unsigned i = 0; i < blend->rt_count; ++i) {
-       if (blend->rts[i].equation.color_mask)
-          return true;
-    }
+   /* If colour is written we need to execute */
+   const struct pan_blend_state *blend = &pipeline->blend.state;
+   for (unsigned i = 0; i < blend->rt_count; ++i) {
+      if (blend->rts[i].equation.color_mask)
+         return true;
+   }
 
-    /* If depth is written and not implied we need to execute.
-     * TODO: Predicate on Z/S writes being enabled */
-    return (info->fs.writes_depth || info->fs.writes_stencil);
+   /* If depth is written and not implied we need to execute.
+    * TODO: Predicate on Z/S writes being enabled */
+   return (info->fs.writes_depth || info->fs.writes_stencil);
 }
 
-#define PANVK_DYNAMIC_FS_RSD_MASK \
-        ((1 << VK_DYNAMIC_STATE_DEPTH_BIAS) | \
-         (1 << VK_DYNAMIC_STATE_BLEND_CONSTANTS) | \
-         (1 << VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK) | \
-         (1 << VK_DYNAMIC_STATE_STENCIL_WRITE_MASK) | \
-         (1 << VK_DYNAMIC_STATE_STENCIL_REFERENCE))
+#define PANVK_DYNAMIC_FS_RSD_MASK                                              \
+   ((1 << VK_DYNAMIC_STATE_DEPTH_BIAS) |                                       \
+    (1 << VK_DYNAMIC_STATE_BLEND_CONSTANTS) |                                  \
+    (1 << VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK) |                             \
+    (1 << VK_DYNAMIC_STATE_STENCIL_WRITE_MASK) |                               \
+    (1 << VK_DYNAMIC_STATE_STENCIL_REFERENCE))
 
 static void
 panvk_pipeline_builder_init_fs_state(struct panvk_pipeline_builder *builder,
@@ -772,6 +704,14 @@ panvk_pipeline_update_varying_slot(struct panvk_varyings_info *varyings,
    if (old_size < new_size)
       varyings->varying[loc].format = new_fmt;
 
+   /* Type (float or not) information is only known in the fragment shader, so
+    * override for that
+    */
+   if (input) {
+      assert(stage == MESA_SHADER_FRAGMENT && "no geom/tess on Bifrost");
+      varyings->varying[loc].format = new_fmt;
+   }
+
    varyings->buf_mask |= 1 << buf_id;
 }
 
@@ -787,14 +727,12 @@ panvk_pipeline_builder_collect_varyings(struct panvk_pipeline_builder *builder,
 
       for (unsigned i = 0; i < info->varyings.input_count; i++) {
          panvk_pipeline_update_varying_slot(&pipeline->varyings, s,
-                                            &info->varyings.input[i],
-                                            true);
+                                            &info->varyings.input[i], true);
       }
 
       for (unsigned i = 0; i < info->varyings.output_count; i++) {
          panvk_pipeline_update_varying_slot(&pipeline->varyings, s,
-                                            &info->varyings.output[i],
-                                            false);
+                                            &info->varyings.output[i], false);
       }
    }
 
@@ -816,8 +754,8 @@ panvk_pipeline_builder_collect_varyings(struct panvk_pipeline_builder *builder,
 }
 
 static void
-panvk_pipeline_builder_parse_vertex_input(struct panvk_pipeline_builder *builder,
-                                          struct panvk_pipeline *pipeline)
+panvk_pipeline_builder_parse_vertex_input(
+   struct panvk_pipeline_builder *builder, struct panvk_pipeline *pipeline)
 {
    struct panvk_attribs_info *attribs = &pipeline->attribs;
    const VkPipelineVertexInputStateCreateInfo *info =
@@ -854,12 +792,11 @@ panvk_pipeline_builder_parse_vertex_input(struct panvk_pipeline_builder *builder
          &info->pVertexAttributeDescriptions[i];
 
       unsigned attrib = desc->location + VERT_ATTRIB_GENERIC0;
-      unsigned slot = util_bitcount64(vs->attributes_read &
-                                      BITFIELD64_MASK(attrib));
+      unsigned slot =
+         util_bitcount64(vs->attributes_read & BITFIELD64_MASK(attrib));
 
       attribs->attrib[slot].buf = desc->binding;
-      attribs->attrib[slot].format =
-         vk_format_to_pipe_format(desc->format);
+      attribs->attrib[slot].format = vk_format_to_pipe_format(desc->format);
       attribs->attrib[slot].offset = desc->offset;
    }
 
@@ -915,15 +852,15 @@ panvk_pipeline_builder_build(struct panvk_pipeline_builder *builder,
 }
 
 static void
-panvk_pipeline_builder_init_graphics(struct panvk_pipeline_builder *builder,
-                                     struct panvk_device *dev,
-                                     struct panvk_pipeline_cache *cache,
-                                     const VkGraphicsPipelineCreateInfo *create_info,
-                                     const VkAllocationCallbacks *alloc)
+panvk_pipeline_builder_init_graphics(
+   struct panvk_pipeline_builder *builder, struct panvk_device *dev,
+   struct panvk_pipeline_cache *cache,
+   const VkGraphicsPipelineCreateInfo *create_info,
+   const VkAllocationCallbacks *alloc)
 {
    VK_FROM_HANDLE(panvk_pipeline_layout, layout, create_info->layout);
    assert(layout);
-   *builder = (struct panvk_pipeline_builder) {
+   *builder = (struct panvk_pipeline_builder){
       .device = dev,
       .cache = cache,
       .layout = layout,
@@ -939,13 +876,16 @@ panvk_pipeline_builder_init_graphics(struct panvk_pipeline_builder *builder,
    } else {
       builder->samples = create_info->pMultisampleState->rasterizationSamples;
 
-      const struct panvk_render_pass *pass = panvk_render_pass_from_handle(create_info->renderPass);
-      const struct panvk_subpass *subpass = &pass->subpasses[create_info->subpass];
+      const struct panvk_render_pass *pass =
+         panvk_render_pass_from_handle(create_info->renderPass);
+      const struct panvk_subpass *subpass =
+         &pass->subpasses[create_info->subpass];
 
       builder->use_depth_stencil_attachment =
          subpass->zs_attachment.idx != VK_ATTACHMENT_UNUSED;
 
-      assert(subpass->color_count <= create_info->pColorBlendState->attachmentCount);
+      assert(subpass->color_count <=
+             create_info->pColorBlendState->attachmentCount);
       builder->active_color_attachments = 0;
       for (uint32_t i = 0; i < subpass->color_count; i++) {
          uint32_t idx = subpass->color_attachments[i].idx;
@@ -959,12 +899,10 @@ panvk_pipeline_builder_init_graphics(struct panvk_pipeline_builder *builder,
 }
 
 VkResult
-panvk_per_arch(CreateGraphicsPipelines)(VkDevice device,
-                                        VkPipelineCache pipelineCache,
-                                        uint32_t count,
-                                        const VkGraphicsPipelineCreateInfo *pCreateInfos,
-                                        const VkAllocationCallbacks *pAllocator,
-                                        VkPipeline *pPipelines)
+panvk_per_arch(CreateGraphicsPipelines)(
+   VkDevice device, VkPipelineCache pipelineCache, uint32_t count,
+   const VkGraphicsPipelineCreateInfo *pCreateInfos,
+   const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines)
 {
    VK_FROM_HANDLE(panvk_device, dev, device);
    VK_FROM_HANDLE(panvk_pipeline_cache, cache, pipelineCache);
@@ -994,15 +932,15 @@ panvk_per_arch(CreateGraphicsPipelines)(VkDevice device,
 }
 
 static void
-panvk_pipeline_builder_init_compute(struct panvk_pipeline_builder *builder,
-                                    struct panvk_device *dev,
-                                    struct panvk_pipeline_cache *cache,
-                                    const VkComputePipelineCreateInfo *create_info,
-                                    const VkAllocationCallbacks *alloc)
+panvk_pipeline_builder_init_compute(
+   struct panvk_pipeline_builder *builder, struct panvk_device *dev,
+   struct panvk_pipeline_cache *cache,
+   const VkComputePipelineCreateInfo *create_info,
+   const VkAllocationCallbacks *alloc)
 {
    VK_FROM_HANDLE(panvk_pipeline_layout, layout, create_info->layout);
    assert(layout);
-   *builder = (struct panvk_pipeline_builder) {
+   *builder = (struct panvk_pipeline_builder){
       .device = dev,
       .cache = cache,
       .layout = layout,
@@ -1012,12 +950,10 @@ panvk_pipeline_builder_init_compute(struct panvk_pipeline_builder *builder,
 }
 
 VkResult
-panvk_per_arch(CreateComputePipelines)(VkDevice device,
-                                       VkPipelineCache pipelineCache,
-                                       uint32_t count,
-                                       const VkComputePipelineCreateInfo *pCreateInfos,
-                                       const VkAllocationCallbacks *pAllocator,
-                                       VkPipeline *pPipelines)
+panvk_per_arch(CreateComputePipelines)(
+   VkDevice device, VkPipelineCache pipelineCache, uint32_t count,
+   const VkComputePipelineCreateInfo *pCreateInfos,
+   const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines)
 {
    VK_FROM_HANDLE(panvk_device, dev, device);
    VK_FROM_HANDLE(panvk_pipeline_cache, cache, pipelineCache);

@@ -32,7 +32,7 @@
 #include "util/u_hash_table.h"
 #include "util/u_math.h"
 #include "util/os_time.h"
-#include "os/os_mman.h"
+#include "util/os_mman.h"
 
 #include "frontend/drm_driver.h"
 

@@ -36,7 +36,7 @@
 #ifndef HINT_H
 #define HINT_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 

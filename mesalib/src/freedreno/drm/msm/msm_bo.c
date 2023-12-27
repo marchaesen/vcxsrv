@@ -73,19 +73,9 @@ msm_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op)
       .op = op,
    };
 
-   get_abs_timeout(&req.timeout, PIPE_TIMEOUT_INFINITE);
+   get_abs_timeout(&req.timeout, OS_TIMEOUT_INFINITE);
 
    return drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_CPU_PREP, &req, sizeof(req));
-}
-
-static void
-msm_bo_cpu_fini(struct fd_bo *bo)
-{
-   struct drm_msm_gem_cpu_fini req = {
-      .handle = bo->handle,
-   };
-
-   drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_CPU_FINI, &req, sizeof(req));
 }
 
 static int
@@ -147,20 +137,52 @@ msm_bo_set_name(struct fd_bo *bo, const char *fmt, va_list ap)
 }
 
 static void
-msm_bo_destroy(struct fd_bo *bo)
+msm_bo_set_metadata(struct fd_bo *bo, void *metadata, uint32_t metadata_size)
 {
-   struct msm_bo *msm_bo = to_msm_bo(bo);
-   free(msm_bo);
+   struct drm_msm_gem_info req = {
+      .handle = bo->handle,
+      .info = MSM_INFO_SET_METADATA,
+      .value = (uintptr_t)(void *)metadata,
+      .len = metadata_size,
+   };
+
+   int ret = drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
+   if (ret) {
+      mesa_logw_once("Failed to set BO metadata with DRM_MSM_GEM_INFO: %d",
+                     ret);
+   }
+}
+
+static int
+msm_bo_get_metadata(struct fd_bo *bo, void *metadata, uint32_t metadata_size)
+{
+   struct drm_msm_gem_info req = {
+      .handle = bo->handle,
+      .info = MSM_INFO_GET_METADATA,
+      .value = (uintptr_t)(void *)metadata,
+      .len = metadata_size,
+   };
+
+   int ret = drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
+   if (ret) {
+      mesa_logw_once("Failed to get BO metadata with DRM_MSM_GEM_INFO: %d",
+                     ret);
+   }
+
+   return ret;
 }
 
 static const struct fd_bo_funcs funcs = {
    .offset = msm_bo_offset,
+   .map = fd_bo_map_os_mmap,
    .cpu_prep = msm_bo_cpu_prep,
-   .cpu_fini = msm_bo_cpu_fini,
    .madvise = msm_bo_madvise,
    .iova = msm_bo_iova,
    .set_name = msm_bo_set_name,
-   .destroy = msm_bo_destroy,
+   .set_metadata = msm_bo_set_metadata,
+   .get_metadata = msm_bo_get_metadata,
+   .dmabuf = fd_bo_dmabuf_drm,
+   .destroy = fd_bo_fini_common,
 };
 
 /* allocate a buffer handle: */

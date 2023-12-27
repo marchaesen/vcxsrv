@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, Oracle and/or its affiliates.
  * Copyright 2010 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a

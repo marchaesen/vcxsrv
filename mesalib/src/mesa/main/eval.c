@@ -37,7 +37,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "eval.h"
 #include "macros.h"

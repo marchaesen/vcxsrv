@@ -29,6 +29,5 @@
 #error "no arch"
 #endif
 
-VkResult
-panvk_per_arch(queue_submit)(struct vk_queue *queue,
-                             struct vk_queue_submit *submit);
+VkResult panvk_per_arch(queue_submit)(struct vk_queue *queue,
+                                      struct vk_queue_submit *submit);

@@ -3,6 +3,7 @@
 #include "lp_rast_priv.h"
 #include "lp_state_fs.h"
 
+
 struct tile {
    int coverage;
    int overdraw;
@@ -10,9 +11,12 @@ struct tile {
    char data[TILE_SIZE][TILE_SIZE];
 };
 
-static char get_label( int i )
+
+static char
+get_label(int i)
 {
-   static const char *cmd_labels = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+   static const char *cmd_labels =
+      "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
    unsigned max_label = (2*26+10);
 
    if (i < max_label)
@@ -20,7 +24,6 @@ static char get_label( int i )
    else
       return '?';
 }
-
 
 
 static const char *cmd_names[] =
@@ -69,17 +72,20 @@ static const char *cmd_names[] =
    "blit_tile",
 };
 
-static const char *cmd_name(unsigned cmd)
+
+static const char *
+cmd_name(unsigned cmd)
 {
    STATIC_ASSERT(ARRAY_SIZE(cmd_names) == LP_RAST_OP_MAX);
    assert(ARRAY_SIZE(cmd_names) > cmd);
    return cmd_names[cmd];
 }
 
+
 static const struct lp_fragment_shader_variant *
-get_variant( const struct lp_rast_state *state,
-             const struct cmd_block *block,
-             int k )
+get_variant(const struct lp_rast_state *state,
+            const struct cmd_block *block,
+            int k)
 {
    if (!state)
       return NULL;
@@ -101,23 +107,25 @@ get_variant( const struct lp_rast_state *state,
 }
 
 
-static boolean
-is_blend( const struct lp_rast_state *state,
-          const struct cmd_block *block,
-          int k )
+static bool
+is_blend(const struct lp_rast_state *state,
+         const struct cmd_block *block,
+         int k)
 {
-   const struct lp_fragment_shader_variant *variant = get_variant(state, block, k);
+   const struct lp_fragment_shader_variant *variant =
+      get_variant(state, block, k);
 
    if (variant)
       return  variant->key.blend.rt[0].blend_enable;
 
-   return FALSE;
+   return false;
 }
 
-static boolean
-is_linear( const struct lp_rast_state *state,
-           const struct cmd_block *block,
-           int k )
+
+static bool
+is_linear(const struct lp_rast_state *state,
+          const struct cmd_block *block,
+          int k)
 {
    if (block->cmd[k] == LP_RAST_OP_BLIT)
       return state->variant->jit_linear_blit != NULL;
@@ -129,16 +137,17 @@ is_linear( const struct lp_rast_state *state,
    if (block->cmd[k] == LP_RAST_OP_RECTANGLE)
       return state->variant->jit_linear != NULL;
 
-   return FALSE;
+   return false;
 }
 
 
 static const char *
-get_fs_kind( const struct lp_rast_state *state,
-             const struct cmd_block *block,
-             int k )
+get_fs_kind(const struct lp_rast_state *state,
+            const struct cmd_block *block,
+            int k)
 {
-   const struct lp_fragment_shader_variant *variant = get_variant(state, block, k);
+   const struct lp_fragment_shader_variant *variant =
+      get_variant(state, block, k);
 
    if (variant)
       return lp_debug_fs_kind(variant->shader->kind);
@@ -147,19 +156,15 @@ get_fs_kind( const struct lp_rast_state *state,
 }
 
 
-
-
 static void
-debug_bin( const struct cmd_bin *bin, int x, int y )
+debug_bin(const struct cmd_bin *bin, int x, int y)
 {
    const struct lp_rast_state *state = NULL;
    const struct cmd_block *head = bin->head;
    const char *type;
-   struct lp_bin_info info;
-   int i, j = 0;
 
-   info = lp_characterize_bin(bin);
-   
+   struct lp_bin_info info = lp_characterize_bin(bin);
+
    if (info.type & LP_RAST_FLAGS_BLIT)
       type = "blit";
    else if (info.type & LP_RAST_FLAGS_TILE)
@@ -170,12 +175,12 @@ debug_bin( const struct cmd_bin *bin, int x, int y )
       type = "tri";
    else
       type = "unknown";
-         
-   
+
    debug_printf("bin %d,%d: type %s\n", x, y, type);
-                
+
+   int j = 0;
    while (head) {
-      for (i = 0; i < head->count; i++, j++) {
+      for (int i = 0; i < head->count; i++, j++) {
          if (head->cmd[i] == LP_RAST_OP_SET_STATE)
             state = head->arg[i].set_state;
 
@@ -188,10 +193,11 @@ debug_bin( const struct cmd_bin *bin, int x, int y )
 }
 
 
-static void plot(struct tile *tile,
-                 int x, int y,
-                 char val,
-                 boolean blend)
+static void
+plot(struct tile *tile,
+     int x, int y,
+     char val,
+     bool blend)
 {
    if (tile->data[x][y] == ' ')
       tile->coverage++;
@@ -200,7 +206,6 @@ static void plot(struct tile *tile,
 
    tile->data[x][y] = val;
 }
-
 
 
 /**
@@ -214,8 +219,6 @@ debug_rectangle(int x, int y,
                 char val)
 {
    const struct lp_rast_rectangle *rect = arg.rectangle;
-   boolean blend = tile->state->variant->key.blend.rt[0].blend_enable;
-   unsigned i,j, count = 0;
 
    /* Check for "disabled" rectangles generated in out-of-memory
     * conditions.
@@ -225,15 +228,14 @@ debug_rectangle(int x, int y,
       return 0;
    }
 
-   for (i = 0; i < TILE_SIZE; i++)
-   {
-      for (j = 0; j < TILE_SIZE; j++)
-      {
+   bool blend = tile->state->variant->key.blend.rt[0].blend_enable;
+   unsigned count = 0;
+   for (unsigned i = 0; i < TILE_SIZE; i++) {
+      for (unsigned j = 0; j < TILE_SIZE; j++) {
          if (rect->box.x0 <= x + i &&
              rect->box.x1 >= x + i &&
              rect->box.y0 <= y + j &&
-             rect->box.y1 >= y + j)
-         {
+             rect->box.y1 >= y + j) {
             plot(tile, i, j, val, blend);
             count++;
          }
@@ -250,15 +252,14 @@ debug_blit_tile(int x, int y,
                 char val)
 {
    const struct lp_rast_shader_inputs *inputs = arg.shade_tile;
-   unsigned i,j;
 
    if (inputs->disable)
       return 0;
 
-   for (i = 0; i < TILE_SIZE; i++)
-      for (j = 0; j < TILE_SIZE; j++)
-         plot(tile, i, j, val, FALSE);
-   
+   for (unsigned i = 0; i < TILE_SIZE; i++)
+      for (unsigned j = 0; j < TILE_SIZE; j++)
+         plot(tile, i, j, val, false);
+
    return TILE_SIZE * TILE_SIZE;
 }
 
@@ -269,24 +270,22 @@ debug_shade_tile(int x, int y,
                  struct tile *tile,
                  char val)
 {
-   const struct lp_rast_shader_inputs *inputs = arg.shade_tile;
-   boolean blend;
-   unsigned i,j;
-
    if (!tile->state)
       return 0;
 
-   blend = tile->state->variant->key.blend.rt[0].blend_enable;
-
+   const struct lp_rast_shader_inputs *inputs = arg.shade_tile;
    if (inputs->disable)
       return 0;
 
-   for (i = 0; i < TILE_SIZE; i++)
-      for (j = 0; j < TILE_SIZE; j++)
+   bool blend = tile->state->variant->key.blend.rt[0].blend_enable;
+
+   for (unsigned i = 0; i < TILE_SIZE; i++)
+      for (unsigned j = 0; j < TILE_SIZE; j++)
          plot(tile, i, j, val, blend);
 
    return TILE_SIZE * TILE_SIZE;
 }
+
 
 static int
 debug_clear_tile(int x, int y,
@@ -294,14 +293,11 @@ debug_clear_tile(int x, int y,
                  struct tile *tile,
                  char val)
 {
-   unsigned i,j;
-
-   for (i = 0; i < TILE_SIZE; i++)
-      for (j = 0; j < TILE_SIZE; j++)
-         plot(tile, i, j, val, FALSE);
+   for (unsigned i = 0; i < TILE_SIZE; i++)
+      for (unsigned j = 0; j < TILE_SIZE; j++)
+         plot(tile, i, j, val, false);
 
    return TILE_SIZE * TILE_SIZE;
-
 }
 
 
@@ -318,7 +314,7 @@ debug_triangle(int tilex, int tiley,
    int x, y;
    int count = 0;
    unsigned i, nr_planes = 0;
-   boolean blend = tile->state->variant->key.blend.rt[0].blend_enable;
+   bool blend = tile->state->variant->key.blend.rt[0].blend_enable;
 
    if (tri->inputs.disable) {
       /* This triangle was partially binned and has been disabled */
@@ -333,14 +329,12 @@ debug_triangle(int tilex, int tiley,
       nr_planes++;
    }
 
-   for(y = 0; y < TILE_SIZE; y++)
-   {
-      for(x = 0; x < TILE_SIZE; x++)
-      {
+   for (y = 0; y < TILE_SIZE; y++) {
+      for (x = 0; x < TILE_SIZE; x++) {
          for (i = 0; i < nr_planes; i++)
             if (plane[i].c <= 0)
                goto out;
-         
+
          plot(tile, x, y, val, blend);
          count++;
 
@@ -358,14 +352,11 @@ debug_triangle(int tilex, int tiley,
 }
 
 
-
-
-
 static void
-do_debug_bin( struct tile *tile,
-              const struct cmd_bin *bin,
-              int x, int y,
-              boolean print_cmds)
+do_debug_bin(struct tile *tile,
+             const struct cmd_bin *bin,
+             int x, int y,
+             bool print_cmds)
 {
    unsigned k, j = 0;
    const struct cmd_block *block;
@@ -380,18 +371,18 @@ do_debug_bin( struct tile *tile,
 
    for (block = bin->head; block; block = block->next) {
       for (k = 0; k < block->count; k++, j++) {
-         boolean blend = is_blend(tile->state, block, k);
-         boolean linear = is_linear(tile->state, block, k);
+         bool blend = is_blend(tile->state, block, k);
+         bool linear = is_linear(tile->state, block, k);
          const char *fskind = get_fs_kind(tile->state, block, k);
          char val = get_label(j);
          int count = 0;
-            
+
          if (print_cmds)
             debug_printf("%c: %15s", val, cmd_name(block->cmd[k]));
 
          if (block->cmd[k] == LP_RAST_OP_SET_STATE)
             tile->state = block->arg[k].set_state;
-         
+
          if (block->cmd[k] == LP_RAST_OP_CLEAR_COLOR ||
              block->cmd[k] == LP_RAST_OP_CLEAR_ZSTENCIL)
             count = debug_clear_tile(tx, ty, block->arg[k], tile, val);
@@ -422,7 +413,7 @@ do_debug_bin( struct tile *tile,
 
             if (blend)
                debug_printf(" blended");
-            
+
             if (linear)
                debug_printf(" linear");
 
@@ -432,18 +423,18 @@ do_debug_bin( struct tile *tile,
    }
 }
 
+
 void
-lp_debug_bin( const struct cmd_bin *bin, int i, int j)
+lp_debug_bin(const struct cmd_bin *bin, int i, int j)
 {
    struct tile tile;
-   int x,y;
 
    if (bin->head) {
-      do_debug_bin(&tile, bin, i, j, TRUE);
+      do_debug_bin(&tile, bin, i, j, true);
 
       debug_printf("------------------------------------------------------------------\n");
-      for (y = 0; y < TILE_SIZE; y++) {
-         for (x = 0; x < TILE_SIZE; x++) {
+      for (int y = 0; y < TILE_SIZE; y++) {
+         for (int x = 0; x < TILE_SIZE; x++) {
             debug_printf("%c", tile.data[y][x]);
          }
          debug_printf("|\n");
@@ -456,13 +447,9 @@ lp_debug_bin( const struct cmd_bin *bin, int i, int j)
 }
 
 
-
-
-
-
 /** Return number of bytes used for a single bin */
 static unsigned
-lp_scene_bin_size( const struct lp_scene *scene, unsigned x, unsigned y )
+lp_scene_bin_size(const struct lp_scene *scene, unsigned x, unsigned y)
 {
    struct cmd_bin *bin = lp_scene_get_bin((struct lp_scene *) scene, x, y);
    const struct cmd_block *cmd;
@@ -475,30 +462,27 @@ lp_scene_bin_size( const struct lp_scene *scene, unsigned x, unsigned y )
 }
 
 
-
 void
-lp_debug_draw_bins_by_coverage( struct lp_scene *scene )
+lp_debug_draw_bins_by_coverage(struct lp_scene *scene)
 {
-   unsigned x, y;
    unsigned total = 0;
    unsigned possible = 0;
    static uint64_t _total = 0;
    static uint64_t _possible = 0;
 
-   for (x = 0; x < scene->tiles_x; x++)
+   for (unsigned x = 0; x < scene->tiles_x; x++)
       debug_printf("-");
    debug_printf("\n");
 
-   for (y = 0; y < scene->tiles_y; y++) {
-      for (x = 0; x < scene->tiles_x; x++) {
+   for (unsigned y = 0; y < scene->tiles_y; y++) {
+      for (unsigned x = 0; x < scene->tiles_x; x++) {
          struct cmd_bin *bin = lp_scene_get_bin(scene, x, y);
-         const char *bits = "0123456789";
-         struct tile tile;
 
          if (bin->head) {
+            struct tile tile;
             //lp_debug_bin(bin, x, y);
 
-            do_debug_bin(&tile, bin, x, y, FALSE);
+            do_debug_bin(&tile, bin, x, y, false);
 
             total += tile.coverage;
             possible += 64*64;
@@ -506,20 +490,20 @@ lp_debug_draw_bins_by_coverage( struct lp_scene *scene )
             if (tile.coverage == 64*64)
                debug_printf("*");
             else if (tile.coverage) {
+               const char *bits = "0123456789";
                int bit = tile.coverage/(64.0*64.0)*10;
                debug_printf("%c", bits[MIN2(bit,10)]);
             }
             else
                debug_printf("?");
-         }
-         else {
+         } else {
             debug_printf(" ");
          }
       }
       debug_printf("|\n");
    }
 
-   for (x = 0; x < scene->tiles_x; x++)
+   for (unsigned x = 0; x < scene->tiles_x; x++)
       debug_printf("-");
    debug_printf("\n");
 
@@ -531,7 +515,6 @@ lp_debug_draw_bins_by_coverage( struct lp_scene *scene )
    _total += total;
    _possible += possible;
 
-
    debug_printf("overall   total: %" PRIu64
                 " possible %" PRIu64 ": percentage: %f\n",
                 _total,
@@ -541,12 +524,10 @@ lp_debug_draw_bins_by_coverage( struct lp_scene *scene )
 
 
 void
-lp_debug_draw_bins_by_cmd_length( struct lp_scene *scene )
+lp_debug_draw_bins_by_cmd_length(struct lp_scene *scene)
 {
-   unsigned x, y;
-
-   for (y = 0; y < scene->tiles_y; y++) {
-      for (x = 0; x < scene->tiles_x; x++) {
+   for (unsigned y = 0; y < scene->tiles_y; y++) {
+      for (unsigned x = 0; x < scene->tiles_x; x++) {
          const char *bits = " ...,-~:;=o+xaw*#XAWWWWWWWWWWWWWWWW";
          unsigned sz = lp_scene_bin_size(scene, x, y);
          unsigned sz2 = util_logbase2(sz);
@@ -558,12 +539,10 @@ lp_debug_draw_bins_by_cmd_length( struct lp_scene *scene )
 
 
 void
-lp_debug_bins( struct lp_scene *scene )
+lp_debug_bins(struct lp_scene *scene)
 {
-   unsigned x, y;
-
-   for (y = 0; y < scene->tiles_y; y++) {
-      for (x = 0; x < scene->tiles_x; x++) {
+   for (unsigned y = 0; y < scene->tiles_y; y++) {
+      for (unsigned x = 0; x < scene->tiles_x; x++) {
          struct cmd_bin *bin = lp_scene_get_bin(scene, x, y);
          if (bin->head) {
             debug_bin(bin, x, y);

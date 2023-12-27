@@ -27,6 +27,7 @@ if with_platform_x11 and with_dri3
     gnu_symbol_visibility : 'hidden',
     include_directories : [inc_include, inc_src],
     dependencies : [
+      idep_mesautil,
       dep_libdrm, dep_xcb_dri3, dep_xcb_present, dep_xcb_sync, dep_xshmfence,
       dep_xcb_xfixes,
     ],
@@ -42,10 +43,10 @@ loader_c_args = [
 ]
 libloader = static_library(
   'loader',
-  ['loader_dri_helper.c', 'loader.c'],
+  ['loader_dri_helper.c', 'loader.c', sha1_h],
   c_args : loader_c_args,
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_util],
-  dependencies : [dep_libdrm, dep_thread],
+  dependencies : [dep_libdrm, dep_thread, dep_xcb, dep_xcb_xrandr],
   build_by_default : false,
 )

@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -27,7 +27,7 @@
 #define SVGA_SURFACE_H
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
 #include "svga_screen_cache.h"
@@ -57,7 +57,7 @@ struct svga_surface
    unsigned real_level;
    unsigned real_zslice;
 
-   boolean dirty;
+   bool dirty;
 
    /* VGPU10 */
    SVGA3dRenderTargetViewId view_id;
@@ -83,12 +83,12 @@ svga_mark_surfaces_dirty(struct svga_context *svga);
 
 extern void
 svga_propagate_surface(struct svga_context *svga, struct pipe_surface *surf,
-                       boolean reset);
+                       bool reset);
 
 void
 svga_propagate_rendertargets(struct svga_context *svga);
 
-extern boolean
+extern bool
 svga_surface_needs_propagation(const struct pipe_surface *surf);
 
 struct svga_winsys_surface *
@@ -102,7 +102,7 @@ svga_texture_view_surface(struct svga_context *svga,
                           int layer_pick,
                           unsigned num_layers,
                           int zslice_pick,
-                          boolean cacheable,
+                          bool cacheable,
                           struct svga_host_surface_cache_key *key); /* OUT */
 
 void
@@ -141,6 +141,10 @@ svga_surface_const(const struct pipe_surface *surface)
 
 struct pipe_surface *
 svga_validate_surface_view(struct svga_context *svga, struct svga_surface *s);
+
+void
+svga_propagate_surface(struct svga_context *svga, struct pipe_surface *surf,
+                       bool reset);
 
 static inline SVGA3dResourceType
 svga_resource_type(enum pipe_texture_target target)

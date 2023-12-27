@@ -169,7 +169,7 @@ struct GtkFrontend {
     guint32 input_event_time; /* Timestamp of the most recent input event. */
     GtkWidget *dialogs[DIALOG_SLOT_LIMIT];
 #if GTK_CHECK_VERSION(3,4,0)
-    gdouble cumulative_scroll;
+    gdouble cumulative_hscroll, cumulative_vscroll;
 #endif
     /* Cached things out of conf that we refer to a lot */
     int bold_style;
@@ -304,7 +304,7 @@ FontSpec *platform_default_fontspec(const char *name)
     if (!strcmp(name, "Font"))
         return fontspec_new(DEFAULT_GTK_FONT);
     else
-        return fontspec_new("");
+        return fontspec_new_default();
 }
 
 Filename *platform_default_filename(const char *name)
@@ -502,6 +502,8 @@ static Mouse_Button translate_button(Mouse_Button button)
         return MBT_PASTE;
     if (button == MBT_RIGHT)
         return MBT_EXTEND;
+    if (button == MBT_NOTHING)
+        return MBT_NOTHING;
     return 0;                          /* shouldn't happen */
 }
 
@@ -786,10 +788,11 @@ static void drawing_area_setup(GtkFrontend *inst, int width, int height)
     inst->drawing_area_setup_called = true;
     if (inst->term)
         term_size(inst->term, h, w, conf_get_int(inst->conf, CONF_savelines));
-    if (inst->term_resize_notification_required)
-        term_resize_request_completed(inst->term);
-    if (inst->win_resize_pending)
+    if (inst->win_resize_pending) {
+        if (inst->term_resize_notification_required)
+            term_resize_request_completed(inst->term);
         inst->win_resize_pending = false;
+    }
 
     if (!inst->drawing_area_setup_needed)
         return;
@@ -2115,8 +2118,8 @@ void input_method_commit_event(GtkIMContext *imc, gchar *str, gpointer data)
 #define SCROLL_INCREMENT_LINES 5
 
 #if GTK_CHECK_VERSION(3,4,0)
-gboolean scroll_internal(GtkFrontend *inst, gdouble delta, guint state,
-                         gdouble ex, gdouble ey)
+gboolean scroll_internal(GtkFrontend *inst, gdouble xdelta, gdouble ydelta,
+                         guint state, gdouble ex, gdouble ey)
 {
     int x, y;
     bool shift, ctrl, alt, raw_mouse_mode;
@@ -2134,22 +2137,22 @@ gboolean scroll_internal(GtkFrontend *inst, gdouble delta, guint state,
                       !(shift && conf_get_bool(inst->conf,
                                                CONF_mouse_override)));
 
-    inst->cumulative_scroll += delta * SCROLL_INCREMENT_LINES;
+    inst->cumulative_vscroll += ydelta * SCROLL_INCREMENT_LINES;
 
     if (!raw_mouse_mode) {
-        int scroll_lines = (int)inst->cumulative_scroll; /* rounds toward 0 */
+        int scroll_lines = (int)inst->cumulative_vscroll; /* rounds toward 0 */
         if (scroll_lines) {
             term_scroll(inst->term, 0, scroll_lines);
-            inst->cumulative_scroll -= scroll_lines;
+            inst->cumulative_vscroll -= scroll_lines;
         }
         return true;
     } else {
-        int scroll_events = (int)(inst->cumulative_scroll /
+        int scroll_events = (int)(inst->cumulative_vscroll /
                                   SCROLL_INCREMENT_LINES);
         if (scroll_events) {
             int button;
 
-            inst->cumulative_scroll -= scroll_events * SCROLL_INCREMENT_LINES;
+            inst->cumulative_vscroll -= scroll_events * SCROLL_INCREMENT_LINES;
 
             if (scroll_events > 0) {
                 button = MBT_WHEEL_DOWN;
@@ -2163,6 +2166,35 @@ gboolean scroll_internal(GtkFrontend *inst, gdouble delta, guint state,
                            MA_CLICK, x, y, shift, ctrl, alt);
             }
         }
+
+        /*
+         * Now do the same for horizontal scrolling. But because we
+         * _only_ use that for passing through to mouse reporting, we
+         * don't even collect the scroll deltas while not in
+         * raw_mouse_mode. (Otherwise there would likely be a huge
+         * unexpected lurch when raw_mouse_mode was enabled!)
+         */
+        inst->cumulative_hscroll += xdelta * SCROLL_INCREMENT_LINES;
+        scroll_events = (int)(inst->cumulative_hscroll /
+                              SCROLL_INCREMENT_LINES);
+        if (scroll_events) {
+            int button;
+
+            inst->cumulative_hscroll -= scroll_events * SCROLL_INCREMENT_LINES;
+
+            if (scroll_events > 0) {
+                button = MBT_WHEEL_RIGHT;
+            } else {
+                button = MBT_WHEEL_LEFT;
+                scroll_events = -scroll_events;
+            }
+
+            while (scroll_events-- > 0) {
+                term_mouse(inst->term, button, translate_button(button),
+                           MA_CLICK, x, y, shift, ctrl, alt);
+            }
+        }
+
         return true;
     }
 }
@@ -2264,7 +2296,7 @@ gboolean scroll_event(GtkWidget *widget, GdkEventScroll *event, gpointer data)
 #if GTK_CHECK_VERSION(3,4,0)
     gdouble dx, dy;
     if (gdk_event_get_scroll_deltas((GdkEvent *)event, &dx, &dy)) {
-        return scroll_internal(inst, dy, event->state, event->x, event->y);
+        return scroll_internal(inst, dx, dy, event->state, event->x, event->y);
     } else if (!gdk_event_get_scroll_direction((GdkEvent *)event, &dir)) {
         return false;
     }
@@ -2305,7 +2337,9 @@ gint motion_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
 {
     GtkFrontend *inst = (GtkFrontend *)data;
     bool shift, ctrl, alt;
-    int x, y, button;
+    Mouse_Action action = MA_DRAG;
+    Mouse_Button button = MBT_NOTHING;
+    int x, y;
 
     /* Remember the timestamp. */
     inst->input_event_time = event->time;
@@ -2325,12 +2359,12 @@ gint motion_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
     else if (event->state & GDK_BUTTON3_MASK)
         button = MBT_RIGHT;
     else
-        return false;                  /* don't even know what button! */
+        action = MA_MOVE;
 
     x = (event->x - inst->window_border) / inst->font_width;
     y = (event->y - inst->window_border) / inst->font_height;
 
-    term_mouse(inst->term, button, translate_button(button), MA_DRAG,
+    term_mouse(inst->term, button, translate_button(button), action,
                x, y, shift, ctrl, alt);
 
     return true;
@@ -2564,8 +2598,10 @@ static void request_resize_internal(GtkFrontend *inst, bool from_terminal,
         GdkWindowState state = gdk_window_get_state(gdkwin);
         if (state & (GDK_WINDOW_STATE_MAXIMIZED |
                      GDK_WINDOW_STATE_FULLSCREEN |
-#if GTK_CHECK_VERSION(3,0,0)
+#if GTK_CHECK_VERSION(3,10,0)
                      GDK_WINDOW_STATE_TILED |
+#endif
+#if GTK_CHECK_VERSION(3,22,23)
                      GDK_WINDOW_STATE_TOP_TILED |
                      GDK_WINDOW_STATE_RIGHT_TILED |
                      GDK_WINDOW_STATE_BOTTOM_TILED |
@@ -2573,7 +2609,8 @@ static void request_resize_internal(GtkFrontend *inst, bool from_terminal,
 #endif
                      0)) {
             queue_toplevel_callback(gtkwin_deny_term_resize, inst);
-            term_resize_request_completed(inst->term);
+            if (from_terminal)
+                term_resize_request_completed(inst->term);
             return;
         }
     }
@@ -3859,11 +3896,11 @@ static void do_text_internal(
         truecolour.fg = truecolour.bg;
         truecolour.bg = trgb;
     }
-    if ((inst->bold_style & 2) && (attr & ATTR_BOLD)) {
+    if ((inst->bold_style & BOLD_STYLE_COLOUR) && (attr & ATTR_BOLD)) {
         if (nfg < 16) nfg |= 8;
         else if (nfg >= 256) nfg |= 1;
     }
-    if ((inst->bold_style & 2) && (attr & ATTR_BLINK)) {
+    if ((inst->bold_style & BOLD_STYLE_COLOUR) && (attr & ATTR_BLINK)) {
         if (nbg < 16) nbg |= 8;
         else if (nbg >= 256) nbg |= 1;
     }
@@ -3883,7 +3920,7 @@ static void do_text_internal(
         widefactor = 1;
     }
 
-    if ((attr & ATTR_BOLD) && (inst->bold_style & 1)) {
+    if ((attr & ATTR_BOLD) && (inst->bold_style & BOLD_STYLE_FONT)) {
         bold = true;
         fontid |= 1;
     } else {
@@ -4038,7 +4075,7 @@ static void gtkwin_draw_cursor(
         passive = true;
     } else
         passive = false;
-    if ((attr & TATTR_ACTCURS) && inst->cursor_type != 0) {
+    if ((attr & TATTR_ACTCURS) && inst->cursor_type != CURSOR_BLOCK) {
         attr &= ~TATTR_ACTCURS;
         active = true;
     } else
@@ -4063,7 +4100,7 @@ static void gtkwin_draw_cursor(
         len *= 2;
     }
 
-    if (inst->cursor_type == 0) {
+    if (inst->cursor_type == CURSOR_BLOCK) {
         /*
          * An active block cursor will already have been done by
          * the above do_text call, so we only need to do anything
@@ -4088,7 +4125,7 @@ static void gtkwin_draw_cursor(
         else
             char_width = inst->font_width;
 
-        if (inst->cursor_type == 1) {
+        if (inst->cursor_type == CURSOR_UNDERLINE) {
             uheight = inst->fonts[0]->ascent + 1;
             if (uheight >= inst->font_height)
                 uheight = inst->font_height - 1;
@@ -4098,7 +4135,7 @@ static void gtkwin_draw_cursor(
             dx = 1;
             dy = 0;
             length = len * widefactor * char_width;
-        } else {
+        } else /* inst->cursor_type == CURSOR_VERTICAL_LINE */ {
             int xadjust = 0;
             if (attr & TATTR_RIGHTCURS)
                 xadjust = char_width - 1;
@@ -5276,7 +5313,8 @@ void new_session_window(Conf *conf, const char *geometry_string)
     inst->wintitle = inst->icontitle = NULL;
     inst->drawtype = DRAWTYPE_DEFAULT;
 #if GTK_CHECK_VERSION(3,4,0)
-    inst->cumulative_scroll = 0.0;
+    inst->cumulative_vscroll = 0.0;
+    inst->cumulative_hscroll = 0.0;
 #endif
     inst->drawing_area_setup_needed = true;
 

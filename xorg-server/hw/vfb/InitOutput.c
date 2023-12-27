@@ -753,6 +753,8 @@ vfbRRScreenSetSize(ScreenPtr  pScreen,
                    CARD32     mmWidth,
                    CARD32     mmHeight)
 {
+    rrScrPrivPtr pScrPriv = rrGetScrPriv(pScreen);
+
     // Prevent screen updates while we change things around
     SetRootClip(pScreen, ROOT_CLIP_NONE);
 
@@ -767,7 +769,7 @@ vfbRRScreenSetSize(ScreenPtr  pScreen,
     RRScreenSizeNotify (pScreen);
     RRTellChanged(pScreen);
 
-    return TRUE;
+    return RROutputSetPhysicalSize(pScrPriv->outputs[pScreen->myNum], mmWidth, mmHeight);
 }
 
 static Bool
@@ -803,6 +805,7 @@ vfbRandRInit(ScreenPtr pScreen)
     xRRModeInfo modeInfo;
     char       name[64];
 #endif
+    int mmWidth, mmHeight;
 
     if (!RRScreenInit (pScreen))
        return FALSE;
@@ -817,6 +820,9 @@ vfbRandRInit(ScreenPtr pScreen)
 #endif
     pScrPriv->rrOutputValidateMode = vfbRROutputValidateMode;
     pScrPriv->rrModeDestroy = NULL;
+
+    mmWidth = pScreen->width * 25.4 / monitorResolution;
+    mmHeight = pScreen->height * 25.4 / monitorResolution;
 
     RRScreenSetSizeRange (pScreen,
                          1, 1,
@@ -849,6 +855,8 @@ vfbRandRInit(ScreenPtr pScreen)
     if (!RROutputSetCrtcs (output, &crtc, 1))
        return FALSE;
     if (!RROutputSetConnection (output, RR_Connected))
+       return FALSE;
+    if (!RROutputSetPhysicalSize (output, mmWidth, mmHeight))
        return FALSE;
     RRCrtcNotify (crtc, mode, 0, 0, RR_Rotate_0, NULL, 1, &output);
 #endif
@@ -957,6 +965,9 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
 {
     int i;
     int NumFormats = 0;
+
+    if (!monitorResolution)
+               monitorResolution = 96;
 
     /* initialize pixmap formats */
 

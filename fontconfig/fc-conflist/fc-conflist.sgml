@@ -28,13 +28,13 @@ PERFORMANCE OF THIS SOFTWARE.
      less'.  A typical entry in a Makefile or Makefile.am is:
 
 manpage.1: manpage.sgml
-	docbook-to-man $< > $@
+        docbook-to-man $< > $@
 
 
-	The docbook-to-man binary is found in the docbook-to-man package.
-	Please remember that if you create the nroff version in one of the
-	debian/rules file targets (such as build), you will need to include
-	docbook-to-man in your Build-Depends control field.
+        The docbook-to-man binary is found in the docbook-to-man package.
+        Please remember that if you create the nroff version in one of the
+        debian/rules file targets (such as build), you will need to include
+        docbook-to-man in your Build-Depends control field.
 
   -->
 
@@ -96,7 +96,7 @@ manpage.1: manpage.sgml
 
     <para><command>&dhpackage;</command> prints an annotated list of all the configuration files processed by Fontconfig.</para>
     <para>The output is a `-' or `+' depending on whether the file is ignored or processed, a space, the file's path, a colon and space, and the description from the file or `No description' if none is present.</para>
-    <para>The order of files looks like how fontconfig acautlly process them except one contains &lt;include&gt; element.
+    <para>The order of files looks like how fontconfig actually processes them except one contains &lt;include&gt; element.
       In that case, it will be shown after processing all the sub directories where is targeted by &lt;include&gt;.</para>
 
   </refsect1>

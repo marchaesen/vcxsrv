@@ -36,27 +36,28 @@ provided by xkeyboard-config, the layout will not be overwritten on updates.
 
 .SH MODELS
 .TS
-left,box;
+nowarn,box;
 lB lB
-___
+__
 lB l.
 Model	Description
 ]]></xsl:text>
         <xsl:apply-templates select="modelList"/>
-        <xsl:text><![CDATA[
-.TE
+        <xsl:text><![CDATA[.TE
+.sp
 .SH LAYOUTS
 .TS
-left,box;
+nowarn,box;
 lB lB
-____
+__
 lB l.
 Layout(Variant)	Description
 ]]></xsl:text>
         <xsl:apply-templates select="layoutList"/>
-        <xsl:text><![CDATA[
-.TE
+        <xsl:text><![CDATA[.TE
+.sp
 .SH OPTIONS
+.BR
 ]]></xsl:text>
         <xsl:apply-templates select="optionList"/>
         <xsl:text><![CDATA[
@@ -115,8 +116,9 @@ setxkbmap(1)
                 <xsl:value-of select="configItem/description"/>
                 <xsl:text>&#10;</xsl:text>
             </xsl:for-each>
-            <xsl:text>&#10;</xsl:text>
-            <xsl:text>_&#10;</xsl:text>
+            <xsl:if test="position()!=last()">
+                <xsl:text>_&#10;</xsl:text>
+            </xsl:if>
         </xsl:for-each>
     </xsl:template>
 
@@ -140,20 +142,19 @@ option2 description:
             <xsl:text><![CDATA[
 .BR
 .TS
-left,box;
-lB lB
-___
-lB l.
+nowarn,box;
+lw25B lxB
+__
+lB lx.
 Option	Description
 ]]></xsl:text>
             <xsl:for-each select="option">
                 <xsl:value-of select="configItem/name"/>
-                <xsl:text>&#9;</xsl:text>
+                <xsl:text>&#9;T{&#10;</xsl:text>
                 <xsl:value-of select="configItem/description"/>
-                <xsl:text>&#10;</xsl:text>
+                <xsl:text>&#10;T}&#10;</xsl:text>
             </xsl:for-each>
-            <xsl:text><![CDATA[
-.TE
+            <xsl:text><![CDATA[.TE
 
 ]]></xsl:text>
         </xsl:for-each>

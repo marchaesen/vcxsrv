@@ -40,8 +40,9 @@ enum fd_stage_id {
    BYPASS_STAGE_ID,
    BLIT_STAGE_ID,
    COMPUTE_STAGE_ID,
-   CLEAR_RESTORE_STAGE_ID,
-   RESOLVE_STAGE_ID,
+   CLEAR_STAGE_ID,
+   TILE_LOAD_STAGE_ID,
+   TILE_STORE_STAGE_ID,
    STATE_RESTORE_STAGE_ID,
    VSC_OVERFLOW_STAGE_ID,
    PROLOGUE_STAGE_ID,
@@ -59,8 +60,9 @@ static const struct {
    [BYPASS_STAGE_ID]  = {"Render", "Rendering to system memory"},
    [BLIT_STAGE_ID]    = {"Blit", "Performing a Blit operation"},
    [COMPUTE_STAGE_ID] = {"Compute", "Compute job"},
-   [CLEAR_RESTORE_STAGE_ID] = {"Clear/Restore", "Clear (sysmem) or per-tile clear or restore (GMEM)"},
-   [RESOLVE_STAGE_ID] = {"Resolve", "Per tile resolve (GMEM to system memory"},
+   [CLEAR_STAGE_ID]   = {"Clear", "Clear (sysmem) or per-tile clear (GMEM)"},
+   [TILE_LOAD_STAGE_ID]  = {"Tile Load", "Per tile load (system memory to GMEM)"},
+   [TILE_STORE_STAGE_ID] = {"Tile Store", "Per tile store (GMEM to system memory)"},
    [STATE_RESTORE_STAGE_ID] = {"State Restore", "Setup at the beginning of new cmdstream buffer"},
    [VSC_OVERFLOW_STAGE_ID] = {"VSC Overflow Test", ""},
    [PROLOGUE_STAGE_ID] = {"Prologue", "Preemble cmdstream (executed once before first tile)"},
@@ -106,6 +108,19 @@ struct fd_perfetto_state {
    uint16_t binw;
    uint16_t binh;
    // TODO # of draws and possibly estimated cost might be useful addition..
+
+   /*
+    * Compute state for grids:
+    */
+   uint8_t indirect;
+   uint8_t work_dim;
+   uint16_t local_size_x;
+   uint16_t local_size_y;
+   uint16_t local_size_z;
+   uint32_t num_groups_x;
+   uint32_t num_groups_y;
+   uint32_t num_groups_z;
+   uint32_t shader_id;
 };
 
 void fd_perfetto_init(void);

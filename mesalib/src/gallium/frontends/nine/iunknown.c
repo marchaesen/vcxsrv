@@ -212,7 +212,7 @@ NineUnknown_SetPrivateData( struct NineUnknown *This,
     /* data consists of a header and the actual data. avoiding 2 mallocs */
     header = CALLOC_VARIANT_LENGTH_STRUCT(pheader, SizeOfData);
     if (!header) { DBG("Returning E_OUTOFMEMORY\n"); return E_OUTOFMEMORY; }
-    header->unknown = (Flags & D3DSPD_IUNKNOWN) ? TRUE : FALSE;
+    header->unknown = (Flags & D3DSPD_IUNKNOWN) ? true : false;
 
     /* if the refguid already exists, delete it */
     NineUnknown_FreePrivateData(This, refguid);

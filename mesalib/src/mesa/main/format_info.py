@@ -126,7 +126,7 @@ def get_channel_bits(fmat, chan_name):
          return bits if fmat.has_channel(chan_name) else 0
       elif fmat.layout == 'atc':
          return 8 if fmat.has_channel(chan_name) else 0
-      elif fmat.layout == 'other' and ('RG_RB' in fmat.name or 'GR_BR' in fmat.name):
+      elif fmat.layout == 'other' and any(s in fmat.name for s in {'RG_RB', 'GR_BR', 'RB_RG', 'BR_GR'}):
          return 8 if fmat.has_channel(chan_name) else 0
       else:
          assert False

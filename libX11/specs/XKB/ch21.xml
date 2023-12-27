@@ -1029,64 +1029,6 @@ explicitly.
 
 
 <para>
-To obtain an
-<structname>XkbDeviceLedInfoRec</structname>
-structure, use XkbAllocDeviceLedInfo.
-</para>
-
-
-<indexterm significance="preferred" zone="XkbAllocDeviceLedInfo"><primary><function>XkbAllocDeviceLedInfo</function></primary></indexterm>
-<funcsynopsis id="XkbAllocDeviceLedInfo">
-  <funcprototype>
-    <funcdef>Status <function>XkbAllocDeviceLedInfo</function></funcdef>
-<!-- (devi, num_needed) -->
-
-    <paramdef>XkbDeviceInfoPtr <parameter>device_info</parameter></paramdef>
-    <paramdef>int <parameter>num_needed</parameter></paramdef>
-  </funcprototype>
-</funcsynopsis>
-<variablelist>
-  <varlistentry>
-    <term>
-      <parameter>device_info</parameter>
-    </term>
-    <listitem>
-      <para>
-        structure in which to allocate LED space
-      </para>
-    </listitem>
-  </varlistentry>
-  <varlistentry>
-    <term>
-      <parameter>num_needed</parameter>
-    </term>
-    <listitem>
-      <para>
-        number of indicators to allocate space for
-      </para>
-    </listitem>
-  </varlistentry>
-</variablelist>
-
-<para>
-<function>XkbAllocDeviceLedInfo</function>
-allocates space for an
-<structname>XkbDeviceLedInfoRec</structname>
-and places it in
-<parameter>device_info</parameter>.
-If num_needed is nonzero,
-<parameter>num_needed</parameter>
-<structname>XkbIndicatorMapRec</structname>
-structures are also allocated and linked into the
-<structname>XkbDeviceLedInfoRec</structname>
-structure. If you request
-<structname>XkbIndicatorMapRec</structname>
-structures be allocated using this request, you must initialize them
-explicitly. All other fields are initialized to zero.
-</para>
-
-
-<para>
 To initialize an
 <structname>XkbDeviceLedInfoRec</structname>
 structure, use XkbAddDeviceLedInfo.

@@ -18,27 +18,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# [version, cle XML version]
+# [version, cle XML file]
 v3d_versions = [
-  [21, 21],
-  [33, 33],
-  [41, 33],
-  [42, 33]
+  [21, 'vc4_packet.xml'],
+  [42, 'v3d_packet.xml'],
+  [71, 'v3d_packet.xml']
 ]
 
 v3d_xml_files = []
 v3d_xml_pack = []
 foreach _v : v3d_versions
   v = _v[0]
-  xmlver = _v[1]
-  f = 'v3d_packet_v@0@.xml'.format(xmlver)
+  xmlfile = _v[1]
   _name = 'v3d_packet_v@0@_pack.h'.format(v)
-  if not v3d_xml_files.contains(f)
-    v3d_xml_files += f
+  if not v3d_xml_files.contains(xmlfile)
+    v3d_xml_files += xmlfile
   endif
   v3d_xml_pack += custom_target(
     _name,
-    input : ['gen_pack_header.py', f],
+    input : ['gen_pack_header.py', xmlfile],
     output : _name,
     command : [prog_python, '@INPUT@', '@0@'.format(v)],
     capture : true,
@@ -61,7 +59,7 @@ endif
 libbroadcom_cle = static_library(
   'broadcom_cle',
   ['v3d_decoder.c', v3d_xml_h],
-  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom],
+  include_directories : [inc_include, inc_src, inc_broadcom],
   c_args : [no_override_init_args, expat_args],
   gnu_symbol_visibility : 'hidden',
   dependencies : [dep_libdrm, dep_valgrind, dep_expat, dep_zlib],

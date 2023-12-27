@@ -49,6 +49,9 @@ size_t u_printf_length(const char *fmt, va_list untouched_args);
 void u_printf(FILE *out, const char *buffer, size_t buffer_size,
               const u_printf_info*, unsigned info_size);
 
+void u_printf_ptr(FILE *out, const char *buffer, size_t buffer_size,
+                  const u_printf_info **info, unsigned info_size);
+
 #ifdef __cplusplus
 }
 #endif

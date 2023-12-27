@@ -109,7 +109,7 @@ void evergreen_cp_dma_clear_buffer(struct r600_context *rctx,
 
 		r600_need_cs_space(rctx,
 				   10 + (rctx->b.flags ? R600_MAX_FLUSH_CS_DWORDS : 0) +
-				   R600_MAX_PFP_SYNC_ME_DWORDS, FALSE, 0);
+				   R600_MAX_PFP_SYNC_ME_DWORDS, false, 0);
 
 		/* Flush the caches for the first copy only. */
 		if (rctx->b.flags) {

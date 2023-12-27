@@ -2,7 +2,12 @@
 This module contains the namespace class and the singleton module class.
 '''
 from os.path import dirname, basename
-from xml.etree.cElementTree import parse
+from sys import version_info
+
+if version_info[:2] >= (3, 3):
+    from xml.etree.ElementTree import parse
+else:
+    from xml.etree.cElementTree import parse
 
 from xcbgen import matcher
 from xcbgen.error import *
@@ -100,12 +105,12 @@ class Module(object):
         self.add_type('INT16', '', ('int16_t',), tint16)
         self.add_type('INT32', '', ('int32_t',), tint32)
         self.add_type('INT64', '', ('int64_t',), tint64)
-        self.add_type('BYTE', '', ('uint8_t',), tcard8)
-        self.add_type('BOOL', '', ('uint8_t',), tcard8)
+        self.add_type('BYTE', '', ('uint8_t',), tbyte)
+        self.add_type('BOOL', '', ('uint8_t',), tbool)
         self.add_type('char', '', ('char',), tchar)
         self.add_type('float', '', ('float',), tfloat)
         self.add_type('double', '', ('double',), tdouble)
-        self.add_type('void', '', ('void',), tcard8)
+        self.add_type('void', '', ('void',), tvoid)
 
     # This goes out and parses the rest of the XML
     def register(self):

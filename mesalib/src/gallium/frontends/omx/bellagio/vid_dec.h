@@ -39,7 +39,7 @@
 #include <OMX_Types.h>
 #include <OMX_Component.h>
 
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 #include "vid_dec_common.h"
 

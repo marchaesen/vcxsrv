@@ -1,6 +1,6 @@
 // mac version from Ricardo Cabral <bfe00991@mail.telepac.pt>
 
-default partial alphanumeric_keys 
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     // Describes the differences between a very simple en_US
@@ -34,22 +34,22 @@ xkb_symbols "basic" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "Sundeadkeys" {
     include "macintosh_vndr/pt(basic)" // for consistent naming
     name[Group1]= "Portugal - Mac, Sun dead keys";
-    
+
     key <AE12> {[       plus,        asterisk, dead_diaeresis, dead_diaeresis ]};
     key <AC11> {[ dead_tilde, dead_circumflex  ]};
     key <AD12> {[ dead_acute,      dead_grave  ]};
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "sundeadkeys" {
     include "macintosh_vndr/pt(Sundeadkeys)" // for consistent naming
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "nodeadkeys" {
     include "macintosh_vndr/pt(basic)" // for consistent naming
     name[Group1]= "Portugal - Mac, no dead keys";

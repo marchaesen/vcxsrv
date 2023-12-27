@@ -157,7 +157,7 @@ iris_upload_shader(struct iris_screen *screen,
                    const void *key,
                    const void *assembly)
 {
-   const struct intel_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = screen->devinfo;
 
    u_upload_alloc(uploader, 0, shader->prog_data->program_size, 64,
                   &shader->assembly.offset, &shader->assembly.res,
@@ -264,11 +264,13 @@ iris_init_program_cache(struct iris_context *ice)
       _mesa_hash_table_create(ice, keybox_hash, keybox_equals);
 
    ice->shaders.uploader_driver =
-      u_upload_create(&ice->ctx, 16384, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
+      u_upload_create(&ice->ctx, 64 * 1024,
+                      PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
                       IRIS_RESOURCE_FLAG_SHADER_MEMZONE |
                       IRIS_RESOURCE_FLAG_DEVICE_MEM);
    ice->shaders.uploader_unsync =
-      u_upload_create(&ice->ctx, 16384, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
+      u_upload_create(&ice->ctx, 64 * 1024,
+                      PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
                       IRIS_RESOURCE_FLAG_SHADER_MEMZONE |
                       IRIS_RESOURCE_FLAG_DEVICE_MEM);
 }

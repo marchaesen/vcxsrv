@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 prog_isaspec_decode = find_program('decode.py')
-idep_isaspec_decode = declare_dependency(sources : files('decode.c'), include_directories : include_directories('.'))
+idep_isaspec_decode = declare_dependency(include_directories : include_directories('.'))
 
 prog_isaspec_encode = find_program('encode.py')
 

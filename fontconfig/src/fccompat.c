@@ -228,8 +228,9 @@ FcRandom(void)
 #elif HAVE_LRAND48
     result = lrand48 ();
 #elif HAVE_RAND_R
-    static unsigned int seed = time (NULL);
+    static unsigned int seed;
 
+    seed = time (NULL);
     result = rand_r (&seed);
 #elif HAVE_RAND
     static FcBool initialized = FcFalse;

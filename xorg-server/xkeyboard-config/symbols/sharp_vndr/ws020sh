@@ -20,7 +20,7 @@ xkb_symbols "basic" {
 	key <AD09> { [ o, O, 3 ] };
 	key <AD10> { [ p, P, at ] };
 	key <BKSP> { [ BackSpace, BackSpace, Delete ] };
-	
+
 	key <TAB> { [ Tab, Tab, Escape ] };
 	key <AC01> { [ a, A, bracketleft ] };
 	key <AC02> { [ s, S, apostrophe ] };
@@ -52,7 +52,7 @@ xkb_symbols "basic" {
 
 	key <LCTL> { [ Control_L ] };
 	key <SPCE> { [ space ] };
-	
+
 	key <UP> { [ Up, Up, Prior ] };
 	key <LEFT> { [ Left, Left, Home ] };
 	key <DOWN> { [ Down, Down, Next ] };

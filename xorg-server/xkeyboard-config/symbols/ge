@@ -1,19 +1,13 @@
-// Georgian Keyboard Layouts by Aiet Kolkhi <aietkolkhi@gmail.com>
-// Full layout descriptions available at http://www.gakartuleba.org/layouts/
+// Keyboard layouts for Georgia.
+
+// Original author: Aiet Kolkhi <aietkolkhi@gmail.com>
 //
-// This includes the following keyboard layouts: Georgian QWERTY; Georgian Ergonomic;
-// Georgian MESS; Georgian AZERTY Tskapo; Georgian Russian.
+// This includes the following keyboard layouts: Georgian QWERTY;
+// Georgian Ergonomic; Georgian MESS; and Georgian Russian.
 //
-// Layouts include Georgian Mkhedruli alphabeth; most layouts also include some special
-// and ancient characters (like Fi, Yn, Elifi, Turned Gan and Ain). Layouts do not
-// include Georgian Asomtavruli or Georgian Khutsuri alphabeths which are also present
-// in Unicode.
-//
-// Georgian Typewriter no longer supported, as it is no longer used in Georgia.
-//
-// some layouts based on Georgian keyboard map, in the so called "latin" layout.
-// 1999, Pablo Saratxaga <srtxg@chanae.alphanet.ch>
-//
+// Layouts include the Georgian Mkhedruli alphabet; most layouts also include
+// some special and ancient characters (like Fi, Yn, Elifi, Turned Gan and Ain).
+// The Georgian Asomtavruli or Georgian Khutsuri alphabets are not included.
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {
@@ -37,7 +31,7 @@ xkb_symbols "basic" {
     key <AD01> { [ Georgian_khar, Q                            ] };
     key <AD02> { [ Georgian_cil,  Georgian_char                ] };
     key <AD03> { [ Georgian_en,   E,             Georgian_he   ] };
-    key <AD04> { [ Georgian_rae,  Georgian_ghan, 0x010000ae    ] };
+    key <AD04> { [ Georgian_rae,  Georgian_ghan, registered    ] };
     key <AD05> { [ Georgian_tar,  Georgian_tan                 ] };
     key <AD06> { [ Georgian_qar,  Y,             0x010010f8    ] };
     key <AD07> { [ Georgian_un,   U                            ] };
@@ -63,7 +57,7 @@ xkb_symbols "basic" {
     key <LSGT> { [ guillemotleft, guillemotright               ] };
     key <AB01> { [ Georgian_zen,  Georgian_jil                 ] };
     key <AB02> { [ Georgian_xan,  X,             Georgian_har  ] };
-    key <AB03> { [ Georgian_can,  Georgian_chin, 0x010000a9    ] };
+    key <AB03> { [ Georgian_can,  Georgian_chin, copyright     ] };
     key <AB04> { [ Georgian_vin,  V,             Georgian_we   ] };
     key <AB05> { [ Georgian_ban,  B                            ] };
     key <AB06> { [ Georgian_nar,  N,             0x010010fc    ] };
@@ -103,7 +97,7 @@ xkb_symbols "ergonomic" {
     key <AD01> { [ Georgian_chin, noSymbol      ]       };
     key <AD02> { [ Georgian_par,  noSymbol      ]       };
     key <AD03> { [ Georgian_un,   noSymbol      ]       };
-    key <AD04> { [ Georgian_jil,  noSymbol, noSymbol, 0x010000ae ] };
+    key <AD04> { [ Georgian_jil,  noSymbol, noSymbol, registered ] };
     key <AD05> { [ Georgian_char, noSymbol, noSymbol, Georgian_tan  ] };
     key <AD06> { [ Georgian_tar,  noSymbol, noSymbol, 0x010010f8 ] };
     key <AD07> { [ Georgian_tan,  noSymbol      ]       };

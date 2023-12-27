@@ -11,7 +11,7 @@ headers in general, should strictly follow these guidelines to ensure
 
 = Compiler Support =
 
-* Include the p_compiler.h.
+* Include the util/compiler.h.
 
 * Cast explicitly when converting to integer types of smaller sizes.
 

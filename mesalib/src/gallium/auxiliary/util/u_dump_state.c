@@ -26,7 +26,7 @@
  **************************************************************************/
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_memory.h"
 #include "util/u_string.h"
 #include "util/format/u_format.h"
@@ -242,55 +242,55 @@ util_dump_format(FILE *stream, enum pipe_format format)
 static void
 util_dump_enum_blend_factor(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_blend_factor(value, TRUE));
+   util_dump_enum(stream, util_str_blend_factor(value, true));
 }
 
 static void
 util_dump_enum_blend_func(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_blend_func(value, TRUE));
+   util_dump_enum(stream, util_str_blend_func(value, true));
 }
 
 static void
 util_dump_enum_func(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_func(value, TRUE));
+   util_dump_enum(stream, util_str_func(value, true));
 }
 
 static void
 util_dump_enum_prim_mode(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_prim_mode(value, TRUE));
+   util_dump_enum(stream, util_str_prim_mode(value, true));
 }
 
 static void
 util_dump_enum_tex_target(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_tex_target(value, TRUE));
+   util_dump_enum(stream, util_str_tex_target(value, true));
 }
 
 static void
 util_dump_enum_tex_filter(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_tex_filter(value, TRUE));
+   util_dump_enum(stream, util_str_tex_filter(value, true));
 }
 
 static void
 util_dump_enum_tex_mipfilter(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_tex_mipfilter(value, TRUE));
+   util_dump_enum(stream, util_str_tex_mipfilter(value, true));
 }
 
 static void
 util_dump_enum_tex_wrap(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_tex_wrap(value, TRUE));
+   util_dump_enum(stream, util_str_tex_wrap(value, true));
 }
 
 static void
 util_dump_enum_stencil_op(FILE *stream, unsigned value)
 {
-   util_dump_enum(stream, util_str_stencil_op(value, TRUE));
+   util_dump_enum(stream, util_str_stencil_op(value, true));
 }
 
 
@@ -356,7 +356,7 @@ util_dump_rasterizer_state(FILE *stream, const struct pipe_rasterizer_state *sta
    util_dump_member(stream, uint, state, sprite_coord_enable);
    util_dump_member(stream, bool, state, sprite_coord_mode);
    util_dump_member(stream, bool, state, point_quad_rasterization);
-   util_dump_member(stream, bool, state, point_tri_clip);
+   util_dump_member(stream, bool, state, point_line_tri_clip);
    util_dump_member(stream, bool, state, point_size_per_vertex);
    util_dump_member(stream, bool, state, multisample);
    util_dump_member(stream, bool, state, line_smooth);
@@ -689,7 +689,7 @@ util_dump_sampler_state(FILE *stream, const struct pipe_sampler_state *state)
    util_dump_member(stream, enum_tex_filter, state, mag_img_filter);
    util_dump_member(stream, uint, state, compare_mode);
    util_dump_member(stream, enum_func, state, compare_func);
-   util_dump_member(stream, bool, state, normalized_coords);
+   util_dump_member(stream, bool, state, unnormalized_coords);
    util_dump_member(stream, uint, state, max_anisotropy);
    util_dump_member(stream, bool, state, seamless_cube_map);
    util_dump_member(stream, float, state, lod_bias);
@@ -742,6 +742,7 @@ util_dump_image_view(FILE *stream, const struct pipe_image_view *state)
       util_dump_member(stream, uint, state, u.buf.size);
    }
    else {
+      util_dump_member(stream, bool, state, u.tex.single_layer_view);
       util_dump_member(stream, uint, state, u.tex.first_layer);
       util_dump_member(stream, uint, state, u.tex.last_layer);
       util_dump_member(stream, uint, state, u.tex.level);
@@ -857,7 +858,6 @@ util_dump_vertex_buffer(FILE *stream, const struct pipe_vertex_buffer *state)
 
    util_dump_struct_begin(stream, "pipe_vertex_buffer");
 
-   util_dump_member(stream, uint, state, stride);
    util_dump_member(stream, bool, state, is_user_buffer);
    util_dump_member(stream, uint, state, buffer_offset);
    util_dump_member(stream, ptr, state, buffer.resource);
@@ -880,6 +880,7 @@ util_dump_vertex_element(FILE *stream, const struct pipe_vertex_element *state)
    util_dump_member(stream, uint, state, instance_divisor);
    util_dump_member(stream, uint, state, vertex_buffer_index);
    util_dump_member(stream, format, state, src_format);
+   util_dump_member(stream, uint, state, src_stride);
 
    util_dump_struct_end(stream);
 }

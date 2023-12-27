@@ -1,28 +1,19 @@
 $env:PIGLIT_NO_FAST_SKIP = 1
 
-Copy-Item -Path _install\bin\opengl32.dll -Destination C:\Piglit\lib\piglit\bin\opengl32.dll
-Copy-Item -Path _install\bin\libgallium_wgl.dll -Destination C:\Piglit\lib\piglit\bin\libgallium_wgl.dll
-Copy-Item -Path _install\bin\libglapi.dll -Destination C:\Piglit\lib\piglit\bin\libglapi.dll
+Copy-Item -Path _install\bin\opengl32.dll -Destination C:\Piglit\bin\opengl32.dll
+Copy-Item -Path _install\bin\libgallium_wgl.dll -Destination C:\Piglit\bin\libgallium_wgl.dll
+Copy-Item -Path _install\bin\libglapi.dll -Destination C:\Piglit\bin\libglapi.dll
 
-# Run this using VsDevCmd.bat to ensure DXIL.dll is in %PATH%
-cmd.exe /C "C:\BuildTools\Common7\Tools\VsDevCmd.bat -host_arch=amd64 -arch=amd64 && py -3 C:\Piglit\bin\piglit.py run `"$env:PIGLIT_PROFILE`" $env:PIGLIT_OPTIONS $env:PIGLIT_TESTS .\results"
+$jobs = ""
+if ($null -ne $env:FDO_CI_CONCURRENT) {
+  $jobs = "--jobs", "$($env:FDO_CI_CONCURRENT)"
+}
 
-py -3 C:\Piglit\bin\piglit.py summary console .\results | Select -SkipLast 1 | Select-String -NotMatch -Pattern ': pass' | Set-Content -Path .\result.txt
-
-$reference = Get-Content ".\_install\$env:PIGLIT_RESULTS.txt"
-$result = Get-Content .\result.txt
-if (-Not ($reference -And $result)) {
+deqp-runner suite --output .\logs --suite "_install/$env:PIGLIT_SUITE" `
+  --skips "_install/$env:PIGLIT_SKIPS" `
+  --baseline "_install/$env:PIGLIT_BASELINE" `
+  --flakes "_install/$env:PIGLIT_FLAKES" `
+  $jobs
+if (!$?) {
   Exit 1
 }
-
-$diff = Compare-Object -ReferenceObject $reference -DifferenceObject $result
-if (-Not $diff) {
-  Exit 0
-}
-
-py -3 C:\Piglit\bin\piglit.py summary html --exclude-details=pass .\summary .\results
-
-Write-Host "Unexpected change in results:"
-Write-Output $diff | Format-Table -Property SideIndicator,InputObject -Wrap
-
-Exit 1

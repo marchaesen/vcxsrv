@@ -59,17 +59,17 @@ NAME(struct quad_stage *qs,
    const float dzdy = quads[0]->posCoef->dady[2];
    const float z0 = quads[0]->posCoef->a0[2] + dzdx * fx + dzdy * fy;
    struct softpipe_cached_tile *tile;
-   ushort (*depth16)[TILE_SIZE];
-   ushort init_idepth[4], idepth[4], depth_step;
+   uint16_t (*depth16)[TILE_SIZE];
+   uint16_t init_idepth[4], idepth[4], depth_step;
    const float scale = 65535.0;
 
    /* compute scaled depth of the four pixels in first quad */
-   init_idepth[0] = (ushort)((z0) * scale);
-   init_idepth[1] = (ushort)((z0 + dzdx) * scale);
-   init_idepth[2] = (ushort)((z0 + dzdy) * scale);
-   init_idepth[3] = (ushort)((z0 + dzdx + dzdy) * scale);
+   init_idepth[0] = (uint16_t)((z0) * scale);
+   init_idepth[1] = (uint16_t)((z0 + dzdx) * scale);
+   init_idepth[2] = (uint16_t)((z0 + dzdy) * scale);
+   init_idepth[3] = (uint16_t)((z0 + dzdx + dzdy) * scale);
 
-   depth_step = (ushort)(dzdx * scale);
+   depth_step = (uint16_t)(dzdx * scale);
 
    tile = sp_get_cached_tile(qs->softpipe->zsbuf_cache, ix, iy, quads[0]->input.layer);
 
@@ -84,7 +84,7 @@ NAME(struct quad_stage *qs,
       idepth[2] = init_idepth[2] + dx * depth_step;
       idepth[3] = init_idepth[3] + dx * depth_step;
 
-      depth16 = (ushort (*)[TILE_SIZE])
+      depth16 = (uint16_t (*)[TILE_SIZE])
          &tile->data.depth16[iy % TILE_SIZE][(ix + dx)% TILE_SIZE];
 
 #ifdef ALWAYS
@@ -130,7 +130,7 @@ NAME(struct quad_stage *qs,
       }
 #endif
 
-      depth16 = (ushort (*)[TILE_SIZE]) &depth16[0][2];
+      depth16 = (uint16_t (*)[TILE_SIZE]) &depth16[0][2];
 
       quads[i]->inout.mask = mask;
       if (quads[i]->inout.mask)

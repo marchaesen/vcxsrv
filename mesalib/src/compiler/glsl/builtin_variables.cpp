@@ -409,10 +409,10 @@ per_vertex_accumulator::add_field(int slot, const glsl_type *type,
 const glsl_type *
 per_vertex_accumulator::construct_interface_instance() const
 {
-   return glsl_type::get_interface_instance(this->fields, this->num_fields,
-                                            GLSL_INTERFACE_PACKING_STD140,
-                                            false,
-                                            "gl_PerVertex");
+   return glsl_interface_type(this->fields, this->num_fields,
+                              GLSL_INTERFACE_PACKING_STD140,
+                              false,
+                              "gl_PerVertex");
 }
 
 
@@ -435,7 +435,7 @@ public:
 private:
    const glsl_type *array(const glsl_type *base, unsigned elements)
    {
-      return glsl_type::get_array_instance(base, elements);
+      return glsl_array_type(base, elements, 0);
    }
 
    const glsl_type *type(const char *name)
@@ -544,13 +544,13 @@ builtin_variable_generator::builtin_variable_generator(
    exec_list *instructions, struct _mesa_glsl_parse_state *state)
    : instructions(instructions), state(state), symtab(state->symbols),
      compatibility(state->compat_shader || state->ARB_compatibility_enable),
-     bool_t(glsl_type::bool_type), int_t(glsl_type::int_type),
-     uint_t(glsl_type::uint_type),
-     uint64_t(glsl_type::uint64_t_type),
-     float_t(glsl_type::float_type), vec2_t(glsl_type::vec2_type),
-     vec3_t(glsl_type::vec3_type), vec4_t(glsl_type::vec4_type),
-     uvec3_t(glsl_type::uvec3_type),
-     mat3_t(glsl_type::mat3_type), mat4_t(glsl_type::mat4_type)
+     bool_t(&glsl_type_builtin_bool), int_t(&glsl_type_builtin_int),
+     uint_t(&glsl_type_builtin_uint),
+     uint64_t(&glsl_type_builtin_uint64_t),
+     float_t(&glsl_type_builtin_float), vec2_t(&glsl_type_builtin_vec2),
+     vec3_t(&glsl_type_builtin_vec3), vec4_t(&glsl_type_builtin_vec4),
+     uvec3_t(&glsl_type_builtin_uvec3),
+     mat3_t(&glsl_type_builtin_mat3), mat4_t(&glsl_type_builtin_mat4)
 {
 }
 
@@ -669,7 +669,7 @@ builtin_variable_generator::add_uniform(const glsl_type *type,
       _mesa_glsl_get_builtin_uniform_desc(name);
    assert(statevar != NULL);
 
-   const unsigned array_count = type->is_array() ? type->length : 1;
+   const unsigned array_count = glsl_type_is_array(type) ? type->length : 1;
 
    ir_state_slot *slots =
       uni->allocate_state_slots(array_count * statevar->num_elements);
@@ -680,10 +680,9 @@ builtin_variable_generator::add_uniform(const glsl_type *type,
 	    &statevar->elements[j];
 
 	 memcpy(slots->tokens, element->tokens, sizeof(element->tokens));
-	 if (type->is_array())
+	 if (glsl_type_is_array(type))
             slots->tokens[1] = a;
 
-	 slots->swizzle = element->swizzle;
 	 slots++;
       }
    }
@@ -696,7 +695,7 @@ ir_variable *
 builtin_variable_generator::add_const(const char *name, int precision,
                                       int value)
 {
-   ir_variable *const var = add_variable(name, glsl_type::int_type,
+   ir_variable *const var = add_variable(name, &glsl_type_builtin_int,
                                          precision, ir_var_auto, -1);
    var->constant_value = new(var) ir_constant(value);
    var->constant_initializer = new(var) ir_constant(value);
@@ -709,7 +708,7 @@ ir_variable *
 builtin_variable_generator::add_const_ivec3(const char *name, int x, int y,
                                             int z)
 {
-   ir_variable *const var = add_variable(name, glsl_type::ivec3_type,
+   ir_variable *const var = add_variable(name, &glsl_type_builtin_ivec3,
                                          GLSL_PRECISION_HIGH,
                                          ir_var_auto, -1);
    ir_constant_data data;
@@ -717,9 +716,9 @@ builtin_variable_generator::add_const_ivec3(const char *name, int x, int y,
    data.i[0] = x;
    data.i[1] = y;
    data.i[2] = z;
-   var->constant_value = new(var) ir_constant(glsl_type::ivec3_type, &data);
+   var->constant_value = new(var) ir_constant(&glsl_type_builtin_ivec3, &data);
    var->constant_initializer =
-      new(var) ir_constant(glsl_type::ivec3_type, &data);
+      new(var) ir_constant(&glsl_type_builtin_ivec3, &data);
    var->data.has_initializer = true;
    return var;
 }

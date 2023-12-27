@@ -20,7 +20,7 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
@@ -37,23 +37,23 @@
 // Revision 1.1.6.2  1995/08/07  17:40:37  William_Walker
 // 	Upgrade XKB to protocol 0.62 (dual submit from decx11)
 // 	[1995/08/06  14:06:28  William_Walker]
-// 
+//
 // Revision 1.1.2.4  1995/08/05  15:25:56  William_Walker
 // 	Upgrade to XKB protocol 0.62
 // 	[1995/08/05  14:40:02  William_Walker]
-// 
+//
 // Revision 1.1.2.3  1995/06/27  12:17:32  William_Walker
 // 	     Rename <TLDE> to ISO9995 compliant <AE00>.
 // 	[1995/06/26  20:24:07  William_Walker]
-// 
+//
 // Revision 1.1.2.2  1995/06/05  19:21:31  William_Walker
 // 	New file.  I love keymaps.
 // 	[1995/06/05  18:07:34  William_Walker]
-// 
+//
 // EndLog
-// 
-// @(#)RCSfile: pc  Revision: /main/3  (DEC) Date: 1996/01/24 12:13:36 
-// 
+//
+// @(#)RCSfile: pc  Revision: /main/3  (DEC) Date: 1996/01/24 12:13:36
+//
 xkb_keycodes "pc_common" {
     // "Function" keys
     <FK01>	= 9;

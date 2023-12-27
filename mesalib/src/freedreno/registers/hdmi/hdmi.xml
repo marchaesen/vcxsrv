@@ -32,6 +32,13 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<value name="ACR_48" value="3"/>
 	</enum>
 
+	<enum name="hdmi_cec_tx_status">
+		<value name="CEC_TX_OK" value="0"/>
+		<value name="CEC_TX_NACK" value="1"/>
+		<value name="CEC_TX_ARB_LOSS" value="2"/>
+		<value name="CEC_TX_MAX_RETRIES" value="3"/>
+	</enum>
+
 	<reg32 offset="0x00000" name="CTRL">
 		<bitfield name="ENABLE" pos="0" type="boolean"/>
 		<bitfield name="HDMI" pos="1" type="boolean"/>
@@ -451,15 +458,48 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x00284" name="HDCP_SW_UPPER_AKSV"/>
 	<reg32 offset="0x00288" name="HDCP_SW_LOWER_AKSV"/>
 
-	<reg32 offset="0x0028c" name="CEC_CTRL"/>
-	<reg32 offset="0x00290" name="CEC_WR_DATA"/>
-	<reg32 offset="0x00294" name="CEC_CEC_RETRANSMIT"/>
-	<reg32 offset="0x00298" name="CEC_STATUS"/>
-	<reg32 offset="0x0029c" name="CEC_INT"/>
+	<reg32 offset="0x0028c" name="CEC_CTRL">
+		<bitfield name="ENABLE" pos="0" type="boolean"/>
+		<bitfield name="SEND_TRIGGER" pos="1" type="boolean"/>
+		<bitfield name="FRAME_SIZE" low="4" high="8" type="uint"/>
+		<bitfield name="LINE_OE" pos="9" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x00290" name="CEC_WR_DATA">
+		<bitfield name="BROADCAST" pos="0" type="boolean"/>
+		<bitfield name="DATA" low="8" high="15" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00294" name="CEC_RETRANSMIT">
+		<bitfield name="ENABLE" pos="0" type="boolean"/>
+		<bitfield name="COUNT" low="1" high="7" type="uint"/>
+	</reg32>
+	<reg32 offset="0x00298" name="CEC_STATUS">
+		<bitfield name="BUSY" pos="0" type="boolean"/>
+		<bitfield name="TX_FRAME_DONE" pos="3" type="boolean"/>
+		<bitfield name="TX_STATUS" low="4" high="7" type="hdmi_cec_tx_status"/>
+	</reg32>
+	<reg32 offset="0x0029c" name="CEC_INT">
+		<bitfield name="TX_DONE" pos="0" type="boolean"/>
+		<bitfield name="TX_DONE_MASK" pos="1" type="boolean"/>
+		<bitfield name="TX_ERROR" pos="2" type="boolean"/>
+		<bitfield name="TX_ERROR_MASK" pos="3" type="boolean"/>
+		<bitfield name="MONITOR" pos="4" type="boolean"/>
+		<bitfield name="MONITOR_MASK" pos="5" type="boolean"/>
+		<bitfield name="RX_DONE" pos="6" type="boolean"/>
+		<bitfield name="RX_DONE_MASK" pos="7" type="boolean"/>
+	</reg32>
 	<reg32 offset="0x002a0" name="CEC_ADDR"/>
-	<reg32 offset="0x002a4" name="CEC_TIME"/>
-	<reg32 offset="0x002a8" name="CEC_REFTIMER"/>
-	<reg32 offset="0x002ac" name="CEC_RD_DATA"/>
+	<reg32 offset="0x002a4" name="CEC_TIME">
+		<bitfield name="ENABLE" pos="0" type="boolean"/>
+		<bitfield name="SIGNAL_FREE_TIME" low="7" high="15" type="uint"/>
+	</reg32>
+	<reg32 offset="0x002a8" name="CEC_REFTIMER">
+		<bitfield name="REFTIMER" low="0" high="15" type="uint"/>
+		<bitfield name="ENABLE" pos="16" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x002ac" name="CEC_RD_DATA">
+		<bitfield name="DATA" low="0" high="7" type="uint"/>
+		<bitfield name="SIZE" low="8" high="12" type="uint"/>
+	</reg32>
 	<reg32 offset="0x002b0" name="CEC_RD_FILTER"/>
 
 	<reg32 offset="0x002b4" name="ACTIVE_HSYNC">

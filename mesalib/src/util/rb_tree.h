@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017 Jason Ekstrand
+ * Copyright © 2017 Faith Ekstrand
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -41,7 +41,7 @@ extern "C" {
 struct rb_node {
     /** Parent and color of this node
      *
-     * The least significant bit represents the color and is est to 1 for
+     * The least significant bit represents the color and is set to 1 for
      * black and 0 for red.  The other bits are the pointer to the parent
      * and that pointer can be retrieved by masking off the bottom bit and
      * casting to a pointer.
@@ -72,7 +72,12 @@ struct rb_tree {
 };
 
 /** Initialize a red-black tree */
-void rb_tree_init(struct rb_tree *T);
+static inline void
+rb_tree_init(struct rb_tree *T)
+{
+    T->root = NULL;
+}
+
 
 /** Returns true if the red-black tree is empty */
 static inline bool
@@ -80,6 +85,26 @@ rb_tree_is_empty(const struct rb_tree *T)
 {
     return T->root == NULL;
 }
+
+/** Get the first (left-most) node in the tree or NULL */
+struct rb_node *rb_tree_first(struct rb_tree *T);
+
+/** Get the last (right-most) node in the tree or NULL */
+struct rb_node *rb_tree_last(struct rb_tree *T);
+
+/** Get the next node (to the right) in the tree or NULL */
+struct rb_node *rb_node_next(struct rb_node *node);
+
+/** Get the next previous (to the left) in the tree or NULL */
+struct rb_node *rb_node_prev(struct rb_node *node);
+
+#ifdef __cplusplus
+/* This macro will not work correctly if `t' uses virtual inheritance. */
+#define rb_tree_offsetof(t, f, p) \
+   (((char *) &((t *) p)->f) - ((char *) p))
+#else
+#define rb_tree_offsetof(t, f, p) offsetof(t, f)
+#endif
 
 /** Retrieve the data structure containing a node
  *
@@ -90,7 +115,37 @@ rb_tree_is_empty(const struct rb_tree *T)
  * \param   field   The rb_node field in the containing data structure
  */
 #define rb_node_data(type, node, field) \
-    ((type *)(((char *)(node)) - offsetof(type, field)))
+    ((type *)(((char *)(node)) - rb_tree_offsetof(type, field, node)))
+
+/** Insert a node into a possibly augmented tree at a particular location
+ *
+ * This function should probably not be used directly as it relies on the
+ * caller to ensure that the parent node is correct.  Use rb_tree_insert
+ * instead.
+ *
+ * If \p update is non-NULL, it will be called for the node being inserted as
+ * well as any nodes which have their children changed and all of their
+ * ancestors. The intent is that each node may contain some augmented data
+ * which is calculated recursively from the node itself and its children, and
+ * \p update should recalculate that data. It's assumed that the function used
+ * to calculate the node data is associative in order to avoid calling it
+ * redundantly after rebalancing the tree.
+ *
+ * \param   T           The red-black tree into which to insert the new node
+ *
+ * \param   parent      The node in the tree that will be the parent of the
+ *                      newly inserted node
+ *
+ * \param   node        The node to insert
+ *
+ * \param   insert_left If true, the new node will be the left child of
+ *                      \p parent, otherwise it will be the right child
+ *
+ * \param   update      The optional function used to calculate per-node data
+ */
+void rb_augmented_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
+                                 struct rb_node *node, bool insert_left,
+                                 void (*update)(struct rb_node *));
 
 /** Insert a node into a tree at a particular location
  *
@@ -108,20 +163,27 @@ rb_tree_is_empty(const struct rb_tree *T)
  * \param   insert_left If true, the new node will be the left child of
  *                      \p parent, otherwise it will be the right child
  */
-void rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
-                       struct rb_node *node, bool insert_left);
+static inline void
+rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
+                  struct rb_node *node, bool insert_left)
+{
+   rb_augmented_tree_insert_at(T, parent, node, insert_left, NULL);
+}
 
-/** Insert a node into a tree
+/** Insert a node into a possibly augmented tree
  *
  * \param   T       The red-black tree into which to insert the new node
  *
  * \param   node    The node to insert
  *
  * \param   cmp     A comparison function to use to order the nodes.
+ *
+ * \param   update  Same meaning as in rb_augmented_tree_insert_at()
  */
 static inline void
-rb_tree_insert(struct rb_tree *T, struct rb_node *node,
-               int (*cmp)(const struct rb_node *, const struct rb_node *))
+rb_augmented_tree_insert(struct rb_tree *T, struct rb_node *node,
+                         int (*cmp)(const struct rb_node *, const struct rb_node *),
+                         void (*update)(struct rb_node *))
 {
     /* This function is declared inline in the hopes that the compiler can
      * optimize away the comparison function pointer call.
@@ -138,8 +200,35 @@ rb_tree_insert(struct rb_tree *T, struct rb_node *node,
             x = x->right;
     }
 
-    rb_tree_insert_at(T, y, node, left);
+    rb_augmented_tree_insert_at(T, y, node, left, update);
 }
+
+/** Insert a node into a tree
+ *
+ * \param   T       The red-black tree into which to insert the new node
+ *
+ * \param   node    The node to insert
+ *
+ * \param   cmp     A comparison function to use to order the nodes.
+ */
+static inline void
+rb_tree_insert(struct rb_tree *T, struct rb_node *node,
+               int (*cmp)(const struct rb_node *, const struct rb_node *))
+{
+    rb_augmented_tree_insert(T, node, cmp, NULL);
+}
+
+/** Remove a node from a possibly augmented tree
+ *
+ * \param   T       The red-black tree from which to remove the node
+ *
+ * \param   node    The node to remove
+ *
+ * \param   update  Same meaning as in rb_agumented_tree_insert_at()
+ *
+ */
+void rb_augmented_tree_remove(struct rb_tree *T, struct rb_node *z,
+                              void (*update)(struct rb_node *));
 
 /** Remove a node from a tree
  *
@@ -147,7 +236,11 @@ rb_tree_insert(struct rb_tree *T, struct rb_node *node,
  *
  * \param   node    The node to remove
  */
-void rb_tree_remove(struct rb_tree *T, struct rb_node *z);
+static inline void
+rb_tree_remove(struct rb_tree *T, struct rb_node *z)
+{
+    rb_augmented_tree_remove(T, z, NULL);
+}
 
 /** Search the tree for a node
  *
@@ -170,12 +263,23 @@ rb_tree_search(struct rb_tree *T, const void *key,
     struct rb_node *x = T->root;
     while (x != NULL) {
         int c = cmp(x, key);
-        if (c < 0)
+        if (c < 0) {
             x = x->left;
-        else if (c > 0)
+        } else if (c > 0) {
             x = x->right;
-        else
-            return x;
+        } else {
+            /* x is the first *encountered* node matching the key. There may
+             * be other nodes in the left subtree that also match the key.
+             */
+            while (true) {
+                struct rb_node *prev = rb_node_prev(x);
+
+                if (prev == NULL || cmp(prev, key) != 0)
+                    return x;
+
+                x = prev;
+            }
+        }
     }
 
     return x;
@@ -184,11 +288,11 @@ rb_tree_search(struct rb_tree *T, const void *key,
 /** Sloppily search the tree for a node
  *
  * This function searches the tree for a given node.  If a node with a
- * matching key exists, that first matching node found will be returned.
- * If no node with an exactly matching key exists, the node returned will
- * be either the right-most node comparing less than \p key or the
- * right-most node comparing greater than \p key.  If the tree is empty,
- * NULL is returned.
+ * matching key exists, that first encountered matching node found (there may
+ * be other matching nodes in the left subtree) will be returned.  If no node
+ * with an exactly matching key exists, the node returned will be either the
+ * right-most node comparing less than \p key or the right-most node comparing
+ * greater than \p key.  If the tree is empty, NULL is returned.
  *
  * \param   T       The red-black tree to search
  *
@@ -218,18 +322,6 @@ rb_tree_search_sloppy(struct rb_tree *T, const void *key,
 
     return y;
 }
-
-/** Get the first (left-most) node in the tree or NULL */
-struct rb_node *rb_tree_first(struct rb_tree *T);
-
-/** Get the last (right-most) node in the tree or NULL */
-struct rb_node *rb_tree_last(struct rb_tree *T);
-
-/** Get the next node (to the right) in the tree or NULL */
-struct rb_node *rb_node_next(struct rb_node *node);
-
-/** Get the next previous (to the left) in the tree or NULL */
-struct rb_node *rb_node_prev(struct rb_node *node);
 
 #define rb_node_next_or_null(n) ((n) == NULL ? NULL : rb_node_next(n))
 #define rb_node_prev_or_null(n) ((n) == NULL ? NULL : rb_node_prev(n))
@@ -307,6 +399,60 @@ struct rb_node *rb_node_prev(struct rb_node *node);
         (iter = rb_node_data(type, (struct rb_node *)__node, field), true); \
         __node = __prev, \
         __prev = (type *)rb_node_prev_or_null((struct rb_node *)__node))
+
+/** Unsigned interval
+ *
+ * Intervals are closed by convention.
+ */
+struct uinterval {
+   unsigned start, end;
+};
+
+struct uinterval_node {
+   struct rb_node node;
+
+   /* Must be filled in before inserting */
+   struct uinterval interval;
+
+   /* Managed internally by the tree */
+   unsigned max_end;
+};
+
+/** Insert a node into an unsigned interval tree. */
+void uinterval_tree_insert(struct rb_tree *tree, struct uinterval_node *node);
+
+/** Remove a node from an unsigned interval tree. */
+void uinterval_tree_remove(struct rb_tree *tree, struct uinterval_node *node);
+
+/** Get the first node intersecting the given interval. */
+struct uinterval_node *uinterval_tree_first(struct rb_tree *tree,
+                                            struct uinterval interval);
+
+/** Get the next node after \p node intersecting the given interval. */
+struct uinterval_node *uinterval_node_next(struct uinterval_node *node,
+                                           struct uinterval interval);
+
+/** Iterate over the nodes in the tree intersecting the given interval
+ *
+ * The iteration itself should take O(k log n) time, where k is the number of
+ * iterations of the loop and n is the size of the tree.
+ *
+ * \param   type    The type of the containing data structure
+ *
+ * \param   node    The variable name for current node in the iteration;
+ *                  this will be declared as a pointer to \p type
+ *
+ * \param  interval The interval to be tested against.
+ *
+ * \param   T       The red-black tree
+ *
+ * \param   field   The uinterval_node field in containing data structure
+ */
+#define uinterval_tree_foreach(type, iter, interval, T, field) \
+   for (type *iter, *__node = (type *)uinterval_tree_first(T, interval); \
+        __node != NULL && \
+        (iter = rb_node_data(type, (struct uinterval_node *)__node, field), true); \
+        __node = (type *)uinterval_node_next((struct uinterval_node *)__node, interval))
 
 /** Validate a red-black tree
  *

@@ -26,9 +26,15 @@
 #ifndef SHADER_ENUMS_H
 #define SHADER_ENUMS_H
 
-#include "util/macros.h"
-
+#ifndef __OPENCL_VERSION__
 #include <stdbool.h>
+#include "util/macros.h"
+#include "util/u_debug.h"
+#else
+#define ENUM_PACKED
+#define BITFIELD_BIT(b) (1u << (b))
+#define debug_printf(x, ...)
+#endif
 
 /* Project-wide (GL and Vulkan) maximum. */
 #define MAX_DRAW_BUFFERS 8
@@ -63,7 +69,11 @@ typedef enum pipe_shader_type
    PIPE_SHADER_TYPES = (PIPE_SHADER_COMPUTE + 1),
    /* Vulkan-only stages. */
    MESA_SHADER_TASK         = 6,
+   PIPE_SHADER_TASK = MESA_SHADER_TASK,
    MESA_SHADER_MESH         = 7,
+   PIPE_SHADER_MESH = MESA_SHADER_MESH,
+   PIPE_SHADER_MESH_TYPES = (PIPE_SHADER_MESH + 1),
+
    MESA_SHADER_RAYGEN       = 8,
    MESA_SHADER_ANY_HIT      = 9,
    MESA_SHADER_CLOSEST_HIT  = 10,
@@ -105,6 +115,12 @@ gl_shader_stage_is_callable(gl_shader_stage stage)
           stage == MESA_SHADER_MISS ||
           stage == MESA_SHADER_INTERSECTION ||
           stage == MESA_SHADER_CALLABLE;
+}
+
+static inline bool
+gl_shader_stage_is_rt(gl_shader_stage stage)
+{
+   return stage == MESA_SHADER_RAYGEN || gl_shader_stage_is_callable(stage);
 }
 
 static inline bool
@@ -298,7 +314,7 @@ const char *gl_vert_attrib_name(gl_vert_attrib attrib);
  * - vertResults (in prog_print.c's arb_output_attrib_string())
  * - fragAttribs (in prog_print.c's arb_input_attrib_string())
  * - _mesa_varying_slot_in_fs()
- * - _mesa_varying_slot_name_for_stage()
+ * - gl_varying_slot_name_for_stage()
  */
 typedef enum
 {
@@ -518,6 +534,27 @@ _mesa_varying_slot_in_fs(gl_varying_slot slot)
 #define VARYING_BIT_BOUNDING_BOX1 BITFIELD64_BIT(VARYING_SLOT_BOUNDING_BOX1)
 #define VARYING_BIT_VIEWPORT_MASK BITFIELD64_BIT(VARYING_SLOT_VIEWPORT_MASK)
 #define VARYING_BIT_VAR(V) BITFIELD64_BIT(VARYING_SLOT_VAR0 + (V))
+/*@}*/
+
+/**
+ * Writemask values, 1 bit per component.
+ */
+/*@{*/
+#define WRITEMASK_X     0x1
+#define WRITEMASK_Y     0x2
+#define WRITEMASK_XY    0x3
+#define WRITEMASK_Z     0x4
+#define WRITEMASK_XZ    0x5
+#define WRITEMASK_YZ    0x6
+#define WRITEMASK_XYZ   0x7
+#define WRITEMASK_W     0x8
+#define WRITEMASK_XW    0x9
+#define WRITEMASK_YW    0xa
+#define WRITEMASK_XYW   0xb
+#define WRITEMASK_ZW    0xc
+#define WRITEMASK_XZW   0xd
+#define WRITEMASK_YZW   0xe
+#define WRITEMASK_XYZW  0xf
 /*@}*/
 
 /**
@@ -751,6 +788,7 @@ typedef enum
    SYSTEM_VALUE_SAMPLE_POS,
    SYSTEM_VALUE_SAMPLE_POS_OR_CENTER,
    SYSTEM_VALUE_SAMPLE_MASK_IN,
+   SYSTEM_VALUE_LAYER_ID,
    SYSTEM_VALUE_HELPER_INVOCATION,
    SYSTEM_VALUE_COLOR0,
    SYSTEM_VALUE_COLOR1,
@@ -816,6 +854,14 @@ typedef enum
    SYSTEM_VALUE_BARYCENTRIC_PULL_MODEL,
 
    /**
+    * \name VK_KHR_fragment_shader_barycentric
+    */
+   /*@{*/
+   SYSTEM_VALUE_BARYCENTRIC_PERSP_COORD,
+   SYSTEM_VALUE_BARYCENTRIC_LINEAR_COORD,
+   /*@}*/
+
+   /**
     * \name Ray tracing shader system values
     */
    /*@{*/
@@ -835,6 +881,7 @@ typedef enum
    SYSTEM_VALUE_RAY_GEOMETRY_INDEX,
    SYSTEM_VALUE_RAY_INSTANCE_CUSTOM_INDEX,
    SYSTEM_VALUE_CULL_MASK,
+   SYSTEM_VALUE_RAY_TRIANGLE_VERTEX_POSITIONS,
    /*@}*/
 
    /**
@@ -862,6 +909,23 @@ typedef enum
     * Fragment shading rate used for KHR_fragment_shading_rate (Vulkan).
     */
    SYSTEM_VALUE_FRAG_SHADING_RATE,
+
+   /*
+    * Rasterized fragment is fully covered by the generating primitive
+    * (SPV_EXT_fragment_fully_covered).
+    */
+   SYSTEM_VALUE_FULLY_COVERED,
+
+   /*
+    * Fragment size and invocation count used for
+    * EXT_fragment_invocation_density (Vulkan).
+    */
+   SYSTEM_VALUE_FRAG_SIZE,
+   SYSTEM_VALUE_FRAG_INVOCATION_COUNT,
+
+   /* SPV_AMDX_shader_enqueue */
+   SYSTEM_VALUE_SHADER_INDEX,
+   SYSTEM_VALUE_COALESCED_INPUT_COUNT,
 
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
@@ -946,12 +1010,39 @@ enum gl_frag_depth_layout
 };
 
 /**
- * \brief Buffer access qualifiers
+ * \brief Layout qualifiers for AMD_shader_early_and_late_fragment_tests.
+ */
+enum gl_frag_stencil_layout
+{
+   FRAG_STENCIL_LAYOUT_NONE, /**< No layout is specified. */
+   FRAG_STENCIL_LAYOUT_ANY,
+   FRAG_STENCIL_LAYOUT_GREATER,
+   FRAG_STENCIL_LAYOUT_LESS,
+   FRAG_STENCIL_LAYOUT_UNCHANGED
+};
+
+/**
+ * \brief Memory access qualifiers
  */
 enum gl_access_qualifier
 {
+   /**
+    * This means that the memory scope is the current device. It indicates
+    * that reads and writes are coherent with reads and writes from other
+    * shader invocations and other workgroups.
+    */
    ACCESS_COHERENT      = (1 << 0),
+
+   /**
+    * This means non-aliased. It indicates that the accessed address is not
+    * accessible through any other memory resource in the shader.
+    */
    ACCESS_RESTRICT      = (1 << 1),
+
+   /**
+    * The access cannot be eliminated, duplicated, or combined with other
+    * accesses.
+    */
    ACCESS_VOLATILE      = (1 << 2),
 
    /* The memory used by the access/variable is not read. */
@@ -995,11 +1086,49 @@ enum gl_access_qualifier
     */
    ACCESS_CAN_REORDER = (1 << 6),
 
-   /** Use as little cache space as possible. */
-   ACCESS_STREAM_CACHE_POLICY = (1 << 7),
+   /**
+    * Hints that the accessed address is not likely to be accessed again
+    * in the near future. This reduces data retention in caches.
+    */
+   ACCESS_NON_TEMPORAL = (1 << 7),
 
    /** Execute instruction also in helpers. */
    ACCESS_INCLUDE_HELPERS = (1 << 8),
+
+   /**
+    * Whether the address bits are swizzled by the hw. This practically means
+    * that loads can't be vectorized and must be exactly 32 bits on some chips.
+    * The swizzle amount is determined by the descriptor.
+    */
+   ACCESS_IS_SWIZZLED_AMD = (1 << 9),
+
+   /**
+    * Whether an AMD-specific buffer intrinsic uses a format conversion.
+    *
+    * If unset, the intrinsic will access raw memory without any conversion.
+    *
+    * If set, the memory opcode performs a format conversion according to
+    * the format determined by the descriptor (in a manner identical to image
+    * buffers and sampler buffers).
+    */
+   ACCESS_USES_FORMAT_AMD = (1 << 10),
+
+   /**
+    * Whether a multi sample image load intrinsic uses sample index extracted
+    * from fragment mask buffer.
+    */
+   ACCESS_FMASK_LOWERED_AMD = (1 << 11),
+
+   /**
+    * Whether it is safe to speculatively execute this load. This allows
+    * hoisting loads out of conditional control flow (including out of software
+    * bounds checks). Setting this optimally depends on knowledge of the
+    * hardware. Speculation is safe if out-of-bounds access does not trigger
+    * undefined behaviour (even though the returned value of the speculated load
+    * is bogus). This is the case if there is hardware-level bounds checking, or
+    * if MMU faults are suppressed for the load.
+    */
+   ACCESS_CAN_SPECULATE = (1 << 12),
 };
 
 /**
@@ -1025,29 +1154,6 @@ enum gl_advanced_blend_mode
    BLEND_HSL_LUMINOSITY,
 };
 
-enum blend_func
-{
-   BLEND_FUNC_ADD,
-   BLEND_FUNC_SUBTRACT,
-   BLEND_FUNC_REVERSE_SUBTRACT,
-   BLEND_FUNC_MIN,
-   BLEND_FUNC_MAX,
-};
-
-enum blend_factor
-{
-   BLEND_FACTOR_ZERO,
-   BLEND_FACTOR_SRC_COLOR,
-   BLEND_FACTOR_SRC1_COLOR,
-   BLEND_FACTOR_DST_COLOR,
-   BLEND_FACTOR_SRC_ALPHA,
-   BLEND_FACTOR_SRC1_ALPHA,
-   BLEND_FACTOR_DST_ALPHA,
-   BLEND_FACTOR_CONSTANT_COLOR,
-   BLEND_FACTOR_CONSTANT_ALPHA,
-   BLEND_FACTOR_SRC_ALPHA_SATURATE,
-};
-
 enum gl_tess_spacing
 {
    TESS_SPACING_UNSPECIFIED,
@@ -1064,32 +1170,122 @@ enum tess_primitive_mode
    TESS_PRIMITIVE_ISOLINES,
 };
 
-/* these also map directly to GL and gallium prim types. */
-enum shader_prim
+/**
+ * Mesa primitive types for both GL and Vulkan:
+ */
+enum ENUM_PACKED mesa_prim
 {
-   SHADER_PRIM_POINTS,
-   SHADER_PRIM_LINES,
-   SHADER_PRIM_LINE_LOOP,
-   SHADER_PRIM_LINE_STRIP,
-   SHADER_PRIM_TRIANGLES,
-   SHADER_PRIM_TRIANGLE_STRIP,
-   SHADER_PRIM_TRIANGLE_FAN,
-   SHADER_PRIM_QUADS,
-   SHADER_PRIM_QUAD_STRIP,
-   SHADER_PRIM_POLYGON,
-   SHADER_PRIM_LINES_ADJACENCY,
-   SHADER_PRIM_LINE_STRIP_ADJACENCY,
-   SHADER_PRIM_TRIANGLES_ADJACENCY,
-   SHADER_PRIM_TRIANGLE_STRIP_ADJACENCY,
-   SHADER_PRIM_PATCHES,
-   SHADER_PRIM_MAX = SHADER_PRIM_PATCHES,
-   SHADER_PRIM_UNKNOWN = (SHADER_PRIM_MAX * 2),
+   MESA_PRIM_POINTS,
+   MESA_PRIM_LINES,
+   MESA_PRIM_LINE_LOOP,
+   MESA_PRIM_LINE_STRIP,
+   MESA_PRIM_TRIANGLES,
+   MESA_PRIM_TRIANGLE_STRIP,
+   MESA_PRIM_TRIANGLE_FAN,
+   MESA_PRIM_QUADS,
+   MESA_PRIM_QUAD_STRIP,
+   MESA_PRIM_POLYGON,
+   MESA_PRIM_LINES_ADJACENCY,
+   MESA_PRIM_LINE_STRIP_ADJACENCY,
+   MESA_PRIM_TRIANGLES_ADJACENCY,
+   MESA_PRIM_TRIANGLE_STRIP_ADJACENCY,
+   MESA_PRIM_PATCHES,
+   MESA_PRIM_MAX = MESA_PRIM_PATCHES,
+   MESA_PRIM_COUNT = MESA_PRIM_MAX +1,
+   MESA_PRIM_UNKNOWN = (MESA_PRIM_MAX * 2),
 };
 
 /**
- * Number of vertices per mesh shader primitive.
+ * Number of vertices per primitive as seen by a geometry or mesh shader.
  */
-unsigned num_mesh_vertices_per_primitive(unsigned prim);
+static inline unsigned
+mesa_vertices_per_prim(enum mesa_prim prim)
+{
+   switch(prim) {
+   case MESA_PRIM_POINTS:
+      return 1;
+   case MESA_PRIM_LINES:
+   case MESA_PRIM_LINE_LOOP:
+   case MESA_PRIM_LINE_STRIP:
+      return 2;
+   case MESA_PRIM_TRIANGLES:
+   case MESA_PRIM_TRIANGLE_STRIP:
+   case MESA_PRIM_TRIANGLE_FAN:
+      return 3;
+   case MESA_PRIM_LINES_ADJACENCY:
+   case MESA_PRIM_LINE_STRIP_ADJACENCY:
+      return 4;
+   case MESA_PRIM_TRIANGLES_ADJACENCY:
+   case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
+      return 6;
+
+   case MESA_PRIM_QUADS:
+   case MESA_PRIM_QUAD_STRIP:
+      /* These won't be seen from geometry shaders but prim assembly might for
+       * prim id.
+       */
+      return 4;
+
+   /* The following primitives should never be used with geometry or mesh
+    * shaders and their size is undefined.
+    */
+   case MESA_PRIM_POLYGON:
+   default:
+      debug_printf("Unrecognized geometry or mesh shader primitive");
+      return 3;
+   }
+}
+
+/**
+ * Returns the number of decomposed primitives for the given
+ * vertex count.
+ * Parts of the pipline are invoked once for each triangle in
+ * triangle strip, triangle fans and triangles and once
+ * for each line in line strip, line loop, lines. Also 
+ * statistics depend on knowing the exact number of decomposed
+ * primitives for a set of vertices.
+ */
+static inline unsigned
+u_decomposed_prims_for_vertices(enum mesa_prim primitive, int vertices)
+{
+   switch (primitive) {
+   case MESA_PRIM_POINTS:
+      return vertices;
+   case MESA_PRIM_LINES:
+      return vertices / 2;
+   case MESA_PRIM_LINE_LOOP:
+      return (vertices >= 2) ? vertices : 0;
+   case MESA_PRIM_LINE_STRIP:
+      return (vertices >= 2) ? vertices - 1 : 0;
+   case MESA_PRIM_TRIANGLES:
+      return vertices / 3;
+   case MESA_PRIM_TRIANGLE_STRIP:
+      return (vertices >= 3) ? vertices - 2 : 0;
+   case MESA_PRIM_TRIANGLE_FAN:
+      return (vertices >= 3) ? vertices - 2 : 0;
+   case MESA_PRIM_LINES_ADJACENCY:
+      return vertices / 4;
+   case MESA_PRIM_LINE_STRIP_ADJACENCY:
+      return (vertices >= 4) ? vertices - 3 : 0;
+   case MESA_PRIM_TRIANGLES_ADJACENCY:
+      return vertices / 6;
+   case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
+      return (vertices >= 6) ? 1 + (vertices - 6) / 2 : 0;
+   case MESA_PRIM_QUADS:
+      return vertices / 4;
+   case MESA_PRIM_QUAD_STRIP:
+      return (vertices >= 4) ? (vertices - 2) / 2 : 0;
+   /* Polygons can't be decomposed
+    * because the number of their vertices isn't known so
+    * for them and whatever else we don't recognize just
+    * return 1 if the number of vertices is greater than
+    * or equal to 3 and zero otherwise */
+   case MESA_PRIM_POLYGON:
+   default:
+      debug_printf("Invalid decomposition primitive!\n");
+      return (vertices >= 3) ? 1 : 0;
+   }
+}
 
 /**
  * A compare function enum for use in compiler lowering passes.  This is in
@@ -1151,22 +1347,43 @@ enum gl_derivative_group {
 
 enum float_controls
 {
-   FLOAT_CONTROLS_DEFAULT_FLOAT_CONTROL_MODE        = 0x0000,
-   FLOAT_CONTROLS_DENORM_PRESERVE_FP16              = 0x0001,
-   FLOAT_CONTROLS_DENORM_PRESERVE_FP32              = 0x0002,
-   FLOAT_CONTROLS_DENORM_PRESERVE_FP64              = 0x0004,
-   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16         = 0x0008,
-   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32         = 0x0010,
-   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP64         = 0x0020,
-   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16 = 0x0040,
-   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32 = 0x0080,
-   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP64 = 0x0100,
-   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16            = 0x0200,
-   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32            = 0x0400,
-   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64            = 0x0800,
-   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16            = 0x1000,
-   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32            = 0x2000,
-   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64            = 0x4000,
+   FLOAT_CONTROLS_DEFAULT_FLOAT_CONTROL_MODE = 0,
+   FLOAT_CONTROLS_DENORM_PRESERVE_FP16       = BITFIELD_BIT(0),
+   FLOAT_CONTROLS_DENORM_PRESERVE_FP32       = BITFIELD_BIT(1),
+   FLOAT_CONTROLS_DENORM_PRESERVE_FP64       = BITFIELD_BIT(2),
+   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16  = BITFIELD_BIT(3),
+   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32  = BITFIELD_BIT(4),
+   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP64  = BITFIELD_BIT(5),
+   FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP16  = BITFIELD_BIT(6),
+   FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP32  = BITFIELD_BIT(7),
+   FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP64  = BITFIELD_BIT(8),
+   FLOAT_CONTROLS_INF_PRESERVE_FP16          = BITFIELD_BIT(9),
+   FLOAT_CONTROLS_INF_PRESERVE_FP32          = BITFIELD_BIT(10),
+   FLOAT_CONTROLS_INF_PRESERVE_FP64          = BITFIELD_BIT(11),
+   FLOAT_CONTROLS_NAN_PRESERVE_FP16          = BITFIELD_BIT(12),
+   FLOAT_CONTROLS_NAN_PRESERVE_FP32          = BITFIELD_BIT(13),
+   FLOAT_CONTROLS_NAN_PRESERVE_FP64          = BITFIELD_BIT(14),
+   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16     = BITFIELD_BIT(15),
+   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32     = BITFIELD_BIT(16),
+   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64     = BITFIELD_BIT(17),
+   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16     = BITFIELD_BIT(18),
+   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32     = BITFIELD_BIT(19),
+   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64     = BITFIELD_BIT(20),
+
+   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16 =
+      FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP16 |
+      FLOAT_CONTROLS_INF_PRESERVE_FP16 |
+      FLOAT_CONTROLS_NAN_PRESERVE_FP16,
+
+   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32 =
+      FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP32 |
+      FLOAT_CONTROLS_INF_PRESERVE_FP32 |
+      FLOAT_CONTROLS_NAN_PRESERVE_FP32,
+
+   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP64 =
+      FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP64 |
+      FLOAT_CONTROLS_INF_PRESERVE_FP64 |
+      FLOAT_CONTROLS_NAN_PRESERVE_FP64,
 };
 
 /**
@@ -1225,7 +1442,7 @@ enum cl_sampler_filter_mode {
 #define MAT_BIT_BACK_INDEXES          (1<<MAT_ATTRIB_BACK_INDEXES)
 
 /** An enum representing what kind of input gl_SubgroupSize is. */
-enum PACKED gl_subgroup_size
+enum ENUM_PACKED gl_subgroup_size
 {
    /** Actual subgroup size, whatever that happens to be */
    SUBGROUP_SIZE_VARYING = 0,
@@ -1260,6 +1477,19 @@ enum PACKED gl_subgroup_size
    SUBGROUP_SIZE_REQUIRE_64  = 64,  /**< VK_EXT_subgroup_size_control */
    SUBGROUP_SIZE_REQUIRE_128 = 128, /**< VK_EXT_subgroup_size_control */
 };
+
+/* Ordered from narrower to wider scope. */
+typedef enum {
+   SCOPE_NONE,
+   SCOPE_INVOCATION,
+   SCOPE_SUBGROUP,
+   SCOPE_SHADER_CALL,
+   SCOPE_WORKGROUP,
+   SCOPE_QUEUE_FAMILY,
+   SCOPE_DEVICE,
+} mesa_scope;
+
+const char *mesa_scope_name(mesa_scope scope);
 
 #ifdef __cplusplus
 } /* extern "C" */

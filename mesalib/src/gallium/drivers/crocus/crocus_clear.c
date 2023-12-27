@@ -101,8 +101,8 @@ can_fast_clear_color(struct crocus_context *ice,
     * during resolves because the resolve operations only know about the
     * resource and not the renderbuffer.
     */
-   if (isl_format_srgb_to_linear(render_format) !=
-       isl_format_srgb_to_linear(format)) {
+   if (!crocus_render_formats_color_compatible(render_format, res->surf.format,
+                                             color)) {
       return false;
    }
 
@@ -454,19 +454,7 @@ fast_clear_depth(struct crocus_context *ice,
                  const struct pipe_box *box,
                  float depth)
 {
-   struct pipe_resource *p_res = (void *) res;
    struct crocus_batch *batch = &ice->batches[CROCUS_BATCH_RENDER];
-
-   /* Quantize the clear value to what can be stored in the actual depth
-    * buffer.  This makes the following check more accurate because it now
-    * checks if the actual depth bits will match.  It also prevents us from
-    * getting a too-accurate depth value during depth testing or when sampling
-    * with HiZ enabled.
-    */
-   const unsigned nbits = p_res->format == PIPE_FORMAT_Z16_UNORM ? 16 : 24;
-   const uint32_t depth_max = (1 << nbits) - 1;
-   depth = p_res->format == PIPE_FORMAT_Z32_FLOAT ? depth :
-      (unsigned)(depth * depth_max) / (float)depth_max;
 
    bool update_clear_depth = false;
 
@@ -714,16 +702,11 @@ crocus_clear_texture(struct pipe_context *ctx,
    struct crocus_context *ice = (void *) ctx;
    struct crocus_screen *screen = (void *) ctx->screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
-   struct crocus_resource *res = (void *) p_res;
 
    if (devinfo->ver < 6) {
-      util_clear_texture(ctx, p_res,
-                         level, box, data);
+      u_default_clear_texture(ctx, p_res, level, box, data);
       return;
    }
-
-   if (crocus_resource_unfinished_aux_import(res))
-      crocus_resource_finish_aux_import(ctx->screen, res);
 
    if (util_format_is_depth_or_stencil(p_res->format)) {
       const struct util_format_unpack_description *fmt_unpack =

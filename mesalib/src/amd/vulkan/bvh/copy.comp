@@ -29,6 +29,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_buffer_reference : require
 #extension GL_EXT_buffer_reference2 : require
@@ -92,13 +93,13 @@ main(void)
           (offset - node_offset) % SIZEOF(radv_bvh_instance_node) == 0) {
          uint64_t idx = (offset - node_offset) / SIZEOF(radv_bvh_instance_node);
 
+         uint32_t bvh_offset = DEREF(REF(radv_bvh_instance_node)(copy_src_addr + offset)).bvh_offset;
          if (args.mode == RADV_COPY_MODE_SERIALIZE) {
             DEREF(INDEX(uint64_t, instance_base, idx)) =
-               DEREF(REF(radv_bvh_instance_node)(copy_src_addr + offset)).base_ptr;
+               node_to_addr(DEREF(REF(radv_bvh_instance_node)(copy_src_addr + offset)).bvh_ptr) - bvh_offset;
          } else { /* RADV_COPY_MODE_DESERIALIZE */
             uint64_t blas_addr = DEREF(INDEX(uint64_t, instance_base, idx));
-
-            DEREF(REF(radv_bvh_instance_node)(copy_dst_addr + offset)).base_ptr = blas_addr;
+            DEREF(REF(radv_bvh_instance_node)(copy_dst_addr + offset)).bvh_ptr = addr_to_node(blas_addr + bvh_offset);
          }
       }
    }

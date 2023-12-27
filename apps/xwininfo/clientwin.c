@@ -219,8 +219,10 @@ Find_Client(xcb_connection_t * dpy, xcb_window_t root, xcb_window_t subwin)
         if (subwin != roots[i])
             continue;
         win = Find_Child_At_Pointer(dpy, subwin);
-        if (win == XCB_WINDOW_NONE)
+        if (win == XCB_WINDOW_NONE) {
+            free (roots);
             return subwin;      /* No child - Return virtual root. */
+        }
         subwin = win;
         break;
     }

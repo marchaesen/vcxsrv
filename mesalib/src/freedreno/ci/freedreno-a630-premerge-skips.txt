@@ -3,4 +3,6 @@
 # delete lines from the test list.  Be careful.
 
 # Timeouts, passes otherwise
-KHR-GL33.texture_swizzle.smoke
+KHR-GL46.texture_swizzle.smoke
+KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4
+KHR-GL46.gpu_shader_fp64.fp64.varyings

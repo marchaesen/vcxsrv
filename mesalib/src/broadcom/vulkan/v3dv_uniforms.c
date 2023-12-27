@@ -27,15 +27,6 @@
 
 #include "v3dv_private.h"
 
-/* The only version specific structure that we need is
- * TMU_CONFIG_PARAMETER_1. This didn't seem to change significantly from
- * previous V3D versions and we don't expect that to change, so for now let's
- * just hardcode the V3D version here.
- */
-#define V3D_VERSION 41
-#include "broadcom/common/v3d_macros.h"
-#include "broadcom/cle/v3dx_pack.h"
-
 /* Our Vulkan resource indices represent indices in descriptor maps which
  * include all shader stages, so we need to size the arrays below
  * accordingly. For now we only support a maximum of 3 stages: VS, GS, FS.
@@ -87,7 +78,7 @@ push_constants_bo_free(VkDevice _device,
  * This method checks if the ubo used for push constants is needed to be
  * updated or not.
  *
- * push contants ubo is only used for push constants accessed by a non-const
+ * push constants ubo is only used for push constants accessed by a non-const
  * index.
  */
 static void
@@ -223,11 +214,8 @@ write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
    /* Set unnormalized coordinates flag from sampler object */
    uint32_t p1_packed = v3d_unit_data_get_offset(data);
    if (sampler->unnormalized_coordinates) {
-      struct V3DX(TMU_CONFIG_PARAMETER_1) p1_unpacked;
-      V3DX(TMU_CONFIG_PARAMETER_1_unpack)((uint8_t *)&p1_packed, &p1_unpacked);
-      p1_unpacked.unnormalized_coordinates = true;
-      V3DX(TMU_CONFIG_PARAMETER_1_pack)(NULL, (uint8_t *)&p1_packed,
-                                        &p1_unpacked);
+      v3d_pack_unnormalized_coordinates(&cmd_buffer->device->devinfo, &p1_packed,
+                                        sampler->unnormalized_coordinates);
    }
 
    cl_aligned_u32(uniforms, sampler_state_reloc.bo->offset +
@@ -288,9 +276,10 @@ write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
                                offset + dynamic_offset);
    } else {
       if (content == QUNIFORM_UBO_ADDR) {
-         /* We reserve index 0 for push constants and artificially increase our
-          * indices by one for that reason, fix that now before accessing the
-          * descriptor map.
+         /* We reserve UBO index 0 for push constants in Vulkan (and for the
+          * constant buffer in GL) so the compiler always adds one to all UBO
+          * indices, fix it up before we access the descriptor map, since
+          * indices start from 0 there.
           */
          assert(index > 0);
          index--;
@@ -497,7 +486,6 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
    struct v3dv_cl_reloc uniform_stream = v3dv_cl_get_address(&job->indirect);
 
    struct v3dv_cl_out *uniforms = cl_start(&job->indirect);
-
    for (int i = 0; i < uinfo->count; i++) {
       uint32_t data = uinfo->data[i];
 
@@ -519,13 +507,17 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
                               cmd_buffer, pipeline, variant->stage);
          break;
 
-      case QUNIFORM_VIEWPORT_X_SCALE:
-         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][0] * 256.0f);
+      case QUNIFORM_VIEWPORT_X_SCALE: {
+         float clipper_xy_granularity = V3DV_X(cmd_buffer->device, CLIPPER_XY_GRANULARITY);
+         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][0] * clipper_xy_granularity);
          break;
+      }
 
-      case QUNIFORM_VIEWPORT_Y_SCALE:
-         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][1] * 256.0f);
+      case QUNIFORM_VIEWPORT_Y_SCALE: {
+         float clipper_xy_granularity = V3DV_X(cmd_buffer->device, CLIPPER_XY_GRANULARITY);
+         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][1] * clipper_xy_granularity);
          break;
+      }
 
       case QUNIFORM_VIEWPORT_Z_OFFSET: {
          float translate_z;
@@ -663,6 +655,10 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
       case QUNIFORM_SPILL_SIZE_PER_THREAD:
          assert(pipeline->spill.size_per_thread > 0);
          cl_aligned_u32(&uniforms, pipeline->spill.size_per_thread);
+         break;
+
+      case QUNIFORM_DRAW_ID:
+         cl_aligned_u32(&uniforms, job->cmd_buffer->state.draw_id);
          break;
 
       default:

@@ -38,11 +38,10 @@ extern "C" void
 _mesa_warning(struct gl_context *ctx, const char *fmtString, ... );
 
 extern "C" void
-_mesa_problem(struct gl_context *ctx, const char *fmtString, ... );
+_mesa_problem(const struct gl_context *ctx, const char *fmtString, ... );
 
 extern "C" void
-_mesa_reference_shader_program_data(struct gl_context *ctx,
-                                    struct gl_shader_program_data **ptr,
+_mesa_reference_shader_program_data(struct gl_shader_program_data **ptr,
                                     struct gl_shader_program_data *data);
 
 extern "C" void
@@ -110,5 +109,11 @@ _mesa_shader_enum_to_shader_stage(GLenum v)
  */
 void initialize_context_to_defaults(struct gl_context *ctx, gl_api api);
 
+struct gl_shader_program *
+standalone_create_shader_program(void);
+void
+standalone_destroy_shader_program(struct gl_shader_program *whole_program);
+struct gl_shader *
+standalone_add_shader_source(struct gl_context *ctx, struct gl_shader_program *whole_program, GLenum type, const char *source);
 
 #endif /* STANDALONE_SCAFFOLDING_H */

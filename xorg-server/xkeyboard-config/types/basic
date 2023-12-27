@@ -8,7 +8,7 @@ default xkb_types "basic" {
     type "ONE_LEVEL" {
 	modifiers = None;
 	map[None] = Level1;
-	level_name[Level1]= "Any";
+	level_name[Level1] = "Any";
     };
 
     type "TWO_LEVEL" {

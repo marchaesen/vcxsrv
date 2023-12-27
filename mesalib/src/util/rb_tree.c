@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017 Jason Ekstrand
+ * Copyright © 2017 Faith Ekstrand
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -38,6 +38,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include "macros.h"
 
 static bool
 rb_node_is_black(struct rb_node *n)
@@ -92,12 +94,6 @@ rb_node_maximum(struct rb_node *node)
     return node;
 }
 
-void
-rb_tree_init(struct rb_tree *T)
-{
-    T->root = NULL;
-}
-
 /**
  * Replace the subtree of T rooted at u with the subtree rooted at v
  *
@@ -124,7 +120,8 @@ rb_tree_splice(struct rb_tree *T, struct rb_node *u, struct rb_node *v)
 }
 
 static void
-rb_tree_rotate_left(struct rb_tree *T, struct rb_node *x)
+rb_tree_rotate_left(struct rb_tree *T, struct rb_node *x,
+                    void (*update)(struct rb_node *))
 {
     assert(x && x->right);
 
@@ -135,10 +132,15 @@ rb_tree_rotate_left(struct rb_tree *T, struct rb_node *x)
     rb_tree_splice(T, x, y);
     y->left = x;
     rb_node_set_parent(x, y);
+    if (update) {
+        update(x);
+        update(y);
+    }
 }
 
 static void
-rb_tree_rotate_right(struct rb_tree *T, struct rb_node *y)
+rb_tree_rotate_right(struct rb_tree *T, struct rb_node *y,
+                     void (*update)(struct rb_node *))
 {
     assert(y && y->left);
 
@@ -149,14 +151,22 @@ rb_tree_rotate_right(struct rb_tree *T, struct rb_node *y)
     rb_tree_splice(T, y, x);
     x->right = y;
     rb_node_set_parent(y, x);
+    if (update) {
+        update(y);
+        update(x);
+    }
 }
 
 void
-rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
-                  struct rb_node *node, bool insert_left)
+rb_augmented_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
+                            struct rb_node *node, bool insert_left,
+                            void (*update)(struct rb_node *node))
 {
     /* This sets null children, parent, and a color of red */
     memset(node, 0, sizeof(*node));
+
+    if (update)
+       update(node);
 
     if (parent == NULL) {
         assert(T->root == NULL);
@@ -173,6 +183,14 @@ rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
         parent->right = node;
     }
     rb_node_set_parent(node, parent);
+
+    if (update) {
+        struct rb_node *p = parent;
+        while (p) {
+            update(p);
+            p = rb_node_parent(p);
+        }
+    }
 
     /* Now we do the insertion fixup */
     struct rb_node *z = node;
@@ -191,7 +209,7 @@ rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
             } else {
                 if (z == z_p->right) {
                     z = z_p;
-                    rb_tree_rotate_left(T, z);
+                    rb_tree_rotate_left(T, z, update);
                     /* We changed z */
                     z_p = rb_node_parent(z);
                     assert(z == z_p->left || z == z_p->right);
@@ -199,7 +217,7 @@ rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
                 }
                 rb_node_set_black(z_p);
                 rb_node_set_red(z_p_p);
-                rb_tree_rotate_right(T, z_p_p);
+                rb_tree_rotate_right(T, z_p_p, update);
             }
         } else {
             struct rb_node *y = z_p_p->left;
@@ -211,7 +229,7 @@ rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
             } else {
                 if (z == z_p->left) {
                     z = z_p;
-                    rb_tree_rotate_right(T, z);
+                    rb_tree_rotate_right(T, z, update);
                     /* We changed z */
                     z_p = rb_node_parent(z);
                     assert(z == z_p->left || z == z_p->right);
@@ -219,7 +237,7 @@ rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
                 }
                 rb_node_set_black(z_p);
                 rb_node_set_red(z_p_p);
-                rb_tree_rotate_left(T, z_p_p);
+                rb_tree_rotate_left(T, z_p_p, update);
             }
         }
     }
@@ -227,7 +245,8 @@ rb_tree_insert_at(struct rb_tree *T, struct rb_node *parent,
 }
 
 void
-rb_tree_remove(struct rb_tree *T, struct rb_node *z)
+rb_augmented_tree_remove(struct rb_tree *T, struct rb_node *z,
+                         void (*update)(struct rb_node *))
 {
     /* x_p is always the parent node of X.  We have to track this
      * separately because x may be NULL.
@@ -266,6 +285,14 @@ rb_tree_remove(struct rb_tree *T, struct rb_node *z)
 
     assert(x_p == NULL || x == x_p->left || x == x_p->right);
 
+    if (update) {
+        struct rb_node *p = x_p;
+        while (p) {
+            update(p);
+            p = rb_node_parent(p);
+        }
+    }
+
     if (!y_was_black)
         return;
 
@@ -276,7 +303,7 @@ rb_tree_remove(struct rb_tree *T, struct rb_node *z)
             if (rb_node_is_red(w)) {
                 rb_node_set_black(w);
                 rb_node_set_red(x_p);
-                rb_tree_rotate_left(T, x_p);
+                rb_tree_rotate_left(T, x_p, update);
                 assert(x == x_p->left);
                 w = x_p->right;
             }
@@ -287,13 +314,13 @@ rb_tree_remove(struct rb_tree *T, struct rb_node *z)
                 if (rb_node_is_black(w->right)) {
                     rb_node_set_black(w->left);
                     rb_node_set_red(w);
-                    rb_tree_rotate_right(T, w);
+                    rb_tree_rotate_right(T, w, update);
                     w = x_p->right;
                 }
                 rb_node_copy_color(w, x_p);
                 rb_node_set_black(x_p);
                 rb_node_set_black(w->right);
-                rb_tree_rotate_left(T, x_p);
+                rb_tree_rotate_left(T, x_p, update);
                 x = T->root;
             }
         } else {
@@ -301,7 +328,7 @@ rb_tree_remove(struct rb_tree *T, struct rb_node *z)
             if (rb_node_is_red(w)) {
                 rb_node_set_black(w);
                 rb_node_set_red(x_p);
-                rb_tree_rotate_right(T, x_p);
+                rb_tree_rotate_right(T, x_p, update);
                 assert(x == x_p->right);
                 w = x_p->left;
             }
@@ -312,13 +339,13 @@ rb_tree_remove(struct rb_tree *T, struct rb_node *z)
                 if (rb_node_is_black(w->left)) {
                     rb_node_set_black(w->right);
                     rb_node_set_red(w);
-                    rb_tree_rotate_left(T, w);
+                    rb_tree_rotate_left(T, w, update);
                     w = x_p->left;
                 }
                 rb_node_copy_color(w, x_p);
                 rb_node_set_black(x_p);
                 rb_node_set_black(w->left);
-                rb_tree_rotate_right(T, x_p);
+                rb_tree_rotate_right(T, x_p, update);
                 x = T->root;
             }
         }
@@ -382,6 +409,229 @@ rb_node_prev(struct rb_node *node)
         assert(p == NULL || node == p->right);
         return p;
     }
+}
+
+/* Return the first node in an interval tree that intersects a given interval
+ * or point. The tests against the interval and the max field are abstracted
+ * via function pointers, so that this works for any type of interval.
+ */
+static struct rb_node *
+rb_node_min_intersecting(struct rb_node *node, void *interval,
+                         int (*cmp_interval)(const struct rb_node *node,
+                                             const void *interval),
+                         bool (*cmp_max)(const struct rb_node *node, 
+                                         const void *interval))
+{
+    if (!cmp_max(node, interval))
+        return NULL;
+
+    while (node) {
+        int cmp = cmp_interval(node, interval);
+
+        /* If the node's interval is entirely to the right of the interval
+         * we're searching for, all of its right descendants are also to the
+         * right and don't intersect so we have to search to the left.
+         */
+        if (cmp > 0) {
+            node = node->left;
+            continue;
+        }
+
+        /* The interval overlaps or is to the left. This must also be true for
+         * its left descendants because their start points are to the left of
+         * node's. We can use the max to tell if there is an interval in its
+         * left descendants which overlaps our interval, in which case we
+         * should descend to the left.
+         */
+        if (node->left && cmp_max(node->left, interval)) {
+            node = node->left;
+            continue;
+        }
+
+        /* Now the only possibilities are the node's interval intersects the
+         * interval or one of its right descendants does.
+         */
+        if (cmp == 0)
+            return node;
+
+        node = node->right;
+        if (node && !cmp_max(node, interval))
+            return NULL;
+    }
+
+    return NULL;
+}
+
+/* Return the next node after "node" that intersects a given interval.
+ *
+ * Because rb_node_min_intersecting() takes O(log n) time and may be called up
+ * to O(log n) times, in addition to the O(log n) crawl up the tree, a naive
+ * runtime analysis would show that this takes O((log n)^2) time, but actually
+ * it's O(log n). Proving this is tricky:
+ *
+ * Call the rightmost node in the tree whose start is before the end of the
+ * interval we're searching for N. All nodes after N in the tree are to the
+ * right of the interval. We'll divide the search into two phases: in phase 1,
+ * "node" is *not* an ancestor of N, and in phase 2 it is. Because we always
+ * crawl up the tree, phase 2 cannot turn back into phase 1, but phase 1 may
+ * be followed by phase 2. We'll prove that the calls to
+ * rb_node_min_intersecting() take O(log n) time in both phases.
+ *
+ * Phase 1: Because "node" is to the left of N and N isn't a descendant of
+ * "node", the start of every interval in "node"'s subtree must be less than
+ * or equal to N's start which is less than or equal to the end of the search
+ * interval. Furthermore, either "node"'s max_end is less than the start of
+ * the interval, in which case rb_node_min_intersecting() immediately returns
+ * NULL, or some descendant has an end equal to "node"'s max_end which is
+ * greater than or equal to the search interval's start, and therefore it
+ * intersects the search interval and rb_node_min_intersecting() must return
+ * non-NULL which causes us to terminate. rb_node_min_intersecting() is called
+ * O(log n) times, with all but the last call taking constant time and the
+ * last call taking O(log n), so the overall runtime is O(log n).
+ *
+ * Phase 2: After the first call to rb_node_min_intersecting, we may crawl up
+ * the tree until we get to a node p where "node", and therefore N, is in p's
+ * left subtree. However this means that p is to the right of N in the tree
+ * and is therefore to the right of the search interval, and the search
+ * terminates on the first iteration of the loop so that
+ * rb_node_min_intersecting() is only called once.
+ */
+static struct rb_node *
+rb_node_next_intersecting(struct rb_node *node,
+                          void *interval,
+                          int (*cmp_interval)(const struct rb_node *node,
+                                              const void *interval),
+                          bool (*cmp_max)(const struct rb_node *node,
+                                          const void *interval))
+{
+    while (true) {
+        /* The first place to search is the node's right subtree. */
+        if (node->right) {
+            struct rb_node *next =
+                rb_node_min_intersecting(node->right, interval, cmp_interval, cmp_max);
+            if (next)
+                return next;
+        }
+
+        /* If we don't find a matching interval there, crawl up the tree until
+         * we find an ancestor to the right. This is the next node after the
+         * right subtree which we determined didn't match.
+         */
+        struct rb_node *p = rb_node_parent(node);
+        while (p && node == p->right) {
+            node = p;
+            p = rb_node_parent(node);
+        }
+        assert(p == NULL || node == p->left);
+
+        /* Check if we've searched everything in the tree. */
+        if (!p)
+            return NULL;
+
+        int cmp = cmp_interval(p, interval);
+
+        /* If it intersects, return it. */
+        if (cmp == 0)
+            return p;
+
+        /* If it's to the right of the interval, all following nodes will be
+         * to the right and we can bail early.
+         */
+        if (cmp > 0)
+            return NULL;
+
+        node = p;
+    }
+}
+
+static int
+uinterval_cmp(struct uinterval a, struct uinterval b)
+{
+    if (a.end < b.start)
+        return -1;
+    else if (b.end < a.start)
+        return 1;
+    else
+        return 0;
+}
+
+static int
+uinterval_node_cmp(const struct rb_node *_a, const struct rb_node *_b)
+{
+    const struct uinterval_node *a = rb_node_data(struct uinterval_node, _a, node);
+    const struct uinterval_node *b = rb_node_data(struct uinterval_node, _b, node);
+
+    return (int) (b->interval.start - a->interval.start);
+}
+
+static int
+uinterval_search_cmp(const struct rb_node *_node, const void *_interval)
+{
+    const struct uinterval_node *node = rb_node_data(struct uinterval_node, _node, node);
+    const struct uinterval *interval = _interval;
+
+    return uinterval_cmp(node->interval, *interval);
+}
+
+static bool
+uinterval_max_cmp(const struct rb_node *_node, const void *data)
+{
+    const struct uinterval_node *node = rb_node_data(struct uinterval_node, _node, node);
+    const struct uinterval *interval = data;
+
+    return node->max_end >= interval->start;
+}
+
+static void
+uinterval_update_max(struct rb_node *_node)
+{
+    struct uinterval_node *node = rb_node_data(struct uinterval_node, _node, node);
+    node->max_end = node->interval.end;
+    if (node->node.left) {
+        struct uinterval_node *left = rb_node_data(struct uinterval_node, node->node.left, node);
+        node->max_end = MAX2(node->max_end, left->max_end);
+    }
+    if (node->node.right) {
+        struct uinterval_node *right = rb_node_data(struct uinterval_node, node->node.right, node);
+        node->max_end = MAX2(node->max_end, right->max_end);
+    }
+}
+
+void
+uinterval_tree_insert(struct rb_tree *tree, struct uinterval_node *node)
+{
+    rb_augmented_tree_insert(tree, &node->node, uinterval_node_cmp,
+                             uinterval_update_max);
+}
+
+void
+uinterval_tree_remove(struct rb_tree *tree, struct uinterval_node *node)
+{
+    rb_augmented_tree_remove(tree, &node->node, uinterval_update_max);
+}
+
+struct uinterval_node *
+uinterval_tree_first(struct rb_tree *tree, struct uinterval interval)
+{
+    if (!tree->root)
+        return NULL;
+
+    struct rb_node *node =
+        rb_node_min_intersecting(tree->root, &interval, uinterval_search_cmp,
+                                 uinterval_max_cmp);
+
+    return node ? rb_node_data(struct uinterval_node, node, node) : NULL;
+}
+
+struct uinterval_node *
+uinterval_node_next(struct uinterval_node *node,
+                    struct uinterval interval)
+{
+    struct rb_node *next =
+        rb_node_next_intersecting(&node->node, &interval, uinterval_search_cmp,
+                                  uinterval_max_cmp);
+
+    return next ? rb_node_data(struct uinterval_node, next, node) : NULL;
 }
 
 static void

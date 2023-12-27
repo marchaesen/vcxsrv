@@ -26,7 +26,7 @@
 #ifndef MIPMAP_H
 #define MIPMAP_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 struct gl_texture_object;

@@ -78,9 +78,9 @@ def commit(message: str) -> None:
 
 
 def _calculate_release_start(major: str, minor: str) -> datetime.date:
-    """Calclulate the start of the release for release candidates.
+    """Calculate the start of the release for release candidates.
 
-    This is quarterly, on the second wednesday, in Januray, April, July, and Octobor.
+    This is quarterly, on the second wednesday, in January, April, July, and October.
     """
     quarter = datetime.date.fromisoformat(f'20{major}-0{[1, 4, 7, 10][int(minor)]}-01')
 

@@ -32,17 +32,16 @@
  * The max vectorization width must be a power of 2.
  */
 
-#include "nir.h"
-#include "nir_vla.h"
-#include "nir_builder.h"
 #include "util/u_dynarray.h"
+#include "nir.h"
+#include "nir_builder.h"
+#include "nir_vla.h"
 
 #define HASH(hash, data) XXH32(&data, sizeof(data), hash)
 
 static uint32_t
 hash_src(uint32_t hash, const nir_src *src)
 {
-   assert(src->is_ssa);
    void *hash_data = nir_src_is_const(*src) ? NULL : src->ssa;
 
    return HASH(hash, hash_data);
@@ -52,8 +51,6 @@ static uint32_t
 hash_alu_src(uint32_t hash, const nir_alu_src *src,
              uint32_t num_components, uint32_t max_vec)
 {
-   assert(!src->abs && !src->negate);
-
    /* hash whether a swizzle accesses elements beyond the maximum
     * vectorization factor:
     * For example accesses to .x and .y are considered different variables
@@ -68,16 +65,16 @@ hash_alu_src(uint32_t hash, const nir_alu_src *src,
 static uint32_t
 hash_instr(const void *data)
 {
-   const nir_instr *instr = (nir_instr *) data;
+   const nir_instr *instr = (nir_instr *)data;
    assert(instr->type == nir_instr_type_alu);
    nir_alu_instr *alu = nir_instr_as_alu(instr);
 
    uint32_t hash = HASH(0, alu->op);
-   hash = HASH(hash, alu->dest.dest.ssa.bit_size);
+   hash = HASH(hash, alu->def.bit_size);
 
    for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++)
       hash = hash_alu_src(hash, &alu->src[i],
-                          alu->dest.dest.ssa.num_components,
+                          alu->def.num_components,
                           instr->pass_flags);
 
    return hash;
@@ -86,8 +83,6 @@ hash_instr(const void *data)
 static bool
 srcs_equal(const nir_src *src1, const nir_src *src2)
 {
-   assert(src1->is_ssa);
-   assert(src2->is_ssa);
 
    return src1->ssa == src2->ssa ||
           (nir_src_is_const(*src1) && nir_src_is_const(*src2));
@@ -97,11 +92,6 @@ static bool
 alu_srcs_equal(const nir_alu_src *src1, const nir_alu_src *src2,
                uint32_t max_vec)
 {
-   assert(!src1->abs);
-   assert(!src1->negate);
-   assert(!src2->abs);
-   assert(!src2->negate);
-
    uint32_t mask = ~(max_vec - 1);
    if ((src1->swizzle[0] & mask) != (src2->swizzle[0] & mask))
       return false;
@@ -112,8 +102,8 @@ alu_srcs_equal(const nir_alu_src *src1, const nir_alu_src *src2,
 static bool
 instrs_equal(const void *data1, const void *data2)
 {
-   const nir_instr *instr1 = (nir_instr *) data1;
-   const nir_instr *instr2 = (nir_instr *) data2;
+   const nir_instr *instr1 = (nir_instr *)data1;
+   const nir_instr *instr2 = (nir_instr *)data2;
    assert(instr1->type == nir_instr_type_alu);
    assert(instr2->type == nir_instr_type_alu);
 
@@ -123,7 +113,7 @@ instrs_equal(const void *data1, const void *data2)
    if (alu1->op != alu2->op)
       return false;
 
-   if (alu1->dest.dest.ssa.bit_size != alu2->dest.dest.ssa.bit_size)
+   if (alu1->def.bit_size != alu2->def.bit_size)
       return false;
 
    for (unsigned i = 0; i < nir_op_infos[alu1->op].num_inputs; i++) {
@@ -149,7 +139,7 @@ instr_can_rewrite(nir_instr *instr)
          return false;
 
       /* no need to hash instructions which are already vectorized */
-      if (alu->dest.dest.ssa.num_components >= instr->pass_flags)
+      if (alu->def.num_components >= instr->pass_flags)
          return false;
 
       if (nir_op_infos[alu->op].output_size != 0)
@@ -162,7 +152,7 @@ instr_can_rewrite(nir_instr *instr)
          /* don't hash instructions which are already swizzled
           * outside of max_components: these should better be scalarized */
          uint32_t mask = ~(instr->pass_flags - 1);
-         for (unsigned j = 1; j < alu->dest.dest.ssa.num_components; j++) {
+         for (unsigned j = 1; j < alu->def.num_components; j++) {
             if ((alu->src[i].swizzle[0] & mask) != (alu->src[i].swizzle[j] & mask))
                return false;
          }
@@ -192,23 +182,20 @@ instr_try_combine(struct set *instr_set, nir_instr *instr1, nir_instr *instr2)
    nir_alu_instr *alu1 = nir_instr_as_alu(instr1);
    nir_alu_instr *alu2 = nir_instr_as_alu(instr2);
 
-   assert(alu1->dest.dest.ssa.bit_size == alu2->dest.dest.ssa.bit_size);
-   unsigned alu1_components = alu1->dest.dest.ssa.num_components;
-   unsigned alu2_components = alu2->dest.dest.ssa.num_components;
+   assert(alu1->def.bit_size == alu2->def.bit_size);
+   unsigned alu1_components = alu1->def.num_components;
+   unsigned alu2_components = alu2->def.num_components;
    unsigned total_components = alu1_components + alu2_components;
 
    assert(instr1->pass_flags == instr2->pass_flags);
    if (total_components > instr1->pass_flags)
       return NULL;
 
-   nir_builder b;
-   nir_builder_init(&b, nir_cf_node_get_function(&instr1->block->cf_node));
-   b.cursor = nir_after_instr(instr1);
+   nir_builder b = nir_builder_at(nir_after_instr(instr1));
 
    nir_alu_instr *new_alu = nir_alu_instr_create(b.shader, alu1->op);
-   nir_ssa_dest_init(&new_alu->instr, &new_alu->dest.dest,
-                     total_components, alu1->dest.dest.ssa.bit_size, NULL);
-   new_alu->dest.write_mask = (1 << total_components) - 1;
+   nir_def_init(&new_alu->instr, &new_alu->def, total_components,
+                alu1->def.bit_size);
    new_alu->instr.pass_flags = alu1->instr.pass_flags;
 
    /* If either channel is exact, we have to preserve it even if it's
@@ -232,11 +219,9 @@ instr_try_combine(struct set *instr_set, nir_instr *instr1, nir_instr *instr2)
          unsigned bit_size = alu1->src[i].src.ssa->bit_size;
 
          for (unsigned j = 0; j < total_components; j++) {
-            value[j].u64 = j < alu1_components ?
-                              c1[alu1->src[i].swizzle[j]].u64 :
-                              c2[alu2->src[i].swizzle[j - alu1_components]].u64;
+            value[j].u64 = j < alu1_components ? c1[alu1->src[i].swizzle[j]].u64 : c2[alu2->src[i].swizzle[j - alu1_components]].u64;
          }
-         nir_ssa_def *def = nir_build_imm(&b, total_components, bit_size, value);
+         nir_def *def = nir_build_imm(&b, total_components, bit_size, value);
 
          new_alu->src[i].src = nir_src_for_ssa(def);
          for (unsigned j = 0; j < total_components; j++)
@@ -258,8 +243,8 @@ instr_try_combine(struct set *instr_set, nir_instr *instr1, nir_instr *instr2)
    nir_builder_instr_insert(&b, &new_alu->instr);
 
    /* update all ALU uses */
-   nir_foreach_use_safe(src, &alu1->dest.dest.ssa) {
-      nir_instr *user_instr = src->parent_instr;
+   nir_foreach_use_safe(src, &alu1->def) {
+      nir_instr *user_instr = nir_src_parent_instr(src);
       if (user_instr->type == nir_instr_type_alu) {
          /* Check if user is found in the hashset */
          struct set_entry *entry = _mesa_set_search(instr_set, user_instr);
@@ -267,8 +252,7 @@ instr_try_combine(struct set *instr_set, nir_instr *instr1, nir_instr *instr2)
          /* For ALU instructions, rewrite the source directly to avoid a
           * round-trip through copy propagation.
           */
-         nir_instr_rewrite_src(user_instr, src,
-                               nir_src_for_ssa(&new_alu->dest.dest.ssa));
+         nir_src_rewrite(src, &new_alu->def);
 
          /* Rehash user if it was found in the hashset */
          if (entry && entry->key == user_instr) {
@@ -278,16 +262,15 @@ instr_try_combine(struct set *instr_set, nir_instr *instr1, nir_instr *instr2)
       }
    }
 
-   nir_foreach_use_safe(src, &alu2->dest.dest.ssa) {
-      if (src->parent_instr->type == nir_instr_type_alu) {
+   nir_foreach_use_safe(src, &alu2->def) {
+      if (nir_src_parent_instr(src)->type == nir_instr_type_alu) {
          /* For ALU instructions, rewrite the source directly to avoid a
           * round-trip through copy propagation.
           */
-         nir_instr_rewrite_src(src->parent_instr, src,
-                               nir_src_for_ssa(&new_alu->dest.dest.ssa));
+         nir_src_rewrite(src, &new_alu->def);
 
          nir_alu_src *alu_src = container_of(src, nir_alu_src, src);
-         nir_alu_instr *use = nir_instr_as_alu(src->parent_instr);
+         nir_alu_instr *use = nir_instr_as_alu(nir_src_parent_instr(src));
          unsigned components = nir_ssa_alu_instr_src_components(use, alu_src - use->src);
          for (unsigned i = 0; i < components; i++)
             alu_src->swizzle[i] += alu1_components;
@@ -297,20 +280,20 @@ instr_try_combine(struct set *instr_set, nir_instr *instr1, nir_instr *instr2)
    /* update all other uses if there are any */
    unsigned swiz[NIR_MAX_VEC_COMPONENTS];
 
-   if (!nir_ssa_def_is_unused(&alu1->dest.dest.ssa)) {
+   if (!nir_def_is_unused(&alu1->def)) {
       for (unsigned i = 0; i < alu1_components; i++)
          swiz[i] = i;
-      nir_ssa_def *new_alu1 = nir_swizzle(&b, &new_alu->dest.dest.ssa, swiz,
-                                          alu1_components);
-      nir_ssa_def_rewrite_uses(&alu1->dest.dest.ssa, new_alu1);
+      nir_def *new_alu1 = nir_swizzle(&b, &new_alu->def, swiz,
+                                      alu1_components);
+      nir_def_rewrite_uses(&alu1->def, new_alu1);
    }
 
-   if (!nir_ssa_def_is_unused(&alu2->dest.dest.ssa)) {
+   if (!nir_def_is_unused(&alu2->def)) {
       for (unsigned i = 0; i < alu2_components; i++)
          swiz[i] = i + alu1_components;
-      nir_ssa_def *new_alu2 = nir_swizzle(&b, &new_alu->dest.dest.ssa, swiz,
-                                          alu2_components);
-      nir_ssa_def_rewrite_uses(&alu2->dest.dest.ssa, new_alu2);
+      nir_def *new_alu2 = nir_swizzle(&b, &new_alu->def, swiz,
+                                      alu2_components);
+      nir_def_rewrite_uses(&alu2->def, new_alu2);
    }
 
    nir_instr_remove(instr1);
@@ -344,7 +327,7 @@ vec_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr,
 
    struct set_entry *entry = _mesa_set_search(instr_set, instr);
    if (entry) {
-      nir_instr *old_instr = (nir_instr *) entry->key;
+      nir_instr *old_instr = (nir_instr *)entry->key;
       _mesa_set_remove(instr_set, entry);
       nir_instr *new_instr = instr_try_combine(instr_set, old_instr, instr);
       if (new_instr) {
@@ -395,7 +378,7 @@ nir_opt_vectorize_impl(nir_function_impl *impl,
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+                                     nir_metadata_dominance);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }
@@ -410,9 +393,8 @@ nir_opt_vectorize(nir_shader *shader, nir_vectorize_cb filter,
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= nir_opt_vectorize_impl(function->impl, filter, data);
+   nir_foreach_function_impl(impl, shader) {
+      progress |= nir_opt_vectorize_impl(impl, filter, data);
    }
 
    return progress;

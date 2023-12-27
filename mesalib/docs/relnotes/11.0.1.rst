@@ -82,7 +82,7 @@ Ilia Mirkin (6):
 -  nv50,nvc0: flush texture cache in presence of coherent bufs
 -  radeonsi: load fmask ptr relative to the resources array
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  nir: Fix a bunch of ralloc parenting errors
 -  i965/vec4: Don't reswizzle hardware registers

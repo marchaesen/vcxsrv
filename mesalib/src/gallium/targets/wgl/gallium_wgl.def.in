@@ -20,6 +20,9 @@ DrvSwapLayerBuffers@8
 DrvValidateVersion@4
 
 ; __cdecl calling convention have no @number suffix
+st_context_flush
+st_context_teximage
+st_screen_destroy
 stw_get_device
 stw_init_screen
 stw_get_current_context
@@ -44,3 +47,6 @@ stw_create_image_from_renderbuffer
 stw_destroy_image
 stw_translate_image
 stw_get_config_xml
+stw_interop_query_device_info
+stw_interop_export_object
+stw_interop_flush_objects

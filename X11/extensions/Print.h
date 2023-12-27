@@ -27,7 +27,7 @@
  **
  ** (c) Copyright 1996 Hewlett-Packard Company
  ** (c) Copyright 1996 International Business Machines Corp.
- ** (c) Copyright 1996, Oracle and/or its affiliates. All rights reserved.
+ ** (c) Copyright 1996, Oracle and/or its affiliates.
  ** (c) Copyright 1996 Novell, Inc.
  ** (c) Copyright 1996 Digital Equipment Corp.
  ** (c) Copyright 1996 Fujitsu Limited

@@ -233,9 +233,9 @@ is_reduction(ir_instruction *ir, void *data)
     * constant fold once split up. Handling matrices will need some more
     * work.
     */
-   if (expr->type->is_matrix() ||
-       expr->operands[0]->type->is_matrix() ||
-       (expr->operands[1] && expr->operands[1]->type->is_matrix())) {
+   if (glsl_type_is_matrix(expr->type) ||
+       glsl_type_is_matrix(expr->operands[0]->type) ||
+       (expr->operands[1] && glsl_type_is_matrix(expr->operands[1]->type))) {
       ird->is_reduction = false;
       return;
    }
@@ -288,11 +288,11 @@ update_types(ir_instruction *ir, void *)
       return;
 
    const glsl_type *const new_type =
-      glsl_type::get_instance(expr->type->base_type,
-                              MAX2(expr->operands[0]->type->vector_elements,
-                                   expr->operands[1]->type->vector_elements),
-                              1);
-   assert(new_type != glsl_type::error_type);
+      glsl_simple_type(expr->type->base_type,
+                       MAX2(expr->operands[0]->type->vector_elements,
+                            expr->operands[1]->type->vector_elements),
+                       1);
+   assert(new_type != &glsl_type_builtin_error);
    expr->type = new_type;
 }
 

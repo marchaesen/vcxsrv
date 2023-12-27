@@ -1,11 +1,9 @@
-// Based on the Latvian and GB keyboard maps.
+// Keyboard layout for South Africa.
 
+// Dead keys and letters with diacritics on the upper levels.
+// Original author: Dwayne Bailey (dwayne@translate.org.za).
 default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
-
-    // Describes the differences between an en_US layout
-    // and a South African layout with dead keys.
-    // By Dwayne Bailey (dwayne@translate.org.za).
 
     include "latin"
 

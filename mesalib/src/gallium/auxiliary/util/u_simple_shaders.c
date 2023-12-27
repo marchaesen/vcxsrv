@@ -58,9 +58,9 @@
  */
 void *
 util_make_vertex_passthrough_shader(struct pipe_context *pipe,
-                                    uint num_attribs,
+                                    unsigned num_attribs,
                                     const enum tgsi_semantic *semantic_names,
-                                    const uint *semantic_indexes,
+                                    const unsigned *semantic_indexes,
                                     bool window_space)
 {
    return util_make_vertex_passthrough_shader_with_so(pipe, num_attribs,
@@ -71,21 +71,21 @@ util_make_vertex_passthrough_shader(struct pipe_context *pipe,
 
 void *
 util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
-                                    uint num_attribs,
+                                    unsigned num_attribs,
                                     const enum tgsi_semantic *semantic_names,
-                                    const uint *semantic_indexes,
+                                    const unsigned *semantic_indexes,
                                     bool window_space, bool layered,
 				    const struct pipe_stream_output_info *so)
 {
    struct ureg_program *ureg;
-   uint i;
+   unsigned i;
 
    ureg = ureg_create( PIPE_SHADER_VERTEX );
    if (!ureg)
       return NULL;
 
    if (window_space)
-      ureg_property(ureg, TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION, TRUE);
+      ureg_property(ureg, TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION, true);
 
    for (i = 0; i < num_attribs; i++) {
       struct ureg_src src;
@@ -211,7 +211,9 @@ ureg_load_tex(struct ureg_program *ureg, struct ureg_dst out,
       /* Nearest filtering floors and then converts to integer, and then
        * applies clamp to edge as clamp(coord, 0, dim - 1).
        * u_blitter only uses this when the coordinates are in bounds,
-       * so no clamping is needed.
+       * so no clamping is needed and we can use trunc instead of floor. trunc
+       * with f2i will get optimized out in NIR where f2i has round-to-zero
+       * behaviour already.
        */
       unsigned wrmask = tex_target == TGSI_TEXTURE_1D ||
                         tex_target == TGSI_TEXTURE_1D_ARRAY ? TGSI_WRITEMASK_X :
@@ -219,7 +221,7 @@ ureg_load_tex(struct ureg_program *ureg, struct ureg_dst out,
                                                         TGSI_WRITEMASK_XY;
 
       ureg_MOV(ureg, temp, coord);
-      ureg_FLR(ureg, ureg_writemask(temp, wrmask), ureg_src(temp));
+      ureg_TRUNC(ureg, ureg_writemask(temp, wrmask), ureg_src(temp));
       ureg_F2I(ureg, temp, ureg_src(temp));
 
       if (load_level_zero)
@@ -372,7 +374,7 @@ void *
 util_make_fragment_passthrough_shader(struct pipe_context *pipe,
                                       int input_semantic,
                                       int input_interpolate,
-                                      boolean write_all_cbufs)
+                                      bool write_all_cbufs)
 {
    static const char shader_templ[] =
          "FRAG\n"
@@ -913,9 +915,9 @@ util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
 
 void *
 util_make_geometry_passthrough_shader(struct pipe_context *pipe,
-                                      uint num_attribs,
-                                      const ubyte *semantic_names,
-                                      const ubyte *semantic_indexes)
+                                      unsigned num_attribs,
+                                      const uint8_t *semantic_names,
+                                      const uint8_t *semantic_indexes)
 {
    static const unsigned zero[4] = {0, 0, 0, 0};
 
@@ -930,8 +932,8 @@ util_make_geometry_passthrough_shader(struct pipe_context *pipe,
    if (!ureg)
       return NULL;
 
-   ureg_property(ureg, TGSI_PROPERTY_GS_INPUT_PRIM, PIPE_PRIM_POINTS);
-   ureg_property(ureg, TGSI_PROPERTY_GS_OUTPUT_PRIM, PIPE_PRIM_POINTS);
+   ureg_property(ureg, TGSI_PROPERTY_GS_INPUT_PRIM, MESA_PRIM_POINTS);
+   ureg_property(ureg, TGSI_PROPERTY_GS_OUTPUT_PRIM, MESA_PRIM_POINTS);
    ureg_property(ureg, TGSI_PROPERTY_GS_MAX_OUTPUT_VERTICES, 1);
    ureg_property(ureg, TGSI_PROPERTY_GS_INVOCATIONS, 1);
    imm = ureg_DECL_immediate_uint(ureg, zero, 4);
@@ -1132,12 +1134,12 @@ util_make_fs_pack_color_zs(struct pipe_context *pipe,
  */
 void *
 util_make_tess_ctrl_passthrough_shader(struct pipe_context *pipe,
-                                       uint num_vs_outputs,
-                                       uint num_tes_inputs,
-                                       const ubyte *vs_semantic_names,
-                                       const ubyte *vs_semantic_indexes,
-                                       const ubyte *tes_semantic_names,
-                                       const ubyte *tes_semantic_indexes,
+                                       unsigned num_vs_outputs,
+                                       unsigned num_tes_inputs,
+                                       const uint8_t *vs_semantic_names,
+                                       const uint8_t *vs_semantic_indexes,
+                                       const uint8_t *tes_semantic_names,
+                                       const uint8_t *tes_semantic_indexes,
                                        const unsigned vertices_per_patch)
 {
    unsigned i, j;

@@ -48,8 +48,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 
 <enum name="mdp_bpc">
 	<brief>bits per component (non-alpha channel)</brief>
-	<value name="BPC1" value="0"/> <!-- 1 bit -->
-	<value name="BPC5" value="1"/> <!-- 2 bits -->
+	<value name="BPC4" value="0"/> <!-- 4 bits -->
+	<value name="BPC5" value="1"/> <!-- 5 bits -->
 	<value name="BPC6" value="2"/> <!-- 6 bits -->
 	<value name="BPC8" value="3"/> <!-- 8 bits -->
 </enum>
@@ -57,9 +57,15 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 <enum name="mdp_bpc_alpha">
 	<brief>bits per component (alpha channel)</brief>
 	<value name="BPC1A" value="0"/> <!-- 1 bit -->
-	<value name="BPC4A" value="1"/> <!-- 2 bits -->
+	<value name="BPC4A" value="1"/> <!-- 4 bits -->
 	<value name="BPC6A" value="2"/> <!-- 6 bits -->
 	<value name="BPC8A" value="3"/> <!-- 8 bits -->
+</enum>
+
+<enum name="mdp_fetch_mode">
+	<value name="MDP_FETCH_LINEAR" value="0"/>
+	<value name="MDP_FETCH_TILE" value="1"/>
+	<value name="MDP_FETCH_UBWC" value="2"/>
 </enum>
 
 <bitset name="reg_wh" inline="yes">

@@ -31,6 +31,7 @@ struct svga_shader_buffer {
    struct pipe_resource *resource;
    unsigned uav_index;
    struct svga_winsys_surface *handle;
+   bool writeAccess;
 };
 
 void
@@ -54,5 +55,30 @@ svga_create_uav_buffer(struct svga_context *svga,
 void
 svga_uav_cache_purge_buffers(struct svga_context *svga);
 
+bool
+svga_shader_buffer_can_use_srv(struct svga_context *svga,
+                               enum pipe_shader_type shader,
+                               unsigned index,
+                               struct svga_shader_buffer *buffer);
+
+enum pipe_error
+svga_shader_buffer_bind_srv(struct svga_context *svga,
+                            enum pipe_shader_type shader,
+                            unsigned index,
+                            struct svga_shader_buffer *buffer);
+
+enum pipe_error
+svga_shader_buffer_unbind_srv(struct svga_context *svga,
+                              enum pipe_shader_type shader,
+                              unsigned index,
+                              struct svga_shader_buffer *buffer);
+
+enum pipe_error
+svga_emit_rawbuf(struct svga_context *svga,
+                 unsigned slot,
+                 enum pipe_shader_type shader,
+                 unsigned buffer_offset,
+                 unsigned buffer_size,
+                 void *buffer);
 
 #endif /* SVGA_SHADER_BUFFER_H */

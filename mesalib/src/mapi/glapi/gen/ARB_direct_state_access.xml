@@ -588,7 +588,7 @@
    <!-- Vertex Array object functions -->
 
    <function name="CreateVertexArrays" no_error="true"
-             marshal_call_after="if (COMPAT) _mesa_glthread_GenVertexArrays(ctx, n, arrays);">
+             marshal_call_after="_mesa_glthread_GenVertexArrays(ctx, n, arrays);">
       <param name="n" type="GLsizei" />
       <param name="arrays" type="GLuint *" />
    </function>
@@ -606,7 +606,7 @@
    </function>
 
    <function name="VertexArrayElementBuffer" no_error="true"
-             marshal_call_after="if (COMPAT) _mesa_glthread_DSAElementBuffer(ctx, vaobj, buffer);">
+             marshal_call_after="_mesa_glthread_DSAElementBuffer(ctx, vaobj, buffer);">
       <param name="vaobj" type="GLuint" />
       <param name="buffer" type="GLuint" />
    </function>
@@ -631,7 +631,7 @@
    </function>
 
    <function name="VertexArrayAttribFormat"
-             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, size, type, relativeoffset);">
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, MESA_PACK_VFORMAT(type, size, normalized, 0, 0), relativeoffset);">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="size" type="GLint" />
@@ -641,7 +641,7 @@
    </function>
 
    <function name="VertexArrayAttribIFormat"
-             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, size, type, relativeoffset);">
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, MESA_PACK_VFORMAT(type, size, 0, 1, 0), relativeoffset);">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="size" type="GLint" />
@@ -650,7 +650,7 @@
    </function>
 
    <function name="VertexArrayAttribLFormat"
-             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, size, type, relativeoffset);">
+             marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribFormat(ctx, vaobj, attribindex, MESA_PACK_VFORMAT(type, size, 0, 0, 1), relativeoffset);">
       <param name="vaobj" type="GLuint" />
       <param name="attribindex" type="GLuint" />
       <param name="size" type="GLint" />

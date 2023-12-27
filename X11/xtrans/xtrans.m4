@@ -1,5 +1,5 @@
 dnl
-dnl Copyright (c) 2005, Oracle and/or its affiliates. All rights reserved.
+dnl Copyright (c) 2005, Oracle and/or its affiliates.
 dnl
 dnl Permission is hereby granted, free of charge, to any person obtaining a
 dnl copy of this software and associated documentation files (the "Software"),

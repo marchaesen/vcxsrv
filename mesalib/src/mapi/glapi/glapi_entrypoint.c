@@ -33,7 +33,6 @@
 
 #include "c11/threads.h"
 #include "glapi/glapi_priv.h"
-#include "u_execmem.h"
 
 
 #ifdef USE_X86_ASM
@@ -81,46 +80,6 @@ init_glapi_relocs( void )
 #endif
 }
 
-
-/**
- * Generate a dispatch function (entrypoint) which jumps through
- * the given slot number (offset) in the current dispatch table.
- * We need assembly language in order to accomplish this.
- */
-_glapi_proc
-generate_entrypoint(unsigned int functionOffset)
-{
-   /* 32 is chosen as something of a magic offset.  For x86, the dispatch
-    * at offset 32 is the first one where the offset in the
-    * "jmp OFFSET*4(%eax)" can't be encoded in a single byte.
-    */
-   const GLubyte * const template_func = gl_dispatch_functions_start 
-     + (DISPATCH_FUNCTION_SIZE * 32);
-   GLubyte * const code = (GLubyte *) u_execmem_alloc(DISPATCH_FUNCTION_SIZE);
-
-
-   if ( code != NULL ) {
-      (void) memcpy(code, template_func, DISPATCH_FUNCTION_SIZE);
-      fill_in_entrypoint_offset( (_glapi_proc) code, functionOffset );
-   }
-
-   return (_glapi_proc) code;
-}
-
-
-/**
- * This function inserts a new dispatch offset into the assembly language
- * stub that was generated with the preceeding function.
- */
-void
-fill_in_entrypoint_offset(_glapi_proc entrypoint, unsigned int offset)
-{
-   GLubyte * const code = (GLubyte *) entrypoint;
-
-   *((unsigned int *)(code +  8)) = 4 * offset;
-}
-
-
 #elif defined(USE_SPARC_ASM)
 
 extern void __glapi_sparc_icache_flush(unsigned int *);
@@ -161,65 +120,11 @@ init_glapi_relocs( void )
 }
 
 
-_glapi_proc
-generate_entrypoint(GLuint functionOffset)
-{
-   static const unsigned int template[] = {
-      0x07000000, /* sethi %hi(0), %g3 */
-      0x8210000f, /* mov  %o7, %g1 */
-      0x40000000, /* call */
-      0x9e100001, /* mov  %g1, %o7 */
-   };
-   extern unsigned int __glapi_sparc_tls_stub;
-   unsigned long call_dest = (unsigned long ) &__glapi_sparc_tls_stub;
-   unsigned int *code = (unsigned int *) u_execmem_alloc(sizeof(template));
-   if (code) {
-      code[0] = template[0] | (functionOffset & 0x3fffff);
-      code[1] = template[1];
-      __glapi_sparc_icache_flush(&code[0]);
-      code[2] = template[2] |
-         (((call_dest - ((unsigned long) &code[2]))
-	   >> 2) & 0x3fffffff);
-      code[3] = template[3];
-      __glapi_sparc_icache_flush(&code[2]);
-   }
-   return (_glapi_proc) code;
-}
-
-
-void
-fill_in_entrypoint_offset(_glapi_proc entrypoint, GLuint offset)
-{
-   unsigned int *code = (unsigned int *) entrypoint;
-
-   code[0] &= ~0x3fffff;
-   code[0] |= (offset * sizeof(void *)) & 0x3fffff;
-   __glapi_sparc_icache_flush(&code[0]);
-}
-
-
 #else /* USE_*_ASM */
 
 static void
 init_glapi_relocs( void )
 {
-}
-
-
-_glapi_proc
-generate_entrypoint(GLuint functionOffset)
-{
-   (void) functionOffset;
-   return NULL;
-}
-
-
-void
-fill_in_entrypoint_offset(_glapi_proc entrypoint, GLuint offset)
-{
-   /* an unimplemented architecture */
-   (void) entrypoint;
-   (void) offset;
 }
 
 #endif /* USE_*_ASM */

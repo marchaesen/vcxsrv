@@ -41,6 +41,7 @@
 #include <dixstruct.h>
 #include <propertyst.h>
 #include <inputstr.h>
+#include <xacestr.h>
 #include <xserver_poll.h>
 
 #include "xwayland-cursor.h"
@@ -51,6 +52,12 @@
 #include "xwayland-pixmap.h"
 #include "xwayland-present.h"
 #include "xwayland-shm.h"
+#ifdef XWL_HAS_EI
+#include "xwayland-xtest.h"
+#endif
+#ifdef XWL_HAS_GLAMOR
+#include "xwayland-glamor.h"
+#endif
 
 #ifdef MITSHM
 #include "shmint.h"
@@ -59,6 +66,8 @@
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "viewporter-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
+#include "xwayland-shell-v1-client-protocol.h"
+#include "tearing-control-v1-client-protocol.h"
 
 static DevPrivateKeyRec xwl_screen_private_key;
 static DevPrivateKeyRec xwl_client_private_key;
@@ -158,6 +167,33 @@ xwl_property_callback(CallbackListPtr *pcbl, void *closure,
         xwl_window_update_property(xwl_window, rec);
 }
 
+#define readOnlyPropertyAccessMask (DixReadAccess |\
+                                    DixGetAttrAccess |\
+                                    DixListPropAccess |\
+                                    DixGetPropAccess)
+
+static void
+xwl_access_property_callback(CallbackListPtr *pcbl, void *closure,
+                             void *calldata)
+{
+    XacePropertyAccessRec *rec = calldata;
+    PropertyPtr prop = *rec->ppProp;
+    ClientPtr client = rec->client;
+    Mask access_mode = rec->access_mode;
+    ScreenPtr pScreen = closure;
+    struct xwl_screen *xwl_screen = xwl_screen_get(pScreen);
+
+    if (prop->propertyName == xwl_screen->allow_commits_prop) {
+        /* Only the WM and the Xserver itself */
+        if (client != serverClient &&
+            client->index != xwl_screen->wm_client_id &&
+            (access_mode & ~readOnlyPropertyAccessMask) != 0)
+            rec->status = BadAccess;
+    }
+}
+
+#undef readOnlyPropertyAccessMask
+
 static void
 xwl_root_window_finalized_callback(CallbackListPtr *pcbl,
                                    void *closure,
@@ -182,8 +218,12 @@ xwl_close_screen(ScreenPtr screen)
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_output *xwl_output, *next_xwl_output;
     struct xwl_seat *xwl_seat, *next_xwl_seat;
+    struct xwl_wl_surface *xwl_wl_surface, *xwl_wl_surface_next;
+
+    xwl_dmabuf_feedback_destroy(&xwl_screen->default_feedback);
 
     DeleteCallback(&PropertyStateCallback, xwl_property_callback, screen);
+    XaceDeleteCallback(XACE_PROPERTY_ACCESS, xwl_access_property_callback, screen);
 
     xorg_list_for_each_entry_safe(xwl_output, next_xwl_output,
                                   &xwl_screen->output_list, link)
@@ -203,6 +243,10 @@ xwl_close_screen(ScreenPtr screen)
                                   &xwl_screen->drm_lease_devices, link)
         xwl_screen_destroy_drm_lease_device(xwl_screen,
                                             device_data->drm_lease_device);
+
+    xorg_list_for_each_entry_safe(xwl_wl_surface, xwl_wl_surface_next,
+                                  &xwl_screen->pending_wl_surface_destroy, link)
+        xwl_window_surface_do_destroy(xwl_wl_surface);
 
     RemoveNotifyFd(xwl_screen->wayland_fd);
 
@@ -404,7 +448,7 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
 {
     struct xwl_screen *xwl_screen = data;
 
-    if (strcmp(interface, "wl_compositor") == 0) {
+    if (strcmp(interface, wl_compositor_interface.name) == 0) {
         uint32_t request_version = 1;
 
         if (version >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION)
@@ -413,28 +457,28 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
         xwl_screen->compositor =
             wl_registry_bind(registry, id, &wl_compositor_interface, request_version);
     }
-    else if (strcmp(interface, "wl_shm") == 0) {
+    else if (strcmp(interface, wl_shm_interface.name) == 0) {
         xwl_screen->shm = wl_registry_bind(registry, id, &wl_shm_interface, 1);
     }
-    else if (strcmp(interface, "xdg_wm_base") == 0) {
+    else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
         xwl_screen->xdg_wm_base =
             wl_registry_bind(registry, id, &xdg_wm_base_interface, 1);
         xdg_wm_base_add_listener(xwl_screen->xdg_wm_base,
                                  &xdg_wm_base_listener,
                                  NULL);
     }
-    else if (strcmp(interface, "wl_output") == 0 && version >= 2) {
-        if (xwl_output_create(xwl_screen, id, (xwl_screen->fixed_output == NULL)))
+    else if (strcmp(interface, wl_output_interface.name) == 0 && version >= 2) {
+        if (xwl_output_create(xwl_screen, id, (xwl_screen->fixed_output == NULL), version))
             xwl_screen->expecting_event++;
     }
-    else if (strcmp(interface, "zxdg_output_manager_v1") == 0) {
+    else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
         /* We support xdg-output from version 1 to version 3 */
         version = min(version, 3);
         xwl_screen->xdg_output_manager =
             wl_registry_bind(registry, id, &zxdg_output_manager_v1_interface, version);
         xwl_screen_init_xdg_output(xwl_screen);
     }
-    else if (strcmp(interface, "wp_drm_lease_device_v1") == 0) {
+    else if (strcmp(interface, wp_drm_lease_device_v1_interface.name) == 0) {
         if (xwl_screen->screen->root == NULL) {
             struct xwl_queued_drm_lease_device *queued = malloc(sizeof(struct xwl_queued_drm_lease_device));
             queued->id = id;
@@ -443,8 +487,16 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
             xwl_screen_add_drm_lease_device(xwl_screen, id);
         }
     }
-    else if (strcmp(interface, "wp_viewporter") == 0) {
+    else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
         xwl_screen->viewporter = wl_registry_bind(registry, id, &wp_viewporter_interface, 1);
+    }
+    else if (strcmp(interface, xwayland_shell_v1_interface.name) == 0 && xwl_screen->rootless) {
+        xwl_screen->xwayland_shell =
+            wl_registry_bind(registry, id, &xwayland_shell_v1_interface, 1);
+    }
+    else if (strcmp(interface, wp_tearing_control_manager_v1_interface.name) == 0) {
+        xwl_screen->tearing_control_manager =
+            wl_registry_bind(registry, id, &wp_tearing_control_manager_v1_interface, 1);
     }
 #ifdef XWL_HAS_GLAMOR
     else if (xwl_screen->glamor) {
@@ -680,7 +732,7 @@ static void
 xwl_screen_setup_custom_vector(struct xwl_screen *xwl_screen)
 {
     /* Rootfull Xwayland does not need a custom ProcVector (yet?) */
-    if (xwl_screen->rootless)
+    if (!xwl_screen->rootless)
         return;
 
     xwl_screen->GrabServer = ProcVector[X_GrabServer];
@@ -703,8 +755,8 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     struct xwl_screen *xwl_screen;
     Pixel red_mask, blue_mask, green_mask;
     int ret, bpc, green_bpc, i;
-    unsigned int xwl_width = 0;
-    unsigned int xwl_height = 0;
+    unsigned int xwl_width = 640;
+    unsigned int xwl_height = 480;
 #ifdef XWL_HAS_GLAMOR
     Bool use_eglstreams = FALSE;
 #endif
@@ -731,8 +783,13 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     dixSetPrivate(&pScreen->devPrivates, &xwl_screen_private_key, xwl_screen);
     xwl_screen->screen = pScreen;
 
+#ifdef XWL_HAS_EI
+    if (!xwayland_ei_init())
+        return FALSE;
+#endif
+
 #ifdef XWL_HAS_GLAMOR
-    xwl_screen->glamor = 1;
+    xwl_screen->glamor = XWL_GLAMOR_DEFAULT;
 #endif
 
     for (i = 1; i < argc; i++) {
@@ -753,15 +810,27 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
             defaultScreenSaverInterval = 0;
         }
         else if (strcmp(argv[i], "-shm") == 0) {
-            xwl_screen->glamor = 0;
+            xwl_screen->glamor = XWL_GLAMOR_NONE;
         }
         else if (strcmp(argv[i], "-eglstream") == 0) {
 #ifdef XWL_HAS_EGLSTREAM
             use_eglstreams = TRUE;
 #else
-            ErrorF("xwayland glamor: this build does not have EGLStream support\n");
+            ErrorF("Xwayland glamor: this build does not have EGLStream support\n");
 #endif
         }
+#ifdef XWL_HAS_GLAMOR
+        else if (strcmp(argv[i], "-glamor") == 0) {
+            if (strncmp(argv[i + 1], "es", 2) == 0)
+                xwl_screen->glamor = XWL_GLAMOR_GLES;
+            else if (strncmp(argv[i + 1], "gl", 2) == 0)
+                xwl_screen->glamor = XWL_GLAMOR_GL;
+            else if (strncmp(argv[i + 1], "off", 3) == 0)
+                xwl_screen->glamor = XWL_GLAMOR_NONE;
+            else
+                ErrorF("Xwayland glamor: unknown rendering API selected\n");
+        }
+#endif
         else if (strcmp(argv[i], "-force-xrandr-emulation") == 0) {
             xwl_screen->force_xrandr_emulation = 1;
         }
@@ -774,6 +843,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
             use_fixed_size = 1;
         }
         else if (strcmp(argv[i], "-fullscreen") == 0) {
+            use_fixed_size = 1;
             xwl_screen->fullscreen = 1;
         }
         else if (strcmp(argv[i], "-host-grab") == 0) {
@@ -783,20 +853,27 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         else if (strcmp(argv[i], "-decorate") == 0) {
 #ifdef XWL_HAS_LIBDECOR
             xwl_screen->decorate = 1;
+            use_fixed_size = 1;
 #else
             ErrorF("This build does not have libdecor support\n");
 #endif
         }
+        else if (strcmp(argv[i], "-enable-ei-portal") == 0) {
+#ifdef XWL_HAS_EI_PORTAL
+            xwl_screen->enable_ei_portal = 1;
+#else
+            ErrorF("This build does not have XDG portal support\n");
+#endif
+        }
     }
 
-    if (use_fixed_size) {
-        if (xwl_screen->rootless) {
-            ErrorF("error, cannot set a geometry when running rootless\n");
-            return FALSE;
-        } else {
-            xwl_screen->width = xwl_width;
-            xwl_screen->height = xwl_height;
-        }
+    if (!xwl_screen->rootless) {
+        use_fixed_size = 1;
+        xwl_screen->width = xwl_width;
+        xwl_screen->height = xwl_height;
+    } else if (use_fixed_size) {
+        ErrorF("error, cannot set a geometry when running rootless\n");
+        return FALSE;
     }
 
 #ifdef XWL_HAS_GLAMOR
@@ -818,6 +895,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xorg_list_init(&xwl_screen->drm_lease_devices);
     xorg_list_init(&xwl_screen->queued_drm_lease_devices);
     xorg_list_init(&xwl_screen->drm_leases);
+    xorg_list_init(&xwl_screen->pending_wl_surface_destroy);
     xwl_screen->depth = 24;
 
     if (!monitorResolution)
@@ -927,13 +1005,14 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
         if (xwl_screen->egl_backend == NULL || !xwl_glamor_init(xwl_screen)) {
            ErrorF("Failed to initialize glamor, falling back to sw\n");
-           xwl_screen->glamor = 0;
+           xwl_screen->glamor = XWL_GLAMOR_NONE;
         }
     }
-
+#ifdef GLAMOR_HAS_GBM
     if (xwl_screen->glamor && xwl_screen->rootless)
         xwl_screen->present = xwl_present_init(pScreen);
-#endif
+#endif /* GLAMOR_HAS_GBM */
+#endif /* XWL_HAS_GLAMOR */
 
     if (!xwl_screen->glamor) {
         xwl_screen->CreateScreenResources = pScreen->CreateScreenResources;
@@ -977,6 +1056,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     AddCallback(&PropertyStateCallback, xwl_property_callback, pScreen);
     AddCallback(&RootWindowFinalizeCallback, xwl_root_window_finalized_callback, pScreen);
+    XaceRegisterCallback(XACE_PROPERTY_ACCESS, xwl_access_property_callback, pScreen);
 
     xwl_screen_setup_custom_vector(xwl_screen);
 

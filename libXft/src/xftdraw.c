@@ -112,9 +112,9 @@ XftDrawBitsPerPixel (XftDraw	*draw)
 
 	    for (i = 0; i < nformats; i++)
 	    {
-		if (formats[i].depth == depth)
+		if ((unsigned) formats[i].depth == depth)
 		{
-		    draw->bits_per_pixel = formats[i].bits_per_pixel;
+		    draw->bits_per_pixel = (unsigned)formats[i].bits_per_pixel;
 		    break;
 		}
 	    }
@@ -132,7 +132,7 @@ XftDrawCreate (Display   *dpy,
 {
     XftDraw	*draw;
 
-    draw = (XftDraw *) malloc (sizeof (XftDraw));
+    draw = malloc (sizeof (XftDraw));
     if (!draw)
 	return NULL;
 
@@ -158,7 +158,7 @@ XftDrawCreateBitmap (Display	*dpy,
 {
     XftDraw	*draw;
 
-    draw = (XftDraw *) malloc (sizeof (XftDraw));
+    draw = malloc (sizeof (XftDraw));
     if (!draw)
 	return NULL;
     draw->dpy = dpy;
@@ -184,13 +184,13 @@ XftDrawCreateAlpha (Display *dpy,
 {
     XftDraw	*draw;
 
-    draw = (XftDraw *) malloc (sizeof (XftDraw));
+    draw = malloc (sizeof (XftDraw));
     if (!draw)
 	return NULL;
     draw->dpy = dpy;
     draw->drawable = (Drawable) pixmap;
     draw->screen = _XftDrawScreen (dpy, pixmap, NULL);
-    draw->depth = depth;
+    draw->depth = (unsigned)depth;
     draw->bits_per_pixel = 0;	/* don't find out until we need it */
     draw->visual = NULL;
     draw->colormap = 0;
@@ -216,9 +216,9 @@ _XftDrawFormat (XftDraw	*draw)
 	XRenderPictFormat   pf;
 
 	pf.type = PictTypeDirect;
-	pf.depth = XftDrawDepth (draw);
+	pf.depth = (int)XftDrawDepth (draw);
 	pf.direct.alpha = 0;
-	pf.direct.alphaMask = (1 << pf.depth) - 1;
+	pf.direct.alphaMask = (short)((1 << pf.depth) - 1);
 	return XRenderFindFormat (draw->dpy,
 				  (PictFormatType|
 				   PictFormatDepth|
@@ -324,8 +324,8 @@ XftDrawSrcPicture (XftDraw *draw, _Xconst XftColor *color)
     {
 	if (info->colors[i].pict &&
 	    info->colors[i].screen == draw->screen &&
-	    !memcmp ((void *) &color->color,
-		     (void *) &info->colors[i].color,
+	    !memcmp ((const void *) &color->color,
+		     (const void *) &info->colors[i].color,
 		     sizeof (XRenderColor)))
 	    return info->colors[i].pict;
     }
@@ -359,7 +359,7 @@ XftDrawSrcPicture (XftDraw *draw, _Xconst XftColor *color)
 	    XRenderPictureAttributes    pa;
 
 	    pix = XCreatePixmap (dpy, RootWindow (dpy, draw->screen), 1, 1,
-				 info->solidFormat->depth);
+				 (unsigned)info->solidFormat->depth);
 	    pa.repeat = True;
 	    info->colors[i].pict = XRenderCreatePicture (draw->dpy,
 							 pix,
@@ -525,7 +525,7 @@ XftDrawString8 (XftDraw		    *draw,
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -548,11 +548,14 @@ XftDrawString16 (XftDraw	    *draw,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -576,11 +579,14 @@ XftDrawString32 (XftDraw	    *draw,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -607,6 +613,9 @@ XftDrawStringUtf8 (XftDraw	    *draw,
     int		    l;
     int		    size;
 
+    if (len <= 0)
+	return;
+
     i = 0;
     glyphs = glyphs_local;
     size = NUM_LOCAL;
@@ -614,14 +623,14 @@ XftDrawStringUtf8 (XftDraw	    *draw,
     {
 	if (i == size)
 	{
-	    glyphs_new = malloc (size * 2 * sizeof (FT_UInt));
+	    glyphs_new = AllocUIntArray (size * 2);
 	    if (!glyphs_new)
 	    {
 		if (glyphs != glyphs_local)
 		    free (glyphs);
 		return;
 	    }
-	    memcpy (glyphs_new, glyphs, size * sizeof (FT_UInt));
+	    memcpy (glyphs_new, glyphs, (size_t)size * sizeof (FT_UInt));
 	    size *= 2;
 	    if (glyphs != glyphs_local)
 		free (glyphs);
@@ -652,6 +661,9 @@ XftDrawStringUtf16 (XftDraw		*draw,
     int		    l;
     int		    size;
 
+    if (len <= 0)
+	return;
+
     i = 0;
     glyphs = glyphs_local;
     size = NUM_LOCAL;
@@ -659,14 +671,14 @@ XftDrawStringUtf16 (XftDraw		*draw,
     {
 	if (i == size)
 	{
-	    glyphs_new = malloc (size * 2 * sizeof (FT_UInt));
+	    glyphs_new = AllocUIntArray (size * 2);
 	    if (!glyphs_new)
 	    {
 		if (glyphs != glyphs_local)
 		    free (glyphs);
 		return;
 	    }
-	    memcpy (glyphs_new, glyphs, size * sizeof (FT_UInt));
+	    memcpy (glyphs_new, glyphs, (size_t)size * sizeof (FT_UInt));
 	    size *= 2;
 	    if (glyphs != glyphs_local)
 		free (glyphs);
@@ -755,11 +767,14 @@ XftDrawCharSpec (XftDraw		*draw,
     XftGlyphSpec    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (XftGlyphSpec));
+	glyphs = AllocGlyphSpecArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -784,11 +799,14 @@ XftDrawCharFontSpec (XftDraw			*draw,
     XftGlyphFontSpec	*glyphs, glyphs_local[NUM_LOCAL];
     int			i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (XftGlyphFontSpec));
+	glyphs = AllocGlyphFontSpecArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -929,7 +947,7 @@ XftDrawSetClipRectangles (XftDraw		*draw,
 	draw->clip.rect->n == n &&
 	(n == 0 || (draw->clip.rect->xOrigin == xOrigin &&
 		    draw->clip.rect->yOrigin == yOrigin)) &&
-	!memcmp (XftClipRects (draw->clip.rect), rects, n * sizeof (XRectangle)))
+	!memcmp (XftClipRects (draw->clip.rect), rects, (size_t)n * sizeof (XRectangle)))
     {
 	return True;
     }
@@ -937,14 +955,14 @@ XftDrawSetClipRectangles (XftDraw		*draw,
     /*
      * Duplicate the region so future changes can be short circuited
      */
-    new = malloc (sizeof (XftClipRect) + n * sizeof (XRectangle));
+    new = malloc (sizeof (XftClipRect) + (size_t)n * sizeof (XRectangle));
     if (!new)
 	return False;
 
     new->n = n;
     new->xOrigin = xOrigin;
     new->yOrigin = yOrigin;
-    memcpy (XftClipRects (new), rects, n * sizeof (XRectangle));
+    memcpy (XftClipRects (new), rects, (size_t)n * sizeof (XRectangle));
 
     /*
      * Destroy existing clip

@@ -98,9 +98,9 @@ compare_components(ir_constant *a, ir_constant *b)
 
    assert(a->type->base_type == b->type->base_type);
 
-   unsigned a_inc = a->type->is_scalar() ? 0 : 1;
-   unsigned b_inc = b->type->is_scalar() ? 0 : 1;
-   unsigned components = MAX2(a->type->components(), b->type->components());
+   unsigned a_inc = glsl_type_is_scalar(a->type) ? 0 : 1;
+   unsigned b_inc = glsl_type_is_scalar(b->type) ? 0 : 1;
+   unsigned components = MAX2(glsl_get_components(a->type), glsl_get_components(b->type));
 
    bool foundless = false;
    bool foundgreater = false;
@@ -197,7 +197,7 @@ combine_constant(bool ismin, ir_constant *a, ir_constant *b)
 {
    void *mem_ctx = ralloc_parent(a);
    ir_constant *c = a->clone(mem_ctx, NULL);
-   for (unsigned i = 0; i < c->type->components(); i++) {
+   for (unsigned i = 0; i < glsl_get_components(c->type); i++) {
       switch (c->type->base_type) {
       case GLSL_TYPE_UINT16:
          if ((ismin && b->value.u16[i] < c->value.u16[i]) ||
@@ -490,7 +490,7 @@ ir_minmax_visitor::prune_expression(ir_expression *expr, minmax_range baserange)
 static ir_rvalue *
 swizzle_if_required(ir_expression *expr, ir_rvalue *rval)
 {
-   if (expr->type->is_vector() && rval->type->is_scalar()) {
+   if (glsl_type_is_vector(expr->type) && glsl_type_is_scalar(rval->type)) {
       return swizzle(rval, SWIZZLE_XXXX, expr->type->vector_elements);
    } else {
       return rval;

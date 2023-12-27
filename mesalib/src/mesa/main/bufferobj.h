@@ -166,11 +166,48 @@ extern void
 _mesa_delete_buffer_object(struct gl_context *ctx,
                            struct gl_buffer_object *bufObj);
 
-extern void
+/**
+ * Set ptr to bufObj w/ reference counting.
+ * This is normally only called from the _mesa_reference_buffer_object() macro
+ * when there's a real pointer change.
+ */
+static inline void
 _mesa_reference_buffer_object_(struct gl_context *ctx,
                                struct gl_buffer_object **ptr,
                                struct gl_buffer_object *bufObj,
-                               bool shared_binding);
+                               bool shared_binding)
+{
+   if (*ptr) {
+      /* Unreference the old buffer */
+      struct gl_buffer_object *oldObj = *ptr;
+
+      assert(oldObj->RefCount >= 1);
+
+      /* Count references only if the context doesn't own the buffer or if
+       * ptr is a binding point shared by multiple contexts (such as a texture
+       * buffer object being a buffer bound within a texture object).
+       */
+      if (shared_binding || ctx != oldObj->Ctx) {
+         if (p_atomic_dec_zero(&oldObj->RefCount)) {
+            _mesa_delete_buffer_object(ctx, oldObj);
+         }
+      } else {
+         /* Update the private ref count. */
+         assert(oldObj->CtxRefCount >= 1);
+         oldObj->CtxRefCount--;
+      }
+   }
+
+   if (bufObj) {
+      /* reference new buffer */
+      if (shared_binding || ctx != bufObj->Ctx)
+         p_atomic_inc(&bufObj->RefCount);
+      else
+         bufObj->CtxRefCount++;
+   }
+
+   *ptr = bufObj;
+}
 
 /**
  * Assign a buffer into a pointer with reference counting. The destination
@@ -220,9 +257,5 @@ _mesa_ClearBufferSubData_sw(struct gl_context *ctx,
                             const GLvoid *clearValue,
                             GLsizeiptr clearValueSize,
                             struct gl_buffer_object *bufObj);
-
-void
-_mesa_InternalBindElementBuffer(struct gl_context *ctx,
-                                struct gl_buffer_object *buf);
 
 #endif

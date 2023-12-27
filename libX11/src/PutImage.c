@@ -30,6 +30,7 @@ in this Software without prior written authorization from The Open Group.
 #include "Xlibint.h"
 #include "Xutil.h"
 #include <stdio.h>
+#include <limits.h>
 #include "Cr.h"
 #include "ImUtil.h"
 #include "reallocarray.h"
@@ -914,8 +915,9 @@ PutSubImage (
 		    req_width, req_height - SubImageHeight,
 		    dest_bits_per_pixel, dest_scanline_pad);
     } else {
-	int SubImageWidth = (((Available << 3) / dest_scanline_pad)
-				* dest_scanline_pad) - left_pad;
+	int SubImageWidth = ((((Available << 3) / dest_scanline_pad)
+                              * dest_scanline_pad) - left_pad)
+                              / dest_bits_per_pixel;
 
 	PutSubImage(dpy, d, gc, image, req_xoffset, req_yoffset, x, y,
 		    (unsigned int) SubImageWidth, 1,
@@ -961,6 +963,10 @@ XPutImage (
 	height = image->height - req_yoffset;
     if ((width <= 0) || (height <= 0))
 	return 0;
+    if (width > USHRT_MAX)
+        width = USHRT_MAX;
+    if (height > USHRT_MAX)
+        height = USHRT_MAX;
 
     if ((image->bits_per_pixel == 1) || (image->format != ZPixmap)) {
 	dest_bits_per_pixel = 1;

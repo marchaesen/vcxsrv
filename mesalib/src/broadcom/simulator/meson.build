@@ -40,7 +40,7 @@ foreach ver : v3d_versions
     'v3d-simulator-v' + ver,
     [files_per_version, v3d_xml_pack],
     include_directories : [
-      inc_src, inc_include, inc_gallium_aux, inc_broadcom,
+      inc_src, inc_include, inc_broadcom,
     ],
     c_args : [v3d_args, '-DV3D_VERSION=' + ver],
     gnu_symbol_visibility: 'hidden',
@@ -51,7 +51,7 @@ endforeach
 libbroadcom_simulator = static_library(
   'broadcom_simulator',
   [libbroadcom_simulator_files],
-  include_directories : [inc_src, inc_include, inc_gallium, inc_gallium_aux],
+  include_directories : [inc_src, inc_include],
   c_args : [v3d_args, no_override_init_args],
   cpp_args : [v3d_args],
   gnu_symbol_visibility : 'hidden', 

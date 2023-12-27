@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_EVENT_H
 #define VN_PROTOCOL_DRIVER_EVENT_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkEventCreateInfo chain */
@@ -338,7 +338,7 @@ static inline VkResult vn_decode_vkResetEvent_reply(struct vn_cs_decoder *dec, V
     return ret;
 }
 
-static inline void vn_submit_vkCreateEvent(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkEventCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkEvent* pEvent, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateEvent(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkEventCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkEvent* pEvent, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -350,16 +350,16 @@ static inline void vn_submit_vkCreateEvent(struct vn_instance *vn_instance, VkCo
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateEvent_reply(device, pCreateInfo, pAllocator, pEvent) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateEvent(enc, cmd_flags, device, pCreateInfo, pAllocator, pEvent);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyEvent(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyEvent(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -371,16 +371,16 @@ static inline void vn_submit_vkDestroyEvent(struct vn_instance *vn_instance, VkC
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyEvent_reply(device, event, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyEvent(enc, cmd_flags, device, event, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetEventStatus(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetEventStatus(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -392,16 +392,16 @@ static inline void vn_submit_vkGetEventStatus(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetEventStatus_reply(device, event) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetEventStatus(enc, cmd_flags, device, event);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkSetEvent(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkSetEvent(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -413,16 +413,16 @@ static inline void vn_submit_vkSetEvent(struct vn_instance *vn_instance, VkComma
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkSetEvent_reply(device, event) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkSetEvent(enc, cmd_flags, device, event);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkResetEvent(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkResetEvent(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkEvent event, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -434,120 +434,120 @@ static inline void vn_submit_vkResetEvent(struct vn_instance *vn_instance, VkCom
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkResetEvent_reply(device, event) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkResetEvent(enc, cmd_flags, device, event);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreateEvent(struct vn_instance *vn_instance, VkDevice device, const VkEventCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkEvent* pEvent)
+static inline VkResult vn_call_vkCreateEvent(struct vn_ring *vn_ring, VkDevice device, const VkEventCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkEvent* pEvent)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pEvent, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateEvent(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pEvent, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateEvent_reply(dec, device, pCreateInfo, pAllocator, pEvent);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateEvent(struct vn_instance *vn_instance, VkDevice device, const VkEventCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkEvent* pEvent)
+static inline void vn_async_vkCreateEvent(struct vn_ring *vn_ring, VkDevice device, const VkEventCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkEvent* pEvent)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateEvent(vn_instance, 0, device, pCreateInfo, pAllocator, pEvent, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateEvent(vn_ring, 0, device, pCreateInfo, pAllocator, pEvent, &submit);
 }
 
-static inline void vn_call_vkDestroyEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyEvent(struct vn_ring *vn_ring, VkDevice device, VkEvent event, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyEvent(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyEvent_reply(dec, device, event, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyEvent(struct vn_ring *vn_ring, VkDevice device, VkEvent event, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyEvent(vn_instance, 0, device, event, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyEvent(vn_ring, 0, device, event, pAllocator, &submit);
 }
 
-static inline VkResult vn_call_vkGetEventStatus(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
+static inline VkResult vn_call_vkGetEventStatus(struct vn_ring *vn_ring, VkDevice device, VkEvent event)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetEventStatus(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetEventStatus(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkGetEventStatus_reply(dec, device, event);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkGetEventStatus(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
+static inline void vn_async_vkGetEventStatus(struct vn_ring *vn_ring, VkDevice device, VkEvent event)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetEventStatus(vn_instance, 0, device, event, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetEventStatus(vn_ring, 0, device, event, &submit);
 }
 
-static inline VkResult vn_call_vkSetEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
+static inline VkResult vn_call_vkSetEvent(struct vn_ring *vn_ring, VkDevice device, VkEvent event)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkSetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkSetEvent(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkSetEvent_reply(dec, device, event);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkSetEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
+static inline void vn_async_vkSetEvent(struct vn_ring *vn_ring, VkDevice device, VkEvent event)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkSetEvent(vn_instance, 0, device, event, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkSetEvent(vn_ring, 0, device, event, &submit);
 }
 
-static inline VkResult vn_call_vkResetEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
+static inline VkResult vn_call_vkResetEvent(struct vn_ring *vn_ring, VkDevice device, VkEvent event)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetEvent(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkResetEvent_reply(dec, device, event);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkResetEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
+static inline void vn_async_vkResetEvent(struct vn_ring *vn_ring, VkDevice device, VkEvent event)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetEvent(vn_instance, 0, device, event, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetEvent(vn_ring, 0, device, event, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_EVENT_H */

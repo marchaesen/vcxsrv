@@ -23,7 +23,7 @@
  * Author: Kristian Høgsberg <krh@bitplanet.net>
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "blend.h"
 #include "debug_output.h"
@@ -83,8 +83,8 @@ FLOAT_TO_BOOLEAN(GLfloat X)
 static inline GLint
 FLOAT_TO_FIXED(GLfloat F)
 {
-   return ( ((F) * 65536.0f > INT_MAX) ? INT_MAX :
-            ((F) * 65536.0f < INT_MIN) ? INT_MIN :
+   return ( ((F) * 65536.0f > (float)INT32_MAX) ? INT32_MAX :
+            ((F) * 65536.0f < (float)INT32_MIN) ? INT32_MIN :
             (GLint) ((F) * 65536.0f) );
 }
 
@@ -192,6 +192,8 @@ enum value_extra {
    EXTRA_VERSION_43,
    EXTRA_API_GL,
    EXTRA_API_GL_CORE,
+   EXTRA_API_GL_COMPAT,
+   EXTRA_API_ES,
    EXTRA_API_ES2,
    EXTRA_API_ES3,
    EXTRA_API_ES31,
@@ -317,6 +319,13 @@ union value {
  * only if none of them are available.  If you need to check for "AND"
  * behavior, you would need to make a custom EXTRA_ enum.
  */
+
+static const int extra_new_buffers_compat_es[] = {
+   EXTRA_API_GL_COMPAT,
+   EXTRA_API_ES,
+   EXTRA_NEW_BUFFERS,
+   EXTRA_END
+};
 
 static const int extra_new_buffers[] = {
    EXTRA_NEW_BUFFERS,
@@ -542,9 +551,7 @@ EXTRA_EXT(ARB_sync);
 EXTRA_EXT(ARB_vertex_shader);
 EXTRA_EXT(EXT_transform_feedback);
 EXTRA_EXT(ARB_transform_feedback3);
-EXTRA_EXT(EXT_pixel_buffer_object);
 EXTRA_EXT(ARB_vertex_program);
-EXTRA_EXT(ARB_point_sprite);
 EXTRA_EXT2(ARB_vertex_program, ARB_fragment_program);
 EXTRA_EXT(ARB_color_buffer_float);
 EXTRA_EXT(EXT_framebuffer_sRGB);
@@ -584,6 +591,13 @@ EXTRA_EXT(AMD_framebuffer_multisample_advanced);
 EXTRA_EXT(ARB_spirv_extensions);
 EXTRA_EXT(NV_viewport_swizzle);
 EXTRA_EXT(ARB_sparse_texture);
+
+static const int extra_ARB_gl_spirv_or_es2_compat[] = {
+   EXT(ARB_gl_spirv),
+   EXT(ARB_ES2_compatibility),
+   EXTRA_API_ES2,
+   EXTRA_END
+};
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -827,12 +841,12 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
 
    case GL_TEXTURE_COORD_ARRAY_SIZE:
       array = &ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)];
-      v->value_int = array->Format.Size;
+      v->value_int = array->Format.User.Size;
       break;
 
    case GL_VERTEX_ARRAY_SIZE:
       array = &ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS];
-      v->value_int = array->Format.Size;
+      v->value_int = array->Format.User.Size;
       break;
 
    case GL_ACTIVE_TEXTURE_ARB:
@@ -1055,11 +1069,11 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    /* ARB_vertex_array_bgra */
    case GL_COLOR_ARRAY_SIZE:
       array = &ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_COLOR0];
-      v->value_int = array->Format.Format == GL_BGRA ? GL_BGRA : array->Format.Size;
+      v->value_int = array->Format.User.Bgra ? GL_BGRA : array->Format.User.Size;
       break;
    case GL_SECONDARY_COLOR_ARRAY_SIZE:
       array = &ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_COLOR1];
-      v->value_int = array->Format.Format == GL_BGRA ? GL_BGRA : array->Format.Size;
+      v->value_int = array->Format.User.Bgra ? GL_BGRA : array->Format.User.Size;
       break;
 
    /* ARB_copy_buffer */
@@ -1304,6 +1318,14 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
          v->value_int_n.ints[0] = GL_PROGRAM_BINARY_FORMAT_MESA;
       }
       break;
+   /* GL_ARB_gl_spirv */
+   case GL_SHADER_BINARY_FORMATS:
+      assert(ctx->Const.NumShaderBinaryFormats <= 1);
+      v->value_int_n.n = MIN2(ctx->Const.NumShaderBinaryFormats, 1);
+      if (ctx->Const.NumShaderBinaryFormats > 0) {
+         v->value_int_n.ints[0] = GL_SHADER_BINARY_FORMAT_SPIR_V;
+      }
+      break;
    /* ARB_spirv_extensions */
    case GL_NUM_SPIR_V_EXTENSIONS:
       v->value_int = _mesa_get_spirv_extension_count(ctx);
@@ -1311,11 +1333,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    /* GL_EXT_disjoint_timer_query */
    case GL_GPU_DISJOINT_EXT:
       {
-         simple_mtx_lock(&ctx->Shared->Mutex);
-         v->value_int = ctx->Shared->DisjointOperation;
-         /* Reset state as expected by the spec. */
-         ctx->Shared->DisjointOperation = false;
-         simple_mtx_unlock(&ctx->Shared->Mutex);
+         v->value_int = 0;
       }
       break;
    /* GL_ARB_sample_locations */
@@ -1421,9 +1439,14 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
          if (_mesa_is_desktop_gl(ctx) && version >= 43)
             api_found = GL_TRUE;
          break;
+      case EXTRA_API_ES:
+         api_check = GL_TRUE;
+         if (_mesa_is_gles(ctx))
+            api_found = GL_TRUE;
+         break;
       case EXTRA_API_ES2:
          api_check = GL_TRUE;
-         if (ctx->API == API_OPENGLES2)
+         if (_mesa_is_gles2(ctx))
             api_found = GL_TRUE;
          break;
       case EXTRA_API_ES3:
@@ -1448,7 +1471,12 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
          break;
       case EXTRA_API_GL_CORE:
          api_check = GL_TRUE;
-         if (ctx->API == API_OPENGL_CORE)
+         if (_mesa_is_desktop_gl_core(ctx))
+            api_found = GL_TRUE;
+         break;
+      case EXTRA_API_GL_COMPAT:
+         api_check = GL_TRUE;
+         if (_mesa_is_desktop_gl_compat(ctx))
             api_found = GL_TRUE;
          break;
       case EXTRA_NEW_BUFFERS:
@@ -1533,7 +1561,7 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
          break;
       case EXTRA_EXT_PROVOKING_VERTEX_32:
          api_check = GL_TRUE;
-         if (ctx->API == API_OPENGL_COMPAT || version == 32)
+         if (_mesa_is_desktop_gl_compat(ctx) || version == 32)
             api_found = ctx->Extensions.EXT_provoking_vertex;
          break;
       case EXTRA_END:
@@ -1597,7 +1625,7 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
     * end.
     */
    STATIC_ASSERT(ARRAY_SIZE(table_set) == API_OPENGL_LAST + 4);
-   if (ctx->API == API_OPENGLES2) {
+   if (_mesa_is_gles2(ctx)) {
       if (ctx->Version >= 32)
          api = API_OPENGL_LAST + 3;
       else if (ctx->Version >= 31)
@@ -2465,7 +2493,7 @@ tex_binding_to_index(const struct gl_context *ctx, GLenum binding)
       return TEXTURE_2D_INDEX;
    case GL_TEXTURE_BINDING_3D:
       return (ctx->API != API_OPENGLES &&
-              !(ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D))
+              !(_mesa_is_gles2(ctx) && !ctx->Extensions.OES_texture_3D))
          ? TEXTURE_3D_INDEX : -1;
    case GL_TEXTURE_BINDING_CUBE_MAP:
       return TEXTURE_CUBE_INDEX;
@@ -2749,7 +2777,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
       return TYPE_INT;
 
    case GL_VERTEX_BINDING_BUFFER:
-      if (ctx->API == API_OPENGLES2 && ctx->Version < 31)
+      if (_mesa_is_gles2(ctx) && ctx->Version < 31)
          goto invalid_enum;
       if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs)
          goto invalid_value;

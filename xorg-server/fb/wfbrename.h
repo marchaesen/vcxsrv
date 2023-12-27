@@ -43,6 +43,7 @@
 #define fbDots16 wfbDots16
 #define fbDots32 wfbDots32
 #define fbDots8 wfbDots8
+#define fbEvenTile wfbEvenTile
 #define fbExpandDirectColors wfbExpandDirectColors
 #define fbFill wfbFill
 #define fbFillRegionSolid wfbFillRegionSolid
@@ -65,6 +66,7 @@
 #define fbInitVisuals wfbInitVisuals
 #define fbListInstalledColormaps wfbListInstalledColormaps
 #define FbMergeRopBits wFbMergeRopBits
+#define fbOddTile wfbOddTile
 #define fbOver wfbOver
 #define fbOverlayCloseScreen wfbOverlayCloseScreen
 #define fbOverlayCopyWindow wfbOverlayCopyWindow
@@ -116,6 +118,7 @@
 #define _fbSetWindowPixmap _wfbSetWindowPixmap
 #define fbSolid wfbSolid
 #define fbSolidBoxClipped wfbSolidBoxClipped
+#define fbTile wfbTile
 #define fbTrapezoids wfbTrapezoids
 #define fbTriangles wfbTriangles
 #define fbUninstallColormap wfbUninstallColormap

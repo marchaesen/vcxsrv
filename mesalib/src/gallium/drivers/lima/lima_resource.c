@@ -28,6 +28,7 @@
 #include "util/u_inlines.h"
 #include "util/u_math.h"
 #include "util/u_debug.h"
+#include "util/u_resource.h"
 #include "util/u_transfer.h"
 #include "util/u_surface.h"
 #include "util/u_transfer_helper.h"
@@ -59,7 +60,10 @@ lima_resource_create_scanout(struct pipe_screen *pscreen,
    struct lima_screen *screen = lima_screen(pscreen);
    struct renderonly_scanout *scanout;
    struct winsys_handle handle;
-   struct pipe_resource *pres;
+
+   struct lima_resource *res = CALLOC_STRUCT(lima_resource);
+   if (!res)
+      return NULL;
 
    struct pipe_resource scanout_templat = *templat;
    scanout_templat.width0 = width;
@@ -71,20 +75,31 @@ lima_resource_create_scanout(struct pipe_screen *pscreen,
    if (!scanout)
       return NULL;
 
-   assert(handle.type == WINSYS_HANDLE_TYPE_FD);
-   pres = pscreen->resource_from_handle(pscreen, templat, &handle,
-                                        PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE);
+   res->base = *templat;
+   res->base.screen = pscreen;
+   pipe_reference_init(&res->base.reference, 1);
+   res->levels[0].offset = handle.offset;
+   res->levels[0].stride = handle.stride;
 
-   close(handle.handle);
-   if (!pres) {
-      renderonly_scanout_destroy(scanout, screen->ro);
+   assert(handle.type == WINSYS_HANDLE_TYPE_FD);
+   res->bo = lima_bo_import(screen, &handle);
+   if (!res->bo) {
+      FREE(res);
       return NULL;
    }
 
-   struct lima_resource *res = lima_resource(pres);
+   res->modifier_constant = true;
+
+   close(handle.handle);
+   if (!res->bo) {
+      renderonly_scanout_destroy(scanout, screen->ro);
+      FREE(res);
+      return NULL;
+   }
+
    res->scanout = scanout;
 
-   return pres;
+   return &res->base;
 }
 
 static uint32_t
@@ -433,7 +448,8 @@ lima_resource_get_param(struct pipe_screen *pscreen,
                         enum pipe_resource_param param,
                         unsigned usage, uint64_t *value)
 {
-   struct lima_resource *res = lima_resource(pres);
+   struct lima_resource *res =
+          (struct lima_resource *)util_resource_at_index(pres, plane);
 
    switch (param) {
    case PIPE_RESOURCE_PARAM_STRIDE:
@@ -447,7 +463,9 @@ lima_resource_get_param(struct pipe_screen *pscreen,
          *value = DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
       else
          *value = DRM_FORMAT_MOD_LINEAR;
-
+      return true;
+   case PIPE_RESOURCE_PARAM_NPLANES:
+      *value = util_resource_num(pres);
       return true;
    default:
       return false;
@@ -638,7 +656,7 @@ lima_transfer_map(struct pipe_context *pctx,
 
       unsigned op = usage & PIPE_MAP_WRITE ?
          LIMA_GEM_WAIT_WRITE : LIMA_GEM_WAIT_READ;
-      lima_bo_wait(bo, op, PIPE_TIMEOUT_INFINITE);
+      lima_bo_wait(bo, op, OS_TIMEOUT_INFINITE);
    }
 
    if (!lima_bo_map(bo))
@@ -877,7 +895,7 @@ lima_texture_subdata(struct pipe_context *pctx,
                      const struct pipe_box *box,
                      const void *data,
                      unsigned stride,
-                     unsigned layer_stride)
+                     uintptr_t layer_stride)
 {
    struct lima_context *ctx = lima_context(pctx);
    struct lima_resource *res = lima_resource(prsc);
@@ -903,7 +921,7 @@ lima_texture_subdata(struct pipe_context *pctx,
    };
 
    lima_flush_job_accessing_bo(ctx, res->bo, true);
-   lima_bo_wait(res->bo, LIMA_GEM_WAIT_WRITE, PIPE_TIMEOUT_INFINITE);
+   lima_bo_wait(res->bo, LIMA_GEM_WAIT_WRITE, OS_TIMEOUT_INFINITE);
    if (!lima_bo_map(res->bo))
       return;
 
@@ -932,6 +950,12 @@ lima_resource_screen_init(struct lima_screen *screen)
    screen->base.set_damage_region = lima_resource_set_damage_region;
    screen->base.transfer_helper = u_transfer_helper_create(&transfer_vtbl,
                                                            U_TRANSFER_HELPER_MSAA_MAP);
+}
+
+void
+lima_resource_screen_destroy(struct lima_screen *screen)
+{
+   u_transfer_helper_destroy(screen->base.transfer_helper);
 }
 
 void

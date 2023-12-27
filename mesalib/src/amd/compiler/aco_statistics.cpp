@@ -40,8 +40,8 @@ collect_presched_stats(Program* program)
    RegisterDemand presched_demand;
    for (Block& block : program->blocks)
       presched_demand.update(block.register_demand);
-   program->statistics[statistic_sgpr_presched] = presched_demand.sgpr;
-   program->statistics[statistic_vgpr_presched] = presched_demand.vgpr;
+   program->statistics[aco_statistic_sgpr_presched] = presched_demand.sgpr;
+   program->statistics[aco_statistic_vgpr_presched] = presched_demand.vgpr;
 }
 
 class BlockCycleEstimator {
@@ -104,15 +104,99 @@ struct perf_info {
    unsigned cost1;
 };
 
-static perf_info
-get_perf_info(Program* program, aco_ptr<Instruction>& instr)
+static bool
+is_dual_issue_capable(const Program& program, const Instruction& instr)
 {
-   instr_class cls = instr_info.classes[(int)instr->opcode];
+   if (program.gfx_level < GFX11 || !instr.isVALU() || instr.isDPP())
+      return false;
+
+   switch (instr.opcode) {
+   case aco_opcode::v_fma_f32:
+   case aco_opcode::v_fmac_f32:
+   case aco_opcode::v_fmaak_f32:
+   case aco_opcode::v_fmamk_f32:
+   case aco_opcode::v_mul_f32:
+   case aco_opcode::v_add_f32:
+   case aco_opcode::v_sub_f32:
+   case aco_opcode::v_subrev_f32:
+   case aco_opcode::v_mul_legacy_f32:
+   case aco_opcode::v_fma_legacy_f32:
+   case aco_opcode::v_fmac_legacy_f32:
+   case aco_opcode::v_fma_f16:
+   case aco_opcode::v_fmac_f16:
+   case aco_opcode::v_fmaak_f16:
+   case aco_opcode::v_fmamk_f16:
+   case aco_opcode::v_mul_f16:
+   case aco_opcode::v_add_f16:
+   case aco_opcode::v_sub_f16:
+   case aco_opcode::v_subrev_f16:
+   case aco_opcode::v_mov_b32:
+   case aco_opcode::v_movreld_b32:
+   case aco_opcode::v_movrels_b32:
+   case aco_opcode::v_movrelsd_b32:
+   case aco_opcode::v_movrelsd_2_b32:
+   case aco_opcode::v_cndmask_b32:
+   case aco_opcode::v_writelane_b32_e64:
+   case aco_opcode::v_mov_b16:
+   case aco_opcode::v_cndmask_b16:
+   case aco_opcode::v_max_f32:
+   case aco_opcode::v_min_f32:
+   case aco_opcode::v_max_f16:
+   case aco_opcode::v_min_f16:
+   case aco_opcode::v_max_i16_e64:
+   case aco_opcode::v_min_i16_e64:
+   case aco_opcode::v_max_u16_e64:
+   case aco_opcode::v_min_u16_e64:
+   case aco_opcode::v_add_i16:
+   case aco_opcode::v_sub_i16:
+   case aco_opcode::v_mad_i16:
+   case aco_opcode::v_add_u16_e64:
+   case aco_opcode::v_sub_u16_e64:
+   case aco_opcode::v_mad_u16:
+   case aco_opcode::v_mul_lo_u16_e64:
+   case aco_opcode::v_not_b16:
+   case aco_opcode::v_and_b16:
+   case aco_opcode::v_or_b16:
+   case aco_opcode::v_xor_b16:
+   case aco_opcode::v_lshrrev_b16_e64:
+   case aco_opcode::v_ashrrev_i16_e64:
+   case aco_opcode::v_lshlrev_b16_e64:
+   case aco_opcode::v_dot2_bf16_bf16:
+   case aco_opcode::v_dot2_f32_bf16:
+   case aco_opcode::v_dot2_f16_f16:
+   case aco_opcode::v_dot2_f32_f16:
+   case aco_opcode::v_dot2c_f32_f16: return true;
+   case aco_opcode::v_fma_mix_f32:
+   case aco_opcode::v_fma_mixlo_f16:
+   case aco_opcode::v_fma_mixhi_f16: {
+      /* dst and acc type must match */
+      if (instr.valu().opsel_hi[2] == (instr.opcode == aco_opcode::v_fma_mix_f32))
+         return false;
+
+      /* If all operands are vgprs, two must be the same. */
+      for (unsigned i = 0; i < 3; i++) {
+         if (instr.operands[i].isConstant() || instr.operands[i].isOfType(RegType::sgpr))
+            return true;
+         for (unsigned j = 0; j < i; j++) {
+            if (instr.operands[i].physReg() == instr.operands[j].physReg())
+               return true;
+         }
+      }
+      return false;
+   }
+   default: return false;
+   }
+}
+
+static perf_info
+get_perf_info(const Program& program, const Instruction& instr)
+{
+   instr_class cls = instr_info.classes[(int)instr.opcode];
 
 #define WAIT(res)          BlockCycleEstimator::res, 0
 #define WAIT_USE(res, cnt) BlockCycleEstimator::res, cnt
 
-   if (program->gfx_level >= GFX10) {
+   if (program.gfx_level >= GFX10) {
       /* fp64 might be incorrect */
       switch (cls) {
       case instr_class::valu32:
@@ -135,10 +219,15 @@ get_perf_info(Program* program, aco_ptr<Instruction>& instr)
       case instr_class::branch:
       case instr_class::sendmsg: return {0, WAIT_USE(branch_sendmsg, 1)};
       case instr_class::ds:
-         return instr->ds().gds ? perf_info{0, WAIT_USE(export_gds, 1)}
-                                : perf_info{0, WAIT_USE(lds, 1)};
+         return instr.isDS() && instr.ds().gds ? perf_info{0, WAIT_USE(export_gds, 1)}
+                                               : perf_info{0, WAIT_USE(lds, 1)};
       case instr_class::exp: return {0, WAIT_USE(export_gds, 1)};
       case instr_class::vmem: return {0, WAIT_USE(vmem, 1)};
+      case instr_class::wmma: {
+         /* int8 and (b)f16 have the same performance. */
+         uint8_t cost = instr.opcode == aco_opcode::v_wmma_i32_16x16x16_iu4 ? 16 : 32;
+         return {cost, WAIT_USE(valu, cost)};
+      }
       case instr_class::barrier:
       case instr_class::waitcnt:
       case instr_class::other:
@@ -151,8 +240,8 @@ get_perf_info(Program* program, aco_ptr<Instruction>& instr)
       case instr_class::valu64: return {8, WAIT_USE(valu, 8)};
       case instr_class::valu_quarter_rate32: return {16, WAIT_USE(valu, 16)};
       case instr_class::valu_fma:
-         return program->dev.has_fast_fma32 ? perf_info{4, WAIT_USE(valu, 4)}
-                                            : perf_info{16, WAIT_USE(valu, 16)};
+         return program.dev.has_fast_fma32 ? perf_info{4, WAIT_USE(valu, 4)}
+                                           : perf_info{16, WAIT_USE(valu, 16)};
       case instr_class::valu_transcendental32: return {16, WAIT_USE(valu, 16)};
       case instr_class::valu_double: return {64, WAIT_USE(valu, 64)};
       case instr_class::valu_double_add: return {32, WAIT_USE(valu, 32)};
@@ -164,8 +253,8 @@ get_perf_info(Program* program, aco_ptr<Instruction>& instr)
          return {8, WAIT_USE(branch_sendmsg, 8)};
          return {4, WAIT_USE(branch_sendmsg, 4)};
       case instr_class::ds:
-         return instr->ds().gds ? perf_info{4, WAIT_USE(export_gds, 4)}
-                                : perf_info{4, WAIT_USE(lds, 4)};
+         return instr.isDS() && instr.ds().gds ? perf_info{4, WAIT_USE(export_gds, 4)}
+                                               : perf_info{4, WAIT_USE(lds, 4)};
       case instr_class::exp: return {16, WAIT_USE(export_gds, 16)};
       case instr_class::vmem: return {4, WAIT_USE(vmem, 4)};
       case instr_class::barrier:
@@ -182,7 +271,7 @@ get_perf_info(Program* program, aco_ptr<Instruction>& instr)
 void
 BlockCycleEstimator::use_resources(aco_ptr<Instruction>& instr)
 {
-   perf_info perf = get_perf_info(program, instr);
+   perf_info perf = get_perf_info(*program, *instr);
 
    if (perf.rsrc0 != resource_count) {
       res_available[(int)perf.rsrc0] = cur_cycle + perf.cost0;
@@ -198,7 +287,7 @@ BlockCycleEstimator::use_resources(aco_ptr<Instruction>& instr)
 int32_t
 BlockCycleEstimator::cycles_until_res_available(aco_ptr<Instruction>& instr)
 {
-   perf_info perf = get_perf_info(program, instr);
+   perf_info perf = get_perf_info(*program, *instr);
 
    int32_t cost = 0;
    if (perf.rsrc0 != resource_count)
@@ -352,13 +441,14 @@ is_vector(aco_opcode op)
 void
 BlockCycleEstimator::add(aco_ptr<Instruction>& instr)
 {
-   perf_info perf = get_perf_info(program, instr);
+   perf_info perf = get_perf_info(*program, *instr);
 
    cur_cycle += get_dependency_cost(instr);
 
    unsigned start;
    bool dual_issue = program->gfx_level >= GFX10 && program->wave_size == 64 &&
-                     is_vector(instr->opcode) && program->workgroup_size > 32;
+                     is_vector(instr->opcode) && !is_dual_issue_capable(*program, *instr) &&
+                     program->workgroup_size > 32;
    for (unsigned i = 0; i < (dual_issue ? 2 : 1); i++) {
       cur_cycle += cycles_until_res_available(instr);
 
@@ -438,22 +528,28 @@ collect_preasm_stats(Program* program)
       std::set<Instruction*> vmem_clause;
       std::set<Instruction*> smem_clause;
 
-      program->statistics[statistic_instructions] += block.instructions.size();
+      program->statistics[aco_statistic_instructions] += block.instructions.size();
 
       for (aco_ptr<Instruction>& instr : block.instructions) {
-         if (instr->isSOPP() && instr->sopp().block != -1)
-            program->statistics[statistic_branches]++;
+         bool is_branch = instr->isSOPP() && instr->sopp().block != -1;
+         if (is_branch)
+            program->statistics[aco_statistic_branches]++;
 
-         if (instr->opcode == aco_opcode::p_constaddr)
-            program->statistics[statistic_instructions] += 2;
+         if (instr->isVALU() || instr->isVINTRP())
+            program->statistics[aco_statistic_valu]++;
+         if (instr->isSALU() && !instr->isSOPP() &&
+             instr_info.classes[(int)instr->opcode] != instr_class::waitcnt)
+            program->statistics[aco_statistic_salu]++;
 
          if ((instr->isVMEM() || instr->isScratch() || instr->isGlobal()) &&
              !instr->operands.empty()) {
             if (std::none_of(vmem_clause.begin(), vmem_clause.end(),
                              [&](Instruction* other)
                              { return should_form_clause(instr.get(), other); }))
-               program->statistics[statistic_vmem_clauses]++;
+               program->statistics[aco_statistic_vmem_clauses]++;
             vmem_clause.insert(instr.get());
+
+            program->statistics[aco_statistic_vmem]++;
          } else {
             vmem_clause.clear();
          }
@@ -462,8 +558,10 @@ collect_preasm_stats(Program* program)
             if (std::none_of(smem_clause.begin(), smem_clause.end(),
                              [&](Instruction* other)
                              { return should_form_clause(instr.get(), other); }))
-               program->statistics[statistic_smem_clauses]++;
+               program->statistics[aco_statistic_smem_clauses]++;
             smem_clause.insert(instr.get());
+
+            program->statistics[aco_statistic_smem]++;
          } else {
             smem_clause.clear();
          }
@@ -474,13 +572,11 @@ collect_preasm_stats(Program* program)
    double usage[(int)BlockCycleEstimator::resource_count] = {0};
    std::vector<BlockCycleEstimator> blocks(program->blocks.size(), program);
 
-   if (program->stage.has(SWStage::VS) && program->info.vs.has_prolog) {
-      unsigned vs_input_latency = 320;
-      for (Definition def : program->vs_inputs) {
-         blocks[0].vm.push_back(vs_input_latency);
-         for (unsigned i = 0; i < def.size(); i++)
-            blocks[0].reg_available[def.physReg().reg() + i] = vs_input_latency;
-      }
+   constexpr const unsigned vmem_latency = 320;
+   for (const Definition def : program->args_pending_vmem) {
+      blocks[0].vm.push_back(vmem_latency);
+      for (unsigned i = 0; i < def.size(); i++)
+         blocks[0].reg_available[def.physReg().reg() + i] = vmem_latency;
    }
 
    for (Block& block : program->blocks) {
@@ -545,8 +641,8 @@ collect_preasm_stats(Program* program)
          program->workgroup_size / (double)align(program->workgroup_size, program->wave_size);
    wave64_per_cycle *= max_utilization;
 
-   program->statistics[statistic_latency] = round(latency);
-   program->statistics[statistic_inv_throughput] = round(1.0 / wave64_per_cycle);
+   program->statistics[aco_statistic_latency] = round(latency);
+   program->statistics[aco_statistic_inv_throughput] = round(1.0 / wave64_per_cycle);
 
    if (debug_flags & DEBUG_PERF_INFO) {
       aco_print_program(program, stderr, print_no_ssa | print_perf_info);
@@ -571,7 +667,14 @@ collect_preasm_stats(Program* program)
 void
 collect_postasm_stats(Program* program, const std::vector<uint32_t>& code)
 {
-   program->statistics[aco::statistic_hash] = util_hash_crc32(code.data(), code.size() * 4);
+   program->statistics[aco_statistic_hash] = util_hash_crc32(code.data(), code.size() * 4);
+}
+
+Instruction_cycle_info
+get_cycle_info(const Program& program, const Instruction& instr)
+{
+   perf_info info = get_perf_info(program, instr);
+   return Instruction_cycle_info{(unsigned)info.latency, std::max(info.cost0, info.cost1)};
 }
 
 } // namespace aco

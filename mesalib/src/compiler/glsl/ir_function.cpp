@@ -84,12 +84,12 @@ parameter_lists_match(_mesa_glsl_parse_state *state,
       case ir_var_const_in:
       case ir_var_function_in:
          if (param->data.implicit_conversion_prohibited ||
-             !actual->type->can_implicitly_convert_to(param->type, state))
+             !_mesa_glsl_can_implicitly_convert(actual->type, param->type, state))
             return PARAMETER_LIST_NO_MATCH;
 	 break;
 
       case ir_var_function_out:
-	 if (!param->type->can_implicitly_convert_to(actual->type, state))
+	 if (!_mesa_glsl_can_implicitly_convert(param->type, actual->type, state))
 	    return PARAMETER_LIST_NO_MATCH;
 	 break;
 
@@ -150,13 +150,13 @@ get_parameter_match_type(const ir_variable *param,
    if (from_type == to_type)
       return PARAMETER_EXACT_MATCH;
 
-   if (to_type->is_double()) {
-      if (from_type->is_float())
+   if (glsl_type_is_double(to_type)) {
+      if (glsl_type_is_float(from_type))
          return PARAMETER_FLOAT_TO_DOUBLE;
       return PARAMETER_INT_TO_DOUBLE;
    }
 
-   if (to_type->is_float())
+   if (glsl_type_is_float(to_type))
       return PARAMETER_INT_TO_FLOAT;
 
    /* int -> uint and any other oddball conversions */

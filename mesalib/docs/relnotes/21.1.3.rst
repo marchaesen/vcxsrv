@@ -81,7 +81,7 @@ Icecream95 (1):
 
 - panfrost: Use first_tiler to check if tiling is needed
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - intel/vec4: Also use MOV_FOR_SCRATCH for swizzle resolves
 - anv: Handle OOM in the pinned path in anv_reloc_list_add

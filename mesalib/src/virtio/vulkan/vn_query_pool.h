@@ -13,11 +13,17 @@
 
 #include "vn_common.h"
 
+struct vn_feedback_buffer;
+
 struct vn_query_pool {
    struct vn_object_base base;
 
    VkAllocationCallbacks allocator;
+
+   /* non-NULL if VN_PERF_NO_QUERY_FEEDBACK is disabled */
+   struct vn_feedback_buffer *feedback;
    uint32_t result_array_size;
+   bool saturate_on_overflow;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_query_pool,
                                base.base,

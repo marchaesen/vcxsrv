@@ -30,11 +30,9 @@
 
 #include "c99_alloca.h"
 
-
 /* Declare a variable length array, with no initialization */
 #define NIR_VLA(_type, _name, _length) \
    _type *_name = alloca((_length) * sizeof *_name)
-
 
 /* Declare a variable length array, and initialize it with the given byte.
  *
@@ -43,7 +41,6 @@
  */
 #define NIR_VLA_FILL(_type, _name, _length, _byte) \
    _type *_name = memset(alloca((_length) * sizeof *_name), _byte, (_length) * sizeof *_name)
-
 
 /* Declare a variable length array, and zero it.
  *

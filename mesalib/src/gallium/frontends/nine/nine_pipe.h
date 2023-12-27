@@ -24,7 +24,7 @@
 #define _NINE_PIPE_H_
 
 #include "d3d9.h"
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h" /* pipe_box */
 #include "util/macros.h"
@@ -98,7 +98,7 @@ fit_rect_format_inclusive(enum pipe_format format, RECT *rect, int width, int he
     rect->bottom = MIN2(rect->bottom, height);
 }
 
-static inline boolean
+static inline bool
 rect_to_pipe_box_clamp(struct pipe_box *dst, const RECT *src)
 {
     rect_to_pipe_box(dst, src);
@@ -107,21 +107,21 @@ rect_to_pipe_box_clamp(struct pipe_box *dst, const RECT *src)
         DBG_FLAG(DBG_UNKNOWN, "Warning: NULL box");
         dst->width = MAX2(dst->width, 0);
         dst->height = MAX2(dst->height, 0);
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
-static inline boolean
+static inline bool
 rect_to_pipe_box_flip(struct pipe_box *dst, const RECT *src)
 {
     rect_to_pipe_box(dst, src);
 
     if (dst->width >= 0 && dst->height >= 0)
-        return FALSE;
+        return false;
     if (dst->width < 0) dst->width = -dst->width;
     if (dst->height < 0) dst->height = -dst->height;
-    return TRUE;
+    return true;
 }
 
 static inline void
@@ -135,7 +135,7 @@ rect_to_pipe_box_xy_only(struct pipe_box *dst, const RECT *src)
     dst->height = src->bottom - src->top;
 }
 
-static inline boolean
+static inline bool
 rect_to_pipe_box_xy_only_clamp(struct pipe_box *dst, const RECT *src)
 {
     rect_to_pipe_box_xy_only(dst, src);
@@ -144,9 +144,9 @@ rect_to_pipe_box_xy_only_clamp(struct pipe_box *dst, const RECT *src)
         DBG_FLAG(DBG_UNKNOWN, "Warning: NULL box");
         dst->width = MAX2(dst->width, 0);
         dst->height = MAX2(dst->height, 0);
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 static inline void
@@ -181,7 +181,7 @@ pipe_to_d3d9_format(enum pipe_format format)
     return nine_pipe_to_d3d9_format_map[format];
 }
 
-static inline boolean
+static inline bool
 fetch4_compatible_format( D3DFORMAT fmt )
 {
     /* Basically formats with only red channel are allowed (with some exceptions) */
@@ -198,13 +198,13 @@ fetch4_compatible_format( D3DFORMAT fmt )
     unsigned i;
 
     for (i = 0; i < sizeof(allowed)/sizeof(D3DFORMAT); i++) {
-        if (fmt == allowed[i]) { return TRUE; }
+        if (fmt == allowed[i]) { return true; }
     }
-    return FALSE;
+    return false;
 }
 
 /* ATI1 and ATI2 are not officially compressed in d3d9 */
-static inline boolean
+static inline bool
 compressed_format( D3DFORMAT fmt )
 {
     switch (fmt) {
@@ -213,14 +213,14 @@ compressed_format( D3DFORMAT fmt )
     case D3DFMT_DXT3:
     case D3DFMT_DXT4:
     case D3DFMT_DXT5:
-        return TRUE;
+        return true;
     default:
         break;
     }
-    return FALSE;
+    return false;
 }
 
-static inline boolean
+static inline bool
 depth_stencil_format( D3DFORMAT fmt )
 {
     static const D3DFORMAT allowed[] = {
@@ -241,9 +241,9 @@ depth_stencil_format( D3DFORMAT fmt )
     unsigned i;
 
     for (i = 0; i < sizeof(allowed)/sizeof(D3DFORMAT); i++) {
-        if (fmt == allowed[i]) { return TRUE; }
+        if (fmt == allowed[i]) { return true; }
     }
-    return FALSE;
+    return false;
 }
 
 static inline unsigned
@@ -316,8 +316,8 @@ d3d9_to_pipe_format_checked(struct pipe_screen *screen,
                             enum pipe_texture_target target,
                             unsigned sample_count,
                             unsigned bindings,
-                            boolean srgb,
-                            boolean bypass_check)
+                            bool srgb,
+                            bool bypass_check)
 {
     enum pipe_format result;
 
@@ -346,6 +346,14 @@ d3d9_to_pipe_format_checked(struct pipe_screen *screen,
          * is precised in the name), so it is ok to match to another similar
          * format. In all cases, if the app reads the texture with a shader,
          * it gets depth on r and doesn't get stencil.*/
+        case D3DFMT_D16:
+            /* D16 support is a requirement, but as it cannot be locked,
+             * it is ok to revert to D24 */
+            if (format_check_internal(PIPE_FORMAT_Z24X8_UNORM))
+                return PIPE_FORMAT_Z24X8_UNORM;
+            if (format_check_internal(PIPE_FORMAT_X8Z24_UNORM))
+                return PIPE_FORMAT_X8Z24_UNORM;
+            break;
         case D3DFMT_INTZ:
         case D3DFMT_D24S8:
             if (format_check_internal(PIPE_FORMAT_Z24_UNORM_S8_UINT))
@@ -426,7 +434,7 @@ d3dmultisample_type_check(struct pipe_screen *screen,
         for (i = D3DMULTISAMPLE_2_SAMPLES; i < D3DMULTISAMPLE_16_SAMPLES &&
             multisamplequality; ++i) {
             if (d3d9_to_pipe_format_checked(screen, format, PIPE_TEXTURE_2D,
-                    i, bind, FALSE, FALSE) != PIPE_FORMAT_NONE) {
+                    i, bind, false, false) != PIPE_FORMAT_NONE) {
                 multisamplequality--;
                 if (levels)
                     (*levels)++;
@@ -590,15 +598,15 @@ static inline unsigned
 d3dprimitivetype_to_pipe_prim(D3DPRIMITIVETYPE prim)
 {
     switch (prim) {
-    case D3DPT_POINTLIST:     return PIPE_PRIM_POINTS;
-    case D3DPT_LINELIST:      return PIPE_PRIM_LINES;
-    case D3DPT_LINESTRIP:     return PIPE_PRIM_LINE_STRIP;
-    case D3DPT_TRIANGLELIST:  return PIPE_PRIM_TRIANGLES;
-    case D3DPT_TRIANGLESTRIP: return PIPE_PRIM_TRIANGLE_STRIP;
-    case D3DPT_TRIANGLEFAN:   return PIPE_PRIM_TRIANGLE_FAN;
+    case D3DPT_POINTLIST:     return MESA_PRIM_POINTS;
+    case D3DPT_LINELIST:      return MESA_PRIM_LINES;
+    case D3DPT_LINESTRIP:     return MESA_PRIM_LINE_STRIP;
+    case D3DPT_TRIANGLELIST:  return MESA_PRIM_TRIANGLES;
+    case D3DPT_TRIANGLESTRIP: return MESA_PRIM_TRIANGLE_STRIP;
+    case D3DPT_TRIANGLEFAN:   return MESA_PRIM_TRIANGLE_FAN;
     default:
         assert(0);
-        return PIPE_PRIM_POINTS;
+        return MESA_PRIM_POINTS;
     }
 }
 

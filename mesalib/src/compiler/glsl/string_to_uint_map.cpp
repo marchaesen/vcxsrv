@@ -40,3 +40,21 @@ string_to_uint_map_dtor(struct string_to_uint_map *map)
 {
    delete map;
 }
+
+extern "C" void
+string_to_uint_map_put(struct string_to_uint_map *map,
+                       unsigned value, const char *key)
+{
+   map->put(value, key);
+}
+
+extern "C" bool
+string_to_uint_map_get(struct string_to_uint_map *map,
+                       unsigned *value, const char *key)
+{
+   unsigned val;
+   bool r = map->get(val, key);
+   if (r)
+      *value = val;
+   return r;
+}

@@ -20,13 +20,13 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
 //
 // HISTORY
-// Log: lk,v 
+// Log: lk,v
 // Revision 1.2  1996/06/18  09:10:09  erik
 // use flags correctly, assorted cleanups and consortium fixes
 //
@@ -37,11 +37,11 @@
 // Revision 1.1.2.2  1994/10/31  15:22:00  William_Walker
 // 	New experimental version.
 // 	[1994/10/31  14:48:37  William_Walker]
-// 
+//
 // EndLog
-// 
+//
 // @(#)RCSfile: lk,v  Revision: 1.2  (DEC) Date: 1996/01/24 12:14:58
-// 
+//
 // Symbols common to all the LK-style keyboards.
 //
 default xkb_symbols "common" {
@@ -123,7 +123,7 @@ default xkb_symbols "common" {
 };
 
 xkb_symbols "lk401" {
-    include "symbols/digital_vndr/lk(common)"
+    include "digital_vndr/lk(common)"
     key <RALT>              { [ Alt_R,      Meta_R          ] };
     key <LCMP>              { [ Multi_key                   ] };
     key <RCMP>              { [ Multi_key                   ] };

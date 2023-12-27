@@ -1019,6 +1019,12 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="181" name="AXI_TOTAL_READ_REQUEST_DATA_BEATS"/>
 </enum>
 
+<enum name="perf_mode_cnt">
+	<value name="PERF_STATE_RESET" value="0"/>
+	<value name="PERF_STATE_ENABLE" value="1"/>
+	<value name="PERF_STATE_FREEZE" value="2"/>
+</enum>
+
 <domain name="A2XX" width="32">
 
 	<bitset name="a2xx_vgt_current_bin_id_min_max" inline="yes">
@@ -1116,7 +1122,20 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="MH_MMU_SCLK_PM_OVERRIDE" pos="30" type="boolean"/>
 		<bitfield name="MH_TCROQ_SCLK_PM_OVERRIDE" pos="31" type="boolean"/>
 	</reg32>
-	<reg32 offset="0x039d" name="RBBM_PM_OVERRIDE2"/>
+	<reg32 offset="0x039d" name="RBBM_PM_OVERRIDE2">
+		<bitfield name="PA_REG_SCLK_PM_OVERRIDE" pos="0" type="boolean"/>
+		<bitfield name="PA_PA_SCLK_PM_OVERRIDE" pos="1" type="boolean"/>
+		<bitfield name="PA_AG_SCLK_PM_OVERRIDE" pos="2" type="boolean"/>
+		<bitfield name="VGT_REG_SCLK_PM_OVERRIDE" pos="3" type="boolean"/>
+		<bitfield name="VGT_FIFOS_SCLK_PM_OVERRIDE" pos="4" type="boolean"/>
+		<bitfield name="VGT_VGT_SCLK_PM_OVERRIDE" pos="5" type="boolean"/>
+		<bitfield name="DEBUG_PERF_SCLK_PM_OVERRIDE" pos="6" type="boolean"/>
+		<bitfield name="PERM_SCLK_PM_OVERRIDE" pos="7" type="boolean"/>
+		<bitfield name="GC_GA_GMEM0_PM_OVERRIDE" pos="8" type="boolean"/>
+		<bitfield name="GC_GA_GMEM1_PM_OVERRIDE" pos="9" type="boolean"/>
+		<bitfield name="GC_GA_GMEM2_PM_OVERRIDE" pos="10" type="boolean"/>
+		<bitfield name="GC_GA_GMEM3_PM_OVERRIDE" pos="11" type="boolean"/>
+	</reg32>
 	<reg32 offset="0x03a0" name="RBBM_DEBUG_OUT"/>
 	<reg32 offset="0x03a1" name="RBBM_DEBUG_CNTL"/>
 	<reg32 offset="0x03b3" name="RBBM_READ_ERROR"/>
@@ -1135,7 +1154,10 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	</reg32>
 	<reg32 offset="0x03f9" name="RBBM_PERIPHID1"/>
 	<reg32 offset="0x03fa" name="RBBM_PERIPHID2"/>
-	<reg32 offset="0x0444" name="CP_PERFMON_CNTL"/>
+	<reg32 offset="0x0444" name="CP_PERFMON_CNTL">
+		<!-- The width is uncertain -->
+		<bitfield name="PERF_MODE_CNT" low="0" high="2" type="perf_mode_cnt"/>
+	</reg32>
 	<reg32 offset="0x0445" name="CP_PERFCOUNTER_SELECT"/>
 	<reg32 offset="0x0446" name="CP_PERFCOUNTER_LO"/>
 	<reg32 offset="0x0447" name="CP_PERFCOUNTER_HI"/>

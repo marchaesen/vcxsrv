@@ -119,7 +119,7 @@ Ilia Mirkin (1):
 
 -  nv50: don't try to upload MSAA settings for BUFFER textures
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 -  anv/image: Use align_u64 for image offsets
 -  nir/load_store_vectorize: Fix shared atomic info

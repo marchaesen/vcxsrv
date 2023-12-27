@@ -12,6 +12,7 @@
 
 #include "venus-protocol/vn_protocol_driver_framebuffer.h"
 #include "venus-protocol/vn_protocol_driver_render_pass.h"
+#include "vk_format.h"
 
 #include "vn_device.h"
 #include "vn_image.h"
@@ -53,10 +54,25 @@
 #define INIT_SUBPASSES(_pass, _pCreateInfo)                                  \
    do {                                                                      \
       for (uint32_t i = 0; i < _pCreateInfo->subpassCount; i++) {            \
-         _pass->subpasses[i].has_color_attachment =                          \
-            (_pCreateInfo->pSubpasses[i].colorAttachmentCount > 0);          \
-         _pass->subpasses[i].has_depth_stencil_attachment =                  \
-            (_pCreateInfo->pSubpasses[i].pDepthStencilAttachment != NULL);   \
+         __auto_type subpass_desc = &_pCreateInfo->pSubpasses[i];            \
+         struct vn_subpass *subpass = &_pass->subpasses[i];                  \
+                                                                             \
+         for (uint32_t j = 0; j < subpass_desc->colorAttachmentCount; j++) { \
+            if (subpass_desc->pColorAttachments[j].attachment !=             \
+                VK_ATTACHMENT_UNUSED) {                                      \
+               subpass->attachment_aspects |= VK_IMAGE_ASPECT_COLOR_BIT;     \
+               break;                                                        \
+            }                                                                \
+         }                                                                   \
+                                                                             \
+         if (subpass_desc->pDepthStencilAttachment &&                        \
+             subpass_desc->pDepthStencilAttachment->attachment !=            \
+                VK_ATTACHMENT_UNUSED) {                                      \
+            uint32_t att =                                                   \
+               subpass_desc->pDepthStencilAttachment->attachment;            \
+            subpass->attachment_aspects |=                                   \
+               vk_format_aspects(_pCreateInfo->pAttachments[att].format);    \
+         }                                                                   \
       }                                                                      \
    } while (false)
 
@@ -210,8 +226,18 @@ vn_CreateRenderPass(VkDevice device,
       pCreateInfo = &local_pass_info;
    }
 
+   const struct VkRenderPassMultiviewCreateInfo *multiview_info =
+      vk_find_struct_const(pCreateInfo->pNext,
+                           RENDER_PASS_MULTIVIEW_CREATE_INFO);
+
+   /* Store the viewMask of each subpass for query feedback */
+   if (multiview_info) {
+      for (uint32_t i = 0; i < multiview_info->subpassCount; i++)
+         pass->subpasses[i].view_mask = multiview_info->pViewMasks[i];
+   }
+
    VkRenderPass pass_handle = vn_render_pass_to_handle(pass);
-   vn_async_vkCreateRenderPass(dev->instance, device, pCreateInfo, NULL,
+   vn_async_vkCreateRenderPass(dev->primary_ring, device, pCreateInfo, NULL,
                                &pass_handle);
 
    if (pCreateInfo == &local_pass_info)
@@ -262,8 +288,12 @@ vn_CreateRenderPass2(VkDevice device,
       pCreateInfo = &local_pass_info;
    }
 
+   /* Store the viewMask of each subpass for query feedback */
+   for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++)
+      pass->subpasses[i].view_mask = pCreateInfo->pSubpasses[i].viewMask;
+
    VkRenderPass pass_handle = vn_render_pass_to_handle(pass);
-   vn_async_vkCreateRenderPass2(dev->instance, device, pCreateInfo, NULL,
+   vn_async_vkCreateRenderPass2(dev->primary_ring, device, pCreateInfo, NULL,
                                 &pass_handle);
 
    if (pCreateInfo == &local_pass_info)
@@ -287,7 +317,7 @@ vn_DestroyRenderPass(VkDevice device,
    if (!pass)
       return;
 
-   vn_async_vkDestroyRenderPass(dev->instance, device, renderPass, NULL);
+   vn_async_vkDestroyRenderPass(dev->primary_ring, device, renderPass, NULL);
 
    vn_object_base_fini(&pass->base);
    vk_free(alloc, pass);
@@ -302,8 +332,8 @@ vn_GetRenderAreaGranularity(VkDevice device,
    struct vn_render_pass *pass = vn_render_pass_from_handle(renderPass);
 
    if (!pass->granularity.width) {
-      vn_call_vkGetRenderAreaGranularity(dev->instance, device, renderPass,
-                                         &pass->granularity);
+      vn_call_vkGetRenderAreaGranularity(dev->primary_ring, device,
+                                         renderPass, &pass->granularity);
    }
 
    *pGranularity = pass->granularity;
@@ -341,7 +371,7 @@ vn_CreateFramebuffer(VkDevice device,
           sizeof(*pCreateInfo->pAttachments) * view_count);
 
    VkFramebuffer fb_handle = vn_framebuffer_to_handle(fb);
-   vn_async_vkCreateFramebuffer(dev->instance, device, pCreateInfo, NULL,
+   vn_async_vkCreateFramebuffer(dev->primary_ring, device, pCreateInfo, NULL,
                                 &fb_handle);
 
    *pFramebuffer = fb_handle;
@@ -362,7 +392,8 @@ vn_DestroyFramebuffer(VkDevice device,
    if (!fb)
       return;
 
-   vn_async_vkDestroyFramebuffer(dev->instance, device, framebuffer, NULL);
+   vn_async_vkDestroyFramebuffer(dev->primary_ring, device, framebuffer,
+                                 NULL);
 
    vn_object_base_fini(&fb->base);
    vk_free(alloc, fb);

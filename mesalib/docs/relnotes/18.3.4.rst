@@ -91,7 +91,7 @@ Ilia Mirkin (1):
 
 -  nvc0: we have 16k-sized framebuffers, fix default scissors
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  intel/fs: Handle IMAGE_SIZE in size_read() and is_send_from_grf()
 -  intel/fs: Do the grf127 hack on SIMD8 instructions in SIMD16 mode

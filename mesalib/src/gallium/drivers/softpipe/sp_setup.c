@@ -285,7 +285,7 @@ print_vertex(const struct setup_context *setup,
  * edge fields (ebot, emaj, etop).
  * \return FALSE if coords are inf/nan (cull the tri), TRUE otherwise
  */
-static boolean
+static bool
 setup_sort_vertices(struct setup_context *setup,
                     float det,
                     const float (*v0)[4],
@@ -369,10 +369,10 @@ setup_sort_vertices(struct setup_context *setup,
 
       /*
       debug_printf("%s one-over-area %f  area %f  det %f\n",
-                   __FUNCTION__, setup->oneoverarea, area, det );
+                   __func__, setup->oneoverarea, area, det );
       */
       if (util_is_inf_or_nan(setup->oneoverarea))
-         return FALSE;
+         return false;
    }
 
    /* We need to know if this is a front or back-facing triangle for:
@@ -388,10 +388,10 @@ setup_sort_vertices(struct setup_context *setup,
       unsigned face = setup->facing == 0 ? PIPE_FACE_FRONT : PIPE_FACE_BACK;
 
       if (face & setup->cull_face)
-	 return FALSE;
+	 return false;
    }
 
-   return TRUE;
+   return true;
 }
 
 
@@ -506,9 +506,9 @@ static void
 setup_fragcoord_coeff(struct setup_context *setup, uint slot)
 {
    const struct tgsi_shader_info *fsInfo = &setup->softpipe->fs_variant->info;
-   boolean origin_lower_left =
+   bool origin_lower_left =
          fsInfo->properties[TGSI_PROPERTY_FS_COORD_ORIGIN];
-   boolean pixel_center_integer =
+   bool pixel_center_integer =
          fsInfo->properties[TGSI_PROPERTY_FS_COORD_PIXEL_CENTER];
 
    /*X*/
@@ -677,7 +677,7 @@ subtriangle(struct setup_context *setup,
    finish_y -= sy;
 
    /*
-   debug_printf("%s %d %d\n", __FUNCTION__, start_y, finish_y);
+   debug_printf("%s %d %d\n", __func__, start_y, finish_y);
    */
 
    for (y = start_y; y < finish_y; y++) {
@@ -765,7 +765,7 @@ sp_setup_tri(struct setup_context *setup,
    
    det = calc_det(v0, v1, v2);
    /*
-   debug_printf("%s\n", __FUNCTION__ );
+   debug_printf("%s\n", __func__ );
    */
 
 #if DEBUG_FRAGS
@@ -779,7 +779,7 @@ sp_setup_tri(struct setup_context *setup,
    setup_tri_coefficients( setup );
    setup_tri_edges( setup );
 
-   assert(setup->softpipe->reduced_prim == PIPE_PRIM_TRIANGLES);
+   assert(setup->softpipe->reduced_prim == MESA_PRIM_TRIANGLES);
 
    setup->span.y = 0;
    setup->span.right[0] = 0;
@@ -876,7 +876,7 @@ line_persp_coeff(const struct setup_context *setup,
  * Compute the setup->coef[] array dadx, dady, a0 values.
  * Must be called after setup->vmin,vmax are initialized.
  */
-static boolean
+static bool
 setup_line_coefficients(struct setup_context *setup,
                         const float (*v0)[4],
                         const float (*v1)[4])
@@ -904,7 +904,7 @@ setup_line_coefficients(struct setup_context *setup,
    /* NOTE: this is not really area but something proportional to it */
    area = setup->emaj.dx * setup->emaj.dx + setup->emaj.dy * setup->emaj.dy;
    if (area == 0.0f || util_is_inf_or_nan(area))
-      return FALSE;
+      return false;
    setup->oneoverarea = 1.0f / area;
 
    /* z and w are done by linear interpolation:
@@ -956,7 +956,7 @@ setup_line_coefficients(struct setup_context *setup,
          setup->coef[fragSlot].dady[0] = 0.0;
       }
    }
-   return TRUE;
+   return true;
 }
 
 
@@ -1048,7 +1048,7 @@ sp_setup_line(struct setup_context *setup,
 
    assert(dx >= 0);
    assert(dy >= 0);
-   assert(setup->softpipe->reduced_prim == PIPE_PRIM_LINES);
+   assert(setup->softpipe->reduced_prim == MESA_PRIM_LINES);
 
    setup->quad[0].input.x0 = setup->quad[0].input.y0 = -1;
    setup->quad[0].inout.mask = 0x0;
@@ -1149,7 +1149,7 @@ sp_setup_point(struct setup_context *setup,
       = sizeAttr > 0 ? v0[sizeAttr][0]
       : setup->softpipe->rasterizer->point_size;
    const float halfSize = 0.5F * size;
-   const boolean round = (boolean) setup->softpipe->rasterizer->point_smooth;
+   const bool round = (bool) setup->softpipe->rasterizer->point_smooth;
    const float x = v0[0][0];  /* Note: data[0] is always position */
    const float y = v0[0][1];
    const struct sp_setup_info *sinfo = &softpipe->setup_info;
@@ -1167,7 +1167,7 @@ sp_setup_point(struct setup_context *setup,
        setup->softpipe->rasterizer->rasterizer_discard)
       return;
 
-   assert(setup->softpipe->reduced_prim == PIPE_PRIM_POINTS);
+   assert(setup->softpipe->reduced_prim == MESA_PRIM_POINTS);
 
    if (setup->softpipe->layer_slot > 0) {
       layer = *(unsigned *)v0[setup->softpipe->layer_slot];
@@ -1403,7 +1403,7 @@ sp_setup_prepare(struct setup_context *setup)
 
    sp->quad.first->begin( sp->quad.first );
 
-   if (sp->reduced_api_prim == PIPE_PRIM_TRIANGLES &&
+   if (sp->reduced_api_prim == MESA_PRIM_TRIANGLES &&
        sp->rasterizer->fill_front == PIPE_POLYGON_MODE_FILL &&
        sp->rasterizer->fill_back == PIPE_POLYGON_MODE_FILL) {
       /* we'll do culling */

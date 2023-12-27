@@ -93,6 +93,7 @@ lower_trivial_continues_list(struct exec_list *cf_list,
 
       case nir_cf_node_loop: {
          nir_loop *loop = nir_cf_node_as_loop(cf_node);
+         assert(!nir_loop_has_continue_construct(loop));
          if (lower_trivial_continues_list(&loop->body, true, loop))
             progress = true;
          if (lower_trivial_continues_block(nir_loop_last_block(loop), loop))
@@ -119,19 +120,16 @@ nir_opt_trivial_continues(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl == NULL)
-         continue;
-
+   nir_foreach_function_impl(impl, shader) {
       /* First we run the simple pass to get rid of pesky continues */
-      if (lower_trivial_continues_list(&function->impl->body, false, NULL)) {
-         nir_metadata_preserve(function->impl, nir_metadata_none);
+      if (lower_trivial_continues_list(&impl->body, false, NULL)) {
+         nir_metadata_preserve(impl, nir_metadata_none);
 
          /* If that made progress, we're no longer really in SSA form. */
-         nir_lower_regs_to_ssa_impl(function->impl);
+         nir_lower_reg_intrinsics_to_ssa_impl(impl);
          progress = true;
       } else {
-         nir_metadata_preserve(function->impl, nir_metadata_all);
+         nir_metadata_preserve(impl, nir_metadata_all);
       }
    }
 

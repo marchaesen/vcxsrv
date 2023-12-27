@@ -26,7 +26,7 @@
 #ifndef SVGA_TGSI_H
 #define SVGA_TGSI_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "svga3d_reg.h"
 
 
@@ -74,7 +74,7 @@ svga_tgsi_vgpu10_translate(struct svga_context *svga,
                            const struct svga_compile_key *key,
                            enum pipe_shader_type unit);
 
-boolean svga_shader_verify(const uint32_t *tokens, unsigned nr_tokens);
+bool svga_shader_verify(const uint32_t *tokens, unsigned nr_tokens);
 
 void
 svga_tgsi_scan_shader(struct svga_shader *shader);

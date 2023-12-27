@@ -104,7 +104,7 @@ James Legg (2):
 -  ac/nir: Make intrinsic_name buffer long enough
 -  spirv: Fix reaching unreachable for compare exchange on images
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  nir/spirv: Use the type from the deref for atomics
 

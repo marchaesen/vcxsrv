@@ -196,9 +196,6 @@ void rc_for_all_reads_src(
 
 	for(unsigned int src = 0; src < opcode->NumSrcRegs; ++src) {
 
-		if (inst->U.I.SrcReg[src].File == RC_FILE_NONE)
-			continue;
-
 		if (inst->U.I.SrcReg[src].File == RC_FILE_PRESUB) {
 			unsigned int i;
 			unsigned int srcp_regs = rc_presubtract_src_reg_count(
@@ -514,17 +511,11 @@ static void add_reader_pair(
 
 static unsigned int get_readers_read_callback(
 	struct get_readers_callback_data * cb_data,
-	unsigned int has_rel_addr,
 	rc_register_file file,
 	unsigned int index,
 	unsigned int swizzle)
 {
 	unsigned int shared_mask, read_mask;
-
-	if (has_rel_addr) {
-		cb_data->ReaderData->Abort = 1;
-		return RC_MASK_NONE;
-	}
 
 	shared_mask = rc_src_reads_dst_mask(file, index, swizzle,
 		cb_data->DstFile, cb_data->DstIndex, cb_data->AliveWriteMask);
@@ -565,7 +556,6 @@ static void get_readers_pair_read_callback(
 	struct get_readers_callback_data * d = userdata;
 
 	shared_mask = get_readers_read_callback(d,
-				0 /*Pair Instructions don't use RelAddr*/,
 				src->File, src->Index, arg->Swizzle);
 
 	if (shared_mask == RC_MASK_NONE)
@@ -593,7 +583,7 @@ static void get_readers_normal_read_callback(
 	unsigned int shared_mask;
 
 	shared_mask = get_readers_read_callback(d,
-			src->RelAddr, src->File, src->Index, src->Swizzle);
+			src->File, src->Index, src->Swizzle);
 
 	if (shared_mask == RC_MASK_NONE)
 		return;
@@ -688,7 +678,8 @@ static void get_readers_for_single_write(
 	unsigned int branch_depth = 0;
 	struct rc_instruction * endloop = NULL;
 	unsigned int abort_on_read_at_endloop = 0;
-	int readers_before_endloop = -1;
+	unsigned int abort_on_read_at_break = 0;
+	unsigned int alive_write_mask_at_breaks = 0;
 	struct get_readers_callback_data * d = userdata;
 
 	d->ReaderData->Writer = writer;
@@ -696,7 +687,6 @@ static void get_readers_for_single_write(
 	d->ReaderData->AbortOnWrite = 0;
 	d->ReaderData->LoopDepth = 0;
 	d->ReaderData->InElse = 0;
-	d->ReaderData->ReadersAfterEndloop = false;
 	d->DstFile = dst_file;
 	d->DstIndex = dst_index;
 	d->DstMask = dst_mask;
@@ -743,6 +733,28 @@ static void get_readers_for_single_write(
 				continue;
 			}
 			break;
+		case RC_OPCODE_BRK:
+			if (branch_depth == 0 && d->ReaderData->LoopDepth == 0) {
+				tmp = rc_match_bgnloop(tmp);
+				d->ReaderData->AbortOnRead = d->AliveWriteMask;
+			} else {
+				struct branch_write_mask * masks = &d->BranchMasks[branch_depth];
+				alive_write_mask_at_breaks |= d->AliveWriteMask;
+				if (masks->HasElse) {
+					/* Abort on read for components that were written in the IF
+					 * block. */
+					abort_on_read_at_break |=
+						masks->IfWriteMask & ~masks->ElseWriteMask;
+					/* Abort on read for components that were written in the ELSE
+					 * block. */
+					abort_on_read_at_break |=
+						masks->ElseWriteMask & ~d->AliveWriteMask;
+				} else {
+					abort_on_read_at_break |=
+						masks->IfWriteMask & ~d->AliveWriteMask;
+				}
+			}
+			break;
 		case RC_OPCODE_IF:
 			push_branch_mask(d, &branch_depth);
 			break;
@@ -782,19 +794,16 @@ static void get_readers_for_single_write(
 				get_readers_pair_read_callback, d);
 		}
 
-		/* Writer was in loop and we have some readers after it.
-		 * Set a flag so we can be extra careful in copy propagate.
-		 */
-		if (readers_before_endloop != -1 &&
-			d->ReaderData->ReaderCount > readers_before_endloop)
-			d->ReaderData->ReadersAfterEndloop = true;
-
 		/* This can happen when we jump from an ENDLOOP to BGNLOOP */
 		if (tmp == writer) {
 			tmp = endloop;
 			endloop = NULL;
-			d->ReaderData->AbortOnRead = abort_on_read_at_endloop;
-			readers_before_endloop = d->ReaderData->ReaderCount;
+			d->ReaderData->AbortOnRead = abort_on_read_at_endloop
+							| abort_on_read_at_break;
+			/* Restore the AliveWriteMask to account for all possible
+			 * exits from the loop. */
+			d->AliveWriteMask = alive_write_mask_at_breaks;
+			alive_write_mask_at_breaks = 0;
 			continue;
 		}
 		rc_for_all_writes_mask(tmp, get_readers_write_callback, d);
@@ -802,7 +811,25 @@ static void get_readers_for_single_write(
 		if (d->ReaderData->ExitOnAbort && d->ReaderData->Abort)
 			return;
 
-		if (branch_depth == 0 && !d->AliveWriteMask)
+		/* The check for !endloop in needed for the following scenario:
+		 *
+		 * 0 MOV TEMP[0] none.0
+		 * 1 BGNLOOP
+		 * 2   IF some exit condition
+		 * 3      BRK
+		 * 4   ENDIF
+		 * 5 ADD TEMP[0], TEMP[0], CONST[0]
+		 * 6 ADD TEMP[0], TEMP[0], none.1
+		 * 7 ENDLOOP
+		 * 8 MOV OUT[0] TEMP[0]
+		 *
+		 * When we search for the readers of instruction 6, we encounter the ENDLOOP
+		 * and continue searching at BGNLOOP. At instruction 5 the AliveWriteMask
+		 * becomes 0 and we would stop the search. However we still need to continue
+		 * back to 6 from which we jump after the endloop, restore the AliveWriteMask
+		 * according to the possible states at breaks and continue after the loop.
+                 */
+		if (branch_depth == 0 && !d->AliveWriteMask && !endloop)
 			return;
 	}
 }
@@ -815,6 +842,7 @@ static void init_get_readers_callback_data(
 	rc_pair_read_arg_fn read_pair_cb,
 	rc_read_write_mask_fn write_cb)
 {
+	reader_data->C = c;
 	reader_data->Abort = 0;
 	reader_data->ReaderCount = 0;
 	reader_data->ReadersReserved = 0;

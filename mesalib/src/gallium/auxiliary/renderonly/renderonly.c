@@ -43,11 +43,23 @@ renderonly_scanout_destroy(struct renderonly_scanout *scanout,
 {
    struct drm_mode_destroy_dumb destroy_dumb = {0};
 
-   if (ro->kms_fd != -1) {
+   assert(p_atomic_read(&scanout->refcnt) > 0);
+   if (p_atomic_dec_return(&scanout->refcnt))
+      return;
+
+   simple_mtx_lock(&ro->bo_map_lock);
+
+   /* Someone might have imported this BO while we were waiting for the
+    * lock, let's make sure it's still not referenced before freeing it.
+    */
+   if (p_atomic_read(&scanout->refcnt) == 0 && ro->kms_fd != -1) {
       destroy_dumb.handle = scanout->handle;
+      scanout->handle = 0;
+      scanout->stride = 0;
       drmIoctl(ro->kms_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
    }
-   FREE(scanout);
+
+   simple_mtx_unlock(&ro->bo_map_lock);
 }
 
 struct renderonly_scanout *
@@ -55,7 +67,7 @@ renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
                                                struct renderonly *ro,
                                                struct winsys_handle *out_handle)
 {
-   struct renderonly_scanout *scanout;
+   struct renderonly_scanout *scanout = NULL;
    int err;
    struct drm_mode_create_dumb create_dumb = {
       .width = rsc->width0,
@@ -64,20 +76,26 @@ renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
    };
    struct drm_mode_destroy_dumb destroy_dumb = {0};
 
-   scanout = CALLOC_STRUCT(renderonly_scanout);
-   if (!scanout)
-      return NULL;
-
    /* create dumb buffer at scanout GPU */
    err = drmIoctl(ro->kms_fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb);
    if (err < 0) {
       fprintf(stderr, "DRM_IOCTL_MODE_CREATE_DUMB failed: %s\n",
             strerror(errno));
-      goto free_scanout;
+      return NULL;
    }
+
+   simple_mtx_lock(&ro->bo_map_lock);
+   scanout = util_sparse_array_get(&ro->bo_map, create_dumb.handle);
+   simple_mtx_unlock(&ro->bo_map_lock);
+
+   if (!scanout)
+      goto free_dumb;
 
    scanout->handle = create_dumb.handle;
    scanout->stride = create_dumb.pitch;
+
+   assert(p_atomic_read(&scanout->refcnt) == 0);
+   p_atomic_set(&scanout->refcnt, 1);
 
    if (!out_handle)
       return scanout;
@@ -97,11 +115,14 @@ renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
    return scanout;
 
 free_dumb:
-   destroy_dumb.handle = scanout->handle;
-   drmIoctl(ro->kms_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
+   /* If an error occured, make sure we reset the scanout object before
+    * leaving.
+    */
+   if (scanout)
+      memset(scanout, 0, sizeof(*scanout));
 
-free_scanout:
-   FREE(scanout);
+   destroy_dumb.handle = create_dumb.handle;
+   drmIoctl(ro->kms_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
 
    return NULL;
 }
@@ -112,36 +133,40 @@ renderonly_create_gpu_import_for_resource(struct pipe_resource *rsc,
                                           struct winsys_handle *out_handle)
 {
    struct pipe_screen *screen = rsc->screen;
-   struct renderonly_scanout *scanout;
-   boolean status;
+   struct renderonly_scanout *scanout = NULL;
+   bool status;
+   uint32_t scanout_handle;
    int fd, err;
    struct winsys_handle handle = {
       .type = WINSYS_HANDLE_TYPE_FD
    };
 
-   scanout = CALLOC_STRUCT(renderonly_scanout);
-   if (!scanout)
-      return NULL;
-
    status = screen->resource_get_handle(screen, NULL, rsc, &handle,
          PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE);
    if (!status)
-      goto free_scanout;
+      return NULL;
 
-   scanout->stride = handle.stride;
    fd = handle.handle;
 
-   err = drmPrimeFDToHandle(ro->kms_fd, fd, &scanout->handle);
+   simple_mtx_lock(&ro->bo_map_lock);
+   err = drmPrimeFDToHandle(ro->kms_fd, fd, &scanout_handle);
    close(fd);
 
    if (err < 0)
-      goto free_scanout;
+      goto err_unlock;
+
+   scanout = util_sparse_array_get(&ro->bo_map, scanout_handle);
+   if (!scanout)
+      goto err_unlock;
+
+   if (p_atomic_inc_return(&scanout->refcnt) == 1) {
+      scanout->handle = scanout_handle;
+      scanout->stride = handle.stride;
+   }
+
+err_unlock:
+   simple_mtx_unlock(&ro->bo_map_lock);
 
    return scanout;
-
-free_scanout:
-   FREE(scanout);
-
-   return NULL;
 }
 

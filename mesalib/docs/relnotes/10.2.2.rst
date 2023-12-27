@@ -104,7 +104,7 @@ Ilia Mirkin (7):
 -  nv30: avoid dangling references to deleted contexts
 -  nv30: hack to avoid errors on unexpected color/zeta combinations
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  meta_blit: properly compute texture width for the CopyTexSubImage
    fallback

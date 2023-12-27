@@ -32,7 +32,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -48,7 +47,9 @@
 
 #ifdef _WIN32
 #include "xcb_windefs.h"
+#include <io.h>
 #else
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #endif /* _WIN32 */
@@ -169,6 +170,8 @@ static int write_setup(xcb_connection_t *c, xcb_auth_info_t *auth_info)
 
 static int read_setup(xcb_connection_t *c)
 {
+    const char newline = '\n';
+
     /* Read the server response */
     c->setup = malloc(sizeof(xcb_setup_generic_t));
     if(!c->setup)
@@ -194,6 +197,7 @@ static int read_setup(xcb_connection_t *c)
         {
             xcb_setup_failed_t *setup = (xcb_setup_failed_t *) c->setup;
             write(STDERR_FILENO, xcb_setup_failed_reason(setup), xcb_setup_failed_reason_length(setup));
+            write(STDERR_FILENO, &newline, 1);
             return 0;
         }
 
@@ -201,6 +205,7 @@ static int read_setup(xcb_connection_t *c)
         {
             xcb_setup_authenticate_t *setup = (xcb_setup_authenticate_t *) c->setup;
             write(STDERR_FILENO, xcb_setup_authenticate_reason(setup), xcb_setup_authenticate_reason_length(setup));
+            write(STDERR_FILENO, &newline, 1);
             return 0;
         }
     }
@@ -211,33 +216,47 @@ static int read_setup(xcb_connection_t *c)
 /* precondition: there must be something for us to write. */
 static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
 {
+#ifndef _WIN32
     int n;
+#endif
+
     assert(!c->out.queue_len);
 
 #ifdef _WIN32
-    int i = 0;
-    int ret = 0,err = 0;
-    struct iovec *vec;
-    n = 0;
-
     /* Could use the WSASend win32 function for scatter/gather i/o but setting up the WSABUF struct from
        an iovec would require more work and I'm not sure of the benefit....works for now */
-    vec = *vector;
-    while(i < *count)
+    while (*count)
     {
-         ret = send(c->fd,vec->iov_base,vec->iov_len,0);
-         if(ret == SOCKET_ERROR)
-         {
-             err  = WSAGetLastError();
-             if(err == WSAEWOULDBLOCK)
-             {
-                 return 1;
-             }
-         }
-         n += ret;
-         *vec++;
-         i++;
+        struct iovec *vec = *vector;
+        if (vec->iov_len)
+        {
+            int ret = send(c->fd, vec->iov_base, vec->iov_len, 0);
+            if (ret == SOCKET_ERROR)
+            {
+                int err = WSAGetLastError();
+                if (err == WSAEWOULDBLOCK)
+                {
+                    return 1;
+                }
+            }
+            if (ret <= 0)
+            {
+                _xcb_conn_shutdown(c, XCB_CONN_ERROR);
+                return 0;
+            }
+            c->out.total_written += ret;
+            vec->iov_len -= ret;
+            vec->iov_base = (char *)vec->iov_base + ret;
+        }
+        if (vec->iov_len == 0) {
+            (*vector)++;
+            (*count)--;
+        }
     }
+
+    if (!*count)
+        *vector = 0;
+
 #else
     n = *count;
     if (n > IOV_MAX)
@@ -279,28 +298,32 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
             return 1;
     }
 
-#endif /* _WIN32 */
-
     if(n <= 0)
     {
         _xcb_conn_shutdown(c, XCB_CONN_ERROR);
         return 0;
     }
 
+    c->out.total_written += n;
     for(; *count; --*count, ++*vector)
     {
         int cur = (*vector)->iov_len;
         if(cur > n)
             cur = n;
-        (*vector)->iov_len -= cur;
-        (*vector)->iov_base = (char *) (*vector)->iov_base + cur;
-        n -= cur;
+        if(cur) {
+            (*vector)->iov_len -= cur;
+            (*vector)->iov_base = (char *) (*vector)->iov_base + cur;
+            n -= cur;
+        }
         if((*vector)->iov_len)
             break;
     }
     if(!*count)
         *vector = 0;
     assert(n == 0);
+
+#endif /* _WIN32 */
+
     return 1;
 }
 
@@ -344,7 +367,11 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info)
 
     c = calloc(1, sizeof(xcb_connection_t));
     if(!c) {
+#ifdef _WIN32
+        closesocket(fd);
+#else
         close(fd);
+#endif
         return _xcb_conn_ret_error(XCB_CONN_CLOSED_MEM_INSUFFICIENT) ;
     }
 
@@ -377,7 +404,11 @@ void xcb_disconnect(xcb_connection_t *c)
 
     /* disallow further sends and receives */
     shutdown(c->fd, SHUT_RDWR);
+#ifdef _WIN32
+    closesocket(c->fd);
+#else
     close(c->fd);
+#endif
 
     pthread_mutex_destroy(&c->iolock);
     _xcb_in_destroy(&c->in);
@@ -527,4 +558,31 @@ int _xcb_conn_wait(xcb_connection_t *c, pthread_cond_t *cond, struct iovec **vec
     --c->in.reading;
 
     return ret;
+}
+
+uint64_t xcb_total_read(xcb_connection_t *c)
+{
+    uint64_t n;
+
+    if (xcb_connection_has_error(c))
+        return 0;
+
+    pthread_mutex_lock(&c->iolock);
+    n = c->in.total_read;
+    pthread_mutex_unlock(&c->iolock);
+    return n;
+}
+
+uint64_t xcb_total_written(xcb_connection_t *c)
+{
+    uint64_t n;
+
+    if (xcb_connection_has_error(c))
+        return 0;
+
+    pthread_mutex_lock(&c->iolock);
+    n = c->out.total_written;
+    pthread_mutex_unlock(&c->iolock);
+
+    return n;
 }

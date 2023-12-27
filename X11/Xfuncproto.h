@@ -163,19 +163,6 @@ in this Software without prior written authorization from The Open Group.
 # define _X_ATTRIBUTE_PRINTF(x,y)
 #endif
 
-/* requires xproto >= 7.0.22 - since this uses either gcc or C99 variable
-   argument macros, must be only used inside #ifdef _X_NONNULL guards, as
-   many legacy X clients are compiled in C89 mode still. */
-#if __has_attribute(nonnull) \
-    && defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L) /* C99 */
-#define _X_NONNULL(...)  __attribute__((nonnull(__VA_ARGS__)))
-#elif __has_attribute(nonnull) \
-    || defined(__GNUC__) &&  ((__GNUC__ * 100 + __GNUC_MINOR__) >= 303)
-#define _X_NONNULL(args...)  __attribute__((nonnull(args)))
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L) /* C99 */
-#define _X_NONNULL(...)  /* */
-#endif
-
 /* requires xproto >= 7.0.22 */
 #if __has_attribute(__unused__) \
     || defined(__GNUC__) &&  ((__GNUC__ * 100 + __GNUC_MINOR__) >= 205)

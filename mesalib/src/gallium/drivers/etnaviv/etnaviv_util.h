@@ -26,90 +26,44 @@
 #define H_ETNA_UTIL
 
 #include <math.h>
+#include "mesa/main/macros.h"
 
 /* for conditionally setting boolean flag(s): */
 #define COND(bool, val) ((bool) ? (val) : 0)
-
-/* clamped float [0.0 .. 1.0] -> [0 .. 255] */
-static inline uint8_t
-etna_cfloat_to_uint8(float f)
-{
-   if (f <= 0.0f)
-      return 0;
-
-   if (f >= (1.0f - 1.0f / 256.0f))
-      return 255;
-
-   return f * 256.0f;
-}
-
-/* clamped float [0.0 .. 1.0] -> [0 .. (1<<bits)-1] */
-static inline uint32_t
-etna_cfloat_to_uintN(float f, int bits)
-{
-   if (f <= 0.0f)
-      return 0;
-
-   if (f >= (1.0f - 1.0f / (1 << bits)))
-      return (1 << bits) - 1;
-
-   return f * (1 << bits);
-}
-
-/* 1/log10(2) */
-#define RCPLOG2 (1.4426950408889634f)
 
 /* float to fixp 5.5 */
 static inline uint32_t
 etna_float_to_fixp55(float f)
 {
-   if (f >= 15.953125f)
-      return 511;
-
-   if (f < -16.0f)
-      return 512;
-
-   return (int32_t)(f * 32.0f + 0.5f);
+   return U_FIXED(f, 5);
 }
 
 /* float to fixp 8.8 */
 static inline uint32_t
 etna_float_to_fixp88(float f)
 {
-   if (f >= (32767.0 - 1.0f) / 256.0f)
-      return 32767;
-
-   if (f < -16.0f)
-      return 32768;
-
-   return (int32_t)(f * 256.0f + 0.5f);
+   return U_FIXED(f, 8);
 }
 
 /* texture size to log2 in fixp 5.5 format */
 static inline uint32_t
 etna_log2_fixp55(unsigned width)
 {
-   return etna_float_to_fixp55(logf((float)width) * RCPLOG2);
+   return etna_float_to_fixp55(log2f((float)width));
 }
 
 /* texture size to log2 in fixp 8.8 format */
 static inline uint32_t
 etna_log2_fixp88(unsigned width)
 {
-   return etna_float_to_fixp88(logf((float)width) * RCPLOG2);
+   return etna_float_to_fixp88(log2f((float)width));
 }
 
 /* float to fixp 16.16 */
 static inline uint32_t
 etna_f32_to_fixp16(float f)
 {
-   if (f >= (32768.0f - 1.0f / 65536.0f))
-      return 0x7fffffff;
-
-   if (f < -32768.0f)
-      return 0x80000000;
-
-   return (int32_t)(f * 65536.0f + 0.5f);
+   return S_FIXED(f, 16);
 }
 
 #endif

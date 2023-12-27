@@ -29,7 +29,7 @@
 #ifndef U_PSTIPPLE_H
 #define U_PSTIPPLE_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #ifdef __cplusplus
 extern "C" {

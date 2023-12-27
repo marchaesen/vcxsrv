@@ -67,7 +67,7 @@ Iago Toral Quiroga (2):
 - v3dv: fix pool descriptor count for inline uniform buffers
 - nir: fix documentation for uadd_carry and usub_borry opcodes
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 - vulkan/wsi: Pass the size to MapMemory in the SW path
 - vulkan/wsi/x11: Don't leak shm_reply if we don't have dri3 or present

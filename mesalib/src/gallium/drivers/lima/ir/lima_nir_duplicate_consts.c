@@ -34,9 +34,9 @@ lima_nir_duplicate_load_const(nir_builder *b, nir_load_const_instr *load)
    nir_foreach_use_safe(use_src, &load->def) {
       nir_load_const_instr *dupl;
 
-      if (last_parent_instr != use_src->parent_instr) {
+      if (last_parent_instr != nir_src_parent_instr(use_src)) {
          /* if ssa use, clone for the target block */
-         b->cursor = nir_before_instr(use_src->parent_instr);
+         b->cursor = nir_before_instr(nir_src_parent_instr(use_src));
 
          dupl = nir_load_const_instr_create(b->shader, load->def.num_components,
                                             load->def.bit_size);
@@ -49,18 +49,19 @@ lima_nir_duplicate_load_const(nir_builder *b, nir_load_const_instr *load)
          dupl = last_dupl;
       }
 
-      nir_instr_rewrite_src(use_src->parent_instr, use_src, nir_src_for_ssa(&dupl->def));
-      last_parent_instr = use_src->parent_instr;
+      nir_src_rewrite(use_src, &dupl->def);
+      last_parent_instr = nir_src_parent_instr(use_src);
       last_dupl = dupl;
    }
 
    last_dupl = NULL;
-   last_parent_instr = NULL;
+   nir_if *last_parent_if = NULL;
 
    nir_foreach_if_use_safe(use_src, &load->def) {
       nir_load_const_instr *dupl;
+      nir_if *nif = nir_src_parent_if(use_src);
 
-      if (last_parent_instr != use_src->parent_instr) {
+      if (last_parent_if != nif) {
          /* if 'if use', clone where it is */
          b->cursor = nir_before_instr(&load->instr);
 
@@ -75,8 +76,8 @@ lima_nir_duplicate_load_const(nir_builder *b, nir_load_const_instr *load)
          dupl = last_dupl;
       }
 
-      nir_if_rewrite_condition(use_src->parent_if, nir_src_for_ssa(&dupl->def));
-      last_parent_instr = use_src->parent_instr;
+      nir_src_rewrite(&nir_src_parent_if(use_src)->condition, &dupl->def);
+      last_parent_if = nif;
       last_dupl = dupl;
    }
 
@@ -87,8 +88,7 @@ lima_nir_duplicate_load_const(nir_builder *b, nir_load_const_instr *load)
 static void
 lima_nir_duplicate_load_consts_impl(nir_shader *shader, nir_function_impl *impl)
 {
-   nir_builder builder;
-   nir_builder_init(&builder, impl);
+   nir_builder builder = nir_builder_create(impl);
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr(instr, block) {
@@ -118,9 +118,7 @@ lima_nir_duplicate_load_consts_impl(nir_shader *shader, nir_function_impl *impl)
 void
 lima_nir_duplicate_load_consts(nir_shader *shader)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         lima_nir_duplicate_load_consts_impl(shader, function->impl);
-      }
+   nir_foreach_function_impl(impl, shader) {
+      lima_nir_duplicate_load_consts_impl(shader, impl);
    }
 }

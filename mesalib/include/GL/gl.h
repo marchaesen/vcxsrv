@@ -36,15 +36,12 @@
 #endif
 
 #if defined(__WIN32__) && !defined(__CYGWIN__)
-#  if (defined(_MSC_VER) || defined(__MINGW32__)) && defined(BUILD_GL32) /* tag specify we're building mesa as a DLL */
-#    define GLAPI __declspec(dllexport)
-#  else
-#    define GLAPI extern
-#  endif
-#  if defined(__MINGW32__) && defined(GL_NO_STDCALL) || defined(UNDER_CE)  /* The generated DLLs by MingW with STDCALL are not compatible with the ones done by Microsoft's compilers */
-#    define GLAPIENTRY
-#  else
+#  define GLAPI extern
+#  if !defined(_WIN32_WCE) && !defined(__SCITECH_SNAP__)
+     /* Win32 but not WinCE */
 #    define GLAPIENTRY __stdcall
+#  else
+#    define GLAPIENTRY
 #  endif
 #elif defined(__CYGWIN__) && defined(USE_OPENGL32) /* use native windows opengl32 */
 #  define GLAPI extern

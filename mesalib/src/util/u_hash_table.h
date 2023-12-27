@@ -33,8 +33,9 @@
 #define U_HASH_TABLE_H_
 
 
-#include "pipe/p_defines.h"
+#include "util/detect.h"
 #include "util/hash_table.h"
+#include "util/macros.h"
 
 
 #ifdef __cplusplus
@@ -60,9 +61,9 @@ util_hash_table_get(struct hash_table *ht,
                     void *key);
 
 
-enum pipe_error
+int
 util_hash_table_foreach(struct hash_table *ht,
-                        enum pipe_error (*callback)
+                        int (*callback)
                         (void *key, void *value, void *data),
                         void *data);
 

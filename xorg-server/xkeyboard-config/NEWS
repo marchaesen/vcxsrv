@@ -1,3 +1,11 @@
+2.40	123 commits
+	Translations updated
+2.39	121 commits
+	Translations updated
+2.38	22 commits
+	Translations updated
+2.37	96 commits
+	Translations updated
 2.36	120 commits (most: Benno Schulenberg)
 	Translations updated
 2.35	45 commits
@@ -92,9 +100,9 @@
 1.9	Bugfixes (27). Updated/new translations. Some new layouts and models.
 	The evdev model is gone, use pc105 instead.
 	Some fixes for the build process
-1.8	Bugfixes (10). Updated/new translations. Some new layouts and models. 
-1.7	Bugfixes (30). Updated/new translations. Some new layouts and models. 
-1.6	Bugfixes (36). Updated/new translations. Some new layouts and models. 
+1.8	Bugfixes (10). Updated/new translations. Some new layouts and models.
+1.7	Bugfixes (30). Updated/new translations. Some new layouts and models.
+1.6	Bugfixes (36). Updated/new translations. Some new layouts and models.
 	Added terminate:* group
 	Dropped locale-specific models
 	Improved compat rules
@@ -116,7 +124,7 @@
 	The group names now are matching the descriptions - and the validating
 	scripts are implemented.
 	Some layouts, variants, models are added/fixed.
-	Some translations are updated (though the overall translation activity 
+	Some translations are updated (though the overall translation activity
 	is disappointinly low).
 0.4	A lot of fixes and polishing (introduced own CVS keyword).
 	Highlights:
@@ -130,5 +138,5 @@
 	Added HOWTO.transition.
         Added Maori layout.
 	Fixed bug 515.
-0.1	First public release. 
+0.1	First public release.
 	XKB configuration only. Restructured layouts tree. Only additive layouts are included. No compatibility rules.

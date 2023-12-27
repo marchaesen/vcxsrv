@@ -4,7 +4,7 @@
 # Please see the ci-templates documentation for details:
 # https://freedesktop.pages.freedesktop.org/ci-templates/
 
-.templates_sha: &template_sha 34f4ade99434043f88e164933f570301fd18b125 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+.templates_sha: &template_sha 185ede0e9b9b1924b92306ab8b882a6294e92613 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
 
 
 include:
@@ -31,8 +31,8 @@ variables:
   # The tag should be updated each time the list of packages is updated.
   # Changing a tag forces the associated image to be rebuilt.
   # Note: the tag has no meaning, we use a date format purely for readability
-  FDO_DISTRIBUTION_TAG:  '2022-05-10.0'
-  FDO_DISTRIBUTION_PACKAGES: 'git gcc pkgconf autoconf automake make xutils-dev xmlto xorg-sgml-doctools w3m xsltproc fop'
+  FDO_DISTRIBUTION_TAG:  '2023-10-13.1'
+  FDO_DISTRIBUTION_PACKAGES: 'git gcc pkgconf autoconf automake make libc-dev xutils-dev xmlto xorg-sgml-doctools w3m xsltproc fop xz-utils'
 
 
 #
@@ -97,3 +97,9 @@ build:
     - make check
     - make distcheck
     - popd > /dev/null
+  artifacts:
+    name: "automake-logs-$CI_JOB_NAME"
+    when: always
+    expire_in: 1 week
+    paths:
+      - _builddir/config.log

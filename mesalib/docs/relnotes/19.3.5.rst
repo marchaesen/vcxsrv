@@ -103,7 +103,7 @@ Ian Romanick (1):
 
 -  intel/fs: Correctly handle multiply of fsign with a source modifier
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  isl: Set 3DSTATE_DEPTH_BUFFER::Depth correctly for 3D surfaces
 -  iris: Don't skip fast depth clears if the color changed

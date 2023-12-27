@@ -62,12 +62,12 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(vk_command_pool, base, VkCommandPool,
 
 /** Initialize a vk_command_pool
  *
- * @param[in]  device      The Vulkan device
- * @param[out] pool        The command pool to initialize
- * @param[in]  pCreateInfo VkCommandPoolCreateInfo pointer passed to
- *                         `vkCreateCommandPool()`
- * @param[in]  pAllocator  Allocation callbacks passed to
- *                         `vkCreateCommandPool()`
+ * :param device:       |in|  The Vulkan device
+ * :param pool:         |out| The command pool to initialize
+ * :param pCreateInfo:  |in|  VkCommandPoolCreateInfo pointer passed to
+ *                            `vkCreateCommandPool()`
+ * :param pAllocator:   |in|   Allocation callbacks passed to
+ *                            `vkCreateCommandPool()`
  */
 VkResult MUST_CHECK
 vk_command_pool_init(struct vk_device *device,
@@ -77,7 +77,7 @@ vk_command_pool_init(struct vk_device *device,
 
 /** Tear down a vk_command_pool
  *
- * @param[inout]  pool     The command pool to tear down
+ * :param pool:         |inout| The command pool to tear down
  */
 void
 vk_command_pool_finish(struct vk_command_pool *pool);
@@ -90,8 +90,8 @@ vk_command_pool_finish(struct vk_command_pool *pool);
  * should be called before doing any driver-specific trimming in case it ends
  * up returning driver-internal resources to the pool.
  *
- * @param[inout]  pool     The command pool to trim
- * @param[in]     flags    Flags controling the trim operation
+ * :param pool:         |inout| The command pool to trim
+ * :param flags:        |in|    Flags controling the trim operation
  */
 void
 vk_command_pool_trim(struct vk_command_pool *pool,

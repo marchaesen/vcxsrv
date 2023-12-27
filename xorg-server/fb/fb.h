@@ -441,7 +441,7 @@ typedef struct {
 #define __fbPixDrawableX(pPix)	((pPix)->drawable.x)
 #define __fbPixDrawableY(pPix)	((pPix)->drawable.y)
 
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
 #define __fbPixOffXWin(pPix)	(__fbPixDrawableX(pPix) - (pPix)->screen_x)
 #define __fbPixOffYWin(pPix)	(__fbPixDrawableY(pPix) - (pPix)->screen_y)
 #else
@@ -1027,7 +1027,6 @@ extern _X_EXPORT Bool
                int dpiy, int width,     /* pixel width of frame buffer */
                int bpp);        /* bits per pixel of frame buffer */
 
-#ifdef FB_ACCESS_WRAPPER
 extern _X_EXPORT Bool
 wfbFinishScreenInit(ScreenPtr pScreen,
                     void *pbits,
@@ -1049,7 +1048,6 @@ wfbScreenInit(ScreenPtr pScreen,
               int width,
               int bpp,
               SetupWrapProcPtr setupWrap, FinishWrapProcPtr finishWrap);
-#endif
 
 extern _X_EXPORT Bool
 fbFinishScreenInit(ScreenPtr pScreen,
@@ -1096,6 +1094,45 @@ extern _X_EXPORT void
 fbSolid(FbBits * dst,
         FbStride dstStride,
         int dstX, int bpp, int width, int height, FbBits and, FbBits xor);
+
+/*
+ * fbtile.c
+ */
+
+extern _X_EXPORT void
+
+fbEvenTile(FbBits * dst,
+           FbStride dstStride,
+           int dstX,
+           int width,
+           int height,
+           FbBits * tile,
+           FbStride tileStride,
+           int tileHeight, int alu, FbBits pm, int xRot, int yRot);
+
+extern _X_EXPORT void
+
+fbOddTile(FbBits * dst,
+          FbStride dstStride,
+          int dstX,
+          int width,
+          int height,
+          FbBits * tile,
+          FbStride tileStride,
+          int tileWidth,
+          int tileHeight, int alu, FbBits pm, int bpp, int xRot, int yRot);
+
+extern _X_EXPORT void
+
+fbTile(FbBits * dst,
+       FbStride dstStride,
+       int dstX,
+       int width,
+       int height,
+       FbBits * tile,
+       FbStride tileStride,
+       int tileWidth,
+       int tileHeight, int alu, FbBits pm, int bpp, int xRot, int yRot);
 
 /*
  * fbutil.c

@@ -21,42 +21,42 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-@RET@		FcFontSet *
-@FUNC@		FcFontSetCreate
-@TYPE1@		void
-@PURPOSE@	Create a font set
+@RET@           FcFontSet *
+@FUNC@          FcFontSetCreate
+@TYPE1@         void
+@PURPOSE@       Create a font set
 @DESC@
 Creates an empty font set.
 @@
 
-@RET@		void
-@FUNC@		FcFontSetDestroy
-@TYPE1@		FcFontSet *			@ARG1@		s
-@PURPOSE@	Destroy a font set
+@RET@           void
+@FUNC@          FcFontSetDestroy
+@TYPE1@         FcFontSet *                     @ARG1@          s
+@PURPOSE@       Destroy a font set
 @DESC@
 Destroys a font set.  Note that this destroys any referenced patterns as
 well.
 @@
 
-@RET@		FcBool
-@FUNC@		FcFontSetAdd
-@TYPE1@		FcFontSet *			@ARG1@		s
-@TYPE2@		FcPattern *			@ARG2@		font
-@PURPOSE@	Add to a font set
+@RET@           FcBool
+@FUNC@          FcFontSetAdd
+@TYPE1@         FcFontSet *                     @ARG1@          s
+@TYPE2@         FcPattern *                     @ARG2@          font
+@PURPOSE@       Add to a font set
 @DESC@
 Adds a pattern to a font set.  Note that the pattern is not copied before
 being inserted into the set. Returns FcFalse if the pattern cannot be
 inserted into the set (due to allocation failure). Otherwise returns FcTrue.
 @@
 
-@RET@		FcFontSet *
-@FUNC@		FcFontSetList
-@TYPE1@		FcConfig *			@ARG1@		config
-@TYPE2@		FcFontSet **			@ARG2@		sets
-@TYPE3@		int				@ARG3@		nsets
-@TYPE4@		FcPattern *			@ARG4@		pattern
-@TYPE5@		FcObjectSet *			@ARG5@		object_set
-@PURPOSE@	List fonts from a set of font sets
+@RET@           FcFontSet *
+@FUNC@          FcFontSetList
+@TYPE1@         FcConfig *                      @ARG1@          config
+@TYPE2@         FcFontSet **                    @ARG2@          sets
+@TYPE3@         int                             @ARG3@          nsets
+@TYPE4@         FcPattern *                     @ARG4@          pattern
+@TYPE5@         FcObjectSet *                   @ARG5@          object_set
+@PURPOSE@       List fonts from a set of font sets
 @DESC@
 Selects fonts matching <parameter>pattern</parameter> from
 <parameter>sets</parameter>, creates patterns from those
@@ -66,14 +66,14 @@ If <parameter>config</parameter> is NULL, the default configuration is checked
 to be up to date, and used.
 @@
 
-@RET@		FcPattern *
-@FUNC@		FcFontSetMatch
-@TYPE1@		FcConfig *			@ARG1@		config
-@TYPE2@		FcFontSet **			@ARG2@		sets
-@TYPE3@		int				@ARG3@		nsets
-@TYPE4@		FcPattern *			@ARG4@		pattern
-@TYPE5@		FcResult *			@ARG5@		result
-@PURPOSE@	Return the best font from a set of font sets
+@RET@           FcPattern *
+@FUNC@          FcFontSetMatch
+@TYPE1@         FcConfig *                      @ARG1@          config
+@TYPE2@         FcFontSet **                    @ARG2@          sets
+@TYPE3@         int                             @ARG3@          nsets
+@TYPE4@         FcPattern *                     @ARG4@          pattern
+@TYPE5@         FcResult *                      @ARG5@          result
+@PURPOSE@       Return the best font from a set of font sets
 @DESC@
 Finds the font in <parameter>sets</parameter> most closely matching
 <parameter>pattern</parameter> and returns the result of
@@ -86,10 +86,10 @@ If <parameter>config</parameter> is NULL, the current configuration is used.
 Returns NULL if an error occurs during this process.
 @@
 
-@RET@		void
-@FUNC@		FcFontSetPrint
-@TYPE1@		FcFontSet *			@ARG1@		set
-@PURPOSE@	Print a set of patterns to stdout
+@RET@           void
+@FUNC@          FcFontSetPrint
+@TYPE1@         FcFontSet *                     @ARG1@          set
+@PURPOSE@       Print a set of patterns to stdout
 @DESC@
 This function is useful for diagnosing font related issues, printing the
 complete contents of every pattern in <parameter>set</parameter>. The format
@@ -97,19 +97,19 @@ of the output is designed to be of help to users and developers, and may
 change at any time.
 @@
 
-@RET@		FcFontSet *
-@FUNC@		FcFontSetSort
-@TYPE1@         FcConfig *			@ARG1@		config
-@TYPE2@		FcFontSet **			@ARG2@		sets
-@TYPE3@		int				@ARG3@		nsets
-@TYPE4@		FcPattern *			@ARG4@		pattern
-@TYPE5@		FcBool%				@ARG5@		trim
-@TYPE6@		FcCharSet **			@ARG6@		csp
-@TYPE7@		FcResult *                      @ARG7@          result
-@PURPOSE@	Add to a font set
+@RET@           FcFontSet *
+@FUNC@          FcFontSetSort
+@TYPE1@         FcConfig *                      @ARG1@          config
+@TYPE2@         FcFontSet **                    @ARG2@          sets
+@TYPE3@         int                             @ARG3@          nsets
+@TYPE4@         FcPattern *                     @ARG4@          pattern
+@TYPE5@         FcBool%                         @ARG5@          trim
+@TYPE6@         FcCharSet **                    @ARG6@          csp
+@TYPE7@         FcResult *                      @ARG7@          result
+@PURPOSE@       Add to a font set
 @DESC@
 Returns the list of fonts from <parameter>sets</parameter>
-sorted by closeness to <parameter>pattern</parameter>.  
+sorted by closeness to <parameter>pattern</parameter>.
 If <parameter>trim</parameter> is FcTrue,
 elements in the list which don't include Unicode coverage not provided by
 earlier elements in the list are elided.  The union of Unicode coverage of
@@ -128,10 +128,10 @@ modify these patterns.  Instead, they should be passed, along with
 The FcFontSet returned by FcFontSetSort is destroyed by calling FcFontSetDestroy.
 @@
 
-@RET@		void
-@FUNC@		FcFontSetSortDestroy
-@TYPE1@		FcFontSet *			@ARG1@		set
-@PURPOSE@	DEPRECATED destroy a font set
+@RET@           void
+@FUNC@          FcFontSetSortDestroy
+@TYPE1@         FcFontSet *                     @ARG1@          set
+@PURPOSE@       DEPRECATED destroy a font set
 @DESC@
 This function is DEPRECATED. <function>FcFontSetSortDestroy</function>
 destroys <parameter>set</parameter> by calling

@@ -2360,7 +2360,7 @@ svga_dump_command(uint32_t cmd_id, const void *data, uint32_t size)
          body = (const uint8_t *)&cmd[1];
          svga_shader_dump((const uint32_t *)body, 
                       (unsigned)(next - body)/sizeof(uint32_t),
-                      FALSE );
+                      false );
          body = next;
       }
       break;

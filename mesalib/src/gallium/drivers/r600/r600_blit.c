@@ -199,7 +199,7 @@ static void r600_blit_decompress_depth(struct pipe_context *ctx,
 		}
 	}
 
-	/* reenable compression in DB_RENDER_CONTROL */
+	/* re-enable compression in DB_RENDER_CONTROL */
 	rctx->db_misc_state.flush_depthstencil_through_cb = false;
 	r600_mark_atom_dirty(rctx, &rctx->db_misc_state.atom);
 }
@@ -806,7 +806,7 @@ void r600_resource_copy_region(struct pipe_context *ctx,
 	util_blitter_blit_generic(rctx->blitter, dst_view, &dstbox,
 				  src_view, src_box, src_width0, src_height0,
 				  PIPE_MASK_RGBAZS, PIPE_TEX_FILTER_NEAREST, NULL,
-				  FALSE, FALSE, 0);
+				  false, false, 0);
 	r600_blitter_end(ctx);
 
 	pipe_surface_reference(&dst_view, NULL);

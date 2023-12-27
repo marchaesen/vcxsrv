@@ -1247,19 +1247,18 @@ transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
 }
 
 static void
-storeLastValuators(DeviceIntPtr dev, ValuatorMask *mask,
-                   int xaxis, int yaxis, double devx, double devy)
+storeLastValuators(DeviceIntPtr dev, ValuatorMask *mask, double devx, double devy)
 {
     int i;
 
     /* store desktop-wide in last.valuators */
-    if (valuator_mask_isset(mask, xaxis))
+    if (valuator_mask_isset(mask, 0))
         dev->last.valuators[0] = devx;
-    if (valuator_mask_isset(mask, yaxis))
+    if (valuator_mask_isset(mask, 1))
         dev->last.valuators[1] = devy;
 
     for (i = 0; i < valuator_mask_size(mask); i++) {
-        if (i == xaxis || i == yaxis)
+        if (i == 0 || i == 1)
             continue;
 
         if (valuator_mask_isset(mask, i))
@@ -1448,7 +1447,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
 
     clipValuators(pDev, &mask);
 
-    storeLastValuators(pDev, &mask, 0, 1, devx, devy);
+    storeLastValuators(pDev, &mask, devx, devy);
 
     /* Update the MD's coordinates, which are always in desktop space. */
     if (!IsMaster(pDev) && !IsFloating(pDev)) {
@@ -1501,7 +1500,8 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
  * @param type The real type of the event
  * @param axis The axis number to generate events for
  * @param mask State before this event in absolute coords
- * @param[in,out] last Last scroll state posted in absolute coords (modified
+ * @param last_valuators The device's last valuators value
+ * @param[in,out] lastScroll Last scroll state posted in absolute coords (modified
  * in-place)
  * @param ms Current time in ms
  * @param max_events Max number of events to be generated
@@ -1513,15 +1513,19 @@ emulate_scroll_button_events(InternalEvent *events,
                              int type,
                              int axis,
                              const ValuatorMask *mask,
-                             ValuatorMask *last, CARD32 ms, int max_events)
+                             const ValuatorMask *last_valuators,
+                             ValuatorMask *lastScroll, CARD32 ms, int max_events)
 {
     AxisInfoPtr ax;
     double delta;
     double incr;
+    int direction = 0; /* -1 for up, 1 for down */
     int num_events = 0;
-    double total;
     int b;
     int flags = 0;
+    double last_val,    /* abs axis value from previous event */
+           current_val, /* abs axis value for this event */
+           last_scroll_val; /* abs axis value we sent out the last scroll button for */
 
     if (dev->valuator->axes[axis].scroll.type == SCROLL_TYPE_NONE)
         return 0;
@@ -1539,25 +1543,73 @@ emulate_scroll_button_events(InternalEvent *events,
     if (type != ButtonPress && type != ButtonRelease)
         flags |= POINTER_EMULATED;
 
-    if (!valuator_mask_isset(last, axis))
-        valuator_mask_set_double(last, axis, 0);
+    if (!valuator_mask_isset(lastScroll, axis))
+        valuator_mask_set_double(lastScroll, axis, 0);
 
-    delta =
-        valuator_mask_get_double(mask, axis) - valuator_mask_get_double(last,
-                                                                        axis);
-    total = delta;
+    /* The delta between the last value we sent a scroll button event for
+     * and the current event value (which has been applied already in
+     * fill_pointer_events). This tells us the scroll direction. */
+    delta = valuator_mask_get_double(mask, axis) - valuator_mask_get_double(lastScroll, axis);
+    direction = delta * incr > 0 ? 1 : -1;
+
     b = (ax->scroll.type == SCROLL_TYPE_VERTICAL) ? 5 : 7;
-
-    if ((incr > 0 && delta < 0) || (incr < 0 && delta > 0))
+    if (direction < 0)
         b--;                    /* we're scrolling up or left → button 4 or 6 */
 
-    while (fabs(delta) >= fabs(incr)) {
-        int nev_tmp;
+    /* Note: we emulate scroll on multiples of the increment, regardless of the
+     * current delta, mostly for the benefit of Xwayland which doesn't (cannot)
+     * distinguish between devices, see #1339 and #1414.
+     *
+     * Where a device scrolls a fraction of an increment, a subsequent scroll in
+     * the other direction did not trigger a scroll event. For example, where
+     * the increment is 1.0, the current axis value is 3.0 and a device scrolls
+     * down by 0.7 (a), then up by -1.0 (b), no scroll event was emitted:
+     *      -----|------b--|------a--|----
+     *          2.0       3.0       4.0
+     * For both events, the last button was sent at 3.0 and since the delta
+     * from that is never a full increment, no events were generated.
+     * With Xwayland this can happen when we switch between smooth-scroll
+     * devices and discrete devices.
+     *
+     * To avoid this, we now emulate button events whenever we cross a multiple
+     * of the scroll increment. For example, for a scroll increment of 1.0
+     * we expect events at -2.0, -1.0, 0.0, 1.0, 2.0,...
+     *
+     * In the above example, we go from 3.0 to 3.7 (no scroll button event),
+     * then from 3.7 to 2.7 which triggers a scroll button event because we
+     * cross 3.0.
+     *
+     * This trades off one bug for another. Previously, the first scroll button
+     * event after changing direction was always between
+     * [increment, 2 * increment). Above example again: the first event would be
+     * emulated at 2.0 so the full movement before a button event was actually
+     * -1.7.
+     *
+     * Now, the first scroll button event is always between (0.0, increment).
+     * Above example again: the first event would be emulated at 3.0
+     * so the full movement before a button event was actually -0.7.
+     *
+     * This only affects changes of directions. Above example again: the next
+     * button event in-direction would've been emulated at 4.0 so only 0.3
+     * from the current position.
+     */
+    last_val = valuator_mask_get_double(last_valuators, axis);
+    last_scroll_val = valuator_mask_get_double(lastScroll, axis);
+    current_val = valuator_mask_get_double(mask, axis);
 
-        if (delta > 0)
-            delta -= fabs(incr);
-        else if (delta < 0)
-            delta += fabs(incr);
+    /* We're crossing an increment multiple? */
+    if ((current_val < last_scroll_val && last_scroll_val < last_val) ||
+        (last_val < last_scroll_val && last_scroll_val < current_val)) {
+        last_scroll_val -= direction * incr;
+    }
+
+    while (TRUE) {
+        /* The next value we want to send out a button event for */
+        double next_val = last_scroll_val + direction * incr;
+
+        if ((((direction > 0 && incr > 0) || (direction < 0 && incr < 0)) && (next_val > current_val)) ||
+            (((direction > 0 && incr < 0) || (direction < 0 && incr > 0)) && (next_val < current_val)))
+            break;
 
         /* fill_pointer_events() generates four events: one normal and one raw
          * event for button press and button release.
@@ -1565,6 +1617,8 @@ emulate_scroll_button_events(InternalEvent *events,
          * for. In that case, we keep decreasing delta, but skip events.
          */
         if (num_events + 4 < max_events) {
+            int nev_tmp;
+
             if (type != ButtonRelease) {
                 nev_tmp = fill_pointer_events(events, dev, ButtonPress, b, ms,
                                               flags, NULL);
@@ -1578,14 +1632,11 @@ emulate_scroll_button_events(InternalEvent *events,
                 num_events += nev_tmp;
             }
         }
+        /* send out scroll event */
+        last_scroll_val = next_val;
     }
 
-    /* We emulated, update last.scroll */
-    if (total != delta) {
-        total -= delta;
-        valuator_mask_set_double(last, axis,
-                                 valuator_mask_get_double(last, axis) + total);
-    }
+    valuator_mask_set_double(lastScroll, axis, last_scroll_val);
 
     return num_events;
 }
@@ -1615,6 +1666,7 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
 {
     CARD32 ms = GetTimeInMillis();
     int num_events = 0, nev_tmp;
+    ValuatorMask last_valuators;
     ValuatorMask mask;
     ValuatorMask scroll;
     int i;
@@ -1642,6 +1694,12 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
                               &num_events);
 
     valuator_mask_copy(&mask, mask_in);
+
+    /* Back up the current value of last.valuators. fill_pointer_events()
+     * overwrites those but we need them for scroll button emulation */
+    valuator_mask_zero(&last_valuators);
+    for (size_t idx = 0; idx < pDev->last.numValuators; idx++)
+        valuator_mask_set_double(&last_valuators, idx, pDev->last.valuators[idx]);
 
     /* Turn a scroll button press into a smooth-scrolling event if
      * necessary. This only needs to cater for the XIScrollFlagPreferred
@@ -1713,7 +1771,7 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
 
         nev_tmp =
             emulate_scroll_button_events(events, pDev, realtype, i, &scroll,
-                                         pDev->last.scroll, ms,
+                                         &last_valuators, pDev->last.scroll, ms,
                                          GetMaximumEventsNum() - num_events);
         events += nev_tmp;
         num_events += nev_tmp;
@@ -2008,7 +2066,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
     clipValuators(dev, &mask);
 
     if (emulate_pointer)
-        storeLastValuators(dev, &mask, 0, 1, devx, devy);
+        storeLastValuators(dev, &mask, devx, devy);
 
     /* Update the MD's coordinates, which are always in desktop space. */
     if (emulate_pointer && !IsMaster(dev) && !IsFloating(dev)) {

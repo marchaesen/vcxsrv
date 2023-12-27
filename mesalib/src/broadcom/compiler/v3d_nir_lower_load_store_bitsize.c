@@ -71,9 +71,9 @@ static nir_intrinsic_instr *
 init_scalar_intrinsic(nir_builder *b,
                       nir_intrinsic_instr *intr,
                       uint32_t component,
-                      nir_ssa_def *offset,
+                      nir_def *offset,
                       uint32_t bit_size,
-                      nir_ssa_def **scalar_offset)
+                      nir_def **scalar_offset)
 {
 
         nir_intrinsic_instr *new_intr =
@@ -113,11 +113,10 @@ init_scalar_intrinsic(nir_builder *b,
 }
 
 static bool
-lower_load_bitsize(struct v3d_compile *c,
-                   nir_builder *b,
+lower_load_bitsize(nir_builder *b,
                    nir_intrinsic_instr *intr)
 {
-        uint32_t bit_size = nir_dest_bit_size(intr->dest);
+        uint32_t bit_size = intr->def.bit_size;
         if (bit_size == 32)
                 return false;
 
@@ -130,20 +129,20 @@ lower_load_bitsize(struct v3d_compile *c,
 
         /* For global 2x32 we ignore Y component because it must be zero */
         unsigned offset_idx = offset_src(intr->intrinsic);
-        nir_ssa_def *offset = nir_ssa_for_src(b, intr->src[offset_idx], 1);
+        nir_def *offset = nir_trim_vector(b, intr->src[offset_idx].ssa, 1);
 
         /* Split vector store to multiple scalar loads */
-        nir_ssa_def *dest_components[4] = { NULL };
+        nir_def *dest_components[4] = { NULL };
         const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
         for (int component = 0; component < num_comp; component++) {
-                nir_ssa_def *scalar_offset;
+                nir_def *scalar_offset;
                 nir_intrinsic_instr *new_intr =
                         init_scalar_intrinsic(b, intr, component, offset,
                                               bit_size, &scalar_offset);
 
                 for (unsigned i = 0; i < info->num_srcs; i++) {
                         if (i == offset_idx) {
-                                nir_ssa_def *final_offset;
+                                nir_def *final_offset;
                                 final_offset = intr->intrinsic != nir_intrinsic_load_global_2x32 ?
                                         scalar_offset :
                                         nir_vec2(b, scalar_offset,
@@ -154,24 +153,23 @@ lower_load_bitsize(struct v3d_compile *c,
                         }
                 }
 
-                nir_ssa_dest_init(&new_intr->instr, &new_intr->dest,
-                                  1, bit_size, NULL);
-                dest_components[component] = &new_intr->dest.ssa;
+                nir_def_init(&new_intr->instr, &new_intr->def, 1,
+                             bit_size);
+                dest_components[component] = &new_intr->def;
 
                 nir_builder_instr_insert(b, &new_intr->instr);
         }
 
-        nir_ssa_def *new_dst = nir_vec(b, dest_components, num_comp);
-        nir_ssa_def_rewrite_uses(&intr->dest.ssa, new_dst);
+        nir_def *new_dst = nir_vec(b, dest_components, num_comp);
+        nir_def_rewrite_uses(&intr->def, new_dst);
 
         nir_instr_remove(&intr->instr);
         return true;
 }
 
 static bool
-lower_store_bitsize(struct v3d_compile *c,
-                   nir_builder *b,
-                   nir_intrinsic_instr *intr)
+lower_store_bitsize(nir_builder *b,
+                    nir_intrinsic_instr *intr)
 {
         /* No need to split if it is already scalar */
         int value_idx = value_src(intr->intrinsic);
@@ -183,13 +181,13 @@ lower_store_bitsize(struct v3d_compile *c,
         if (nir_src_bit_size(intr->src[value_idx]) == 32)
                 return false;
 
-        nir_ssa_def *value = nir_ssa_for_src(b, intr->src[value_idx], num_comp);
+        nir_def *value = intr->src[value_idx].ssa;
 
         b->cursor = nir_before_instr(&intr->instr);
 
         /* For global 2x32 we ignore Y component because it must be zero */
         unsigned offset_idx = offset_src(intr->intrinsic);
-        nir_ssa_def *offset = nir_ssa_for_src(b, intr->src[offset_idx], 1);
+        nir_def *offset = nir_trim_vector(b, intr->src[offset_idx].ssa, 1);
 
         /* Split vector store to multiple scalar stores */
         const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
@@ -197,7 +195,7 @@ lower_store_bitsize(struct v3d_compile *c,
         while (wrmask) {
                 unsigned component = ffs(wrmask) - 1;
 
-                nir_ssa_def *scalar_offset;
+                nir_def *scalar_offset;
                 nir_intrinsic_instr *new_intr =
                         init_scalar_intrinsic(b, intr, component, offset,
                                               value->bit_size, &scalar_offset);
@@ -206,11 +204,11 @@ lower_store_bitsize(struct v3d_compile *c,
 
                 for (unsigned i = 0; i < info->num_srcs; i++) {
                         if (i == value_idx) {
-                                nir_ssa_def *scalar_value =
+                                nir_def *scalar_value =
                                         nir_channels(b, value, 1 << component);
                                 new_intr->src[i] = nir_src_for_ssa(scalar_value);
                         } else if (i == offset_idx) {
-                                nir_ssa_def *final_offset;
+                                nir_def *final_offset;
                                 final_offset = intr->intrinsic != nir_intrinsic_store_global_2x32 ?
                                         scalar_offset :
                                         nir_vec2(b, scalar_offset,
@@ -231,26 +229,21 @@ lower_store_bitsize(struct v3d_compile *c,
 }
 
 static bool
-lower_load_store_bitsize(nir_builder *b, nir_instr *instr, void *data)
+lower_load_store_bitsize(nir_builder *b, nir_intrinsic_instr *intr,
+                         void *data)
 {
-        struct v3d_compile *c = (struct v3d_compile *) data;
-
-        if (instr->type != nir_instr_type_intrinsic)
-                return false;
-        nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-
         switch (intr->intrinsic) {
         case nir_intrinsic_load_ssbo:
         case nir_intrinsic_load_ubo:
         case nir_intrinsic_load_uniform:
         case nir_intrinsic_load_scratch:
         case nir_intrinsic_load_global_2x32:
-               return lower_load_bitsize(c, b, intr);
+               return lower_load_bitsize(b, intr);
 
         case nir_intrinsic_store_ssbo:
         case nir_intrinsic_store_scratch:
         case nir_intrinsic_store_global_2x32:
-                return lower_store_bitsize(c, b, intr);
+                return lower_store_bitsize(b, intr);
 
         default:
                 return false;
@@ -258,11 +251,10 @@ lower_load_store_bitsize(nir_builder *b, nir_instr *instr, void *data)
 }
 
 bool
-v3d_nir_lower_load_store_bitsize(nir_shader *s, struct v3d_compile *c)
+v3d_nir_lower_load_store_bitsize(nir_shader *s)
 {
-        return nir_shader_instructions_pass(s,
-                                            lower_load_store_bitsize,
+        return nir_shader_intrinsics_pass(s, lower_load_store_bitsize,
                                             nir_metadata_block_index |
                                             nir_metadata_dominance,
-                                            c);
+                                            NULL);
 }

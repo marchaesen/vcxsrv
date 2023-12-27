@@ -44,7 +44,7 @@ void iris_syncobj_signal(struct iris_bufmgr *, struct iris_syncobj *);
 
 void iris_batch_add_syncobj(struct iris_batch *batch,
                             struct iris_syncobj *syncobj,
-                            unsigned flags);
+                            uint32_t flags);
 bool iris_wait_syncobj(struct iris_bufmgr *bufmgr,
                        struct iris_syncobj *syncobj,
                        int64_t timeout_nsec);

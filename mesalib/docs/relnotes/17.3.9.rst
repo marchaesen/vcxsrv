@@ -83,7 +83,7 @@ Iago Toral Quiroga (1):
 
 -  compiler/spirv: set is_shadow for depth comparitor sampling opcodes
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  nir/vars_to_ssa: Remove copies from the correct set
 -  nir/lower_indirect_derefs: Support interp_var_at intrinsics

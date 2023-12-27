@@ -23,3 +23,6 @@ mkinstalldirs
 stamp-h1
 ChangeLog
 INSTALL
+check-pc-requires.log
+check-pc-requires.trs
+test-suite.log

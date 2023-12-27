@@ -49,7 +49,7 @@ class PrintGlEnums(gl_XML.gl_print_base):
 
     def printRealHeader(self):
         print('#include <stdio.h>')
-        print('#include "main/glheader.h"')
+        print('#include "util/glheader.h"')
         print('#include "main/enums.h"')
         print('#include "main/mtypes.h"')
         print('')

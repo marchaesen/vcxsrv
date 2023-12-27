@@ -28,6 +28,7 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -39,6 +40,16 @@ util_get_process_name(void);
 
 size_t
 util_get_process_exec_path(char* process_path, size_t len);
+
+/**
+ * Return the command line for the calling process.  This is basically
+ * the argv[] array with the arguments separated by spaces.
+ * \param cmdline  returns the command line string
+ * \param size  size of the cmdline buffer
+ * \return  true or false for success, failure
+ */
+bool
+util_get_command_line(char *cmdline, size_t size);
 
 #ifdef __cplusplus
 } /* extern C */

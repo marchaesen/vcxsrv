@@ -27,7 +27,7 @@
 #include <stdbool.h>
 
 #include "nir.h"
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/menums.h"
 
 #ifdef __cplusplus
@@ -38,6 +38,7 @@ struct gl_constants;
 struct gl_extensions;
 struct gl_linked_shader;
 struct gl_shader_program;
+struct gl_program;
 struct gl_transform_feedback_info;
 struct xfb_decl;
 struct nir_xfb_info;
@@ -55,6 +56,7 @@ struct gl_nir_linker_options {
 void gl_nir_opts(nir_shader *nir);
 
 bool gl_nir_link_spirv(const struct gl_constants *consts,
+                       const struct gl_extensions *exts,
                        struct gl_shader_program *prog,
                        const struct gl_nir_linker_options *options);
 
@@ -111,7 +113,15 @@ void gl_nir_link_check_atomic_counter_resources(const struct gl_constants *const
 void gl_nir_link_assign_xfb_resources(const struct gl_constants *consts,
                                       struct gl_shader_program *prog);
 
-bool gl_nir_link_uniform_blocks(struct gl_shader_program *prog);
+bool gl_nir_link_uniform_blocks(const struct gl_constants *consts,
+                                struct gl_shader_program *prog);
+
+bool
+gl_nir_can_add_pointsize_to_program(const struct gl_constants *consts,
+                                    struct gl_program *prog);
+
+void
+gl_nir_add_point_size(struct nir_shader *nir);
 
 bool lower_packed_varying_needs_lowering(nir_shader *shader, nir_variable *var,
                                          bool xfb_enabled,

@@ -32,25 +32,21 @@
  * 2x2 quad.
  */
 
-#define V3D_MAX_SAMPLES 4
-
-static nir_ssa_def *
+static nir_def *
 v3d_nir_lower_txf_ms_instr(nir_builder *b, nir_instr *in_instr, void *data)
 {
         nir_tex_instr *instr = nir_instr_as_tex(in_instr);
 
         b->cursor = nir_before_instr(&instr->instr);
 
-        int coord_index = nir_tex_instr_src_index(instr, nir_tex_src_coord);
-        int sample_index = nir_tex_instr_src_index(instr, nir_tex_src_ms_index);
-        nir_ssa_def *coord = instr->src[coord_index].src.ssa;
-        nir_ssa_def *sample = instr->src[sample_index].src.ssa;
+        nir_def *coord = nir_steal_tex_src(instr, nir_tex_src_coord);
+        nir_def *sample = nir_steal_tex_src(instr, nir_tex_src_ms_index);
 
-        nir_ssa_def *one = nir_imm_int(b, 1);
-        nir_ssa_def *x = nir_iadd(b,
+        nir_def *one = nir_imm_int(b, 1);
+        nir_def *x = nir_iadd(b,
                                   nir_ishl(b, nir_channel(b, coord, 0), one),
                                   nir_iand(b, sample, one));
-        nir_ssa_def *y = nir_iadd(b,
+        nir_def *y = nir_iadd(b,
                                   nir_ishl(b, nir_channel(b, coord, 1), one),
                                   nir_iand(b, nir_ushr(b, sample, one), one));
         if (instr->is_array)
@@ -58,10 +54,7 @@ v3d_nir_lower_txf_ms_instr(nir_builder *b, nir_instr *in_instr, void *data)
         else
                 coord = nir_vec2(b, x, y);
 
-        nir_instr_rewrite_src(&instr->instr,
-                              &instr->src[nir_tex_src_coord].src,
-                              nir_src_for_ssa(coord));
-        nir_tex_instr_remove_src(instr, sample_index);
+        nir_tex_instr_add_src(instr, nir_tex_src_coord, coord);
         instr->op = nir_texop_txf;
         instr->sampler_dim = GLSL_SAMPLER_DIM_2D;
 
@@ -76,7 +69,7 @@ v3d_nir_lower_txf_ms_filter(const nir_instr *instr, const void *data)
 }
 
 bool
-v3d_nir_lower_txf_ms(nir_shader *s, struct v3d_compile *c)
+v3d_nir_lower_txf_ms(nir_shader *s)
 {
         return nir_shader_lower_instructions(s,
                                              v3d_nir_lower_txf_ms_filter,

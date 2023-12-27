@@ -27,17 +27,25 @@
 #include <stdint.h>
 #include <vulkan/vulkan.h>
 
-struct pvr_device;
 struct pvr_sub_cmd_transfer;
 struct pvr_transfer_ctx;
 struct vk_sync;
 
-VkResult pvr_transfer_job_submit(struct pvr_device *device,
-                                 struct pvr_transfer_ctx *ctx,
+/**
+ * Destination pixels not covered by any of the destination rectangles but
+ * inside the scissor are filled with the clear color.
+ */
+#define PVR_TRANSFER_CMD_FLAGS_FILL 0x00000800U
+/** If using TQ3D, route to fast2d. */
+#define PVR_TRANSFER_CMD_FLAGS_FAST2D 0x00200000U
+/** Merge a depth or stencil against a depth + stencil texture. */
+#define PVR_TRANSFER_CMD_FLAGS_DSMERGE 0x00000200U
+/** Valid if doing a DS merge with depth + stencil to depth + stencil. */
+#define PVR_TRANSFER_CMD_FLAGS_PICKD 0x00000400U
+
+VkResult pvr_transfer_job_submit(struct pvr_transfer_ctx *ctx,
                                  struct pvr_sub_cmd_transfer *sub_cmd,
-                                 struct vk_sync **waits,
-                                 uint32_t wait_count,
-                                 uint32_t *stage_flags,
+                                 struct vk_sync *wait,
                                  struct vk_sync *signal_sync);
 
 #endif /* PVR_JOB_TRANSFER_H */

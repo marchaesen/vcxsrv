@@ -33,9 +33,9 @@
  */
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/list.h"
@@ -134,11 +134,11 @@ fill_random_pattern(uint8_t *dst, pb_size size)
 }
 
 
-static inline boolean 
+static inline bool 
 check_random_pattern(const uint8_t *dst, pb_size size, 
                      pb_size *min_ofs, pb_size *max_ofs) 
 {
-   boolean result = TRUE;
+   bool result = true;
    pb_size i;
    *min_ofs = size;
    *max_ofs = 0;
@@ -146,7 +146,7 @@ check_random_pattern(const uint8_t *dst, pb_size size,
       if(*dst++ != random_pattern[i % sizeof(random_pattern)]) {
          *min_ofs = MIN2(*min_ofs, i);
          *max_ofs = MAX2(*max_ofs, i);
-	 result = FALSE;
+	 result = false;
       }
    }
    return result;
@@ -184,7 +184,7 @@ pb_debug_buffer_check(struct pb_debug_buffer *buf)
                 PB_USAGE_UNSYNCHRONIZED, NULL);
    assert(map);
    if (map) {
-      boolean underflow, overflow;
+      bool underflow, overflow;
       pb_size min_ofs, max_ofs;
       
       underflow = !check_random_pattern(map, buf->underflow_size, 
@@ -307,7 +307,7 @@ pb_debug_buffer_validate(struct pb_buffer *_buf,
 
    mtx_lock(&buf->mutex);
    if(buf->map_count) {
-      debug_printf("%s: attempting to validate a mapped buffer\n", __FUNCTION__);
+      debug_printf("%s: attempting to validate a mapped buffer\n", __func__);
       debug_printf("last map backtrace is\n");
       debug_backtrace_dump(buf->map_backtrace, PB_DEBUG_MAP_BACKTRACE);
    }
@@ -390,7 +390,7 @@ pb_debug_manager_create_buffer(struct pb_manager *_mgr,
       FREE(buf);
 #if 0
       mtx_lock(&mgr->mutex);
-      debug_printf("%s: failed to create buffer\n", __FUNCTION__);
+      debug_printf("%s: failed to create buffer\n", __func__);
       if(!list_is_empty(&mgr->list))
          pb_debug_manager_dump_locked(mgr);
       mtx_unlock(&mgr->mutex);
@@ -445,7 +445,7 @@ pb_debug_manager_destroy(struct pb_manager *_mgr)
    
    mtx_lock(&mgr->mutex);
    if(!list_is_empty(&mgr->list)) {
-      debug_printf("%s: unfreed buffers\n", __FUNCTION__);
+      debug_printf("%s: unfreed buffers\n", __func__);
       pb_debug_manager_dump_locked(mgr);
    }
    mtx_unlock(&mgr->mutex);

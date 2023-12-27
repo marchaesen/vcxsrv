@@ -65,6 +65,7 @@ struct rs_state {
 
 /* treat this as opaque structure */
 struct compiled_rs_state {
+   uint8_t valid : 1;
    uint8_t source_ts_valid : 1;
    uint32_t RS_CONFIG;
    uint32_t RS_SOURCE_STRIDE;

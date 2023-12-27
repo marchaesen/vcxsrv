@@ -21,6 +21,7 @@
 #include "tu_util.h"
 
 #include "util/vma.h"
+#include "util/u_vector.h"
 
 /* queue types */
 #define TU_QUEUE_GENERAL 0
@@ -35,37 +36,13 @@
 /* extra space in vsc draw/prim streams */
 #define VSC_PAD 0x40
 
-enum tu_debug_flags
-{
-   TU_DEBUG_STARTUP = 1 << 0,
-   TU_DEBUG_NIR = 1 << 1,
-   TU_DEBUG_NOBIN = 1 << 3,
-   TU_DEBUG_SYSMEM = 1 << 4,
-   TU_DEBUG_FORCEBIN = 1 << 5,
-   TU_DEBUG_NOUBWC = 1 << 6,
-   TU_DEBUG_NOMULTIPOS = 1 << 7,
-   TU_DEBUG_NOLRZ = 1 << 8,
-   TU_DEBUG_PERFC = 1 << 9,
-   TU_DEBUG_FLUSHALL = 1 << 10,
-   TU_DEBUG_SYNCDRAW = 1 << 11,
-   TU_DEBUG_DONT_CARE_AS_LOAD = 1 << 12,
-   TU_DEBUG_GMEM = 1 << 13,
-   TU_DEBUG_RAST_ORDER = 1 << 14,
-   TU_DEBUG_UNALIGNED_STORE = 1 << 15,
-   TU_DEBUG_LAYOUT = 1 << 16,
-   TU_DEBUG_LOG_SKIP_GMEM_OPS = 1 << 17,
-   TU_DEBUG_PERF = 1 << 18,
-   TU_DEBUG_NOLRZFC = 1 << 19,
-   TU_DEBUG_DYNAMIC = 1 << 20,
-   TU_DEBUG_BOS = 1 << 21,
-};
-
 enum global_shader {
    GLOBAL_SH_VS_BLIT,
    GLOBAL_SH_VS_CLEAR,
    GLOBAL_SH_FS_BLIT,
    GLOBAL_SH_FS_BLIT_ZSCALE,
    GLOBAL_SH_FS_COPY_MS,
+   GLOBAL_SH_FS_COPY_MS_HALF,
    GLOBAL_SH_FS_CLEAR0,
    GLOBAL_SH_FS_CLEAR_MAX = GLOBAL_SH_FS_CLEAR0 + MAX_RTS,
    GLOBAL_SH_COUNT,
@@ -82,7 +59,7 @@ struct tu_memory_heap {
     *
     * Align it to 64 bits to make atomic operations faster on 32 bit platforms.
     */
-   VkDeviceSize      used __attribute__ ((aligned (8)));
+   alignas(8) VkDeviceSize used;
 };
 
 struct tu_physical_device
@@ -98,6 +75,7 @@ struct tu_physical_device
 
    struct wsi_device wsi_device;
 
+   char fd_path[20];
    int local_fd;
    bool has_local;
    int64_t local_major;
@@ -112,25 +90,35 @@ struct tu_physical_device
    uint32_t ccu_offset_gmem;
    uint32_t ccu_offset_bypass;
 
+   /* Amount of usable descriptor sets, this excludes any reserved set */
+   uint32_t usable_sets;
+   /* Index of the reserved descriptor set, may be -1 if unset */
+   int32_t reserved_set_idx;
+
    bool has_set_iova;
    uint64_t va_start;
    uint64_t va_size;
 
+   bool has_cached_coherent_memory;
+   bool has_cached_non_coherent_memory;
+   uintptr_t level1_dcache_size;
+
+   struct {
+      uint32_t type_count;
+      VkMemoryPropertyFlags types[VK_MAX_MEMORY_TYPES];
+   } memory;
+
    struct fd_dev_id dev_id;
+   struct fd_dev_info dev_info;
    const struct fd_dev_info *info;
 
    int msm_major_version;
    int msm_minor_version;
 
-   /* Address space and global fault count for this local_fd with DRM backend */
-   uint64_t fault_count;
-
    /* with 0 being the highest priority */
    uint32_t submitqueue_priority_count;
 
    struct tu_memory_heap heap;
-   mtx_t                 vma_mutex;
-   struct util_vma_heap  vma;
 
    struct vk_sync_type syncobj_type;
    struct vk_sync_timeline_type timeline_type;
@@ -139,16 +127,35 @@ struct tu_physical_device
 VK_DEFINE_HANDLE_CASTS(tu_physical_device, vk.base, VkPhysicalDevice,
                        VK_OBJECT_TYPE_PHYSICAL_DEVICE)
 
+struct tu_knl;
+
 struct tu_instance
 {
    struct vk_instance vk;
+
+   const struct tu_knl *knl;
 
    uint32_t api_version;
 
    struct driOptionCache dri_options;
    struct driOptionCache available_dri_options;
 
-   enum tu_debug_flags debug_flags;
+   bool dont_care_as_load;
+
+   /* Conservative LRZ (default true) invalidates LRZ on draws with
+    * blend and depth-write enabled, because this can lead to incorrect
+    * rendering.  Driconf can be used to disable conservative LRZ for
+    * games which do not have the problematic sequence of draws *and*
+    * suffer a performance loss with conservative LRZ.
+    */
+   bool conservative_lrz;
+
+   /* If to internally reserve a descriptor set for descriptor set
+    * dynamic offsets, a descriptor set can be freed at the cost of
+    * being unable to use the feature. As it is a part of the Vulkan
+    * core, this is enabled by default.
+    */
+   bool reserve_descriptor_set;
 };
 VK_DEFINE_HANDLE_CASTS(tu_instance, vk.base, VkInstance,
                        VK_OBJECT_TYPE_INSTANCE)
@@ -160,7 +167,9 @@ struct tu_queue
    struct tu_device *device;
 
    uint32_t msm_queue_id;
-   int fence;
+   uint32_t priority;
+
+   int fence;           /* timestamp/fence of the last queue submission */
 };
 VK_DEFINE_HANDLE_CASTS(tu_queue, vk.base, VkQueue, VK_OBJECT_TYPE_QUEUE)
 
@@ -184,7 +193,7 @@ struct tu6_global
       uint32_t pad[7];
    } flush_base[4];
 
-   ALIGN16 uint32_t cs_indirect_xyz[3];
+   alignas(16) uint32_t cs_indirect_xyz[3];
 
    volatile uint32_t vtx_stats_query_not_running;
 
@@ -207,11 +216,33 @@ struct tu6_global
    volatile uint32_t breadcrumb_cpu_sync_seqno;
    uint32_t _pad4;
 
+   volatile uint32_t userspace_fence;
+   uint32_t _pad5;
+
    /* note: larger global bo will be used for customBorderColors */
    struct bcolor_entry bcolor_builtin[TU_BORDER_COLOR_BUILTIN], bcolor[];
 };
 #define gb_offset(member) offsetof(struct tu6_global, member)
 #define global_iova(cmd, member) ((cmd)->device->global_bo->iova + gb_offset(member))
+#define global_iova_arr(cmd, member, idx)                                    \
+   (global_iova(cmd, member) + sizeof_field(struct tu6_global, member[0]) * (idx))
+
+struct tu_pvtmem_bo {
+      mtx_t mtx;
+      struct tu_bo *bo;
+      uint32_t per_fiber_size, per_sp_size;
+};
+
+#ifdef ANDROID
+enum tu_gralloc_type
+{
+   TU_GRALLOC_UNKNOWN,
+   TU_GRALLOC_CROS,
+   TU_GRALLOC_OTHER,
+};
+#endif
+
+struct tu_virtio_device;
 
 struct tu_device
 {
@@ -240,13 +271,10 @@ struct tu_device
       bool initialized;
    } scratch_bos[48 - MIN_SCRATCH_BO_SIZE_LOG2];
 
-   struct tu_pvtmem_bo {
-      mtx_t mtx;
-      struct tu_bo *bo;
-      uint32_t per_fiber_size, per_sp_size;
-   } fiber_pvtmem_bo, wave_pvtmem_bo;
+   struct tu_pvtmem_bo fiber_pvtmem_bo, wave_pvtmem_bo;
 
    struct tu_bo *global_bo;
+   struct tu6_global *global_bo_map;
 
    uint32_t implicit_sync_bo_count;
 
@@ -262,6 +290,12 @@ struct tu_device
    struct tu_suballocator autotune_suballoc;
    mtx_t autotune_mutex;
 
+   /* KGSL requires a small chunk of GPU mem to retrieve raw GPU time on
+    * each submission.
+    */
+   struct tu_suballocator kgsl_profiling_suballoc;
+   mtx_t kgsl_profiling_mutex;
+
    /* the blob seems to always use 8K factor and 128K param sizes, copy them */
 #define TU_TESS_FACTOR_SIZE (8 * 1024)
 #define TU_TESS_PARAM_SIZE (128 * 1024)
@@ -273,10 +307,15 @@ struct tu_device
    struct ir3_shader *global_shaders[GLOBAL_SH_COUNT];
    uint64_t global_shader_va[GLOBAL_SH_COUNT];
 
+   struct tu_shader *empty_tcs, *empty_tes, *empty_gs, *empty_fs, *empty_fs_fdm;
+
    uint32_t vsc_draw_strm_pitch;
    uint32_t vsc_prim_strm_pitch;
    BITSET_DECLARE(custom_border_color, TU_BORDER_COLOR_COUNT);
    mtx_t mutex;
+
+   mtx_t vma_mutex;
+   struct util_vma_heap vma;
 
    /* bo list for submits: */
    struct drm_msm_gem_submit_bo *bo_list;
@@ -307,9 +346,18 @@ struct tu_device
     */
    struct util_sparse_array bo_map;
 
+   /* We cannot immediately free VMA when freeing BO, kernel truly
+    * frees BO when it stops being busy.
+    * So we have to free our VMA only after the kernel does it.
+    */
+   struct u_vector zombie_vmas;
+
    /* Command streams to set pass index to a scratch reg */
    struct tu_cs *perfcntrs_pass_cs;
    struct tu_cs_entry *perfcntrs_pass_cs_entries;
+
+   struct tu_cs *cmdbuf_start_a725_quirk_cs;
+   struct tu_cs_entry *cmdbuf_start_a725_quirk_entry;
 
    struct util_dynarray dynamic_rendering_pending;
    VkCommandPool dynamic_rendering_pool;
@@ -324,16 +372,22 @@ struct tu_device
 
    struct breadcrumbs_context *breadcrumbs_ctx;
 
+   struct tu_cs *dbg_cmdbuf_stomp_cs;
+   struct tu_cs *dbg_renderpass_stomp_cs;
+
 #ifdef ANDROID
    const void *gralloc;
-   enum {
-      TU_GRALLOC_UNKNOWN,
-      TU_GRALLOC_CROS,
-      TU_GRALLOC_OTHER,
-   } gralloc_type;
+   enum tu_gralloc_type gralloc_type;
+#endif
+
+#ifdef TU_HAS_VIRTIO
+   struct tu_virtio_device *vdev;
 #endif
 
    uint32_t submit_count;
+
+   /* Address space and global fault count for this local_fd with DRM backend */
+   uint64_t fault_count;
 
    struct u_trace_context trace_context;
 
@@ -342,6 +396,7 @@ struct tu_device
    #endif
 
    bool use_z24uint_s8uint;
+   bool use_lrz;
 };
 VK_DEFINE_HANDLE_CASTS(tu_device, vk.base, VkDevice, VK_OBJECT_TYPE_DEVICE)
 
@@ -350,6 +405,9 @@ struct tu_device_memory
    struct vk_object_base base;
 
    struct tu_bo *bo;
+
+   /* for dedicated allocations */
+   struct tu_image *image;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(tu_device_memory, base, VkDeviceMemory,
                                VK_OBJECT_TYPE_DEVICE_MEMORY)
@@ -379,6 +437,9 @@ struct tu_tiling_config {
    VkExtent2D pipe0;
    /* number of VSC pipes */
    VkExtent2D pipe_count;
+
+   /* Whether using GMEM is even possible with this configuration */
+   bool possible;
 
    /* Whether binning should be used for gmem rendering using this framebuffer. */
    bool binning;
@@ -424,10 +485,7 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(tu_sampler, base, VkSampler,
                                VK_OBJECT_TYPE_SAMPLER)
 
 uint64_t
-tu_get_system_heap_size(void);
-
-const char *
-tu_get_debug_option_name(int id);
+tu_get_system_heap_size(struct tu_physical_device *physical_device);
 
 VkResult
 tu_physical_device_init(struct tu_physical_device *device,
@@ -441,6 +499,9 @@ tu_device_lookup_bo(struct tu_device *device, uint32_t handle)
 {
    return (struct tu_bo *) util_sparse_array_get(&device->bo_map, handle);
 }
+
+struct u_trace_context *
+tu_device_get_u_trace(struct tu_device *device);
 
 /* Get a scratch bo for use inside a command buffer. This will always return
  * the same bo given the same size or similar sizes, so only one scratch bo
@@ -486,6 +547,14 @@ struct tu_u_trace_submission_data
    uint32_t cmd_buffer_count;
    uint32_t last_buffer_with_tracepoints;
    struct tu_u_trace_cmd_data *cmd_trace_data;
+
+   /* GPU time is reset on GPU power cycle and the GPU time
+    * offset may change between submissions due to power cycle.
+    */
+   uint64_t gpu_ts_offset;
+
+   /* KGSL needs a GPU memory to write submission timestamps into */
+   struct tu_suballoc_bo kgsl_timestamp_bo;
 };
 
 VkResult

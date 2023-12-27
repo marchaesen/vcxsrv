@@ -29,7 +29,7 @@ struct renderonly;
 
 struct pipe_screen *vc4_drm_screen_create(int drmFD,
                                           const struct pipe_screen_config *config);
-struct pipe_screen *vc4_drm_screen_create_renderonly(struct renderonly *ro,
+struct pipe_screen *vc4_drm_screen_create_renderonly(int fd, struct renderonly *ro,
                                                      const struct pipe_screen_config *config);
 
 #endif /* __VC4_DRM_PUBLIC_H__ */

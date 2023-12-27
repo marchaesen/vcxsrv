@@ -87,17 +87,17 @@ _mesa_ARBfp_parse_option(struct asm_parser_state *state, const char *option)
 	 option += 4;
 
          if (strcmp(option, "exp") == 0) {
-            fog_option = OPTION_FOG_EXP;
+            fog_option = FOG_EXP;
          } else if (strcmp(option, "exp2") == 0) {
-            fog_option = OPTION_FOG_EXP2;
+            fog_option = FOG_EXP2;
          } else if (strcmp(option, "linear") == 0) {
-            fog_option = OPTION_FOG_LINEAR;
+            fog_option = FOG_LINEAR;
          } else {
             /* invalid option */
             return 0;
          }
 
-         if (state->option.Fog == OPTION_NONE) {
+         if (state->option.Fog == FOG_NONE) {
             state->option.Fog = fog_option;
             return 1;
          }

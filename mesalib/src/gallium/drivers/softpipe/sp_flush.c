@@ -75,7 +75,7 @@ softpipe_flush( struct pipe_context *pipe,
    if (softpipe->zsbuf_cache)
       sp_flush_tile_cache(softpipe->zsbuf_cache);
 
-   softpipe->dirty_render_cache = FALSE;
+   softpipe->dirty_render_cache = false;
 
    /* Enable to dump BMPs of the color/depth buffers each frame */
 #if 0
@@ -111,15 +111,15 @@ softpipe_flush_wrapped(struct pipe_context *pipe,
  *
  * TODO: move this logic to an auxiliary library?
  */
-boolean
+bool
 softpipe_flush_resource(struct pipe_context *pipe,
                         struct pipe_resource *texture,
                         unsigned level,
                         int layer,
                         unsigned flush_flags,
-                        boolean read_only,
-                        boolean cpu_access,
-                        boolean do_not_block)
+                        bool read_only,
+                        bool cpu_access,
+                        bool do_not_block)
 {
    unsigned referenced;
 
@@ -144,7 +144,7 @@ softpipe_flush_resource(struct pipe_context *pipe,
          struct pipe_fence_handle *fence = NULL;
 
          if (do_not_block)
-            return FALSE;
+            return false;
 
          softpipe_flush(pipe, flush_flags, &fence);
 
@@ -154,7 +154,7 @@ softpipe_flush_resource(struct pipe_context *pipe,
              * have fences.
              */
             pipe->screen->fence_finish(pipe->screen, NULL, fence,
-                                       PIPE_TIMEOUT_INFINITE);
+                                       OS_TIMEOUT_INFINITE);
             pipe->screen->fence_reference(pipe->screen, &fence, NULL);
          }
       } else {
@@ -166,7 +166,7 @@ softpipe_flush_resource(struct pipe_context *pipe,
       }
    }
 
-   return TRUE;
+   return true;
 }
 
 void softpipe_texture_barrier(struct pipe_context *pipe, unsigned flags)
@@ -187,7 +187,7 @@ void softpipe_texture_barrier(struct pipe_context *pipe, unsigned flags)
    if (softpipe->zsbuf_cache)
       sp_flush_tile_cache(softpipe->zsbuf_cache);
 
-   softpipe->dirty_render_cache = FALSE;
+   softpipe->dirty_render_cache = false;
 }
 
 void softpipe_memory_barrier(struct pipe_context *pipe, unsigned flags)

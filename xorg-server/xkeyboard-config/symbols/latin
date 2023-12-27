@@ -107,7 +107,7 @@ xkb_symbols "type3" {
     key <AB01>	{ [         y,          Y, guillemotleft,        less ]	};
     key <AB04>	{ [         v,          V,           at,        grave ]	};
     key <AB05>	{ [         b,          B,    braceleft,   apostrophe ]	};
-    key <AB06>	{ [         n,          N,   braceright,   braceright ]	};
+    key <AB06>	{ [         n,          N,   braceright,        acute ]	};
     key <AB07>	{ [         m,          M,      section,    masculine ]	};
     key <AB08>	{ [     comma,  semicolon,         less,     multiply ]	};
     key <AB09>	{ [    period,      colon,      greater,     division ]	};
@@ -141,10 +141,11 @@ xkb_symbols "nodeadkeys" {
     key <AE12>	{ [     equal,       plus,     cedilla,        ogonek ]	};
     key <AD11>	{ [bracketleft,  braceleft,  diaeresis,        degree ]	};
     key <AD12>	{ [bracketright, braceright, asciitilde,       macron ]	};
+    key <AC07>	{ [         j,          J,         ezh,           EZH ] };
     key <AC10>	{ [ semicolon,      colon,       acute,   doubleacute ]	};
     key <AC11>	{ [apostrophe,   quotedbl, asciicircum,         caron ]	};
     key <BKSL>	{ [ backslash,        bar,       grave,         breve ]	};
-    key <AB10>	{ [     slash,   question, dead_belowdot,    abovedot ]	};
+    key <AB10>	{ [     slash,   question,    ellipsis,      abovedot ]	};
 };
 
 partial
@@ -156,7 +157,7 @@ xkb_symbols "type2_nodeadkeys" {
     key <AD12>	{ [ diaeresis, asciicircum, asciitilde,         caron ]	};
     key <AB08>	{ [     comma,  semicolon,     cedilla,        ogonek ]	};
     key <AB09>	{ [    period,   colon, periodcentered,      abovedot ]	};
-    key <AB10>	{ [   minus, underscore, dead_belowdot,      abovedot ]	};
+    key <AB10>	{ [   minus, underscore,      ellipsis,      abovedot ]	};
 };
 
 partial
@@ -170,7 +171,7 @@ xkb_symbols "type4_nodeadkeys" {
 
     include "latin(nodeadkeys)"
 
-    key <AB10>	{ [   minus, underscore, dead_belowdot,      abovedot ]	};
+    key <AB10>	{ [   minus, underscore,      ellipsis,      abovedot ]	};
 };
 
 // Added 2008.03.05 by Marcin Woliński

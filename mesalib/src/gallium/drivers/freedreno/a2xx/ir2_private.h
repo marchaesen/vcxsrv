@@ -175,7 +175,7 @@ struct ir2_context {
    struct ir2_reg input[16 + 1]; /* 16 + param */
 
    /* non-ssa regs */
-   struct ir2_reg reg[64];
+   struct ir2_reg reg[1024];
    unsigned reg_count;
 
    struct ir2_instr instr[0x300];

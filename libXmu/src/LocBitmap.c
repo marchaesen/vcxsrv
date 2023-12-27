@@ -221,9 +221,9 @@ split_path_string(register char *src)
     for (dst = src; *dst; dst++) if (*dst == ':') nelems++;
 
     /* get memory for everything */
-    dst = (char *) malloc (dst - src + 1);
+    dst = malloc (dst - src + 1);
     if (!dst) return NULL;
-    elemlist = (char **) calloc ((nelems + 1), sizeof (char *));
+    elemlist = calloc ((nelems + 1), sizeof (char *));
     if (!elemlist) {
 	free (dst);
 	return NULL;
@@ -256,6 +256,6 @@ _XmuStringToBitmapFreeCache(register XmuCvtCache *c)
     if (c->string_to_bitmap.bitmapFilePath) {
 	if (c->string_to_bitmap.bitmapFilePath[0])
 	  free (c->string_to_bitmap.bitmapFilePath[0]);
-	free ((char *) (c->string_to_bitmap.bitmapFilePath));
+	free (c->string_to_bitmap.bitmapFilePath);
     }
 }

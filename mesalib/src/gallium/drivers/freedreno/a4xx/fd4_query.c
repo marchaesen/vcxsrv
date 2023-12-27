@@ -114,11 +114,10 @@ time_elapsed_enable(struct fd_context *ctx,
     * just hard coded.  If we start exposing more countables than we
     * have counters, we will need to be more clever.
     */
-   struct fd_batch *batch = fd_context_batch_locked(ctx);
+   struct fd_batch *batch = fd_context_batch(ctx);
    fd_wfi(batch, ring);
    OUT_PKT0(ring, REG_A4XX_CP_PERFCTR_CP_SEL_0, 1);
    OUT_RING(ring, CP_ALWAYS_COUNT);
-   fd_batch_unlock_submit(batch);
    fd_batch_reference(&batch, NULL);
 }
 

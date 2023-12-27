@@ -7,7 +7,7 @@
 
 <!ELEMENT xkbConfigRegistry (modelList,layoutList,optionList)>
 
-<!ATTLIST xkbConfigRegistry 
+<!ATTLIST xkbConfigRegistry
           version CDATA "1.1">
 
 <!ELEMENT modelList (model*)>

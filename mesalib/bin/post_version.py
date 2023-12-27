@@ -27,31 +27,6 @@ import pathlib
 import subprocess
 
 
-def update_release_notes(version: str) -> None:
-    p = pathlib.Path('docs') / 'relnotes.rst'
-
-    with open(p, 'r') as f:
-        relnotes = f.readlines()
-
-    new_relnotes = []
-    first_list = True
-    second_list = True
-    for line in relnotes:
-        if first_list and line.startswith('-'):
-            first_list = False
-            new_relnotes.append(f'-  :doc:`{version} release notes <relnotes/{version}>`\n')
-        if not first_list and second_list and line.startswith('   relnotes/'):
-            second_list = False
-            new_relnotes.append(f'   relnotes/{version}\n')
-        new_relnotes.append(line)
-
-    with open(p, 'w') as f:
-        for line in new_relnotes:
-            f.write(line)
-
-    subprocess.run(['git', 'add', p])
-
-
 def update_calendar(version: str) -> None:
     p = pathlib.Path('docs') / 'release-calendar.csv'
 
@@ -81,14 +56,9 @@ def main() -> None:
     args = parser.parse_args()
 
     update_calendar(args.version)
-    done = 'update calendar'
-
-    if 'rc' not in args.version:
-        update_release_notes(args.version)
-        done += ' and link releases notes'
 
     subprocess.run(['git', 'commit', '-m',
-                    f'docs: {done} for {args.version}'])
+                    f'docs: update calendar for {args.version}'])
 
 
 if __name__ == "__main__":

@@ -34,6 +34,7 @@
 #include <llvm/Support/Allocator.h>
 
 #include "llvm/codegen.hpp"
+#include "llvm/compat.hpp"
 #include "llvm/metadata.hpp"
 
 #include "CL/cl.h"
@@ -148,6 +149,47 @@ namespace {
       return detokenize(attributes, " ");
    }
 
+   // Parse the type which are pointers to CL vector types with no prefix.
+   // so e.g. char/uchar, short/ushort, int/uint, long/ulong
+   // half/float/double, followed by the vector length, followed by *.
+   // uint8 is 8x32-bit integer, short4 is 4x16-bit integer etc.
+   // Since this is a pointer only path, assert the * is on the end.
+   ::llvm::Type *
+   ptr_arg_to_llvm_type(const Module &mod, std::string type_name) {
+      int len = type_name.length();
+      assert (type_name[len-1] == '*');
+      ::llvm::Type *base_type = NULL;
+      if (type_name.find("void") != std::string::npos)
+         base_type = ::llvm::Type::getVoidTy(mod.getContext());
+      else if (type_name.find("char") != std::string::npos)
+         base_type = ::llvm::Type::getInt8Ty(mod.getContext());
+      else if (type_name.find("short") != std::string::npos)
+         base_type = ::llvm::Type::getInt16Ty(mod.getContext());
+      else if (type_name.find("int") != std::string::npos)
+         base_type = ::llvm::Type::getInt32Ty(mod.getContext());
+      else if (type_name.find("long") != std::string::npos)
+         base_type = ::llvm::Type::getInt64Ty(mod.getContext());
+      else if (type_name.find("half") != std::string::npos)
+         base_type = ::llvm::Type::getHalfTy(mod.getContext());
+      else if (type_name.find("float") != std::string::npos)
+         base_type = ::llvm::Type::getFloatTy(mod.getContext());
+      else if (type_name.find("double") != std::string::npos)
+         base_type = ::llvm::Type::getDoubleTy(mod.getContext());
+
+      assert(base_type);
+      if (type_name.find("2") != std::string::npos)
+         base_type = ::llvm::FixedVectorType::get(base_type, 2);
+      else if (type_name.find("3") != std::string::npos)
+         base_type = ::llvm::FixedVectorType::get(base_type, 3);
+      else if (type_name.find("4") != std::string::npos)
+         base_type = ::llvm::FixedVectorType::get(base_type, 4);
+      else if (type_name.find("8") != std::string::npos)
+         base_type = ::llvm::FixedVectorType::get(base_type, 8);
+      else if (type_name.find("16") != std::string::npos)
+         base_type = ::llvm::FixedVectorType::get(base_type, 16);
+      return base_type;
+   }
+
    std::vector<binary::argument>
    make_kernel_args(const Module &mod, const std::string &kernel_name,
                     const clang::CompilerInstance &c) {
@@ -156,6 +198,7 @@ namespace {
       ::llvm::DataLayout dl(&mod);
       const auto size_type =
          dl.getSmallestLegalIntType(mod.getContext(), sizeof(cl_uint) * 8);
+      const unsigned size_align = compat::get_abi_type_alignment(dl, size_type);
 
       for (const auto &arg : f.args()) {
          const auto arg_type = arg.getType();
@@ -167,7 +210,7 @@ namespace {
          const unsigned arg_api_size = dl.getTypeAllocSize(arg_type);
 
          const unsigned target_size = dl.getTypeStoreSize(arg_type);
-         const unsigned target_align = dl.getABITypeAlignment(arg_type);
+         const unsigned target_align = compat::get_abi_type_alignment(dl, arg_type);
 
          const auto type_name = get_str_argument_metadata(f, arg,
                                                           "kernel_arg_type");
@@ -188,7 +231,7 @@ namespace {
             // Image size implicit argument.
             args.emplace_back(binary::argument::scalar, sizeof(cl_uint),
                               dl.getTypeStoreSize(size_type),
-                              dl.getABITypeAlignment(size_type),
+                              size_align,
                               binary::argument::zero_ext,
                               binary::argument::image_size);
 
@@ -196,7 +239,7 @@ namespace {
             // Image format implicit argument.
             args.emplace_back(binary::argument::scalar, sizeof(cl_uint),
                               dl.getTypeStoreSize(size_type),
-                              dl.getABITypeAlignment(size_type),
+                              size_align,
                               binary::argument::zero_ext,
                               binary::argument::image_format);
 
@@ -204,7 +247,7 @@ namespace {
             // Other types.
             const auto actual_type =
                isa< ::llvm::PointerType>(arg_type) && arg.hasByValAttr() ?
-               cast< ::llvm::PointerType>(arg_type)->getPointerElementType() : arg_type;
+               ptr_arg_to_llvm_type(mod, type_name) : arg_type;
 
             if (actual_type->isPointerTy()) {
                const unsigned address_space =
@@ -214,11 +257,12 @@ namespace {
                const auto offset =
                            static_cast<unsigned>(clang::LangAS::opencl_local);
                if (address_space == map[offset]) {
-                  const auto pointee_type = cast<
-                     ::llvm::PointerType>(actual_type)->getPointerElementType();
+                  const auto pointee_type = ptr_arg_to_llvm_type(mod, type_name);
+
                   args.emplace_back(binary::argument::local, arg_api_size,
                                     target_size,
-                                    dl.getABITypeAlignment(pointee_type),
+                                    (pointee_type->isVoidTy()) ? 8 :
+                                    compat::get_abi_type_alignment(dl, pointee_type),
                                     binary::argument::zero_ext);
                } else {
                   // XXX: Correctly handle constant address space.  There is no
@@ -260,13 +304,13 @@ namespace {
       // target according to the selected calling convention.
       args.emplace_back(binary::argument::scalar, sizeof(cl_uint),
                         dl.getTypeStoreSize(size_type),
-                        dl.getABITypeAlignment(size_type),
+                        size_align,
                         binary::argument::zero_ext,
                         binary::argument::grid_dimension);
 
       args.emplace_back(binary::argument::scalar, sizeof(cl_uint),
                         dl.getTypeStoreSize(size_type),
-                        dl.getABITypeAlignment(size_type),
+                        size_align,
                         binary::argument::zero_ext,
                         binary::argument::grid_offset);
 

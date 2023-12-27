@@ -48,6 +48,7 @@ files_llvmpipe = files(
   'lp_linear_fastpath.c',
   'lp_linear_interp.c',
   'lp_linear_sampler.c',
+  'lp_linear_sampler_tmp.h',
   'lp_memory.c',
   'lp_memory.h',
   'lp_perf.c',
@@ -107,6 +108,8 @@ files_llvmpipe = files(
   'lp_tex_sample.h',
   'lp_texture.c',
   'lp_texture.h',
+  'lp_texture_handle.c',
+  'lp_texture_handle.h',
 )
 
 libllvmpipe = static_library(
@@ -140,7 +143,7 @@ if with_tests and with_gallium_softpipe and draw_with_llvm
         link_with : [libllvmpipe, libgallium],
       ),
       suite : ['llvmpipe'],
-      should_fail : meson.get_cross_property('xfail', '').contains(t),
+      should_fail : meson.get_external_property('xfail', '').contains(t),
       timeout: 240,
     )
   endforeach

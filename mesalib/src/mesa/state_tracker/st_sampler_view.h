@@ -27,7 +27,7 @@
 #ifndef ST_SAMPLER_VIEW_H
 #define ST_SAMPLER_VIEW_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
 #include "util/u_sampler.h"

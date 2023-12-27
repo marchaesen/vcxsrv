@@ -85,6 +85,8 @@ static void pvr_image_setup_mip_levels(struct pvr_image *image)
    const uint32_t extent_alignment =
       image->vk.image_type == VK_IMAGE_TYPE_3D ? 4 : 1;
    const unsigned int cpp = vk_format_get_blocksize(image->vk.format);
+   VkExtent3D extent =
+      vk_image_extent_to_elements(&image->vk, image->physical_extent);
 
    /* Mip-mapped textures that are non-dword aligned need dword-aligned levels
     * so they can be TQd from.
@@ -96,20 +98,36 @@ static void pvr_image_setup_mip_levels(struct pvr_image *image)
    image->layer_size = 0;
 
    for (uint32_t i = 0; i < image->vk.mip_levels; i++) {
-      const uint32_t height = u_minify(image->physical_extent.height, i);
-      const uint32_t width = u_minify(image->physical_extent.width, i);
-      const uint32_t depth = u_minify(image->physical_extent.depth, i);
       struct pvr_mip_level *mip_level = &image->mip_levels[i];
 
-      mip_level->pitch = cpp * ALIGN(width, extent_alignment);
-      mip_level->height_pitch = ALIGN(height, extent_alignment);
+      mip_level->pitch = cpp * ALIGN(extent.width, extent_alignment);
+      mip_level->height_pitch = ALIGN(extent.height, extent_alignment);
       mip_level->size = image->vk.samples * mip_level->pitch *
                         mip_level->height_pitch *
-                        ALIGN(depth, extent_alignment);
+                        ALIGN(extent.depth, extent_alignment);
       mip_level->size = ALIGN(mip_level->size, level_alignment);
       mip_level->offset = image->layer_size;
 
       image->layer_size += mip_level->size;
+
+      extent.height = u_minify(extent.height, 1);
+      extent.width = u_minify(extent.width, 1);
+      extent.depth = u_minify(extent.depth, 1);
+   }
+
+   /* The hw calculates layer strides as if a full mip chain up until 1x1x1
+    * were present so we need to account for that in the `layer_size`.
+    */
+   while (extent.height != 1 || extent.width != 1 || extent.depth != 1) {
+      const uint32_t height_pitch = ALIGN(extent.height, extent_alignment);
+      const uint32_t pitch = cpp * ALIGN(extent.width, extent_alignment);
+
+      image->layer_size += image->vk.samples * pitch * height_pitch *
+                           ALIGN(extent.depth, extent_alignment);
+
+      extent.height = u_minify(extent.height, 1);
+      extent.width = u_minify(extent.width, 1);
+      extent.depth = u_minify(extent.depth, 1);
    }
 
    /* TODO: It might be useful to store the alignment in the image so it can be
@@ -130,8 +148,6 @@ VkResult pvr_CreateImage(VkDevice _device,
 {
    PVR_FROM_HANDLE(pvr_device, device, _device);
    struct pvr_image *image;
-
-   pvr_finishme("Review whether all inputs are handled\n");
 
    image =
       vk_image_create(&device->vk, pCreateInfo, pAllocator, sizeof(*image));
@@ -282,12 +298,13 @@ VkResult pvr_CreateImageView(VkDevice _device,
    if (!iview)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   image = vk_to_pvr_image(iview->vk.image);
+   image = pvr_image_view_get_image(iview);
 
    info.type = iview->vk.view_type;
    info.base_level = iview->vk.base_mip_level;
    info.mip_levels = iview->vk.level_count;
    info.extent = image->vk.extent;
+   info.aspect_mask = image->vk.aspects;
    info.is_cube = (info.type == VK_IMAGE_VIEW_TYPE_CUBE ||
                    info.type == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY);
    info.array_size = iview->vk.layer_count;
@@ -301,10 +318,7 @@ VkResult pvr_CreateImageView(VkDevice _device,
    info.sample_count = image->vk.samples;
    info.addr = image->dev_addr;
 
-   /* TODO: if ERN_46863 is supported, Depth and stencil are sampled separately
-    * from images with combined depth+stencil. Add logic here to handle it.
-    */
-   info.format = iview->vk.format;
+   info.format = pCreateInfo->format;
 
    vk_component_mapping_to_pipe_swizzle(iview->vk.swizzle, input_swizzle);
    format_swizzle = pvr_get_format_swizzle(info.format);
@@ -346,7 +360,7 @@ VkResult pvr_CreateImageView(VkDevice _device,
       info.base_level = 0;
       info.tex_state_type = PVR_TEXTURE_STATE_ATTACHMENT;
 
-      if (iview->vk.image->image_type == VK_IMAGE_TYPE_3D &&
+      if (image->vk.image_type == VK_IMAGE_TYPE_3D &&
           iview->vk.view_type == VK_IMAGE_VIEW_TYPE_2D) {
          info.type = VK_IMAGE_VIEW_TYPE_3D;
       } else {
@@ -431,6 +445,7 @@ VkResult pvr_CreateBufferView(VkDevice _device,
    info.tex_state_type = PVR_TEXTURE_STATE_SAMPLE;
    info.format = bview->format;
    info.flags = PVR_TEXFLAGS_INDEX_LOOKUP;
+   info.aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
 
    if (PVR_HAS_FEATURE(&device->pdevice->dev_info, tpu_array_textures))
       info.array_size = 1U;

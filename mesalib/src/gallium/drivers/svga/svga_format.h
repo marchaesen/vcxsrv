@@ -27,7 +27,7 @@
 #define SVGA_FORMAT_H_
 
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "svga_context.h"
 #include "svga_types.h"
 #include "svga_reg.h"
@@ -92,10 +92,10 @@ svga_format_size(SVGA3dSurfaceFormat format,
 const char *
 svga_format_name(SVGA3dSurfaceFormat format);
 
-boolean
+bool
 svga_format_is_integer(SVGA3dSurfaceFormat format);
 
-boolean
+bool
 svga_format_support_gen_mips(enum pipe_format format);
 
 enum tgsi_return_type
@@ -103,7 +103,7 @@ svga_get_texture_datatype(enum pipe_format format);
 
 
 // XXX: Move this to svga_context?
-boolean
+bool
 svga_has_any_integer_cbufs(const struct svga_context *svga);
 
 

@@ -25,19 +25,21 @@
 #include "glamor_transfer.h"
 
 /*
- * Make a pixmap ready to draw with fb by
+ * Make a drawable ready to draw with fb by
  * creating a PBO large enough for the whole object
  * and downloading all of the FBOs into it.
  */
 
 static Bool
-glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
+glamor_prep_drawable_box(DrawablePtr drawable, glamor_access_t access, BoxPtr box)
 {
-    ScreenPtr                   screen = pixmap->drawable.pScreen;
+    ScreenPtr                   screen = drawable->pScreen;
     glamor_screen_private       *glamor_priv = glamor_get_screen_private(screen);
+    PixmapPtr                   pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private       *priv = glamor_get_pixmap_private(pixmap);
     int                         gl_access, gl_usage;
     RegionRec                   region;
+    int                         off_x, off_y;
 
     if (priv->type == GLAMOR_DRM_ONLY)
         return FALSE;
@@ -47,6 +49,11 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
 
     glamor_make_current(glamor_priv);
 
+    glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
+    box->x1 += off_x;
+    box->x2 += off_x;
+    box->y1 += off_y;
+    box->y2 += off_y;
     RegionInit(&region, box, 1);
 
     /* See if it's already mapped */
@@ -119,7 +126,7 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
         priv->map_access = access;
     }
 
-    glamor_download_boxes(pixmap, RegionRects(&region), RegionNumRects(&region),
+    glamor_download_boxes(drawable, RegionRects(&region), RegionNumRects(&region),
                           0, 0, 0, 0, pixmap->devPrivate.ptr, pixmap->devKind);
 
     RegionUninit(&region);
@@ -143,9 +150,10 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
  * if we were writing to it and then unbind it to release the memory
  */
 
-static void
-glamor_fini_pixmap(PixmapPtr pixmap)
+void
+glamor_finish_access(DrawablePtr drawable)
 {
+    PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private       *priv = glamor_get_pixmap_private(pixmap);
 
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(priv))
@@ -154,14 +162,15 @@ glamor_fini_pixmap(PixmapPtr pixmap)
     if (!priv->prepared)
         return;
 
-    if (priv->pbo) {
+    if (priv->pbo &&
+        !(glamor_drawable_effective_depth(drawable) == 24 && pixmap->drawable.depth == 32)) {
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, priv->pbo);
         glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
         pixmap->devPrivate.ptr = NULL;
     }
 
     if (priv->map_access == GLAMOR_ACCESS_RW) {
-        glamor_upload_boxes(pixmap,
+        glamor_upload_boxes(drawable,
                             RegionRects(&priv->prepare_region),
                             RegionNumRects(&priv->prepare_region),
                             0, 0, 0, 0, pixmap->devPrivate.ptr, pixmap->devKind);
@@ -170,7 +179,11 @@ glamor_fini_pixmap(PixmapPtr pixmap)
     RegionUninit(&priv->prepare_region);
 
     if (priv->pbo) {
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        if (glamor_drawable_effective_depth(drawable) == 24 && pixmap->drawable.depth == 32)
+            pixmap->devPrivate.ptr = NULL;
+        else
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
         glDeleteBuffers(1, &priv->pbo);
         priv->pbo = 0;
     } else {
@@ -184,39 +197,26 @@ glamor_fini_pixmap(PixmapPtr pixmap)
 Bool
 glamor_prepare_access(DrawablePtr drawable, glamor_access_t access)
 {
-    PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     BoxRec box;
-    int off_x, off_y;
 
-    glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
-
-    box.x1 = drawable->x + off_x;
+    box.x1 = drawable->x;
     box.x2 = box.x1 + drawable->width;
-    box.y1 = drawable->y + off_y;
+    box.y1 = drawable->y;
     box.y2 = box.y1 + drawable->height;
-    return glamor_prep_pixmap_box(pixmap, access, &box);
+    return glamor_prep_drawable_box(drawable, access, &box);
 }
 
 Bool
 glamor_prepare_access_box(DrawablePtr drawable, glamor_access_t access,
                          int x, int y, int w, int h)
 {
-    PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     BoxRec box;
-    int off_x, off_y;
 
-    glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
-    box.x1 = drawable->x + x + off_x;
+    box.x1 = drawable->x + x;
     box.x2 = box.x1 + w;
-    box.y1 = drawable->y + y + off_y;
+    box.y1 = drawable->y + y;
     box.y2 = box.y1 + h;
-    return glamor_prep_pixmap_box(pixmap, access, &box);
-}
-
-void
-glamor_finish_access(DrawablePtr drawable)
-{
-    glamor_fini_pixmap(glamor_get_drawable_pixmap(drawable));
+    return glamor_prep_drawable_box(drawable, access, &box);
 }
 
 /*

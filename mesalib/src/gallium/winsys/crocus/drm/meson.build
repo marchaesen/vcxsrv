@@ -26,5 +26,5 @@ libcrocuswinsys = static_library(
     inc_gallium, inc_gallium_aux, inc_gallium_drivers,
   ],
   gnu_symbol_visibility : 'hidden',
-  dependencies : [dep_valgrind],
+  dependencies : [dep_valgrind, idep_intel_dev],
 )

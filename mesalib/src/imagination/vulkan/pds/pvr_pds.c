@@ -433,22 +433,18 @@ void pvr_pds_pixel_shader_sa_initialize(
  * \param dest_offset Destination offset in the attribute.
  * \param dma_size The size of the DMA in words.
  * \param src_address Source address for the burst.
+ * \param last Last DMA in program.
  * \param dev_info PVR device info structure.
  * \returns The number of DMA transfers required.
  */
-
 uint32_t pvr_pds_encode_dma_burst(uint32_t *dma_control,
                                   uint64_t *dma_address,
                                   uint32_t dest_offset,
                                   uint32_t dma_size,
                                   uint64_t src_address,
+                                  bool last,
                                   const struct pvr_device_info *dev_info)
 {
-   /* Simplified for MS2. */
-
-   /* Force to 1 DMA. */
-   const uint32_t num_kicks = 1;
-
    dma_control[0] = dma_size
                     << PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTD_SRC1_BSIZE_SHIFT;
    dma_control[0] |= dest_offset
@@ -457,12 +453,15 @@ uint32_t pvr_pds_encode_dma_burst(uint32_t *dma_control,
    dma_control[0] |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTD_SRC1_CMODE_CACHED |
                      PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTD_SRC1_DEST_COMMON_STORE;
 
-   dma_address[0] = src_address;
-   if (PVR_HAS_FEATURE(dev_info, slc_mcu_cache_controls)) {
-      dma_address[0] |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTD_SRC0_SLCMODE_CACHED;
-   }
+   if (last)
+      dma_control[0] |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTD_SRC1_LAST_EN;
 
-   return num_kicks;
+   dma_address[0] = src_address;
+   if (PVR_HAS_FEATURE(dev_info, slc_mcu_cache_controls))
+      dma_address[0] |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTD_SRC0_SLCMODE_CACHED;
+
+   /* Force to 1 DMA. */
+   return 1;
 }
 
 /* FIXME: use the csbgen interface and pvr_csb_pack.
@@ -891,7 +890,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
     * instanced stream.
     */
    if (direct_writes_needed || any_instanced_stream ||
-       program->instance_ID_modifier) {
+       program->instance_id_modifier) {
       if (program->iterate_vtx_id) {
          vertex_id_control_word_const32 =
             pvr_pds_get_bank_based_constants(program->num_streams,
@@ -900,8 +899,8 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
                                              &consts_size);
       }
 
-      if (program->iterate_instance_id || program->instance_ID_modifier) {
-         if (program->instance_ID_modifier == 0) {
+      if (program->iterate_instance_id || program->instance_id_modifier) {
+         if (program->instance_id_modifier == 0) {
             instance_id_control_word_const32 =
                pvr_pds_get_bank_based_constants(program->num_streams,
                                                 &next_constant,
@@ -948,7 +947,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
       }
    }
 
-   if (program->instance_ID_modifier != 0) {
+   if (program->instance_id_modifier != 0) {
       /* This instanceID modifier is used when a draw array instanced call
        * sourcing from client data cannot fit into vertex buffer and needs to
        * be broken down into several draw calls.
@@ -959,7 +958,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
       if (gen_mode == PDS_GENERATE_DATA_SEGMENT) {
          pvr_pds_write_constant32(buffer,
                                   instance_id_modifier_word_const32,
-                                  program->instance_ID_modifier);
+                                  program->instance_id_modifier);
       } else if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
          *buffer++ = pvr_pds_inst_encode_add32(
             /* cc */ 0x0,
@@ -986,7 +985,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
       }
 
       if (program->draw_indirect) {
-         assert((program->instance_ID_modifier == 0) &&
+         assert((program->instance_id_modifier == 0) &&
                 (program->base_instance == 0));
 
          base_instance_register = PVR_ROGUE_PDSINST_REGS32_PTEMP32_LOWER + 1;
@@ -1120,7 +1119,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
                if (shift < -31) {
                   /* >> (31) */
                   shift_2s_comp = 0xFFFE1;
-                  *buffer++ = pvr_pds_inst_encode_stflp64(
+                  *buffer++ = pvr_pds_inst_encode_sftlp64(
                      /* cc */ 0,
                      /* LOP */ PVR_ROGUE_PDSINST_LOP_NONE,
                      /* IM */ 1, /*  enable immediate */
@@ -1137,7 +1136,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
                 * new: >> (shift + 31)
                 */
                shift_2s_comp = *((uint32_t *)&shift);
-               *buffer++ = pvr_pds_inst_encode_stflp64(
+               *buffer++ = pvr_pds_inst_encode_sftlp64(
                   /* cc */ 0,
                   /* LOP */ PVR_ROGUE_PDSINST_LOP_NONE,
                   /* IM */ 1, /*enable immediate */
@@ -1169,7 +1168,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
                /* 2's complement of shift as this will be a right shift. */
                shift_2s_comp = ~(vertex_stream->shift) + 1;
 
-               *buffer++ = pvr_pds_inst_encode_stflp32(
+               *buffer++ = pvr_pds_inst_encode_sftlp32(
                   /* IM */ 1, /*  enable immediate. */
                   /* cc */ 0,
                   /* LOP */ PVR_ROGUE_PDSINST_LOP_NONE,
@@ -1258,7 +1257,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
                }
 
                if (temp != pre_index_temp) {
-                  *buffer++ = pvr_pds_inst_encode_stflp32(
+                  *buffer++ = pvr_pds_inst_encode_sftlp32(
                      /* IM */ 1, /*  enable immediate. */
                      /* cc */ 0,
                      /* LOP */ PVR_ROGUE_PDSINST_LOP_NONE,
@@ -1268,7 +1267,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
                      /* DST */ index_temp64);
                }
 
-               *buffer++ = pvr_pds_inst_encode_stflp32(
+               *buffer++ = pvr_pds_inst_encode_sftlp32(
                   /* IM */ 1, /*  enable immediate. */
                   /* cc */ 0,
                   /* LOP */ PVR_ROGUE_PDSINST_LOP_OR,
@@ -2277,7 +2276,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
             APPEND(pvr_pds_inst_encode_wdf(0));
 
             for (uint32_t i = 0; i < 4; i++) {
-               APPEND(pvr_pds_inst_encode_stflp32(
+               APPEND(pvr_pds_inst_encode_sftlp32(
                   1, /* enable immediate */
                   0, /* cc */
                   PVR_ROGUE_PDSINST_LOP_AND, /* LOP */
@@ -2287,7 +2286,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
                   cond_render_pred_temp + i)); /* DST */
 
                APPEND(
-                  pvr_pds_inst_encode_stflp32(1, /* enable immediate */
+                  pvr_pds_inst_encode_sftlp32(1, /* enable immediate */
                                               0, /* cc */
                                               PVR_ROGUE_PDSINST_LOP_OR, /* LOP
                                                                          */
@@ -2304,7 +2303,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
                                             0, /* SRC0 */
                                             0)); /* GLOBALREG */
 
-            APPEND(pvr_pds_inst_encode_stflp32(1, /* enable immediate */
+            APPEND(pvr_pds_inst_encode_sftlp32(1, /* enable immediate */
                                                0, /* cc */
                                                PVR_ROGUE_PDSINST_LOP_XOR, /* LOP
                                                                            */
@@ -2680,7 +2679,8 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
    assert((((uintptr_t)buffer) & (PDS_ROGUE_TA_STATE_PDS_ADDR_ALIGNSIZE - 1)) ==
           0);
 
-   assert(gen_mode != PDS_GENERATE_DATA_SEGMENT);
+   assert((gen_mode == PDS_GENERATE_CODE_SEGMENT && buffer) ||
+          gen_mode == PDS_GENERATE_SIZES);
 
    /* clang-format off */
    /* Shape of code segment (note: clear is different)
@@ -2718,7 +2718,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
       uint32_t control_word_constant1 =
          pvr_pds_get_constants(&next_constant, 2, &data_size);
 
-      if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+      if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
          /* DOUTW the clear color to the USC constants. Predicate with
           * uniform loading flag (IF0).
           */
@@ -2750,7 +2750,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
             pvr_pds_get_constants(&next_constant, 2, &data_size);
          color_constant4 = pvr_pds_get_constants(&next_constant, 2, &data_size);
 
-         if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+         if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
             /* DOUTW the clear color to the USSE constants. Predicate with
              * uniform loading flag (IF0).
              */
@@ -2790,7 +2790,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
          control_word_last_constant =
             pvr_pds_get_constants(&next_constant, 2, &data_size);
 
-         if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+         if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
             /* DOUTW the clear color to the USSE constants. Predicate with
              * uniform loading flag (IF0).
              */
@@ -2820,7 +2820,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
          doutu_constant64 =
             pvr_pds_get_constants(&next_constant, 2, &data_size);
 
-         if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+         if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
             /* Issue the task to the USC.
              *
              * dout ds1[constant_use], ds0[constant_use],
@@ -2836,7 +2836,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
          code_size += 1;
       }
 
-      if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+      if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
          /* End the program. */
          *instruction++ = pvr_pds_inst_encode_halt(0);
       }
@@ -2855,7 +2855,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
           * it. We therefore don't need to branch when there is only a
           * texture OR a uniform update program.
           */
-         if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+         if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
             uint32_t branch_address =
                MAX2(1 + program->num_texture_dma_kicks, 2);
 
@@ -2882,7 +2882,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
 
          for (uint32_t dma = 0; dma < program->num_texture_dma_kicks; dma++) {
             code_size += 1;
-            if (gen_mode != PDS_GENERATE_CODE_SEGMENT || !instruction)
+            if (gen_mode != PDS_GENERATE_CODE_SEGMENT)
                continue;
 
             /* DMA the state into the secondary attributes. */
@@ -2898,7 +2898,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
             dma_control_constant32 += 1;
          }
       } else if (both_textures_and_uniforms) {
-         if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+         if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
             /* End the program. */
             *instruction++ = pvr_pds_inst_encode_halt(0);
          }
@@ -2967,7 +2967,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
          for (uint32_t dma = 0; dma < program->num_uniform_dma_kicks; dma++) {
             code_size += 1;
 
-            if (gen_mode != PDS_GENERATE_CODE_SEGMENT || !instruction)
+            if (gen_mode != PDS_GENERATE_CODE_SEGMENT)
                continue;
 
             bool last_instruction = false;
@@ -2991,7 +2991,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
       }
 
       if (program->kick_usc) {
-         if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+         if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
             /* Issue the task to the USC.
              *
              * dout ds1[constant_use], ds0[constant_use],
@@ -3006,7 +3006,7 @@ uint32_t *pvr_pds_pixel_shader_uniform_texture_code(
 
          code_size += 1;
       } else if (program->num_uniform_dma_kicks == 0 && total_num_doutw == 0) {
-         if (gen_mode == PDS_GENERATE_CODE_SEGMENT && instruction) {
+         if (gen_mode == PDS_GENERATE_CODE_SEGMENT) {
             /* End the program. */
             *instruction++ = pvr_pds_inst_encode_halt(0);
          }

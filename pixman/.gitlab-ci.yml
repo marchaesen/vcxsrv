@@ -1,19 +1,10 @@
-image: fedora:28
-
-autotools-build:
-    script:
-    - dnf -y install dnf-plugins-core
-    - dnf -y groupinstall buildsys-build
-    - dnf -y builddep pixman
-    - ./autogen.sh
-    - make -sj4 check
+image: fedora:39
 
 meson-build:
     script:
     - dnf -y install dnf-plugins-core
     - dnf -y groupinstall buildsys-build
     - dnf -y builddep pixman
-    - dnf -y install ninja-build
-    - python3 -m pip install meson>=0.52.1
-    - meson build
+    - dnf -y install meson
+    - meson setup build
     - ninja -C build test

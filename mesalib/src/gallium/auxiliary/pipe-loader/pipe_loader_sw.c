@@ -69,13 +69,13 @@ static const struct sw_driver_descriptor driver_descriptors = {
 #ifdef HAVE_DRI
       {
          .name = "dri",
-         .create_winsys = dri_create_sw_winsys,
+         .create_winsys_dri = dri_create_sw_winsys,
       },
 #endif
 #ifdef HAVE_DRISW_KMS
       {
          .name = "kms_dri",
-         .create_winsys = kms_dri_create_winsys,
+         .create_winsys_kms_dri = kms_dri_create_winsys,
       },
 #endif
 #ifndef __ANDROID__
@@ -85,7 +85,7 @@ static const struct sw_driver_descriptor driver_descriptors = {
       },
       {
          .name = "wrapped",
-         .create_winsys = wrapper_sw_winsys_wrap_pipe_screen,
+         .create_winsys_wrapped = wrapper_sw_winsys_wrap_pipe_screen,
       },
 #endif
       { 0 },
@@ -99,12 +99,12 @@ static const struct sw_driver_descriptor kopper_driver_descriptors = {
    .winsys = {
       {
          .name = "dri",
-         .create_winsys = dri_create_sw_winsys,
+         .create_winsys_dri = dri_create_sw_winsys,
       },
 #ifdef HAVE_DRISW_KMS
       {
          .name = "kms_dri",
-         .create_winsys = kms_dri_create_winsys,
+         .create_winsys_kms_dri = kms_dri_create_winsys,
       },
 #endif
 #ifndef __ANDROID__
@@ -114,7 +114,7 @@ static const struct sw_driver_descriptor kopper_driver_descriptors = {
       },
       {
          .name = "wrapped",
-         .create_winsys = wrapper_sw_winsys_wrap_pipe_screen,
+         .create_winsys_wrapped = wrapper_sw_winsys_wrap_pipe_screen,
       },
 #endif
       { 0 },
@@ -216,7 +216,7 @@ pipe_loader_sw_probe_dri(struct pipe_loader_device **devs, const struct drisw_lo
 
    for (i = 0; sdev->dd->winsys[i].name; i++) {
       if (strcmp(sdev->dd->winsys[i].name, "dri") == 0) {
-         sdev->ws = sdev->dd->winsys[i].create_winsys(drisw_lf);
+         sdev->ws = sdev->dd->winsys[i].create_winsys_dri(drisw_lf);
          break;
       }
    }
@@ -246,7 +246,7 @@ pipe_loader_vk_probe_dri(struct pipe_loader_device **devs, const struct drisw_lo
 
    for (i = 0; sdev->dd->winsys[i].name; i++) {
       if (strcmp(sdev->dd->winsys[i].name, "dri") == 0) {
-         sdev->ws = sdev->dd->winsys[i].create_winsys(drisw_lf);
+         sdev->ws = sdev->dd->winsys[i].create_winsys_dri(drisw_lf);
          break;
       }
    }
@@ -282,7 +282,7 @@ pipe_loader_sw_probe_kms(struct pipe_loader_device **devs, int fd)
 
    for (i = 0; sdev->dd->winsys[i].name; i++) {
       if (strcmp(sdev->dd->winsys[i].name, "kms_dri") == 0) {
-         sdev->ws = sdev->dd->winsys[i].create_winsys(sdev->fd);
+         sdev->ws = sdev->dd->winsys[i].create_winsys_kms_dri(sdev->fd);
          break;
       }
    }
@@ -345,7 +345,7 @@ pipe_loader_sw_probe(struct pipe_loader_device **devs, int ndev)
    return i;
 }
 
-boolean
+bool
 pipe_loader_sw_probe_wrapped(struct pipe_loader_device **dev,
                              struct pipe_screen *screen)
 {
@@ -360,7 +360,7 @@ pipe_loader_sw_probe_wrapped(struct pipe_loader_device **dev,
 
    for (i = 0; sdev->dd->winsys[i].name; i++) {
       if (strcmp(sdev->dd->winsys[i].name, "wrapped") == 0) {
-         sdev->ws = sdev->dd->winsys[i].create_winsys(screen);
+         sdev->ws = sdev->dd->winsys[i].create_winsys_wrapped(screen);
          break;
       }
    }
@@ -382,6 +382,7 @@ pipe_loader_sw_release(struct pipe_loader_device **dev)
    UNUSED struct pipe_loader_sw_device *sdev =
       pipe_loader_sw_device(*dev);
 
+   sdev->ws->destroy(sdev->ws);
 #ifndef GALLIUM_STATIC_TARGETS
    if (sdev->lib)
       util_dl_close(sdev->lib);
@@ -404,7 +405,7 @@ pipe_loader_sw_get_driconf(struct pipe_loader_device *dev, unsigned *count)
 
 #if defined(HAVE_DRI) && defined(HAVE_ZINK)
 static const driOptionDescription zink_driconf[] = {
-      #include "zink/driinfo_zink.h"
+      #include "gallium/drivers/zink/driinfo_zink.h"
 };
 
 static const struct driOptionDescription *
@@ -423,8 +424,6 @@ pipe_loader_sw_create_screen(struct pipe_loader_device *dev,
    struct pipe_screen *screen;
 
    screen = sdev->dd->create_screen(sdev->ws, config, sw_vk);
-   if (!screen)
-      sdev->ws->destroy(sdev->ws);
 
    return screen ? debug_screen_wrap(screen) : NULL;
 }

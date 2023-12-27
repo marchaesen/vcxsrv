@@ -30,11 +30,11 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/poll.h>
 #include <unistd.h>
 #include <time.h>
 

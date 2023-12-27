@@ -34,7 +34,7 @@ class d3d12_video_encoder_references_manager_h264 : public d3d12_video_encoder_r
    void                                      end_frame();
    void                                      begin_frame(D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA curFrameData, bool bUsedAsReference, struct pipe_picture_desc* picture);
    D3D12_VIDEO_ENCODER_RECONSTRUCTED_PICTURE get_current_frame_recon_pic_output_allocation();
-   void get_current_frame_picture_control_data(D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA &codecAllocation);
+   bool get_current_frame_picture_control_data(D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA &codecAllocation);
    bool is_current_frame_used_as_reference();
    D3D12_VIDEO_ENCODE_REFERENCE_FRAMES get_current_reference_frames();
 

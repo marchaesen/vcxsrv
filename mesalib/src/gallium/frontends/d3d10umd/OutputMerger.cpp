@@ -90,7 +90,7 @@ CreateRenderTargetView(
    struct pipe_surface desc;
 
    memset(&desc, 0, sizeof desc);
-   desc.format = FormatTranslate(pCreateRenderTargetView->Format, FALSE);
+   desc.format = FormatTranslate(pCreateRenderTargetView->Format, false);
 
    switch (pCreateRenderTargetView->ResourceDimension) {
    case D3D10DDIRESOURCE_BUFFER:
@@ -238,7 +238,7 @@ ClearRenderTargetView(D3D10DDI_HDEVICE hDevice,                      // IN
                              0, 0,
                              surface->width,
                              surface->height,
-                             TRUE);
+                             true);
 }
 
 
@@ -290,7 +290,7 @@ CreateDepthStencilView(
    struct pipe_surface desc;
 
    memset(&desc, 0, sizeof desc);
-   desc.format = FormatTranslate(pCreateDepthStencilView->Format, TRUE);
+   desc.format = FormatTranslate(pCreateDepthStencilView->Format, true);
 
    switch (pCreateDepthStencilView->ResourceDimension) {
    case D3D10DDIRESOURCE_TEXTURE1D:
@@ -387,7 +387,7 @@ ClearDepthStencilView(D3D10DDI_HDEVICE hDevice,                      // IN
                              0, 0,
                              surface->width,
                              surface->height,
-                             TRUE);
+                             true);
 }
 
 
@@ -480,11 +480,11 @@ translateBlend(Device *pDevice,
       switch (blend) {
       case D3D10_DDI_BLEND_SRC1_COLOR:
       case D3D10_DDI_BLEND_SRC1_ALPHA:
-         LOG_UNSUPPORTED(TRUE);
+         LOG_UNSUPPORTED(true);
          return D3D10_DDI_BLEND_ZERO;
       case D3D10_DDI_BLEND_INV_SRC1_COLOR:
       case D3D10_DDI_BLEND_INV_SRC1_ALPHA:
-         LOG_UNSUPPORTED(TRUE);
+         LOG_UNSUPPORTED(true);
          return D3D10_DDI_BLEND_ONE;
       default:
          break;

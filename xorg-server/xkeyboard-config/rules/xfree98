@@ -27,4 +27,3 @@
   ctrl:grouptoggle_capscontrol	=	+ctrl(swapcaps)+group(lctrl_toggle)
   ctrl:ac_ctrl		=	+ctrl(ac_ctrl)
   ctrl:aa_ctrl		=	+ctrl(aa_ctrl)
-

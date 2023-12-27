@@ -30,9 +30,14 @@
 
 extern uint32_t PVR_DEBUG;
 
-/* Define debug values here. Example:
-#define PVR_DEBUG_SOME_OPTION                    BITFIELD_BIT(0)
- */
+/* clang-format off */
+#define PVR_IS_DEBUG_SET(x) unlikely(PVR_DEBUG & PVR_DEBUG_##x)
+/* clang-format on */
+
+#define PVR_DEBUG_DUMP_CONTROL_STREAM BITFIELD_BIT(0)
+#define PVR_DEBUG_TRACK_BOS BITFIELD_BIT(1)
+#define PVR_DEBUG_VK_DUMP_DESCRIPTOR_SET_LAYOUT BITFIELD_BIT(2)
+#define PVR_DEBUG_INFO BITFIELD_BIT(3)
 
 void pvr_process_debug_variable(void);
 

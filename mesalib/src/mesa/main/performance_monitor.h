@@ -30,7 +30,7 @@
 #ifndef PERFORMANCE_MONITOR_H
 #define PERFORMANCE_MONITOR_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 extern void
 _mesa_init_performance_monitors(struct gl_context *ctx);

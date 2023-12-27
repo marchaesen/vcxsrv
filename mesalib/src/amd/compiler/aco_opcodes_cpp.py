@@ -52,6 +52,11 @@ extern const aco::Info instr_info = {
       ${opcodes[name].opcode_gfx10},
       % endfor
    },
+   {
+      % for name in opcode_names:
+      ${opcodes[name].opcode_gfx11},
+      % endfor
+   },
    std::bitset<${len(opcode_names)}>("${can_use_input_modifiers}"),
    std::bitset<${len(opcode_names)}>("${can_use_output_modifiers}"),
    std::bitset<${len(opcode_names)}>("${is_atomic}"),
@@ -72,7 +77,17 @@ extern const aco::Info instr_info = {
    },
    {
       % for name in opcode_names:
-      (instr_class)${opcodes[name].cls.value},
+      instr_class::${opcodes[name].cls.value},
+      % endfor
+   },
+   {
+      % for name in opcode_names:
+      ${hex(opcodes[name].definitions)},
+      % endfor
+   },
+   {
+      % for name in opcode_names:
+      ${hex(opcodes[name].operands)},
       % endfor
    },
 };

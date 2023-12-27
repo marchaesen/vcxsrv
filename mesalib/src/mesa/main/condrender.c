@@ -30,7 +30,7 @@
  * \author Brian Paul
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "condrender.h"
 #include "enums.h"
 #include "mtypes.h"
@@ -47,7 +47,7 @@ BeginConditionalRender(struct gl_context *ctx, struct gl_query_object *q,
    struct st_context *st = st_context(ctx);
    uint m;
    /* Don't invert the condition for rendering by default */
-   boolean inverted = FALSE;
+   bool inverted = false;
 
    st_flush_bitmap_cache(st);
 
@@ -66,19 +66,19 @@ BeginConditionalRender(struct gl_context *ctx, struct gl_query_object *q,
       break;
    case GL_QUERY_WAIT_INVERTED:
       m = PIPE_RENDER_COND_WAIT;
-      inverted = TRUE;
+      inverted = true;
       break;
    case GL_QUERY_NO_WAIT_INVERTED:
       m = PIPE_RENDER_COND_NO_WAIT;
-      inverted = TRUE;
+      inverted = true;
       break;
    case GL_QUERY_BY_REGION_WAIT_INVERTED:
       m = PIPE_RENDER_COND_BY_REGION_WAIT;
-      inverted = TRUE;
+      inverted = true;
       break;
    case GL_QUERY_BY_REGION_NO_WAIT_INVERTED:
       m = PIPE_RENDER_COND_BY_REGION_NO_WAIT;
-      inverted = TRUE;
+      inverted = true;
       break;
    default:
       assert(0 && "bad mode in st_BeginConditionalRender");
@@ -96,7 +96,7 @@ EndConditionalRender(struct gl_context *ctx, struct gl_query_object *q)
 
    st_flush_bitmap_cache(st);
 
-   cso_set_render_condition(st->cso_context, NULL, FALSE, 0);
+   cso_set_render_condition(st->cso_context, NULL, false, 0);
 }
 
 static ALWAYS_INLINE void
@@ -206,7 +206,7 @@ end_conditional_render(struct gl_context *ctx)
 }
 
 
-void APIENTRY
+void GLAPIENTRY
 _mesa_EndConditionalRender_no_error(void)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -214,7 +214,7 @@ _mesa_EndConditionalRender_no_error(void)
 }
 
 
-void APIENTRY
+void GLAPIENTRY
 _mesa_EndConditionalRender(void)
 {
    GET_CURRENT_CONTEXT(ctx);

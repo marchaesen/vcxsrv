@@ -104,7 +104,7 @@ unpack_bitmap(struct st_context *st,
               GLint px, GLint py, GLsizei width, GLsizei height,
               const struct gl_pixelstore_attrib *unpack,
               const GLubyte *bitmap,
-              ubyte *destBuffer, uint destStride)
+              uint8_t *destBuffer, uint destStride)
 {
    destBuffer += py * destStride + px;
 
@@ -124,7 +124,7 @@ st_make_bitmap_texture(struct gl_context *ctx, GLsizei width, GLsizei height,
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct pipe_transfer *transfer;
-   ubyte *dest;
+   uint8_t *dest;
    struct pipe_resource *pt;
 
    if (!st->bitmap.tex_format)
@@ -170,7 +170,8 @@ st_make_bitmap_texture(struct gl_context *ctx, GLsizei width, GLsizei height,
 static void
 setup_render_state(struct gl_context *ctx,
                    struct pipe_sampler_view *sv,
-                   const GLfloat *color)
+                   const GLfloat *color, struct gl_program *fp,
+                   bool scissor_enabled, bool clamp_frag_color)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
@@ -182,10 +183,10 @@ setup_render_state(struct gl_context *ctx,
    key.st = st->has_shareable_shaders ? NULL : st;
    key.bitmap = GL_TRUE;
    key.clamp_color = st->clamp_frag_color_in_shader &&
-                     ctx->Color._ClampFragmentColor;
+                     clamp_frag_color;
    key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
-   fpv = st_get_fp_variant(st, st->fp, &key);
+   fpv = st_get_fp_variant(st, fp, &key);
 
    /* As an optimization, Mesa's fragment programs will sometimes get the
     * primary color from a statevar/constant rather than a varying variable.
@@ -198,7 +199,7 @@ setup_render_state(struct gl_context *ctx,
       GLfloat colorSave[4];
       COPY_4V(colorSave, ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], color);
-      st_upload_constants(st, st->fp, MESA_SHADER_FRAGMENT);
+      st_upload_constants(st, fp, MESA_SHADER_FRAGMENT);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], colorSave);
    }
 
@@ -211,7 +212,7 @@ setup_render_state(struct gl_context *ctx,
 
 
    /* rasterizer state: just scissor */
-   st->bitmap.rasterizer.scissor = ctx->Scissor.EnableFlags & 1;
+   st->bitmap.rasterizer.scissor = scissor_enabled;
    cso_set_rasterizer(cso, &st->bitmap.rasterizer);
 
    /* fragment shader state: TEX lookup program */
@@ -243,8 +244,7 @@ setup_render_state(struct gl_context *ctx,
    {
       struct pipe_sampler_view *sampler_views[PIPE_MAX_SAMPLERS];
       unsigned num_views =
-         st_get_sampler_views(st, PIPE_SHADER_FRAGMENT,
-                              ctx->FragmentProgram._Current, sampler_views);
+         st_get_sampler_views(st, PIPE_SHADER_FRAGMENT, fp, sampler_views);
 
       num_views = MAX2(fpv->bitmap_sampler + 1, num_views);
       sampler_views[fpv->bitmap_sampler] = sv;
@@ -281,8 +281,8 @@ restore_render_state(struct gl_context *ctx)
    st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] = 0;
 
    ctx->Array.NewVertexElements = true;
-   st->dirty |= ST_NEW_VERTEX_ARRAYS |
-                ST_NEW_FS_SAMPLER_VIEWS;
+   ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS |
+                          ST_NEW_FS_SAMPLER_VIEWS;
 }
 
 
@@ -294,7 +294,9 @@ restore_render_state(struct gl_context *ctx)
 static void
 draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
                  GLsizei width, GLsizei height,
-                 struct pipe_sampler_view *sv, const GLfloat *color)
+                 struct pipe_sampler_view *sv, const GLfloat *color,
+                 struct gl_program *fp, bool scissor_enabled,
+                 bool clamp_frag_color)
 {
    struct st_context *st = st_context(ctx);
    const float fb_width = (float) st->state.fb_width;
@@ -327,7 +329,7 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
       tBot = (float) height;
    }
 
-   setup_render_state(ctx, sv, color);
+   setup_render_state(ctx, sv, color, fp, scissor_enabled, clamp_frag_color);
 
    /* convert Z from [0,1] to [-1,-1] to match viewport Z scale/bias */
    z = z * 2.0f - 1.0f;
@@ -340,7 +342,7 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    restore_render_state(ctx);
 
    /* We uploaded modified constants, need to invalidate them. */
-   st->dirty |= ST_NEW_FS_CONSTANTS;
+   ctx->NewDriverState |= ST_NEW_FS_CONSTANTS;
 }
 
 
@@ -356,6 +358,8 @@ reset_cache(struct st_context *st)
    cache->xmax = -1000000;
    cache->ymin = 1000000;
    cache->ymax = -1000000;
+
+   _mesa_reference_program(st->ctx, &cache->fp, NULL);
 
    assert(!cache->texture);
 
@@ -453,7 +457,10 @@ st_flush_bitmap_cache(struct st_context *st)
                           cache->zpos,
                           BITMAP_CACHE_WIDTH, BITMAP_CACHE_HEIGHT,
                           sv,
-                          cache->color);
+                          cache->color,
+                          cache->fp,
+                          cache->scissor_enabled,
+                          cache->clamp_frag_color);
       }
 
       /* release/free the texture */
@@ -483,12 +490,18 @@ accum_bitmap(struct gl_context *ctx,
        height > BITMAP_CACHE_HEIGHT)
       return GL_FALSE; /* too big to cache */
 
+   bool scissor_enabled = ctx->Scissor.EnableFlags & 0x1;
+   bool clamp_frag_color = ctx->Color._ClampFragmentColor;
+
    if (!cache->empty) {
       px = x - cache->xpos;  /* pos in buffer */
       py = y - cache->ypos;
       if (px < 0 || px + width > BITMAP_CACHE_WIDTH ||
           py < 0 || py + height > BITMAP_CACHE_HEIGHT ||
           !TEST_EQ_4V(ctx->Current.RasterColor, cache->color) ||
+          ctx->FragmentProgram._Current != cache->fp ||
+          scissor_enabled != cache->scissor_enabled ||
+          clamp_frag_color != cache->clamp_frag_color ||
           ((fabsf(z - cache->zpos) > Z_EPSILON))) {
          /* This bitmap would extend beyond cache bounds, or the bitmap
           * color is changing
@@ -507,6 +520,9 @@ accum_bitmap(struct gl_context *ctx,
       cache->zpos = z;
       cache->empty = GL_FALSE;
       COPY_4FV(cache->color, ctx->Current.RasterColor);
+      _mesa_reference_program(ctx, &cache->fp, ctx->FragmentProgram._Current);
+      cache->scissor_enabled = scissor_enabled;
+      cache->clamp_frag_color = clamp_frag_color;
    }
 
    assert(px != -999);
@@ -527,7 +543,7 @@ accum_bitmap(struct gl_context *ctx,
    /* PBO source... */
    bitmap = _mesa_map_pbo_source(ctx, unpack, bitmap);
    if (!bitmap) {
-      return FALSE;
+      return false;
    }
 
    unpack_bitmap(st, px, py, width, height, unpack, bitmap,
@@ -561,8 +577,9 @@ init_bitmap_state(struct st_context *st)
    st->bitmap.sampler.min_img_filter = PIPE_TEX_FILTER_NEAREST;
    st->bitmap.sampler.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
    st->bitmap.sampler.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
-   st->bitmap.sampler.normalized_coords = st->internal_target == PIPE_TEXTURE_2D ||
-                                          (st->internal_target == PIPE_TEXTURE_RECT && st->lower_rect_tex);
+   st->bitmap.sampler.unnormalized_coords = !(st->internal_target == PIPE_TEXTURE_2D ||
+                                              (st->internal_target == PIPE_TEXTURE_RECT &&
+                                               st->lower_rect_tex));
 
    /* init baseline rasterizer state once */
    memset(&st->bitmap.rasterizer, 0, sizeof(st->bitmap.rasterizer));
@@ -616,11 +633,7 @@ st_Bitmap(struct gl_context *ctx, GLint x, GLint y,
     * for bitmap drawing uses no constants and the FS constants are
     * explicitly uploaded in the draw_bitmap_quad() function.
     */
-   if ((st->dirty | ctx->NewDriverState) & st->active_states &
-       ~ST_NEW_CONSTANTS & ST_PIPELINE_RENDER_STATE_MASK ||
-       st->gfx_shaders_may_be_dirty) {
-      st_validate_state(st, ST_PIPELINE_META);
-   }
+   st_validate_state(st, ST_PIPELINE_META_STATE_MASK & ~ST_NEW_CONSTANTS);
 
    struct pipe_sampler_view *view = NULL;
 
@@ -645,7 +658,10 @@ st_Bitmap(struct gl_context *ctx, GLint x, GLint y,
 
    if (view) {
       draw_bitmap_quad(ctx, x, y, ctx->Current.RasterPos[2],
-                       width, height, view, ctx->Current.RasterColor);
+                       width, height, view, ctx->Current.RasterColor,
+                       ctx->FragmentProgram._Current,
+                       ctx->Scissor.EnableFlags & 0x1,
+                       ctx->Color._ClampFragmentColor);
    }
 }
 
@@ -660,4 +676,5 @@ st_destroy_bitmap(struct st_context *st)
       pipe_texture_unmap(pipe, cache->trans);
    }
    pipe_resource_reference(&st->bitmap.cache.texture, NULL);
+   _mesa_reference_program(st->ctx, &st->bitmap.cache.fp, NULL);
 }

@@ -29,14 +29,14 @@
  * GL_EXT_texture_compression_s3tc support.
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "image.h"
 #include "macros.h"
 #include "mtypes.h"
 #include "texcompress.h"
 #include "texcompress_s3tc.h"
-#include "texcompress_s3tc_tmp.h"
+#include "util/format/texcompress_s3tc_tmp.h"
 #include "texstore.h"
 #include "format_unpack.h"
 #include "util/format_srgb.h"

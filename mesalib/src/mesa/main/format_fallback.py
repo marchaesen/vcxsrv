@@ -129,7 +129,7 @@ def main():
         'intensity_to_red_map': list(get_intensity_to_red_map(formats)),
     }
 
-    with open(pargs.out, 'w') as f:
+    with open(pargs.out, 'w', encoding='utf-8') as f:
         f.write(TEMPLATE.render(**template_env))
 
 if __name__ == "__main__":

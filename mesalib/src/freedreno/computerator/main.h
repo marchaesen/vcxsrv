@@ -81,6 +81,7 @@ struct backend {
    }
 
 struct backend *a4xx_init(struct fd_device *dev, const struct fd_dev_id *dev_id);
+template<chip CHIP>
 struct backend *a6xx_init(struct fd_device *dev, const struct fd_dev_id *dev_id);
 
 /* for conditionally setting boolean flag(s): */

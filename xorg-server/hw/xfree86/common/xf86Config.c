@@ -646,6 +646,7 @@ typedef enum {
     FLAG_MAX_CLIENTS,
     FLAG_IGLX,
     FLAG_DEBUG,
+    FLAG_ALLOW_BYTE_SWAPPED_CLIENTS,
 } FlagValues;
 
 /**
@@ -705,6 +706,8 @@ static OptionInfoRec FlagOptions[] = {
      {0}, FALSE},
     {FLAG_DEBUG, "Debug", OPTV_STRING,
      {0}, FALSE},
+    {FLAG_ALLOW_BYTE_SWAPPED_CLIENTS, "AllowByteSwappedClients", OPTV_BOOLEAN,
+     {0}, FALSE},
     {-1, NULL, OPTV_NONE,
      {0}, FALSE},
 };
@@ -744,6 +747,11 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     xf86GetOptValBool(FlagOptions, FLAG_IGNORE_ABI, &xf86Info.ignoreABI);
     if (xf86Info.ignoreABI) {
         xf86Msg(X_CONFIG, "Ignoring ABI Version\n");
+    }
+
+    xf86GetOptValBool(FlagOptions, FLAG_ALLOW_BYTE_SWAPPED_CLIENTS, &AllowByteSwappedClients);
+    if (AllowByteSwappedClients) {
+        xf86Msg(X_CONFIG, "Allowing byte-swapped clients\n");
     }
 
     if (xf86IsOptionSet(FlagOptions, FLAG_AUTO_ADD_DEVICES)) {

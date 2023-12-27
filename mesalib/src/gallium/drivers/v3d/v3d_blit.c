@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "nir/pipe_nir.h"
 #include "util/format/u_format.h"
 #include "util/u_surface.h"
 #include "util/u_blitter.h"
@@ -37,7 +38,7 @@
  */
 
 void
-v3d_blitter_save(struct v3d_context *v3d, bool op_blit)
+v3d_blitter_save(struct v3d_context *v3d, bool op_blit, bool render_cond)
 {
         util_blitter_save_fragment_constant_buffer_slot(v3d->blitter,
                                                         v3d->constbuf[PIPE_SHADER_FRAGMENT].cb);
@@ -56,16 +57,21 @@ v3d_blitter_save(struct v3d_context *v3d, bool op_blit)
         util_blitter_save_sample_mask(v3d->blitter, v3d->sample_mask, 0);
         util_blitter_save_so_targets(v3d->blitter, v3d->streamout.num_targets,
                                      v3d->streamout.targets);
+        util_blitter_save_framebuffer(v3d->blitter, &v3d->framebuffer);
 
         if (op_blit) {
                 util_blitter_save_scissor(v3d->blitter, &v3d->scissor);
-                util_blitter_save_framebuffer(v3d->blitter, &v3d->framebuffer);
                 util_blitter_save_fragment_sampler_states(v3d->blitter,
                                                           v3d->tex[PIPE_SHADER_FRAGMENT].num_samplers,
                                                           (void **)v3d->tex[PIPE_SHADER_FRAGMENT].samplers);
                 util_blitter_save_fragment_sampler_views(v3d->blitter,
                                                          v3d->tex[PIPE_SHADER_FRAGMENT].num_textures,
                                                          v3d->tex[PIPE_SHADER_FRAGMENT].textures);
+        }
+
+        if (!render_cond) {
+                util_blitter_save_render_condition(v3d->blitter, v3d->cond_query,
+                                                   v3d->cond_cond, v3d->cond_mode);
         }
 }
 
@@ -120,7 +126,7 @@ v3d_render_blit(struct pipe_context *ctx, struct pipe_blit_info *info)
                 return;
         }
 
-        v3d_blitter_save(v3d, true);
+        v3d_blitter_save(v3d, true, info->render_condition_enable);
         util_blitter_blit(v3d->blitter, info);
 
         pipe_resource_reference(&tiled, NULL);
@@ -169,7 +175,9 @@ v3d_stencil_blit(struct pipe_context *ctx, struct pipe_blit_info *info)
 
         /* Initialize the sampler view. */
         struct pipe_sampler_view src_tmpl = {
-                .target = src->base.target,
+                .target = (src->base.target == PIPE_TEXTURE_CUBE_ARRAY) ?
+                          PIPE_TEXTURE_2D_ARRAY :
+                          src->base.target,
                 .format = src_format,
                 .u.tex = {
                         .first_level = info->src.level,
@@ -188,7 +196,7 @@ v3d_stencil_blit(struct pipe_context *ctx, struct pipe_blit_info *info)
         struct pipe_sampler_view *src_view =
                 ctx->create_sampler_view(ctx, &src->base, &src_tmpl);
 
-        v3d_blitter_save(v3d, true);
+        v3d_blitter_save(v3d, true, info->render_condition_enable);
         util_blitter_blit_generic(v3d->blitter, dst_surf, &info->dst.box,
                                   src_view, &info->src.box,
                                   src->base.width0, src->base.height0,
@@ -201,139 +209,6 @@ v3d_stencil_blit(struct pipe_context *ctx, struct pipe_blit_info *info)
         pipe_sampler_view_reference(&src_view, NULL);
 
         info->mask &= ~PIPE_MASK_S;
-}
-
-static bool
-v3d_tfu(struct pipe_context *pctx,
-        struct pipe_resource *pdst,
-        struct pipe_resource *psrc,
-        unsigned int src_level,
-        unsigned int base_level,
-        unsigned int last_level,
-        unsigned int src_layer,
-        unsigned int dst_layer,
-        bool for_mipmap)
-{
-        struct v3d_context *v3d = v3d_context(pctx);
-        struct v3d_screen *screen = v3d->screen;
-        struct v3d_resource *src = v3d_resource(psrc);
-        struct v3d_resource *dst = v3d_resource(pdst);
-        struct v3d_resource_slice *src_base_slice = &src->slices[src_level];
-        struct v3d_resource_slice *dst_base_slice = &dst->slices[base_level];
-        int msaa_scale = pdst->nr_samples > 1 ? 2 : 1;
-        int width = u_minify(pdst->width0, base_level) * msaa_scale;
-        int height = u_minify(pdst->height0, base_level) * msaa_scale;
-        enum pipe_format pformat;
-
-        if (psrc->format != pdst->format)
-                return false;
-        if (psrc->nr_samples != pdst->nr_samples)
-                return false;
-
-        /* Can't write to raster. */
-        if (dst_base_slice->tiling == V3D_TILING_RASTER)
-                return false;
-
-        /* When using TFU for blit, we are doing exact copies (both input and
-         * output format must be the same, no scaling, etc), so there is no
-         * pixel format conversions. Thus we can rewrite the format to use one
-         * that is TFU compatible based on its texel size.
-         */
-        if (for_mipmap) {
-                pformat = pdst->format;
-        } else {
-                switch (dst->cpp) {
-                case 16: pformat = PIPE_FORMAT_R32G32B32A32_FLOAT;   break;
-                case 8:  pformat = PIPE_FORMAT_R16G16B16A16_FLOAT;   break;
-                case 4:  pformat = PIPE_FORMAT_R32_FLOAT;            break;
-                case 2:  pformat = PIPE_FORMAT_R16_FLOAT;            break;
-                case 1:  pformat = PIPE_FORMAT_R8_UNORM;             break;
-                default: unreachable("unsupported format bit-size"); break;
-                };
-        }
-
-        uint32_t tex_format = v3d_get_tex_format(&screen->devinfo, pformat);
-
-        if (!v3d_tfu_supports_tex_format(&screen->devinfo, tex_format, for_mipmap)) {
-                assert(for_mipmap);
-                return false;
-        }
-
-        v3d_flush_jobs_writing_resource(v3d, psrc, V3D_FLUSH_DEFAULT, false);
-        v3d_flush_jobs_reading_resource(v3d, pdst, V3D_FLUSH_DEFAULT, false);
-
-        struct drm_v3d_submit_tfu tfu = {
-                .ios = (height << 16) | width,
-                .bo_handles = {
-                        dst->bo->handle,
-                        src != dst ? src->bo->handle : 0
-                },
-                .in_sync = v3d->out_sync,
-                .out_sync = v3d->out_sync,
-        };
-        uint32_t src_offset = (src->bo->offset +
-                               v3d_layer_offset(psrc, src_level, src_layer));
-        tfu.iia |= src_offset;
-        if (src_base_slice->tiling == V3D_TILING_RASTER) {
-                tfu.icfg |= (V3D33_TFU_ICFG_FORMAT_RASTER <<
-                             V3D33_TFU_ICFG_FORMAT_SHIFT);
-        } else {
-                tfu.icfg |= ((V3D33_TFU_ICFG_FORMAT_LINEARTILE +
-                              (src_base_slice->tiling - V3D_TILING_LINEARTILE)) <<
-                             V3D33_TFU_ICFG_FORMAT_SHIFT);
-        }
-
-        uint32_t dst_offset = (dst->bo->offset +
-                               v3d_layer_offset(pdst, base_level, dst_layer));
-        tfu.ioa |= dst_offset;
-        if (last_level != base_level)
-                tfu.ioa |= V3D33_TFU_IOA_DIMTW;
-        tfu.ioa |= ((V3D33_TFU_IOA_FORMAT_LINEARTILE +
-                     (dst_base_slice->tiling - V3D_TILING_LINEARTILE)) <<
-                    V3D33_TFU_IOA_FORMAT_SHIFT);
-
-        tfu.icfg |= tex_format << V3D33_TFU_ICFG_TTYPE_SHIFT;
-        tfu.icfg |= (last_level - base_level) << V3D33_TFU_ICFG_NUMMM_SHIFT;
-
-        switch (src_base_slice->tiling) {
-        case V3D_TILING_UIF_NO_XOR:
-        case V3D_TILING_UIF_XOR:
-                tfu.iis |= (src_base_slice->padded_height /
-                            (2 * v3d_utile_height(src->cpp)));
-                break;
-        case V3D_TILING_RASTER:
-                tfu.iis |= src_base_slice->stride / src->cpp;
-                break;
-        case V3D_TILING_LINEARTILE:
-        case V3D_TILING_UBLINEAR_1_COLUMN:
-        case V3D_TILING_UBLINEAR_2_COLUMN:
-                break;
-       }
-
-        /* If we're writing level 0 (!IOA_DIMTW), then we need to supply the
-         * OPAD field for the destination (how many extra UIF blocks beyond
-         * those necessary to cover the height).  When filling mipmaps, the
-         * miplevel 1+ tiling state is inferred.
-         */
-        if (dst_base_slice->tiling == V3D_TILING_UIF_NO_XOR ||
-            dst_base_slice->tiling == V3D_TILING_UIF_XOR) {
-                int uif_block_h = 2 * v3d_utile_height(dst->cpp);
-                int implicit_padded_height = align(height, uif_block_h);
-
-                tfu.icfg |= (((dst_base_slice->padded_height -
-                               implicit_padded_height) / uif_block_h) <<
-                             V3D33_TFU_ICFG_OPAD_SHIFT);
-        }
-
-        int ret = v3d_ioctl(screen->fd, DRM_IOCTL_V3D_SUBMIT_TFU, &tfu);
-        if (ret != 0) {
-                fprintf(stderr, "Failed to submit TFU job: %d\n", ret);
-                return false;
-        }
-
-        dst->writes++;
-
-        return true;
 }
 
 bool
@@ -354,12 +229,16 @@ v3d_generate_mipmap(struct pipe_context *pctx,
         if (first_layer != last_layer)
                 return false;
 
-        return v3d_tfu(pctx,
-                       prsc, prsc,
-                       base_level,
-                       base_level, last_level,
-                       first_layer, first_layer,
-                       true);
+        struct v3d_context *v3d = v3d_context(pctx);
+        struct v3d_screen *screen = v3d->screen;
+        struct v3d_device_info *devinfo = &screen->devinfo;
+
+        return v3d_X(devinfo, tfu)(pctx,
+                                   prsc, prsc,
+                                   base_level,
+                                   base_level, last_level,
+                                   first_layer, first_layer,
+                                   true);
 }
 
 static void
@@ -388,11 +267,15 @@ v3d_tfu_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
         if (info->dst.format != info->src.format)
                 return;
 
-        if (v3d_tfu(pctx, info->dst.resource, info->src.resource,
-                    info->src.level,
-                    info->dst.level, info->dst.level,
-                    info->src.box.z, info->dst.box.z,
-                    false)) {
+        struct v3d_context *v3d = v3d_context(pctx);
+        struct v3d_screen *screen = v3d->screen;
+        struct v3d_device_info *devinfo = &screen->devinfo;
+
+        if (v3d_X(devinfo, tfu)(pctx, info->dst.resource, info->src.resource,
+                                info->src.level,
+                                info->dst.level, info->dst.level,
+                                info->src.box.z, info->dst.box.z,
+                                false)) {
                 info->mask &= ~PIPE_MASK_RGBA;
         }
 }
@@ -425,8 +308,9 @@ v3d_tlb_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
 {
         struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_screen *screen = v3d->screen;
+        struct v3d_device_info *devinfo = &screen->devinfo;
 
-        if (screen->devinfo.ver < 40 || !info->mask)
+        if (!info->mask)
                 return;
 
         bool is_color_blit = info->mask & PIPE_MASK_RGBA;
@@ -452,11 +336,15 @@ v3d_tlb_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
             util_format_is_depth_or_stencil(info->dst.format))
                 return;
 
-        if (!v3d_rt_format_supported(&screen->devinfo, info->src.format))
+        if ((is_depth_blit || is_stencil_blit) &&
+            !util_format_is_depth_or_stencil(info->dst.format))
                 return;
 
-        if (v3d_get_rt_format(&screen->devinfo, info->src.format) !=
-            v3d_get_rt_format(&screen->devinfo, info->dst.format))
+        if (!v3d_rt_format_supported(devinfo, info->src.format))
+                return;
+
+        if (v3d_get_rt_format(devinfo, info->src.format) !=
+            v3d_get_rt_format(devinfo, info->dst.format))
                 return;
 
         bool msaa = (info->src.resource->nr_samples > 1 ||
@@ -465,7 +353,7 @@ v3d_tlb_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
                                 info->dst.resource->nr_samples < 2);
 
         if (is_msaa_resolve &&
-            !v3d_format_supports_tlb_msaa_resolve(&screen->devinfo, info->src.format))
+            !v3d_format_supports_tlb_msaa_resolve(devinfo, info->src.format))
                 return;
 
         v3d_flush_jobs_writing_resource(v3d, info->src.resource, V3D_FLUSH_DEFAULT, false);
@@ -482,7 +370,7 @@ v3d_tlb_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
         bool double_buffer = V3D_DBG(DOUBLE_BUFFER) && !msaa;
 
         uint32_t tile_width, tile_height, max_bpp;
-        v3d_get_tile_buffer_size(msaa, double_buffer,
+        v3d_get_tile_buffer_size(devinfo, msaa, double_buffer,
                                  is_color_blit ? 1 : 0, surfaces, src_surf,
                                  &tile_width, &tile_height, &max_bpp);
 
@@ -547,7 +435,7 @@ v3d_tlb_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
                 info->mask &= ~PIPE_MASK_S;
         }
 
-        v3d41_start_binning(v3d, job);
+        v3d_X(devinfo, start_binning)(v3d, job);
 
         v3d_job_submit(v3d, job);
 
@@ -589,12 +477,7 @@ v3d_get_sand8_vs(struct pipe_context *pctx)
         pos_out->data.location = VARYING_SLOT_POS;
         nir_store_var(&b, pos_out, nir_load_var(&b, pos_in), 0xf);
 
-        struct pipe_shader_state shader_tmpl = {
-                .type = PIPE_SHADER_IR_NIR,
-                .ir.nir = b.shader,
-        };
-
-        v3d->sand8_blit_vs = pctx->create_vs_state(pctx, &shader_tmpl);
+        v3d->sand8_blit_vs = pipe_shader_from_nir(pctx, b.shader);
 
         return v3d->sand8_blit_vs;
 }
@@ -630,9 +513,14 @@ v3d_get_sand8_fs(struct pipe_context *pctx, int cpp)
 
         nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT,
                                                        options, "%s", name);
+        b.shader->info.num_ubos = 1;
+        b.shader->num_outputs = 1;
+        b.shader->num_inputs = 1;
+        b.shader->num_uniforms = 1;
+
         const struct glsl_type *vec4 = glsl_vec4_type();
 
-        const struct glsl_type *glsl_int = glsl_int_type();
+        const struct glsl_type *glsl_uint = glsl_uint_type();
 
         nir_variable *color_out =
                 nir_variable_create(b.shader, nir_var_shader_out,
@@ -642,29 +530,29 @@ v3d_get_sand8_fs(struct pipe_context *pctx, int cpp)
         nir_variable *pos_in =
                 nir_variable_create(b.shader, nir_var_shader_in, vec4, "pos");
         pos_in->data.location = VARYING_SLOT_POS;
-        nir_ssa_def *pos = nir_load_var(&b, pos_in);
+        nir_def *pos = nir_load_var(&b, pos_in);
 
-        nir_ssa_def *zero = nir_imm_int(&b, 0);
-        nir_ssa_def *one = nir_imm_int(&b, 1);
-        nir_ssa_def *two = nir_imm_int(&b, 2);
-        nir_ssa_def *six = nir_imm_int(&b, 6);
-        nir_ssa_def *seven = nir_imm_int(&b, 7);
-        nir_ssa_def *eight = nir_imm_int(&b, 8);
+        nir_def *zero = nir_imm_int(&b, 0);
+        nir_def *one = nir_imm_int(&b, 1);
+        nir_def *two = nir_imm_int(&b, 2);
+        nir_def *six = nir_imm_int(&b, 6);
+        nir_def *seven = nir_imm_int(&b, 7);
+        nir_def *eight = nir_imm_int(&b, 8);
 
-        nir_ssa_def *x = nir_f2i32(&b, nir_channel(&b, pos, 0));
-        nir_ssa_def *y = nir_f2i32(&b, nir_channel(&b, pos, 1));
+        nir_def *x = nir_f2i32(&b, nir_channel(&b, pos, 0));
+        nir_def *y = nir_f2i32(&b, nir_channel(&b, pos, 1));
 
         nir_variable *stride_in =
-                nir_variable_create(b.shader, nir_var_uniform, glsl_int,
+                nir_variable_create(b.shader, nir_var_uniform, glsl_uint,
                                     "sand8_stride");
-        nir_ssa_def *stride =
+        nir_def *stride =
                 nir_load_uniform(&b, 1, 32, zero,
                                  .base = stride_in->data.driver_location,
-                                 .range = 1,
-                                 .dest_type = nir_type_int32);
+                                 .range = 4,
+                                 .dest_type = nir_type_uint32);
 
-        nir_ssa_def *x_offset;
-        nir_ssa_def *y_offset;
+        nir_def *x_offset;
+        nir_def *y_offset;
 
         /* UIF tiled format is composed by UIF blocks, Each block has
          * four 64 byte microtiles. Inside each microtile pixels are stored
@@ -676,7 +564,7 @@ v3d_get_sand8_fs(struct pipe_context *pctx, int cpp)
          *  32bpp microtile dimensions are 4x4
          *
          * As we are reading and writing with 32bpp to optimize
-         * the number of texture operations during the blit. We need
+         * the number of texture operations during the blit, we need
          * to adjust the offsets were we read and write as data will
          * be later read using 8bpp (luma) and 16bpp (chroma).
          *
@@ -687,15 +575,15 @@ v3d_get_sand8_fs(struct pipe_context *pctx, int cpp)
          * 16 bytes per line. So if we read a 8bpp texture that was
          * written as 32bpp texture. Bytes would be misplaced.
          *
-         * inter/intra_utile_x_offests takes care of mapping the offsets
+         * inter/intra_utile_x_offsets takes care of mapping the offsets
          * between microtiles to deal with this issue for luma planes.
          */
         if (cpp == 1) {
-                nir_ssa_def *intra_utile_x_offset =
+                nir_def *intra_utile_x_offset =
                         nir_ishl(&b, nir_iand_imm(&b, x, 1), two);
-                nir_ssa_def *inter_utile_x_offset =
+                nir_def *inter_utile_x_offset =
                         nir_ishl(&b, nir_iand_imm(&b, x, 60), one);
-                nir_ssa_def *stripe_offset=
+                nir_def *stripe_offset=
                         nir_ishl(&b,nir_imul(&b,nir_ishr_imm(&b, x, 6),
                                              stride),
                                  seven);
@@ -707,7 +595,7 @@ v3d_get_sand8_fs(struct pipe_context *pctx, int cpp)
                                     nir_ishl(&b, nir_iand_imm(&b, x, 2), six),
                                     nir_ishl(&b, y, eight));
         } else  {
-                nir_ssa_def *stripe_offset=
+                nir_def *stripe_offset=
                         nir_ishl(&b,nir_imul(&b,nir_ishr_imm(&b, x, 5),
                                                 stride),
                                  seven);
@@ -715,26 +603,22 @@ v3d_get_sand8_fs(struct pipe_context *pctx, int cpp)
                                nir_ishl(&b, nir_iand_imm(&b, x, 31), two));
                 y_offset = nir_ishl(&b, y, seven);
         }
-        nir_ssa_def *ubo_offset = nir_iadd(&b, x_offset, y_offset);
-        nir_ssa_def *load =
-        nir_load_ubo(&b, 1, 32, one, ubo_offset,
+        nir_def *ubo_offset = nir_iadd(&b, x_offset, y_offset);
+        nir_def *load =
+        nir_load_ubo(&b, 1, 32, zero, ubo_offset,
                     .align_mul = 4,
                     .align_offset = 0,
                     .range_base = 0,
                     .range = ~0);
 
-        nir_ssa_def *output = nir_unpack_unorm_4x8(&b, load);
+        nir_def *output = nir_unpack_unorm_4x8(&b, load);
 
         nir_store_var(&b, color_out,
                       output,
                       0xF);
 
-        struct pipe_shader_state shader_tmpl = {
-                .type = PIPE_SHADER_IR_NIR,
-                .ir.nir = b.shader,
-        };
 
-        *cached_shader = pctx->create_fs_state(pctx, &shader_tmpl);
+        *cached_shader = pipe_shader_from_nir(pctx, b.shader);
 
         return *cached_shader;
 }
@@ -770,7 +654,7 @@ v3d_sand8_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
         assert(info->src.box.width == info->dst.box.width);
         assert(info->src.box.height == info->dst.box.height);
 
-        v3d_blitter_save(v3d, true);
+        v3d_blitter_save(v3d, true, info->render_condition_enable);
 
         struct pipe_surface dst_tmpl;
         util_blitter_default_dst_texture(&dst_tmpl, info->dst.resource,
@@ -806,13 +690,18 @@ v3d_sand8_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
 
         pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 0, false,
                                   &cb_uniforms);
+        struct pipe_constant_buffer saved_fs_cb1 = { 0 };
+        pipe_resource_reference(&saved_fs_cb1.buffer,
+                                v3d->constbuf[PIPE_SHADER_FRAGMENT].cb[1].buffer);
+        memcpy(&saved_fs_cb1, &v3d->constbuf[PIPE_SHADER_FRAGMENT].cb[1],
+               sizeof(struct pipe_constant_buffer));
         struct pipe_constant_buffer cb_src = {
                 .buffer = info->src.resource,
                 .buffer_offset = src->slices[info->src.level].offset,
                 .buffer_size = (src->bo->size -
                                 src->slices[info->src.level].offset),
         };
-        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 2, false,
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, false,
                                   &cb_src);
         /* Unbind the textures, to make sure we don't try to recurse into the
          * shadow blit.
@@ -828,16 +717,330 @@ v3d_sand8_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
         util_blitter_restore_constant_buffer_state(v3d->blitter);
 
         /* Restore cb1 (util_blitter doesn't handle this one). */
-        struct pipe_constant_buffer cb_disabled = { 0 };
-        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, false,
-                                  &cb_disabled);
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, true,
+                                  &saved_fs_cb1);
 
+        pipe_surface_reference(&dst_surf, NULL);
+
+        info->mask &= ~PIPE_MASK_RGBA;
+}
+
+
+/**
+ * Creates the VS of the custom blit shader to convert YUV plane from
+ * the P030 format with BROADCOM_SAND_COL128 modifier to UIF tiled P010
+ * format.
+ * This vertex shader is mostly a pass-through VS.
+ */
+static void *
+v3d_get_sand30_vs(struct pipe_context *pctx)
+{
+        struct v3d_context *v3d = v3d_context(pctx);
+        struct pipe_screen *pscreen = pctx->screen;
+
+        if (v3d->sand30_blit_vs)
+                return v3d->sand30_blit_vs;
+
+        const struct nir_shader_compiler_options *options =
+                pscreen->get_compiler_options(pscreen,
+                                              PIPE_SHADER_IR_NIR,
+                                              PIPE_SHADER_VERTEX);
+
+        nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX,
+                                                       options,
+                                                       "sand30_blit_vs");
+
+        const struct glsl_type *vec4 = glsl_vec4_type();
+        nir_variable *pos_in = nir_variable_create(b.shader,
+                                                   nir_var_shader_in,
+                                                   vec4, "pos");
+
+        nir_variable *pos_out = nir_variable_create(b.shader,
+                                                    nir_var_shader_out,
+                                                    vec4, "gl_Position");
+        pos_out->data.location = VARYING_SLOT_POS;
+        nir_store_var(&b, pos_out, nir_load_var(&b, pos_in), 0xf);
+
+        v3d->sand30_blit_vs = pipe_shader_from_nir(pctx, b.shader);
+
+        return v3d->sand30_blit_vs;
+}
+
+/**
+ * Given an uvec2 value with rgb10a2 components, it extracts four 10-bit
+ * components, then converts them from unorm10 to unorm16 and returns them
+ * in an uvec4. The start parameter defines where the sequence of 4 values
+ * begins.
+ */
+static nir_def *
+extract_unorm_2xrgb10a2_component_to_4xunorm16(nir_builder *b,
+                                               nir_def *value,
+                                               nir_def *start)
+{
+        const unsigned mask = BITFIELD_MASK(10);
+
+        nir_def *shiftw0 = nir_imul_imm(b, start, 10);
+        nir_def *word0 = nir_iand_imm(b, nir_channel(b, value, 0),
+                                          BITFIELD_MASK(30));
+        nir_def *finalword0 = nir_ushr(b, word0, shiftw0);
+        nir_def *word1 = nir_channel(b, value, 1);
+        nir_def *shiftw0tow1 = nir_isub_imm(b, 30, shiftw0);
+        nir_def *word1toword0 =  nir_ishl(b, word1, shiftw0tow1);
+        finalword0 = nir_ior(b, finalword0, word1toword0);
+        nir_def *finalword1 = nir_ushr(b, word1, shiftw0);
+
+        nir_def *val0 = nir_ishl_imm(b, nir_iand_imm(b, finalword0,
+                                                         mask), 6);
+        nir_def *val1 = nir_ishr_imm(b, nir_iand_imm(b, finalword0,
+                                                         mask << 10), 4);
+        nir_def *val2 = nir_ishr_imm(b, nir_iand_imm(b, finalword0,
+                                                         mask << 20), 14);
+        nir_def *val3 = nir_ishl_imm(b, nir_iand_imm(b, finalword1,
+                                                         mask), 6);
+
+        return nir_vec4(b, val0, val1, val2, val3);
+}
+
+/**
+ * Creates the FS of the custom blit shader to convert YUV plane from
+ * the P030 format with BROADCOM_SAND_COL128 modifier to UIF tiled P10
+ * format a 16-bit representation per component.
+ *
+ * The result texture is equivalent to a chroma (cpp=4) or luma (cpp=2)
+ * plane for a P010 format without the SAND128 modifier.
+ */
+static void *
+v3d_get_sand30_fs(struct pipe_context *pctx)
+{
+        struct v3d_context *v3d = v3d_context(pctx);
+        struct pipe_screen *pscreen = pctx->screen;
+
+        if (v3d->sand30_blit_fs)
+                return  v3d->sand30_blit_fs;
+
+        const struct nir_shader_compiler_options *options =
+                pscreen->get_compiler_options(pscreen,
+                                              PIPE_SHADER_IR_NIR,
+                                              PIPE_SHADER_FRAGMENT);
+
+        nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT,
+                                                       options,
+                                                       "sand30_blit_fs");
+        b.shader->info.num_ubos = 1;
+        b.shader->num_outputs = 1;
+        b.shader->num_inputs = 1;
+        b.shader->num_uniforms = 1;
+
+        const struct glsl_type *vec4 = glsl_vec4_type();
+
+        const struct glsl_type *glsl_uint = glsl_uint_type();
+        const struct glsl_type *glsl_uvec4 = glsl_vector_type(GLSL_TYPE_UINT,
+                                                              4);
+
+        nir_variable *color_out = nir_variable_create(b.shader,
+                                                      nir_var_shader_out,
+                                                      glsl_uvec4, "f_color");
+        color_out->data.location = FRAG_RESULT_COLOR;
+
+        nir_variable *pos_in =
+                nir_variable_create(b.shader, nir_var_shader_in, vec4, "pos");
+        pos_in->data.location = VARYING_SLOT_POS;
+        nir_def *pos = nir_load_var(&b, pos_in);
+
+        nir_def *zero = nir_imm_int(&b, 0);
+        nir_def *three = nir_imm_int(&b, 3);
+
+        /* With a SAND128 stripe, in 128-bytes with rgb10a2 format we have 96
+         * 10-bit values. So, it represents 96 pixels for Y plane and 48 pixels
+         * for UV frame, but as we are reading 4 10-bit-values at a time we
+         * will have 24 groups (pixels) of 4 10-bit values.
+         */
+        uint32_t pixels_stripe = 24;
+
+        nir_def *x = nir_f2i32(&b, nir_channel(&b, pos, 0));
+        nir_def *y = nir_f2i32(&b, nir_channel(&b, pos, 1));
+
+        /* UIF tiled format is composed by UIF blocks. Each block has four 64
+         * byte microtiles. Inside each microtile pixels are stored in raster
+         * format. But microtiles have different dimensions based in the bits
+         * per pixel of the image.
+         *
+         *  16bpp microtile dimensions are 8x4
+         *  32bpp microtile dimensions are 4x4
+         *  64bpp microtile dimensions are 4x2
+         *
+         * As we are reading and writing with 64bpp to optimize the number of
+         * texture operations during the blit, we adjust the offsets so when
+         * the microtile is sampled using the 16bpp (luma) and the 32bpp
+         * (chroma) the expected pixels are in the correct position, that
+         * would be different if we were using a 64bpp sampling.
+         *
+         * For luma 8x4 16bpp and chroma 4x4 32bpp luma raster order is
+         * incompatible with 4x2 64bpp. 16bpp has 16 bytes per line, 32bpp has
+         * also 16byte per line. But 64bpp has 32 bytes per line. So if we
+         * read a 16bpp or 32bpp texture that was written as 64bpp texture,
+         * pixels would be misplaced.
+         *
+         * inter/intra_utile_x_offsets takes care of mapping the offsets
+         * between microtiles to deal with this issue for luma and chroma
+         * planes.
+         *
+         * We reduce the luma and chroma planes to the same blit case
+         * because 16bpp and 32bpp have compatible microtile raster layout.
+         * So just doubling the width of the chroma plane before calling the
+         * blit makes them equivalent.
+         */
+        nir_variable *stride_in =
+                nir_variable_create(b.shader, nir_var_uniform,
+                                    glsl_uint, "sand30_stride");
+        nir_def *stride =
+                nir_load_uniform(&b, 1, 32, zero,
+                                 .base = stride_in->data.driver_location,
+                                 .range = 4,
+                                 .dest_type = nir_type_uint32);
+
+        nir_def *real_x = nir_ior(&b, nir_iand_imm(&b, x, 1),
+                                      nir_ishl_imm(&b,nir_ushr_imm(&b, x, 2),
+                                      1));
+        nir_def *x_pos_in_stripe = nir_umod_imm(&b, real_x, pixels_stripe);
+        nir_def *component = nir_umod(&b, real_x, three);
+        nir_def *intra_utile_x_offset = nir_ishl_imm(&b, component, 2);
+
+        nir_def *inter_utile_x_offset =
+                nir_ishl_imm(&b, nir_udiv_imm(&b, x_pos_in_stripe, 3), 4);
+
+        nir_def *stripe_offset=
+                nir_ishl_imm(&b,
+                             nir_imul(&b,
+                                      nir_udiv_imm(&b, real_x, pixels_stripe),
+                                      stride),
+                             7);
+
+        nir_def *x_offset = nir_iadd(&b, stripe_offset,
+                                         nir_iadd(&b, intra_utile_x_offset,
+                                                  inter_utile_x_offset));
+        nir_def *y_offset =
+                nir_iadd(&b, nir_ishl_imm(&b, nir_iand_imm(&b, x, 2), 6),
+                         nir_ishl_imm(&b, y, 8));
+        nir_def *ubo_offset = nir_iadd(&b, x_offset, y_offset);
+
+        nir_def *load = nir_load_ubo(&b, 2, 32, zero, ubo_offset,
+                                         .align_mul = 8,
+                                         .align_offset = 0,
+                                         .range_base = 0,
+                                         .range = ~0);
+        nir_def *output =
+                extract_unorm_2xrgb10a2_component_to_4xunorm16(&b, load,
+                                                               component);
+        nir_store_var(&b, color_out,
+                      output,
+                      0xf);
+
+        v3d->sand30_blit_fs = pipe_shader_from_nir(pctx, b.shader);
+
+        return v3d->sand30_blit_fs;
+}
+
+/**
+ * Turns P030 with SAND30 format modifier from raster-order with interleaved
+ * luma and chroma 128-byte-wide-columns to a P010 UIF tiled format for luma
+ * and chroma.
+ */
+static void
+v3d_sand30_blit(struct pipe_context *pctx, struct pipe_blit_info *info)
+{
+        struct v3d_context *v3d = v3d_context(pctx);
+        struct v3d_resource *src = v3d_resource(info->src.resource);
+        ASSERTED struct v3d_resource *dst = v3d_resource(info->dst.resource);
+
+        if (!src->sand_col128_stride)
+                return;
+        if (src->tiled)
+                return;
+        if (src->base.format != PIPE_FORMAT_R16_UNORM &&
+            src->base.format != PIPE_FORMAT_R16G16_UNORM)
+                return;
+        if (!(info->mask & PIPE_MASK_RGBA))
+                return;
+
+        assert(dst->base.format == src->base.format);
+        assert(dst->tiled);
+
+        assert(info->src.box.x == 0 && info->dst.box.x == 0);
+        assert(info->src.box.y == 0 && info->dst.box.y == 0);
+        assert(info->src.box.width == info->dst.box.width);
+        assert(info->src.box.height == info->dst.box.height);
+
+        v3d_blitter_save(v3d, true, info->render_condition_enable);
+
+        struct pipe_surface dst_tmpl;
+        util_blitter_default_dst_texture(&dst_tmpl, info->dst.resource,
+                                         info->dst.level, info->dst.box.z);
+
+        dst_tmpl.format = PIPE_FORMAT_R16G16B16A16_UINT;
+
+        struct pipe_surface *dst_surf =
+                pctx->create_surface(pctx, info->dst.resource, &dst_tmpl);
+        if (!dst_surf) {
+                fprintf(stderr, "Failed to create YUV dst surface\n");
+                util_blitter_unset_running_flag(v3d->blitter);
+                return;
+        }
+
+        uint32_t sand30_stride = src->sand_col128_stride;
+
+        /* Adjust the dimensions of dst luma/chroma to match src
+         * size now we are using a cpp=8 format. Next dimension take into
+         * account the UIF microtile layouts.
+         */
+        dst_surf->height /= 2;
+        dst_surf->width = align(dst_surf->width, 8);
+        if (src->cpp == 2)
+                dst_surf->width /= 2;
+        /* Set the constant buffer. */
+        struct pipe_constant_buffer cb_uniforms = {
+                .user_buffer = &sand30_stride,
+                .buffer_size = sizeof(sand30_stride),
+        };
+
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 0, false,
+                                  &cb_uniforms);
+
+        struct pipe_constant_buffer saved_fs_cb1 = { 0 };
+        pipe_resource_reference(&saved_fs_cb1.buffer,
+                                v3d->constbuf[PIPE_SHADER_FRAGMENT].cb[1].buffer);
+        memcpy(&saved_fs_cb1, &v3d->constbuf[PIPE_SHADER_FRAGMENT].cb[1],
+               sizeof(struct pipe_constant_buffer));
+        struct pipe_constant_buffer cb_src = {
+                .buffer = info->src.resource,
+                .buffer_offset = src->slices[info->src.level].offset,
+                .buffer_size = (src->bo->size -
+                                src->slices[info->src.level].offset),
+        };
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, false,
+                                  &cb_src);
+        /* Unbind the textures, to make sure we don't try to recurse into the
+         * shadow blit.
+         */
+        pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 0, 0, false,
+                                NULL);
+        pctx->bind_sampler_states(pctx, PIPE_SHADER_FRAGMENT, 0, 0, NULL);
+
+        util_blitter_custom_shader(v3d->blitter, dst_surf,
+                                   v3d_get_sand30_vs(pctx),
+                                   v3d_get_sand30_fs(pctx));
+
+        util_blitter_restore_textures(v3d->blitter);
+        util_blitter_restore_constant_buffer_state(v3d->blitter);
+
+        /* Restore cb1 (util_blitter doesn't handle this one). */
+        pctx->set_constant_buffer(pctx, PIPE_SHADER_FRAGMENT, 1, true,
+                                  &saved_fs_cb1);
         pipe_surface_reference(&dst_surf, NULL);
 
         info->mask &= ~PIPE_MASK_RGBA;
         return;
 }
-
 
 /* Optimal hardware path for blitting pixels.
  * Scaling, format conversion, up- and downsampling (resolve) are allowed.
@@ -847,6 +1050,11 @@ v3d_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
 {
         struct v3d_context *v3d = v3d_context(pctx);
         struct pipe_blit_info info = *blit_info;
+
+        if (info.render_condition_enable && !v3d_render_condition_check(v3d))
+                return;
+
+        v3d_sand30_blit(pctx, &info);
 
         v3d_sand8_blit(pctx, &info);
 

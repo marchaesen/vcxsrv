@@ -157,7 +157,7 @@ present_get_target_msc(uint64_t target_msc_arg,
                        uint64_t remainder,
                        uint32_t options)
 {
-    const Bool  synced_flip = !(options & PresentOptionAsync);
+    const Bool  synced_flip = !(options & PresentAllAsyncOptions);
     uint64_t    target_msc;
 
     /* If the specified target-msc lies in the future, then this

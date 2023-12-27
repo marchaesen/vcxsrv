@@ -1,4 +1,4 @@
-SUBDIRS = include src doc
+SUBDIRS = include src doc test
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = xmu.pc xmuu.pc
@@ -20,3 +20,5 @@ if LINT
 lint:
 	(cd src && $(MAKE) $(MFLAGS) lint)
 endif LINT
+
+EXTRA_DIST = README.md

@@ -31,6 +31,10 @@
 #include "util/u_debug.h"
 #include "util/u_math.h"
 
+#include "common/freedreno_common.h"
+
+BEGINC;
+
 /* Shared freedreno mipmap layout helper
  *
  * It does *not* attempt to track surface transitions, in particular
@@ -86,6 +90,17 @@ struct fdl_slice {
 struct fdl_explicit_layout {
    uint32_t offset;
    uint32_t pitch;
+};
+
+/**
+ * Metadata shared between vk and gallium driver for interop.
+ *
+ * NOTE: EXT_external_objects requires app to check device and driver
+ * UUIDs to ensure that the vk and gl driver are compatible.  So for
+ * now we don't need any additional versioning of the metadata.
+ */
+struct fdl_metadata {
+   uint64_t modifier;
 };
 
 /**
@@ -270,9 +285,12 @@ enum fdl_chroma_location {
 };
 
 struct fdl_view_args {
+   uint32_t chip;
    uint64_t iova;
-   uint32_t base_array_layer, base_miplevel;
-   uint32_t layer_count, level_count;
+   uint32_t base_miplevel;
+   uint32_t level_count;
+   uint32_t base_array_layer;
+   uint32_t layer_count;
    float min_lod_clamp;
    unsigned char swiz[4];
    enum pipe_format format;
@@ -288,6 +306,8 @@ struct fdl6_view {
    uint32_t layer_size;
    uint32_t ubwc_layer_size;
 
+   uint32_t offset;
+
    uint32_t width, height;
    bool need_y2_align;
 
@@ -302,8 +322,9 @@ struct fdl6_view {
     */
    uint32_t storage_descriptor[FDL6_TEX_CONST_DWORDS];
 
+   uint32_t pitch;
+
    /* pre-filled register values */
-   uint32_t PITCH;
    uint32_t FLAG_BUFFER_PITCH;
 
    uint32_t RB_MRT_BUF_INFO;
@@ -329,5 +350,7 @@ fdl6_buffer_view_init(uint32_t *descriptor, enum pipe_format format,
 void
 fdl6_format_swiz(enum pipe_format format, bool has_z24uint_s8uint,
                  unsigned char *format_swiz);
+
+ENDC;
 
 #endif /* FREEDRENO_LAYOUT_H_ */

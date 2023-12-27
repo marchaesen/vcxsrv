@@ -31,7 +31,7 @@ struct r300_vertex_program_code;
 uint32_t pack_float24(float f);
 
 void r300_emit_vertex_arrays(struct r300_context* r300, int offset,
-                             boolean indexed, int instance_id);
+                             bool indexed, int instance_id);
 
 void r300_emit_blend_state(struct r300_context* r300,
                            unsigned size, void* state);
@@ -89,7 +89,7 @@ void r300_emit_scissor_state(struct r300_context* r300,
 void r300_emit_textures_state(struct r300_context *r300,
                               unsigned size, void *state);
 
-void r300_emit_vertex_arrays_swtcl(struct r300_context *r300, boolean indexed);
+void r300_emit_vertex_arrays_swtcl(struct r300_context *r300, bool indexed);
 
 void r300_emit_vap_invariant_state(struct r300_context *r300,
                                    unsigned size, void *state);
@@ -125,8 +125,8 @@ unsigned r300_get_num_cs_end_dwords(struct r300_context *r300);
 /* Emit all dirty state. */
 void r300_emit_dirty_state(struct r300_context* r300);
 
-boolean r300_emit_buffer_validate(struct r300_context *r300,
-                                  boolean do_validate_vertex_buffers,
-                                  struct pipe_resource *index_buffer);
+bool r300_emit_buffer_validate(struct r300_context *r300,
+                               bool do_validate_vertex_buffers,
+                               struct pipe_resource *index_buffer);
 
 #endif /* R300_EMIT_H */

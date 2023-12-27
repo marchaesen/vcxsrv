@@ -59,7 +59,7 @@ struct quad_shade_stage
  * Execute fragment shader for the four fragments in the quad.
  * \return TRUE if quad is alive, FALSE if all four pixels are killed
  */
-static inline boolean
+static inline bool
 shade_quad(struct quad_stage *qs, struct quad_header *quad)
 {
    struct softpipe_context *softpipe = qs->softpipe;
@@ -71,7 +71,7 @@ shade_quad(struct quad_stage *qs, struct quad_header *quad)
    }
 
    /* run shader */
-   machine->flatshade_color = softpipe->rasterizer->flatshade ? TRUE : FALSE;
+   machine->flatshade_color = softpipe->rasterizer->flatshade ? true : false;
    return softpipe->fs_variant->run( softpipe->fs_variant, machine, quad, softpipe->early_depth );
 }
 
@@ -110,8 +110,7 @@ shade_quads(struct quad_stage *qs,
    unsigned i, nr_quads = 0;
 
    tgsi_exec_set_constant_buffers(machine, PIPE_MAX_CONSTANT_BUFFERS,
-                         softpipe->mapped_constants[PIPE_SHADER_FRAGMENT],
-                         softpipe->const_buffer_size[PIPE_SHADER_FRAGMENT]);
+                                  softpipe->mapped_constants[PIPE_SHADER_FRAGMENT]);
 
    machine->InterpCoefs = quads[0]->coef;
 

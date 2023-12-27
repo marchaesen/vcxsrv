@@ -50,7 +50,7 @@ struct svga_query {
    SVGA3dQueryType svga_type;      /**< SVGA3D_QUERYTYPE_x or unused */
 
    unsigned id;                    /** Per-context query identifier */
-   boolean active;                 /** TRUE if query is active */
+   bool active;                 /** TRUE if query is active */
 
    struct pipe_fence_handle *fence;
 
@@ -133,7 +133,7 @@ begin_query_vgpu9(struct svga_context *svga, struct svga_query *sq)
        * big deal, given that no sane application would do this.
        */
        uint64_t result;
-       svga_get_query_result(&svga->pipe, &sq->base, TRUE, (void*)&result);
+       svga_get_query_result(&svga->pipe, &sq->base, true, (void*)&result);
        assert(sq->queryResult->state != SVGA3D_QUERYSTATE_PENDING);
    }
 
@@ -174,7 +174,7 @@ get_query_result_vgpu9(struct svga_context *svga, struct svga_query *sq,
    if (state == SVGA3D_QUERYSTATE_PENDING) {
       if (!wait)
          return false;
-      sws->fence_finish(sws, sq->fence, PIPE_TIMEOUT_INFINITE,
+      sws->fence_finish(sws, sq->fence, OS_TIMEOUT_INFINITE,
                         SVGA_FENCE_FLAG_QUERY);
       state = sq->queryResult->state;
    }
@@ -480,7 +480,7 @@ define_query_vgpu10(struct svga_context *svga,
    int qlen;
    enum pipe_error ret = PIPE_OK;
 
-   SVGA_DBG(DEBUG_QUERY, "%s\n", __FUNCTION__);
+   SVGA_DBG(DEBUG_QUERY, "%s\n", __func__);
 
    if (svga->gb_query == NULL) {
       /* Create a gb query object */
@@ -545,7 +545,7 @@ rebind_vgpu10_query(struct svga_context *svga)
 {
    SVGA_RETRY(svga, svga->swc->query_bind(svga->swc, svga->gb_query,
                                           SVGA_QUERY_FLAG_REF));
-   svga->rebind.flags.query = FALSE;
+   svga->rebind.flags.query = false;
 }
 
 
@@ -607,7 +607,7 @@ get_query_result_vgpu10(struct svga_context *svga, struct svga_query *sq,
        queryState == SVGA3D_QUERYSTATE_NEW) {
       if (!wait)
          return false;
-      sws->fence_finish(sws, sq->fence, PIPE_TIMEOUT_INFINITE,
+      sws->fence_finish(sws, sq->fence, OS_TIMEOUT_INFINITE,
                         SVGA_FENCE_FLAG_QUERY);
       sws->query_get_result(sws, sq->gb_query, sq->offset, &queryState, result, resultLen);
    }
@@ -638,7 +638,7 @@ svga_create_query(struct pipe_context *pipe,
    if (sq->id == UTIL_BITMASK_INVALID_INDEX)
       goto fail;
 
-   SVGA_DBG(DEBUG_QUERY, "%s type=%d sq=0x%x id=%d\n", __FUNCTION__,
+   SVGA_DBG(DEBUG_QUERY, "%s type=%d sq=0x%x id=%d\n", __func__,
             query_type, sq, sq->id);
 
    switch (query_type) {
@@ -742,7 +742,7 @@ svga_create_query(struct pipe_context *pipe,
    case SVGA_QUERY_FLUSH_TIME:
    case SVGA_QUERY_MAP_BUFFER_TIME:
       /* These queries need os_time_get() */
-      svga->hud.uses_time = TRUE;
+      svga->hud.uses_time = true;
       break;
 
    default:
@@ -772,7 +772,7 @@ svga_destroy_query(struct pipe_context *pipe, struct pipe_query *q)
 
    sq = svga_query(q);
 
-   SVGA_DBG(DEBUG_QUERY, "%s sq=0x%x id=%d\n", __FUNCTION__,
+   SVGA_DBG(DEBUG_QUERY, "%s sq=0x%x id=%d\n", __func__,
             sq, sq->id);
 
    switch (sq->type) {
@@ -953,9 +953,9 @@ svga_begin_query(struct pipe_context *pipe, struct pipe_query *q)
    }
 
    SVGA_DBG(DEBUG_QUERY, "%s sq=0x%x id=%d type=%d svga_type=%d\n",
-            __FUNCTION__, sq, sq->id, sq->type, sq->svga_type);
+            __func__, sq, sq->id, sq->type, sq->svga_type);
 
-   sq->active = TRUE;
+   sq->active = true;
 
    return true;
 }
@@ -971,13 +971,13 @@ svga_end_query(struct pipe_context *pipe, struct pipe_query *q)
    assert(sq->type < SVGA_QUERY_MAX);
 
    SVGA_DBG(DEBUG_QUERY, "%s sq=0x%x type=%d\n",
-            __FUNCTION__, sq, sq->type);
+            __func__, sq, sq->type);
 
    if (sq->type == PIPE_QUERY_TIMESTAMP && !sq->active)
       svga_begin_query(pipe, q);
 
    SVGA_DBG(DEBUG_QUERY, "%s sq=0x%x id=%d type=%d svga_type=%d\n",
-            __FUNCTION__, sq, sq->id, sq->type, sq->svga_type);
+            __func__, sq, sq->id, sq->type, sq->svga_type);
 
    svga_hwtnl_flush_retry(svga);
 
@@ -1075,7 +1075,7 @@ svga_end_query(struct pipe_context *pipe, struct pipe_query *q)
    default:
       assert(!"unexpected query type in svga_end_query()");
    }
-   sq->active = FALSE;
+   sq->active = false;
    return true;
 }
 
@@ -1095,7 +1095,7 @@ svga_get_query_result(struct pipe_context *pipe,
    assert(sq);
 
    SVGA_DBG(DEBUG_QUERY, "%s sq=0x%x id=%d wait: %d\n",
-            __FUNCTION__, sq, sq->id, wait);
+            __func__, sq, sq->id, wait);
 
    switch (sq->type) {
    case PIPE_QUERY_OCCLUSION_COUNTER:
@@ -1221,7 +1221,7 @@ svga_get_query_result(struct pipe_context *pipe,
       assert(!"unexpected query type in svga_get_query_result");
    }
 
-   SVGA_DBG(DEBUG_QUERY, "%s result %d\n", __FUNCTION__, *((uint64_t *)vresult));
+   SVGA_DBG(DEBUG_QUERY, "%s result %d\n", __func__, *((uint64_t *)vresult));
 
    return ret;
 }
@@ -1235,7 +1235,7 @@ svga_render_condition(struct pipe_context *pipe, struct pipe_query *q,
    struct svga_query *sq = svga_query(q);
    SVGA3dQueryId queryId;
 
-   SVGA_DBG(DEBUG_QUERY, "%s\n", __FUNCTION__);
+   SVGA_DBG(DEBUG_QUERY, "%s\n", __func__);
 
    assert(svga_have_vgpu10(svga));
    if (sq == NULL) {
@@ -1257,7 +1257,7 @@ svga_render_condition(struct pipe_context *pipe, struct pipe_query *q,
 
       if ((mode == PIPE_RENDER_COND_WAIT ||
            mode == PIPE_RENDER_COND_BY_REGION_WAIT) && sq->fence) {
-         sws->fence_finish(sws, sq->fence, PIPE_TIMEOUT_INFINITE,
+         sws->fence_finish(sws, sq->fence, OS_TIMEOUT_INFINITE,
                            SVGA_FENCE_FLAG_QUERY);
       }
    }
@@ -1290,7 +1290,7 @@ svga_get_timestamp(struct pipe_context *pipe)
    util_query_clear_result(&result, PIPE_QUERY_TIMESTAMP);
    svga_begin_query(pipe, q);
    svga_end_query(pipe,q);
-   svga_get_query_result(pipe, q, TRUE, &result);
+   svga_get_query_result(pipe, q, true, &result);
    svga_destroy_query(pipe, q);
 
    return result.u64;
@@ -1313,8 +1313,8 @@ svga_set_active_query_state(struct pipe_context *pipe, bool enable)
  */
 void
 svga_toggle_render_condition(struct svga_context *svga,
-                             boolean render_condition_enabled,
-                             boolean on)
+                             bool render_condition_enabled,
+                             bool on)
 {
    SVGA3dQueryId query_id;
 

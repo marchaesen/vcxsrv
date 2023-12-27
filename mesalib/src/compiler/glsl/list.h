@@ -261,9 +261,7 @@ inline bool exec_node::is_head_sentinel() const
 #endif
 
 #ifdef __cplusplus
-/* This macro will not work correctly if `t' uses virtual inheritance.  If you
- * are using virtual inheritance, you deserve a slow and painful death.  Enjoy!
- */
+/* This macro will not work correctly if `t' uses virtual inheritance. */
 #define exec_list_offsetof(t, f, p) \
    (((char *) &((t *) p)->f) - ((char *) p))
 #else

@@ -27,36 +27,37 @@
 void
 mir_liveness_ins_update(uint16_t *live, midgard_instruction *ins, unsigned max)
 {
-        /* live_in[s] = GEN[s] + (live_out[s] - KILL[s]) */
+   /* live_in[s] = GEN[s] + (live_out[s] - KILL[s]) */
 
-        pan_liveness_kill(live, ins->dest, max, mir_bytemask(ins));
+   pan_liveness_kill(live, ins->dest, max, mir_bytemask(ins));
 
-        mir_foreach_src(ins, src) {
-                unsigned node = ins->src[src];
-                unsigned bytemask = mir_bytemask_of_read_components(ins, node);
+   mir_foreach_src(ins, src) {
+      unsigned node = ins->src[src];
+      unsigned bytemask = mir_bytemask_of_read_components(ins, node);
 
-                pan_liveness_gen(live, node, max, bytemask);
-        }
+      pan_liveness_gen(live, node, max, bytemask);
+   }
 }
 
 static void
 mir_liveness_ins_update_wrap(uint16_t *live, void *ins, unsigned max)
 {
-        mir_liveness_ins_update(live, (midgard_instruction *) ins, max);
+   mir_liveness_ins_update(live, (midgard_instruction *)ins, max);
 }
 
 void
 mir_compute_liveness(compiler_context *ctx)
 {
-        /* If we already have fresh liveness, nothing to do */
-        if (ctx->metadata & MIDGARD_METADATA_LIVENESS)
-                return;
+   /* If we already have fresh liveness, nothing to do */
+   if (ctx->metadata & MIDGARD_METADATA_LIVENESS)
+      return;
 
-        mir_compute_temp_count(ctx);
-        pan_compute_liveness(&ctx->blocks, ctx->temp_count, mir_liveness_ins_update_wrap);
+   mir_compute_temp_count(ctx);
+   pan_compute_liveness(&ctx->blocks, ctx->temp_count,
+                        mir_liveness_ins_update_wrap);
 
-        /* Liveness is now valid */
-        ctx->metadata |= MIDGARD_METADATA_LIVENESS;
+   /* Liveness is now valid */
+   ctx->metadata |= MIDGARD_METADATA_LIVENESS;
 }
 
 /* Once liveness data is no longer valid, call this */
@@ -64,32 +65,33 @@ mir_compute_liveness(compiler_context *ctx)
 void
 mir_invalidate_liveness(compiler_context *ctx)
 {
-        /* If we didn't already compute liveness, there's nothing to do */
-        if (!(ctx->metadata & MIDGARD_METADATA_LIVENESS))
-                return;
+   /* If we didn't already compute liveness, there's nothing to do */
+   if (!(ctx->metadata & MIDGARD_METADATA_LIVENESS))
+      return;
 
-        pan_free_liveness(&ctx->blocks);
+   pan_free_liveness(&ctx->blocks);
 
-        /* It's now invalid regardless */
-        ctx->metadata &= ~MIDGARD_METADATA_LIVENESS;
+   /* It's now invalid regardless */
+   ctx->metadata &= ~MIDGARD_METADATA_LIVENESS;
 }
 
 bool
-mir_is_live_after(compiler_context *ctx, midgard_block *block, midgard_instruction *start, int src)
+mir_is_live_after(compiler_context *ctx, midgard_block *block,
+                  midgard_instruction *start, int src)
 {
-        mir_compute_liveness(ctx);
+   mir_compute_liveness(ctx);
 
-        /* Check whether we're live in the successors */
+   /* Check whether we're live in the successors */
 
-        if (pan_liveness_get(block->base.live_out, src, ctx->temp_count))
-                return true;
+   if (pan_liveness_get(block->base.live_out, src, ctx->temp_count))
+      return true;
 
-        /* Check the rest of the block for liveness */
+   /* Check the rest of the block for liveness */
 
-        mir_foreach_instr_in_block_from(block, ins, mir_next_op(start)) {
-                if (mir_has_arg(ins, src))
-                        return true;
-        }
+   mir_foreach_instr_in_block_from(block, ins, mir_next_op(start)) {
+      if (mir_has_arg(ins, src))
+         return true;
+   }
 
-        return false;
+   return false;
 }

@@ -35,7 +35,7 @@
  */
 
 #include <stdbool.h>
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "enums.h"
 #include "hash.h"
@@ -256,14 +256,14 @@ is_perf_monitor_result_available(struct gl_context *ctx,
    for (i = 0; i < m->num_active_counters; ++i) {
       struct pipe_query *query = m->active_counters[i].query;
       union pipe_query_result result;
-      if (query && !pipe->get_query_result(pipe, query, FALSE, &result)) {
+      if (query && !pipe->get_query_result(pipe, query, false, &result)) {
          /* The query is busy. */
          return false;
       }
    }
 
    if (m->batch_query &&
-       !pipe->get_query_result(pipe, m->batch_query, FALSE, m->batch_result))
+       !pipe->get_query_result(pipe, m->batch_query, false, m->batch_result))
       return false;
 
    return true;
@@ -288,7 +288,7 @@ get_perf_monitor_result(struct gl_context *ctx,
    bool have_batch_query = false;
 
    if (m->batch_query)
-      have_batch_query = pipe->get_query_result(pipe, m->batch_query, TRUE,
+      have_batch_query = pipe->get_query_result(pipe, m->batch_query, true,
                                                 m->batch_result);
 
    /* Read query results for each active counter. */
@@ -303,7 +303,7 @@ get_perf_monitor_result(struct gl_context *ctx,
       type = ctx->PerfMonitor.Groups[gid].Counters[cid].Type;
 
       if (cntr->query) {
-         if (!pipe->get_query_result(pipe, cntr->query, TRUE, &result))
+         if (!pipe->get_query_result(pipe, cntr->query, true, &result))
             continue;
       } else {
          if (!have_batch_query)

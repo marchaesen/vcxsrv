@@ -182,7 +182,8 @@ _XkbReadKeySyms(XkbReadBufferPtr buf, XkbDescPtr xkb, xkbGetMapReply *rep)
             if (offset + newMap->nSyms >= map->size_syms) {
                 register int sz;
 
-                sz = map->size_syms + 128;
+                sz = offset + newMap->nSyms;
+                sz = ((sz + (unsigned) 128) / 128) * 128;
                 _XkbResizeArray(map->syms, map->size_syms, sz, KeySym);
                 if (map->syms == NULL) {
                     map->size_syms = 0;
@@ -191,8 +192,9 @@ _XkbReadKeySyms(XkbReadBufferPtr buf, XkbDescPtr xkb, xkbGetMapReply *rep)
                 map->size_syms = sz;
             }
             if (newMap->nSyms > 0) {
-                _XkbReadBufferCopyKeySyms(buf, (KeySym *) &map->syms[offset],
-                                          newMap->nSyms);
+                if (_XkbReadBufferCopyKeySyms(buf, (KeySym *) &map->syms[offset],
+                                              newMap->nSyms) == 0)
+                    return BadLength;
                 offset += newMap->nSyms;
             }
             else {
@@ -222,8 +224,10 @@ _XkbReadKeySyms(XkbReadBufferPtr buf, XkbDescPtr xkb, xkbGetMapReply *rep)
             newSyms = XkbResizeKeySyms(xkb, i + rep->firstKeySym, tmp);
             if (newSyms == NULL)
                 return BadAlloc;
-            if (newMap->nSyms > 0)
-                _XkbReadBufferCopyKeySyms(buf, newSyms, newMap->nSyms);
+            if (newMap->nSyms > 0) {
+                if (_XkbReadBufferCopyKeySyms(buf, newSyms, newMap->nSyms) == 0)
+                    return BadLength;
+            }
             else
                 newSyms[0] = NoSymbol;
             oldMap->kt_index[0] = newMap->ktIndex[0];

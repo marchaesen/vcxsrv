@@ -45,24 +45,25 @@ lower_fragcoord_wtrans_filter(const nir_instr *instr, UNUSED const void *_option
    if (intr->intrinsic != nir_intrinsic_load_deref)
       return false;
 
-   nir_variable *var = nir_intrinsic_get_var(intr, 0);
-   if (var->data.mode != nir_var_shader_in)
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   if (!nir_deref_mode_must_be(deref, nir_var_shader_in))
       return false;
 
+   nir_variable *var = nir_intrinsic_get_var(intr, 0);
    return var->data.location == VARYING_SLOT_POS;
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_fragcoord_wtrans_impl(nir_builder *b, nir_instr *instr,
                             UNUSED void *_options)
 {
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
    return nir_vec4(b,
-                   nir_channel(b, &intr->dest.ssa, 0),
-                   nir_channel(b, &intr->dest.ssa, 1),
-                   nir_channel(b, &intr->dest.ssa, 2),
-                   nir_frcp(b, nir_channel(b, &intr->dest.ssa, 3)));
+                   nir_channel(b, &intr->def, 0),
+                   nir_channel(b, &intr->def, 1),
+                   nir_channel(b, &intr->def, 2),
+                   nir_frcp(b, nir_channel(b, &intr->def, 3)));
 }
 
 bool
@@ -74,5 +75,4 @@ nir_lower_fragcoord_wtrans(nir_shader *shader)
                                         lower_fragcoord_wtrans_filter,
                                         lower_fragcoord_wtrans_impl,
                                         NULL);
-
 }

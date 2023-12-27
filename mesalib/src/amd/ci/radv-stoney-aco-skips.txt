@@ -1,17 +1,3 @@
-# These tests take too long to run on the current STONEY testing hardware, skip them.
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_linear_clamp
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_linear_repeat
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_clamp
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_repeat
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_linear_clamp
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_linear_repeat
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_nearest_clamp
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_nearest_repeat
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_linear_clamp
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_linear_repeat
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_nearest_clamp
-dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_nearest_repeat
-
 # Timeouts in VK-GL-CTS 1.2.7.0
 dEQP-VK.api.command_buffers.record_many_secondary
 dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.generate_mipmaps.from_previous_level.layercount_1.a8b8g8r8_uint_pack32.optimal_general_nearest
@@ -157,3 +143,9 @@ dEQP-VK.transform_feedback.fuzz.random_geometry.basic_arrays.36
 dEQP-VK.transform_feedback.fuzz.random_geometry.nested_structs_instance_arrays.26
 dEQP-VK.transform_feedback.simple.query_triangle_strip_with_adjacency_0_6_64bits_beginqueryindexed_streamid_0
 dEQP-VK.ycbcr.conversion.g16_b16_r16_3plane_420_unorm.color_conversion.ycbcr_identity_itu_full_tiling_optimal_cosited_binding_15
+
+# Causes OOM: https://gitlab.freedesktop.org/mesa/mesa/-/issues/7534
+dEQP-VK.api.buffer.basic.max_size_sparse
+
+# timeout after switch to Debian 12
+dEQP-VK.binding_model.descriptor_buffer.multiple.graphics_frag_buffers32_sets1

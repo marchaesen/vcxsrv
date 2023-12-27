@@ -120,6 +120,55 @@ pvr_get_remaining_time(const struct timespec *timeout)
    return time;
 }
 
+static inline int pvr_get_relative_time_ms(uint64_t abs_timeout_ns)
+{
+   uint64_t cur_time_ms;
+   uint64_t abs_timeout_ms;
+
+   if (abs_timeout_ns >= INT64_MAX) {
+      /* This is treated as an infinite wait */
+      return -1;
+   }
+
+   cur_time_ms = os_time_get_nano() / 1000000;
+   abs_timeout_ms = abs_timeout_ns / 1000000;
+
+   if (abs_timeout_ms <= cur_time_ms)
+      return 0;
+
+   return MIN2(abs_timeout_ms - cur_time_ms, INT_MAX);
+}
+
+/* pvr_srv_sync can have pending state, which means they would need spin waits
+ */
+static VkResult pvr_srv_sync_get_status(struct vk_sync *wait,
+                                        uint64_t abs_timeout_ns)
+{
+   struct pvr_srv_sync *srv_sync = to_srv_sync(wait);
+
+   if (srv_sync->signaled) {
+      assert(srv_sync->fd == -1);
+      return VK_SUCCESS;
+   }
+
+   /* If fd is -1 and this is not signaled, the fence is in pending mode */
+   if (srv_sync->fd == -1)
+      return VK_TIMEOUT;
+
+   if (sync_wait(srv_sync->fd, pvr_get_relative_time_ms(abs_timeout_ns))) {
+      if (errno == ETIME)
+         return VK_TIMEOUT;
+      else if (errno == ENOMEM)
+         return vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
+      else
+         return vk_error(NULL, VK_ERROR_DEVICE_LOST);
+   }
+
+   pvr_set_sync_state(srv_sync, true);
+
+   return VK_SUCCESS;
+}
+
 /* abs_timeout_ns == 0 -> Get status without waiting.
  * abs_timeout_ns == ~0 -> Wait infinitely.
  * else wait for the given abs_timeout_ns in nanoseconds. */
@@ -129,121 +178,35 @@ static VkResult pvr_srv_sync_wait_many(struct vk_device *device,
                                        enum vk_sync_wait_flags wait_flags,
                                        uint64_t abs_timeout_ns)
 {
-   uint32_t unsignaled_count = 0U;
-   struct timespec end_time;
-   VkResult result;
-   int ppoll_ret;
+   bool wait_any = !!(wait_flags & VK_SYNC_WAIT_ANY);
 
-   STACK_ARRAY(struct pollfd, poll_fds, wait_count);
-   if (!poll_fds)
-      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+   while (true) {
+      bool have_unsignaled = false;
 
-   if (abs_timeout_ns != 0UL && abs_timeout_ns != ~0) {
-      /* Syncobj timeouts are signed. */
-      abs_timeout_ns = MIN2(abs_timeout_ns, (uint64_t)INT64_MAX);
-      pvr_start_timeout(&end_time, abs_timeout_ns);
-   }
+      for (uint32_t i = 0; i < wait_count; i++) {
+         VkResult result =
+            pvr_srv_sync_get_status(waits[i].sync,
+                                    wait_any ? 0 : abs_timeout_ns);
 
-   for (uint32_t i = 0U; i < wait_count; i++) {
-      struct pvr_srv_sync *srv_sync = to_srv_sync(waits[i].sync);
+         if (result != VK_TIMEOUT && (wait_any || result != VK_SUCCESS))
+            return result;
+         else if (result == VK_TIMEOUT)
+            have_unsignaled = true;
+      }
 
-      /* -1 in case if fence is signaled or uninitialized, ppoll will skip the
-       * fence.
+      if (!have_unsignaled)
+         break;
+
+      if (os_time_get_nano() >= abs_timeout_ns)
+         return VK_TIMEOUT;
+
+      /* TODO: Use pvrsrvkm global events to stop busy waiting and for a bonus
+       * catch device loss.
        */
-      /* FIXME: We don't currently support wait-for-fd path, so the caller
-       * should make sure all the sync have been assigned before calling this
-       * function.
-       */
-      if (srv_sync->signaled || srv_sync->fd == -1) {
-         poll_fds[i].fd = -1;
-      } else {
-         poll_fds[i].fd = srv_sync->fd;
-         unsignaled_count++;
-      }
-
-      poll_fds[i].events = POLLIN;
-      poll_fds[i].revents = 0U;
+      sched_yield();
    }
 
-   if (unsignaled_count == 0U) {
-      result = VK_SUCCESS;
-      goto end_wait_for_fences;
-   }
-
-   /* FIXME: Fix device loss handling. */
-   do {
-      if (abs_timeout_ns == ~0) {
-         ppoll_ret = ppoll(poll_fds, wait_count, NULL, NULL);
-      } else {
-         struct timespec remaining_time;
-
-         if (abs_timeout_ns == 0U) {
-            remaining_time = (struct timespec){ 0UL, 0UL };
-         } else {
-            /* ppoll() returns EINVAL on negative timeout. Nothing to worry.
-             */
-            remaining_time = pvr_get_remaining_time(&end_time);
-         }
-
-         ppoll_ret = ppoll(poll_fds, wait_count, &remaining_time, NULL);
-      }
-
-      if (ppoll_ret > 0U) {
-         /* ppoll_ret contains the amount of structs updated by poll(). */
-         unsignaled_count -= ppoll_ret;
-
-         /* ppoll_ret > 0 is for early loop termination. */
-         for (uint32_t i = 0; ppoll_ret > 0 && i < wait_count; i++) {
-            if (poll_fds[i].revents == 0)
-               continue;
-
-            if (poll_fds[i].revents & (POLLNVAL | POLLERR)) {
-               result = vk_error(NULL, VK_ERROR_DEVICE_LOST);
-               goto end_wait_for_fences;
-            }
-
-            pvr_srv_sync_signal(device, waits[i].sync, 0U);
-
-            if (wait_flags & VK_SYNC_WAIT_ANY) {
-               result = VK_SUCCESS;
-               goto end_wait_for_fences;
-            }
-
-            /* -1 makes ppoll ignore it and set revents to 0. */
-            poll_fds[i].fd = -1;
-            ppoll_ret--;
-         }
-
-         /* For zero timeout, just return even if we still have unsignaled
-          * syncs.
-          */
-         if (abs_timeout_ns == 0U && unsignaled_count != 0U) {
-            result = VK_TIMEOUT;
-            goto end_wait_for_fences;
-         }
-      } else if (ppoll_ret == 0) {
-         result = VK_TIMEOUT;
-         goto end_wait_for_fences;
-      }
-
-      /* Careful as we might have decremented ppoll_ret to 0. */
-   } while ((ppoll_ret != -1 && unsignaled_count != 0) ||
-            (ppoll_ret == -1 && (errno == EINTR || errno == EAGAIN)));
-
-   /* We assume device loss in case of an unknown error or invalid fd. */
-   if (ppoll_ret != -1)
-      result = VK_SUCCESS;
-   else if (errno == EINVAL)
-      result = VK_TIMEOUT;
-   else if (errno == ENOMEM)
-      result = vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
-   else
-      result = vk_error(NULL, VK_ERROR_DEVICE_LOST);
-
-end_wait_for_fences:
-   STACK_ARRAY_FINISH(poll_fds);
-
-   return result;
+   return VK_SUCCESS;
 }
 
 static VkResult pvr_srv_sync_move(struct vk_device *device,
@@ -287,12 +250,19 @@ static VkResult pvr_srv_sync_export_sync_file(struct vk_device *device,
                                               int *sync_file)
 {
    struct pvr_srv_sync *srv_sync = to_srv_sync(sync);
+   VkResult result;
    int fd;
 
    if (srv_sync->fd < 0) {
-      *sync_file = -1;
-      return VK_SUCCESS;
+      struct pvr_device *driver_device =
+         container_of(device, struct pvr_device, vk);
+
+      result = pvr_srv_sync_get_presignaled_sync(driver_device, &srv_sync);
+      if (result != VK_SUCCESS)
+         return result;
    }
+
+   assert(srv_sync->fd >= 0);
 
    fd = dup(srv_sync->fd);
    if (fd < 0)

@@ -8,17 +8,17 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- state.xml     (  26877 bytes, from 2020-02-14 10:19:56)
-- common.xml    (  35468 bytes, from 2020-01-04 20:02:31)
-- common_3d.xml (  15058 bytes, from 2020-04-17 16:31:50)
-- state_hi.xml  (  34851 bytes, from 2020-04-17 16:25:34)
+- state.xml     (  28218 bytes, from 2023-11-13 11:29:31)
+- common.xml    (  35465 bytes, from 2023-11-13 11:29:31)
+- common_3d.xml (  15069 bytes, from 2023-11-13 11:29:31)
+- state_hi.xml  (  34935 bytes, from 2023-11-13 11:29:31)
 - copyright.xml (   1597 bytes, from 2018-02-10 13:09:26)
-- state_2d.xml  (  51552 bytes, from 2018-02-10 13:09:26)
-- state_3d.xml  (  83771 bytes, from 2020-04-17 17:15:55)
-- state_blt.xml (  14252 bytes, from 2020-01-10 14:36:29)
+- state_2d.xml  (  52271 bytes, from 2023-09-13 13:37:23)
+- state_3d.xml  (  86123 bytes, from 2023-11-13 12:42:26)
+- state_blt.xml (  14424 bytes, from 2023-09-13 13:37:23)
 - state_vg.xml  (   5975 bytes, from 2018-02-10 13:09:26)
 
-Copyright (C) 2012-2020 by the following authors:
+Copyright (C) 2012-2023 by the following authors:
 - Wladimir J. van der Laan <laanwj@gmail.com>
 - Christian Gmeiner <christian.gmeiner@gmail.com>
 - Lucas Stach <l.stach@pengutronix.de>
@@ -99,9 +99,11 @@ DEALINGS IN THE SOFTWARE.
 #define VIVS_BLT_SRC_STRIDE_STRIDE__MASK			0x000fffff
 #define VIVS_BLT_SRC_STRIDE_STRIDE__SHIFT			0
 #define VIVS_BLT_SRC_STRIDE_STRIDE(x)				(((x) << VIVS_BLT_SRC_STRIDE_STRIDE__SHIFT) & VIVS_BLT_SRC_STRIDE_STRIDE__MASK)
-#define VIVS_BLT_SRC_STRIDE_FORMAT__MASK			0x1fe00000
+#define VIVS_BLT_SRC_STRIDE_FORMAT__MASK			0x07e00000
 #define VIVS_BLT_SRC_STRIDE_FORMAT__SHIFT			21
 #define VIVS_BLT_SRC_STRIDE_FORMAT(x)				(((x) << VIVS_BLT_SRC_STRIDE_FORMAT__SHIFT) & VIVS_BLT_SRC_STRIDE_FORMAT__MASK)
+#define VIVS_BLT_SRC_STRIDE_DOWNSAMPLE_X			0x08000000
+#define VIVS_BLT_SRC_STRIDE_DOWNSAMPLE_Y			0x10000000
 #define VIVS_BLT_SRC_STRIDE_TILING__MASK			0x60000000
 #define VIVS_BLT_SRC_STRIDE_TILING__SHIFT			29
 #define VIVS_BLT_SRC_STRIDE_TILING(x)				(((x) << VIVS_BLT_SRC_STRIDE_TILING__SHIFT) & VIVS_BLT_SRC_STRIDE_TILING__MASK)

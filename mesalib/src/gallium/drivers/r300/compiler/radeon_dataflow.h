@@ -31,8 +31,6 @@
 
 #include "radeon_program_constants.h"
 
-#include <stdbool.h>
-
 struct radeon_compiler;
 struct rc_instruction;
 struct rc_swizzle_caps;
@@ -88,19 +86,20 @@ struct rc_reader {
 };
 
 struct rc_reader_data {
+	struct radeon_compiler * C;
+
 	unsigned int Abort;
 	unsigned int AbortOnRead;
 	unsigned int AbortOnWrite;
 	unsigned int LoopDepth;
 	unsigned int InElse;
-	bool ReadersAfterEndloop;
 	struct rc_instruction * Writer;
 
 	unsigned int ReaderCount;
 	unsigned int ReadersReserved;
 	struct rc_reader * Readers;
 
-	/* If this flag is enabled, rc_get_readers will exit as soon possbile
+	/* If this flag is enabled, rc_get_readers will exit as soon possible
 	 * after the Abort flag is set.*/
 	unsigned int ExitOnAbort;
 	void * CbData;

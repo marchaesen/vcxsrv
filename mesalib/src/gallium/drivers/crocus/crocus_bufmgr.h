@@ -351,9 +351,6 @@ int crocus_bo_export_gem_handle_for_device(struct crocus_bo *bo, int drm_fd,
 
 uint32_t crocus_bo_export_gem_handle(struct crocus_bo *bo);
 
-int crocus_reg_read(struct crocus_bufmgr *bufmgr, uint32_t offset,
-                    uint64_t *out);
-
 int drm_ioctl(int fd, unsigned long request, void *arg);
 
 #endif /* CROCUS_BUFMGR_H */

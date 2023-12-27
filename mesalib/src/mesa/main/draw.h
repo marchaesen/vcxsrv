@@ -32,7 +32,7 @@
 #define DRAW_H
 
 #include <stdbool.h>
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,26 +80,20 @@ struct _mesa_index_buffer
 void
 _mesa_set_varying_vp_inputs(struct gl_context *ctx, GLbitfield varying_inputs);
 
-/**
- * Set the _DrawVAO and the net enabled arrays.
- */
 void
-_mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
-                   GLbitfield filter);
+_mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao);
 
 void
-_mesa_draw_gallium_fallback(struct gl_context *ctx,
-                            struct pipe_draw_info *info,
-                            unsigned drawid_offset,
-                            const struct pipe_draw_start_count_bias *draws,
-                            unsigned num_draws);
+_mesa_save_and_set_draw_vao(struct gl_context *ctx,
+                            struct gl_vertex_array_object *vao,
+                            GLbitfield vp_input_filter,
+                            struct gl_vertex_array_object **old_vao,
+                            GLbitfield *old_vp_input_filter);
 
 void
-_mesa_draw_gallium_multimode_fallback(struct gl_context *ctx,
-                                     struct pipe_draw_info *info,
-                                     const struct pipe_draw_start_count_bias *draws,
-                                     const unsigned char *mode,
-                                     unsigned num_draws);
+_mesa_restore_draw_vao(struct gl_context *ctx,
+                       struct gl_vertex_array_object *saved,
+                       GLbitfield saved_vp_input_filter);
 
 void
 _mesa_bitmap(struct gl_context *ctx, GLsizei width, GLsizei height,

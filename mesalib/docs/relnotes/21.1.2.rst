@@ -108,7 +108,7 @@ Italo Nicola (1):
 
 - panfrost: fix GL_EXT_multisampled_render_to_texture regression
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 - anv: Plumb the shader into push constant helpers
 - anv: Support pushing shader constants

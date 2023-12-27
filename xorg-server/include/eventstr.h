@@ -335,4 +335,7 @@ union _InternalEvent {
     GestureEvent gesture_event;
 };
 
+extern void
+LeaveWindow(DeviceIntPtr dev);
+
 #endif

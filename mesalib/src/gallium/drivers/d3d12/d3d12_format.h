@@ -29,7 +29,7 @@
 #include <directx/dxgiformat.h>
 #include <directx/dxgicommon.h>
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_video_enums.h"
 
@@ -42,6 +42,9 @@ d3d12_get_format(enum pipe_format format);
 
 DXGI_FORMAT
 d3d12_get_typeless_format(enum pipe_format format);
+
+const DXGI_FORMAT *
+d3d12_get_format_cast_list(enum pipe_format format, uint32_t *num_formats);
 
 /* These two are only used for importing external resources without a provided template */
 enum pipe_format

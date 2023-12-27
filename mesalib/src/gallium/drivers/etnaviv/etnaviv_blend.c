@@ -176,10 +176,10 @@ etna_update_blend_color(struct etna_context *ctx)
    bool rb_swap = (pfb->cbufs[0] && translate_pe_format_rb_swap(pfb->cbufs[0]->format));
 
    cs->PE_ALPHA_BLEND_COLOR =
-      VIVS_PE_ALPHA_BLEND_COLOR_R(etna_cfloat_to_uint8(cs->color[rb_swap ? 2 : 0])) |
-      VIVS_PE_ALPHA_BLEND_COLOR_G(etna_cfloat_to_uint8(cs->color[1])) |
-      VIVS_PE_ALPHA_BLEND_COLOR_B(etna_cfloat_to_uint8(cs->color[rb_swap ? 0 : 2])) |
-      VIVS_PE_ALPHA_BLEND_COLOR_A(etna_cfloat_to_uint8(cs->color[3]));
+      VIVS_PE_ALPHA_BLEND_COLOR_R(float_to_ubyte(cs->color[rb_swap ? 2 : 0])) |
+      VIVS_PE_ALPHA_BLEND_COLOR_G(float_to_ubyte(cs->color[1])) |
+      VIVS_PE_ALPHA_BLEND_COLOR_B(float_to_ubyte(cs->color[rb_swap ? 0 : 2])) |
+      VIVS_PE_ALPHA_BLEND_COLOR_A(float_to_ubyte(cs->color[3]));
 
    cs->PE_ALPHA_COLOR_EXT0 =
       VIVS_PE_ALPHA_COLOR_EXT0_B(_mesa_float_to_half(cs->color[rb_swap ? 2 : 0])) |

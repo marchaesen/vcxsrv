@@ -25,7 +25,7 @@
 #define GLSPIRV_H
 
 #include "compiler/nir/nir.h"
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 #ifdef __cplusplus
 extern "C" {

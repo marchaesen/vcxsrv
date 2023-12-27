@@ -1,24 +1,24 @@
 default  hidden partial modifier_keys
 xkb_symbols "capslock" {
-    replace key <CAPS> { [ Caps_Lock ] };
+    replace key <CAPS> { [ Caps_Lock ], type[group1] = "ONE_LEVEL" };
     modifier_map Lock { Caps_Lock };
 };
 
 hidden partial modifier_keys
 xkb_symbols "shiftlock" {
-    replace key <CAPS> { [ Shift_Lock ] };
+    replace key <CAPS> { [ Shift_Lock ], type[group1] = "ONE_LEVEL" };
     modifier_map Shift { Shift_Lock };
 };
 
 hidden partial modifier_keys
 xkb_symbols "swapescape" {
-    key <CAPS> { [ Escape ] };
+    key <CAPS> { [ Escape ], type[group1] = "ONE_LEVEL" };
     key <ESC>  { [ Caps_Lock ] };
 };
 
 hidden partial modifier_keys
 xkb_symbols "escape" {
-    key <CAPS> { [ Escape ] };
+    key <CAPS> { [ Escape ], type[group1] = "ONE_LEVEL" };
 };
 
 hidden partial modifier_keys
@@ -41,29 +41,29 @@ xkb_symbols "escape_shifted_compose" {
 
 hidden partial modifier_keys
 xkb_symbols "backspace" {
-    key <CAPS> { [ BackSpace ] };
+    key <CAPS> { [ BackSpace ], type[group1] = "ONE_LEVEL" };
 };
 
 hidden partial modifier_keys
 xkb_symbols "super" {
-    key <CAPS> { [ Super_L ] };
+    key <CAPS> { [ Super_L ], type[group1] = "ONE_LEVEL" };
     modifier_map Mod4 { <CAPS> };
 };
 
 hidden partial modifier_keys
 xkb_symbols "hyper" {
-    key <CAPS> { [ Hyper_L ] };
+    key <CAPS> { [ Hyper_L ], type[group1] = "ONE_LEVEL" };
     modifier_map Mod4 { <CAPS> };
 };
 
 hidden partial modifier_keys
 xkb_symbols "menu" {
-    key <CAPS> { [ Menu ] };
+    key <CAPS> { [ Menu ], type[group1] = "ONE_LEVEL" };
 };
 
 hidden partial modifier_keys
 xkb_symbols "numlock" {
-    key <CAPS> { [ Num_Lock ] };
+    key <CAPS> { [ Num_Lock ], type[group1] = "ONE_LEVEL" };
 };
 
 // This changes the <CAPS> key to become a Control modifier,
@@ -80,5 +80,5 @@ xkb_symbols "ctrl_modifier" {
 
 hidden partial modifier_keys
 xkb_symbols "none" {
-    key <CAPS> { [ VoidSymbol ] };
+    key <CAPS> { [ VoidSymbol ], type[group1] = "ONE_LEVEL" };
 };

@@ -133,7 +133,7 @@ OpenAdapter10(__inout D3D10DDIARG_OPENADAPTER *pOpenData)   // IN
    default:
       if (0) {
          DebugPrintf("%s: unsupported interface version 0x%08x\n",
-                     __FUNCTION__, pOpenData->Interface);
+                     __func__, pOpenData->Interface);
       }
       return E_FAIL;
    }

@@ -161,6 +161,9 @@ extern struct gl_renderbuffer *
 _mesa_get_read_renderbuffer_for_format(const struct gl_context *ctx,
                                        GLenum format);
 
+extern bool
+_mesa_has_rtt_samples(const struct gl_framebuffer *fb);
+
 extern void
 _mesa_print_framebuffer(const struct gl_framebuffer *fb);
 

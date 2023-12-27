@@ -52,21 +52,10 @@ dce(struct v3d_compile *c, struct qinst *inst)
 }
 
 static bool
-has_nonremovable_reads(struct v3d_compile *c, struct qinst *inst)
-{
-        for (int i = 0; i < vir_get_nsrc(inst); i++) {
-                if (inst->src[i].file == QFILE_VPM)
-                        return true;
-        }
-
-        return false;
-}
-
-static bool
 can_write_to_null(struct v3d_compile *c, struct qinst *inst)
 {
         /* The SFU instructions must write to a physical register. */
-        if (c->devinfo->ver >= 41 && v3d_qpu_uses_sfu(&inst->qpu))
+        if (v3d_qpu_uses_sfu(&inst->qpu))
                 return false;
 
         return true;
@@ -241,7 +230,6 @@ vir_opt_dead_code(struct v3d_compile *c)
                         }
 
                         if (v3d_qpu_writes_flags(&inst->qpu) ||
-                            has_nonremovable_reads(c, inst) ||
                             (is_ldunifa && !is_first_ldunifa && !is_last_ldunifa)) {
                                 /* If we can't remove the instruction, but we
                                  * don't need its destination value, just

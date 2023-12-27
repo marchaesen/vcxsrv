@@ -117,8 +117,8 @@ trace_screen_get_compiler_options(struct pipe_screen *_screen,
    trace_dump_call_begin("pipe_screen", "get_compiler_options");
 
    trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(ir, tr_util_pipe_shader_ir_name(ir));
-   trace_dump_arg_enum(shader, tr_util_pipe_shader_type_name(shader));
+   trace_dump_arg_enum(pipe_shader_ir, ir);
+   trace_dump_arg_enum(pipe_shader_type, shader);
 
    result = screen->get_compiler_options(screen, ir, shader);
 
@@ -161,7 +161,7 @@ trace_screen_get_param(struct pipe_screen *_screen,
    trace_dump_call_begin("pipe_screen", "get_param");
 
    trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(param, tr_util_pipe_cap_name(param));
+   trace_dump_arg_enum(pipe_cap, param);
 
    result = screen->get_param(screen, param);
 
@@ -185,8 +185,8 @@ trace_screen_get_shader_param(struct pipe_screen *_screen,
    trace_dump_call_begin("pipe_screen", "get_shader_param");
 
    trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(shader, tr_util_pipe_shader_type_name(shader));
-   trace_dump_arg_enum(param, tr_util_pipe_shader_cap_name(param));
+   trace_dump_arg_enum(pipe_shader_type, shader);
+   trace_dump_arg_enum(pipe_shader_cap, param);
 
    result = screen->get_shader_param(screen, shader, param);
 
@@ -209,7 +209,7 @@ trace_screen_get_paramf(struct pipe_screen *_screen,
    trace_dump_call_begin("pipe_screen", "get_paramf");
 
    trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(param, tr_util_pipe_capf_name(param));
+   trace_dump_arg_enum(pipe_capf, param);
 
    result = screen->get_paramf(screen, param);
 
@@ -234,8 +234,8 @@ trace_screen_get_compute_param(struct pipe_screen *_screen,
    trace_dump_call_begin("pipe_screen", "get_compute_param");
 
    trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(ir_type, tr_util_pipe_shader_ir_name(ir_type));
-   trace_dump_arg_enum(param, tr_util_pipe_compute_cap_name(param));
+   trace_dump_arg_enum(pipe_shader_ir, ir_type);
+   trace_dump_arg_enum(pipe_compute_cap, param);
    trace_dump_arg(ptr, data);
 
    result = screen->get_compute_param(screen, ir_type, param, data);
@@ -247,6 +247,31 @@ trace_screen_get_compute_param(struct pipe_screen *_screen,
    return result;
 }
 
+static int
+trace_screen_get_video_param(struct pipe_screen *_screen,
+                             enum pipe_video_profile profile,
+                             enum pipe_video_entrypoint entrypoint,
+                             enum pipe_video_cap param)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+   int result;
+
+   trace_dump_call_begin("pipe_screen", "get_video_param");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg_enum(pipe_video_profile, profile);
+   trace_dump_arg_enum(pipe_video_entrypoint, entrypoint);
+   trace_dump_arg_enum(pipe_video_cap, param);
+
+   result = screen->get_video_param(screen, profile, entrypoint, param);
+
+   trace_dump_ret(int, result);
+
+   trace_dump_call_end();
+
+   return result;
+}
 
 static bool
 trace_screen_is_format_supported(struct pipe_screen *_screen,
@@ -264,13 +289,39 @@ trace_screen_is_format_supported(struct pipe_screen *_screen,
 
    trace_dump_arg(ptr, screen);
    trace_dump_arg(format, format);
-   trace_dump_arg_enum(target, tr_util_pipe_texture_target_name(target));
+   trace_dump_arg_enum(pipe_texture_target, target);
    trace_dump_arg(uint, sample_count);
    trace_dump_arg(uint, storage_sample_count);
    trace_dump_arg(uint, tex_usage);
 
    result = screen->is_format_supported(screen, format, target, sample_count,
                                         storage_sample_count, tex_usage);
+
+   trace_dump_ret(bool, result);
+
+   trace_dump_call_end();
+
+   return result;
+}
+
+static bool
+trace_screen_is_video_format_supported(struct pipe_screen *_screen,
+                                       enum pipe_format format,
+                                       enum pipe_video_profile profile,
+                                       enum pipe_video_entrypoint entrypoint)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+   bool result;
+
+   trace_dump_call_begin("pipe_screen", "is_video_format_supported");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(format, format);
+   trace_dump_arg_enum(pipe_video_profile, profile);
+   trace_dump_arg_enum(pipe_video_entrypoint, entrypoint);
+
+   result = screen->is_video_format_supported(screen, format, profile, entrypoint);
 
    trace_dump_ret(bool, result);
 
@@ -783,7 +834,7 @@ trace_screen_resource_from_handle(struct pipe_screen *_screen,
 
    trace_dump_arg(ptr, screen);
    trace_dump_arg(resource_template, templ);
-   trace_dump_arg(ptr, handle);
+   trace_dump_arg(winsys_handle, handle);
    trace_dump_arg(uint, usage);
 
    result = screen->resource_from_handle(screen, templ, handle, usage);
@@ -823,11 +874,11 @@ trace_screen_resource_get_handle(struct pipe_screen *_screen,
 
    trace_dump_arg(ptr, screen);
    trace_dump_arg(ptr, resource);
-   trace_dump_arg(ptr, handle);
    trace_dump_arg(uint, usage);
 
    result = screen->resource_get_handle(screen, pipe, resource, handle, usage);
 
+   trace_dump_arg(winsys_handle, handle);
    trace_dump_ret(bool, result);
 
    trace_dump_call_end();
@@ -858,7 +909,7 @@ trace_screen_resource_get_param(struct pipe_screen *_screen,
    trace_dump_arg(uint, plane);
    trace_dump_arg(uint, layer);
    trace_dump_arg(uint, level);
-   trace_dump_arg_enum(param, tr_util_pipe_resource_param_name(param));
+   trace_dump_arg_enum(pipe_resource_param, param);
    trace_dump_arg(uint, handle_usage);
 
    result = screen->resource_get_param(screen, pipe,
@@ -1021,7 +1072,7 @@ trace_screen_create_fence_win32(struct pipe_screen *_screen,
       trace_dump_arg(ptr, *fence);
    trace_dump_arg(ptr, handle);
    trace_dump_arg(ptr, name);
-   trace_dump_arg_enum(type, tr_util_pipe_fd_type_name(type));
+   trace_dump_arg_enum(pipe_fd_type, type);
 
    trace_dump_call_end();
 
@@ -1281,7 +1332,7 @@ trace_screen_get_sparse_texture_virtual_page_size(struct pipe_screen *_screen,
    trace_dump_call_begin("pipe_screen", "get_sparse_texture_virtual_page_size");
 
    trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(target, tr_util_pipe_texture_target_name(target));
+   trace_dump_arg_enum(pipe_texture_target, target);
    trace_dump_arg(format, format);
    trace_dump_arg(uint, offset);
    trace_dump_arg(uint, size);
@@ -1429,7 +1480,9 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.get_shader_param = trace_screen_get_shader_param;
    tr_scr->base.get_paramf = trace_screen_get_paramf;
    tr_scr->base.get_compute_param = trace_screen_get_compute_param;
+   SCR_INIT(get_video_param);
    tr_scr->base.is_format_supported = trace_screen_is_format_supported;
+   SCR_INIT(is_video_format_supported);
    assert(screen->context_create);
    tr_scr->base.context_create = trace_screen_context_create;
    tr_scr->base.resource_create = trace_screen_resource_create;

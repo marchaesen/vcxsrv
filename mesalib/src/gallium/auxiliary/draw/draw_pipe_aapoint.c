@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2008 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -94,10 +94,13 @@ struct aapoint_stage
    int psize_slot;
 
    /** this is the vertex attrib slot for the new texcoords */
-   uint tex_slot;
+   unsigned tex_slot;
 
    /** vertex attrib slot containing position */
-   uint pos_slot;
+   unsigned pos_slot;
+
+   /** Type of Boolean variables on this hardware. */
+   nir_alu_type bool_type;
 
    /** Currently bound fragment shader */
    struct aapoint_fragment_shader *fs;
@@ -119,7 +122,7 @@ struct aapoint_stage
  */
 struct aa_transform_context {
    struct tgsi_transform_context base;
-   uint tempsUsed;  /**< bitmask */
+   uint32_t tempsUsed;  /**< bitmask */
    int colorOutput; /**< which output is the primary color */
    int maxInput, maxGeneric;  /**< max input index found */
    int tmp0, colorTemp;  /**< temp registers */
@@ -150,10 +153,10 @@ aa_transform_decl(struct tgsi_transform_context *ctx,
       }
    }
    else if (decl->Declaration.File == TGSI_FILE_TEMPORARY) {
-      uint i;
+      unsigned i;
       for (i = decl->Range.First;
            i <= decl->Range.Last; i++) {
-         aactx->tempsUsed |= (1 << i);
+         aactx->tempsUsed |= 1u << i;
       }
    }
 
@@ -173,7 +176,7 @@ aa_transform_prolog(struct tgsi_transform_context *ctx)
    struct tgsi_full_instruction newInst;
    const int texInput = aactx->maxInput + 1;
    int tmp0;
-   uint i;
+   unsigned i;
 
    /* find two free temp regs */
    for (i = 0; i < 32; i++) {
@@ -243,7 +246,7 @@ aa_transform_prolog(struct tgsi_transform_context *ctx)
 
    /* KILL_IF -tmp0.yyyy;   # if -tmp0.y < 0, KILL */
    tgsi_transform_kill_inst(ctx, TGSI_FILE_TEMPORARY, tmp0,
-                            TGSI_SWIZZLE_Y, TRUE);
+                            TGSI_SWIZZLE_Y, true);
 
    /* compute coverage factor = (1-d)/(1-k) */
 
@@ -356,13 +359,13 @@ aa_transform_inst(struct tgsi_transform_context *ctx,
  * Generate the frag shader we'll use for drawing AA points.
  * This will be the user's shader plus some texture/modulate instructions.
  */
-static boolean
+static bool
 generate_aapoint_fs(struct aapoint_stage *aapoint)
 {
    const struct pipe_shader_state *orig_fs = &aapoint->fs->state;
    struct pipe_shader_state aapoint_fs;
    struct aa_transform_context transform;
-   const uint newLen = tgsi_num_tokens(orig_fs->tokens) + NUM_NEW_TOKENS;
+   const unsigned newLen = tgsi_num_tokens(orig_fs->tokens) + NUM_NEW_TOKENS;
    struct pipe_context *pipe = aapoint->stage.draw->pipe;
 
    aapoint_fs = *orig_fs; /* copy to init */
@@ -398,14 +401,15 @@ generate_aapoint_fs(struct aapoint_stage *aapoint)
 
    aapoint->fs->generic_attrib = transform.maxGeneric + 1;
    FREE((void *)aapoint_fs.tokens);
-   return TRUE;
+   return true;
 
 fail:
    FREE((void *)aapoint_fs.tokens);
-   return FALSE;
+   return false;
 }
 
-static boolean
+
+static bool
 generate_aapoint_fs_nir(struct aapoint_stage *aapoint)
 {
    struct pipe_context *pipe = aapoint->stage.draw->pipe;
@@ -415,24 +419,25 @@ generate_aapoint_fs_nir(struct aapoint_stage *aapoint)
    aapoint_fs = *orig_fs; /* copy to init */
    aapoint_fs.ir.nir = nir_shader_clone(NULL, orig_fs->ir.nir);
    if (!aapoint_fs.ir.nir)
-      return FALSE;
+      return false;
 
-   nir_lower_aapoint_fs(aapoint_fs.ir.nir, &aapoint->fs->generic_attrib);
+   nir_lower_aapoint_fs(aapoint_fs.ir.nir, &aapoint->fs->generic_attrib, aapoint->bool_type);
    aapoint->fs->aapoint_fs = aapoint->driver_create_fs_state(pipe, &aapoint_fs);
    if (aapoint->fs->aapoint_fs == NULL)
       goto fail;
 
-   return TRUE;
+   return true;
 
 fail:
-   return FALSE;
+   return false;
 }
+
 
 /**
  * When we're about to draw our first AA point in a batch, this function is
  * called to tell the driver to bind our modified fragment shader.
  */
-static boolean
+static bool
 bind_aapoint_fragment_shader(struct aapoint_stage *aapoint)
 {
    struct draw_context *draw = aapoint->stage.draw;
@@ -441,27 +446,24 @@ bind_aapoint_fragment_shader(struct aapoint_stage *aapoint)
    if (!aapoint->fs->aapoint_fs) {
       if (aapoint->fs->state.type == PIPE_SHADER_IR_NIR) {
          if (!generate_aapoint_fs_nir(aapoint))
-            return FALSE;
+            return false;
       } else if (!generate_aapoint_fs(aapoint))
-         return FALSE;
+         return false;
    }
 
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
    aapoint->driver_bind_fs_state(pipe, aapoint->fs->aapoint_fs);
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
-   return TRUE;
+   return true;
 }
-
 
 
 static inline struct aapoint_stage *
-aapoint_stage( struct draw_stage *stage )
+aapoint_stage(struct draw_stage *stage)
 {
    return (struct aapoint_stage *) stage;
 }
-
-
 
 
 /**
@@ -473,10 +475,9 @@ aapoint_point(struct draw_stage *stage, struct prim_header *header)
    const struct aapoint_stage *aapoint = aapoint_stage(stage);
    struct prim_header tri;
    struct vertex_header *v[4];
-   const uint tex_slot = aapoint->tex_slot;
-   const uint pos_slot = aapoint->pos_slot;
+   const unsigned tex_slot = aapoint->tex_slot;
+   const unsigned pos_slot = aapoint->pos_slot;
    float radius, *pos, *tex;
-   uint i;
    float k;
 
    if (aapoint->psize_slot >= 0) {
@@ -519,7 +520,7 @@ aapoint_point(struct draw_stage *stage, struct prim_header *header)
 #endif
 
    /* allocate/dup new verts */
-   for (i = 0; i < 4; i++) {
+   for (unsigned i = 0; i < 4; i++) {
       v[i] = dup_vert(stage, header->v[0], i);
    }
 
@@ -557,12 +558,12 @@ aapoint_point(struct draw_stage *stage, struct prim_header *header)
    tri.v[0] = v[0];
    tri.v[1] = v[1];
    tri.v[2] = v[2];
-   stage->next->tri( stage->next, &tri );
+   stage->next->tri(stage->next, &tri);
 
    tri.v[0] = v[0];
    tri.v[1] = v[2];
    tri.v[2] = v[3];
-   stage->next->tri( stage->next, &tri );
+   stage->next->tri(stage->next, &tri);
 }
 
 
@@ -589,13 +590,13 @@ aapoint_first_point(struct draw_stage *stage, struct prim_header *header)
 
    draw_aapoint_prepare_outputs(draw, draw->pipeline.aapoint);
 
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
 
    /* Disable triangle culling, stippling, unfilled mode etc. */
    r = draw_get_rasterizer_no_cull(draw, rast);
    pipe->bind_rasterizer_state(pipe, r);
 
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
    /* now really draw first point */
    stage->point = aapoint_point;
@@ -611,10 +612,10 @@ aapoint_flush(struct draw_stage *stage, unsigned flags)
    struct pipe_context *pipe = draw->pipe;
 
    stage->point = aapoint_first_point;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 
    /* restore original frag shader */
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
    aapoint->driver_bind_fs_state(pipe, aapoint->fs ? aapoint->fs->driver_fs : NULL);
 
    /* restore original rasterizer state */
@@ -622,7 +623,7 @@ aapoint_flush(struct draw_stage *stage, unsigned flags)
       pipe->bind_rasterizer_state(pipe, draw->rast_handle);
    }
 
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
    draw_remove_extra_vertex_attribs(draw);
 }
@@ -631,7 +632,7 @@ aapoint_flush(struct draw_stage *stage, unsigned flags)
 static void
 aapoint_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
@@ -641,15 +642,16 @@ aapoint_destroy(struct draw_stage *stage)
    struct aapoint_stage* aapoint = aapoint_stage(stage);
    struct pipe_context *pipe = stage->draw->pipe;
 
-   draw_free_temp_verts( stage );
+   draw_free_temp_verts(stage);
 
    /* restore the old entry points */
    pipe->create_fs_state = aapoint->driver_create_fs_state;
    pipe->bind_fs_state = aapoint->driver_bind_fs_state;
    pipe->delete_fs_state = aapoint->driver_delete_fs_state;
 
-   FREE( stage );
+   FREE(stage);
 }
+
 
 void
 draw_aapoint_prepare_outputs(struct draw_context *draw,
@@ -670,16 +672,16 @@ draw_aapoint_prepare_outputs(struct draw_context *draw,
                                                          TGSI_SEMANTIC_GENERIC,
                                                          aapoint->fs->generic_attrib);
       assert(aapoint->tex_slot > 0); /* output[0] is vertex pos */
-   } else
+   } else {
       aapoint->tex_slot = -1;
+   }
 
    /* find psize slot in post-transform vertex */
    aapoint->psize_slot = -1;
    if (draw->rasterizer->point_size_per_vertex) {
       const struct tgsi_shader_info *info = draw_get_shader_info(draw);
-      uint i;
       /* find PSIZ vertex output */
-      for (i = 0; i < info->num_outputs; i++) {
+      for (unsigned i = 0; i < info->num_outputs; i++) {
          if (info->output_semantic_name[i] == TGSI_SEMANTIC_PSIZE) {
             aapoint->psize_slot = i;
             break;
@@ -688,8 +690,9 @@ draw_aapoint_prepare_outputs(struct draw_context *draw,
    }
 }
 
+
 static struct aapoint_stage *
-draw_aapoint_stage(struct draw_context *draw)
+draw_aapoint_stage(struct draw_context *draw, nir_alu_type bool_type)
 {
    struct aapoint_stage *aapoint = CALLOC_STRUCT(aapoint_stage);
    if (!aapoint)
@@ -704,8 +707,9 @@ draw_aapoint_stage(struct draw_context *draw)
    aapoint->stage.flush = aapoint_flush;
    aapoint->stage.reset_stipple_counter = aapoint_reset_stipple_counter;
    aapoint->stage.destroy = aapoint_destroy;
+   aapoint->bool_type = bool_type;
 
-   if (!draw_alloc_temp_verts( &aapoint->stage, 4 ))
+   if (!draw_alloc_temp_verts(&aapoint->stage, 4))
       goto fail;
 
    return aapoint;
@@ -733,7 +737,7 @@ aapoint_stage_from_pipe(struct pipe_context *pipe)
  */
 static void *
 aapoint_create_fs_state(struct pipe_context *pipe,
-                       const struct pipe_shader_state *fs)
+                        const struct pipe_shader_state *fs)
 {
    struct aapoint_stage *aapoint = aapoint_stage_from_pipe(pipe);
    struct aapoint_fragment_shader *aafs = CALLOC_STRUCT(aapoint_fragment_shader);
@@ -791,9 +795,10 @@ aapoint_delete_fs_state(struct pipe_context *pipe, void *fs)
  * into the draw module's pipeline.  This will not be used if the
  * hardware has native support for AA points.
  */
-boolean
+bool
 draw_install_aapoint_stage(struct draw_context *draw,
-                           struct pipe_context *pipe)
+                           struct pipe_context *pipe,
+                           nir_alu_type bool_type)
 {
    struct aapoint_stage *aapoint;
 
@@ -802,9 +807,9 @@ draw_install_aapoint_stage(struct draw_context *draw,
    /*
     * Create / install AA point drawing / prim stage
     */
-   aapoint = draw_aapoint_stage( draw );
+   aapoint = draw_aapoint_stage(draw, bool_type);
    if (!aapoint)
-      return FALSE;
+      return false;
 
    /* save original driver functions */
    aapoint->driver_create_fs_state = pipe->create_fs_state;
@@ -818,5 +823,5 @@ draw_install_aapoint_stage(struct draw_context *draw,
 
    draw->pipeline.aapoint = &aapoint->stage;
 
-   return TRUE;
+   return true;
 }

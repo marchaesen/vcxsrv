@@ -20,13 +20,13 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
 //
 // HISTORY
-// Log: pc,v 
+// Log: pc,v
 // Revision 1.2  1996/06/18  09:12:50  erik
 // use flags correctly, assorted cleanups and consortium fixes
 //
@@ -37,19 +37,19 @@
 // Revision 1.1.2.4  1995/08/11  19:35:48  William_Walker
 // 	Sync up with Erik's pool.
 // 	[1995/08/11  18:36:03  William_Walker]
-// 
+//
 // Revision 1.1.2.3  1995/06/27  12:17:29  William_Walker
 // 	Rename <TLDE> to ISO9995 compliant <AE00>.
 // 	[1995/06/26  20:23:10  William_Walker]
-// 
+//
 // Revision 1.1.2.2  1995/06/05  19:21:19  William_Walker
 // 	New file.  I love keymaps.
 // 	[1995/06/05  18:05:51  William_Walker]
-// 
+//
 // EndLog
-// 
+//
 // @(#)RCSfile: pc,v  Revision: 1.2  (DEC) Date: 1996/02/02 14:40:25
-// 
+//
 partial xkb_geometry "common" {
     width		= 480;
     height		= 200;
@@ -183,30 +183,30 @@ xkb_geometry "pc101" {
 
     section "Alpha" { top = 80;
         row { top = 1;
-	    keys {  <AE00>, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  <AE00>,
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "BKSP" }
 	    };
         };
         row { top = 21;
 	    keys {  { <TAB>, "TABK" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <BKSL>, "BKSL" }
 	    };
 
         };
         row { top = 41;
 	    keys {  { <CAPS>, "CAPS" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>,
 		    { <RTRN>, "RTRN" }
 	    };
         };
         row { top = 61;
 	    keys {  { <LFSH>, "LFSH" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, <AB06>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, <AB06>,
                     <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH" }
 	    };
@@ -229,7 +229,7 @@ xkb_geometry "pc102" {
     shape.cornerRadius = 1;
     shape "BKSP" { primary = { [36,19] }, { [3,2], [33,16] } };
     shape "TABK" { primary = { [27,19] }, { [3,2], [24,16] } };
-    shape "RTRN" { 
+    shape "RTRN" {
         approx = { [0,0],[28,19] },
         { [0,0], [27,0], [27,39], [5,39], [5,19], [0,19] },
         { [3,2], [24,2], [24,36], [8,36], [8,16], [3,16] }
@@ -248,29 +248,29 @@ xkb_geometry "pc102" {
 
     section "Alpha" { top = 80;
         row { top = 1;
-	    keys {  <AE00>, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  <AE00>,
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "BKSP" }
 	    };
         };
         row { top = 21;
 	    keys {  { <TAB>, "TABK" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <RTRN>, "RTRN" }
 	    };
 
         };
         row { top = 41;
 	    keys {  { <CAPS>, "CAPS" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <AC12>
 	    };
         };
         row { top = 61;
 	    keys {  { <LFSH>, "LFSH" },
-		    <BKSL>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <BKSL>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 	            <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH" }
 	    };
@@ -308,37 +308,37 @@ xkb_geometry "pcxaj" {
 
     section "Alpha" { top = 80;
         row { top = 1;
-	    keys {  <AE00>, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  <AE00>,
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "BKSP" }
 	    };
         };
         row { top = 21;
 	    keys {  { <TAB>, "TABK" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <BKSL>, "BKSL" }
 	    };
         };
         row { top = 41;
 	    keys {  { <CAPS>, "CAPS" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <AC12>,
 		    { <RTRN>, "RTRN" }
 	    };
         };
         row { top = 61;
 	    keys {  { <LFSH>, "LFSH" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, <AB06>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, <AB06>,
 		    <AB07>, <AB08>, <AB09>, <AB10>, <AB11>,
 		    { <RTSH>, "RTSH" }
 	    };
         };
         row { top = 81;
 	    key.shape = "MODK";
-	    keys {  <LCTL>, <LALT>, 
-		    { <MUHE>, "NORM" }, 
+	    keys {  <LCTL>, <LALT>,
+		    { <MUHE>, "NORM" },
 		    { <SPCE>, "SPCE" },
 		    { <KANJ>, "NORM" },
 		    { <HIRA>, "NORM" },

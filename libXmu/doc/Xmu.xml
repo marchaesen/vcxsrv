@@ -61,7 +61,7 @@ and widgets.  This library is required by the Athena Widgets.
     <para>
 Starting in XFree86 4.1.0, and incorporated into X11R6.7 and later releases,
 a subset of the functions that do not rely on the Athena Widgets (libXaw)
-or X Toolkit Instrinsics (libXt) are provided in a second library, libXmuu.
+or X Toolkit Intrinsics (libXt) are provided in a second library, libXmuu.
     </para>
 
     <para>
@@ -1442,7 +1442,7 @@ returns the size in bits of the elements</para>
       </variablelist>
 
 This function converts the following standard selections: CLASS,
-CLIENT_WINDOW, DECNET_ADDRESS, HOSTNAME, IP_ADDRESS, NAME, OWNER_OS,
+CLIENT_WINDOW, DECNET_ADDRESS, HOSTNAME, NAME, OWNER_OS,
 TARGETS, TIMESTAMP, and USER.  It returns
 <symbol>True</symbol>
 if the conversion was successful, else it returns

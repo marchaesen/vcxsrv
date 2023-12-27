@@ -45,24 +45,26 @@ def is_commit_valid(commit: str) -> bool:
     return ret == 0
 
 
-def branch_has_commit(upstream: str, branch: str, commit: str) -> bool:
+def branch_has_commit(upstream_branch: str, commit: str) -> bool:
     """
     Returns True if the commit is actually present in the branch
     """
     ret = subprocess.call(['git', 'merge-base', '--is-ancestor',
-                           commit, upstream + '/' + branch],
+                           commit, upstream_branch],
                           stdout=subprocess.DEVNULL,
                           stderr=subprocess.DEVNULL)
     return ret == 0
 
 
-def branch_has_backport_of_commit(upstream: str, branch: str, commit: str) -> str:
+def branch_has_backport_of_commit(upstream_branch: str, commit: str) -> str:
     """
     Returns the commit hash if the commit has been backported to the branch,
     or an empty string if is hasn't
     """
+    upstream, _ = upstream_branch.split('/', 1)
+
     out = subprocess.check_output(['git', 'log', '--format=%H',
-                                   branch + '-branchpoint..' + upstream + '/' + branch,
+                                   upstream + '..' + upstream_branch,
                                    '--grep', 'cherry picked from commit ' + commit],
                                   stderr=subprocess.DEVNULL)
     return out.decode().strip()
@@ -89,7 +91,7 @@ def validate_branch(branch: str) -> str:
     out = subprocess.check_output(['git', 'remote', '--verbose'],
                                   stderr=subprocess.DEVNULL)
     remotes = out.decode().splitlines()
-    (upstream, _) = branch.split('/')
+    upstream, _ = branch.split('/', 1)
     valid_remote = False
     for line in remotes:
         if line.startswith(upstream + '\t'):
@@ -125,17 +127,15 @@ if __name__ == "__main__":
                         help='colorize output (default: true if stdout is a terminal)')
     args = parser.parse_args()
 
-    (upstream, branch) = args.branch.split('/')
-
-    if branch_has_commit(upstream, branch, args.commit):
-        print_(args, True, 'Commit ' + args.commit + ' is in branch ' + branch)
+    if branch_has_commit(args.branch, args.commit):
+        print_(args, True, 'Commit ' + args.commit + ' is in branch ' + args.branch)
         exit(0)
 
-    backport = branch_has_backport_of_commit(upstream, branch, args.commit)
+    backport = branch_has_backport_of_commit(args.branch, args.commit)
     if backport:
         print_(args, True,
-               'Commit ' + args.commit + ' was backported to branch ' + branch + ' as commit ' + backport)
+               'Commit ' + args.commit + ' was backported to branch ' + args.branch + ' as commit ' + backport)
         exit(0)
 
-    print_(args, False, 'Commit ' + args.commit + ' is NOT in branch ' + branch)
+    print_(args, False, 'Commit ' + args.commit + ' is NOT in branch ' + args.branch)
     exit(1)

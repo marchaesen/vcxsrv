@@ -1,10 +1,6 @@
-// These partial variants assign Shift to various XKB keycodes.
-
-// The Less/Greater key (while pressed) chooses the second shift level.
+// The Less/Greater key (while pressed) chooses the second level.
 partial modifier_keys
 xkb_symbols "lsgt_switch" {
-  key <LSGT> {
-    type[Group1]="ONE_LEVEL",
-    symbols[Group1] = [ Shift_L ]
-  };
+  key <LSGT> {[  Shift_L  ], type[group1]="ONE_LEVEL" };
+  modifier_map Shift { <LSGT> };
 };

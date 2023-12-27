@@ -333,17 +333,12 @@ if OS2
 libX11_la_SOURCES+=os2Stubs.c
 endif OS2
 
-if THRSTUBS
-libX11_la_SOURCES+=UIThrStubs.c
-endif
-
 x11datadir = @X11_DATADIR@
 x11data_DATA = XErrorDB
 
 EXTRA_DIST = \
 	$(x11data_DATA) \
-	os2Stubs.c \
-	UIThrStubs.c 
+	os2Stubs.c
 
 libX11_xcb_la_SOURCES = x11_xcb.c Xxcbint.h
 libX11_xcb_la_LDFLAGS = -version-number 1:0:0 -no-undefined
@@ -371,6 +366,7 @@ libX11_la_LIBADD = \
 	$(USE_I18N_LIBS) \
 	$(USE_XCMS_LIBS) \
 	$(USE_XKB_LIBS) \
+	$(USE_THREAD_LIBS) \
 	$(X11_LIBS)
 
 preprocess: $(patsubst %.c,%.ii,$(libX11_la_SOURCES))

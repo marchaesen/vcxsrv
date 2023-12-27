@@ -25,7 +25,7 @@
 #include "nir_builder.h"
 #include "lima_ir.h"
 
-static nir_ssa_def *
+static nir_def *
 get_proj_index(nir_instr *coord_instr, nir_instr *proj_instr,
                int coord_components, int *proj_idx)
 {
@@ -41,16 +41,8 @@ get_proj_index(nir_instr *coord_instr, nir_instr *proj_instr,
        proj_alu->op != nir_op_mov)
       return NULL;
 
-   if (!coord_alu->dest.dest.is_ssa ||
-       !proj_alu->dest.dest.is_ssa)
-      return NULL;
-
-   if (!coord_alu->src[0].src.is_ssa ||
-       !proj_alu->src[0].src.is_ssa)
-      return NULL;
-
-   nir_ssa_def *coord_src_ssa = coord_alu->src[0].src.ssa;
-   nir_ssa_def *proj_src_ssa = proj_alu->src[0].src.ssa;
+   nir_def *coord_src_ssa = coord_alu->src[0].src.ssa;
+   nir_def *proj_src_ssa = proj_alu->src[0].src.ssa;
 
    if (coord_src_ssa != proj_src_ssa)
       return NULL;
@@ -62,7 +54,7 @@ get_proj_index(nir_instr *coord_instr, nir_instr *proj_instr,
    if (intrin->intrinsic != nir_intrinsic_load_input)
       return NULL;
 
-   if (nir_dest_num_components(intrin->dest) != 4)
+   if (intrin->def.num_components != 4)
       return NULL;
 
    /* Coords must be in .xyz */
@@ -109,16 +101,15 @@ lima_nir_lower_txp_instr(nir_builder *b, nir_instr *instr,
     * step back and use load_input SSA instead of mov as a source for
     * newly constructed vec4
     */
-   nir_ssa_def *proj_ssa = nir_ssa_for_src(b, tex->src[proj_idx].src, 1);
-   nir_ssa_def *coords_ssa = nir_ssa_for_src(b, tex->src[coords_idx].src,
-                                             nir_tex_instr_src_size(tex, coords_idx));
+   nir_def *proj_ssa = tex->src[proj_idx].src.ssa;
+   nir_def *coords_ssa = tex->src[coords_idx].src.ssa;
 
    int proj_idx_in_vec = -1;
-   nir_ssa_def *load_input = get_proj_index(coords_ssa->parent_instr,
+   nir_def *load_input = get_proj_index(coords_ssa->parent_instr,
                                             proj_ssa->parent_instr,
                                             tex->coord_components,
                                             &proj_idx_in_vec);
-   nir_ssa_def *combined;
+   nir_def *combined;
    if (load_input && proj_idx_in_vec == 3) {
       unsigned xyzw[] = { 0, 1, 2, 3 };
       combined = nir_swizzle(b, load_input, xyzw, 4);
@@ -157,7 +148,7 @@ lima_nir_lower_txp_instr(nir_builder *b, nir_instr *instr,
 
    nir_tex_instr_remove_src(tex, nir_tex_instr_src_index(tex, nir_tex_src_coord));
    nir_tex_instr_remove_src(tex, nir_tex_instr_src_index(tex, nir_tex_src_projector));
-   nir_tex_instr_add_src(tex, nir_tex_src_backend1, nir_src_for_ssa(combined));
+   nir_tex_instr_add_src(tex, nir_tex_src_backend1, combined);
 
    return true;
 }

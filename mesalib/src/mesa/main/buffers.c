@@ -30,7 +30,7 @@
 
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "buffers.h"
 #include "context.h"
 #include "enums.h"
@@ -46,6 +46,7 @@
 #include "state_tracker/st_manager.h"
 #include "state_tracker/st_atom.h"
 #include "state_tracker/st_context.h"
+#include "state_tracker/st_util.h"
 
 #define BAD_MASK ~0u
 
@@ -458,7 +459,7 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
        *  and the constant must be BACK or NONE."
        * (same restriction applies with GL_EXT_draw_buffers specification)
        */
-      if (ctx->API == API_OPENGLES2 && _mesa_is_winsys_fbo(fb) &&
+      if (_mesa_is_gles2(ctx) && _mesa_is_winsys_fbo(fb) &&
           (n != 1 || (buffers[0] != GL_NONE && buffers[0] != GL_BACK))) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid buffers)", caller);
          return;
@@ -587,7 +588,7 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
              * INVALID_OPERATION." (same restriction applies with
              * GL_EXT_draw_buffers specification)
              */
-            if (ctx->API == API_OPENGLES2 && _mesa_is_user_fbo(fb) &&
+            if (_mesa_is_gles2(ctx) && _mesa_is_user_fbo(fb) &&
                 buffers[output] != GL_NONE &&
                 buffers[output] != GL_COLOR_ATTACHMENT0 + output) {
                _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -730,7 +731,7 @@ updated_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb)
 {
    FLUSH_VERTICES(ctx, _NEW_BUFFERS, GL_COLOR_BUFFER_BIT);
 
-   if (ctx->API == API_OPENGL_COMPAT && !ctx->Extensions.ARB_ES2_compatibility) {
+   if (_mesa_is_desktop_gl_compat(ctx) && !ctx->Extensions.ARB_ES2_compatibility) {
       /* Flag the FBO as requiring validation. */
       if (_mesa_is_user_fbo(fb)) {
 	 fb->_Status = 0;
@@ -949,7 +950,7 @@ read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
          /* add the buffer */
          st_manager_add_color_renderbuffer(ctx, fb, fb->_ColorReadBufferIndex);
          _mesa_update_state(ctx);
-         st_validate_state(st_context(ctx), ST_PIPELINE_UPDATE_FRAMEBUFFER);
+         st_validate_state(st_context(ctx), ST_PIPELINE_UPDATE_FB_STATE_MASK);
       }
    }
 }

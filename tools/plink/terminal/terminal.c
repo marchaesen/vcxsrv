@@ -62,6 +62,9 @@ static const char sco2ansicolour[] = { 0, 4, 2, 6, 1, 5, 3, 7 };
 #define sel_nl_sz  (sizeof(sel_nl)/sizeof(wchar_t))
 static const wchar_t sel_nl[] = SEL_NL;
 
+/* forward declaration */
+static void term_userpass_state_free(struct term_userpass_state *s);
+
 /*
  * Fetch the character at a particular position in a line array,
  * for purposes of `wordtype'. The reason this isn't just a simple
@@ -86,8 +89,7 @@ static const wchar_t sel_nl[] = SEL_NL;
  * Internal prototypes.
  */
 static void resizeline(Terminal *, termline *, int);
-static termline *lineptr(Terminal *, int, int, int);
-static void unlineptr(termline *);
+static termline *lineptr(Terminal *, int, int);
 static void check_line_size(Terminal *, termline *);
 static void do_paint(Terminal *);
 static void erase_lots(Terminal *, bool, bool, bool);
@@ -128,7 +130,7 @@ static void freetermline(termline *line)
     }
 }
 
-static void unlineptr(termline *line)
+void term_release_line(termline *line)
 {
     if (line->temporary)
         freetermline(line);
@@ -397,6 +399,8 @@ static void move_termchar(termline *line, termchar *dest, termchar *src)
     cc_check(line);
 #endif
 }
+
+#ifndef NO_SCROLLBACK_COMPRESSION
 
 /*
  * Compress and decompress a termline into an RLE-based format for
@@ -688,11 +692,12 @@ static void makeliteral_cc(strbuf *b, termchar *c, unsigned long *state)
 
 typedef struct compressed_scrollback_line {
     size_t len;
+    /* compressed data follows after this */
 } compressed_scrollback_line;
 
-static termline *decompressline(compressed_scrollback_line *line);
+static termline *decompressline_no_free(compressed_scrollback_line *line);
 
-static compressed_scrollback_line *compressline(termline *ldata)
+static compressed_scrollback_line *compressline_no_free(termline *ldata)
 {
     strbuf *b = strbuf_new();
 
@@ -768,7 +773,7 @@ static compressed_scrollback_line *compressline(termline *ldata)
         printf("\n");
 #endif
 
-        dcl = decompressline(line);
+        dcl = decompressline_no_free(line);
         assert(ldata->cols == dcl->cols);
         assert(ldata->lattr == dcl->lattr);
         for (i = 0; i < ldata->cols; i++)
@@ -786,6 +791,13 @@ static compressed_scrollback_line *compressline(termline *ldata)
 #endif /* TERM_CC_DIAGS */
 
     return line;
+}
+
+static compressed_scrollback_line *compressline_and_free(termline *ldata)
+{
+    compressed_scrollback_line *cline = compressline_no_free(ldata);
+    freetermline(ldata);
+    return cline;
 }
 
 static void readrle(BinarySource *bs, termline *ldata,
@@ -921,7 +933,7 @@ static void readliteral_cc(BinarySource *bs, termchar *c, termline *ldata,
     }
 }
 
-static termline *decompressline(compressed_scrollback_line *line)
+static termline *decompressline_no_free(compressed_scrollback_line *line)
 {
     int ncols, byte, shift;
     BinarySource bs[1];
@@ -987,6 +999,66 @@ static termline *decompressline(compressed_scrollback_line *line)
 
     return ldata;
 }
+
+static inline void free_compressed_line(compressed_scrollback_line *cline)
+{
+    sfree(cline);
+}
+
+static termline *decompressline_and_free(compressed_scrollback_line *cline)
+{
+    termline *ldata = decompressline_no_free(cline);
+    free_compressed_line(cline);
+    return ldata;
+}
+
+#else /* NO_SCROLLBACK_COMPRESSION */
+
+static termline *duptermline(termline *oldline)
+{
+    termline *newline = snew(termline);
+    *newline = *oldline;               /* copy the POD structure fields */
+    newline->chars = snewn(newline->size, termchar);
+    for (int j = 0; j < newline->size; j++)
+        newline->chars[j] = oldline->chars[j];
+    return newline;
+}
+
+typedef termline compressed_scrollback_line;
+
+static inline compressed_scrollback_line *compressline_and_free(
+    termline *ldata)
+{
+    return ldata;
+}
+
+static inline compressed_scrollback_line *compressline_no_free(termline *ldata)
+{
+    return duptermline(ldata);
+}
+
+static inline termline *decompressline_no_free(
+    compressed_scrollback_line *line)
+{
+    /* This will return a line without the 'temporary' flag, which
+     * means that unlineptr() is already set up to avoid freeing it */
+    return line;
+}
+
+static inline termline *decompressline_and_free(
+    compressed_scrollback_line *line)
+{
+    /* Same as decompressline_no_free, because the caller will free
+     * our returned termline, and that does all the freeing necessary */
+    return line;
+}
+
+static inline void free_compressed_line(compressed_scrollback_line *line)
+{
+    freetermline(line);
+}
+
+#endif /* NO_SCROLLBACK_COMPRESSION */
 
 /*
  * Resize a line to make it `cols' columns wide.
@@ -1098,12 +1170,19 @@ static void null_line_error(Terminal *term, int y, int lineno,
                   term->alt_sblines, whichtree, treeindex, commitid);
 }
 
+static inline int checkscr(int y, int lineno)
+{
+    if (y < 0)
+        modalfatalbox("screen line %d < 0 in terminal.c:%d", y, lineno);
+    return y;
+}
+
 /*
  * Retrieve a line of the screen or of the scrollback, according to
  * whether the y coordinate is non-negative or negative
  * (respectively).
  */
-static termline *lineptr(Terminal *term, int y, int lineno, int screen)
+static termline *lineptr(Terminal *term, int y, int lineno)
 {
     termline *line;
     tree234 *whichtree;
@@ -1114,8 +1193,6 @@ static termline *lineptr(Terminal *term, int y, int lineno, int screen)
         treeindex = y;
     } else {
         int altlines = 0;
-
-        assert(!screen);
 
         if (term->erase_to_scrollback &&
             term->alt_which && term->alt_screen) {
@@ -1134,7 +1211,7 @@ static termline *lineptr(Terminal *term, int y, int lineno, int screen)
         compressed_scrollback_line *cline = index234(whichtree, treeindex);
         if (!cline)
             null_line_error(term, y, lineno, whichtree, treeindex, "cline");
-        line = decompressline(cline);
+        line = decompressline_no_free(cline);
     } else {
         line = index234(whichtree, treeindex);
     }
@@ -1167,8 +1244,29 @@ static termline *lineptr(Terminal *term, int y, int lineno, int screen)
     return line;
 }
 
-#define lineptr(x) (lineptr)(term,x,__LINE__,0)
-#define scrlineptr(x) (lineptr)(term,x,__LINE__,1)
+/*
+ * Macro wrappers for lineptr. The distinction between lineptr and
+ * scrlineptr is that lineptr can retrieve any line, from the screen
+ * _or_ from scrollback, and in return, you have to call unlineptr
+ * when you're done with it, in case it was a dynamically allocated
+ * line decompressed from scrollback that needs freeing. But
+ * scrlineptr will only retrieve lines from the active screen (and
+ * enforces this by an assertion), which means it's always just
+ * returning a pointer to an existing unpacked termline, and you don't
+ * have to call unlineptr afterwards. So drawing code (which might
+ * need the scrollback) will have to call lineptr/unlineptr, but
+ * update code during term_out can call scrlineptr.
+ *
+ * The 'assertion' in scrlineptr is done using a helper function that
+ * returns the input column number, which allows this macro to avoid
+ * double-evaluating its argument.
+ */
+#define lineptr(x) (lineptr)(term,x,__LINE__)
+#define scrlineptr(x) (lineptr)(term,checkscr(x,__LINE__),__LINE__)
+#define unlineptr(line) term_release_line(line)
+
+/* Wrapper for external use (e.g. tests), without the __LINE__ parameter */
+termline *term_get_line(Terminal *term, int y) { return lineptr(y); }
 
 /*
  * Coerce a termline to the terminal's current width. Unlike the
@@ -1244,12 +1342,21 @@ static void term_schedule_update(Terminal *term)
 }
 
 /*
- * Call this whenever the terminal window state changes, to queue
- * an update.
+ * Call this whenever the terminal window state changes, to queue an
+ * update. This also resets the phase of cursor blinking, so that the
+ * cursor remains visible as it moves with the output, and sets a flag
+ * to indicate that if we have the 'reset scrollback on display
+ * activity' setting enabled, then we should activate it.
  */
 static void seen_disp_event(Terminal *term)
 {
-    term->seen_disp_event = true;      /* for scrollback-reset-on-activity */
+    if (term->scroll_on_disp) {
+        term->disptop = 0;
+        term->win_scrollbar_update_pending = true;
+    }
+    term->cblinker = true;
+    term->cblink_pending = false;
+    term_schedule_cblink(term);
     term_schedule_update(term);
 }
 
@@ -1282,17 +1389,6 @@ static void term_schedule_cblink(Terminal *term)
         term->cblinker = true;         /* reset when not in use */
         term->cblink_pending = false;
     }
-}
-
-/*
- * Call to reset cursor blinking on new output.
- */
-static void term_reset_cblink(Terminal *term)
-{
-    seen_disp_event(term);
-    term->cblinker = true;
-    term->cblink_pending = false;
-    term_schedule_cblink(term);
 }
 
 /*
@@ -1374,6 +1470,8 @@ static void power_on(Terminal *term, bool clear)
     term->xterm_mouse = 0;
     term->xterm_extended_mouse = false;
     term->urxvt_extended_mouse = false;
+    term->raw_mouse_reported_x = 0;
+    term->raw_mouse_reported_y = 0;
     win_set_raw_mouse_mode(term->win, false);
     term->win_pointer_shape_pending = true;
     term->win_pointer_shape_raw = false;
@@ -1459,17 +1557,10 @@ void term_update(Terminal *term)
     }
 
     if (win_setup_draw_ctx(term->win)) {
-        bool need_sbar_update = term->seen_disp_event ||
-            term->win_scrollbar_update_pending;
-        term->win_scrollbar_update_pending = false;
-        if (term->seen_disp_event && term->scroll_on_disp) {
-            term->disptop = 0;         /* return to main screen */
-            term->seen_disp_event = false;
-            need_sbar_update = true;
-        }
-
-        if (need_sbar_update)
+        if (term->win_scrollbar_update_pending) {
+            term->win_scrollbar_update_pending = false;
             update_sbar(term);
+        }
         do_paint(term);
         win_set_cursor_pos(
             term->win, term->curs.x, term->curs.y - term->disptop);
@@ -1502,9 +1593,10 @@ void term_seen_key_event(Terminal *term)
     /*
      * Reset the scrollback on keypress, if we're doing that.
      */
-    if (term->scroll_on_key) {
-        term->disptop = 0;             /* return to main screen */
-        seen_disp_event(term);
+    if (term->scroll_on_key && term->disptop != 0) {
+        term->disptop = 0;
+        term->win_scrollbar_update_pending = true;
+        term_schedule_update(term);
     }
 }
 
@@ -1953,106 +2045,47 @@ Terminal *term_init(Conf *myconf, struct unicode_data *ucsdata, TermWin *win)
      * that need it.
      */
     term = snew(Terminal);
+    memset(term, 0, sizeof(Terminal));
     term->win = win;
     term->ucsdata = ucsdata;
     term->conf = conf_copy(myconf);
-    term->logctx = NULL;
     term->compatibility_level = TM_PUTTY;
     strcpy(term->id_string, "\033[?6c");
-    term->cblink_pending = term->tblink_pending = false;
-    term->paste_buffer = NULL;
-    term->paste_len = 0;
     bufchain_init(&term->inbuf);
     bufchain_init(&term->printer_buf);
-    term->printing = term->only_printing = false;
-    term->print_job = NULL;
-    term->vt52_mode = false;
-    term->cr_lf_return = false;
-    term->seen_disp_event = false;
-    term->mouse_is_down = 0;
-    term->reset_132 = false;
-    term->cblinker = false;
-    term->tblinker = false;
     term->has_focus = true;
-    term->repeat_off = false;
     term->termstate = TOPLEVEL;
     term->selstate = NO_SELECTION;
-    term->curstype = 0;
     term->answerback = strbuf_new();
 
     term_copy_stuff_from_conf(term);
 
-    term->screen = term->alt_screen = term->scrollback = NULL;
-    term->tempsblines = 0;
-    term->alt_sblines = 0;
-    term->disptop = 0;
-    term->disptext = NULL;
     term->dispcursx = term->dispcursy = -1;
-    term->tabs = NULL;
     deselect(term);
     term->rows = term->cols = -1;
     power_on(term, true);
-    term->beephead = term->beeptail = NULL;
-    term->nbeeps = 0;
-    term->lastbeep = false;
-    term->beep_overloaded = false;
     term->attr_mask = 0xffffffff;
-    term->backend = NULL;
-    term->in_term_out = false;
-    term->ltemp = NULL;
-    term->ltemp_size = 0;
-    term->wcFrom = NULL;
-    term->wcTo = NULL;
-    term->wcFromTo_size = 0;
-
-    term->window_update_pending = false;
-    term->window_update_cooldown = false;
-
-    term->bidi_cache_size = 0;
-    term->pre_bidi_cache = term->post_bidi_cache = NULL;
 
     /* FULL-TERMCHAR */
     term->basic_erase_char.chr = CSET_ASCII | ' ';
     term->basic_erase_char.attr = ATTR_DEFAULT;
-    term->basic_erase_char.cc_next = 0;
     term->basic_erase_char.truecolour.fg = optionalrgb_none;
     term->basic_erase_char.truecolour.bg = optionalrgb_none;
     term->erase_char = term->basic_erase_char;
 
-    term->last_selected_text = NULL;
-    term->last_selected_attr = NULL;
-    term->last_selected_tc = NULL;
-    term->last_selected_len = 0;
     /* TermWin implementations will typically extend these with
      * clipboard ids they know about */
     term->mouse_select_clipboards[0] = CLIP_LOCAL;
     term->n_mouse_select_clipboards = 1;
     term->mouse_paste_clipboard = CLIP_NULL;
 
-    term->last_graphic_char = 0;
-
     term->trusted = true;
-
-    term->bracketed_paste_active = false;
 
     term->window_title = dupstr("");
     term->icon_title = dupstr("");
     term->wintitle_codepage = term->icontitle_codepage = DEFAULT_CODEPAGE;
-    term->minimised = false;
-    term->winpos_x = term->winpos_y = 0;
-    term->winpixsize_x = term->winpixsize_y = 0;
 
-    term->win_move_pending = false;
     term->win_resize_pending = WIN_RESIZE_NO;
-    term->win_zorder_pending = false;
-    term->win_minimise_pending = false;
-    term->win_maximise_pending = false;
-    term->win_title_pending = false;
-    term->win_icon_title_pending = false;
-    term->win_pointer_shape_pending = false;
-    term->win_refresh_pending = false;
-    term->win_scrollbar_update_pending = false;
-    term->win_palette_pending = false;
 
     term->bidi_ctx = bidi_new_context();
 
@@ -2063,12 +2096,13 @@ Terminal *term_init(Conf *myconf, struct unicode_data *ucsdata, TermWin *win)
 
 void term_free(Terminal *term)
 {
+    compressed_scrollback_line *cline;
     termline *line;
     struct beeptime *beep;
     int i;
 
-    while ((line = delpos234(term->scrollback, 0)) != NULL)
-        sfree(line);                   /* compressed data, not a termline */
+    while ((cline = delpos234(term->scrollback, 0)) != NULL)
+        free_compressed_line(cline);
     freetree234(term->scrollback);
     while ((line = delpos234(term->screen, 0)) != NULL)
         freetermline(line);
@@ -2087,7 +2121,7 @@ void term_free(Terminal *term)
         sfree(beep);
     }
     bufchain_clear(&term->inbuf);
-    if(term->print_job)
+    if (term->print_job)
         printer_finish_job(term->print_job);
     bufchain_clear(&term->printer_buf);
     sfree(term->paste_buffer);
@@ -2116,6 +2150,10 @@ void term_free(Terminal *term)
     sfree(term->icon_title);
 
     bidi_free_context(term->bidi_ctx);
+
+    /* In case a term_userpass_state is still around */
+    if (term->userpass_state)
+        term_userpass_state_free(term->userpass_state);
 
     sfree(term);
 }
@@ -2192,8 +2230,7 @@ void term_size(Terminal *term, int newrows, int newcols, int newsavelines)
             /* Insert a line from the scrollback at the top of the screen. */
             assert(sblen >= term->tempsblines);
             cline = delpos234(term->scrollback, --sblen);
-            line = decompressline(cline);
-            sfree(cline);
+            line = decompressline_and_free(cline);
             line->temporary = false;   /* reconstituted line is now real */
             term->tempsblines -= 1;
             addpos234(term->screen, line, 0);
@@ -2217,8 +2254,7 @@ void term_size(Terminal *term, int newrows, int newcols, int newsavelines)
         } else {
             /* push top row to scrollback */
             line = delpos234(term->screen, 0);
-            addpos234(term->scrollback, compressline(line), sblen++);
-            freetermline(line);
+            addpos234(term->scrollback, compressline_and_free(line), sblen++);
             term->tempsblines += 1;
             term->curs.y -= 1;
             term->savecurs.y -= 1;
@@ -2493,6 +2529,8 @@ static void swap_screen(Terminal *term, int which,
          */
         erase_lots(term, false, true, true);
     }
+
+    seen_disp_event(term);
 }
 
 /*
@@ -2594,15 +2632,15 @@ static void scroll(Terminal *term, int topline, int botline,
                  * the scrollback is full.
                  */
                 if (sblen == term->savelines) {
-                    unsigned char *cline;
+                    compressed_scrollback_line *cline;
 
                     sblen--;
                     cline = delpos234(term->scrollback, 0);
-                    sfree(cline);
+                    free_compressed_line(cline);
                 } else
                     term->tempsblines += 1;
 
-                addpos234(term->scrollback, compressline(line), sblen);
+                addpos234(term->scrollback, compressline_no_free(line), sblen);
 
                 /* now `line' itself can be reused as the bottom line */
 
@@ -2622,6 +2660,12 @@ static void scroll(Terminal *term, int topline, int botline,
                  */
                 if (term->disptop > -term->savelines && term->disptop < 0)
                     term->disptop--;
+
+                /*
+                 * We've just modified the data that the terminal's
+                 * scrollbar is based on, so remember to update it.
+                 */
+                term->win_scrollbar_update_pending = true;
             }
             resizeline(term, line, term->cols);
             clear_line(term, line);
@@ -2668,6 +2712,8 @@ static void scroll(Terminal *term, int topline, int botline,
             }
         }
     }
+
+    seen_disp_event(term);
 }
 
 /*
@@ -2697,6 +2743,7 @@ static void move(Terminal *term, int x, int y, int marg_clip)
     term->curs.x = x;
     term->curs.y = y;
     term->wrapnext = false;
+    seen_disp_event(term);
 }
 
 /*
@@ -2735,6 +2782,7 @@ static void save_cursor(Terminal *term, bool save)
         term->cset_attr[term->cset] = term->save_csattr;
         term->sco_acs = term->save_sco_acs;
         set_erase_char(term);
+        seen_disp_event(term);
     }
 }
 
@@ -2893,6 +2941,8 @@ static void erase_lots(Terminal *term,
      * application has explicitly thrown them away). */
     if (erasing_lines_from_top && !(term->alt_which))
         term->tempsblines = 0;
+
+    seen_disp_event(term);
 }
 
 /*
@@ -3067,6 +3117,10 @@ static void toggle_mode(Terminal *term, int mode, int query, bool state)
             term->xterm_mouse = state ? 2 : 0;
             term_update_raw_mouse_mode(term);
             break;
+          case 1003:                   /* xterm mouse any-event tracking */
+            term->xterm_mouse = state ? 3 : 0;
+            term_update_raw_mouse_mode(term);
+            break;
           case 1006:                   /* xterm extended mouse */
             term->xterm_extended_mouse = state;
             break;
@@ -3125,6 +3179,13 @@ static void toggle_mode(Terminal *term, int mode, int query, bool state)
  */
 static void do_osc(Terminal *term)
 {
+    if (term->osc_is_apc) {
+        /* This OSC was really an APC, and we don't support that
+         * sequence at all. We only recognise it in order to ignore it
+         * and filter it out of input. */
+        return;
+    }
+
     if (term->osc_w) {
         while (term->osc_strlen--)
             term->wordness[(unsigned char)term->osc_string[term->osc_strlen]] =
@@ -3255,34 +3316,43 @@ static void term_display_graphic_char(Terminal *term, unsigned long c)
         linecols -= TRUST_SIGIL_WIDTH;
 
     /*
-     * Preliminary check: if the terminal is only one character cell
-     * wide, then we cannot display any double-width character at all.
-     * Substitute single-width REPLACEMENT CHARACTER instead.
+     * Before we switch on the character width, do a preliminary check for
+     * cases where we might have no room at all to display a double-width
+     * character. Our fallback is to substitute REPLACEMENT CHARACTER,
+     * which is single-width, and it's easiest to do that _before_ having
+     * to 'goto' from one switch case to another.
      */
-    if (width == 2 && linecols < 2) {
-        width = 1;
-        c = 0xFFFD;
+    if (width == 2 && term->curs.x >= linecols-1) {
+        /*
+         * If we're in wrapping mode and the terminal is at least 2 cells
+         * wide, it's OK, we have a fallback. But otherwise, substitute.
+         */
+        if (linecols < 2 || !term->wrap) {
+            width = 1;
+            c = 0xFFFD;
+        }
     }
 
     switch (width) {
       case 2:
         /*
-         * If we're about to display a double-width character starting
-         * in the rightmost column, then we do something special
-         * instead. We must print a space in the last column of the
-         * screen, then wrap; and we also set LATTR_WRAPPED2 which
-         * instructs subsequent cut-and-pasting not only to splice
-         * this line to the one after it, but to ignore the space in
-         * the last character position as well. (Because what was
-         * actually output to the terminal was presumably just a
-         * sequence of CJK characters, and we don't want a space to be
-         * pasted in the middle of those just because they had the
-         * misfortune to start in the wrong parity column. xterm
-         * concurs.)
+         * If we're about to display a double-width character starting in
+         * the rightmost column (and we're in wrapping mode - the other
+         * case was disposed of above), then we do something special
+         * instead. We must print a space in the last column of the screen,
+         * then wrap; and we also set LATTR_WRAPPED2 which instructs
+         * subsequent cut-and-pasting not only to splice this line to the
+         * one after it, but to ignore the space in the last character
+         * position as well. (Because what was actually output to the
+         * terminal was presumably just a sequence of CJK characters, and
+         * we don't want a space to be pasted in the middle of those just
+         * because they had the misfortune to start in the wrong parity
+         * column. xterm concurs.)
          */
         check_boundary(term, term->curs.x, term->curs.y);
         check_boundary(term, term->curs.x+2, term->curs.y);
         if (term->curs.x >= linecols-1) {
+            assert(term->wrap);    /* we handled the non-wrapping case above */
             copy_termchar(cline, term->curs.x,
                           &term->erase_char);
             cline->lattr |= LATTR_WRAPPED | LATTR_WRAPPED2;
@@ -3398,8 +3468,7 @@ static strbuf *term_input_data_from_unicode(
                 }
             }
 
-            char utf8_chr[6];
-            put_data(buf, utf8_chr, encode_utf8(utf8_chr, ch));
+            put_utf8_char(buf, ch);
         }
     } else {
         /*
@@ -3790,6 +3859,7 @@ static void term_out(Terminal *term, bool called_from_term_data)
                 copy_termchar(scrlineptr(term->curs.y),
                               term->curs.x, &term->erase_char);
             }
+            seen_disp_event(term);
         } else
         /* Or normal C0 controls. */
         if ((c & ~0x1F) == 0 && term->termstate < DO_CTRLS) {
@@ -3889,14 +3959,36 @@ static void term_out(Terminal *term, bool called_from_term_data)
                 break;
               }
               case '\b':              /* BS: Back space */
-                if (term->curs.x == 0 && (term->curs.y == 0 || !term->wrap))
-                    /* do nothing */ ;
-                else if (term->curs.x == 0 && term->curs.y > 0)
-                    term->curs.x = term->cols - 1, term->curs.y--;
-                else if (term->wrapnext)
+                if (term->wrapnext) {
                     term->wrapnext = false;
-                else
+                } else if (term->curs.x == 0 &&
+                           (term->curs.y == 0 || !term->wrap)) {
+                    /* do nothing */
+                } else if (term->curs.x == 0 && term->curs.y > 0) {
+                    term->curs.x = term->cols - 1, term->curs.y--;
+
+                    /*
+                     * If the line we've just wrapped back on to had the
+                     * LATTR_WRAPPED2 flag set, it means that the line wrapped
+                     * because a double-width character was printed with the
+                     * cursor in the rightmost column, and the best handling
+                     * available was to leave that column empty and move the
+                     * whole character to the next line. In that situation,
+                     * backspacing needs to put the cursor on the previous
+                     * _logical_ character, i.e. skip the empty space left by
+                     * the wrapping. This arranges that if an application
+                     * unaware of the terminal width or cursor position prints
+                     * a number of printing characters and then tries to return
+                     * to a particular one of them by emitting the right number
+                     * of backspaces, it's still the right number even if a
+                     * line break appeared in a maximally awkward position.
+                     */
+                    termline *ldata = scrlineptr(term->curs.y);
+                    if (term->curs.x > 0 && (ldata->lattr & LATTR_WRAPPED2))
+                        term->curs.x--;
+                } else {
                     term->curs.x--;
+                }
                 seen_disp_event(term);
                 break;
               case '\016':            /* LS1: Locking-shift one */
@@ -4021,6 +4113,22 @@ static void term_out(Terminal *term, bool called_from_term_data)
                     /* Compatibility is nasty here, xterm, linux, decterm yuk! */
                     compatibility(OTHER);
                     term->termstate = SEEN_OSC;
+                    term->osc_is_apc = false;
+                    term->osc_strlen = 0;
+                    term->esc_args[0] = 0;
+                    term->esc_nargs = 1;
+                    break;
+                  case '_':             /* APC: application program command */
+                    /* APC sequences are just a string, terminated by
+                     * ST or (I've observed in practice) ^G. That is,
+                     * they have the same termination convention as
+                     * OSC. So we handle them by going straight into
+                     * OSC_STRING state and setting a flag indicating
+                     * that it's not really an OSC. */
+                    compatibility(OTHER);
+                    term->termstate = SEEN_OSC;
+                    term->osc_is_apc = true;
+                    term->osc_strlen = 0;
                     term->esc_args[0] = 0;
                     term->esc_nargs = 1;
                     break;
@@ -4031,7 +4139,6 @@ static void term_out(Terminal *term, bool called_from_term_data)
                   case '8':             /* DECRC: restore cursor */
                     compatibility(VT100);
                     save_cursor(term, false);
-                    seen_disp_event(term);
                     break;
                   case '=':             /* DECKPAM: Keypad application mode */
                     compatibility(VT100);
@@ -4146,6 +4253,7 @@ static void term_out(Terminal *term, bool called_from_term_data)
                     check_line_size(term, ldata);
                     check_trust_status(term, ldata);
                     ldata->lattr = nlattr;
+                    seen_disp_event(term);
                     break;
                   }
                   /* GZD4: G0 designate 94-set */
@@ -4704,7 +4812,6 @@ static void term_out(Terminal *term, bool called_from_term_data)
                         break;
                       case 'u':       /* restore cursor */
                         save_cursor(term, false);
-                        seen_disp_event(term);
                         break;
                       case 't': /* DECSLPP: set page size - ie window height */
                         /*
@@ -4877,7 +4984,6 @@ static void term_out(Terminal *term, bool called_from_term_data)
                         scroll(term, term->marg_t, term->marg_b,
                                def(term->esc_args[0], 1), true);
                         term->wrapnext = false;
-                        seen_disp_event(term);
                         break;
                       case 'T':         /* SD: Scroll down */
                         CLAMP(term->esc_args[0], term->rows);
@@ -4885,7 +4991,6 @@ static void term_out(Terminal *term, bool called_from_term_data)
                         scroll(term, term->marg_t, term->marg_b,
                                -def(term->esc_args[0], 1), true);
                         term->wrapnext = false;
-                        seen_disp_event(term);
                         break;
                       case ANSI('|', '*'): /* DECSNLS */
                         /*
@@ -4962,7 +5067,7 @@ static void term_out(Terminal *term, bool called_from_term_data)
                         int i = def(term->esc_args[0], 1);
                         pos old_curs = term->curs;
 
-                        for(;i>0 && term->curs.x>0; i--) {
+                        for (; i>0 && term->curs.x>0; i--) {
                             do {
                                 term->curs.x--;
                             } while (term->curs.x >0 &&
@@ -5361,7 +5466,6 @@ static void term_out(Terminal *term, bool called_from_term_data)
                 break;
               case VT52_ESC:
                 term->termstate = TOPLEVEL;
-                seen_disp_event(term);
                 switch (c) {
                   case 'A':
                     move(term, term->curs.x, term->curs.y - 1, 1);
@@ -5425,10 +5529,12 @@ static void term_out(Terminal *term, bool called_from_term_data)
                     move(term, 0, 0, 0);
                     break;
                   case 'I':
-                    if (term->curs.y == 0)
+                    if (term->curs.y == 0) {
                         scroll(term, 0, term->rows - 1, -1, true);
-                    else if (term->curs.y > 0)
+                    } else if (term->curs.y > 0) {
                         term->curs.y--;
+                        seen_disp_event(term);
+                    }
                     term->wrapnext = false;
                     break;
                   case 'J':
@@ -5519,10 +5625,12 @@ static void term_out(Terminal *term, bool called_from_term_data)
                   case 'e':
                     /* compatibility(ATARI) */
                     term->cursor_on = true;
+                    seen_disp_event(term);
                     break;
                   case 'f':
                     /* compatibility(ATARI) */
                     term->cursor_on = false;
+                    seen_disp_event(term);
                     break;
                     /* case 'j': Save cursor position - broken on ST */
                     /* case 'k': Restore cursor position */
@@ -5766,8 +5874,7 @@ static termchar *term_bidi_line(Terminal *term, struct termline *ldata,
                                      bidi_char);
             }
 
-            for(it=0; it<term->cols ; it++)
-            {
+            for (it=0; it<term->cols ; it++) {
                 unsigned long uc = (ldata->chars[it].chr);
 
                 switch (uc & CSET_MASK) {
@@ -5821,10 +5928,10 @@ static termchar *term_bidi_line(Terminal *term, struct termline *ldata,
                 nbc++;
             }
 
-            if(!term->no_bidi)
+            if (!term->no_bidi)
                 do_bidi(term->bidi_ctx, term->wcFrom, nbc);
 
-            if(!term->no_arabicshaping) {
+            if (!term->no_arabicshaping) {
                 do_shape(term->wcFrom, term->wcTo, nbc);
             } else {
                 /* If we're not calling do_shape, we must copy the
@@ -6683,68 +6790,39 @@ static int wordtype(Terminal *term, int uc)
         int start, end, ctype;
     };
     static const struct ucsword ucs_words[] = {
-        {
-        128, 160, 0}, {
-        161, 191, 1}, {
-        215, 215, 1}, {
-        247, 247, 1}, {
-        0x037e, 0x037e, 1},            /* Greek question mark */
-        {
-        0x0387, 0x0387, 1},            /* Greek ano teleia */
-        {
-        0x055a, 0x055f, 1},            /* Armenian punctuation */
-        {
-        0x0589, 0x0589, 1},            /* Armenian full stop */
-        {
-        0x0700, 0x070d, 1},            /* Syriac punctuation */
-        {
-        0x104a, 0x104f, 1},            /* Myanmar punctuation */
-        {
-        0x10fb, 0x10fb, 1},            /* Georgian punctuation */
-        {
-        0x1361, 0x1368, 1},            /* Ethiopic punctuation */
-        {
-        0x166d, 0x166e, 1},            /* Canadian Syl. punctuation */
-        {
-        0x17d4, 0x17dc, 1},            /* Khmer punctuation */
-        {
-        0x1800, 0x180a, 1},            /* Mongolian punctuation */
-        {
-        0x2000, 0x200a, 0},            /* Various spaces */
-        {
-        0x2070, 0x207f, 2},            /* superscript */
-        {
-        0x2080, 0x208f, 2},            /* subscript */
-        {
-        0x200b, 0x27ff, 1},            /* punctuation and symbols */
-        {
-        0x3000, 0x3000, 0},            /* ideographic space */
-        {
-        0x3001, 0x3020, 1},            /* ideographic punctuation */
-        {
-        0x303f, 0x309f, 3},            /* Hiragana */
-        {
-        0x30a0, 0x30ff, 3},            /* Katakana */
-        {
-        0x3300, 0x9fff, 3},            /* CJK Ideographs */
-        {
-        0xac00, 0xd7a3, 3},            /* Hangul Syllables */
-        {
-        0xf900, 0xfaff, 3},            /* CJK Ideographs */
-        {
-        0xfe30, 0xfe6b, 1},            /* punctuation forms */
-        {
-        0xff00, 0xff0f, 1},            /* half/fullwidth ASCII */
-        {
-        0xff1a, 0xff20, 1},            /* half/fullwidth ASCII */
-        {
-        0xff3b, 0xff40, 1},            /* half/fullwidth ASCII */
-        {
-        0xff5b, 0xff64, 1},            /* half/fullwidth ASCII */
-        {
-        0xfff0, 0xffff, 0},            /* half/fullwidth ASCII */
-        {
-        0, 0, 0}
+        {128, 160, 0},
+        {161, 191, 1},
+        {215, 215, 1},
+        {247, 247, 1},
+        {0x037e, 0x037e, 1},           /* Greek question mark */
+        {0x0387, 0x0387, 1},           /* Greek ano teleia */
+        {0x055a, 0x055f, 1},           /* Armenian punctuation */
+        {0x0589, 0x0589, 1},           /* Armenian full stop */
+        {0x0700, 0x070d, 1},           /* Syriac punctuation */
+        {0x104a, 0x104f, 1},           /* Myanmar punctuation */
+        {0x10fb, 0x10fb, 1},           /* Georgian punctuation */
+        {0x1361, 0x1368, 1},           /* Ethiopic punctuation */
+        {0x166d, 0x166e, 1},           /* Canadian Syl. punctuation */
+        {0x17d4, 0x17dc, 1},           /* Khmer punctuation */
+        {0x1800, 0x180a, 1},           /* Mongolian punctuation */
+        {0x2000, 0x200a, 0},           /* Various spaces */
+        {0x2070, 0x207f, 2},           /* superscript */
+        {0x2080, 0x208f, 2},           /* subscript */
+        {0x200b, 0x27ff, 1},           /* punctuation and symbols */
+        {0x3000, 0x3000, 0},           /* ideographic space */
+        {0x3001, 0x3020, 1},           /* ideographic punctuation */
+        {0x303f, 0x309f, 3},           /* Hiragana */
+        {0x30a0, 0x30ff, 3},           /* Katakana */
+        {0x3300, 0x9fff, 3},           /* CJK Ideographs */
+        {0xac00, 0xd7a3, 3},           /* Hangul Syllables */
+        {0xf900, 0xfaff, 3},           /* CJK Ideographs */
+        {0xfe30, 0xfe6b, 1},           /* punctuation forms */
+        {0xff00, 0xff0f, 1},           /* half/fullwidth ASCII */
+        {0xff1a, 0xff20, 1},           /* half/fullwidth ASCII */
+        {0xff3b, 0xff40, 1},           /* half/fullwidth ASCII */
+        {0xff5b, 0xff64, 1},           /* half/fullwidth ASCII */
+        {0xfff0, 0xffff, 0},           /* half/fullwidth ASCII */
+        {0, 0, 0}
     };
     const struct ucsword *wptr;
 
@@ -7053,6 +7131,13 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
                       !(term->mouse_override && shift));
     int default_seltype;
 
+    // Don't do anything if mouse movement events weren't requested;
+    // Note: return early to avoid doing all of this code on every mouse move
+    // event only to throw it away.
+    if (a == MA_MOVE && (!raw_mouse || term->xterm_mouse < 3)) {
+        return;
+    }
+
     if (y < 0) {
         y = 0;
         if (a == MA_DRAG && !raw_mouse)
@@ -7139,6 +7224,19 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
                 encstate = 0x41;
                 wheel = true;
                 break;
+              case MBT_WHEEL_LEFT:
+                encstate = 0x42;
+                wheel = true;
+                break;
+              case MBT_WHEEL_RIGHT:
+                encstate = 0x43;
+                wheel = true;
+                break;
+              case MBT_NOTHING:
+                assert( a == MA_MOVE );
+                encstate = 0x03; // release; no buttons pressed
+                wheel = false;
+                break;
               default:
                 return;
             }
@@ -7153,7 +7251,21 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
               case MA_DRAG:
                 if (term->xterm_mouse == 1)
                     return;
-                encstate += 0x20;
+                encstate += 0x20; // motion indicator
+                break;
+              case MA_MOVE:    // mouse move without buttons
+                assert( braw == MBT_NOTHING && bcooked == MBT_NOTHING  );
+                if (term->xterm_mouse < 3)
+                    return;
+
+                if (selpoint.x == term->raw_mouse_reported_x &&
+                    selpoint.y == term->raw_mouse_reported_y)
+                    return;
+
+                term->raw_mouse_reported_x = x;
+                term->raw_mouse_reported_y = y;
+
+                encstate += 0x20; // motion indicator
                 break;
               case MA_RELEASE:
                 /* If multiple extensions are enabled, the xterm 1006 is used, so it's okay to check for only that */
@@ -7673,7 +7785,6 @@ static void term_added_data(Terminal *term, bool called_from_term_data)
 {
     if (!term->in_term_out) {
         term->in_term_out = true;
-        term_reset_cblink(term);
         term_out(term, called_from_term_data);
         term->in_term_out = false;
     }
@@ -7715,15 +7826,19 @@ char *term_get_ttymode(Terminal *term, const char *mode)
 }
 
 struct term_userpass_state {
+    prompts_t *prompts;
     size_t curr_prompt;
-    bool done_prompt;   /* printed out prompt yet? */
+    enum TermUserpassPromptState {
+        TUS_INITIAL,         /* haven't even printed the prompt yet */
+        TUS_ACTIVE,          /* prompt is currently receiving user input */
+        TUS_ABORTED,         /* user pressed ^C or ^D to cancel prompt */
+    } prompt_state;
+    Terminal *term;
+    TermLineEditor *le;
+    TermLineEditorCallbackReceiver le_rcv;
 };
 
-/* Tiny wrapper to make it easier to write lots of little strings */
-static inline void term_write(Terminal *term, ptrlen data)
-{
-    term_data(term, data.ptr, data.len);
-}
+static void term_userpass_next_prompt(struct term_userpass_state *s);
 
 /*
  * Signal that a prompts_t is done. This involves sending a
@@ -7736,9 +7851,128 @@ static inline SeatPromptResult signal_prompts_t(Terminal *term, prompts_t *p,
     assert(p->callback && "Asynchronous userpass input requires a callback");
     queue_toplevel_callback(p->callback, p->callback_ctx);
     if (term->ldisc)
-        ldisc_enable_prompt_callback(term->ldisc, NULL);
+        ldisc_provide_userpass_le(term->ldisc, NULL);
     p->spr = spr;
+    if (p->data) {
+        term_userpass_state_free(p->data);
+        p->data = NULL;
+    }
     return spr;
+}
+
+/* Tiny wrapper to make it easier to write lots of little strings */
+static inline void term_write(Terminal *term, ptrlen data)
+{
+    term_data(term, data.ptr, data.len);
+}
+
+static void term_lineedit_to_terminal(
+    TermLineEditorCallbackReceiver *rcv, ptrlen data)
+{
+    struct term_userpass_state *s = container_of(
+        rcv, struct term_userpass_state, le_rcv);
+    prompt_t *pr = s->prompts->prompts[s->curr_prompt];
+    if (pr->echo)
+        term_write(s->term, data);
+}
+
+static void term_lineedit_to_backend(
+    TermLineEditorCallbackReceiver *rcv, ptrlen data)
+{
+    struct term_userpass_state *s = container_of(
+        rcv, struct term_userpass_state, le_rcv);
+    prompt_t *pr = s->prompts->prompts[s->curr_prompt];
+    put_datapl(pr->result, data);
+}
+
+static void term_lineedit_newline(TermLineEditorCallbackReceiver *rcv)
+{
+    struct term_userpass_state *s = container_of(
+        rcv, struct term_userpass_state, le_rcv);
+
+    prompt_t *pr = s->prompts->prompts[s->curr_prompt];
+    if (!pr->echo) {
+        /* If echo is disabled, we won't have printed the newline in
+         * term_lineedit_to_terminal, so print it now */
+        term_write(s->term, PTRLEN_LITERAL("\x0D\x0A"));
+    }
+
+    ldisc_provide_userpass_le(s->term->ldisc, NULL);
+    s->curr_prompt++;
+    s->prompt_state = TUS_INITIAL;
+    term_userpass_next_prompt(s);
+}
+
+static void term_lineedit_special(
+    TermLineEditorCallbackReceiver *rcv, SessionSpecialCode code, int arg)
+{
+    struct term_userpass_state *s = container_of(
+        rcv, struct term_userpass_state, le_rcv);
+    switch (code) {
+      case SS_IP:
+      case SS_EOF:
+        ldisc_provide_userpass_le(s->term->ldisc, NULL);
+        s->prompt_state = TUS_ABORTED;
+        signal_prompts_t(s->term, s->prompts, SPR_USER_ABORT);
+      default:
+        break;
+    }
+}
+
+static const TermLineEditorCallbackReceiverVtable
+term_userpass_lineedit_receiver_vt = {
+    .to_terminal = term_lineedit_to_terminal,
+    .to_backend = term_lineedit_to_backend,
+    .special = term_lineedit_special,
+    .newline = term_lineedit_newline,
+};
+
+static struct term_userpass_state *term_userpass_state_new(
+    Terminal *term, prompts_t *prompts)
+{
+    struct term_userpass_state *s = snew(struct term_userpass_state);
+    s->prompts = prompts;
+    s->curr_prompt = 0;
+    s->prompt_state = TUS_INITIAL;
+    s->term = term;
+    s->le_rcv.vt = &term_userpass_lineedit_receiver_vt;
+    s->le = lineedit_new(term, LE_INTERRUPT | LE_EOF_ALWAYS | LE_ESC_ERASES,
+                         &s->le_rcv);
+    assert(!term->userpass_state);
+    term->userpass_state = s;
+    return s;
+}
+
+static void term_userpass_state_free(struct term_userpass_state *s)
+{
+    assert(s->term->userpass_state == s);
+    s->term->userpass_state = NULL;
+    lineedit_free(s->le);
+    sfree(s);
+}
+
+static void term_userpass_next_prompt(struct term_userpass_state *s)
+{
+    if (s->prompt_state != TUS_INITIAL)
+        return;
+    if (s->curr_prompt < s->prompts->n_prompts) {
+        prompt_t *pr = s->prompts->prompts[s->curr_prompt];
+        term_write(s->term, ptrlen_from_asciz(pr->prompt));
+        s->prompt_state = TUS_ACTIVE;
+        ldisc_provide_userpass_le(s->term->ldisc, s->le);
+    } else {
+        /* This triggers the callback provided by the userpass client,
+         * which will call term_userpass_state to fetch the result
+         * we're storing here */
+        signal_prompts_t(s->term, s->prompts, SPR_OK);
+    }
+}
+
+static bool terminal_use_utf8 = true;
+bool set_legacy_charset_handling(bool newvalue)
+{
+    terminal_use_utf8 = !newvalue;
+    return true;
 }
 
 /*
@@ -7765,10 +7999,9 @@ SeatPromptResult term_get_userpass_input(Terminal *term, prompts_t *p)
         /*
          * First call. Set some stuff up.
          */
-        p->data = s = snew(struct term_userpass_state);
+        p->data = s = term_userpass_state_new(term, p);
         p->spr = SPR_INCOMPLETE;
-        s->curr_prompt = 0;
-        s->done_prompt = false;
+        term->userpass_utf8_override = p->utf8 && terminal_use_utf8;
         /* We only print the `name' caption if we have to... */
         if (p->name_reqd && p->name) {
             ptrlen plname = ptrlen_from_asciz(p->name);
@@ -7791,98 +8024,11 @@ SeatPromptResult term_get_userpass_input(Terminal *term, prompts_t *p)
             for (i = 0; i < (int)p->n_prompts; i++)
                 prompt_set_result(p->prompts[i], "");
         }
+        /* And print the first prompt. */
+        term_userpass_next_prompt(s);
     }
 
-    while (s->curr_prompt < p->n_prompts) {
-
-        prompt_t *pr = p->prompts[s->curr_prompt];
-        bool finished_prompt = false;
-
-        if (!s->done_prompt) {
-            term_write(term, ptrlen_from_asciz(pr->prompt));
-            s->done_prompt = true;
-        }
-
-        /* Breaking out here ensures that the prompt is printed even
-         * if we're now waiting for user data. */
-        if (!ldisc_has_input_buffered(term->ldisc))
-            break;
-
-        /* FIXME: should we be using local-line-editing code instead? */
-        while (!finished_prompt && ldisc_has_input_buffered(term->ldisc)) {
-            LdiscInputToken tok = ldisc_get_input_token(term->ldisc);
-
-            char c;
-            if (tok.is_special) {
-                switch (tok.code) {
-                  case SS_EOL: c = 13; break;
-                  case SS_EC: c = 8; break;
-                  case SS_IP: c = 3; break;
-                  case SS_EOF: c = 3; break;
-                  default: continue;
-                }
-            } else {
-                c = tok.chr;
-            }
-
-            switch (c) {
-              case 10:
-              case 13:
-                term_write(term, PTRLEN_LITERAL("\r\n"));
-                /* go to next prompt, if any */
-                s->curr_prompt++;
-                s->done_prompt = false;
-                finished_prompt = true; /* break out */
-                break;
-              case 8:
-              case 127:
-                if (pr->result->len > 0) {
-                    if (pr->echo)
-                        term_write(term, PTRLEN_LITERAL("\b \b"));
-                    strbuf_shrink_by(pr->result, 1);
-                }
-                break;
-              case 21:
-              case 27:
-                while (pr->result->len > 0) {
-                    if (pr->echo)
-                        term_write(term, PTRLEN_LITERAL("\b \b"));
-                    strbuf_shrink_by(pr->result, 1);
-                }
-                break;
-              case 3:
-              case 4:
-                /* Immediate abort. */
-                term_write(term, PTRLEN_LITERAL("\r\n"));
-                sfree(s);
-                p->data = NULL;
-                return signal_prompts_t(term, p, SPR_USER_ABORT);
-              default:
-                /*
-                 * This simplistic check for printability is disabled
-                 * when we're doing password input, because some people
-                 * have control characters in their passwords.
-                 */
-                if (!pr->echo || (c >= ' ' && c <= '~') ||
-                     ((unsigned char) c >= 160)) {
-                    put_byte(pr->result, c);
-                    if (pr->echo)
-                        term_write(term, make_ptrlen(&c, 1));
-                }
-                break;
-            }
-        }
-
-    }
-
-    if (s->curr_prompt < p->n_prompts) {
-        ldisc_enable_prompt_callback(term->ldisc, p);
-        return SPR_INCOMPLETE;
-    } else {
-        sfree(s);
-        p->data = NULL;
-        return signal_prompts_t(term, p, SPR_OK);
-    }
+    return SPR_INCOMPLETE;
 }
 
 void term_notify_minimised(Terminal *term, bool minimised)

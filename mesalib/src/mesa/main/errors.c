@@ -35,19 +35,12 @@
 
 #include "context.h"
 #include "debug_output.h"
-#include "detect_os.h"
+#include "util/detect_os.h"
+#include "util/log.h"
 #include "api_exec_decl.h"
 
-#if DETECT_OS_ANDROID
-#  include <log/log.h>
-#endif
-
-static FILE *LogFile = NULL;
-
-
 static void
-output_if_debug(const char *prefixString, const char *outputString,
-                GLboolean newline)
+output_if_debug(enum mesa_log_level level, const char *outputString)
 {
    static int debug = -1;
 
@@ -56,14 +49,6 @@ output_if_debug(const char *prefixString, const char *outputString,
     * by now so MESA_DEBUG_FLAGS will be initialized.
     */
    if (debug == -1) {
-      /* If MESA_LOG_FILE env var is set, log Mesa errors, warnings,
-       * etc to the named file.  Otherwise, output to stderr.
-       */
-      const char *logFile = getenv("MESA_LOG_FILE");
-      if (logFile)
-         LogFile = fopen(logFile, "w");
-      if (!LogFile)
-         LogFile = stderr;
 #ifndef NDEBUG
       /* in debug builds, print messages unless MESA_DEBUG="silent" */
       if (MESA_DEBUG_FLAGS & DEBUG_SILENT)
@@ -77,32 +62,8 @@ output_if_debug(const char *prefixString, const char *outputString,
    }
 
    /* Now only print the string if we're required to do so. */
-   if (debug) {
-      if (prefixString)
-         fprintf(LogFile, "%s: %s", prefixString, outputString);
-      else
-         fprintf(LogFile, "%s", outputString);
-      if (newline)
-         fprintf(LogFile, "\n");
-      fflush(LogFile);
-
-#if defined(_WIN32)
-      /* stderr from windows applications without console is not usually
-       * visible, so communicate with the debugger instead */
-      {
-         char buf[4096];
-         if (prefixString)
-            snprintf(buf, sizeof(buf), "%s: %s%s", prefixString, outputString, newline ? "\n" : "");
-         else
-            snprintf(buf, sizeof(buf), "%s%s", outputString, newline ? "\n" : "");
-         OutputDebugStringA(buf);
-      }
-#endif
-
-#if DETECT_OS_ANDROID
-      LOG_PRI(ANDROID_LOG_ERROR, prefixString ? prefixString : "MESA", "%s%s", outputString, newline ? "\n" : "");
-#endif
-   }
+   if (debug)
+      mesa_log(level, "Mesa", "%s", outputString);
 }
 
 
@@ -113,8 +74,7 @@ output_if_debug(const char *prefixString, const char *outputString,
 FILE *
 _mesa_get_log_file(void)
 {
-   assert(LogFile);
-   return LogFile;
+   return mesa_log_get_file();
 }
 
 
@@ -132,7 +92,7 @@ flush_delayed_errors( struct gl_context *ctx )
                      ctx->ErrorDebugCount,
                      _mesa_enum_to_string(ctx->ErrorValue));
 
-      output_if_debug("Mesa", s, GL_TRUE);
+      output_if_debug(MESA_LOG_ERROR, s);
 
       ctx->ErrorDebugCount = 0;
    }
@@ -158,7 +118,7 @@ _mesa_warning( struct gl_context *ctx, const char *fmtString, ... )
    if (ctx)
       flush_delayed_errors( ctx );
 
-   output_if_debug("Mesa warning", str, GL_TRUE);
+   output_if_debug(MESA_LOG_WARN, str);
 }
 
 
@@ -283,7 +243,7 @@ _mesa_gl_debug(struct gl_context *ctx,
 
    /* limit the message to fit within KHR_debug buffers */
    char s[MAX_DEBUG_MESSAGE_LENGTH];
-   strncpy(s, msg, MAX_DEBUG_MESSAGE_LENGTH);
+   strncpy(s, msg, MAX_DEBUG_MESSAGE_LENGTH - 1);
    s[MAX_DEBUG_MESSAGE_LENGTH - 1] = '\0';
    len = MAX_DEBUG_MESSAGE_LENGTH - 1;
    _mesa_log_msg(ctx, source, type, *id, severity, len, s);
@@ -358,7 +318,7 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
 
       /* Print the error to stderr if needed. */
       if (do_output) {
-         output_if_debug("Mesa: User error", s2, GL_TRUE);
+         output_if_debug(MESA_LOG_ERROR, s2);
       }
 
       /* Log the error via ARB_debug_output if needed.*/
@@ -396,7 +356,7 @@ _mesa_debug( const struct gl_context *ctx, const char *fmtString, ... )
    va_start(args, fmtString);
    vsnprintf(s, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args);
    va_end(args);
-   output_if_debug("Mesa", s, GL_FALSE);
+   output_if_debug(MESA_LOG_DEBUG, s);
 #endif /* DEBUG */
    (void) ctx;
    (void) fmtString;
@@ -411,13 +371,13 @@ _mesa_log(const char *fmtString, ...)
    va_start(args, fmtString);
    vsnprintf(s, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args);
    va_end(args);
-   output_if_debug(NULL, s, GL_FALSE);
+   output_if_debug(MESA_LOG_INFO, s);
 }
 
 void
 _mesa_log_direct(const char *string)
 {
-   output_if_debug(NULL, string, GL_TRUE);
+   output_if_debug(MESA_LOG_INFO, string);
 }
 
 /**

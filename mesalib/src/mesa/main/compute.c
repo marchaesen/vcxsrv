@@ -21,7 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "bufferobj.h"
 #include "context.h"
 #include "state.h"
@@ -295,11 +295,7 @@ prepare_compute(struct gl_context *ctx)
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   if ((st->dirty | ctx->NewDriverState) & st->active_states &
-       ST_PIPELINE_COMPUTE_STATE_MASK ||
-       st->compute_shader_may_be_dirty)
-      st_validate_state(st, ST_PIPELINE_COMPUTE);
-
+   st_validate_state(st, ST_PIPELINE_COMPUTE_STATE_MASK);
 }
 
 static ALWAYS_INLINE void

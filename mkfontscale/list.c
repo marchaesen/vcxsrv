@@ -31,8 +31,8 @@
 int
 listMember(const char *elt, ListPtr list)
 {
-    while(list != NULL) {
-        if(strcmp(elt, list->value) == 0)
+    while (list != NULL) {
+        if (strcmp(elt, list->value) == 0)
             return 1;
         list = list->next;
     }
@@ -43,17 +43,18 @@ ListPtr
 listCons(char *car, ListPtr cdr)
 {
     ListPtr lcar = malloc(sizeof(ListRec));
-    if(!lcar)
+
+    if (!lcar)
         return NULL;
-    lcar -> value = car;
-    lcar -> next = cdr;
+    lcar->value = car;
+    lcar->next = cdr;
     return lcar;
 }
 
 ListPtr
 listAdjoin(char *car, ListPtr cdr)
 {
-    if(listMember(car, cdr)) {
+    if (listMember(car, cdr)) {
         free(car);
         return cdr;
     }
@@ -65,6 +66,7 @@ dsprintf(const char *f, ...)
 {
     va_list args;
     char *string;
+
 #ifdef HAVE_VASPRINTF
     va_start(args, f);
     if (vasprintf(&string, f, args) == -1)
@@ -73,53 +75,55 @@ dsprintf(const char *f, ...)
     return string;
 #else
     {
-	int n, size = 20;
-	while(1) {
-	    if(size > 4096)
-		return NULL;
-	    string = malloc(size);
-	    if(!string)
-		return NULL;
-	    va_start(args, f);
-	    n = vsnprintf(string, size, f, args);
-	    va_end(args);
-	    if(n >= 0 && n < size)
+        int n, size = 20;
+
+        while (1) {
+            if (size > 4096)
+                return NULL;
+            string = malloc(size);
+            if (!string)
+                return NULL;
+            va_start(args, f);
+            n = vsnprintf(string, size, f, args);
+            va_end(args);
+            if (n >= 0 && n < size)
                 return string;
-	    else if(n >= size)
-		size = n + 1;
-	    else
-		size = size * 3 / 2 + 1;
-	    free(string);
-	}
+            else if (n >= size)
+                size = n + 1;
+            else
+                size = size * 3 / 2 + 1;
+            free(string);
+        }
     }
 #endif
 }
-
 
 ListPtr
 listConsF(ListPtr cdr, const char *f, ...)
 {
     va_list args;
     char *string;
+
     {
-	int n, size = 20;
-	while(1) {
-	    if(size > 4096)
-		return NULL;
-	    string = malloc(size);
-	    if(!string)
-		return NULL;
-	    va_start(args, f);
-	    n = vsnprintf(string, size, f, args);
-	    va_end(args);
-	    if(n >= 0 && n < size)
-		return listCons(string, cdr);
-	    else if(n >= size)
-		size = n + 1;
-	    else
-		size = size * 3 / 2 + 1;
-	    free(string);
-	}
+        int n, size = 20;
+
+        while (1) {
+            if (size > 4096)
+                return NULL;
+            string = malloc(size);
+            if (!string)
+                return NULL;
+            va_start(args, f);
+            n = vsnprintf(string, size, f, args);
+            va_end(args);
+            if (n >= 0 && n < size)
+                return listCons(string, cdr);
+            else if (n >= size)
+                size = n + 1;
+            else
+                size = size * 3 / 2 + 1;
+            free(string);
+        }
     }
 }
 
@@ -128,25 +132,27 @@ listAdjoinF(ListPtr cdr, const char *f, ...)
 {
     va_list args;
     char *string;
+
     {
-	int n, size = 20;
-	while(1) {
-	    if(size > 4096)
-		return NULL;
-	    string = malloc(size);
-	    if(!string)
-		return NULL;
-	    va_start(args, f);
-	    n = vsnprintf(string, size, f, args);
-	    va_end(args);
-	    if(n >= 0 && n < size)
-		return listAdjoin(string, cdr);
-	    else if(n >= size)
-		size = n + 1;
-	    else
-		size = size * 3 / 2 + 1;
-	    free(string);
-	}
+        int n, size = 20;
+
+        while (1) {
+            if (size > 4096)
+                return NULL;
+            string = malloc(size);
+            if (!string)
+                return NULL;
+            va_start(args, f);
+            n = vsnprintf(string, size, f, args);
+            va_end(args);
+            if (n >= 0 && n < size)
+                return listAdjoin(string, cdr);
+            else if (n >= size)
+                size = n + 1;
+            else
+                size = size * 3 / 2 + 1;
+            free(string);
+        }
     }
 }
 
@@ -154,7 +160,8 @@ int
 listLength(ListPtr list)
 {
     int n = 0;
-    while(list) {
+
+    while (list) {
         n++;
         list = list->next;
     }
@@ -166,14 +173,13 @@ appendList(ListPtr first, ListPtr second)
 {
     ListPtr current;
 
-    if(second == NULL)
+    if (second == NULL)
         return first;
 
-    if(first == NULL)
+    if (first == NULL)
         return second;
 
-    for(current = first; current->next; current = current->next)
-        ;
+    for (current = first; current->next; current = current->next);
 
     current->next = second;
     return first;
@@ -185,20 +191,20 @@ makeList(char **a, int n, ListPtr old, int begin)
     ListPtr first, current, next;
     int i;
 
-    if(n == 0)
+    if (n == 0)
         return old;
 
     first = malloc(sizeof(ListRec));
-    if(!first)
+    if (!first)
         return NULL;
 
     first->value = a[0];
     first->next = NULL;
 
     current = first;
-    for(i = 1; i < n; i++) {
+    for (i = 1; i < n; i++) {
         next = malloc(sizeof(ListRec));
-        if(!next) {
+        if (!next) {
             destroyList(first);
             return NULL;
         }
@@ -208,10 +214,11 @@ makeList(char **a, int n, ListPtr old, int begin)
         current->next = next;
         current = next;
     }
-    if(begin) {
+    if (begin) {
         current->next = old;
         return first;
-    } else {
+    }
+    else {
         return appendList(old, first);
     }
 }
@@ -220,7 +227,8 @@ ListPtr
 reverseList(ListPtr old)
 {
     ListPtr new = NULL, current;
-    while(old) {
+
+    while (old) {
         current = old;
         old = old->next;
         current->next = new;
@@ -261,7 +269,7 @@ sortList(ListPtr old)
     qsort(sorted, i, sizeof(ListPtr), compareListEntries);
     n = sorted[0];
     for (i = 0; i < (l - 1); i++) {
-        sorted[i]->next = sorted[i+1];
+        sorted[i]->next = sorted[i + 1];
     }
     sorted[i]->next = NULL;
     free(sorted);
@@ -272,9 +280,10 @@ void
 destroyList(ListPtr old)
 {
     ListPtr next;
-    if(!old)
+
+    if (!old)
         return;
-    while(old) {
+    while (old) {
         next = old->next;
         free(old);
         old = next;
@@ -285,9 +294,10 @@ void
 deepDestroyList(ListPtr old)
 {
     ListPtr next;
-    if(!old)
+
+    if (!old)
         return;
-    while(old) {
+    while (old) {
         next = old->next;
         free(old->value);
         free(old);

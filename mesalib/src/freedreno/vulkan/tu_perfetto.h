@@ -22,7 +22,13 @@ struct tu_u_trace_submission_data;
 
 struct tu_perfetto_stage {
    int stage_id;
+   /* dynamically allocated stage iid, for app_events.  0 if stage_id should be
+    * used instead.
+    */
+   uint64_t stage_iid;
    uint64_t start_ts;
+   const void* payload;
+   void* start_payload_function;
 };
 
 struct tu_perfetto_state {
@@ -33,15 +39,17 @@ struct tu_perfetto_state {
 
 void tu_perfetto_init(void);
 
-void tu_perfetto_submit(struct tu_device *dev, uint32_t submission_id);
+struct tu_perfetto_clocks
+{
+   uint64_t cpu;
+   uint64_t gpu_ts;
+   uint64_t gpu_ts_offset;
+};
 
-/* Helpers */
-
-struct tu_perfetto_state *
-tu_device_get_perfetto_state(struct tu_device *dev);
-
-uint32_t
-tu_u_trace_submission_data_get_submit_id(const struct tu_u_trace_submission_data *data);
+struct tu_perfetto_clocks
+tu_perfetto_submit(struct tu_device *dev,
+                   uint32_t submission_id,
+                   struct tu_perfetto_clocks *clocks);
 
 #ifdef __cplusplus
 }

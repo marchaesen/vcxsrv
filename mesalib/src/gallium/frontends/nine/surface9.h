@@ -134,7 +134,7 @@ void
 NineSurface9_CopyDefaultToMem( struct NineSurface9 *This,
                                struct NineSurface9 *From );
 
-static inline boolean
+static inline bool
 NineSurface9_IsOffscreenPlain (struct NineSurface9 *This )
 {
     return This->base.usage == 0 && !This->texture;

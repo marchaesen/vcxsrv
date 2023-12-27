@@ -100,7 +100,7 @@ Jan Vesely (2):
 -  clover: Reduce wait_count in abort path.
 -  clover: Don't extend illegal integer types.
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  nir: Take if uses into account in ssa_def_components_read
 -  i965/fs: Flag all slots of a flat input as flat

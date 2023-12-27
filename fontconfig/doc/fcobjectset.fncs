@@ -21,51 +21,51 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-@RET@		FcObjectSet *
-@FUNC@		FcObjectSetCreate
-@TYPE1@		void
-@PURPOSE@	Create an object set
+@RET@           FcObjectSet *
+@FUNC@          FcObjectSetCreate
+@TYPE1@         void
+@PURPOSE@       Create an object set
 @DESC@
 Creates an empty set.
 @@
 
-@RET@		FcBool
-@FUNC@		FcObjectSetAdd
-@TYPE1@		FcObjectSet *			@ARG1@		os
-@TYPE2@		const char *			@ARG2@		object
-@PURPOSE@	Add to an object set
+@RET@           FcBool
+@FUNC@          FcObjectSetAdd
+@TYPE1@         FcObjectSet *                   @ARG1@          os
+@TYPE2@         const char *                    @ARG2@          object
+@PURPOSE@       Add to an object set
 @DESC@
 Adds a property name to the set. Returns FcFalse if the property name cannot be
 inserted into the set (due to allocation failure). Otherwise returns FcTrue.
 @@
 
-@RET@		void
-@FUNC@		FcObjectSetDestroy
-@TYPE1@		FcObjectSet *			@ARG1@		os
-@PURPOSE@	Destroy an object set
+@RET@           void
+@FUNC@          FcObjectSetDestroy
+@TYPE1@         FcObjectSet *                   @ARG1@          os
+@PURPOSE@       Destroy an object set
 @DESC@
 Destroys an object set.
 @@
 
-@RET@		FcObjectSet *
-@FUNC@		FcObjectSetBuild
-@TYPE1@		const char *			@ARG1@		first
-@TYPE2@		...
+@RET@           FcObjectSet *
+@FUNC@          FcObjectSetBuild
+@TYPE1@         const char *                    @ARG1@          first
+@TYPE2@         ...
 
 @PROTOTYPE+@
-@RET+@		FcObjectSet *
-@FUNC+@		FcObjectSetVaBuild
-@TYPE1+@	const char *			@ARG1+@		first
-@TYPE2+@	va_list%			@ARG2+@		va
+@RET+@          FcObjectSet *
+@FUNC+@         FcObjectSetVaBuild
+@TYPE1+@        const char *                    @ARG1+@         first
+@TYPE2+@        va_list%                        @ARG2+@         va
 
 @PROTOTYPE++@
-@RET++@		void
-@FUNC++@	FcObjectSetVapBuild
-@TYPE1++@	FcObjectSet *			@ARG1++@	result
-@TYPE2++@	const char *			@ARG2++@	first
-@TYPE3++@	va_list%			@ARG3++@	va
+@RET++@         void
+@FUNC++@        FcObjectSetVapBuild
+@TYPE1++@       FcObjectSet *                   @ARG1++@        result
+@TYPE2++@       const char *                    @ARG2++@        first
+@TYPE3++@       va_list%                        @ARG3++@        va
 
-@PURPOSE@	Build object set from args
+@PURPOSE@       Build object set from args
 @DESC@
 These build an object set from a null-terminated list of property names.
 FcObjectSetVapBuild is a macro version of FcObjectSetVaBuild which returns

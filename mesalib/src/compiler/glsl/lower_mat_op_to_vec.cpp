@@ -77,7 +77,7 @@ mat_op_to_vec_predicate(ir_instruction *ir)
       return false;
 
    for (i = 0; i < expr->num_operands; i++) {
-      if (expr->operands[i]->type->is_matrix())
+      if (glsl_type_is_matrix(expr->operands[i]->type))
          return true;
    }
 
@@ -113,7 +113,7 @@ ir_mat_op_to_vec_visitor::get_column(ir_dereference *val, int row)
 {
    val = val->clone(mem_ctx, NULL);
 
-   if (val->type->is_matrix()) {
+   if (glsl_type_is_matrix(val->type)) {
       val = new(mem_ctx) ir_dereference_array(val,
                                               new(mem_ctx) ir_constant(row));
    }
@@ -254,7 +254,7 @@ ir_mat_op_to_vec_visitor::do_equal_mat_mat(ir_dereference *result,
     */
    const unsigned columns = a->type->matrix_columns;
    const glsl_type *const bvec_type =
-      glsl_type::get_instance(GLSL_TYPE_BOOL, columns, 1);
+      glsl_simple_type(GLSL_TYPE_BOOL, columns, 1);
 
    ir_variable *const tmp_bvec =
       new(this->mem_ctx) ir_variable(bvec_type, "mat_cmp_bvec",
@@ -295,7 +295,7 @@ static bool
 has_matrix_operand(const ir_expression *expr, unsigned &columns)
 {
    for (unsigned i = 0; i < expr->num_operands; i++) {
-      if (expr->operands[i]->type->is_matrix()) {
+      if (glsl_type_is_matrix(expr->operands[i]->type)) {
          columns = expr->operands[i]->type->matrix_columns;
          return true;
       }
@@ -403,21 +403,21 @@ ir_mat_op_to_vec_visitor::visit_leave(ir_assignment *orig_assign)
       break;
    }
    case ir_binop_mul:
-      if (op[0]->type->is_matrix()) {
-         if (op[1]->type->is_matrix()) {
+      if (glsl_type_is_matrix(op[0]->type)) {
+         if (glsl_type_is_matrix(op[1]->type)) {
             do_mul_mat_mat(result, op[0], op[1]);
-         } else if (op[1]->type->is_vector()) {
+         } else if (glsl_type_is_vector(op[1]->type)) {
             do_mul_mat_vec(result, op[0], op[1]);
          } else {
-            assert(op[1]->type->is_scalar());
+            assert(glsl_type_is_scalar(op[1]->type));
             do_mul_mat_scalar(result, op[0], op[1]);
          }
       } else {
-         assert(op[1]->type->is_matrix());
-         if (op[0]->type->is_vector()) {
+         assert(glsl_type_is_matrix(op[1]->type));
+         if (glsl_type_is_vector(op[0]->type)) {
             do_mul_vec_mat(result, op[0], op[1]);
          } else {
-            assert(op[0]->type->is_scalar());
+            assert(glsl_type_is_scalar(op[0]->type));
             do_mul_mat_scalar(result, op[1], op[0]);
          }
       }

@@ -1,26 +1,7 @@
 /*
  * Copyright 2021 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 /**
@@ -46,15 +27,6 @@
 #define EM_AMDGPU 224
 #endif
 
-char shader_stage_api_string[6][10] = {
-   ".vertex",      /* vertex */
-   ".hull",        /* tessellation control */
-   ".domain",      /* tessellation evaluation */
-   ".geometry",    /* geometry */
-   ".pixel",       /* fragment */
-   ".compute"      /* compute */
-};
-
 char hw_stage_string[RGP_HW_STAGE_MAX][4] = {
    ".vs",
    ".ls",
@@ -74,6 +46,61 @@ char hw_stage_symbol_string[RGP_HW_STAGE_MAX][16] = {
    "_amdgpu_ps_main",
    "_amdgpu_cs_main"
 };
+
+static const char *
+get_api_stage_string(gl_shader_stage stage)
+{
+   switch (stage) {
+   case MESA_SHADER_VERTEX:
+      return".vertex";
+   case MESA_SHADER_TESS_CTRL:
+      return".hull";
+   case MESA_SHADER_TESS_EVAL:
+      return".domain";
+   case MESA_SHADER_GEOMETRY:
+      return".geometry";
+   case MESA_SHADER_FRAGMENT:
+      return".pixel";
+   case MESA_SHADER_MESH:
+      return ".mesh";
+   case MESA_SHADER_TASK:
+      return ".task";
+   default:
+      /* RT shaders are implemented using compute HW stages, so use ".compute"
+         for any stage other than graphics stages */
+      return".compute";
+   }
+}
+
+static const char *
+get_hw_stage_symbol(struct rgp_code_object_record *record, unsigned index)
+{
+   if (record->is_rt)
+      return record->shader_data[index].rt_shader_name;
+   else
+      return hw_stage_symbol_string[record->shader_data[index].hw_stage];
+}
+
+static const char *
+rt_subtype_from_stage(gl_shader_stage stage)
+{
+   switch (stage) {
+   case MESA_SHADER_RAYGEN:
+      return "RayGeneration";
+   case MESA_SHADER_MISS:
+      return "Miss";
+   case MESA_SHADER_CLOSEST_HIT:
+      return "ClosestHit";
+   case MESA_SHADER_CALLABLE:
+      return "Callable";
+   case MESA_SHADER_INTERSECTION:
+      return "Traversal";
+   /* There are also AnyHit and Intersection subtypes, but on RADV
+    * these are inlined into the traversal shader */
+   default:
+      return "Unknown";
+   }
+}
 
 /**
  * rgp profiler requires data for few variables stored in msgpack format
@@ -104,7 +131,7 @@ ac_rgp_write_msgpack(FILE *output,
 
       ac_msgpack_add_fixstr(&msgpack, "amdpal.pipelines");
       ac_msgpack_add_fixarray_op(&msgpack, 1);
-         ac_msgpack_add_fixmap_op(&msgpack, 6);
+         ac_msgpack_add_fixmap_op(&msgpack, 6 + record->is_rt);
 
             /* 1
              * This not used in RGP but data needs to be present
@@ -124,8 +151,7 @@ ac_rgp_write_msgpack(FILE *output,
                mask = record->shader_stages_mask;
                while(mask) {
                   i = u_bit_scan(&mask);
-                  ac_msgpack_add_fixstr(&msgpack,
-                                        shader_stage_api_string[i]);
+                  ac_msgpack_add_fixstr(&msgpack, get_api_stage_string(i));
                   ac_msgpack_add_fixmap_op(&msgpack, 2);
                   ac_msgpack_add_fixstr(&msgpack, ".api_shader_hash");
                   ac_msgpack_add_fixarray_op(&msgpack, 2);
@@ -151,10 +177,9 @@ ac_rgp_write_msgpack(FILE *output,
 
                   ac_msgpack_add_fixstr(&msgpack, hw_stage_string[
                                         record->shader_data[i].hw_stage]);
-                  ac_msgpack_add_fixmap_op(&msgpack, 5);
+                  ac_msgpack_add_fixmap_op(&msgpack, 6);
                      ac_msgpack_add_fixstr(&msgpack, ".entry_point");
-                     ac_msgpack_add_fixstr(&msgpack, hw_stage_symbol_string[
-                                           record->shader_data[i].hw_stage]);
+                     ac_msgpack_add_fixstr(&msgpack, get_hw_stage_symbol(record, i));
 
                      ac_msgpack_add_fixstr(&msgpack, ".sgpr_count");
                      ac_msgpack_add_uint(&msgpack,
@@ -171,6 +196,9 @@ ac_rgp_write_msgpack(FILE *output,
                      ac_msgpack_add_fixstr(&msgpack, ".wavefront_size");
                      ac_msgpack_add_uint(&msgpack,
                                          record->shader_data[i].wavefront_size);
+
+                     ac_msgpack_add_fixstr(&msgpack, ".lds_size");
+                     ac_msgpack_add_uint(&msgpack, record->shader_data[i].lds_size);
                }
 
             /* 5 */
@@ -183,6 +211,39 @@ ac_rgp_write_msgpack(FILE *output,
             ac_msgpack_add_fixstr(&msgpack, ".api");
             ac_msgpack_add_fixstr(&msgpack, "Vulkan");
 
+            if (record->is_rt) {
+                  /* 7 */
+                  ac_msgpack_add_fixstr(&msgpack, ".shader_functions");
+                  ac_msgpack_add_fixmap_op(&msgpack, num_shaders);
+                     mask = record->shader_stages_mask;
+                     while (mask) {
+                        i = u_bit_scan(&mask);
+                        ac_msgpack_add_fixstr(&msgpack, record->shader_data[i].rt_shader_name);
+                        ac_msgpack_add_fixmap_op(&msgpack, 7);
+                           ac_msgpack_add_fixstr(&msgpack, ".stack_frame_size_in_bytes");
+                           ac_msgpack_add_uint(&msgpack, record->shader_data[i].rt_stack_size);
+
+                           ac_msgpack_add_fixstr(&msgpack, ".shader_subtype");
+                           ac_msgpack_add_fixstr(&msgpack, rt_subtype_from_stage(i));
+                           ac_msgpack_add_fixstr(&msgpack, ".api_shader_hash");
+                           ac_msgpack_add_fixarray_op(&msgpack, 2);
+                              ac_msgpack_add_uint(&msgpack, record->pipeline_hash[0]);
+                              ac_msgpack_add_uint(&msgpack, record->pipeline_hash[1]);
+
+                           ac_msgpack_add_fixstr(&msgpack, ".sgpr_count");
+                           ac_msgpack_add_uint(&msgpack, record->shader_data[i].sgpr_count);
+
+                           ac_msgpack_add_fixstr(&msgpack, ".vgpr_count");
+                           ac_msgpack_add_uint(&msgpack, record->shader_data[i].vgpr_count);
+
+                           ac_msgpack_add_fixstr(&msgpack, ".lds_size");
+                           ac_msgpack_add_uint(&msgpack, record->shader_data[i].lds_size);
+
+                           ac_msgpack_add_fixstr(&msgpack, ".scratch_memory_size");
+                           ac_msgpack_add_uint(&msgpack, 
+                                               record->shader_data[i].scratch_memory_size);
+                     }
+            }
    ac_msgpack_resize_if_required(&msgpack, 4 - (msgpack.offset % 4));
    msgpack.offset = ALIGN(msgpack.offset, 4);
    fwrite(msgpack.mem, 1, msgpack.offset, output);
@@ -260,10 +321,10 @@ ac_rgp_file_write_elf_text(FILE *output, uint32_t *elf_size_calc,
    }
 
    symbol_offset += rgp_shader_data->code_size;
-   uint32_t align = ALIGN(symbol_offset, 256) - symbol_offset;
-   fseek(output, align, SEEK_CUR);
-   *elf_size_calc += align;
-   *text_size = symbol_offset + align;
+   uint32_t aligned = ALIGN(symbol_offset, 256) - symbol_offset;
+   fseek(output, aligned, SEEK_CUR);
+   *elf_size_calc += aligned;
+   *text_size = symbol_offset + aligned;
 }
 
 /*
@@ -332,13 +393,18 @@ ac_rgp_file_write_elf_symbol_table(FILE *output, uint32_t *elf_size_calc,
    memset(&elf_sym, 0x00, sizeof(elf_sym));
    fwrite(&elf_sym, 1, sizeof(elf_sym), output);
 
+   uint32_t rt_name_offset = 0;
+
    while(mask) {
       i = u_bit_scan(&mask);
       if (record->shader_data[i].is_combined)
          continue;
 
-      elf_sym.st_name = rgp_elf_hw_stage_string_offset
-                        [record->shader_data[i].hw_stage];
+      if (record->is_rt) {
+         elf_sym.st_name = sizeof(rgp_elf_strtab) + rt_name_offset;
+         rt_name_offset += strlen(record->shader_data[i].rt_shader_name) + 1;
+      } else
+         elf_sym.st_name = rgp_elf_hw_stage_string_offset[record->shader_data[i].hw_stage];
       elf_sym.st_info = STT_FUNC;
       elf_sym.st_other = 0x0;
       elf_sym.st_shndx = RGP_ELF_TEXT_SEC_HEADER_INDEX;
@@ -385,6 +451,7 @@ ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,
    uint32_t msgpack_size = 0;
    size_t note_sec_start;
    uint32_t sh_offset;
+   uint32_t strtab_size = sizeof(rgp_elf_strtab);
 
    /* Give space for header in file. It will be written to file at the end */
    fseek(output, sizeof(Elf64_Ehdr), SEEK_CUR);
@@ -407,7 +474,19 @@ ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,
 
    /* write hardcoded string table */
    fwrite(&rgp_elf_strtab, 1, sizeof(rgp_elf_strtab), output);
-   elf_size_calc += sizeof(rgp_elf_strtab);
+   if (record->is_rt) {
+      uint32_t mask = record->shader_stages_mask;
+      while (mask) {
+         int i = u_bit_scan(&mask);
+
+         char *name = record->shader_data[i].rt_shader_name;
+         uint32_t name_len = strlen(name);
+
+         fwrite(name, 1, name_len + 1, output);
+         strtab_size += name_len + 1;
+      }
+   }
+   elf_size_calc += strtab_size;
 
    /* write shader code as .text code */
    ac_rgp_file_write_elf_text(output, &elf_size_calc, record, &text_size);
@@ -440,7 +519,7 @@ ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,
    sec_hdr[1].sh_name = (uintptr_t)((struct ac_rgp_elf_string_table*)0)->strtab;
    sec_hdr[1].sh_type = SHT_STRTAB;
    sec_hdr[1].sh_offset = sizeof(Elf64_Ehdr);
-   sec_hdr[1].sh_size = sizeof(rgp_elf_strtab);
+   sec_hdr[1].sh_size = strtab_size;
 
    /* text must be at index 2 as used in other places*/
    sec_hdr[2].sh_name = (uintptr_t)((struct ac_rgp_elf_string_table*)0)->text;

@@ -7,7 +7,8 @@ KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_short_depth_com
 #  Creating OpenGL ES 3 context
 # Fail, context: 0x00000000, error: EGL_BAD_MATCH
 # https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3816
-dEQP-EGL.functional.create_context.no_config,Fail
+x11-dEQP-EGL.functional.create_context.no_config,Fail
+wayland-dEQP-EGL.functional.create_context.no_config,Fail
 
 # wide line outside the viewport incorrectly clipped out when ES wants it
 # rendered as a quad and clipped appropriately.  I think by expanding
@@ -16,11 +17,6 @@ dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
 dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 
 dEQP-GLES2.functional.depth_stencil_clear.depth_stencil_masked,Fail
-
-# A glTexImage, glDraw, glTexSubImage sequence into a texture is missing what looks like the drawing.
-dEQP-GLES2.functional.fbo.render.texsubimage.after_render_tex2d_rgba,Fail
-# A glTexImage, glDraw, glTexSubImage, glDraw sequence into a texture is missing what looks like the first drawing.
-dEQP-GLES2.functional.fbo.render.texsubimage.between_render_tex2d_rgba,Fail
 
 # Sampling grid slightly off in test 2?
 dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_linear_linear_mirror_rgba8888,Fail
@@ -36,12 +32,6 @@ dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_repeat_non_square,Fa
 dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_clamp_non_square,Fail
 dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_mirror_non_square,Fail
 dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_repeat_non_square,Fail
-
-# Sequence of glTexImage, glDraw, glCopyTexSubImage.
-# background red/green checkerboard on the left side is incorrectly white.
-dEQP-GLES2.functional.texture.specification.basic_copytexsubimage2d.2d_rgba,Fail
-# Maybe it was copied as RGB instead of RGBA?
-dEQP-GLES2.functional.texture.specification.basic_copytexsubimage2d.cube_rgba,Fail
 
 # One of the pixels on the left edge near the bottom is wrong for both min and
 # mag.  Also a line of pixels through the image in minification.
@@ -102,13 +92,16 @@ spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj 3d,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj(bias) 3d,Fail
 spec@khr_texture_compression_astc@basic-gl,Fail
 
+glx@glx-make-current,Fail
 glx@glx-multithread-buffer,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-visuals-depth -pixmap,Fail
-glx@glx-visuals-stencil -pixmap,Fail
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 
+# piglit: error: Test timed out.
+glx@glx_arb_sync_control@waitformsc,Fail
+
+glslparsertest@glsl2@gst-gl-text-download-i420-yv12.frag,Fail
 glx@glx_ext_import_context@free context,Fail
 glx@glx_ext_import_context@get context id,Fail
 glx@glx_ext_import_context@get current display,Fail
@@ -779,35 +772,48 @@ spec@!opengl 1.1@clipflat@glDrawElements(GL_TRIANGLE_STRIP)- glFrontFace(GL_CW)-
 spec@!opengl 1.1@clipflat@glDrawElements(GL_TRIANGLE_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
 spec@!opengl 1.1@clipflat@glDrawElements(GL_TRIANGLE_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
 spec@!opengl 1.1@clipflat@glDrawElements(GL_TRIANGLE_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@arb_clear_texture@arb_clear_texture-3d,Fail
+spec@arb_clear_texture@arb_clear_texture-depth,Fail
+spec@arb_clear_texture@arb_clear_texture-sized-formats,Fail
+spec@arb_clear_texture@arb_clear_texture-supported-formats,Fail
+spec@glsl-1.10@execution@glsl-fs-inline-explosion,Crash
+spec@glsl-1.10@execution@glsl-vs-inline-explosion,Crash
+spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
+
+# fails on arm64, passes on armhf
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 s=z24_s8_d=z32f,Fail
 
 # Crashes in this group are CMA allocation fails
-spec@!opengl 1.1@depthstencil-default_fb-blit samples=2,Crash
-spec@!opengl 1.1@depthstencil-default_fb-blit samples=4,Crash
 spec@!opengl 1.1@depthstencil-default_fb-clear samples=2,Fail
 spec@!opengl 1.1@depthstencil-default_fb-clear samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-clear,Fail
-spec@!opengl 1.1@depthstencil-default_fb-copypixels samples=2,Crash
-spec@!opengl 1.1@depthstencil-default_fb-copypixels samples=4,Crash
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=2,Crash
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=4,Crash
+spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=2,Fail
+spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2,Crash
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4,Crash
-spec@!opengl 1.1@depthstencil-default_fb-readpixels-24_8 samples=2,Crash
-spec@!opengl 1.1@depthstencil-default_fb-readpixels-24_8 samples=4,Crash
-spec@!opengl 1.1@depthstencil-default_fb-readpixels-float-and-ushort samples=2,Crash
-spec@!opengl 1.1@depthstencil-default_fb-readpixels-float-and-ushort samples=4,Crash
 
-spec@!opengl 1.1@draw-pixels,Fail
-spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_line_loop,Fail
+# These non-supported primitives draws are converted by Mesa into
+# indexed draws with supported primitives. But these indexed draws
+# require 4-byte index due the number of vertices to draw, but our
+# hardware is limited to 2-byte indexes at most.
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_polygon,Crash
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_quad_strip,Crash
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_quads,Crash
-spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_triangle_fan,Fail
-spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 vbo gl_line_loop,Fail
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 vbo gl_polygon,Crash
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 vbo gl_quad_strip,Crash
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 vbo gl_quads,Crash
+
+# GFXH-515 / SW-5891: binner uses 16-bit index for drawarrays, so the
+# draw is split in multiple calls. For trifans or lineloops it is not
+# supported because the 1st vertex must be always included, which
+# would require creating new vertex buffer to include the remaining
+# vertices plus the 1st one.
+spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_line_loop,Fail
+spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_triangle_fan,Fail
+spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 vbo gl_line_loop,Fail
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 vbo gl_triangle_fan,Fail
+
+spec@!opengl 1.1@draw-pixels,Fail
 spec@!opengl 1.1@line-flat-clip-color,Fail
 spec@!opengl 1.1@linestipple,Fail
 spec@!opengl 1.1@linestipple@Baseline,Fail
@@ -923,16 +929,9 @@ spec@arb_fragment_coord_conventions@fp-arb-fragment-coord-conventions-integer,Fa
 spec@arb_fragment_coord_conventions@fp-arb-fragment-coord-conventions-none,Fail
 spec@arb_fragment_program@fp-indirections2,Fail
 spec@arb_fragment_program@minmax,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_depth24_stencil8,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_stencil_index16,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_stencil_index1,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_stencil_index4,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_stencil_index8,Fail
 spec@arb_framebuffer_object@fbo-attachments-blit-scaled-linear,Fail
 spec@arb_framebuffer_object@fbo-blit-stretch,Fail
 spec@arb_framebuffer_object@fbo-mipmap-copypix,Fail
-spec@arb_framebuffer_object@framebuffer-blit-levels draw stencil,Fail
-spec@arb_framebuffer_object@framebuffer-blit-levels read stencil,Fail
 spec@arb_framebuffer_object@mixed-buffer-sizes,Fail
 spec@arb_framebuffer_object@same-attachment-tex2d-depth_stencil,Fail
 spec@arb_framebuffer_srgb@arb_framebuffer_srgb-srgb_conformance,Fail
@@ -949,7 +948,6 @@ spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_DEPTH,
 spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_HEIGHT,Fail
 spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_WIDTH,Fail
 spec@arb_occlusion_query2@render,Fail
-spec@arb_occlusion_query@occlusion_query,Fail
 spec@arb_occlusion_query@occlusion_query_conform,Fail
 spec@arb_occlusion_query@occlusion_query_conform@GetObjivAval_multi2,Fail
 spec@arb_occlusion_query@occlusion_query_meta_fragments,Fail
@@ -987,47 +985,15 @@ spec@ext_framebuffer_multisample@clip-and-scissor-blit 2 msaa,Fail
 spec@ext_framebuffer_multisample@clip-and-scissor-blit 4 msaa,Fail
 spec@ext_framebuffer_multisample@interpolation 2 centroid-edges,Fail
 spec@ext_framebuffer_multisample@interpolation 4 centroid-edges,Fail
-spec@ext_framebuffer_multisample@multisample-blit 2 depth,Crash
-spec@ext_framebuffer_multisample@multisample-blit 2 stencil,Fail
-spec@ext_framebuffer_multisample@multisample-blit 4 depth,Crash
-spec@ext_framebuffer_multisample@multisample-blit 4 stencil,Fail
-spec@ext_framebuffer_multisample@no-color 2 depth combined,Crash
-spec@ext_framebuffer_multisample@no-color 2 depth-computed combined,Crash
-spec@ext_framebuffer_multisample@no-color 2 depth-computed single,Crash
-spec@ext_framebuffer_multisample@no-color 2 depth single,Crash
-spec@ext_framebuffer_multisample@no-color 2 stencil combined,Fail
-spec@ext_framebuffer_multisample@no-color 2 stencil single,Fail
-spec@ext_framebuffer_multisample@no-color 4 depth combined,Crash
-spec@ext_framebuffer_multisample@no-color 4 depth-computed combined,Crash
-spec@ext_framebuffer_multisample@no-color 4 depth-computed single,Crash
-spec@ext_framebuffer_multisample@no-color 4 depth single,Crash
-spec@ext_framebuffer_multisample@no-color 4 stencil combined,Fail
-spec@ext_framebuffer_multisample@no-color 4 stencil single,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 2 color,Fail
-spec@ext_framebuffer_multisample@sample-alpha-to-coverage 2 depth,Crash
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 color,Fail
-spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Crash
 spec@ext_framebuffer_multisample@sample-coverage 2 inverted,Fail
 spec@ext_framebuffer_multisample@sample-coverage 2 non-inverted,Fail
 spec@ext_framebuffer_multisample@sample-coverage 4 inverted,Fail
 spec@ext_framebuffer_multisample@sample-coverage 4 non-inverted,Fail
-spec@ext_framebuffer_multisample@unaligned-blit 2 color msaa,Fail
-spec@ext_framebuffer_multisample@unaligned-blit 2 depth downsample,Crash
-spec@ext_framebuffer_multisample@unaligned-blit 2 depth msaa,Crash
-spec@ext_framebuffer_multisample@unaligned-blit 2 depth upsample,Crash
-spec@ext_framebuffer_multisample@unaligned-blit 4 color msaa,Fail
-spec@ext_framebuffer_multisample@unaligned-blit 4 depth downsample,Crash
-spec@ext_framebuffer_multisample@unaligned-blit 4 depth msaa,Crash
-spec@ext_framebuffer_multisample@unaligned-blit 4 depth upsample,Crash
-spec@ext_framebuffer_multisample@upsample 2 stencil,Fail
-spec@ext_framebuffer_multisample@upsample 4 stencil,Fail
 
 spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
 spec@ext_framebuffer_object@fbo-depth-sample-compare,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index1-blit,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index16-blit,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index4-blit,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index8-blit,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
@@ -1041,7 +1007,6 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y416,Fail
 spec@ext_occlusion_query_boolean@any-samples,Fail
 spec@ext_packed_depth_stencil@depth_stencil texture,Fail
 spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-clear,Fail
-spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-blit,Fail
 spec@ext_packed_depth_stencil@texwrap formats,Fail
 spec@ext_packed_depth_stencil@texwrap formats@GL_DEPTH24_STENCIL8,Fail
 spec@ext_packed_depth_stencil@texwrap formats@GL_DEPTH24_STENCIL8- NPOT,Fail
@@ -1185,7 +1150,6 @@ spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj(bias) 2dshadow,F
 
 spec@glsl-1.20@execution@vs-nan-builtin-max,Fail
 spec@glsl-1.20@execution@vs-nan-builtin-min,Fail
-spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 spec@khr_texture_compression_astc@basic-gles,Fail
 spec@khr_texture_compression_astc@miptree-gl ldr,Fail
 spec@khr_texture_compression_astc@miptree-gl ldr@LDR Profile,Fail
@@ -1204,12 +1168,26 @@ spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth16,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
 
-# see https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/730
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_rgb_s3tc_dxt1_ext,Fail
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_rgba_s3tc_dxt1_ext,Fail
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_rgba_s3tc_dxt5_ext,Fail
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_alpha_s3tc_dxt1_ext,Fail
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_alpha_s3tc_dxt3_ext,Fail
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_alpha_s3tc_dxt5_ext,Fail
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_s3tc_dxt1_ext,Fail
-spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_rgba_s3tc_dxt3_ext,Fail
+spec@!opengl 1.1@line-smooth-stipple,Fail
+spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unroll,Fail
+
+spec@ext_framebuffer_multisample@multisample-blit 2 depth,Fail
+spec@ext_framebuffer_multisample@multisample-blit 4 depth,Fail
+spec@ext_framebuffer_multisample@no-color 2 depth combined,Fail
+spec@ext_framebuffer_multisample@no-color 2 depth-computed combined,Fail
+spec@ext_framebuffer_multisample@no-color 4 depth combined,Fail
+spec@ext_framebuffer_multisample@no-color 4 depth-computed combined,Fail
+spec@ext_framebuffer_multisample@unaligned-blit 2 depth msaa,Fail
+spec@ext_framebuffer_multisample@unaligned-blit 2 stencil msaa,Fail
+spec@ext_framebuffer_multisample@unaligned-blit 4 depth msaa,Fail
+spec@ext_framebuffer_multisample@unaligned-blit 4 stencil msaa,Fail
+
+# https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/817
+spec@intel_performance_query@intel_performance_query-issue_2235,Fail
+
+# New CTS failures in 1.3.6.3
+wayland-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer,Crash
+x11-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer,Crash
+
+# Bisected to 35ae5dce39c ("mesa: don't pass Infs to the shader via gl_Fog.scale")
+spec@glsl-1.10@execution@glsl-1.10-built-in-uniform-state,Fail

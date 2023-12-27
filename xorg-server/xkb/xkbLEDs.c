@@ -434,6 +434,44 @@ XkbUpdateIndicators(DeviceIntPtr dev,
 
 /***====================================================================***/
 
+        /*
+         * void
+         * XkbForceUpdateDeviceLEDs(DeviceIntPtr dev)
+         *
+         * Force update LED states to the hardware from the device state
+         * specified by 'dev'.
+         *
+         * If 'dev' is a master device, this function will also force update
+         * its slave devices.
+         *
+         * Used if the actual LED state was externally set and need to push
+         * current state to the hardware e.g. switching between VTs.
+         */
+
+void
+XkbForceUpdateDeviceLEDs(DeviceIntPtr dev)
+{
+    DeviceIntPtr master;
+    XkbSrvLedInfoPtr sli;
+
+    if (!dev->key)
+        return;
+
+    sli = XkbFindSrvLedInfo(dev, XkbDfltXIClass, XkbDfltXIId, 0);
+    XkbDDXUpdateDeviceIndicators(dev, sli, sli->effectiveState);
+
+    if (IsMaster(dev)) {
+        master = dev;
+        nt_list_for_each_entry(dev, inputInfo.devices, next) {
+            if (!dev->key || GetMaster(dev, MASTER_KEYBOARD) != master)
+                continue;
+
+            sli = XkbFindSrvLedInfo(dev, XkbDfltXIClass, XkbDfltXIId, 0);
+            XkbDDXUpdateDeviceIndicators(dev, sli, sli->effectiveState);
+        }
+    }
+}
+
 /***====================================================================***/
 
         /*

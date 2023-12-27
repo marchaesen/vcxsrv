@@ -27,6 +27,7 @@
 
 
 #include "compiler/nir/nir.h"
+#include "util/u_helpers.h"
 #include "util/u_memory.h"
 #include "util/format/u_format.h"
 #include "util/format/u_format_s3tc.h"
@@ -54,7 +55,6 @@ static const struct debug_named_value sp_debug_options[] = {
    {"cs",        SP_DBG_CS,         "dump compute shader assembly to stderr"},
    {"no_rast",   SP_DBG_NO_RAST,    "no-ops rasterization, for profiling purposes"},
    {"use_llvm",  SP_DBG_USE_LLVM,   "Use LLVM if available for shaders"},
-   {"use_tgsi",  SP_DBG_USE_TGSI,   "Request TGSI from the API instead of NIR"},
    DEBUG_NAMED_VALUE_END
 };
 
@@ -64,7 +64,7 @@ DEBUG_GET_ONCE_FLAGS_OPTION(sp_debug, "SOFTPIPE_DEBUG", sp_debug_options, 0)
 static const char *
 softpipe_get_vendor(struct pipe_screen *screen)
 {
-   return "Mesa/X.org";
+   return "Mesa";
 }
 
 
@@ -121,8 +121,6 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1;
    case PIPE_CAP_ANISOTROPIC_FILTER:
       return 1;
-   case PIPE_CAP_POINT_SPRITE:
-      return 1;
    case PIPE_CAP_MAX_RENDER_TARGETS:
       return PIPE_MAX_COLOR_BUFS;
    case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
@@ -145,7 +143,6 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
       return SP_MAX_TEXTURE_CUBE_LEVELS;
    case PIPE_CAP_BLEND_EQUATION_SEPARATE:
-   case PIPE_CAP_RGB_OVERRIDE_DST_ALPHA_BLEND:
       return 1;
    case PIPE_CAP_INDEP_BLEND_ENABLE:
       return 1;
@@ -198,8 +195,6 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_VERTEX_COLOR_UNCLAMPED: /* draw module */
    case PIPE_CAP_VERTEX_COLOR_CLAMPED: /* draw module */
       return 1;
-   case PIPE_CAP_MIXED_COLORBUFFER_FORMATS:
-      return 1;
    case PIPE_CAP_GLSL_FEATURE_LEVEL:
    case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
       return 400;
@@ -211,7 +206,6 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_VS_LAYER_VIEWPORT:
    case PIPE_CAP_DOUBLES:
    case PIPE_CAP_INT64:
-   case PIPE_CAP_INT64_DIVMOD:
    case PIPE_CAP_TGSI_DIV:
       return 1;
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
@@ -219,6 +213,7 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
       return 64;
    case PIPE_CAP_QUERY_TIMESTAMP:
+   case PIPE_CAP_TIMER_RESOLUTION:
    case PIPE_CAP_CUBE_MAP_ARRAY:
       return 1;
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
@@ -286,6 +281,8 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    }
    case PIPE_CAP_UMA:
       return 0;
+   case PIPE_CAP_QUERY_MEMORY_INFO:
+      return 1;
    case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
       return 1;
    case PIPE_CAP_CLIP_HALFZ:
@@ -297,8 +294,6 @@ softpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
    case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
    case PIPE_CAP_TGSI_TEXCOORD:
-      return 1;
-   case PIPE_CAP_CLEAR_TEXTURE:
       return 1;
    case PIPE_CAP_MAX_VARYINGS:
       return TGSI_EXEC_MAX_INPUT_ATTRIBS;
@@ -328,8 +323,6 @@ softpipe_get_shader_param(struct pipe_screen *screen,
    struct softpipe_screen *sp_screen = softpipe_screen(screen);
 
    switch (param) {
-   case PIPE_SHADER_CAP_PREFERRED_IR:
-      return (sp_debug & SP_DBG_USE_TGSI) ? PIPE_SHADER_IR_TGSI : PIPE_SHADER_IR_NIR;
    case PIPE_SHADER_CAP_SUPPORTED_IRS:
       return (1 << PIPE_SHADER_IR_NIR) | (1 << PIPE_SHADER_IR_TGSI);
    default:
@@ -491,12 +484,6 @@ softpipe_is_format_supported( struct pipe_screen *screen,
 static void
 softpipe_destroy_screen( struct pipe_screen *screen )
 {
-   struct softpipe_screen *sp_screen = softpipe_screen(screen);
-   struct sw_winsys *winsys = sp_screen->winsys;
-
-   if(winsys->destroy)
-      winsys->destroy(winsys);
-
    FREE(screen);
 }
 
@@ -518,12 +505,6 @@ softpipe_flush_frontbuffer(struct pipe_screen *_screen,
    assert(texture->dt);
    if (texture->dt)
       winsys->displaytarget_display(winsys, texture->dt, context_private, sub_box);
-}
-
-static uint64_t
-softpipe_get_timestamp(struct pipe_screen *_screen)
-{
-   return os_time_get_nano();
 }
 
 static int
@@ -571,12 +552,24 @@ softpipe_get_compute_param(struct pipe_screen *_screen,
    case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
    case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
    case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZE:
+   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
+   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
    case PIPE_COMPUTE_CAP_ADDRESS_BITS:
    case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
       break;
    }
    return 0;
+}
+
+static int
+softpipe_screen_get_fd(struct pipe_screen *screen)
+{
+   struct sw_winsys *winsys = softpipe_screen(screen)->winsys;
+
+   if (winsys->get_fd)
+      return winsys->get_fd(winsys);
+   else
+      return -1;
 }
 
 /**
@@ -600,10 +593,12 @@ softpipe_create_screen(struct sw_winsys *winsys)
    screen->base.get_name = softpipe_get_name;
    screen->base.get_vendor = softpipe_get_vendor;
    screen->base.get_device_vendor = softpipe_get_vendor; // TODO should be the CPU vendor
+   screen->base.get_screen_fd = softpipe_screen_get_fd;
    screen->base.get_param = softpipe_get_param;
    screen->base.get_shader_param = softpipe_get_shader_param;
    screen->base.get_paramf = softpipe_get_paramf;
-   screen->base.get_timestamp = softpipe_get_timestamp;
+   screen->base.get_timestamp = u_default_get_timestamp;
+   screen->base.query_memory_info = util_sw_query_memory_info;
    screen->base.is_format_supported = softpipe_is_format_supported;
    screen->base.context_create = softpipe_create_context;
    screen->base.flush_frontbuffer = softpipe_flush_frontbuffer;

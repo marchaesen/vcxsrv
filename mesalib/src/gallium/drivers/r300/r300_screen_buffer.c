@@ -128,7 +128,7 @@ r300_buffer_transfer_map( struct pipe_context *context,
                 /* We changed the buffer, now we need to bind it where the old one was bound. */
                 for (i = 0; i < r300->nr_vertex_buffers; i++) {
                     if (r300->vertex_buffer[i].buffer.resource == &rbuf->b) {
-                        r300->vertex_arrays_dirty = TRUE;
+                        r300->vertex_arrays_dirty = true;
                         break;
                     }
                 }

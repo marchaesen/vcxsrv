@@ -113,12 +113,12 @@ struct xwl_seat {
 
         wl_fixed_t scroll_dy;
         wl_fixed_t scroll_dx;
-        int32_t scroll_discrete_dy;
-        int32_t scroll_discrete_dx;
+        int32_t scroll_dy_v120;
+        int32_t scroll_dx_v120;
         Bool has_vertical_scroll;
         Bool has_horizontal_scroll;
-        Bool has_vertical_scroll_discrete;
-        Bool has_horizontal_scroll_discrete;
+        Bool has_vertical_scroll_v120;
+        Bool has_horizontal_scroll_v120;
     } pending_pointer_event;
 
     struct xorg_list tablets;

@@ -25,6 +25,7 @@
 #include "zink_clear.h"
 #include "zink_context.h"
 #include "zink_format.h"
+#include "zink_inlines.h"
 #include "zink_query.h"
 
 #include "util/u_blitter.h"
@@ -51,6 +52,8 @@ clear_in_rp(struct pipe_context *pctx,
 {
    struct zink_context *ctx = zink_context(pctx);
    struct pipe_framebuffer_state *fb = &ctx->fb_state;
+
+   zink_flush_dgc_if_enabled(ctx);
 
    VkClearAttachment attachments[1 + PIPE_MAX_COLOR_BUFS];
    int num_attachments = 0;
@@ -80,6 +83,8 @@ clear_in_rp(struct pipe_context *pctx,
       if (buffers & PIPE_CLEAR_STENCIL)
          aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
+      assert(zink_is_zsbuf_used(ctx));
+
       attachments[num_attachments].aspectMask = aspect;
       attachments[num_attachments].clearValue.depthStencil.depth = depth;
       attachments[num_attachments].clearValue.depthStencil.stencil = stencil;
@@ -88,6 +93,9 @@ clear_in_rp(struct pipe_context *pctx,
 
    VkClearRect cr = {0};
    if (scissor_state) {
+      /* invalid clear */
+      if (scissor_state->minx > ctx->fb_state.width || scissor_state->miny > ctx->fb_state.height)
+         return;
       cr.rect.offset.x = scissor_state->minx;
       cr.rect.offset.y = scissor_state->miny;
       cr.rect.extent.width = MIN2(fb->width, scissor_state->maxx - scissor_state->minx);
@@ -145,6 +153,7 @@ zink_clear(struct pipe_context *pctx,
            double depth, unsigned stencil)
 {
    struct zink_context *ctx = zink_context(pctx);
+   struct zink_screen *screen = zink_screen(pctx->screen);
    struct pipe_framebuffer_state *fb = &ctx->fb_state;
    struct zink_batch *batch = &ctx->batch;
    bool needs_rp = false;
@@ -194,8 +203,14 @@ zink_clear(struct pipe_context *pctx,
    }
 
    if (batch->in_rp) {
-      clear_in_rp(pctx, buffers, scissor_state, pcolor, depth, stencil);
-      return;
+      if (buffers & PIPE_CLEAR_DEPTHSTENCIL && (ctx->zsbuf_unused || ctx->zsbuf_readonly)) {
+         /* this will need a layout change */
+         assert(!ctx->track_renderpasses);
+         zink_batch_no_rp(ctx);
+      } else {
+         clear_in_rp(pctx, buffers, scissor_state, pcolor, depth, stencil);
+         return;
+      }
    }
 
    unsigned rp_clears_enabled = ctx->rp_clears_enabled;
@@ -236,42 +251,16 @@ zink_clear(struct pipe_context *pctx,
       for (unsigned i = 0; i < fb->nr_cbufs; i++) {
          if ((buffers & (PIPE_CLEAR_COLOR0 << i)) && fb->cbufs[i]) {
             struct pipe_surface *psurf = fb->cbufs[i];
-            bool emulated_alpha = zink_format_is_emulated_alpha(psurf->format);
-            const struct util_format_description *desc = util_format_description(psurf->format);
             struct zink_framebuffer_clear *fb_clear = &ctx->fb_clears[i];
             struct zink_framebuffer_clear_data *clear = get_clear_data(ctx, fb_clear, needs_rp ? scissor_state : NULL);
-            const union pipe_color_union *color = pcolor;
-            union pipe_color_union tmp;
 
             ctx->clears_enabled |= PIPE_CLEAR_COLOR0 << i;
             clear->conditional = ctx->render_condition_active;
             clear->has_scissor = needs_rp;
+            memcpy(&clear->color, pcolor, sizeof(union pipe_color_union));
+            zink_convert_color(screen, psurf->format, &clear->color, pcolor);
             if (scissor_state && needs_rp)
                clear->scissor = *scissor_state;
-            if (emulated_alpha) {
-               tmp = *pcolor;
-               if (util_format_is_alpha(psurf->format)) {
-                  tmp.ui[0] = tmp.ui[3];
-                  tmp.ui[1] = 0;
-                  tmp.ui[2] = 0;
-                  tmp.ui[3] = 0;
-               } else if (util_format_is_luminance(psurf->format)) {
-                  tmp.ui[1] = 0;
-                  tmp.ui[2] = 0;
-                  tmp.f[3] = 1.0;
-               } else if (util_format_is_luminance_alpha(psurf->format)) {
-                  tmp.ui[1] = tmp.ui[3];
-                  tmp.ui[2] = 0;
-                  tmp.f[3] = 1.0;
-               } else /* zink_format_is_red_alpha */ {
-                  tmp.ui[1] = tmp.ui[3];
-                  tmp.ui[2] = 0;
-                  tmp.ui[3] = 0;
-               }
-               color = &tmp;
-            }
-            for (unsigned i = 0; i < 4; i++)
-               zink_format_clamp_channel_color(desc, &clear->color, color, i);
             if (zink_fb_clear_first_needs_explicit(fb_clear))
                ctx->rp_clears_enabled &= ~(PIPE_CLEAR_COLOR0 << i);
             else
@@ -293,10 +282,15 @@ zink_clear(struct pipe_context *pctx,
       if (buffers & PIPE_CLEAR_STENCIL)
          clear->zs.stencil = stencil;
       clear->zs.bits |= (buffers & PIPE_CLEAR_DEPTHSTENCIL);
-      if (zink_fb_clear_first_needs_explicit(fb_clear))
+      if (zink_fb_clear_first_needs_explicit(fb_clear)) {
          ctx->rp_clears_enabled &= ~PIPE_CLEAR_DEPTHSTENCIL;
-      else
+         if (!ctx->track_renderpasses)
+            ctx->dynamic_fb.tc_info.zsbuf_clear_partial = true;
+      } else {
          ctx->rp_clears_enabled |= (buffers & PIPE_CLEAR_DEPTHSTENCIL);
+         if (!ctx->track_renderpasses)
+            ctx->dynamic_fb.tc_info.zsbuf_clear = true;
+      }
    }
    assert(!ctx->batch.in_rp);
    ctx->rp_changed |= ctx->rp_clears_enabled != rp_clears_enabled;
@@ -403,8 +397,10 @@ out:
       }
       to_clear = 0;
    }
-   for (int i = 0; i < ARRAY_SIZE(ctx->fb_clears); i++)
-       zink_fb_clear_reset(ctx, i);
+   if (ctx->clears_enabled & PIPE_CLEAR_DEPTHSTENCIL)
+      zink_fb_clear_reset(ctx, PIPE_MAX_COLOR_BUFS);
+   u_foreach_bit(i, ctx->clears_enabled >> 2)
+      zink_fb_clear_reset(ctx, i);
 }
 
 static struct pipe_surface *
@@ -422,13 +418,96 @@ create_clear_surface(struct pipe_context *pctx, struct pipe_resource *pres, unsi
 static void
 set_clear_fb(struct pipe_context *pctx, struct pipe_surface *psurf, struct pipe_surface *zsurf)
 {
-   struct pipe_framebuffer_state fb_state;
+   struct pipe_framebuffer_state fb_state = {0};
    fb_state.width = psurf ? psurf->width : zsurf->width;
    fb_state.height = psurf ? psurf->height : zsurf->height;
    fb_state.nr_cbufs = !!psurf;
    fb_state.cbufs[0] = psurf;
    fb_state.zsbuf = zsurf;
    pctx->set_framebuffer_state(pctx, &fb_state);
+}
+
+void
+zink_clear_texture_dynamic(struct pipe_context *pctx,
+                           struct pipe_resource *pres,
+                           unsigned level,
+                           const struct pipe_box *box,
+                           const void *data)
+{
+   struct zink_context *ctx = zink_context(pctx);
+   struct zink_screen *screen = zink_screen(pctx->screen);
+   struct zink_resource *res = zink_resource(pres);
+
+   bool full_clear = 0 <= box->x && u_minify(pres->width0, level) >= box->x + box->width &&
+                     0 <= box->y && u_minify(pres->height0, level) >= box->y + box->height &&
+                     0 <= box->z && u_minify(pres->target == PIPE_TEXTURE_3D ? pres->depth0 : pres->array_size, level) >= box->z + box->depth;
+
+   struct pipe_surface *surf = create_clear_surface(pctx, pres, level, box);
+
+   VkRenderingAttachmentInfo att = {0};
+   att.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+   att.imageView = zink_csurface(surf)->image_view;
+   att.imageLayout = res->aspect & VK_IMAGE_ASPECT_COLOR_BIT ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+   att.loadOp = full_clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+   att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+   VkRenderingInfo info = {0};
+   info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+   info.renderArea.offset.x = box->x;
+   info.renderArea.offset.y = box->y;
+   info.renderArea.extent.width = box->width;
+   info.renderArea.extent.height = box->height;
+   info.layerCount = MAX2(box->depth, 1);
+
+   union pipe_color_union color, tmp;
+   float depth = 0.0;
+   uint8_t stencil = 0;
+   if (res->aspect & VK_IMAGE_ASPECT_COLOR_BIT) {
+      util_format_unpack_rgba(pres->format, tmp.ui, data, 1);
+      zink_convert_color(screen, surf->format, &color, &tmp);
+   } else {
+      if (res->aspect & VK_IMAGE_ASPECT_DEPTH_BIT)
+         util_format_unpack_z_float(pres->format, &depth, data, 1);
+
+      if (res->aspect & VK_IMAGE_ASPECT_STENCIL_BIT)
+         util_format_unpack_s_8uint(pres->format, &stencil, data, 1);
+   }
+
+   zink_blit_barriers(ctx, NULL, res, full_clear);
+   VkCommandBuffer cmdbuf = zink_get_cmdbuf(ctx, NULL, res);
+   if (cmdbuf == ctx->batch.state->cmdbuf && ctx->batch.in_rp)
+      zink_batch_no_rp(ctx);
+
+   if (res->aspect & VK_IMAGE_ASPECT_COLOR_BIT) {
+      memcpy(&att.clearValue, &color, sizeof(float) * 4);
+      info.colorAttachmentCount = 1;
+      info.pColorAttachments = &att;
+   } else {
+      att.clearValue.depthStencil.depth = depth;
+      att.clearValue.depthStencil.stencil = stencil;
+      if (res->aspect & VK_IMAGE_ASPECT_DEPTH_BIT)
+         info.pDepthAttachment = &att;
+      if (res->aspect & VK_IMAGE_ASPECT_STENCIL_BIT)
+         info.pStencilAttachment = &att;
+   }
+   VKCTX(CmdBeginRendering)(cmdbuf, &info);
+   if (!full_clear) {
+      VkClearRect rect;
+      rect.rect = info.renderArea;
+      rect.baseArrayLayer = box->z;
+      rect.layerCount = box->depth;
+
+      VkClearAttachment clear_att;
+      clear_att.aspectMask = res->aspect;
+      clear_att.colorAttachment = 0;
+      clear_att.clearValue = att.clearValue;
+
+      VKCTX(CmdClearAttachments)(cmdbuf, 1, &clear_att, 1, &rect);
+   }
+   VKCTX(CmdEndRendering)(cmdbuf);
+   zink_batch_reference_resource_rw(&ctx->batch, res, true);
+   /* this will never destroy the surface */
+   pipe_surface_reference(&surf, NULL);
 }
 
 void
@@ -451,8 +530,13 @@ zink_clear_texture(struct pipe_context *pctx,
       surf = create_clear_surface(pctx, pres, level, box);
       util_blitter_save_framebuffer(ctx->blitter, &ctx->fb_state);
       set_clear_fb(pctx, surf, NULL);
+      zink_blit_barriers(ctx, NULL, res, false);
+      ctx->blitting = true;
+      ctx->queries_disabled = true;
       pctx->clear(pctx, PIPE_CLEAR_COLOR0, &scissor, &color, 0, 0);
       util_blitter_restore_fb_state(ctx->blitter);
+      ctx->queries_disabled = false;
+      ctx->blitting = false;
    } else {
       float depth = 0.0;
       uint8_t stencil = 0;
@@ -470,9 +554,14 @@ zink_clear_texture(struct pipe_context *pctx,
          flags |= PIPE_CLEAR_STENCIL;
       surf = create_clear_surface(pctx, pres, level, box);
       util_blitter_save_framebuffer(ctx->blitter, &ctx->fb_state);
+      zink_blit_barriers(ctx, NULL, res, false);
+      ctx->blitting = true;
       set_clear_fb(pctx, NULL, surf);
+      ctx->queries_disabled = true;
       pctx->clear(pctx, flags, &scissor, NULL, depth, stencil);
       util_blitter_restore_fb_state(ctx->blitter);
+      ctx->queries_disabled = false;
+      ctx->blitting = false;
    }
    /* this will never destroy the surface */
    pipe_surface_reference(&surf, NULL);
@@ -500,13 +589,10 @@ zink_clear_buffer(struct pipe_context *pctx,
          - size is the number of bytes to fill, and must be either a multiple of 4,
            or VK_WHOLE_SIZE to fill the range from offset to the end of the buffer
        */
-      struct zink_batch *batch = &ctx->batch;
-      zink_batch_no_rp(ctx);
-      zink_batch_reference_resource_rw(batch, res, true);
-      util_range_add(&res->base.b, &res->valid_buffer_range, offset, offset + size);
-      zink_screen(ctx->base.screen)->buffer_barrier(ctx, res, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-      res->obj->unordered_read = res->obj->unordered_write = false;
-      VKCTX(CmdFillBuffer)(batch->state->cmdbuf, res->obj->buffer, offset, size, *(uint32_t*)clear_value);
+      zink_resource_buffer_transfer_dst_barrier(ctx, res, offset, size);
+      VkCommandBuffer cmdbuf = zink_get_cmdbuf(ctx, NULL, res);
+      zink_batch_reference_resource_rw(&ctx->batch, res, true);
+      VKCTX(CmdFillBuffer)(cmdbuf, res->obj->buffer, offset, size, *(uint32_t*)clear_value);
       return;
    }
    struct pipe_transfer *xfer;
@@ -532,6 +618,7 @@ zink_clear_render_target(struct pipe_context *pctx, struct pipe_surface *dst,
                          bool render_condition_enabled)
 {
    struct zink_context *ctx = zink_context(pctx);
+   zink_flush_dgc_if_enabled(ctx);
    bool render_condition_active = ctx->render_condition_active;
    if (!render_condition_enabled && render_condition_active) {
       zink_stop_conditional_render(ctx);
@@ -540,8 +627,11 @@ zink_clear_render_target(struct pipe_context *pctx, struct pipe_surface *dst,
    util_blitter_save_framebuffer(ctx->blitter, &ctx->fb_state);
    set_clear_fb(pctx, dst, NULL);
    struct pipe_scissor_state scissor = {dstx, dsty, dstx + width, dsty + height};
+   zink_blit_barriers(ctx, NULL, zink_resource(dst->texture), false);
+   ctx->blitting = true;
    pctx->clear(pctx, PIPE_CLEAR_COLOR0, &scissor, color, 0, 0);
    util_blitter_restore_fb_state(ctx->blitter);
+   ctx->blitting = false;
    if (!render_condition_enabled && render_condition_active)
       zink_start_conditional_render(ctx);
    ctx->render_condition_active = render_condition_active;
@@ -554,6 +644,7 @@ zink_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *dst,
                          bool render_condition_enabled)
 {
    struct zink_context *ctx = zink_context(pctx);
+   zink_flush_dgc_if_enabled(ctx);
    bool render_condition_active = ctx->render_condition_active;
    if (!render_condition_enabled && render_condition_active) {
       zink_stop_conditional_render(ctx);
@@ -567,11 +658,15 @@ zink_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *dst,
    if (!cur_attachment) {
       util_blitter_save_framebuffer(ctx->blitter, &ctx->fb_state);
       set_clear_fb(pctx, NULL, dst);
+      zink_blit_barriers(ctx, NULL, zink_resource(dst->texture), false);
+      ctx->blitting = true;
    }
    struct pipe_scissor_state scissor = {dstx, dsty, dstx + width, dsty + height};
    pctx->clear(pctx, clear_flags, &scissor, NULL, depth, stencil);
-   if (!cur_attachment)
+   if (!cur_attachment) {
       util_blitter_restore_fb_state(ctx->blitter);
+      ctx->blitting = false;
+   }
    if (!render_condition_enabled && render_condition_active)
       zink_start_conditional_render(ctx);
    ctx->render_condition_active = render_condition_active;
@@ -600,9 +695,38 @@ fb_clears_apply_internal(struct zink_context *ctx, struct pipe_resource *pres, i
       return;
    if (ctx->batch.in_rp)
       zink_clear_framebuffer(ctx, BITFIELD_BIT(i));
-   else
+   else {
+      struct zink_resource *res = zink_resource(pres);
+      bool queries_disabled = ctx->queries_disabled;
+      VkCommandBuffer cmdbuf = ctx->batch.state->cmdbuf;
+      /* slightly different than the u_blitter handling:
+       * this can be called recursively while unordered_blitting=true
+       */
+      bool can_reorder = zink_screen(ctx->base.screen)->info.have_KHR_dynamic_rendering &&
+                         !ctx->render_condition_active &&
+                         !ctx->unordered_blitting &&
+                         zink_get_cmdbuf(ctx, NULL, res) == ctx->batch.state->reordered_cmdbuf;
+      if (can_reorder) {
+         /* set unordered_blitting but NOT blitting:
+          * let begin_rendering handle layouts
+          */
+         ctx->unordered_blitting = true;
+         /* for unordered clears, swap the unordered cmdbuf for the main one for the whole op to avoid conditional hell */
+         ctx->batch.state->cmdbuf = ctx->batch.state->reordered_cmdbuf;
+         ctx->rp_changed = true;
+         ctx->queries_disabled = true;
+         ctx->batch.state->has_barriers = true;
+      }
       /* this will automatically trigger all the clears */
       zink_batch_rp(ctx);
+      if (can_reorder) {
+         zink_batch_no_rp(ctx);
+         ctx->unordered_blitting = false;
+         ctx->rp_changed = true;
+         ctx->queries_disabled = queries_disabled;
+         ctx->batch.state->cmdbuf = cmdbuf;
+      }
+   }
    zink_fb_clear_reset(ctx, i);
 }
 

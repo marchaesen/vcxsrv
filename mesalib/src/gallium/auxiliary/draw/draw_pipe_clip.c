@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -50,22 +50,21 @@
 #define MAX_CLIPPED_VERTICES ((2 * (6 + PIPE_MAX_CLIP_PLANES))+1)
 
 
-
 struct clip_stage {
    struct draw_stage stage;      /**< base class */
 
    unsigned pos_attr;
-   boolean have_clipdist;
+   bool have_clipdist;
    int cv_attr;
 
    /* List of the attributes to be constant interpolated. */
-   uint num_const_attribs;
+   unsigned num_const_attribs;
    uint8_t const_attribs[PIPE_MAX_SHADER_OUTPUTS];
    /* List of the attributes to be linear interpolated. */
-   uint num_linear_attribs;
+   unsigned num_linear_attribs;
    uint8_t linear_attribs[PIPE_MAX_SHADER_OUTPUTS];
    /* List of the attributes to be perspective interpolated. */
-   uint num_perspect_attribs;
+   unsigned num_perspect_attribs;
    uint8_t perspect_attribs[PIPE_MAX_SHADER_OUTPUTS];
 
    float (*plane)[4];
@@ -73,10 +72,12 @@ struct clip_stage {
 
 
 /** Cast wrapper */
-static inline struct clip_stage *clip_stage(struct draw_stage *stage)
+static inline struct clip_stage *
+clip_stage(struct draw_stage *stage)
 {
-   return (struct clip_stage *)stage;
+   return (struct clip_stage *) stage;
 }
+
 
 static inline unsigned
 draw_viewport_index(struct draw_context *draw,
@@ -99,45 +100,46 @@ draw_viewport_index(struct draw_context *draw,
 
 /* All attributes are float[4], so this is easy:
  */
-static void interp_attr(float dst[4],
-                        float t,
-                        const float in[4],
-                        const float out[4])
+static void
+interp_attr(float dst[4],
+            float t,
+            const float in[4],
+            const float out[4])
 {
-   dst[0] = LINTERP( t, out[0], in[0] );
-   dst[1] = LINTERP( t, out[1], in[1] );
-   dst[2] = LINTERP( t, out[2], in[2] );
-   dst[3] = LINTERP( t, out[3], in[3] );
+   dst[0] = LINTERP(t, out[0], in[0]);
+   dst[1] = LINTERP(t, out[1], in[1]);
+   dst[2] = LINTERP(t, out[2], in[2]);
+   dst[3] = LINTERP(t, out[3], in[3]);
 }
 
 
 /**
  * Copy flat shaded attributes src vertex to dst vertex.
  */
-static void copy_flat(struct draw_stage *stage,
-                      struct vertex_header *dst,
-                      const struct vertex_header *src)
+static void
+copy_flat(struct draw_stage *stage,
+          struct vertex_header *dst,
+          const struct vertex_header *src)
 {
    const struct clip_stage *clipper = clip_stage(stage);
-   uint i;
-   for (i = 0; i < clipper->num_const_attribs; i++) {
-      const uint attr = clipper->const_attribs[i];
+   for (unsigned i = 0; i < clipper->num_const_attribs; i++) {
+      const unsigned attr = clipper->const_attribs[i];
       COPY_4FV(dst->data[attr], src->data[attr]);
    }
 }
 
-/* Interpolate between two vertices to produce a third.  
+
+/* Interpolate between two vertices to produce a third.
  */
-static void interp(const struct clip_stage *clip,
-                   struct vertex_header *dst,
-                   float t,
-                   const struct vertex_header *out,
-                   const struct vertex_header *in,
-                   unsigned viewport_index)
+static void
+interp(const struct clip_stage *clip,
+       struct vertex_header *dst,
+       float t,
+       const struct vertex_header *out,
+       const struct vertex_header *in,
+       unsigned viewport_index)
 {
    const unsigned pos_attr = clip->pos_attr;
-   unsigned j;
-   float t_nopersp;
 
    /* Vertex header.
     */
@@ -171,10 +173,9 @@ static void interp(const struct clip_stage *clip,
       dst->data[pos_attr][2] = pos[2] * oow * scale[2] + trans[2];
       dst->data[pos_attr][3] = oow;
    }
-   
 
    /* interp perspective attribs */
-   for (j = 0; j < clip->num_perspect_attribs; j++) {
+   for (unsigned j = 0; j < clip->num_perspect_attribs; j++) {
       const unsigned attr = clip->perspect_attribs[j];
       interp_attr(dst->data[attr], t, in->data[attr], out->data[attr]);
    }
@@ -189,10 +190,9 @@ static void interp(const struct clip_stage *clip,
     * anyway), so just use the 3d t.
     */
    if (clip->num_linear_attribs) {
-      int k;
-      t_nopersp = t;
+      float t_nopersp = t;
       /* find either in.x != out.x or in.y != out.y */
-      for (k = 0; k < 2; k++) {
+      for (int k = 0; k < 2; k++) {
          if (in->clip_pos[k] != out->clip_pos[k]) {
             /* do divide by W, then compute linear interpolation factor */
             float in_coord = in->clip_pos[k] / in->clip_pos[3];
@@ -202,34 +202,33 @@ static void interp(const struct clip_stage *clip,
             break;
          }
       }
-      for (j = 0; j < clip->num_linear_attribs; j++) {
+      for (unsigned j = 0; j < clip->num_linear_attribs; j++) {
          const unsigned attr = clip->linear_attribs[j];
          interp_attr(dst->data[attr], t_nopersp, in->data[attr], out->data[attr]);
       }
    }
 }
 
+
 /**
  * Emit a post-clip polygon to the next pipeline stage.  The polygon
  * will be convex and the provoking vertex will always be vertex[0].
  */
-static void emit_poly(struct draw_stage *stage,
-                      struct vertex_header **inlist,
-                      const boolean *edgeflags,
-                      unsigned n,
-                      const struct prim_header *origPrim)
+static void
+emit_poly(struct draw_stage *stage,
+          struct vertex_header **inlist,
+          const bool *edgeflags,
+          unsigned n,
+          const struct prim_header *origPrim)
 {
    const struct clip_stage *clipper = clip_stage(stage);
-   struct prim_header header;
-   unsigned i;
-   ushort edge_first, edge_middle, edge_last;
+   uint16_t edge_first, edge_middle, edge_last;
 
    if (stage->draw->rasterizer->flatshade_first) {
       edge_first  = DRAW_PIPE_EDGE_FLAG_0;
       edge_middle = DRAW_PIPE_EDGE_FLAG_1;
       edge_last   = DRAW_PIPE_EDGE_FLAG_2;
-   }
-   else {
+   } else {
       edge_first  = DRAW_PIPE_EDGE_FLAG_2;
       edge_middle = DRAW_PIPE_EDGE_FLAG_0;
       edge_last   = DRAW_PIPE_EDGE_FLAG_1;
@@ -239,18 +238,18 @@ static void emit_poly(struct draw_stage *stage,
       edge_first = 0;
 
    /* later stages may need the determinant, but only the sign matters */
+   struct prim_header header;
    header.det = origPrim->det;
    header.flags = DRAW_PIPE_RESET_STIPPLE | edge_first | edge_middle;
    header.pad = 0;
 
-   for (i = 2; i < n; i++, header.flags = edge_middle) {
+   for (unsigned i = 2; i < n; i++, header.flags = edge_middle) {
       /* order the triangle verts to respect the provoking vertex mode */
       if (stage->draw->rasterizer->flatshade_first) {
          header.v[0] = inlist[0];  /* the provoking vertex */
          header.v[1] = inlist[i-1];
          header.v[2] = inlist[i];
-      }
-      else {
+      } else {
          header.v[0] = inlist[i-1];
          header.v[1] = inlist[i];
          header.v[2] = inlist[0];  /* the provoking vertex */
@@ -264,10 +263,9 @@ static void emit_poly(struct draw_stage *stage,
          header.flags |= edge_last;
 
       if (DEBUG_CLIP) {
-         uint j, k;
          debug_printf("Clipped tri: (flat-shade-first = %d)\n",
                       stage->draw->rasterizer->flatshade_first);
-         for (j = 0; j < 3; j++) {
+         for (unsigned j = 0; j < 3; j++) {
             debug_printf("  Vert %d: clip pos: %f %f %f %f\n", j,
                          header.v[j]->clip_pos[0],
                          header.v[j]->clip_pos[1],
@@ -280,7 +278,7 @@ static void emit_poly(struct draw_stage *stage,
                             header.v[j]->data[clipper->cv_attr][2],
                             header.v[j]->data[clipper->cv_attr][3]);
             }
-            for (k = 0; k < draw_num_shader_outputs(stage->draw); k++) {
+            for (unsigned k = 0; k < draw_num_shader_outputs(stage->draw); k++) {
                debug_printf("  Vert %d: Attr %d:  %f %f %f %f\n", j, k,
                             header.v[j]->data[k][0],
                             header.v[j]->data[k][1],
@@ -297,10 +295,7 @@ static void emit_poly(struct draw_stage *stage,
 static inline float
 dot4(const float *a, const float *b)
 {
-   return (a[0] * b[0] +
-           a[1] * b[1] +
-           a[2] * b[2] +
-           a[3] * b[3]);
+   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
 }
 
 /*
@@ -308,12 +303,14 @@ dot4(const float *a, const float *b)
  * it first checks if the shader provided a clip distance, otherwise
  * it works out the value using the clipvertex
  */
-static inline float getclipdist(const struct clip_stage *clipper,
-                                struct vertex_header *vert,
-                                int plane_idx)
+static inline float
+getclipdist(const struct clip_stage *clipper,
+            struct vertex_header *vert,
+            int plane_idx)
 {
    const float *plane;
    float dp;
+
    if (plane_idx < 6) {
       /* ordinary xyz view volume clipping uses pos output */
       plane = clipper->plane[plane_idx];
@@ -340,6 +337,7 @@ static inline float getclipdist(const struct clip_stage *clipper,
    return dp;
 }
 
+
 /* Clip a triangle against the viewport and user clip planes.
  */
 static void
@@ -347,7 +345,7 @@ do_clip_tri(struct draw_stage *stage,
             struct prim_header *header,
             unsigned clipmask)
 {
-   struct clip_stage *clipper = clip_stage( stage );
+   struct clip_stage *clipper = clip_stage(stage);
    struct vertex_header *a[MAX_CLIPPED_VERTICES];
    struct vertex_header *b[MAX_CLIPPED_VERTICES];
    struct vertex_header **inlist = a;
@@ -355,11 +353,10 @@ do_clip_tri(struct draw_stage *stage,
    struct vertex_header *prov_vertex;
    unsigned tmpnr = 0;
    unsigned n = 3;
-   unsigned i;
-   boolean aEdges[MAX_CLIPPED_VERTICES];
-   boolean bEdges[MAX_CLIPPED_VERTICES];
-   boolean *inEdges = aEdges;
-   boolean *outEdges = bEdges;
+   bool aEdges[MAX_CLIPPED_VERTICES];
+   bool bEdges[MAX_CLIPPED_VERTICES];
+   bool *inEdges = aEdges;
+   bool *outEdges = bEdges;
    int viewport_index = 0;
 
    inlist[0] = header->v[0];
@@ -375,8 +372,7 @@ do_clip_tri(struct draw_stage *stage,
     */
    if (stage->draw->rasterizer->flatshade_first) {
       prov_vertex = inlist[0];
-   }
-   else {
+   } else {
       prov_vertex = inlist[2];
    }
    viewport_index = draw_viewport_index(clipper->stage.draw, prov_vertex);
@@ -414,9 +410,9 @@ do_clip_tri(struct draw_stage *stage,
 
    while (clipmask && n >= 3) {
       const unsigned plane_idx = ffs(clipmask)-1;
-      const boolean is_user_clip_plane = plane_idx >= 6;
+      const bool is_user_clip_plane = plane_idx >= 6;
       struct vertex_header *vert_prev = inlist[0];
-      boolean *edge_prev = &inEdges[0];
+      bool *edge_prev = &inEdges[0];
       float dp_prev;
       unsigned outcount = 0;
 
@@ -432,10 +428,10 @@ do_clip_tri(struct draw_stage *stage,
       inlist[n] = inlist[0]; /* prevent rotation of vertices */
       inEdges[n] = inEdges[0];
 
-      for (i = 1; i <= n; i++) {
+      for (unsigned i = 1; i <= n; i++) {
          struct vertex_header *vert = inlist[i];
-         boolean *edge = &inEdges[i];
-         boolean different_sign;
+         bool *edge = &inEdges[i];
+         bool different_sign;
 
          float dp = getclipdist(clipper, vert, plane_idx);
 
@@ -455,7 +451,7 @@ do_clip_tri(struct draw_stage *stage,
 
          if (different_sign) {
             struct vertex_header *new_vert;
-            boolean *new_edge;
+            bool *new_edge;
 
             assert(tmpnr < MAX_CLIPPED_VERTICES + 1);
             if (tmpnr >= MAX_CLIPPED_VERTICES + 1)
@@ -476,10 +472,10 @@ do_clip_tri(struct draw_stage *stage,
                 */
                if (-dp < dp_prev) {
                   float t = dp / denom;
-                  interp( clipper, new_vert, t, vert, vert_prev, viewport_index );
+                  interp(clipper, new_vert, t, vert, vert_prev, viewport_index);
                } else {
                   float t = -dp_prev / denom;
-                  interp( clipper, new_vert, t, vert_prev, vert, viewport_index );
+                  interp(clipper, new_vert, t, vert_prev, vert, viewport_index);
                }
 
                /* Whether or not to set edge flag for the new vert depends
@@ -488,13 +484,13 @@ do_clip_tri(struct draw_stage *stage,
                 */
                if (is_user_clip_plane) {
                   /* we want to see an edge along the clip plane */
-                  *new_edge = TRUE;
-                  new_vert->edgeflag = TRUE;
+                  *new_edge = true;
+                  new_vert->edgeflag = true;
                }
                else {
                   /* we don't want to see an edge along the frustum clip plane */
                   *new_edge = *edge_prev;
-                  new_vert->edgeflag = FALSE;
+                  new_vert->edgeflag = false;
                }
             }
             else {
@@ -502,10 +498,10 @@ do_clip_tri(struct draw_stage *stage,
                 */
                if (-dp_prev < dp) {
                   float t = -dp_prev / denom;
-                  interp( clipper, new_vert, t, vert_prev, vert, viewport_index );
+                  interp(clipper, new_vert, t, vert_prev, vert, viewport_index);
                } else {
                   float t = dp / denom;
-                  interp( clipper, new_vert, t, vert, vert_prev, viewport_index );
+                  interp(clipper, new_vert, t, vert, vert_prev, viewport_index);
                }
 
                /* Copy starting vert's edgeflag:
@@ -528,7 +524,7 @@ do_clip_tri(struct draw_stage *stage,
          n = outcount;
       }
       {
-         boolean *tmp = inEdges;
+         bool *tmp = inEdges;
          inEdges = outEdges;
          outEdges = tmp;
       }
@@ -603,7 +599,7 @@ do_clip_line(struct draw_stage *stage,
       if (dp1 < 0.0F) {
          float t = dp1 / (dp1 - dp0);
          t1 = MAX2(t1, t);
-      } 
+      }
 
       if (dp0 < 0.0F) {
          float t = dp0 / (dp0 - dp1);
@@ -617,7 +613,7 @@ do_clip_line(struct draw_stage *stage,
    }
 
    if (v0->clipmask) {
-      interp( clipper, stage->tmp[0], t0, v0, v1, viewport_index );
+      interp(clipper, stage->tmp[0], t0, v0, v1, viewport_index);
       if (stage->draw->rasterizer->flatshade_first) {
          copy_flat(stage, stage->tmp[0], v0);  /* copy v0 color to tmp[0] */
       }
@@ -631,7 +627,7 @@ do_clip_line(struct draw_stage *stage,
    }
 
    if (v1->clipmask) {
-      interp( clipper, stage->tmp[1], t1, v1, v0, viewport_index );
+      interp(clipper, stage->tmp[1], t1, v1, v0, viewport_index);
       if (stage->draw->rasterizer->flatshade_first) {
          copy_flat(stage, stage->tmp[1], v0);  /* copy v0 color to tmp[1] */
       }
@@ -644,7 +640,7 @@ do_clip_line(struct draw_stage *stage,
       newprim.v[1] = v1;
    }
 
-   stage->next->line( stage->next, &newprim );
+   stage->next->line(stage->next, &newprim);
 }
 
 
@@ -652,7 +648,7 @@ static void
 clip_point(struct draw_stage *stage, struct prim_header *header)
 {
    if (header->v[0]->clipmask == 0)
-      stage->next->point( stage->next, header );
+      stage->next->point(stage->next, header);
 }
 
 
@@ -692,7 +688,7 @@ clip_point_guard_xy(struct draw_stage *stage, struct prim_header *header)
 static void
 clip_first_point(struct draw_stage *stage, struct prim_header *header)
 {
-   stage->point = stage->draw->guard_band_points_xy ? clip_point_guard_xy : clip_point;
+   stage->point = stage->draw->guard_band_points_lines_xy ? clip_point_guard_xy : clip_point;
    stage->point(stage, header);
 }
 
@@ -700,12 +696,12 @@ clip_first_point(struct draw_stage *stage, struct prim_header *header)
 static void
 clip_line(struct draw_stage *stage, struct prim_header *header)
 {
-   unsigned clipmask = (header->v[0]->clipmask | 
+   unsigned clipmask = (header->v[0]->clipmask |
                         header->v[1]->clipmask);
 
    if (clipmask == 0) {
       /* no clipping needed */
-      stage->next->line( stage->next, header );
+      stage->next->line(stage->next, header);
    }
    else if ((header->v[0]->clipmask &
              header->v[1]->clipmask) == 0) {
@@ -714,31 +710,67 @@ clip_line(struct draw_stage *stage, struct prim_header *header)
    /* else, totally clipped */
 }
 
+static void
+clip_line_guard_xy(struct draw_stage *stage, struct prim_header *header)
+{
+   unsigned clipmask = (header->v[0]->clipmask |
+                        header->v[1]->clipmask);
+
+   if ((clipmask & 0xffffffff) == 0) {
+      stage->next->line(stage->next, header);
+   }
+   else if ((clipmask & 0xfffffff0) == 0) {
+      while (clipmask) {
+         const unsigned plane_idx = ffs(clipmask)-1;
+         clipmask &= ~(1 << plane_idx);  /* turn off this plane's bit */
+         /* TODO: this should really do proper guardband clipping,
+          * currently just throw out infs/nans.
+          * Also note that vertices with negative w values MUST be tossed
+          * out (not sure if proper guardband clipping would do this
+          * automatically). These would usually be captured by depth clip
+          * too but this can be disabled.
+          */
+         if ((header->v[0]->clip_pos[3] <= 0.0f &&
+              header->v[1]->clip_pos[3] <= 0.0f) ||
+             util_is_nan(header->v[0]->clip_pos[0]) ||
+             util_is_nan(header->v[0]->clip_pos[1]) ||
+             util_is_nan(header->v[1]->clip_pos[0]) ||
+             util_is_nan(header->v[1]->clip_pos[1]))
+            return;
+      }
+      stage->next->line(stage->next, header);
+   } else if ((header->v[0]->clipmask &
+               header->v[1]->clipmask) == 0) {
+      do_clip_line(stage, header, clipmask & 0xfffffff0);
+   }
+}
 
 static void
 clip_tri(struct draw_stage *stage, struct prim_header *header)
 {
-   unsigned clipmask = (header->v[0]->clipmask | 
-                        header->v[1]->clipmask | 
+   unsigned clipmask = (header->v[0]->clipmask |
+                        header->v[1]->clipmask |
                         header->v[2]->clipmask);
 
    if (clipmask == 0) {
       /* no clipping needed */
-      stage->next->tri( stage->next, header );
+      stage->next->tri(stage->next, header);
    }
-   else if ((header->v[0]->clipmask & 
-             header->v[1]->clipmask & 
+   else if ((header->v[0]->clipmask &
+             header->v[1]->clipmask &
              header->v[2]->clipmask) == 0) {
       do_clip_tri(stage, header, clipmask);
    }
 }
 
 
-static int
-find_interp(const struct draw_fragment_shader *fs, int *indexed_interp,
-            uint semantic_name, uint semantic_index)
+static enum tgsi_interpolate_mode
+find_interp(const struct draw_fragment_shader *fs,
+            enum tgsi_interpolate_mode *indexed_interp,
+            enum tgsi_semantic semantic_name, unsigned semantic_index)
 {
-   int interp;
+   enum tgsi_interpolate_mode interp;
+
    /* If it's gl_{Front,Back}{,Secondary}Color, pick up the mode
     * from the array we've filled before. */
    if ((semantic_name == TGSI_SEMANTIC_COLOR ||
@@ -755,7 +787,7 @@ find_interp(const struct draw_fragment_shader *fs, int *indexed_interp,
        * This probably only matters for layer, vpindex, culldist, maybe
        * front_face.
        */
-      uint j;
+      unsigned j;
       if (semantic_name == TGSI_SEMANTIC_LAYER ||
           semantic_name == TGSI_SEMANTIC_VIEWPORT_INDEX) {
          interp = TGSI_INTERPOLATE_CONSTANT;
@@ -776,18 +808,17 @@ find_interp(const struct draw_fragment_shader *fs, int *indexed_interp,
    return interp;
 }
 
+
 /* Update state.  Could further delay this until we hit the first
  * primitive that really requires clipping.
  */
-static void 
+static void
 clip_init_state(struct draw_stage *stage)
 {
    struct clip_stage *clipper = clip_stage(stage);
    const struct draw_context *draw = stage->draw;
    const struct draw_fragment_shader *fs = draw->fs.fragment_shader;
    const struct tgsi_shader_info *info = draw_get_shader_info(draw);
-   uint i, j;
-   int indexed_interp[2];
 
    clipper->pos_attr = draw_current_shader_position_output(draw);
    clipper->have_clipdist = draw_current_shader_num_written_clipdistances(draw) > 0;
@@ -817,11 +848,12 @@ clip_init_state(struct draw_stage *stage)
    /* First pick up the interpolation mode for
     * gl_Color/gl_SecondaryColor, with the correct default.
     */
+   enum tgsi_interpolate_mode indexed_interp[2];
    indexed_interp[0] = indexed_interp[1] = draw->rasterizer->flatshade ?
       TGSI_INTERPOLATE_CONSTANT : TGSI_INTERPOLATE_PERSPECTIVE;
 
    if (fs) {
-      for (i = 0; i < fs->info.num_inputs; i++) {
+      for (unsigned i = 0; i < fs->info.num_inputs; i++) {
          if (fs->info.input_semantic_name[i] == TGSI_SEMANTIC_COLOR &&
              fs->info.input_semantic_index[i] < 2) {
             if (fs->info.input_interpolate[i] != TGSI_INTERPOLATE_COLOR)
@@ -835,6 +867,7 @@ clip_init_state(struct draw_stage *stage)
    clipper->num_const_attribs = 0;
    clipper->num_linear_attribs = 0;
    clipper->num_perspect_attribs = 0;
+   unsigned i;
    for (i = 0; i < info->num_outputs; i++) {
       /* Find the interpolation mode for a specific attribute */
       int interp = find_interp(fs, indexed_interp,
@@ -867,12 +900,14 @@ clip_init_state(struct draw_stage *stage)
          break;
       }
    }
+
    /* Search the extra vertex attributes */
-   for (j = 0; j < draw->extra_shader_outputs.num; j++) {
+   for (unsigned j = 0; j < draw->extra_shader_outputs.num; j++) {
       /* Find the interpolation mode for a specific attribute */
-      int interp = find_interp(fs, indexed_interp,
-                               draw->extra_shader_outputs.semantic_name[j],
-                               draw->extra_shader_outputs.semantic_index[j]);
+      enum tgsi_interpolate_mode interp =
+         find_interp(fs, indexed_interp,
+                     draw->extra_shader_outputs.semantic_name[j],
+                     draw->extra_shader_outputs.semantic_index[j]);
       switch (interp) {
       case TGSI_INTERPOLATE_CONSTANT:
          clipper->const_attribs[clipper->num_const_attribs] = i + j;
@@ -893,44 +928,49 @@ clip_init_state(struct draw_stage *stage)
    }
 
    stage->tri = clip_tri;
-   stage->line = clip_line;
 }
 
 
-
-static void clip_first_tri(struct draw_stage *stage,
-                           struct prim_header *header)
+static void
+clip_first_tri(struct draw_stage *stage,
+               struct prim_header *header)
 {
-   clip_init_state( stage );
-   stage->tri( stage, header );
+   clip_init_state(stage);
+   stage->tri(stage, header);
 }
 
-static void clip_first_line(struct draw_stage *stage,
-                            struct prim_header *header)
+
+static void
+clip_first_line(struct draw_stage *stage,
+                struct prim_header *header)
 {
-   clip_init_state( stage );
-   stage->line( stage, header );
+   clip_init_state(stage);
+   stage->line = stage->draw->guard_band_points_lines_xy ? clip_line_guard_xy : clip_line;
+   stage->line(stage, header);
 }
 
 
-static void clip_flush(struct draw_stage *stage, unsigned flags)
+static void
+clip_flush(struct draw_stage *stage, unsigned flags)
 {
    stage->tri = clip_first_tri;
    stage->line = clip_first_line;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 }
 
 
-static void clip_reset_stipple_counter(struct draw_stage *stage)
+static void
+clip_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void clip_destroy(struct draw_stage *stage)
+static void
+clip_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
 
 
@@ -938,7 +978,8 @@ static void clip_destroy(struct draw_stage *stage)
  * Allocate a new clipper stage.
  * \return pointer to new stage object
  */
-struct draw_stage *draw_clip_stage(struct draw_context *draw)
+struct draw_stage *
+draw_clip_stage(struct draw_context *draw)
 {
    struct clip_stage *clipper = CALLOC_STRUCT(clip_stage);
    if (!clipper)
@@ -955,14 +996,14 @@ struct draw_stage *draw_clip_stage(struct draw_context *draw)
 
    clipper->plane = draw->plane;
 
-   if (!draw_alloc_temp_verts( &clipper->stage, MAX_CLIPPED_VERTICES+1 ))
+   if (!draw_alloc_temp_verts(&clipper->stage, MAX_CLIPPED_VERTICES+1))
       goto fail;
 
    return &clipper->stage;
 
  fail:
    if (clipper)
-      clipper->stage.destroy( &clipper->stage );
+      clipper->stage.destroy(&clipper->stage);
 
    return NULL;
 }

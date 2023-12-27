@@ -123,13 +123,14 @@ class Node(ABC):
 
 
 class Csbgen(Node):
-    __slots__ = ["prefix_field", "filename", "_defines", "_enums", "_structs"]
+    __slots__ = ["prefix_field", "filename", "_defines", "_enums", "_structs", "_streams"]
 
     prefix_field: str
     filename: str
     _defines: t.List[Define]
     _enums: t.Dict[str, Enum]
     _structs: t.Dict[str, Struct]
+    _streams: t.Dict[str, Stream]
 
     def __init__(self, name: str, prefix: str, filename: str) -> None:
         super().__init__(None, name.upper())
@@ -139,6 +140,7 @@ class Csbgen(Node):
         self._defines = []
         self._enums = {}
         self._structs = {}
+        self._streams = {}
 
     @property
     def full_name(self) -> str:
@@ -159,6 +161,11 @@ class Csbgen(Node):
                 raise RuntimeError("Struct redefined. Struct: %s" % element.name)
 
             self._structs[element.name] = element
+        elif isinstance(element, Stream):
+            if element.name in self._streams:
+                raise RuntimeError("Stream redefined. Stream: %s" % element.name)
+
+            self._streams[element.name] = element
         elif isinstance(element, Define):
             define_names = [d.full_name for d in self._defines]
             if element.full_name in define_names:
@@ -188,6 +195,9 @@ class Csbgen(Node):
 
         for struct in self._structs.values():
             struct.emit(self)
+
+        for stream in self._streams.values():
+            stream.emit(self)
 
         print("#endif /* %s */" % self._gen_guard())
 
@@ -231,7 +241,24 @@ class Enum(Node):
         if element.name in self._values:
             raise RuntimeError("Value is being redefined. Value: '%s'" % element.name)
 
+        if element.value in self._values.values():
+            raise RuntimeError("Ambiguous enum value detected. Value: '%s'" % element.value)
+
         self._values[element.name] = element
+
+    def _emit_to_str(self) -> None:
+        print(textwrap.dedent("""\
+            static const char *
+            %s_to_str(const enum %s value)
+            {""") % (self.full_name, self.full_name))
+
+        print("    switch (value) {")
+        for value in self._values.values():
+            print("    case %s: return \"%s\";" % (value.full_name, value.name))
+        print("    default: return NULL;")
+        print("    }")
+
+        print("}\n")
 
     def emit(self) -> None:
         # This check is invalid if tags other than Value can be nested within an enum.
@@ -242,6 +269,8 @@ class Enum(Node):
         for value in self._values.values():
             value.emit()
         print("};\n")
+
+        self._emit_to_str()
 
 
 class Value(Node):
@@ -405,6 +434,63 @@ class Struct(Node):
         self._emit_unpack_function(root)
 
 
+class Stream(Node):
+    __slots__ = ["length", "size", "_children"]
+
+    length: int
+    size: int
+    _children: t.Dict[str, t.Union[Condition, Field]]
+
+    def __init__(self, parent: Node, name: str, length: int) -> None:
+        self._children = {}
+
+        super().__init__(parent, name)
+
+    @property
+    def fields(self) -> t.List[Field]:
+        fields = []
+
+    @property
+    def prefix(self) -> str:
+        return self.full_name
+
+    def add(self, element: Node) -> None:
+        # We don't support conditions and field having the same name.
+        if isinstance(element, Field):
+            if element.name in self._children.keys():
+                raise ValueError("Field is being redefined. Field: '%s', Struct: '%s'"
+                                 % (element.name, self.full_name))
+
+            self._children[element.name] = element
+
+        elif isinstance(element, Condition):
+            # We only save ifs, and ignore the rest. The rest will be linked to
+            # the if condition so we just need to call emit() on the if and the
+            # rest will also be emitted.
+            if element.type == "if":
+                self._children[element.name] = element
+            else:
+                if element.name not in self._children.keys():
+                    raise RuntimeError("Unknown condition: '%s'" % element.name)
+
+        else:
+            super().add(element)
+
+    def _emit_header(self, root: Csbgen) -> None:
+        pass
+
+    def _emit_helper_macros(self) -> None:
+        pass
+
+    def _emit_pack_function(self, root: Csbgen) -> None:
+        pass
+
+    def _emit_unpack_function(self, root: Csbgen) -> None:
+        pass
+
+    def emit(self, root: Csbgen) -> None:
+        pass
+
 class Field(Node):
     __slots__ = ["start", "end", "type", "default", "shift", "_defines"]
 
@@ -482,13 +568,15 @@ class Field(Node):
         elif self.type == "int":
             return "int32_t"
         elif self.type == "uint":
-            if self.end - self.start < 32:
+            if self.end - self.start <= 32:
                 return "uint32_t"
-            elif self.end - self.start < 64:
+            elif self.end - self.start <= 64:
                 return "uint64_t"
 
             raise RuntimeError("No known C type found to hold %d bit sized value. Field: '%s'"
                                % (self.end - self.start, self.name))
+        elif self.type == "uint_array":
+            return "uint8_t"
         elif root.is_known_struct(self.type):
             return "struct " + self.type
         elif root.is_known_enum(self.type):
@@ -512,7 +600,10 @@ class Field(Node):
         if self.type == "mbo":
             return
 
-        print("    %-36s %s;" % (self._get_c_type(root), self.name))
+        if self.type == "uint_array":
+            print("    %-36s %s[%u];" % (self._get_c_type(root), self.name, (self.end - self.start) / 8))
+        else:
+            print("    %-36s %s;" % (self._get_c_type(root), self.name))
 
 
 class Define(Node):
@@ -819,6 +910,8 @@ class Group:
                 elif field.type == "offset":
                     non_address_fields.append("__pvr_offset(values->%s, %d, %d)"
                                               % (field.name, field.start - dword_start, field.end - dword_start))
+                elif field.type == "uint_array":
+                    pass
                 elif field.is_struct_type():
                     non_address_fields.append("__pvr_uint(v%d_%d, %d, %d)"
                                               % (index, field_index, field.start - dword_start,
@@ -928,6 +1021,7 @@ class Group:
                     print("/* unhandled field %s, type %s */" % (field.name, field.type))
 
 
+
 class Parser:
     __slots__ = ["parser", "context", "filename"]
 
@@ -961,6 +1055,10 @@ class Parser:
             struct = Struct(parent, attrs["name"], int(attrs["length"]))
             self.context.append(struct)
 
+        elif name == "stream":
+            stream = Stream(parent, attrs["name"], int(attrs["length"]))
+            self.context.append(stream)
+
         elif name == "field":
             default = None
             if "default" in attrs.keys():
@@ -970,8 +1068,26 @@ class Parser:
             if "shift" in attrs.keys():
                 shift = attrs["shift"]
 
-            field = Field(parent, name=attrs["name"], start=int(attrs["start"]), end=int(attrs["end"]),
-                          ty=attrs["type"], default=default, shift=shift)
+            if "start" in attrs.keys():
+                if ":" in str(attrs["start"]):
+                    (word, bit) = attrs["start"].split(":")
+                    start = (int(word) * 32) + int(bit)
+                else:
+                    start = int(attrs["start"])
+            else:
+                element = self.context[-1]
+                if isinstance(element, Stream):
+                    start = 0
+                else:
+                    raise RuntimeError("Field requires start attribute outside of stream.")
+
+            if "size" in attrs.keys():
+                end = start + int(attrs["size"])
+            else:
+                end = int(attrs["end"])
+
+            field = Field(parent, name=attrs["name"], start=start, end=end, ty=attrs["type"],
+                          default=default, shift=shift)
             self.context.append(field)
 
         elif name == "enum":
@@ -1024,6 +1140,9 @@ class Parser:
         if name == "struct":
             if not isinstance(element, Struct):
                 raise RuntimeError("Expected struct tag to be closed.")
+        elif name == "stream":
+            if not isinstance(element, Stream):
+                raise RuntimeError("Expected stream tag to be closed.")
         elif name == "field":
             if not isinstance(element, Field):
                 raise RuntimeError("Expected field tag to be closed.")

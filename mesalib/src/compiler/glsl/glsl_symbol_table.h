@@ -107,7 +107,7 @@ private:
 
    struct _mesa_symbol_table *table;
    void *mem_ctx;
-   void *linalloc;
+   linear_ctx *linalloc;
 };
 
 #endif /* GLSL_SYMBOL_TABLE */

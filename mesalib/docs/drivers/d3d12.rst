@@ -15,47 +15,51 @@ Debugging
 There's a few tools that are useful for debugging D3D12, such as these
 environment variables:
 
-.. envvar:: D3D12_DEBUG <flags> ("")
+.. envvar:: D3D12_DEBUG
 
-``verbose``
-   Enable verbose output to stdout
-``blit``
-   Trace blit and copy resource calls
-``experimental``
-   Enable experimental shader models feature
-``dxil``
-   Dump DXIL during program compile
-``disass``
-   Dump disassambly of created DXIL shader
-``res``
-   Debug resources
-``debuglayer``
-   Enable `debug layer`_
-``gpuvalidator``
-   Enable `GPU validator`_
+   Accepts the following comma-separated list of flags:
 
-.. envvar:: DXIL_DEBUG <flags> ("")
+   ``verbose``
+      Enable verbose output to stdout
+   ``blit``
+      Trace blit and copy resource calls
+   ``experimental``
+      Enable experimental shader models feature
+   ``dxil``
+      Dump DXIL during program compile
+   ``disass``
+      Dump disassambly of created DXIL shader
+   ``res``
+      Debug resources
+   ``debuglayer``
+      Enable `debug layer`_
+   ``gpuvalidator``
+      Enable `GPU validator`_
 
-``verbose``
-   Enable verbose output to stdout
-``dump_blob``
-   Write shader blobs
-``trace``
-   Trace instruction conversion
-``dump_module``
-   dump module tree to stderr
+.. envvar:: DXIL_DEBUG
 
-.. _debug layer: https://docs.microsoft.com/en-us/windows/win32/direct3d12/understanding-the-d3d12-debug-layer
-.. _GPU validator: https://docs.microsoft.com/en-us/windows/win32/direct3d12/using-d3d12-debug-layer-gpu-based-validation
+   Accepts the following comma-separated list of flags:
+
+   ``verbose``
+      Enable verbose output to stdout
+   ``dump_blob``
+      Write shader blobs
+   ``trace``
+      Trace instruction conversion
+   ``dump_module``
+      dump module tree to stderr
+
+.. _debug layer: https://learn.microsoft.com/en-us/windows/win32/direct3d12/understanding-the-d3d12-debug-layer
+.. _GPU validator: https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-d3d12-debug-layer-gpu-based-validation
 
 Utilities
 ---------
 
 Environment variables that control the behavior of the D3D12 driver.
 
-.. envvar:: MESA_D3D12_DEFAULT_ADAPTER_NAME <string> ("")
+.. envvar:: MESA_D3D12_DEFAULT_ADAPTER_NAME
 
-Specifies a substring to search for when chosing a default adapter to run on. 
-The first adapter matching the substring is chosen. The substring is not
-case sensitive.
+   Specifies a substring to search for when choosing a default adapter to
+   run on. The first adapter matching the substring is chosen. The substring
+   is not case sensitive.
 

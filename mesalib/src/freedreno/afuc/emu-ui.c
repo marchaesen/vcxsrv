@@ -143,6 +143,21 @@ read_one_value(const char **val)
 }
 
 static void
+print_dst(unsigned reg)
+{
+   if (reg == REG_REM)
+      printf("$rem"); /* remainding dwords in packet */
+   else if (reg == REG_ADDR)
+      printf("$addr");
+   else if (reg == REG_USRADDR)
+      printf("$usraddr");
+   else if (reg == REG_DATA)
+      printf("$data");
+   else
+      printf("$%02x", reg);
+}
+
+static void
 dump_gpr_register(struct emu *emu, unsigned n)
 {
    printf("              GPR:  ");
@@ -209,6 +224,28 @@ dump_control_register(struct emu *emu, unsigned n)
 }
 
 static void
+dump_sqe_register(struct emu *emu, unsigned n)
+{
+   printf("              SQE: ");
+   print_sqe_reg(n);
+   printf(": ");
+   if (BITSET_TEST(emu->sqe_regs.written, n)) {
+      printdelta("%08x\n", emu->sqe_regs.val[n]);
+   } else {
+      printf("%08x\n", emu->sqe_regs.val[n]);
+   }
+}
+
+static void
+dump_sqe_registers(struct emu *emu)
+{
+   for (unsigned i = 0; i < ARRAY_SIZE(emu->sqe_regs.val); i++) {
+      dump_sqe_register(emu, i);
+   }
+}
+
+
+static void
 dump_gpumem(struct emu *emu, uintptr_t addr)
 {
    uint32_t val = emu_mem_read_dword(emu, addr);
@@ -272,6 +309,24 @@ emu_dump_control_prompt(struct emu *emu)
 
    unsigned offset = afuc_control_reg(name);
    dump_control_register(emu, offset);
+}
+
+static void
+emu_write_sqe_prompt(struct emu *emu)
+{
+   clear_line();
+   printf("    SQE register (name or offset) and value: ");
+
+   const char *name;
+   const char *value;
+
+   if (read_two_values(&name, &value))
+      return;
+
+   unsigned offset = afuc_sqe_reg(name);
+   uint32_t val = strtoul(value, NULL, 0);
+
+   emu_set_sqe_reg(emu, offset, val);
 }
 
 static void
@@ -349,7 +404,7 @@ emu_dump_prompt(struct emu *emu)
 {
    do {
       clear_line();
-      printf("  dump: GPR (r)egisters, (c)ontrol register, (g)pu register, (m)emory: ");
+      printf("  dump: GPR (r)egisters, (c)ontrol register, (s)qe registers, (g)pu register, (m)emory: ");
 
       int c = readchar();
       printf("%c\n", c);
@@ -359,6 +414,10 @@ emu_dump_prompt(struct emu *emu)
           * them all:
           */
          dump_gpr_registers(emu);
+         break;
+      } else if (c == 's') {
+         /* Similarly, just dump all the SQE registers */
+         dump_sqe_registers(emu);
          break;
       } else if (c == 'c') {
          emu_dump_control_prompt(emu);
@@ -381,13 +440,16 @@ emu_write_prompt(struct emu *emu)
 {
    do {
       clear_line();
-      printf("  write: GPR (r)egister, (c)ontrol register, (g)pu register, (m)emory: ");
+      printf("  write: GPR (r)egister, (c)ontrol register, (s)sqe register, (g)pu register, (m)emory: ");
 
       int c = readchar();
       printf("%c\n", c);
 
       if (c == 'r') {
          emu_write_gpr_prompt(emu);
+         break;
+      } else if (c == 's') {
+         emu_write_sqe_prompt(emu);
          break;
       } else if (c == 'c') {
          emu_write_control_prompt(emu);
@@ -497,6 +559,7 @@ void
 emu_clear_state_change(struct emu *emu)
 {
    memset(emu->control_regs.written, 0, sizeof(emu->control_regs.written));
+   memset(emu->sqe_regs.written,     0, sizeof(emu->sqe_regs.written));
    memset(emu->pipe_regs.written,    0, sizeof(emu->pipe_regs.written));
    memset(emu->gpu_regs.written,     0, sizeof(emu->gpu_regs.written));
    memset(emu->gpr_regs.written,     0, sizeof(emu->gpr_regs.written));
@@ -526,6 +589,10 @@ emu_dump_state_change(struct emu *emu)
 
    BITSET_FOREACH_SET (i, emu->control_regs.written, EMU_NUM_CONTROL_REGS) {
       dump_control_register(emu, i);
+   }
+
+   BITSET_FOREACH_SET (i, emu->sqe_regs.written, EMU_NUM_SQE_REGS) {
+      dump_sqe_register(emu, i);
    }
 
    if (emu->gpumem_written != ~0) {

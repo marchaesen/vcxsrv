@@ -25,7 +25,7 @@
 #define R300_STATE_INLINES_H
 
 #include "draw/draw_vertex.h"
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "util/format/u_format.h"
 #include "r300_reg.h"
 #include <stdio.h>
@@ -39,7 +39,7 @@ static inline int pack_float_16_6x(float f) {
 /* Blend state. */
 
 static inline uint32_t r300_translate_blend_function(int blend_func,
-                                                     boolean clamp)
+                                                     bool clamp)
 {
     switch (blend_func) {
     case PIPE_BLEND_ADD:
@@ -208,7 +208,7 @@ r300_translate_polygon_mode_front(unsigned mode) {
 
         default:
             fprintf(stderr, "r300: Bad polygon mode %i in %s\n", mode,
-                __FUNCTION__);
+                __func__);
             return R300_GA_POLY_MODE_FRONT_PTYPE_TRI;
     }
 }
@@ -226,7 +226,7 @@ r300_translate_polygon_mode_back(unsigned mode) {
 
         default:
             fprintf(stderr, "r300: Bad polygon mode %i in %s\n", mode,
-                __FUNCTION__);
+                __func__);
             return R300_GA_POLY_MODE_BACK_PTYPE_TRI;
     }
 }
@@ -260,7 +260,7 @@ static inline uint32_t r300_translate_wrap(int wrap)
 }
 
 static inline uint32_t r300_translate_tex_filters(int min, int mag, int mip,
-                                                  boolean is_anisotropic)
+                                                  bool is_anisotropic)
 {
     uint32_t retval = 0;
 
@@ -340,7 +340,7 @@ static inline uint16_t
 r300_translate_vertex_data_type(enum pipe_format format) {
     uint32_t result = 0;
     const struct util_format_description *desc;
-    unsigned i;
+    int i = util_format_get_first_non_void_channel(format);
 
     if (!format)
         format = PIPE_FORMAT_R32_FLOAT;
@@ -349,13 +349,6 @@ r300_translate_vertex_data_type(enum pipe_format format) {
 
     if (desc->layout != UTIL_FORMAT_LAYOUT_PLAIN) {
         return R300_INVALID_FORMAT;
-    }
-
-    /* Find the first non-VOID channel. */
-    for (i = 0; i < 4; i++) {
-        if (desc->channel[i].type != UTIL_FORMAT_TYPE_VOID) {
-            break;
-        }
     }
 
     switch (desc->channel[i].type) {
@@ -425,7 +418,7 @@ r300_translate_vertex_data_swizzle(enum pipe_format format) {
 
     if (desc->layout != UTIL_FORMAT_LAYOUT_PLAIN) {
         fprintf(stderr, "r300: Bad format %s in %s:%d\n",
-            util_format_short_name(format), __FUNCTION__, __LINE__);
+            util_format_short_name(format), __func__, __LINE__);
         return 0;
     }
 

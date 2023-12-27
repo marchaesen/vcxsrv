@@ -53,20 +53,20 @@
 static unsigned
 mir_derivative_mode(nir_op op)
 {
-        switch (op) {
-        case nir_op_fddx:
-        case nir_op_fddx_fine:
-        case nir_op_fddx_coarse:
-                return TEXTURE_DFDX;
+   switch (op) {
+   case nir_op_fddx:
+   case nir_op_fddx_fine:
+   case nir_op_fddx_coarse:
+      return TEXTURE_DFDX;
 
-        case nir_op_fddy:
-        case nir_op_fddy_fine:
-        case nir_op_fddy_coarse:
-                return TEXTURE_DFDY;
+   case nir_op_fddy:
+   case nir_op_fddy_fine:
+   case nir_op_fddy_coarse:
+      return TEXTURE_DFDY;
 
-        default:
-                unreachable("Invalid derivative op");
-        }
+   default:
+      unreachable("Invalid derivative op");
+   }
 }
 
 /* Returns true if a texturing op computes derivatives either explicitly or
@@ -75,91 +75,98 @@ mir_derivative_mode(nir_op op)
 bool
 mir_op_computes_derivatives(gl_shader_stage stage, unsigned op)
 {
-        /* Only fragment shaders may compute derivatives, but the sense of
-         * "normal" changes in vertex shaders on certain GPUs */
+   /* Only fragment shaders may compute derivatives, but the sense of
+    * "normal" changes in vertex shaders on certain GPUs */
 
-        if (op == midgard_tex_op_normal && stage != MESA_SHADER_FRAGMENT)
-                return false;
+   if (op == midgard_tex_op_normal && stage != MESA_SHADER_FRAGMENT)
+      return false;
 
-        switch (op) {
-        case midgard_tex_op_normal:
-        case midgard_tex_op_derivative:
-                assert(stage == MESA_SHADER_FRAGMENT);
-                return true;
-        default:
-                return false;
-        }
+   switch (op) {
+   case midgard_tex_op_normal:
+   case midgard_tex_op_derivative:
+      assert(stage == MESA_SHADER_FRAGMENT);
+      return true;
+   default:
+      return false;
+   }
 }
 
 void
 midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
 {
-        /* Create texture instructions */
+   /* Create texture instructions */
+   midgard_instruction ins = {
+      .type = TAG_TEXTURE_4,
+      .dest_type = nir_type_float32,
+      .src =
+         {
+            ~0,
+            nir_src_index(ctx, &instr->src[0].src),
+            ~0,
+            ~0,
+         },
+      .swizzle = SWIZZLE_IDENTITY_4,
+      .src_types =
+         {
+            nir_type_float32,
+            nir_type_float32,
+         },
+      .op = midgard_tex_op_derivative,
+      .texture =
+         {
+            .mode = mir_derivative_mode(instr->op),
+            .format = 2,
+            .in_reg_full = 1,
+            .out_full = 1,
+            .sampler_type = MALI_SAMPLER_FLOAT,
+         },
+   };
 
-        unsigned nr_components = nir_dest_num_components(instr->dest.dest);
-
-        midgard_instruction ins = {
-                .type = TAG_TEXTURE_4,
-                .mask = mask_of(nr_components),
-                .dest = nir_dest_index(&instr->dest.dest),
-                .dest_type = nir_type_float32,
-                .src = { ~0, nir_src_index(ctx, &instr->src[0].src), ~0, ~0 },
-                .swizzle = SWIZZLE_IDENTITY_4,
-                .src_types = { nir_type_float32, nir_type_float32 },
-                .op = midgard_tex_op_derivative,
-                .texture = {
-                        .mode = mir_derivative_mode(instr->op),
-                        .format = 2,
-                        .in_reg_full = 1,
-                        .out_full = 1,
-                        .sampler_type = MALI_SAMPLER_FLOAT,
-                }
-        };
-
-        if (!instr->dest.dest.is_ssa)
-                ins.mask &= instr->dest.write_mask;
-
-        emit_mir_instruction(ctx, ins);
+   ins.dest = nir_def_index_with_mask(&instr->def, &ins.mask);
+   emit_mir_instruction(ctx, ins);
 }
 
 void
 midgard_lower_derivatives(compiler_context *ctx, midgard_block *block)
 {
-        mir_foreach_instr_in_block_safe(block, ins) {
-                if (ins->type != TAG_TEXTURE_4) continue;
-                if (ins->op != midgard_tex_op_derivative) continue;
+   mir_foreach_instr_in_block_safe(block, ins) {
+      if (ins->type != TAG_TEXTURE_4)
+         continue;
+      if (ins->op != midgard_tex_op_derivative)
+         continue;
 
-                /* Check if we need to split */
+      /* Check if we need to split */
 
-                bool upper = ins->mask & 0b1100;
-                bool lower = ins->mask & 0b0011;
+      bool upper = ins->mask & 0b1100;
+      bool lower = ins->mask & 0b0011;
 
-                if (!(upper && lower)) continue;
+      if (!(upper && lower))
+         continue;
 
-                /* Duplicate for dedicated upper instruction */
+      /* Duplicate for dedicated upper instruction */
 
-                midgard_instruction dup;
-                memcpy(&dup, ins, sizeof(dup));
+      midgard_instruction dup;
+      memcpy(&dup, ins, sizeof(dup));
 
-                /* Fixup masks. Make original just lower and dupe just upper */
+      /* Fixup masks. Make original just lower and dupe just upper */
 
-                ins->mask &= 0b0011;
-                dup.mask &= 0b1100;
+      ins->mask &= 0b0011;
+      dup.mask &= 0b1100;
 
-                /* Fixup swizzles */
-                dup.swizzle[0][0] = dup.swizzle[0][1] = dup.swizzle[0][2] = COMPONENT_X;
-                dup.swizzle[0][3] = COMPONENT_Y;
+      /* Fixup swizzles */
+      dup.swizzle[0][0] = dup.swizzle[0][1] = dup.swizzle[0][2] = COMPONENT_X;
+      dup.swizzle[0][3] = COMPONENT_Y;
 
-                dup.swizzle[1][0] = COMPONENT_Z;
-                dup.swizzle[1][1] = dup.swizzle[1][2] = dup.swizzle[1][3] = COMPONENT_W;
+      dup.swizzle[1][0] = COMPONENT_Z;
+      dup.swizzle[1][1] = dup.swizzle[1][2] = dup.swizzle[1][3] = COMPONENT_W;
 
-                /* Insert the new instruction */
-                mir_insert_instruction_before(ctx, mir_next_op(ins), dup);
+      /* Insert the new instruction */
+      mir_insert_instruction_before(ctx, mir_next_op(ins), dup);
 
-                /* We'll need both instructions to write to the same index, so
-                 * rewrite to use a register */
+      /* We'll need both instructions to write to the same index, so
+       * rewrite to use a register */
 
-                unsigned new = make_compiler_temp_reg(ctx);
-                mir_rewrite_index(ctx, ins->dest, new);
-        }
+      unsigned new = make_compiler_temp_reg(ctx);
+      mir_rewrite_index(ctx, ins->dest, new);
+   }
 }

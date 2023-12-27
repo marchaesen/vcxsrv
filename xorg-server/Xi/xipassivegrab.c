@@ -137,6 +137,12 @@ ProcXIPassiveGrabDevice(ClientPtr client)
         return BadValue;
     }
 
+    /* XI2 allows 32-bit keycodes but thanks to XKB we can never
+     * implement this. Just return an error for all keycodes that
+     * cannot work anyway, same for buttons > 255. */
+    if (stuff->detail > 255)
+        return XIAlreadyGrabbed;
+
     if (XICheckInvalidMaskBits(client, (unsigned char *) &stuff[1],
                                stuff->mask_len * 4) != Success)
         return BadValue;
@@ -207,14 +213,8 @@ ProcXIPassiveGrabDevice(ClientPtr client)
                                 &param, XI2, &mask);
             break;
         case XIGrabtypeKeycode:
-            /* XI2 allows 32-bit keycodes but thanks to XKB we can never
-             * implement this. Just return an error for all keycodes that
-             * cannot work anyway */
-            if (stuff->detail > 255)
-                status = XIAlreadyGrabbed;
-            else
-                status = GrabKey(client, dev, mod_dev, stuff->detail,
-                                 &param, XI2, &mask);
+            status = GrabKey(client, dev, mod_dev, stuff->detail,
+                             &param, XI2, &mask);
             break;
         case XIGrabtypeEnter:
         case XIGrabtypeFocusIn:
@@ -330,6 +330,12 @@ ProcXIPassiveUngrabDevice(ClientPtr client)
     if ((stuff->grab_type == XIGrabtypeEnter ||
          stuff->grab_type == XIGrabtypeFocusIn ||
          stuff->grab_type == XIGrabtypeTouchBegin) && stuff->detail != 0) {
+        client->errorValue = stuff->detail;
+        return BadValue;
+    }
+
+    /* We don't allow passive grabs for details > 255 anyway */
+    if (stuff->detail > 255) {
         client->errorValue = stuff->detail;
         return BadValue;
     }

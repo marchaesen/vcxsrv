@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "accum.h"
 #include "arrayobj.h"
@@ -423,10 +423,8 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib_node *ena
                    GL_RASTER_POSITION_UNCLIPPED_IBM);
    TEST_AND_UPDATE(ctx->Point.SmoothFlag, enable->PointSmooth,
                    GL_POINT_SMOOTH);
-   if (ctx->Extensions.ARB_point_sprite) {
-      TEST_AND_UPDATE(ctx->Point.PointSprite, enable->PointSprite,
-                      GL_POINT_SPRITE);
-   }
+   TEST_AND_UPDATE(ctx->Point.PointSprite, enable->PointSprite,
+                   GL_POINT_SPRITE);
    TEST_AND_UPDATE(ctx->Polygon.OffsetPoint, enable->PolygonOffsetPoint,
                    GL_POLYGON_OFFSET_POINT);
    TEST_AND_UPDATE(ctx->Polygon.OffsetLine, enable->PolygonOffsetLine,
@@ -939,18 +937,16 @@ _mesa_PopAttrib(void)
       TEST_AND_CALL1_SEL(Point.MaxSize, PointParameterf, GL_POINT_SIZE_MAX_EXT);
       TEST_AND_CALL1_SEL(Point.Threshold, PointParameterf, GL_POINT_FADE_THRESHOLD_SIZE_EXT);
 
-      if (ctx->Extensions.ARB_point_sprite) {
-         if (ctx->Point.CoordReplace != attr->Point.CoordReplace) {
-            ctx->NewState |= _NEW_POINT | _NEW_FF_VERT_PROGRAM;
-            ctx->Point.CoordReplace = attr->Point.CoordReplace;
-         }
-         TEST_AND_UPDATE(ctx->Point.PointSprite, attr->Point.PointSprite,
-                         GL_POINT_SPRITE);
-
-         if ((ctx->API == API_OPENGL_COMPAT && ctx->Version >= 20)
-             || ctx->API == API_OPENGL_CORE)
-            TEST_AND_CALL1_SEL(Point.SpriteOrigin, PointParameterf, GL_POINT_SPRITE_COORD_ORIGIN);
+      if (ctx->Point.CoordReplace != attr->Point.CoordReplace) {
+         ctx->NewState |= _NEW_POINT | _NEW_FF_VERT_PROGRAM;
+         ctx->Point.CoordReplace = attr->Point.CoordReplace;
       }
+      TEST_AND_UPDATE(ctx->Point.PointSprite, attr->Point.PointSprite,
+                      GL_POINT_SPRITE);
+
+      if ((_mesa_is_desktop_gl_compat(ctx) && ctx->Version >= 20)
+          || _mesa_is_desktop_gl_core(ctx))
+         TEST_AND_CALL1_SEL(Point.SpriteOrigin, PointParameterf, GL_POINT_SPRITE_COORD_ORIGIN);
    }
 
    if (mask & GL_POLYGON_BIT) {
@@ -1209,14 +1205,10 @@ copy_array_object(struct gl_context *ctx,
    /* Enabled must be the same than on push */
    dest->Enabled = src->Enabled;
    dest->_EnabledWithMapMode = src->_EnabledWithMapMode;
-   dest->_EffEnabledVBO = src->_EffEnabledVBO;
-   dest->_EffEnabledNonZeroDivisor = src->_EffEnabledNonZeroDivisor;
    /* The bitmask of bound VBOs needs to match the VertexBinding array */
    dest->VertexAttribBufferMask = src->VertexAttribBufferMask;
    dest->NonZeroDivisorMask = src->NonZeroDivisorMask;
    dest->_AttributeMapMode = src->_AttributeMapMode;
-   dest->NewVertexBuffers = src->NewVertexBuffers;
-   dest->NewVertexElements = src->NewVertexElements;
    /* skip NumUpdates and IsDynamic because they can only increase, not decrease */
 }
 
@@ -1313,15 +1305,16 @@ restore_array_attrib(struct gl_context *ctx,
       copy_array_attrib(ctx, dest, src, true, 0);
    }
 
-   /* Invalidate array state. It will be updated during the next draw. */
-   _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
-
    if (is_vao_name_zero || !src->VAO->IndexBufferObj ||
        _mesa_IsBuffer(src->VAO->IndexBufferObj->Name)) {
       _mesa_BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB,
                        src->VAO->IndexBufferObj ?
                           src->VAO->IndexBufferObj->Name : 0);
    }
+
+   _mesa_update_edgeflag_state_vao(ctx);
+   _mesa_set_varying_vp_inputs(ctx, ctx->VertexProgram._VPModeInputFilter &
+                               ctx->Array.VAO->_EnabledWithMapMode);
 }
 
 

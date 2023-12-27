@@ -110,11 +110,11 @@ panvk_varyings_buf_count(struct panvk_varyings_info *varyings)
 
 static inline void
 panvk_varyings_alloc(struct panvk_varyings_info *varyings,
-                     struct pan_pool *varying_mem_pool,
-                     unsigned vertex_count)
+                     struct pan_pool *varying_mem_pool, unsigned vertex_count)
 {
    for (unsigned i = 0; i < PANVK_VARY_BUF_MAX; i++) {
-      if (!(varyings->buf_mask & (1 << i))) continue;
+      if (!(varyings->buf_mask & (1 << i)))
+         continue;
 
       unsigned buf_idx = panvk_varying_buf_index(varyings, i);
       unsigned size = varyings->buf[buf_idx].stride * vertex_count;

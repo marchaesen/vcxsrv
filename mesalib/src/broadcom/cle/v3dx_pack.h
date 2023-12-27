@@ -31,12 +31,10 @@
 
 #if (V3D_VERSION == 21)
 #  include "cle/v3d_packet_v21_pack.h"
-#elif (V3D_VERSION == 33)
-#  include "cle/v3d_packet_v33_pack.h"
-#elif (V3D_VERSION == 41)
-#  include "cle/v3d_packet_v41_pack.h"
 #elif (V3D_VERSION == 42)
 #  include "cle/v3d_packet_v42_pack.h"
+#elif (V3D_VERSION == 71)
+#  include "cle/v3d_packet_v71_pack.h"
 #else
 #  error "Need to add a pack header include for this v3d version"
 #endif

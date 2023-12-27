@@ -27,7 +27,7 @@
 #ifndef LP_SETUP_H
 #define LP_SETUP_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "lp_jit.h"
 
 struct draw_context;
@@ -101,7 +101,7 @@ lp_setup_set_alpha_ref_value(struct lp_setup_context *setup,
 
 void
 lp_setup_set_stencil_ref_values(struct lp_setup_context *setup,
-                                const ubyte refs[2]);
+                                const uint8_t refs[2]);
 
 void
 lp_setup_set_blend_color(struct lp_setup_context *setup,
@@ -136,7 +136,7 @@ lp_setup_set_sample_mask(struct lp_setup_context *setup,
 
 void
 lp_setup_set_rasterizer_discard(struct lp_setup_context *setup,
-                                boolean rasterizer_discard);
+                                bool rasterizer_discard);
 
 void
 lp_setup_set_vertex_info(struct lp_setup_context *setup,
@@ -144,7 +144,7 @@ lp_setup_set_vertex_info(struct lp_setup_context *setup,
 
 void
 lp_setup_set_linear_mode(struct lp_setup_context *setup,
-                         boolean permit_linear_rasterizer);
+                         bool permit_linear_rasterizer);
 
 void
 lp_setup_begin_query(struct lp_setup_context *setup,

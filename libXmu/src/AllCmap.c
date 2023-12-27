@@ -110,7 +110,7 @@ XmuAllStandardColormaps(Display *dpy)
 	v2 = getDeepestVisual(PseudoColor, vinfo, nvisuals);
 
 	if (v2 &&
-	    (!v1 || (v2->colormap_size >=
+	    (!v1 || (v2->colormap_size >= (long)
 		     ((v1->red_mask | v1->green_mask | v1->blue_mask) + 1))))
 	    status = XmuVisualStandardColormaps(dpy, scr, v2->visualid,
 						(unsigned) v2->depth, 1, 1);

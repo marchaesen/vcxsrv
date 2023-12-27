@@ -38,38 +38,42 @@ if flag set, copy cmdstream bo contents into RB instead of IB'ing to it from
 RB.
  */
 
-/* The opcode is encoded variable length.  Opcodes less than 0x30
- * are encoded as 5 bits followed by (rep) flag.  Opcodes >= 0x30
- * (ie. top two bits are '11' are encoded as 6 bits.  See get_opc()
- */
 typedef enum {
-   OPC_NOP = 0x00,
+   OPC_NOP,
 
-   OPC_ADD = 0x01,   /* add immediate */
-   OPC_ADDHI = 0x02, /* add immediate (hi 32b of 64b) */
-   OPC_SUB = 0x03,   /* subtract immediate */
-   OPC_SUBHI = 0x04, /* subtract immediate (hi 32b of 64b) */
-   OPC_AND = 0x05,   /* AND immediate */
-   OPC_OR = 0x06,    /* OR immediate */
-   OPC_XOR = 0x07,   /* XOR immediate */
-   OPC_NOT = 0x08,   /* bitwise not of immed (src1 ignored) */
-   OPC_SHL = 0x09,   /* shift-left immediate */
-   OPC_USHR = 0x0a,  /* unsigned shift right by immediate */
-   OPC_ISHR = 0x0b,  /* signed shift right by immediate */
-   OPC_ROT = 0x0c,   /* rotate left (left shift with wrap-around) */
-   OPC_MUL8 = 0x0d,  /* 8bit multiply by immediate */
-   OPC_MIN = 0x0e,
-   OPC_MAX = 0x0f,
-   OPC_CMP = 0x10,  /* compare src to immed */
-   OPC_MOVI = 0x11, /* move immediate */
+#define ALU(name) \
+   OPC_##name, \
+   OPC_##name##I,
+   ALU(ADD)   /* add immediate */
+   ALU(ADDHI) /* add immediate (hi 32b of 64b) */
+   ALU(SUB)   /* subtract immediate */
+   ALU(SUBHI) /* subtract immediate (hi 32b of 64b) */
+   ALU(AND)   /* AND immediate */
+   ALU(OR)    /* OR immediate */
+   ALU(XOR)   /* XOR immediate */
+   ALU(NOT)   /* bitwise not of immed (src1 ignored) */
+   ALU(SHL)   /* shift-left immediate */
+   ALU(USHR)  /* unsigned shift right by immediate */
+   ALU(ISHR)  /* signed shift right by immediate */
+   ALU(ROT)   /* rotate left (left shift with wrap-around) */
+   ALU(MUL8)  /* 8bit multiply by immediate */
+   ALU(MIN)
+   ALU(MAX)
+   ALU(CMP)   /* compare src to immed */
+   ALU(BIC)   /* AND with second source negated */
+   OPC_SETBIT, /* Set or clear a bit dynamically */
+   OPC_MOVI,  /* move immediate */
+   OPC_SETBITI, /* Set a bit */
+   OPC_CLRBIT, /* Clear a bit */
+   OPC_UBFX, /* Unsigned BitField eXtract */
+   OPC_BFI,  /* BitField Insert */
+#undef ALU
 
    /* Return the most-significant bit of src2, or 0 if src2 == 0 (the
     * same as if src2 == 1). src1 is ignored. Note that this overlaps
-    * with STORE6, so it can only be used with the two-source encoding.
+    * with STORE, so it can only be used with the two-source encoding.
     */
-   OPC_MSB = 0x14,
-
-   OPC_ALU = 0x13, /* ALU instruction with two src registers */
+   OPC_MSB,
 
    /* These seem something to do with setting some external state..
     * doesn't seem to map *directly* to registers, but I guess that
@@ -90,26 +94,38 @@ typedef enum {
     * 0x0b22->0x0b24 (IB2).  Presumably $05 ends up w/ different value
     * for RB->IB1 vs IB1->IB2.
     */
-   OPC_CWRITE5 = 0x15,
-   OPC_CREAD5 = 0x16,
+   OPC_CWRITE,
+   OPC_CREAD,
 
-   /* A6xx shuffled around the cwrite/cread opcodes and added new opcodes
-    * that let you read/write directly to memory (and bypass the IOMMU?).
+   /* A6xx added new opcodes that let you read/write directly to memory (and
+    * bypass the IOMMU?).
     */
-   OPC_STORE6 = 0x14,
-   OPC_CWRITE6 = 0x15,
-   OPC_LOAD6 = 0x16,
-   OPC_CREAD6 = 0x17,
+   OPC_STORE,
+   OPC_LOAD,
 
-   OPC_BRNEI = 0x30,         /* relative branch (if $src != immed) */
-   OPC_BREQI = 0x31,         /* relative branch (if $src == immed) */
-   OPC_BRNEB = 0x32,         /* relative branch (if bit not set) */
-   OPC_BREQB = 0x33,         /* relative branch (if bit is set) */
-   OPC_RET = 0x34,           /* return */
-   OPC_CALL = 0x35,          /* "function" call */
-   OPC_WIN = 0x36,           /* wait for input (ie. wait for WPTR to advance) */
-   OPC_PREEMPTLEAVE6 = 0x38, /* try to leave preemption */
-   OPC_SETSECURE = 0x3b,     /* switch secure mode on/off */
+   /* A6xx added new opcodes that let you read/write the state of the
+    * SQE processor itself, like the call stack. This is mostly used by
+    * preemption but is also used to set the preempt routine entrypoint.
+    */
+   OPC_SREAD,
+   OPC_SWRITE,
+
+   OPC_BRNEI,         /* relative branch (if $src != immed) */
+   OPC_BREQI,         /* relative branch (if $src == immed) */
+   OPC_BRNEB,         /* relative branch (if bit not set) */
+   OPC_BREQB,         /* relative branch (if bit is set) */
+   OPC_RET,           /* return */
+   OPC_IRET,          /* return from preemption interrupt handler */
+   OPC_CALL,          /* "function" call */
+   OPC_WAITIN,        /* wait for input (ie. wait for WPTR to advance) */
+   OPC_PREEMPTLEAVE,  /* try to leave preemption */
+   OPC_SETSECURE,     /* switch secure mode on/off */
+
+   /* pseudo-opcodes without an actual encoding */
+   OPC_BREQ,
+   OPC_BRNE,
+   OPC_JUMP,
+   OPC_RAW_LITERAL,
 } afuc_opc;
 
 /**
@@ -141,98 +157,31 @@ typedef enum {
    REG_DATA    = 0x1f,
 } afuc_reg;
 
-typedef union PACKED {
-   /* addi, subi, andi, ori, xori, etc: */
-   struct PACKED {
-      uint32_t uimm : 16;
-      uint32_t dst : 5;
-      uint32_t src : 5;
-      uint32_t hdr : 6;
-   } alui;
-   struct PACKED {
-      uint32_t uimm : 16;
-      uint32_t dst : 5;
-      uint32_t shift : 5;
-      uint32_t hdr : 6;
-   } movi;
-   struct PACKED {
-      uint32_t alu : 5;
-      uint32_t pad : 4;
-      uint32_t xmov : 2; /* execute eXtra mov's based on $rem */
-      uint32_t dst : 5;
-      uint32_t src2 : 5;
-      uint32_t src1 : 5;
-      uint32_t hdr : 6;
-   } alu;
-   struct PACKED {
-      uint32_t uimm : 12;
-      /* TODO this needs to be confirmed:
-       *
-       * flags:
-       *   0x4 - post-increment src2 by uimm (need to confirm this is also
-       *         true for load/cread).  TBD whether, when used in conjunction
-       *         with @LOAD_STORE_HI, 32b rollover works properly.
-       *
-       * other values tbd, also need to confirm if different bits can be
-       * set together (I don't see examples of this in existing fw)
-       */
-      uint32_t flags : 4;
-      uint32_t src1 : 5; /* dst (cread) or src (cwrite) register */
-      uint32_t src2 : 5; /* read or write address is src2+uimm */
-      uint32_t hdr : 6;
-   } control;
-   struct PACKED {
-      int32_t ioff : 16; /* relative offset */
-      uint32_t bit_or_imm : 5;
-      uint32_t src : 5;
-      uint32_t hdr : 6;
-   } br;
-   struct PACKED {
-      uint32_t uoff : 26; /* absolute (unsigned) offset */
-      uint32_t hdr : 6;
-   } call;
-   struct PACKED {
-      uint32_t pad : 25;
-      uint32_t interrupt : 1; /* return from ctxt-switch interrupt handler */
-      uint32_t hdr : 6;
-   } ret;
-   struct PACKED {
-      uint32_t pad : 26;
-      uint32_t hdr : 6;
-   } waitin;
-   struct PACKED {
-      uint32_t pad : 26;
-      uint32_t opc_r : 6;
-   };
+struct afuc_instr {
+   afuc_opc opc;
 
-} afuc_instr;
+   uint8_t dst;
+   uint8_t src1;
+   uint8_t src2;
+   uint32_t immed;
+   uint8_t shift;
+   uint8_t bit;
+   uint8_t xmov;
+   uint8_t sds;
+   uint32_t literal;
+   int offset;
+   const char *label;
 
-static inline void
-afuc_get_opc(afuc_instr *ai, afuc_opc *opc, bool *rep)
-{
-   if (ai->opc_r < 0x30) {
-      *opc = ai->opc_r >> 1;
-      *rep = ai->opc_r & 0x1;
-   } else {
-      *opc = ai->opc_r;
-      *rep = false;
-   }
-}
+   bool has_immed : 1;
+   bool has_shift : 1;
+   bool has_bit : 1;
+   bool is_literal : 1;
+   bool rep : 1;
+   bool preincrement : 1;
+};
 
-static inline void
-afuc_set_opc(afuc_instr *ai, afuc_opc opc, bool rep)
-{
-   if (opc < 0x30) {
-      ai->opc_r = opc << 1;
-      ai->opc_r |= !!rep;
-   } else {
-      ai->opc_r = opc;
-   }
-}
-
-void print_src(unsigned reg);
-void print_dst(unsigned reg);
 void print_control_reg(uint32_t id);
+void print_sqe_reg(uint32_t id);
 void print_pipe_reg(uint32_t id);
 
 #endif /* _AFUC_H_ */

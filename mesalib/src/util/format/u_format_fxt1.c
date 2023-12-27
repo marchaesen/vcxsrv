@@ -1549,7 +1549,7 @@ static inline void
 util_format_fxtn_rgb_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
                                         const uint8_t *restrict src_row, unsigned src_stride,
                                         unsigned width, unsigned height,
-                                        boolean rgba)
+                                        bool rgba)
 {
    const unsigned bw = 8, bh = 4, comps = 4;
    unsigned x, y, i, j;
@@ -1596,7 +1596,7 @@ static inline void
 util_format_fxtn_rgb_unpack_rgba_float(float *dst_row, unsigned dst_stride,
                                        const uint8_t *restrict src_row, unsigned src_stride,
                                        unsigned width, unsigned height,
-                                       boolean rgba)
+                                       bool rgba)
 {
    const unsigned bw = 8, bh = 4, comps = 4;
    unsigned x, y, i, j;

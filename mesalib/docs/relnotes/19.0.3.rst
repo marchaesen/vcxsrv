@@ -71,7 +71,7 @@ Eric Engestrom (1):
 
 -  meson: remove meson-created megadrivers symlinks
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  anv/pipeline: Fix MEDIA_VFE_STATE::PerThreadScratchSpace on gen7
 -  anv: Add a #define for the max binding table size

@@ -22,15 +22,15 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-@RET@		FcBool 	
-@FUNC@		FcFileScan 
-@TYPE1@		FcFontSet *			@ARG1@		set	
-@TYPE2@		FcStrSet *			@ARG2@		dirs	
-@TYPE3@		FcFileCache *			@ARG3@		cache	
-@TYPE4@		FcBlanks *			@ARG4@		blanks	
-@TYPE5@		const FcChar8 *			@ARG5@		file	
-@TYPE6@		FcBool% 			@ARG6@		force
-@PURPOSE@	scan a font file
+@RET@           FcBool
+@FUNC@          FcFileScan
+@TYPE1@         FcFontSet *                     @ARG1@          set
+@TYPE2@         FcStrSet *                      @ARG2@          dirs
+@TYPE3@         FcFileCache *                   @ARG3@          cache
+@TYPE4@         FcBlanks *                      @ARG4@          blanks
+@TYPE5@         const FcChar8 *                 @ARG5@          file
+@TYPE6@         FcBool%                         @ARG6@          force
+@PURPOSE@       scan a font file
 @DESC@
 Scans a single file and adds all fonts found to <parameter>set</parameter>.
 If <parameter>force</parameter> is FcTrue, then the file is scanned even if
@@ -45,24 +45,24 @@ contents of the font file itself. Returns FcFalse if any of the fonts cannot be
 added (due to allocation failure). Otherwise returns FcTrue.
 @@
 
-@RET@		FcBool
-@FUNC@		FcFileIsDir
-@TYPE1@		const FcChar8 *			@ARG1@		file
-@PURPOSE@	check whether a file is a directory
+@RET@           FcBool
+@FUNC@          FcFileIsDir
+@TYPE1@         const FcChar8 *                 @ARG1@          file
+@PURPOSE@       check whether a file is a directory
 @DESC@
 Returns FcTrue if <parameter>file</parameter> is a directory, otherwise
 returns FcFalse.
 @@
 
-@RET@		FcBool 	
-@FUNC@		FcDirScan 
-@TYPE1@		FcFontSet *			@ARG1@		set	
-@TYPE2@		FcStrSet *			@ARG2@		dirs	
-@TYPE3@		FcFileCache *			@ARG3@		cache	
-@TYPE4@		FcBlanks *			@ARG4@		blanks	
-@TYPE5@		const FcChar8 *			@ARG5@		dir	
-@TYPE6@		FcBool% 			@ARG6@		force
-@PURPOSE@	scan a font directory without caching it
+@RET@           FcBool
+@FUNC@          FcDirScan
+@TYPE1@         FcFontSet *                     @ARG1@          set
+@TYPE2@         FcStrSet *                      @ARG2@          dirs
+@TYPE3@         FcFileCache *                   @ARG3@          cache
+@TYPE4@         FcBlanks *                      @ARG4@          blanks
+@TYPE5@         const FcChar8 *                 @ARG5@          dir
+@TYPE6@         FcBool%                         @ARG6@          force
+@PURPOSE@       scan a font directory without caching it
 @DESC@
 If <parameter>cache</parameter> is not zero or if <parameter>force</parameter>
 is FcFalse, this function currently returns FcFalse.  Otherwise, it scans an
@@ -72,12 +72,12 @@ this function does not create any cache files.  Use FcDirCacheRead() if
 caching is desired.
 @@
 
-@RET@		FcBool 	
-@FUNC@		FcDirSave 
-@TYPE1@		FcFontSet *			@ARG1@		set	
-@TYPE2@		FcStrSet *			@ARG2@		dirs	
-@TYPE3@		const FcChar8 *			@ARG3@		dir	
-@PURPOSE@	DEPRECATED: formerly used to save a directory cache
+@RET@           FcBool
+@FUNC@          FcDirSave
+@TYPE1@         FcFontSet *                     @ARG1@          set
+@TYPE2@         FcStrSet *                      @ARG2@          dirs
+@TYPE3@         const FcChar8 *                 @ARG3@          dir
+@PURPOSE@       DEPRECATED: formerly used to save a directory cache
 @DESC@
 This function now does nothing aside from returning FcFalse. It used to creates the
 per-directory cache file for <parameter>dir</parameter> and populates it

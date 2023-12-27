@@ -278,8 +278,6 @@ crocus_blorp_surf_for_resource(struct crocus_vtable *vtbl,
 {
    struct crocus_resource *res = (void *) p_res;
 
-   assert(!crocus_resource_unfinished_aux_import(res));
-
    if (isl_aux_usage_has_hiz(aux_usage) &&
        !crocus_resource_level_has_hiz(res, level))
       aux_usage = ISL_AUX_USAGE_NONE;
@@ -553,11 +551,6 @@ use_blorp:
       enum pipe_format dst_pfmt =
          pipe_format_for_aspect(info->dst.format, aspect);
 
-      if (crocus_resource_unfinished_aux_import(src_res))
-         crocus_resource_finish_aux_import(ctx->screen, src_res);
-      if (crocus_resource_unfinished_aux_import(dst_res))
-         crocus_resource_finish_aux_import(ctx->screen, dst_res);
-
       struct crocus_format_info src_fmt =
          crocus_format_for_usage(devinfo, src_pfmt, ISL_SURF_USAGE_TEXTURE_BIT);
       enum isl_aux_usage src_aux_usage =
@@ -776,13 +769,7 @@ crocus_resource_copy_region(struct pipe_context *ctx,
    struct crocus_batch *batch = &ice->batches[CROCUS_BATCH_RENDER];
    struct crocus_screen *screen = (struct crocus_screen *)ctx->screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
-   struct crocus_resource *src = (void *) p_src;
    struct crocus_resource *dst = (void *) p_dst;
-
-   if (crocus_resource_unfinished_aux_import(src))
-      crocus_resource_finish_aux_import(ctx->screen, src);
-   if (crocus_resource_unfinished_aux_import(dst))
-      crocus_resource_finish_aux_import(ctx->screen, dst);
 
    if (devinfo->ver < 6 && util_format_is_depth_or_stencil(p_dst->format)) {
       util_resource_copy_region(ctx, p_dst, dst_level, dstx, dsty, dstz,

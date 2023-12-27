@@ -110,7 +110,7 @@ Bug fixes
 - android: don't sync_wait() on in fence
 - va: incorrect frame_num logic causes corrupt h.264 encoding
 - Performance slowdown by ~20% in Unigine sanctuary with nir_to_tgsi
-- !15098 broke 4 piglit spec@ext_external_objects tests
+- !15098 broke 4 piglit spec\@ext_external_objects tests
 - anv: Unable to import I915_FORMAT_MOD_Y_TILED surfaces produced by iHD vaapi driver
 - anv doesn't always resolve aux buffers with private bindings on transition to external queue
 - Square Artifacts Dragons Dogma
@@ -1639,7 +1639,7 @@ Jakob Bornecrantz (1):
 
 - vulkan-device-select: Don't leak xcb_query_extension_reply_t
 
-Jason Ekstrand (179):
+Faith Ekstrand (179):
 
 - vulkan,lavapipe: Simplify command recording code-gen
 - zink: Re-interpret formats when using vkCmdClearColorImage()

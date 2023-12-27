@@ -28,6 +28,7 @@ static const pixman_format_code_t image_formats[] =
     PIXMAN_r8g8b8,
     PIXMAN_b8g8r8,
     PIXMAN_a8r8g8b8_sRGB,
+    PIXMAN_r8g8b8_sRGB,
     PIXMAN_r5g6b5,
     PIXMAN_b5g6r5,
     PIXMAN_x2r10g10b10,

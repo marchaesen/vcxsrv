@@ -26,7 +26,6 @@
 #ifndef LP_STATE_CS_H
 #define LP_STATE_CS_H
 
-#include "os/os_thread.h"
 #include "util/u_thread.h"
 #include "pipe/p_state.h"
 
@@ -80,9 +79,17 @@ struct lp_compute_shader_variant
 {
    struct gallivm_state *gallivm;
 
+   LLVMTypeRef jit_cs_context_type;
    LLVMTypeRef jit_cs_context_ptr_type;
+   LLVMTypeRef jit_cs_thread_data_type;
+   LLVMTypeRef jit_resources_type;
+   LLVMTypeRef jit_resources_ptr_type;
    LLVMTypeRef jit_cs_thread_data_ptr_type;
 
+   /* for mesh shaders */
+   LLVMTypeRef jit_vertex_header_type;
+   LLVMTypeRef jit_vertex_header_ptr_type;
+   LLVMTypeRef jit_prim_type;
    LLVMValueRef function;
    lp_jit_cs_func jit_function;
 
@@ -105,8 +112,7 @@ struct lp_compute_shader {
 
    struct lp_cs_variant_list_item variants;
 
-   struct lp_tgsi_info info;
-
+   struct draw_mesh_shader *draw_mesh_data;
    uint32_t req_local_mem;
 
    /* For debugging/profiling purposes */
@@ -122,6 +128,7 @@ struct lp_compute_shader {
 
 struct lp_cs_exec {
    struct lp_jit_cs_context jit_context;
+   struct lp_jit_resources jit_resources;
    struct lp_compute_shader_variant *variant;
 };
 

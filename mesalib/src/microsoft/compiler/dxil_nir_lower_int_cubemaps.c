@@ -47,39 +47,13 @@ lower_int_cubmap_to_array_filter(const nir_instr *instr,
    if (instr->type == nir_instr_type_intrinsic) {
       nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
       switch (intr->intrinsic) {
-      case nir_intrinsic_image_atomic_add:
-      case nir_intrinsic_image_atomic_and:
-      case nir_intrinsic_image_atomic_comp_swap:
-      case nir_intrinsic_image_atomic_dec_wrap:
-      case nir_intrinsic_image_atomic_exchange:
-      case nir_intrinsic_image_atomic_fadd:
-      case nir_intrinsic_image_atomic_fmax:
-      case nir_intrinsic_image_atomic_fmin:
-      case nir_intrinsic_image_atomic_imax:
-      case nir_intrinsic_image_atomic_imin:
-      case nir_intrinsic_image_atomic_inc_wrap:
-      case nir_intrinsic_image_atomic_or:
-      case nir_intrinsic_image_atomic_umax:
-      case nir_intrinsic_image_atomic_umin:
-      case nir_intrinsic_image_atomic_xor:
+      case nir_intrinsic_image_atomic:
+      case nir_intrinsic_image_atomic_swap:
       case nir_intrinsic_image_load:
       case nir_intrinsic_image_size:
       case nir_intrinsic_image_store:
-      case nir_intrinsic_image_deref_atomic_add:
-      case nir_intrinsic_image_deref_atomic_and:
-      case nir_intrinsic_image_deref_atomic_comp_swap:
-      case nir_intrinsic_image_deref_atomic_dec_wrap:
-      case nir_intrinsic_image_deref_atomic_exchange:
-      case nir_intrinsic_image_deref_atomic_fadd:
-      case nir_intrinsic_image_deref_atomic_fmax:
-      case nir_intrinsic_image_deref_atomic_fmin:
-      case nir_intrinsic_image_deref_atomic_imax:
-      case nir_intrinsic_image_deref_atomic_imin:
-      case nir_intrinsic_image_deref_atomic_inc_wrap:
-      case nir_intrinsic_image_deref_atomic_or:
-      case nir_intrinsic_image_deref_atomic_umax:
-      case nir_intrinsic_image_deref_atomic_umin:
-      case nir_intrinsic_image_deref_atomic_xor:
+      case nir_intrinsic_image_deref_atomic:
+      case nir_intrinsic_image_deref_atomic_swap:
       case nir_intrinsic_image_deref_load:
       case nir_intrinsic_image_deref_size:
       case nir_intrinsic_image_deref_store:
@@ -121,76 +95,76 @@ lower_int_cubmap_to_array_filter(const nir_instr *instr,
 
 typedef struct {
    bool image;
-   nir_ssa_def *rx;
-   nir_ssa_def *ry;
-   nir_ssa_def *rz;
-   nir_ssa_def *arx;
-   nir_ssa_def *ary;
-   nir_ssa_def *arz;
-   nir_ssa_def *array;
+   nir_def *rx;
+   nir_def *ry;
+   nir_def *rz;
+   nir_def *arx;
+   nir_def *ary;
+   nir_def *arz;
+   nir_def *array;
 } coord_t;
 
 
 /* This is taken from from sp_tex_sample:convert_cube */
-static nir_ssa_def *
+static nir_def *
 evaluate_face_x(nir_builder *b, coord_t *coord)
 {
-   nir_ssa_def *sign = nir_fsign(b, coord->rx);
-   nir_ssa_def *positive = nir_fge(b, coord->rx, nir_imm_float(b, 0.0));
-   nir_ssa_def *ima = nir_fdiv(b, nir_imm_float(b, -0.5), coord->arx);
+   nir_def *sign = nir_fsign(b, coord->rx);
+   nir_def *positive = nir_fge_imm(b, coord->rx, 0.0);
+   nir_def *ima = nir_fdiv(b, nir_imm_float(b, -0.5), coord->arx);
 
-   nir_ssa_def *x = nir_fadd(b, nir_fmul(b, nir_fmul(b, sign, ima), coord->rz), nir_imm_float(b, 0.5));
-   nir_ssa_def *y = nir_fadd(b, nir_fmul(b, ima, coord->ry), nir_imm_float(b, 0.5));
-   nir_ssa_def *face = nir_bcsel(b, positive, nir_imm_float(b, 0.0), nir_imm_float(b, 1.0));
+   nir_def *x = nir_fadd_imm(b, nir_fmul(b, nir_fmul(b, sign, ima), coord->rz), 0.5);
+   nir_def *y = nir_fadd_imm(b, nir_fmul(b, ima, coord->ry), 0.5);
+   nir_def *face = nir_bcsel(b, positive, nir_imm_float(b, 0.0), nir_imm_float(b, 1.0));
 
    if (coord->array)
       face = nir_fadd(b, face, coord->array);
 
    return coord->image ?
-      nir_vec4(b, x,y, face, nir_ssa_undef(b, 1, 32)) :
+      nir_vec4(b, x,y, face, nir_undef(b, 1, 32)) :
       nir_vec3(b, x,y, face);
 }
 
-static nir_ssa_def *
+static nir_def *
 evaluate_face_y(nir_builder *b, coord_t *coord)
 {
-   nir_ssa_def *sign = nir_fsign(b, coord->ry);
-   nir_ssa_def *positive = nir_fge(b, coord->ry, nir_imm_float(b, 0.0));
-   nir_ssa_def *ima = nir_fdiv(b, nir_imm_float(b, 0.5), coord->ary);
+   nir_def *sign = nir_fsign(b, coord->ry);
+   nir_def *positive = nir_fge_imm(b, coord->ry, 0.0);
+   nir_def *ima = nir_fdiv(b, nir_imm_float(b, 0.5), coord->ary);
 
-   nir_ssa_def *x = nir_fadd(b, nir_fmul(b, ima, coord->rx), nir_imm_float(b, 0.5));
-   nir_ssa_def *y = nir_fadd(b, nir_fmul(b, nir_fmul(b, sign, ima), coord->rz), nir_imm_float(b, 0.5));
-   nir_ssa_def *face = nir_bcsel(b, positive, nir_imm_float(b, 2.0), nir_imm_float(b, 3.0));
+   nir_def *x = nir_fadd_imm(b, nir_fmul(b, ima, coord->rx), 0.5);
+   nir_def *y = nir_fadd_imm(b, nir_fmul(b, nir_fmul(b, sign, ima), coord->rz), 0.5);
+   nir_def *face = nir_bcsel(b, positive, nir_imm_float(b, 2.0), nir_imm_float(b, 3.0));
 
    if (coord->array)
       face = nir_fadd(b, face, coord->array);
    
    return coord->image ?
-      nir_vec4(b, x,y, face, nir_ssa_undef(b, 1, 32)) :
+      nir_vec4(b, x,y, face, nir_undef(b, 1, 32)) :
       nir_vec3(b, x,y, face);
 }
 
-static nir_ssa_def *
+static nir_def *
 evaluate_face_z(nir_builder *b, coord_t *coord)
 {
-   nir_ssa_def *sign = nir_fsign(b, coord->rz);
-   nir_ssa_def *positive = nir_fge(b, coord->rz, nir_imm_float(b, 0.0));
-   nir_ssa_def *ima = nir_fdiv(b, nir_imm_float(b, -0.5), coord->arz);
+   nir_def *sign = nir_fsign(b, coord->rz);
+   nir_def *positive = nir_fge_imm(b, coord->rz, 0.0);
+   nir_def *ima = nir_fdiv(b, nir_imm_float(b, -0.5), coord->arz);
 
-   nir_ssa_def *x = nir_fadd(b, nir_fmul(b, nir_fmul(b, sign, ima), nir_fneg(b, coord->rx)), nir_imm_float(b, 0.5));
-   nir_ssa_def *y = nir_fadd(b, nir_fmul(b, ima, coord->ry), nir_imm_float(b, 0.5));
-   nir_ssa_def *face = nir_bcsel(b, positive, nir_imm_float(b, 4.0), nir_imm_float(b, 5.0));
+   nir_def *x = nir_fadd_imm(b, nir_fmul(b, nir_fmul(b, sign, ima), nir_fneg(b, coord->rx)), 0.5);
+   nir_def *y = nir_fadd_imm(b, nir_fmul(b, ima, coord->ry), 0.5);
+   nir_def *face = nir_bcsel(b, positive, nir_imm_float(b, 4.0), nir_imm_float(b, 5.0));
 
    if (coord->array)
       face = nir_fadd(b, face, coord->array);
    
    return coord->image ?
-      nir_vec4(b, x,y, face, nir_ssa_undef(b, 1, 32)) :
+      nir_vec4(b, x,y, face, nir_undef(b, 1, 32)) :
       nir_vec3(b, x,y, face);
 }
 
-static nir_ssa_def *
-create_array_tex_from_cube_tex(nir_builder *b, nir_tex_instr *tex, nir_ssa_def *coord, nir_texop op)
+static nir_def *
+create_array_tex_from_cube_tex(nir_builder *b, nir_tex_instr *tex, nir_def *coord, nir_texop op)
 {
    nir_tex_instr *array_tex;
 
@@ -210,18 +184,18 @@ create_array_tex_from_cube_tex(nir_builder *b, nir_tex_instr *tex, nir_ssa_def *
       nir_src *psrc = (tex->src[i].src_type == nir_tex_src_coord) ?
                          &coord_src : &tex->src[i].src;
 
-      nir_src_copy(&array_tex->src[i].src, psrc, &array_tex->instr);
+      array_tex->src[i].src = nir_src_for_ssa(psrc->ssa);
       array_tex->src[i].src_type = tex->src[i].src_type;
    }
 
-   nir_ssa_dest_init(&array_tex->instr, &array_tex->dest,
-                     nir_tex_instr_dest_size(array_tex), 32, NULL);
+   nir_def_init(&array_tex->instr, &array_tex->def,
+                nir_tex_instr_dest_size(array_tex), 32);
    nir_builder_instr_insert(b, &array_tex->instr);
-   return &array_tex->dest.ssa;
+   return &array_tex->def;
 }
 
-static nir_ssa_def *
-handle_cube_edge(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *face, nir_ssa_def *array_slice_cube_base, nir_ssa_def *tex_size)
+static nir_def *
+handle_cube_edge(nir_builder *b, nir_def *x, nir_def *y, nir_def *face, nir_def *array_slice_cube_base, nir_def *tex_size)
 {
    enum cube_remap
    {
@@ -289,22 +263,22 @@ handle_cube_edge(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *fa
       cube_remap_pos_y
    };
 
-   nir_ssa_def *zero = nir_imm_int(b, 0);
+   nir_def *zero = nir_imm_int(b, 0);
    
    /* Doesn't matter since the texture is square */
    tex_size = nir_channel(b, tex_size, 0);
 
-   nir_ssa_def *x_on = nir_iand(b, nir_ige(b, x, zero), nir_ige(b, tex_size, x));
-   nir_ssa_def *y_on = nir_iand(b, nir_ige(b, y, zero), nir_ige(b, tex_size, y));
-   nir_ssa_def *one_on = nir_ixor(b, x_on, y_on);
+   nir_def *x_on = nir_iand(b, nir_ige(b, x, zero), nir_ige(b, tex_size, x));
+   nir_def *y_on = nir_iand(b, nir_ige(b, y, zero), nir_ige(b, tex_size, y));
+   nir_def *one_on = nir_ixor(b, x_on, y_on);
 
    /* If the sample did not fall off the face in either dimension, then set output = input */
-   nir_ssa_def *x_result = x;
-   nir_ssa_def *y_result = y;
-   nir_ssa_def *face_result = face;
+   nir_def *x_result = x;
+   nir_def *y_result = y;
+   nir_def *face_result = face;
 
    /* otherwise, if the sample fell off the face in either the X or the Y direction, remap to the new face */
-   nir_ssa_def *remap_predicates[4] =
+   nir_def *remap_predicates[4] =
    {
       nir_iand(b, one_on, nir_ilt(b, x, zero)),
       nir_iand(b, one_on, nir_ilt(b, tex_size, x)),
@@ -312,7 +286,7 @@ handle_cube_edge(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *fa
       nir_iand(b, one_on, nir_ilt(b, tex_size, y)),
    };
 
-   nir_ssa_def *remap_array[cube_remap_size];
+   nir_def *remap_array[cube_remap_size];
 
    remap_array[cube_remap_zero] = zero;
    remap_array[cube_remap_x] = x;
@@ -327,7 +301,7 @@ handle_cube_edge(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *fa
 
       /* For each possible original face */
       for (unsigned j = 0; j < 6; j++) {
-         nir_ssa_def *predicate = nir_iand(b, remap_predicates[i], nir_ieq(b, face, nir_imm_int(b, j)));
+         nir_def *predicate = nir_iand(b, remap_predicates[i], nir_ieq_imm(b, face, j));
 
          x_result = nir_bcsel(b, predicate, remap_array[remap_table[j].remap_x], x_result);
          y_result = nir_bcsel(b, predicate, remap_array[remap_table[j].remap_y], y_result);
@@ -338,48 +312,48 @@ handle_cube_edge(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *fa
    return nir_vec3(b, x_result, y_result, nir_iadd(b, face_result, array_slice_cube_base));
 }
 
-static nir_ssa_def *
-handle_cube_gather(nir_builder *b, nir_tex_instr *tex, nir_ssa_def *coord)
+static nir_def *
+handle_cube_gather(nir_builder *b, nir_tex_instr *tex, nir_def *coord)
 {
-   nir_ssa_def *tex_size = nir_get_texture_size(b, tex);
+   nir_def *tex_size = nir_get_texture_size(b, tex);
 
    /* nir_get_texture_size puts the cursor before the tex op */
    b->cursor = nir_after_instr(coord->parent_instr);
 
-   nir_ssa_def *const_05 = nir_imm_float(b, 0.5f);
-   nir_ssa_def *texel_coords = nir_fmul(b, nir_channels(b, coord, 3),
-      nir_i2f32(b, nir_channels(b, tex_size, 3)));
+   nir_def *const_05 = nir_imm_float(b, 0.5f);
+   nir_def *texel_coords = nir_fmul(b, nir_trim_vector(b, coord, 2),
+                                        nir_i2f32(b, nir_trim_vector(b, tex_size, 2)));
 
-   nir_ssa_def *x_orig = nir_channel(b, texel_coords, 0);
-   nir_ssa_def *y_orig = nir_channel(b, texel_coords, 1);
+   nir_def *x_orig = nir_channel(b, texel_coords, 0);
+   nir_def *y_orig = nir_channel(b, texel_coords, 1);
 
-   nir_ssa_def *x_pos = nir_f2i32(b, nir_fadd(b, x_orig, const_05));
-   nir_ssa_def *x_neg = nir_f2i32(b, nir_fsub(b, x_orig, const_05));
-   nir_ssa_def *y_pos = nir_f2i32(b, nir_fadd(b, y_orig, const_05));
-   nir_ssa_def *y_neg = nir_f2i32(b, nir_fsub(b, y_orig, const_05));
-   nir_ssa_def *coords[4][2] = {
+   nir_def *x_pos = nir_f2i32(b, nir_fadd(b, x_orig, const_05));
+   nir_def *x_neg = nir_f2i32(b, nir_fsub(b, x_orig, const_05));
+   nir_def *y_pos = nir_f2i32(b, nir_fadd(b, y_orig, const_05));
+   nir_def *y_neg = nir_f2i32(b, nir_fsub(b, y_orig, const_05));
+   nir_def *coords[4][2] = {
       { x_neg, y_pos },
       { x_pos, y_pos },
       { x_pos, y_neg },
       { x_neg, y_neg },
    };
 
-   nir_ssa_def *array_slice_2d = nir_f2i32(b, nir_channel(b, coord, 2));
-   nir_ssa_def *face = nir_imod(b, array_slice_2d, nir_imm_int(b, 6));
-   nir_ssa_def *array_slice_cube_base = nir_isub(b, array_slice_2d, face);
+   nir_def *array_slice_2d = nir_f2i32(b, nir_channel(b, coord, 2));
+   nir_def *face = nir_imod_imm(b, array_slice_2d, 6);
+   nir_def *array_slice_cube_base = nir_isub(b, array_slice_2d, face);
 
-   nir_ssa_def *channels[4];
+   nir_def *channels[4];
    for (unsigned i = 0; i < 4; ++i) {
-      nir_ssa_def *final_coord = handle_cube_edge(b, coords[i][0], coords[i][1], face, array_slice_cube_base, tex_size);
-      nir_ssa_def *sampled_val = create_array_tex_from_cube_tex(b, tex, final_coord, nir_texop_txf);
+      nir_def *final_coord = handle_cube_edge(b, coords[i][0], coords[i][1], face, array_slice_cube_base, tex_size);
+      nir_def *sampled_val = create_array_tex_from_cube_tex(b, tex, final_coord, nir_texop_txf);
       channels[i] = nir_channel(b, sampled_val, tex->component);
    }
 
    return nir_vec(b, channels, 4);
 }
 
-static nir_ssa_def *
-lower_cube_coords(nir_builder *b, nir_ssa_def *coord, bool is_array, bool is_image)
+static nir_def *
+lower_cube_coords(nir_builder *b, nir_def *coord, bool is_array, bool is_image)
 {
    coord_t coords;
    coords.image = is_image;
@@ -391,45 +365,45 @@ lower_cube_coords(nir_builder *b, nir_ssa_def *coord, bool is_array, bool is_ima
    coords.arz = nir_fabs(b, coords.rz);
    coords.array = NULL;
    if (is_array)
-      coords.array = nir_fmul(b, nir_channel(b, coord, 3), nir_imm_float(b, 6.0f));
+      coords.array = nir_fmul_imm(b, nir_channel(b, coord, 3), 6.0f);
 
-   nir_ssa_def *use_face_x = nir_iand(b,
+   nir_def *use_face_x = nir_iand(b,
                                       nir_fge(b, coords.arx, coords.ary),
                                       nir_fge(b, coords.arx, coords.arz));
 
    nir_if *use_face_x_if = nir_push_if(b, use_face_x);
-   nir_ssa_def *face_x_coord = evaluate_face_x(b, &coords);
+   nir_def *face_x_coord = evaluate_face_x(b, &coords);
    nir_if *use_face_x_else = nir_push_else(b, use_face_x_if);
 
-   nir_ssa_def *use_face_y = nir_iand(b,
+   nir_def *use_face_y = nir_iand(b,
                                       nir_fge(b, coords.ary, coords.arx),
                                       nir_fge(b, coords.ary, coords.arz));
 
    nir_if *use_face_y_if = nir_push_if(b, use_face_y);
-   nir_ssa_def *face_y_coord = evaluate_face_y(b, &coords);
+   nir_def *face_y_coord = evaluate_face_y(b, &coords);
    nir_if *use_face_y_else = nir_push_else(b, use_face_y_if);
 
-   nir_ssa_def *face_z_coord = evaluate_face_z(b, &coords);
+   nir_def *face_z_coord = evaluate_face_z(b, &coords);
 
    nir_pop_if(b, use_face_y_else);
-   nir_ssa_def *face_y_or_z_coord = nir_if_phi(b, face_y_coord, face_z_coord);
+   nir_def *face_y_or_z_coord = nir_if_phi(b, face_y_coord, face_z_coord);
    nir_pop_if(b, use_face_x_else);
 
    // This contains in xy the normalized sample coordinates, and in z the face index
-   nir_ssa_def *coord_and_face = nir_if_phi(b, face_x_coord, face_y_or_z_coord);
+   nir_def *coord_and_face = nir_if_phi(b, face_x_coord, face_y_or_z_coord);
 
    return coord_and_face;
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_cube_sample(nir_builder *b, nir_tex_instr *tex)
 {
    int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
    assert(coord_index >= 0);
 
    /* Evaluate the face and the xy coordinates for a 2D tex op */
-   nir_ssa_def *coord = tex->src[coord_index].src.ssa;
-   nir_ssa_def *coord_and_face = lower_cube_coords(b, coord, tex->is_array, false);
+   nir_def *coord = tex->src[coord_index].src.ssa;
+   nir_def *coord_and_face = lower_cube_coords(b, coord, tex->is_array, false);
 
    if (tex->op == nir_texop_tg4)
       return handle_cube_gather(b, tex, coord_and_face);
@@ -437,7 +411,7 @@ lower_cube_sample(nir_builder *b, nir_tex_instr *tex)
       return create_array_tex_from_cube_tex(b, tex, coord_and_face, tex->op);
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_cube_image_load_store_atomic(nir_builder *b, nir_intrinsic_instr *intr)
 {
    b->cursor = nir_before_instr(&intr->instr);
@@ -447,31 +421,31 @@ lower_cube_image_load_store_atomic(nir_builder *b, nir_intrinsic_instr *intr)
    return NIR_LOWER_INSTR_PROGRESS;
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_cube_txs(nir_builder *b, nir_tex_instr *tex)
 {
    b->cursor = nir_after_instr(&tex->instr);
    if (!tex->is_array)
-      return nir_channels(b, &tex->dest.ssa, 3);
+      return nir_trim_vector(b, &tex->def, 2);
 
-   nir_ssa_def *array_dim = nir_channel(b, &tex->dest.ssa, 2);
-   nir_ssa_def *cube_array_dim = nir_idiv(b, array_dim, nir_imm_int(b, 6));
-   return nir_vec3(b, nir_channel(b, &tex->dest.ssa, 0),
-                      nir_channel(b, &tex->dest.ssa, 1),
+   nir_def *array_dim = nir_channel(b, &tex->def, 2);
+   nir_def *cube_array_dim = nir_idiv(b, array_dim, nir_imm_int(b, 6));
+   return nir_vec3(b, nir_channel(b, &tex->def, 0),
+                      nir_channel(b, &tex->def, 1),
                       cube_array_dim);
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_cube_image_size(nir_builder *b, nir_intrinsic_instr *intr)
 {
    b->cursor = nir_after_instr(&intr->instr);
    if (!nir_intrinsic_image_array(intr))
-      return nir_channels(b, &intr->dest.ssa, 3);
+      return nir_trim_vector(b, &intr->def, 2);
 
-   nir_ssa_def *array_dim = nir_channel(b, &intr->dest.ssa, 2);
-   nir_ssa_def *cube_array_dim = nir_idiv(b, array_dim, nir_imm_int(b, 6));
-   return nir_vec3(b, nir_channel(b, &intr->dest.ssa, 0),
-                      nir_channel(b, &intr->dest.ssa, 1),
+   nir_def *array_dim = nir_channel(b, &intr->def, 2);
+   nir_def *cube_array_dim = nir_idiv(b, array_dim, nir_imm_int(b, 6));
+   return nir_vec3(b, nir_channel(b, &intr->def, 0),
+                      nir_channel(b, &intr->def, 1),
                       cube_array_dim);
 }
 
@@ -508,7 +482,7 @@ make_2darray_from_cubemap_with_array(const struct glsl_type *type, bool is_image
       return make_2darray_sampler_from_cubemap(type);
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_int_cubemap_to_array_tex(nir_builder *b, nir_tex_instr *tex)
 {
    switch (tex->op) {
@@ -526,7 +500,7 @@ lower_int_cubemap_to_array_tex(nir_builder *b, nir_tex_instr *tex)
    }
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_cube_image_intrinsic(nir_builder *b, nir_intrinsic_instr *intr)
 {
    if (intr->intrinsic == nir_intrinsic_image_size ||
@@ -536,7 +510,7 @@ lower_cube_image_intrinsic(nir_builder *b, nir_intrinsic_instr *intr)
       return lower_cube_image_load_store_atomic(b, intr);
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_cube_image_deref(nir_builder *b, nir_deref_instr *deref)
 {
    deref->type = make_2darray_from_cubemap_with_array(
@@ -545,7 +519,7 @@ lower_cube_image_deref(nir_builder *b, nir_deref_instr *deref)
    return NIR_LOWER_INSTR_PROGRESS;
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_int_cubmap_to_array_impl(nir_builder *b, nir_instr *instr,
                                void *options)
 {

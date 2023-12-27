@@ -236,6 +236,10 @@ vlVaAssociateSubpicture(VADriverContextP ctx, VASubpictureID subpicture,
 
    for (i = 0; i < num_surfaces; i++) {
       surf = handle_table_get(drv->htab, target_surfaces[i]);
+      if (!surf) {
+         mtx_unlock(&drv->mutex);
+         return VA_STATUS_ERROR_INVALID_SURFACE;
+      }
       util_dynarray_append(&surf->subpics, vlVaSubpicture *, sub);
    }
    mtx_unlock(&drv->mutex);

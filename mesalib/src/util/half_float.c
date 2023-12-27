@@ -172,32 +172,6 @@ _mesa_half_to_float_slow(uint16_t val)
 }
 
 /**
-  * Convert 0.0 to 0x00, 1.0 to 0xff.
-  * Values outside the range [0.0, 1.0] will give undefined results.
-  */
-uint8_t _mesa_half_to_unorm8(uint16_t val)
-{
-   const int m = val & 0x3ff;
-   const int e = (val >> 10) & 0x1f;
-   ASSERTED const int s = (val >> 15) & 0x1;
-
-   /* v = round_to_nearest(1.mmmmmmmmmm * 2^(e-15) * 255)
-    *   = round_to_nearest((1.mmmmmmmmmm * 255) * 2^(e-15))
-    *   = round_to_nearest((1mmmmmmmmmm * 255) * 2^(e-25))
-    *   = round_to_zero((1mmmmmmmmmm * 255) * 2^(e-25) + 0.5)
-    *   = round_to_zero(((1mmmmmmmmmm * 255) * 2^(e-24) + 1) / 2)
-    *
-    * This happens to give the correct answer for zero/subnormals too
-    */
-   assert(s == 0 && val <= FP16_ONE); /* check 0 <= this <= 1 */
-   /* (implies e <= 15, which means the bit-shifts below are safe) */
-
-   uint32_t v = ((1 << 10) | m) * 255;
-   v = ((v >> (24 - e)) + 1) >> 1;
-   return v;
-}
-
-/**
   * Takes a uint16_t, divides by 65536, converts the infinite-precision
   * result to fp16 with round-to-zero. Used by the ASTC decoder.
   */

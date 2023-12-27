@@ -9,7 +9,7 @@
 #include "vn_renderer.h"
 
 struct vn_cs_renderer_protocol_info _vn_cs_renderer_protocol_info = {
-   .mutex = _SIMPLE_MTX_INITIALIZER_NP,
+   .mutex = SIMPLE_MTX_INITIALIZER,
 };
 
 static void
@@ -271,18 +271,6 @@ vn_cs_encoder_reserve_internal(struct vn_cs_encoder *enc, size_t size)
    }
    if (!shmem)
       return false;
-
-   if (unlikely(!enc->instance->renderer->info.supports_blob_id_0)) {
-      uint32_t roundtrip;
-      VkResult result =
-         vn_instance_submit_roundtrip(enc->instance, &roundtrip);
-      if (result != VK_SUCCESS) {
-         vn_renderer_shmem_unref(enc->instance->renderer, shmem);
-         return false;
-      }
-
-      enc->current_buffer_roundtrip = roundtrip;
-   }
 
    vn_cs_encoder_add_buffer(enc, shmem, buf_offset,
                             shmem->mmap_ptr + buf_offset, buf_size);

@@ -92,14 +92,17 @@ FcObjectSetDestroy (FcObjectSet *os)
 {
     int i;
 
-    if (os->objects)
+    if (os)
     {
-	for (i = 0; i < os->nobject; i++)
-	    FcFree (os->objects[i]);
+	if (os->objects)
+	{
+	    for (i = 0; i < os->nobject; i++)
+		FcFree (os->objects[i]);
 
-	free ((void *) os->objects);
+	    free ((void *) os->objects);
+	}
+	free (os);
     }
-    free (os);
 }
 
 FcObjectSet *

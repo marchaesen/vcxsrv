@@ -52,6 +52,9 @@ struct v3dv_bo {
     */
    bool private;
 
+   /** If this BO has been imported */
+   bool is_import;
+
    /**
     * If this BO was allocated for a swapchain on the display device, the
     * handle of the dumb BO on that device.
@@ -62,6 +65,7 @@ struct v3dv_bo {
 };
 
 void v3dv_bo_init(struct v3dv_bo *bo, uint32_t handle, uint32_t size, uint32_t offset, const char *name, bool private);
+void v3dv_bo_init_import(struct v3dv_bo *bo, uint32_t handle, uint32_t size, uint32_t offset, bool private);
 
 struct v3dv_bo *v3dv_bo_alloc(struct v3dv_device *device, uint32_t size, const char *name, bool private);
 

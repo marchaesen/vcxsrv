@@ -27,11 +27,11 @@
 
 
 
-#include "pipe/p_config.h"
+#include "util/detect.h"
 #include "util/u_math.h"
 #include "util/u_cpu_detect.h"
 
-#if defined(PIPE_ARCH_SSE)
+#if DETECT_ARCH_SSE
 #include <xmmintrin.h>
 /* This is defined in pmmintrin.h, but it can only be included when -msse3 is
  * used, so just define it here to avoid further. */
@@ -77,7 +77,7 @@ util_fpstate_get(void)
 {
    unsigned mxcsr = 0;
 
-#if defined(PIPE_ARCH_SSE)
+#if DETECT_ARCH_SSE
    if (util_get_cpu_caps()->has_sse) {
       mxcsr = _mm_getcsr();
    }
@@ -95,7 +95,7 @@ util_fpstate_get(void)
 unsigned
 util_fpstate_set_denorms_to_zero(unsigned current_mxcsr)
 {
-#if defined(PIPE_ARCH_SSE)
+#if DETECT_ARCH_SSE
    if (util_get_cpu_caps()->has_sse) {
       /* Enable flush to zero mode */
       current_mxcsr |= _MM_FLUSH_ZERO_MASK;
@@ -117,7 +117,7 @@ util_fpstate_set_denorms_to_zero(unsigned current_mxcsr)
 void
 util_fpstate_set(unsigned mxcsr)
 {
-#if defined(PIPE_ARCH_SSE)
+#if DETECT_ARCH_SSE
    if (util_get_cpu_caps()->has_sse) {
       _mm_setcsr(mxcsr);
    }

@@ -22,8 +22,8 @@
 
 from mako.template import Template
 from xml.etree import ElementTree
+import argparse
 import os
-import sys
 
 def dbg(str):
     if False:
@@ -80,12 +80,13 @@ class Device(object):
             self.engines.append(Engine(engine))
 
 class DriConf(object):
-    def __init__(self, xmlpath):
+    def __init__(self, xmlpaths):
         self.devices = []
-        root = ElementTree.parse(xmlpath).getroot()
+        for xmlpath in xmlpaths:
+            root = ElementTree.parse(xmlpath).getroot()
 
-        for device in root.findall('device'):
-            self.devices.append(Device(device))
+            for device in root.findall('device'):
+                self.devices.append(Device(device))
 
 
 template = """\
@@ -225,9 +226,17 @@ static const struct driconf_device *driconf[] = {
 };
 """
 
-xml = sys.argv[1]
-dst = sys.argv[2]
+parser = argparse.ArgumentParser()
+parser.add_argument('drirc',
+                    nargs=argparse.ONE_OR_MORE,
+                    help='drirc *.conf file(s) to statically include')
+parser.add_argument('header',
+                    help='C header file to output the static configuration to')
+args = parser.parse_args()
 
-with open(dst, 'wb') as f:
-    f.write(Template(template, output_encoding='utf-8').render(driconf=DriConf(xml)))
+xml = args.drirc
+dst = args.header
+
+with open(dst, 'w', encoding='utf-8') as f:
+    f.write(Template(template).render(driconf=DriConf(xml)))
 

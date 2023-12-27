@@ -21,39 +21,39 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-@RET@		void
-@FUNC@		FcValueDestroy
-@TYPE1@		FcValue%		@ARG1@		v
-@PURPOSE@	Free a value
+@RET@           void
+@FUNC@          FcValueDestroy
+@TYPE1@         FcValue%                @ARG1@          v
+@PURPOSE@       Free a value
 @DESC@
 Frees any memory referenced by <parameter>v</parameter>.  Values of type FcTypeString,
 FcTypeMatrix and FcTypeCharSet reference memory, the other types do not.
 @@
 
-@RET@		FcValue 
-@FUNC@		FcValueSave
-@TYPE1@		FcValue% 		@ARG1@		v
-@PURPOSE@	Copy a value
+@RET@           FcValue
+@FUNC@          FcValueSave
+@TYPE1@         FcValue%                @ARG1@          v
+@PURPOSE@       Copy a value
 @DESC@
 Returns a copy of <parameter>v</parameter> duplicating any object referenced by it so that <parameter>v</parameter>
 may be safely destroyed without harming the new value.
 @@
 
-@RET@		void
-@FUNC@		FcValuePrint
-@TYPE1@		FcValue%		@ARG1@		v
-@PURPOSE@	Print a value to stdout
+@RET@           void
+@FUNC@          FcValuePrint
+@TYPE1@         FcValue%                @ARG1@          v
+@PURPOSE@       Print a value to stdout
 @DESC@
 Prints a human-readable representation of <parameter>v</parameter> to
 stdout. The format should not be considered part of the library
 specification as it may change in the future.
 @@
 
-@RET@		FcBool
-@FUNC@		FcValueEqual
-@TYPE1@		FcValue%		@ARG1@		v_a
-@TYPE2@		FcValue%		@ARG2@		v_b
-@PURPOSE@	Test two values for equality
+@RET@           FcBool
+@FUNC@          FcValueEqual
+@TYPE1@         FcValue%                @ARG1@          v_a
+@TYPE2@         FcValue%                @ARG2@          v_b
+@PURPOSE@       Test two values for equality
 @DESC@
 Compares two values. Integers and Doubles are compared as numbers; otherwise
 the two values have to be the same type to be considered equal. Strings are

@@ -912,6 +912,11 @@ extern _X_EXPORT void
 extern _X_EXPORT Bool
  xf86CrtcRotate(xf86CrtcPtr crtc);
 
+extern _X_EXPORT void
+ xf86RotateCrtcRedisplay(xf86CrtcPtr crtc, PixmapPtr dst_pixmap,
+                         DrawableRec *src_drawable, RegionPtr region,
+                         Bool transform_src);
+
 /*
  * Clean up any rotation data, used when a crtc is turned off
  * as well as when rotation is disabled.

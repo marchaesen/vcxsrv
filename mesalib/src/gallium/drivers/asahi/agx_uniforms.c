@@ -1,114 +1,115 @@
 /*
  * Copyright 2021 Alyssa Rosenzweig
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 #include <stdio.h>
-#include "agx_state.h"
 #include "asahi/lib/agx_pack.h"
-
-/* Computes the address for a push uniform, adding referenced BOs to the
- * current batch as necessary. Note anything uploaded via the batch's pool does
- * not require an update to the BO list, since the entire pool will be added
- * once at submit time. */
+#include "agx_state.h"
 
 static uint64_t
-agx_const_buffer_ptr(struct agx_batch *batch,
-                     struct pipe_constant_buffer *cb)
+agx_const_buffer_ptr(struct agx_batch *batch, struct pipe_constant_buffer *cb)
 {
    if (cb->buffer) {
-      struct agx_bo *bo = agx_resource(cb->buffer)->bo;
-      agx_batch_add_bo(batch, bo);
+      struct agx_resource *rsrc = agx_resource(cb->buffer);
+      agx_batch_reads(batch, rsrc);
 
-      return bo->ptr.gpu + cb->buffer_offset;
+      return rsrc->bo->ptr.gpu + cb->buffer_offset;
    } else {
-      return agx_pool_upload_aligned(&batch->pool,
-                                     ((uint8_t *) cb->user_buffer) + cb->buffer_offset,
-                                     cb->buffer_size - cb->buffer_offset, 64);
+      return 0;
    }
 }
 
 static uint64_t
-agx_push_location_direct(struct agx_context *ctx, struct agx_push push,
-                         enum pipe_shader_type stage)
+agx_shader_buffer_ptr(struct agx_batch *batch, struct pipe_shader_buffer *sb)
 {
-   struct agx_batch *batch = ctx->batch;
-   struct agx_stage *st = &ctx->stage[stage];
+   if (sb->buffer) {
+      struct agx_resource *rsrc = agx_resource(sb->buffer);
 
-   switch (push.type) {
-   case AGX_PUSH_UBO_BASES: {
-      unsigned count = util_last_bit(st->cb_mask);
-      struct agx_ptr ptr = agx_pool_alloc_aligned(&batch->pool, count * sizeof(uint64_t), 8);
-      uint64_t *addresses = ptr.cpu;
+      /* Assume SSBOs are written. TODO: Optimize read-only SSBOs */
+      agx_batch_writes(batch, rsrc);
 
-      for (unsigned i = 0; i < count; ++i) {
-         struct pipe_constant_buffer *cb = &st->cb[i];
-         addresses[i] = agx_const_buffer_ptr(batch, cb);
-      }
-
-      return ptr.gpu;
+      return rsrc->bo->ptr.gpu + sb->buffer_offset;
+   } else {
+      return 0;
    }
+}
 
-   case AGX_PUSH_VBO_BASE: {
-      struct agx_ptr ptr = agx_pool_alloc_aligned(&batch->pool, sizeof(uint64_t), 8);
-      uint64_t *address = ptr.cpu;
+static uint64_t
+agx_vertex_buffer_ptr(struct agx_batch *batch, unsigned vbo)
+{
+   struct pipe_vertex_buffer vb = batch->ctx->vertex_buffers[vbo];
+   assert(!vb.is_user_buffer);
 
-      assert(ctx->vb_mask & BITFIELD_BIT(push.vbo) && "oob");
+   if (vb.buffer.resource) {
+      struct agx_resource *rsrc = agx_resource(vb.buffer.resource);
+      agx_batch_reads(batch, rsrc);
 
-      struct pipe_vertex_buffer vb = ctx->vertex_buffers[push.vbo];
-      assert(!vb.is_user_buffer);
-
-      struct agx_bo *bo = agx_resource(vb.buffer.resource)->bo;
-      agx_batch_add_bo(batch, bo);
-
-      *address = bo->ptr.gpu + vb.buffer_offset;
-      return ptr.gpu;
+      return rsrc->bo->ptr.gpu + vb.buffer_offset;
+   } else {
+      return 0;
    }
+}
 
-   case AGX_PUSH_BLEND_CONST:
-   {
-      return agx_pool_upload_aligned(&batch->pool, &ctx->blend_color,
-            sizeof(ctx->blend_color), 8);
+void
+agx_upload_vbos(struct agx_batch *batch)
+{
+   u_foreach_bit(vbo, batch->ctx->vb_mask) {
+      batch->uniforms.vbo_base[vbo] = agx_vertex_buffer_ptr(batch, vbo);
    }
+}
 
-   case AGX_PUSH_TEXTURE_BASE: {
-      struct agx_ptr ptr = agx_pool_alloc_aligned(&batch->pool, sizeof(uint64_t), 8);
-      uint64_t *address = ptr.cpu;
-      *address = batch->textures;
-      return ptr.gpu;
-   }
+void
+agx_upload_uniforms(struct agx_batch *batch)
+{
+   struct agx_context *ctx = batch->ctx;
 
-   default:
-      unreachable("todo: push more");
-   }
+   struct agx_ptr root_ptr = agx_pool_alloc_aligned(
+      &batch->pool, sizeof(struct agx_draw_uniforms), 16);
+
+   batch->uniforms.tables[AGX_SYSVAL_TABLE_ROOT] = root_ptr.gpu;
+   batch->uniforms.sample_mask = ctx->sample_mask;
+
+   memcpy(root_ptr.cpu, &batch->uniforms, sizeof(batch->uniforms));
 }
 
 uint64_t
-agx_push_location(struct agx_context *ctx, struct agx_push push,
-                  enum pipe_shader_type stage)
+agx_upload_stage_uniforms(struct agx_batch *batch, uint64_t textures,
+                          enum pipe_shader_type stage)
 {
-   uint64_t direct = agx_push_location_direct(ctx, push, stage);
-   struct agx_pool *pool = &ctx->batch->pool;
+   struct agx_context *ctx = batch->ctx;
+   struct agx_stage *st = &ctx->stage[stage];
+   struct agx_device *dev = agx_device(ctx->base.screen);
 
-   if (push.indirect)
-      return agx_pool_upload(pool, &direct, sizeof(direct));
-   else
-      return direct;
+   struct agx_ptr root_ptr = agx_pool_alloc_aligned(
+      &batch->pool, sizeof(struct agx_stage_uniforms), 16);
+
+   struct agx_stage_uniforms uniforms = {
+      .texture_base = textures,
+   };
+
+   u_foreach_bit(s, st->valid_samplers) {
+      uniforms.lod_bias[s] = st->samplers[s]->lod_bias_as_fp16;
+   }
+
+   /* If we use bindless samplers, insert sampler into the heap */
+   if (st->shader && st->shader->uses_bindless_samplers) {
+      u_foreach_bit(s, st->valid_samplers) {
+         uniforms.sampler_handle[s] =
+            28 +
+            agx_sampler_heap_add(dev, &batch->sampler_heap,
+                                 &st->samplers[s]->desc_without_custom_border);
+      }
+   }
+
+   u_foreach_bit(cb, st->cb_mask) {
+      uniforms.ubo_base[cb] = agx_const_buffer_ptr(batch, &st->cb[cb]);
+   }
+
+   u_foreach_bit(cb, st->ssbo_mask) {
+      uniforms.ssbo_base[cb] = agx_shader_buffer_ptr(batch, &st->ssbo[cb]);
+      uniforms.ssbo_size[cb] = st->ssbo[cb].buffer_size;
+   }
+
+   memcpy(root_ptr.cpu, &uniforms, sizeof(uniforms));
+   return root_ptr.gpu;
 }

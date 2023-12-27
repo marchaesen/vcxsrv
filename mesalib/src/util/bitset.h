@@ -89,22 +89,36 @@ __bitset_not(BITSET_WORD *x, unsigned n)
       x[i] = ~x[i];
 }
 
+static inline void
+__bitset_andnot(BITSET_WORD *r, const BITSET_WORD *x, const BITSET_WORD *y, unsigned n)
+{
+   for (unsigned i = 0; i < n; i++)
+      r[i] = x[i] & ~y[i];
+}
+
 #define BITSET_AND(r, x, y)   \
    do { \
-      assert(ARRAY_SIZE(r) == ARRAY_SIZE(x)); \
-      assert(ARRAY_SIZE(r) == ARRAY_SIZE(y)); \
+      STATIC_ASSERT(ARRAY_SIZE(r) == ARRAY_SIZE(x)); \
+      STATIC_ASSERT(ARRAY_SIZE(r) == ARRAY_SIZE(y)); \
       __bitset_and(r, x, y, ARRAY_SIZE(r)); \
    } while (0)
 
 #define BITSET_OR(r, x, y)   \
    do { \
-      assert(ARRAY_SIZE(r) == ARRAY_SIZE(x)); \
-      assert(ARRAY_SIZE(r) == ARRAY_SIZE(y)); \
+      STATIC_ASSERT(ARRAY_SIZE(r) == ARRAY_SIZE(x)); \
+      STATIC_ASSERT(ARRAY_SIZE(r) == ARRAY_SIZE(y)); \
       __bitset_or(r, x, y, ARRAY_SIZE(r)); \
    } while (0)
 
 #define BITSET_NOT(x)   \
    __bitset_not(x, ARRAY_SIZE(x))
+
+#define BITSET_ANDNOT(r, x, y)   \
+   do { \
+      assert(ARRAY_SIZE(r) == ARRAY_SIZE(x)); \
+      assert(ARRAY_SIZE(r) == ARRAY_SIZE(y)); \
+      __bitset_andnot(r, x, y, ARRAY_SIZE(r)); \
+   } while (0)
 
 static inline void
 __bitset_rotate_right(BITSET_WORD *x, unsigned amount, unsigned n)
@@ -191,11 +205,11 @@ __bitset_shl(BITSET_WORD *x, unsigned amount, unsigned n)
 #define BITSET_SHL(x, n)   \
    __bitset_shl(x, n, ARRAY_SIZE(x));
 
-/* bit range operations
+/* bit range operations (e=end is inclusive)
  */
-#define BITSET_TEST_RANGE_INSIDE_WORD(x, b, e) \
+#define BITSET_TEST_RANGE_INSIDE_WORD(x, b, e, mask) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
-   (((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) != 0) : \
+   (((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) == mask) : \
    (assert (!"BITSET_TEST_RANGE: bit range crosses word boundary"), 0))
 #define BITSET_SET_RANGE_INSIDE_WORD(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
@@ -213,7 +227,7 @@ __bitset_test_range(const BITSET_WORD *r, unsigned start, unsigned end)
    const unsigned start_mod = start % BITSET_WORDBITS;
 
    if (start_mod + size <= BITSET_WORDBITS) {
-      return BITSET_TEST_RANGE_INSIDE_WORD(r, start, end);
+      return !BITSET_TEST_RANGE_INSIDE_WORD(r, start, end, 0);
    } else {
       const unsigned first_size = BITSET_WORDBITS - start_mod;
 
@@ -296,6 +310,19 @@ __bitset_count(const BITSET_WORD *x, unsigned n)
 #define BITSET_COUNT(x) \
    __bitset_count(x, ARRAY_SIZE(x))
 
+/* Return true if the bitset has no bits set.
+ */
+static inline bool
+__bitset_is_empty(const BITSET_WORD *x, int n)
+{
+   for (int i = 0; i < n; i++) {
+      if (x[i])
+         return false;
+   }
+
+   return true;
+}
+
 /* Get first bit set in a bitset.
  */
 static inline int
@@ -325,6 +352,7 @@ __bitset_last_bit(const BITSET_WORD *x, int n)
 #define BITSET_FFS(x) __bitset_ffs(x, ARRAY_SIZE(x))
 #define BITSET_LAST_BIT(x) __bitset_last_bit(x, ARRAY_SIZE(x))
 #define BITSET_LAST_BIT_SIZED(x, size) __bitset_last_bit(x, size)
+#define BITSET_IS_EMPTY(x) __bitset_is_empty(x, ARRAY_SIZE(x))
 
 static inline unsigned
 __bitset_next_set(unsigned i, BITSET_WORD *tmp,
@@ -446,7 +474,7 @@ __bitset_next_range(unsigned *start, unsigned *end, const BITSET_WORD *set,
  * it as, and N is the number of bits in the bitset.
  */
 #define DECLARE_BITSET_T(T, N) struct T {                       \
-      EXPLICIT_CONVERSION                                       \
+      explicit                                                  \
       operator bool() const                                     \
       {                                                         \
          for (unsigned i = 0; i < BITSET_WORDS(N); i++)         \

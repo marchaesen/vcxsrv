@@ -39,6 +39,10 @@ extern "C" {
 #define CP_TYPE4_PKT 0x40000000
 #define CP_TYPE7_PKT 0x70000000
 
+#define CP_NOP_MESG 0x4D455347
+#define CP_NOP_BEGN 0x4245474E
+#define CP_NOP_END  0x454E4400
+
 /*
  * Helpers for pm4 pkt header building/parsing:
  */
@@ -101,8 +105,8 @@ pm4_pkt7_hdr(uint8_t opcode, uint16_t cnt)
 #define cp_type3_opcode(pkt) (((pkt) >> 8) & 0xFF)
 #define type3_pkt_size(pkt)  ((((pkt) >> 16) & 0x3FFF) + 1)
 
-static inline uint
-pm4_calc_odd_parity_bit(uint val)
+static inline unsigned
+pm4_calc_odd_parity_bit(unsigned val)
 {
    return (0x9669 >> (0xf & ((val) ^ ((val) >> 4) ^ ((val) >> 8) ^
                              ((val) >> 12) ^ ((val) >> 16) ^ ((val) >> 20) ^

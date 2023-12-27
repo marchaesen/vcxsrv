@@ -19,7 +19,7 @@ variables:
     FDO_UPSTREAM_REPO: xorg/xserver
     FDO_DISTRIBUTION_VERSION: bullseye-slim
     FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/debian-install.sh'
-    FDO_DISTRIBUTION_TAG: "2022-09-02-fixed-commits"
+    FDO_DISTRIBUTION_TAG: "2023-06-20-libei.0"
 
 include:
   - project: 'freedesktop/ci-templates'
@@ -97,6 +97,16 @@ mingw-cross-build:
         - meson --cross-file=.gitlab-ci/cross-i686-w64-mingw32.txt -Dglx=false -Dsecure-rpc=false -Dlisten_tcp=true build/
         - ninja -j${FDO_CI_CONCURRENT:-4} -C build/ install
 
+meson-dist:
+    extends: .common-build-and-test
+    artifacts:
+        when: always
+        paths:
+            - build/meson-logs/
+            - build/xserver-*/build/meson-logs/
+    script:
+        - .gitlab-ci/dist.sh
+
 #
 # Verify that commit messages are as expected
 #
@@ -129,3 +139,12 @@ check-merge-request:
     reports:
       junit: results.xml
   allow_failure: true
+
+#
+# Workflow rules needed due to:
+# https://gitlab.freedesktop.org/freedesktop/freedesktop/-/issues/438
+#
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'push'

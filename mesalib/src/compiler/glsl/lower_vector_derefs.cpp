@@ -60,7 +60,7 @@ vector_deref_visitor::visit_enter(ir_assignment *ir)
       return ir_rvalue_enter_visitor::visit_enter(ir);
 
    ir_dereference_array *const deref = (ir_dereference_array *) ir->lhs;
-   if (!deref->array->type->is_vector())
+   if (!glsl_type_is_vector(deref->array->type))
       return ir_rvalue_enter_visitor::visit_enter(ir);
 
    /* SSBOs and shared variables are backed by memory and may be accessed by
@@ -172,7 +172,7 @@ vector_deref_visitor::handle_rvalue(ir_rvalue **rv)
       return;
 
    ir_dereference_array *const deref = (ir_dereference_array *) *rv;
-   if (!deref->array->type->is_vector())
+   if (!glsl_type_is_vector(deref->array->type))
       return;
 
    /* Back-ends need to be able to handle derefs on vectors for SSBOs, UBOs,

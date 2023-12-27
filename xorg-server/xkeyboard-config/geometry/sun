@@ -92,8 +92,8 @@ xkb_geometry "t6" {
 	row {
 	    top= 20;
 	    keys { <PROP>, <UNDO>, { <TAB>, 9, shape="TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>,
 		 { <BKSL>, "BKSL" }
 	    };
@@ -101,17 +101,17 @@ xkb_geometry "t6" {
 	row {
 	    top= 39;
 	    keys { <FRNT>, <COPY>, { <CAPS>, 9, shape="CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>,
 		 { <RTRN>, "RTRN" }
 	    };
 	};
 	row {
 	    top= 58;
-	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" }, 
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" },
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		 { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -207,10 +207,10 @@ xkb_geometry "t6tuv" {
 
     shape "EDGE" { cornerRadius= 2, { [ 515, 170 ] } };
     shape.cornerRadius= 1;
-    shape "NORM" { { [ 18,18] }, { [2,1], [16,17] } }; 
+    shape "NORM" { { [ 18,18] }, { [2,1], [16,17] } };
     shape "BKSP" { { [ 37,18] }, { [2,1], [35,17] } };
     shape "TABK" { { [ 27,18] }, { [2,1], [25,17] } };
-    shape "RTRN" { 
+    shape "RTRN" {
         approx = { [ 0, 0], [28,37] },
         { [ 0, 0], [28, 0], [28,37],
           [ 5,37], [ 5,18], [ 0,18] },
@@ -268,25 +268,25 @@ xkb_geometry "t6tuv" {
 	row {
 	    top= 20;
 	    keys { <PROP>, <UNDO>, { <TAB>, 9, shape="TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
-		   <AD11>, <AD12>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
+		   <AD11>, <AD12>,
 		   { <RTRN>, "RTRN" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { <FRNT>, <COPY>, { <CAPS>, 9, shape="CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <BKSL>
 	    };
 	};
 	row {
 	    top= 58;
-	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" }, <LSGT>, 
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" }, <LSGT>,
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		 { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -387,7 +387,7 @@ xkb_geometry "t6jp" {
     shape "TABK" { { [ 27,18] }, { [2,1], [25,17] } };
     shape "KANJ" { { [ 27,18] }, { [2,1], [25,17] } };
     shape "EXEC" { { [ 27,18] }, { [2,1], [25,17] } };
-    shape "RTRN" { 
+    shape "RTRN" {
         approx = { [ 0, 0], [28,37] },
         { [ 0, 0], [28, 0], [28,37],
           [ 5,37], [ 5,18], [ 0,18] },
@@ -442,24 +442,24 @@ xkb_geometry "t6jp" {
 	row {
 	    top= 20;
 	    keys { <PROP>, <UNDO>, { <TAB>, 9, shape="TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
-		   <AD11>, <AD12>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
+		   <AD11>, <AD12>,
 		   { <RTRN>, "RTRN" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { <FRNT>, <COPY>, { <CAPS>, 9, shape="CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <BKSL>
 	    };
 	};
 	row {
 	    top= 58;
-	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" }, 
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" },
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, <UNDR>,
 		 { <RTSH>, "RTSH", color="grey20" }
 	    };
@@ -611,8 +611,8 @@ xkb_geometry "t6unix" {
 	row {
 	    top= 20;
 	    keys { <PROP>, <UNDO>, { <TAB>, 9, shape="TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>,
 		 { <BKSP>, "BKSP", color="grey20" }
 	    };
@@ -620,17 +620,17 @@ xkb_geometry "t6unix" {
 	row {
 	    top= 39;
 	    keys { <FRNT>, <COPY>, { <CAPS>, 9, shape="CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>,
 		 { <RTRN>, "RTRN" }
 	    };
 	};
 	row {
 	    top= 58;
-	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" }, 
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+	    keys { <OPEN>, <PAST>, { <LFSH>, 9 , shape="LFSH" },
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		 { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};

@@ -272,6 +272,29 @@ struct vk_sync_type {
    VkResult (*export_sync_file)(struct vk_device *device,
                                 struct vk_sync *sync,
                                 int *sync_file);
+
+   /** Permanently imports the given handle or name into this vk_sync
+    *
+    * This replaces the guts of the given vk_sync with whatever is in the object.
+    * In a sense, this vk_sync now aliases whatever vk_sync the handle was
+    * exported from.
+    */
+   VkResult (*import_win32_handle)(struct vk_device *device,
+                                   struct vk_sync *sync,
+                                   void *handle,
+                                   const wchar_t *name);
+
+   /** Export the guts of this vk_sync to a handle and/or name */
+   VkResult (*export_win32_handle)(struct vk_device *device,
+                                   struct vk_sync *sync,
+                                   void **handle);
+
+   /** Vulkan puts these as creation params instead of export params */
+   VkResult (*set_win32_export_params)(struct vk_device *device,
+                                       struct vk_sync *sync,
+                                       const void *security_attributes,
+                                       uint32_t access,
+                                       const wchar_t *name);
 };
 
 enum vk_sync_flags {
@@ -360,6 +383,21 @@ VkResult MUST_CHECK vk_sync_import_sync_file(struct vk_device *device,
 VkResult MUST_CHECK vk_sync_export_sync_file(struct vk_device *device,
                                              struct vk_sync *sync,
                                              int *sync_file);
+
+VkResult MUST_CHECK vk_sync_import_win32_handle(struct vk_device *device,
+                                                struct vk_sync *sync,
+                                                void *handle,
+                                                const wchar_t *name);
+
+VkResult MUST_CHECK vk_sync_export_win32_handle(struct vk_device *device,
+                                                struct vk_sync *sync,
+                                                void **handle);
+
+VkResult MUST_CHECK vk_sync_set_win32_export_params(struct vk_device *device,
+                                                    struct vk_sync *sync,
+                                                    const void *security_attributes,
+                                                    uint32_t access,
+                                                    const wchar_t *name);
 
 VkResult MUST_CHECK vk_sync_move(struct vk_device *device,
                                  struct vk_sync *dst,

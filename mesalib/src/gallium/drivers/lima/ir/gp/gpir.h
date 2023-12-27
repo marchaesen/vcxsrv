@@ -398,14 +398,8 @@ typedef struct gpir_compiler {
    /* Find the gpir node for a given NIR SSA def. */
    gpir_node **node_for_ssa;
 
-   /* Find the gpir node for a given NIR register. */
-   gpir_node **node_for_reg;
-
    /* Find the gpir register for a given NIR SSA def. */
    gpir_reg **reg_for_ssa;
-
-   /* Find the gpir register for a given NIR register. */
-   gpir_reg **reg_for_reg;
 
    /* gpir block for NIR block. */
    gpir_block **blocks;

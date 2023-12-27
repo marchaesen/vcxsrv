@@ -533,6 +533,8 @@ static struct rnndelem *trydelem(struct rnndb *db, char *file, xmlNode *node) {
 				if (!res->index) {
 					rnn_err(db, "%s:%d: invalid enum name \"%s\"\n", file, node->line, enumname);
 				}
+			} else if (!strcmp(attr->name, "usage")) {
+				// no-op
 			} else {
 				rnn_err(db, "%s:%d: wrong attribute \"%s\" for %s\n", file, node->line, attr->name, node->name);
 			}
@@ -601,6 +603,8 @@ static struct rnndelem *trydelem(struct rnndb *db, char *file, xmlNode *node) {
 				res->access = RNN_ACCESS_RW;
 			else
 				fprintf (stderr, "%s:%d: wrong access type \"%s\" for register\n", file, node->line, str);
+		} else if (!strcmp(attr->name, "usage")) {
+			// no-op
 		} else if (!trytypeattr(db, file, node, attr, &res->typeinfo)) {
 			rnn_err(db, "%s:%d: wrong attribute \"%s\" for register\n", file, node->line, attr->name);
 		}
@@ -1224,8 +1228,19 @@ static void preptypeinfo(struct rnndb *db, struct rnntypeinfo *ti, char *prefix,
 	if (ti->addvariant && ti->type != RNN_TTYPE_ENUM) {
 		rnn_err(db, "%s: addvariant specified on non-enum type %s\n", prefix, ti->name);
 	}
-	for (i = 0; i < ti->bitfieldsnum; i++)
+	for (i = 0; i < ti->bitfieldsnum; i++) {
 		prepbitfield(db,  ti->bitfields[i], prefix, vi);
+		if (ti->bitfields[i]->typeinfo.addvariant) {
+			for (int j = 0; j < i; j++) {
+				if (!ti->bitfields[j]->typeinfo.addvariant) {
+					struct rnnbitfield *t = ti->bitfields[j];
+					ti->bitfields[j] = ti->bitfields[i];
+					ti->bitfields[i] = t;
+					break;
+				}
+			}
+		}
+	}
 	for (i = 0; i < ti->valsnum; i++)
 		prepvalue(db, ti->vals[i], prefix, vi);
 }
@@ -1259,8 +1274,18 @@ static void prepdelem(struct rnndb *db, struct rnndelem *elem, char *prefix, str
 		elem->length = 1;
 		elem->name = 0;
 	}
-	if (elem->name)
-		elem->fullname = catstr(prefix, elem->name);
+	if (elem->name) {
+		if (elem->varinfo.variantsstr && !strstr(elem->varinfo.variantsstr, "-")) {
+			/* Special hack for headergen2 to deal with variant regs (like a6xx vs
+			 * a7xx).. gen_header.py handles this differently by generating C++
+			 * template based reg builder to handle variants.  But for now we still
+			 * need something that can be used for kernel headers.
+			 */
+			elem->fullname = catstr(elem->varinfo.variantsstr, elem->name);
+		} else {
+			elem->fullname = catstr(prefix, elem->name);
+		}
+	}
 	prepvarinfo (db, elem->fullname?elem->fullname:prefix, &elem->varinfo, parvi);
 	if (elem->varinfo.dead)
 		return;

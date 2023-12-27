@@ -169,7 +169,7 @@ typedef struct {
     XSyncCounter counter;	/* counter to trigger on */
     XSyncValueType value_type;	/* absolute/relative */
     XSyncValue wait_value;	/* value to compare counter to */
-    XSyncTestType test_type;	/* pos/neg comparison/transtion */
+    XSyncTestType test_type;	/* pos/neg comparison/transition */
 } XSyncTrigger;
 
 typedef struct {

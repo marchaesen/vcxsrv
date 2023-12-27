@@ -23,14 +23,14 @@ dnl Process this file with autoconf to create configure.
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xwininfo], [1.1.3],
-	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [xwininfo])
+AC_INIT([xwininfo], [1.1.6],
+	[https://gitlab.freedesktop.org/xorg/app/xwininfo/-/issues], [xwininfo])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 AC_USE_SYSTEM_EXTENSIONS
 
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 AM_ICONV
 
 # Require X.Org macros 1.8 or later for MAN_SUBSTS set by XORG_MANPAGE_SECTIONS
@@ -61,8 +61,21 @@ if test "x$with_xcb_icccm" != xno ; then
 	xcb_icccm_pc='xcb-icccm >= 0.3.8'
 fi
 
+# Define a configure option for using the XCB Error helper functions
+AC_MSG_CHECKING([whether to use xcb-errors library])
+AC_ARG_WITH([xcb-errors],
+	    [AS_HELP_STRING([--with-xcb-errors],
+			    [use xcb-errors (default: no)])],
+            [], [with_xcb_errors=no])
+AC_MSG_RESULT([$with_xcb_errors])
+if test "x$with_xcb_errors" != xno ; then
+	AC_DEFINE([USE_XCB_ERRORS], 1,
+		  [Define to 1 to call xcb-errors library functions instead of local replacements])
+	xcb_errors_pc='xcb-errors >= 1.0'
+fi
+
 # Obtain compiler/linker options for xwininfo dependencies
-PKG_CHECK_MODULES(XWININFO, [xcb >= 1.6] xcb-shape ${xcb_icccm_pc})
+PKG_CHECK_MODULES(XWININFO, [xcb >= 1.6 xcb-shape ${xcb_icccm_pc} ${xcb_errors_pc}])
 
 # Even when using xcb, xproto is still required for Xfuncproto.h
 # and libX11 headers for cursorfont.h

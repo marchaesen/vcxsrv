@@ -101,7 +101,7 @@ Ilia Mirkin (6):
 -  nv50/ir: fix false global CSE on instructions with multiple defs
 -  st/mesa: treat a write as a read for range purposes
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  i965/vec4: Use UW type for multiply into accumulator on GEN8+
 -  i965/fs/generator: Take an actual shader stage rather than a string

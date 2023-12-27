@@ -51,14 +51,14 @@ struct NineVertexShader9
 
     uint8_t sampler_mask;
 
-    boolean position_t; /* if true, disable vport transform */
-    boolean point_size; /* if true, set rasterizer.point_size_per_vertex to 1 */
-    boolean swvp_only;
+    bool position_t; /* if true, disable vport transform */
+    bool point_size; /* if true, set rasterizer.point_size_per_vertex to 1 */
+    bool swvp_only;
 
     struct nine_lconstf lconstf;
 
-    boolean int_slots_used[NINE_MAX_CONST_I];
-    boolean bool_slots_used[NINE_MAX_CONST_B];
+    bool int_slots_used[NINE_MAX_CONST_I];
+    bool bool_slots_used[NINE_MAX_CONST_B];
 
     unsigned const_int_slots;
     unsigned const_bool_slots;
@@ -107,6 +107,9 @@ NineVertexShader9_UpdateKey( struct NineVertexShader9 *vs,
                                                                vs->bool_slots_used,
                                                                context->vs_const_i,
                                                                context->vs_const_b)) << 16;
+
+    if (device->driver_caps.emulate_ucp)
+        key |= (context->rs[D3DRS_CLIPPLANEENABLE] & 0xff) << 24;
 
     /* We want to use a 64 bits key for performance.
      * Use compressed float16 values for the pointsize min/max in the key.

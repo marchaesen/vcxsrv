@@ -78,7 +78,7 @@ u_vector_add(struct u_vector *vector)
           * piece goes to the right locations.  Thanks to the change in
           * size, it may or may not still wrap around.
           */
-         split = u_align_u32(vector->tail, vector->size);
+         split = align(vector->tail, vector->size);
          assert(vector->tail <= split && split < vector->head);
          memcpy((char *)data + dst_tail, (char *)vector->data + src_tail,
                 split - vector->tail);

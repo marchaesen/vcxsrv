@@ -50,12 +50,12 @@
 	<param name="access" type="GLenum"/>
     </function>
 
-    <function name="VDPAUMapSurfacesNV">
+    <function name="VDPAUMapSurfacesNV" marshal="sync">
 	<param name="numSurfaces" type="GLsizei"/>
 	<param name="surfaces" type="const GLintptr *" count="numSurfaces"/>
     </function>
 
-    <function name="VDPAUUnmapSurfacesNV">
+    <function name="VDPAUUnmapSurfacesNV" marshal="sync">
 	<param name="numSurfaces" type="GLsizei"/>
 	<param name="surfaces" type="const GLintptr *" count="numSurfaces"/>
     </function>

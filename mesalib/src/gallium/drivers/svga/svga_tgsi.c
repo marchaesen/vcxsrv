@@ -24,10 +24,9 @@
  **********************************************************/
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_shader_tokens.h"
 #include "pipe/p_defines.h"
-#include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_dump.h"
 #include "tgsi/tgsi_scan.h"
 #include "util/u_math.h"
@@ -51,7 +50,7 @@
 static char err_buf[128];
 
 
-static boolean
+static bool
 svga_shader_expand(struct svga_shader_emitter *emit)
 {
    char *new_buf;
@@ -66,61 +65,61 @@ svga_shader_expand(struct svga_shader_emitter *emit)
       emit->ptr = err_buf;
       emit->buf = err_buf;
       emit->size = sizeof(err_buf);
-      return FALSE;
+      return false;
    }
 
    emit->size = newsize;
    emit->ptr = new_buf + (emit->ptr - emit->buf);
    emit->buf = new_buf;
-   return TRUE;
+   return true;
 }
 
 
-static inline boolean
+static inline bool
 reserve(struct svga_shader_emitter *emit, unsigned nr_dwords)
 {
    if (emit->ptr - emit->buf + nr_dwords * sizeof(unsigned) >= emit->size) {
       if (!svga_shader_expand(emit)) {
-         return FALSE;
+         return false;
       }
    }
 
-   return TRUE;
+   return true;
 }
 
 
-boolean
+bool
 svga_shader_emit_dword(struct svga_shader_emitter * emit, unsigned dword)
 {
    if (!reserve(emit, 1))
-      return FALSE;
+      return false;
 
    *(unsigned *) emit->ptr = dword;
    emit->ptr += sizeof dword;
-   return TRUE;
+   return true;
 }
 
 
-boolean
+bool
 svga_shader_emit_dwords(struct svga_shader_emitter * emit,
                         const unsigned *dwords, unsigned nr)
 {
    if (!reserve(emit, nr))
-      return FALSE;
+      return false;
 
    memcpy(emit->ptr, dwords, nr * sizeof *dwords);
    emit->ptr += nr * sizeof *dwords;
-   return TRUE;
+   return true;
 }
 
 
-boolean
+bool
 svga_shader_emit_opcode(struct svga_shader_emitter * emit, unsigned opcode)
 {
    SVGA3dShaderInstToken *here;
 
    if (!reserve(emit, 1))
-      return FALSE;
+      return false;
 
    here = (SVGA3dShaderInstToken *) emit->ptr;
    here->value = opcode;
@@ -133,11 +132,11 @@ svga_shader_emit_opcode(struct svga_shader_emitter * emit, unsigned opcode)
 
    emit->insn_offset = emit->ptr - emit->buf;
    emit->ptr += sizeof(unsigned);
-   return TRUE;
+   return true;
 }
 
 
-static boolean
+static bool
 svga_shader_emit_header(struct svga_shader_emitter *emit)
 {
    SVGA3dShaderVersion header;
@@ -216,7 +215,7 @@ svga_tgsi_vgpu9_translate(struct svga_context *svga,
       goto fail;
    }
 
-   emit.in_main_func = TRUE;
+   emit.in_main_func = true;
 
    if (!svga_shader_emit_header(&emit)) {
       debug_printf("svga: emit header failed\n");
@@ -259,7 +258,7 @@ svga_tgsi_vgpu9_translate(struct svga_context *svga,
       tgsi_dump(shader->tokens, 0);
       if (SVGA_DEBUG & DEBUG_TGSI) {
          debug_printf("Shader %u compiled below\n", shader->id);
-         svga_shader_dump(variant->tokens, variant->nr_tokens, FALSE);
+         svga_shader_dump(variant->tokens, variant->nr_tokens, false);
       }
       debug_printf("#####################################\n");
    }
@@ -420,7 +419,9 @@ svga_tgsi_scan_shader(struct svga_shader *shader)
    info->uses_images = tgsi_info->images_declared != 0;
    info->uses_image_size = tgsi_info->opcode_count[TGSI_OPCODE_RESQ] ? 1 : 0;
    info->uses_shader_buffers = tgsi_info->shader_buffers_declared != 0;
+   info->uses_samplers = tgsi_info->samplers_declared != 0;
    info->const_buffers_declared = tgsi_info->const_buffers_declared;
+   info->shader_buffers_declared = tgsi_info->shader_buffers_declared;
 
    info->generic_inputs_mask = svga_get_generic_inputs_mask(tgsi_info);
    info->generic_outputs_mask = svga_get_generic_outputs_mask(tgsi_info);
@@ -488,7 +489,7 @@ svga_tgsi_scan_shader(struct svga_shader *shader)
          switch (tgsi_info->output_semantic_name[i]) {
          case TGSI_SEMANTIC_TESSOUTER:
          case TGSI_SEMANTIC_TESSINNER:
-            info->tcs.writes_tess_factor = TRUE;
+            info->tcs.writes_tess_factor = true;
             break;
          default:
             break;
@@ -498,7 +499,6 @@ svga_tgsi_scan_shader(struct svga_shader *shader)
    case PIPE_SHADER_TESS_EVAL:
       info->tes.prim_mode =
          tgsi_info->properties[TGSI_PROPERTY_TES_PRIM_MODE];
-      info->tes.reads_tess_factor = tgsi_info->reads_tess_factors;
 
       for (unsigned i = 0; i < info->num_inputs; i++) {
          switch (tgsi_info->input_semantic_name[i]) {
@@ -507,7 +507,7 @@ svga_tgsi_scan_shader(struct svga_shader *shader)
          case TGSI_SEMANTIC_TESSINNER:
             break;
          default:
-              info->tes.reads_control_point = TRUE;
+              info->tes.reads_control_point = true;
          }
       }
       break;

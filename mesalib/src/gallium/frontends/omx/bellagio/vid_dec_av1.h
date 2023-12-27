@@ -28,7 +28,7 @@
 #ifndef VID_DEC_AV1_H
 #define VID_DEC_AV1_H
 
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 enum av1_obu_type {
    AV1_OBU_SEQUENCE_HEADER = 1,

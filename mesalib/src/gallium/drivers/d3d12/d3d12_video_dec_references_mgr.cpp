@@ -24,6 +24,8 @@
 #include "d3d12_video_dec_references_mgr.h"
 #include "d3d12_video_dec_h264.h"
 #include "d3d12_video_dec_hevc.h"
+#include "d3d12_video_dec_av1.h"
+#include "d3d12_video_dec_vp9.h"
 #include "d3d12_video_texture_array_dpb_manager.h"
 #include "d3d12_video_array_of_textures_dpb_manager.h"
 #include "d3d12_screen.h"
@@ -43,6 +45,10 @@ GetInvalidReferenceIndex(d3d12_video_decode_profile_type DecodeProfileType)
          return DXVA_H264_INVALID_PICTURE_INDEX;
       case d3d12_video_decode_profile_type_hevc:
          return DXVA_HEVC_INVALID_PICTURE_INDEX;
+      case d3d12_video_decode_profile_type_av1:
+         return DXVA_AV1_INVALID_PICTURE_INDEX;
+      case d3d12_video_decode_profile_type_vp9:
+         return DXVA_VP9_INVALID_PICTURE_INDEX;
       default:
          return 0;
    };
@@ -63,71 +69,21 @@ d3d12_video_decoder_references_manager::get_current_frame_decode_output_texture(
    assert(m_DecodeTargetToOriginalIndex7Bits.count(pCurrentDecodeTarget) > 0); // Needs to already have a Index7Bits assigned for current pic params
    uint16_t remappedIdx = find_remapped_index(m_DecodeTargetToOriginalIndex7Bits[pCurrentDecodeTarget]);
 
-   if(remappedIdx != m_invalidIndex) { // If it already has a remapped index in use, reuse that allocation
+   if((remappedIdx != m_invalidIndex) && !(is_reference_only())) { // If it already has a remapped index in use, reuse that allocation
       // return the existing allocation for this decode target
       d3d12_video_reconstructed_picture reconPicture = m_upD3D12TexturesStorageManager->get_reference_frame(remappedIdx);
       *ppOutTexture2D       = reconPicture.pReconstructedPicture;
       *pOutSubresourceIndex = reconPicture.ReconstructedPictureSubresource;
    } else {
-      if (is_reference_only()) {
-         // When using clear DPB references (not ReferenceOnly) the decode output allocations come from
-         // m_upD3D12TexturesStorageManager as decode output == reconpic decode output Otherwise, when ReferenceOnly is
-         // true, both the reference frames in the DPB and the current frame reconpic output must be REFERENCE_ONLY, all
-         // the allocations are stored in m_upD3D12TexturesStorageManager but we need a +1 allocation without the
-         // REFERENCE_FRAME to use as clear decoded output. In this case d3d12_video_decoder_references_manager allocates
-         // and provides m_pClearDecodedOutputTexture Please note that m_pClearDecodedOutputTexture needs to be copied/read
-         // by the client before calling end_frame again, as the allocation will be reused for the next frame.
-
-         if (m_pClearDecodedOutputTexture == nullptr) {
-            D3D12_HEAP_PROPERTIES Properties =
-               CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT, m_dpbDescriptor.m_NodeMask, m_dpbDescriptor.m_NodeMask);
-            CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(m_dpbDescriptor.Format,
-                                                                        m_dpbDescriptor.Width,
-                                                                        m_dpbDescriptor.Height,
-                                                                        1,
-                                                                        1,
-                                                                        1,
-                                                                        0,
-                                                                        D3D12_RESOURCE_FLAG_NONE);
-
-            HRESULT hr = m_pD3D12Screen->dev->CreateCommittedResource(&Properties,
-                                                            D3D12_HEAP_FLAG_NONE,
-                                                            &resDesc,
-                                                            D3D12_RESOURCE_STATE_COMMON,
-                                                            nullptr,
-                                                            IID_PPV_ARGS(m_pClearDecodedOutputTexture.GetAddressOf()));
-            if (FAILED(hr)) {
-               debug_printf("CreateCommittedResource failed with HR %x\n", hr);
-               assert(false);
-            }
-         }
-
-         *ppOutTexture2D       = m_pClearDecodedOutputTexture.Get();
+      if (is_pipe_buffer_underlying_output_decode_allocation()) {
+         auto vidBuffer = (struct d3d12_video_buffer *)(pCurrentDecodeTarget);
+         *ppOutTexture2D       = d3d12_resource_resource(vidBuffer->texture);
          *pOutSubresourceIndex = 0;
       } else {
-         if(is_array_of_textures()) {
-            // In non ref picture and non texarray mode, we can just use the underlying allocation in pCurrentDecodeTarget
-            // and avoid an extra copy after decoding the frame.
-            assert(is_pipe_buffer_underlying_output_decode_allocation());
-
-            auto vidBuffer = (struct d3d12_video_buffer *)(pCurrentDecodeTarget);
-            *ppOutTexture2D       = d3d12_resource_resource(vidBuffer->texture);
-            *pOutSubresourceIndex = 0;
-            #if DEBUG
-               D3D12_RESOURCE_DESC desc = GetDesc(*ppOutTexture2D);
-               assert(desc.DepthOrArraySize == 1);
-               // if the underlying resource is a texture array at some point (if the impl. changes)
-               // we need to also return the correct underlying subresource in *pOutSubresourceIndex = <subres>
-            #endif
-            
-         } else {
-            // The DPB Storage only has standard (without the ref only flags) allocations, directly use one of those.
-            d3d12_video_reconstructed_picture pFreshAllocation =
-               m_upD3D12TexturesStorageManager->get_new_tracked_picture_allocation();
-            *ppOutTexture2D       = pFreshAllocation.pReconstructedPicture;
-            *pOutSubresourceIndex = pFreshAllocation.ReconstructedPictureSubresource;
-         }
-         
+         d3d12_video_reconstructed_picture pFreshAllocation =
+            m_upD3D12TexturesStorageManager->get_new_tracked_picture_allocation();
+         *ppOutTexture2D       = pFreshAllocation.pReconstructedPicture;
+         *pOutSubresourceIndex = pFreshAllocation.ReconstructedPictureSubresource;
       }
    }
 }
@@ -202,13 +158,12 @@ d3d12_video_decoder_references_manager::d3d12_video_decoder_references_manager(
    d3d12_video_decode_profile_type   DecodeProfileType,
    d3d12_video_decode_dpb_descriptor m_dpbDescriptor)
    : m_DecodeTargetToOriginalIndex7Bits({ }),
-     m_CurrentIndex7BitsAvailable(0),
      m_pD3D12Screen(pD3D12Screen),
      m_invalidIndex(GetInvalidReferenceIndex(DecodeProfileType)),
      m_dpbDescriptor(m_dpbDescriptor),
      m_formatInfo({ m_dpbDescriptor.Format })
 {
-   HRESULT hr = m_pD3D12Screen->dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &m_formatInfo, sizeof(m_formatInfo));
+   ASSERTED HRESULT hr = m_pD3D12Screen->dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &m_formatInfo, sizeof(m_formatInfo));
    assert(SUCCEEDED(hr));
    D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC targetFrameResolution = { static_cast<uint32_t>(m_dpbDescriptor.Width),
                                                                          m_dpbDescriptor.Height };
@@ -323,7 +278,7 @@ d3d12_video_decoder_references_manager::store_future_reference(uint16_t         
    // Set the index as the key in this map entry.
    m_referenceDXVAIndices[remappedIndex].originalIndex = index;
    IUnknown *pUnkHeap                                  = nullptr;
-   HRESULT hr = decoderHeap.Get()->QueryInterface(IID_PPV_ARGS(&pUnkHeap));
+   ASSERTED HRESULT hr = decoderHeap.Get()->QueryInterface(IID_PPV_ARGS(&pUnkHeap));
    assert(SUCCEEDED(hr));
    d3d12_video_reconstructed_picture reconPic = { pTexture2D, subresourceIndex, pUnkHeap };
 
@@ -357,7 +312,7 @@ d3d12_video_decoder_references_manager::release_unused_references_texture_memory
       if (!m_referenceDXVAIndices[index].fUsed) {
          d3d12_video_reconstructed_picture reconPicture = m_upD3D12TexturesStorageManager->get_reference_frame(index);
          if (reconPicture.pReconstructedPicture != nullptr) {
-            bool wasTracked = m_upD3D12TexturesStorageManager->untrack_reconstructed_picture_allocation(reconPicture);
+            ASSERTED bool wasTracked = m_upD3D12TexturesStorageManager->untrack_reconstructed_picture_allocation(reconPicture);
             // Untrack this resource, will mark it as free un the underlying storage buffer pool
             // if not tracked, must be due to no-copies allocation
             assert (wasTracked || is_pipe_buffer_underlying_output_decode_allocation());

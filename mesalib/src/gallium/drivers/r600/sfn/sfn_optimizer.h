@@ -31,13 +31,18 @@
 
 namespace r600 {
 
-bool dead_code_elimination(Shader& shader);
-bool copy_propagation_fwd(Shader& shader);
-bool copy_propagation_backward(Shader& shader);
-bool simplify_source_vectors(Shader& sh);
+bool
+dead_code_elimination(Shader& shader);
+bool
+copy_propagation_fwd(Shader& shader);
+bool
+copy_propagation_backward(Shader& shader);
+bool
+simplify_source_vectors(Shader& sh);
 
-bool optimize(Shader& shader);
+bool
+optimize(Shader& shader);
 
-}
+} // namespace r600
 
 #endif // OPTIMIZER_H

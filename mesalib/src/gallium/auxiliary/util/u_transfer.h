@@ -29,7 +29,7 @@ void u_default_texture_subdata(struct pipe_context *pipe,
                                const struct pipe_box *box,
                                const void *data,
                                unsigned stride,
-                               unsigned layer_stride);
+                               uintptr_t layer_stride);
 
 void u_default_transfer_flush_region( struct pipe_context *pipe,
                                       struct pipe_transfer *transfer,

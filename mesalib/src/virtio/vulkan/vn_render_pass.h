@@ -24,8 +24,8 @@ struct vn_present_src_attachment {
 };
 
 struct vn_subpass {
-   bool has_color_attachment;
-   bool has_depth_stencil_attachment;
+   VkImageAspectFlags attachment_aspects;
+   uint32_t view_mask;
 };
 
 struct vn_render_pass {
@@ -71,5 +71,13 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(vn_framebuffer,
                                base.base,
                                VkFramebuffer,
                                VK_OBJECT_TYPE_FRAMEBUFFER)
+
+static inline uint32_t
+vn_render_pass_get_subpass_view_mask(const struct vn_render_pass *render_pass,
+                                     uint32_t subpass_index)
+{
+   assert(subpass_index < render_pass->subpass_count);
+   return render_pass->subpasses[subpass_index].view_mask;
+}
 
 #endif /* VN_RENDER_PASS_H */

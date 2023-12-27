@@ -14,11 +14,12 @@
   </enum>
 
   <enum name="Attribute Special">
+    <value name="Point Coord Min Y" value="33"/>
     <value name="Vertex ID" value="34"/>
     <value name="Instance ID" value="36"/>
     <value name="Frag Coord" value="37"/>
     <value name="Front Facing" value="38"/>
-    <value name="Point Coord" value="97"/>
+    <value name="Point Coord Max Y" value="97"/>
   </enum>
 
   <enum name="Channel">
@@ -538,7 +539,7 @@
     <field name="High Depth Cull" size="1" start="0:17" type="bool" default="true"/>
     <field name="Primitive restart" size="2" start="0:19" type="Primitive Restart"/>
     <field name="Job Task Split" size="6" start="0:26" type="uint"/>
-    <field name="Base vertex offset" size="32" start="1:0" type="uint"/>
+    <field name="Base vertex offset" size="32" start="1:0" type="int"/>
     <field name="Primitive Restart Index" size="32" start="2:0" type="uint"/>
     <field name="Index count" size="32" start="3:0" type="uint" modifier="minus(1)"/>
     <field name="Indices" size="64" start="4:0" type="address"/>
@@ -576,8 +577,24 @@
     <field name="FBD" size="64" start="28:0" type="address"/>
   </struct>
 
+  <enum name="Surface Type">
+    <value name="32" value="0"/>
+    <value name="64" value="1"/>
+    <value name="32 With Row Stride" value="2"/>
+    <value name="64 With Strides" value="3"/>
+  </enum>
+
   <struct name="Surface" align="8">
     <field name="Pointer" size="64" start="0:0" type="address"/>
+  </struct>
+
+  <struct name="Surface 32" align="4">
+    <field name="Pointer" size="32" start="0:0" type="address"/>
+  </struct>
+
+  <struct name="Surface 32 With Row Stride" align="8">
+    <field name="Pointer" size="32" start="0:0" type="address"/>
+    <field name="Row stride" size="32" start="1:0" type="int"/>
   </struct>
 
   <struct name="Surface With Stride" align="8">
@@ -592,9 +609,9 @@
     <field name="Mipmap Mode" size="2" start="3" type="Mipmap Mode" default="Nearest"/>
     <field name="Normalized Coordinates" size="1" start="5" type="bool" default="true"/>
     <field name="Isotropic LOD" size="1" start="6" type="bool"/>
-    <field name="LOD Bias" size="16" start="0:16" type="int" default="0"/>
-    <field name="Minimum LOD" size="16" start="1:0" type="uint" default="0"/>
-    <field name="Maximum LOD" size="16" start="1:16" type="uint" default="1"/>
+    <field name="LOD Bias" size="16" start="0:16" type="slod" default="0"/>
+    <field name="Minimum LOD" size="16" start="1:0" type="ulod" default="0"/>
+    <field name="Maximum LOD" size="16" start="1:16" type="ulod" default="0"/>
     <field name="Wrap Mode S" size="4" start="2:0" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Wrap Mode T" size="4" start="2:4" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Wrap Mode R" size="4" start="2:8" type="Wrap Mode" default="Clamp to Edge"/>
@@ -615,8 +632,7 @@
     <field name="Format" size="22" start="2:0" type="Pixel Format"/>
     <field name="Dimension" size="2" start="2:22" type="Texture Dimension"/>
     <field name="Texel ordering" size="4" start="2:24" type="Texture Layout"/>
-    <field name="Surface pointer is 64b" size="1" start="2:28" type="bool" default="true"/>
-    <field name="Manual stride" size="1" start="2:29" type="bool" default="false"/>
+    <field name="Surface Type" size="2" start="2:28" type="Surface Type" default="64 With Strides"/>
     <field name="Levels" size="8" start="3:24" type="uint" modifier="minus(1)" default="1"/>
     <field name="Swizzle" size="12" start="4:0" type="uint"/>
   </struct>
@@ -873,12 +889,6 @@
     <value name="D32" value="2"/>
   </enum>
 
-  <enum name="FBD Tag">
-    <value name="IS_MFBD" value="1"/>
-    <value name="HAS_ZS_RT" value="2"/>
-    <value name="MASK" value="63"/>
-  </enum>
-
   <struct name="Framebuffer Parameters">
     <field name="Width" size="16" start="0:0" type="uint" modifier="minus(1)"/>
     <field name="Height" size="16" start="0:16" type="uint" modifier="minus(1)"/>
@@ -1022,13 +1032,19 @@
     <field name="Clear" size="128" start="12:0" type="RT Clear"/>
   </struct>
 
-
   <aggregate name="Framebuffer" align="64">
     <section name="Local Storage" offset="0" type="Local Storage"/>
     <section name="Parameters" offset="32" type="Framebuffer Parameters"/>
     <section name="Tiler" offset="56" type="Tiler Context"/>
     <section name="Tiler Weights" offset="96" type="Tiler Weights"/>
   </aggregate>
+
+  <struct name="Framebuffer pointer">
+    <field name="Type" start="0" size="1" type="bool" default="true"/>
+    <field name="ZS CRC Extension present" start="1" size="1" type="bool"/>
+    <field name="Render target count" start="2" size="4" type="uint" modifier="minus(1)"/>
+    <field name="Pointer" start="6" size="58" type="address" modifier="shr(6)"/>
+  </struct>
 
   <struct name="Job Header" align="64">
     <field name="Exception Status" size="32" start="0:0" type="uint"/>

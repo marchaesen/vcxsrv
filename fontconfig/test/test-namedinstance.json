@@ -1,0 +1,64 @@
+{
+    "fonts": [
+        {
+            "family": [
+                "Foo"
+            ],
+            "style": [
+                "Regular"
+            ],
+            "file": "/path/to/Foo-VF.otf",
+            "index": 1,
+            "namedinstance": false,
+            "fontversion": 1
+        },
+        {
+            "family": [
+                "Foo",
+                "Foo Bold"
+            ],
+            "style": [
+                "Bold",
+                "Regular"
+            ],
+            "file": "/path/to/Foo-VF.otf",
+            "index": 65537,
+            "namedinstance": true,
+            "fontversion": 1
+        }
+    ],
+    "tests": [
+        {
+            "method": "match",
+            "query": {
+                "family": "Foo",
+                "style": "Bold",
+                "namedinstance": false
+            },
+            "result": {
+                "family": "Foo",
+                "style": "Regular",
+                "file": "/path/to/Foo-VF.otf",
+                "index": 1,
+                "namedinstance": false,
+                "fontversion": 1
+            }
+        },
+        {
+            "method": "match",
+            "query": {
+                "family": "Foo",
+                "style": "Bold",
+                "namedinstance": true
+            },
+            "result": {
+                "family": "Foo",
+                "style": "Bold",
+                "file": "/path/to/Foo-VF.otf",
+                "index": 65537,
+                "namedinstance": true,
+                "fontversion": 1
+            }
+        }
+    ]
+}

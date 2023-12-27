@@ -1,24 +1,7 @@
 /*
  * Copyright 2014-2019 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "ac_rtld.h"
@@ -156,7 +139,7 @@ static bool layout_symbols(struct ac_rtld_symbol *symbols, unsigned num_symbols,
       s->offset = total_size;
 
       if (total_size + s->size < total_size) {
-         report_errorf("%s: size overflow", __FUNCTION__);
+         report_errorf("%s: size overflow", __func__);
          return false;
       }
 
@@ -295,11 +278,7 @@ bool ac_rtld_open(struct ac_rtld_binary *binary, struct ac_rtld_open_info i)
    util_dynarray_foreach (&binary->lds_symbols, struct ac_rtld_symbol, symbol)
       symbol->part_idx = ~0u;
 
-   unsigned max_lds_size = 64 * 1024;
-
-   if (i.info->gfx_level == GFX6 ||
-       (i.shader_type != MESA_SHADER_COMPUTE && i.shader_type != MESA_SHADER_FRAGMENT))
-      max_lds_size = 32 * 1024;
+   unsigned max_lds_size = i.info->gfx_level == GFX6 ? 32 * 1024 : 64 * 1024;
 
    uint64_t shared_lds_size = 0;
    if (!layout_symbols(binary->lds_symbols.data, i.num_shared_lds_symbols, &shared_lds_size))
@@ -436,35 +415,6 @@ bool ac_rtld_open(struct ac_rtld_binary *binary, struct ac_rtld_open_info i)
 
    binary->rx_size += rx_size;
    binary->exec_size = exec_size;
-
-   /* The SQ fetches up to N cache lines of 16 dwords
-    * ahead of the PC, configurable by SH_MEM_CONFIG and
-    * S_INST_PREFETCH. This can cause two issues:
-    *
-    * (1) Crossing a page boundary to an unmapped page. The logic
-    *     does not distinguish between a required fetch and a "mere"
-    *     prefetch and will fault.
-    *
-    * (2) Prefetching instructions that will be changed for a
-    *     different shader.
-    *
-    * (2) is not currently an issue because we flush the I$ at IB
-    * boundaries, but (1) needs to be addressed. Due to buffer
-    * suballocation, we just play it safe.
-    */
-   unsigned prefetch_distance = 0;
-
-   if (!i.info->has_graphics && i.info->family >= CHIP_ALDEBARAN)
-      prefetch_distance = 16;
-   else if (i.info->gfx_level >= GFX10)
-      prefetch_distance = 3;
-
-   if (prefetch_distance) {
-      if (i.info->gfx_level >= GFX11)
-         binary->rx_size = align(binary->rx_size + prefetch_distance * 64, 128);
-      else
-         binary->rx_size = align(binary->rx_size + prefetch_distance * 64, 64);
-   }
 
    return true;
 

@@ -24,7 +24,21 @@
 #ifndef PVR_TYPES_H
 #define PVR_TYPES_H
 
+#include <inttypes.h>
 #include <stdint.h>
+
+/**
+ * \brief Convert dwords to bytes.
+ *
+ * Throughout the code base we keep sizes in dwords (e.g. code_size and
+ * data_size returned by the pds api) and in some cases we need to convert those
+ * to be in bytes.
+ *
+ * This macro makes the conversion more obvious.
+ */
+/* clang-format off */
+#define PVR_DW_TO_BYTES(_value) ((_value) * 4)
+/* clang-format on */
 
 /*****************************************************************************
    Device virtual addresses
@@ -37,5 +51,8 @@ typedef struct pvr_dev_addr {
 #define PVR_DEV_ADDR(addr_) ((pvr_dev_addr_t){ .addr = (addr_) })
 #define PVR_DEV_ADDR_OFFSET(base, offset) PVR_DEV_ADDR((base).addr + (offset))
 #define PVR_DEV_ADDR_INVALID PVR_DEV_ADDR(0)
+
+/* All currently supported devices use a 40-bit virtual address space. */
+#define PVR_DEV_ADDR_FMT "0x%010" PRIx64
 
 #endif /* PVR_TYPES_H */

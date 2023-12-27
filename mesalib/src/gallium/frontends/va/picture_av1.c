@@ -51,6 +51,12 @@ static void tile_info(vlVaContext *context, VADecPictureParameterBufferAV1 *av1)
    unsigned TileColsLog2 = util_logbase2_ceil(av1->tile_cols);
    unsigned TileRowsLog2 = util_logbase2_ceil(av1->tile_rows);
 
+   if (av1->pic_info_fields.bits.use_superres) {
+      unsigned width = ((av1->frame_width_minus1 + 1) * 8 + av1->superres_scale_denominator / 2)
+         / av1->superres_scale_denominator;
+      MiCols = 2 * (((width - 1) + 8) >> 3);
+   }
+
    sbCols = (av1->seq_info_fields.fields.use_128x128_superblock) ?
       ((MiCols + 31) >> 5) : ((MiCols + 15) >> 4);
    sbRows = (av1->seq_info_fields.fields.use_128x128_superblock) ?
@@ -66,6 +72,7 @@ static void tile_info(vlVaContext *context, VADecPictureParameterBufferAV1 *av1)
       i = 0;
       for (startSb = 0; startSb < sbCols; startSb += tileWidthSb) {
          context->desc.av1.picture_parameter.tile_col_start_sb[i] = startSb;
+         context->desc.av1.picture_parameter.width_in_sbs[i] = tileWidthSb;
          i++;
       }
       context->desc.av1.picture_parameter.tile_col_start_sb[i] = sbCols;
@@ -74,6 +81,7 @@ static void tile_info(vlVaContext *context, VADecPictureParameterBufferAV1 *av1)
       i = 0;
       for (startSb = 0; startSb < sbRows; startSb += tileHeightSb) {
          context->desc.av1.picture_parameter.tile_row_start_sb[i] = startSb;
+         context->desc.av1.picture_parameter.height_in_sbs[i] = tileHeightSb;
          i++;
       }
       context->desc.av1.picture_parameter.tile_row_start_sb[i] = sbRows;
@@ -86,6 +94,7 @@ static void tile_info(vlVaContext *context, VADecPictureParameterBufferAV1 *av1)
 
          context->desc.av1.picture_parameter.tile_col_start_sb[i] = startSb;
          sizeSb = (av1->width_in_sbs_minus_1)[i] + 1;
+         context->desc.av1.picture_parameter.width_in_sbs[i] = sizeSb;
          widestTileSb = MAX2(sizeSb, widestTileSb);
          startSb += sizeSb;
          width_sb -= sizeSb;
@@ -95,6 +104,7 @@ static void tile_info(vlVaContext *context, VADecPictureParameterBufferAV1 *av1)
       startSb = 0;
       for (i = 0; startSb < sbRows; ++i) {
          unsigned height_in_sbs_minus_1 = (av1->height_in_sbs_minus_1)[i];
+         context->desc.av1.picture_parameter.height_in_sbs[i] = height_in_sbs_minus_1 + 1;
 
          context->desc.av1.picture_parameter.tile_row_start_sb[i] = startSb;
          startSb += height_in_sbs_minus_1 + 1;
@@ -108,6 +118,7 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
 {
    VADecPictureParameterBufferAV1 *av1 = buf->data;
    int i, j;
+   bool use_lr;
 
    assert(buf->size >= sizeof(VADecPictureParameterBufferAV1) && buf->num_elements == 1);
 
@@ -116,6 +127,10 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
       av1->seq_info_fields.fields.use_128x128_superblock;
    context->desc.av1.picture_parameter.seq_info_fields.enable_filter_intra =
       av1->seq_info_fields.fields.enable_filter_intra;
+   context->desc.av1.picture_parameter.seq_info_fields.enable_cdef =
+      av1->seq_info_fields.fields.enable_cdef;
+   context->desc.av1.picture_parameter.seq_info_fields.film_grain_params_present =
+      av1->seq_info_fields.fields.film_grain_params_present;
    context->desc.av1.picture_parameter.seq_info_fields.enable_intra_edge_filter =
       av1->seq_info_fields.fields.enable_intra_edge_filter;
    context->desc.av1.picture_parameter.order_hint_bits_minus_1 = av1->order_hint_bits_minus_1;
@@ -139,6 +154,8 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
    context->desc.av1.picture_parameter.seq_info_fields.mono_chrome =
       av1->seq_info_fields.fields.mono_chrome;
 
+   context->desc.av1.picture_parameter.pic_info_fields.showable_frame =
+      av1->pic_info_fields.bits.showable_frame;
    context->desc.av1.picture_parameter.pic_info_fields.frame_type =
       av1->pic_info_fields.bits.frame_type;
    context->desc.av1.picture_parameter.pic_info_fields.show_frame =
@@ -165,8 +182,20 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
       av1->pic_info_fields.bits.disable_frame_end_update_cdf;
    context->desc.av1.picture_parameter.pic_info_fields.allow_warped_motion =
       av1->pic_info_fields.bits.allow_warped_motion;
+   context->desc.av1.picture_parameter.pic_info_fields.uniform_tile_spacing_flag =
+      av1->pic_info_fields.bits.uniform_tile_spacing_flag;
+   context->desc.av1.picture_parameter.pic_info_fields.large_scale_tile =
+      av1->pic_info_fields.bits.large_scale_tile;
 
-   context->desc.av1.picture_parameter.current_frame_id = av1->current_frame;
+   context->desc.av1.picture_parameter.matrix_coefficients =
+      av1->matrix_coefficients;
+
+   context->desc.av1.film_grain_target = NULL;
+   if (av1->film_grain_info.film_grain_info_fields.bits.apply_grain)
+      context->desc.av1.picture_parameter.current_frame_id = av1->current_display_picture;
+   else
+      context->desc.av1.picture_parameter.current_frame_id = av1->current_frame;
+
    context->desc.av1.picture_parameter.order_hint = av1->order_hint;
    context->desc.av1.picture_parameter.primary_ref_frame = av1->primary_ref_frame;
    context->desc.av1.picture_parameter.frame_width = av1->frame_width_minus1 + 1;
@@ -192,15 +221,22 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
    context->desc.av1.picture_parameter.u_ac_delta_q = av1->u_ac_delta_q;
    context->desc.av1.picture_parameter.v_dc_delta_q = av1->v_dc_delta_q;
    context->desc.av1.picture_parameter.v_ac_delta_q = av1->v_ac_delta_q;
-   context->desc.av1.picture_parameter.qmatrix_fields.qm_y = av1->qmatrix_fields.bits.qm_y | 0xf;
-   context->desc.av1.picture_parameter.qmatrix_fields.qm_u = av1->qmatrix_fields.bits.qm_u | 0xf;
-   context->desc.av1.picture_parameter.qmatrix_fields.qm_v = av1->qmatrix_fields.bits.qm_v | 0xf;
+   context->desc.av1.picture_parameter.qmatrix_fields.using_qmatrix =
+      av1->qmatrix_fields.bits.using_qmatrix;
+   context->desc.av1.picture_parameter.qmatrix_fields.qm_y = av1->qmatrix_fields.bits.using_qmatrix
+      ? av1->qmatrix_fields.bits.qm_y : 0xf;
+   context->desc.av1.picture_parameter.qmatrix_fields.qm_u = av1->qmatrix_fields.bits.using_qmatrix
+      ? av1->qmatrix_fields.bits.qm_u : 0xf;
+   context->desc.av1.picture_parameter.qmatrix_fields.qm_v = av1->qmatrix_fields.bits.using_qmatrix
+      ? av1->qmatrix_fields.bits.qm_v : 0xf;
 
    /* Segmentation Params */
    context->desc.av1.picture_parameter.seg_info.segment_info_fields.enabled =
       av1->seg_info.segment_info_fields.bits.enabled;
    context->desc.av1.picture_parameter.seg_info.segment_info_fields.update_map =
       av1->seg_info.segment_info_fields.bits.update_map;
+   context->desc.av1.picture_parameter.seg_info.segment_info_fields.update_data =
+      av1->seg_info.segment_info_fields.bits.update_data;
    context->desc.av1.picture_parameter.seg_info.segment_info_fields.temporal_update =
       av1->seg_info.segment_info_fields.bits.temporal_update;
    for (i = 0; i < AV1_MAX_SEGMENTS; ++i) {
@@ -265,13 +301,23 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
       av1->loop_restoration_fields.bits.cbframe_restoration_type;
    context->desc.av1.picture_parameter.loop_restoration_fields.crframe_restoration_type =
       av1->loop_restoration_fields.bits.crframe_restoration_type;
-   if (!av1->loop_restoration_fields.bits.lr_unit_shift) {
-      context->desc.av1.picture_parameter.lr_unit_size[0] =
-         256 >> (2 - av1->loop_restoration_fields.bits.lr_unit_shift);
-      context->desc.av1.picture_parameter.lr_unit_size[1] =
-         context->desc.av1.picture_parameter.lr_unit_size[2] =
-         (context->desc.av1.picture_parameter.lr_unit_size[0] >>
-          av1->loop_restoration_fields.bits.lr_uv_shift);
+   context->desc.av1.picture_parameter.loop_restoration_fields.lr_unit_shift =
+      av1->loop_restoration_fields.bits.lr_unit_shift;
+   context->desc.av1.picture_parameter.loop_restoration_fields.lr_uv_shift =
+      av1->loop_restoration_fields.bits.lr_uv_shift;
+
+   use_lr = av1->loop_restoration_fields.bits.yframe_restoration_type ||
+            av1->loop_restoration_fields.bits.cbframe_restoration_type ||
+            av1->loop_restoration_fields.bits.crframe_restoration_type;
+
+   if (use_lr) {
+      context->desc.av1.picture_parameter.lr_unit_size[0]
+         = 1 << (6 + av1->loop_restoration_fields.bits.lr_unit_shift);
+      context->desc.av1.picture_parameter.lr_unit_size[1]
+         = 1 << (6 + av1->loop_restoration_fields.bits.lr_unit_shift
+                   - av1->loop_restoration_fields.bits.lr_uv_shift);
+      context->desc.av1.picture_parameter.lr_unit_size[2]
+         = context->desc.av1.picture_parameter.lr_unit_size[1];
    } else {
       for (i = 0; i < 3; ++i)
          context->desc.av1.picture_parameter.lr_unit_size[i] = (1 << 8);
@@ -280,6 +326,7 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
    /* Global Motion Params */
    for (i = 0; i < ARRAY_SIZE(av1->wm); ++i) {
       context->desc.av1.picture_parameter.wm[i].wmtype = av1->wm[i].wmtype;
+      context->desc.av1.picture_parameter.wm[i].invalid = av1->wm[i].invalid;
       for (j = 0; j < ARRAY_SIZE(av1->wm[0].wmmat); ++j)
          context->desc.av1.picture_parameter.wm[i].wmmat[j] = av1->wm[i].wmmat[j];
    }
@@ -340,17 +387,30 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
    context->desc.av1.picture_parameter.film_grain_info.cr_offset = av1->film_grain_info.cr_offset;
 
    for (i = 0 ; i < AV1_NUM_REF_FRAMES; ++i) {
-      if (av1->pic_info_fields.bits.frame_type == 0)
+      if (av1->pic_info_fields.bits.frame_type == 0 && av1->pic_info_fields.bits.show_frame)
          context->desc.av1.ref[i] = NULL;
       else
          vlVaGetReferenceFrame(drv, av1->ref_frame_map[i], &context->desc.av1.ref[i]);
    }
+
+  context->desc.av1.slice_parameter.slice_count = 0;
 }
 
-void vlVaHandleSliceParameterBufferAV1(vlVaContext *context, vlVaBuffer *buf, unsigned int num)
+void vlVaHandleSliceParameterBufferAV1(vlVaContext *context, vlVaBuffer *buf, unsigned num_slices)
 {
-   VASliceParameterBufferAV1 *av1 = buf->data;
+   for (uint32_t buffer_idx = 0; buffer_idx < buf->num_elements; buffer_idx++) {
+      uint32_t slice_index =
+               /* slices obtained so far from vaRenderPicture in previous calls*/
+               num_slices +
+               /* current slice index processing this VASliceParameterBufferAV1 */
+               buffer_idx;
 
-   context->desc.av1.slice_parameter.slice_data_size[num] = av1->slice_data_size;
-   context->desc.av1.slice_parameter.slice_data_offset[num] = av1->slice_data_offset;
+      VASliceParameterBufferAV1 *av1 = &(((VASliceParameterBufferAV1*)buf->data)[buffer_idx]);
+      context->desc.av1.slice_parameter.slice_data_size[slice_index] = av1->slice_data_size;
+      context->desc.av1.slice_parameter.slice_data_offset[slice_index] = av1->slice_data_offset;
+      context->desc.av1.slice_parameter.slice_data_row[slice_index] = av1->tile_row;
+      context->desc.av1.slice_parameter.slice_data_col[slice_index] = av1->tile_column;
+      context->desc.av1.slice_parameter.slice_data_anchor_frame_idx[slice_index] = av1->anchor_frame_idx;
+      context->desc.av1.slice_parameter.slice_count = slice_index + 1;
+   }
 }

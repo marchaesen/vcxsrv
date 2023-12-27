@@ -42,10 +42,12 @@
 #define NINED3DRS_ALPHACOVERAGE  (D3DRS_BLENDOPALPHA + 3)
 #define NINED3DRS_MULTISAMPLE  (D3DRS_BLENDOPALPHA + 4)
 #define NINED3DRS_FETCH4  (D3DRS_BLENDOPALPHA + 5)
+#define NINED3DRS_EMULATED_ALPHATEST  (D3DRS_BLENDOPALPHA + 6)
+#define NINED3DRS_POSITIONT (D3DRS_BLENDOPALPHA + 7)
 
 #define D3DRS_LAST       D3DRS_BLENDOPALPHA
 #define D3DSAMP_LAST     D3DSAMP_DMAPOFFSET
-#define NINED3DRS_LAST   NINED3DRS_FETCH4 /* 215 */
+#define NINED3DRS_LAST   NINED3DRS_POSITIONT /* 217 */
 #define NINED3DSAMP_LAST NINED3DSAMP_CUBETEX /* 16 */
 #define NINED3DTSS_LAST  D3DTSS_CONSTANT
 #define NINED3DTS_LAST   D3DTS_WORLDMATRIX(255)
@@ -111,7 +113,14 @@
 #define NINE_MAX_CONST_F_SWVP   8192
 #define NINE_MAX_CONST_I_SWVP   2048
 #define NINE_MAX_CONST_B_SWVP   2048
-#define NINE_MAX_CONST_ALL 276 /* B consts count only 1/4 th */
+#define NINE_MAX_CONST_VS_SPE_OFFSET (NINE_MAX_CONST_F + (NINE_MAX_CONST_I + NINE_MAX_CONST_B / 4)) /* B consts count only 1/4 th */
+#define NINE_MAX_CONST_SWVP_SPE_OFFSET 3564 /* No app will read that far */
+#define NINE_MAX_CONST_VS_SPE 9
+#define NINE_MAX_CONST_ALL_VS (NINE_MAX_CONST_VS_SPE_OFFSET + NINE_MAX_CONST_VS_SPE)
+#define NINE_MAX_CONST_PS_SPE_OFFSET (NINE_MAX_CONST_F_PS3 + (NINE_MAX_CONST_I + NINE_MAX_CONST_B / 4))
+/* bumpmap_vars (12), fog (2), D3DRS_ALPHAREF (1) */
+#define NINE_MAX_CONST_PS_SPE 15
+#define NINE_MAX_CONST_ALL_PS (NINE_MAX_CONST_PS_SPE_OFFSET + NINE_MAX_CONST_PS_SPE)
 
 #define NINE_CONST_I_BASE(nconstf) \
     ((nconstf)        * 4 * sizeof(float))
@@ -206,7 +215,10 @@ struct nine_state
 
     struct NineIndexBuffer9   *idxbuf;
     struct NineVertexBuffer9  *stream[PIPE_MAX_ATTRIBS];
+    uint32_t stream_mask; /* i bit set for *stream[i] not NULL */
     struct pipe_vertex_buffer  vtxbuf[PIPE_MAX_ATTRIBS]; /* vtxbuf.buffer unused */
+    unsigned last_vtxbuf_count;
+    uint16_t                   vtxstride[PIPE_MAX_ATTRIBS];
     UINT stream_freq[PIPE_MAX_ATTRIBS];
 
     struct pipe_clip_state clip;
@@ -269,11 +281,14 @@ struct nine_context {
     float *ps_const_f;
     int    ps_const_i[NINE_MAX_CONST_I][4];
     BOOL   ps_const_b[NINE_MAX_CONST_B];
-    float *ps_lconstf_temp;
+    BOOL   zfog;
 
     struct NineVertexDeclaration9 *vdecl;
 
     struct pipe_vertex_buffer vtxbuf[PIPE_MAX_ATTRIBS];
+    uint32_t vtxbuf_mask; /* i bit set for context->vtxbuf[i].buffer.resource not NULL */
+    uint32_t last_vtxbuf_count;
+    uint16_t vtxstride[PIPE_MAX_ATTRIBS];
     UINT stream_freq[PIPE_MAX_ATTRIBS];
     uint32_t stream_instancedata_mask; /* derived from stream_freq */
     uint32_t stream_usage_mask; /* derived from VS and vdecl */
@@ -309,14 +324,13 @@ struct nine_context {
     uint16_t enabled_samplers_mask_ps;
 
     int dummy_vbo_bound_at; /* -1 = not bound , >= 0 = bound index */
-    boolean vbo_bound_done;
 
-    boolean inline_constants;
+    bool inline_constants;
 
     struct nine_ff_state ff;
 
     /* software vertex processing */
-    boolean swvp;
+    bool swvp;
 
     uint32_t commit;
     struct {
@@ -505,7 +519,7 @@ nine_context_set_clip_plane(struct NineDevice9 *device,
 
 void
 nine_context_set_swvp(struct NineDevice9 *device,
-                      boolean swvp);
+                      bool swvp);
 
 void
 nine_context_apply_stateblock(struct NineDevice9 *device,
@@ -537,11 +551,12 @@ nine_context_draw_indexed_primitive_from_vtxbuf_idxbuf(struct NineDevice9 *devic
                                                        UINT MinVertexIndex,
                                                        UINT NumVertices,
                                                        UINT PrimitiveCount,
+                                                       unsigned vbuf_stride,
                                                        struct pipe_vertex_buffer *vbuf,
                                                        struct pipe_resource *ibuf,
                                                        void *user_ibuf,
                                                        unsigned index_offset,
-						       unsigned index_size);
+                                                       unsigned index_size);
 
 void
 nine_context_resource_copy_region(struct NineDevice9 *device,
@@ -611,9 +626,9 @@ nine_context_begin_query(struct NineDevice9 *device, unsigned *counter, struct p
 void
 nine_context_end_query(struct NineDevice9 *device, unsigned *counter, struct pipe_query *query);
 
-boolean
+bool
 nine_context_get_query_result(struct NineDevice9 *device, struct pipe_query *query,
-                              unsigned *counter, boolean flush, boolean wait,
+                              unsigned *counter, bool flush, bool wait,
                               union pipe_query_result *result);
 
 void
@@ -621,7 +636,7 @@ nine_context_pipe_flush(struct NineDevice9 *device);
 
 void nine_state_restore_non_cso(struct NineDevice9 *device);
 void nine_state_set_defaults(struct NineDevice9 *, const D3DCAPS9 *,
-                             boolean is_reset);
+                             bool is_reset);
 void nine_device_state_clear(struct NineDevice9 *);
 void nine_context_clear(struct NineDevice9 *);
 void nine_context_update_state(struct NineDevice9 *);
@@ -643,7 +658,7 @@ nine_state_resize_transform(struct nine_ff_state *ff_state, unsigned N);
  */
 D3DMATRIX *
 nine_state_access_transform(struct nine_ff_state *, D3DTRANSFORMSTATETYPE,
-                            boolean alloc);
+                            bool alloc);
 
 HRESULT
 nine_state_set_light(struct nine_ff_state *, DWORD, const D3DLIGHT9 *);

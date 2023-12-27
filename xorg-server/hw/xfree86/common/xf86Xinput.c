@@ -347,7 +347,7 @@ ApplyAutoRepeat(DeviceIntPtr dev)
 
     xf86Msg(X_CONFIG, "AutoRepeat: %ld %ld\n", delay, rate);
     xkbi->desc->ctrls->repeat_delay = delay;
-    xkbi->desc->ctrls->repeat_interval = rate;
+    xkbi->desc->ctrls->repeat_interval = 1000 / rate;
 }
 
 /***********************************************************************

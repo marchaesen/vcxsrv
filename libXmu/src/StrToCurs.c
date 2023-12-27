@@ -133,8 +133,8 @@ XmuCvtStringToCursor(XrmValuePtr args, Cardinal *num_args,
     char maskname[PATH_MAX];
     Pixmap source, mask = 0;
     /* XXX - make fg/bg resources */
-    static XColor bgColor = {0, 0xffff, 0xffff, 0xffff};
-    static XColor fgColor = {0, 0, 0, 0};
+    static XColor bgColor = {0, 0xffff, 0xffff, 0xffff, 0, 0};
+    static XColor fgColor = {0, 0, 0, 0, 0, 0};
     int xhot, yhot;
     int len;
 

@@ -36,6 +36,7 @@
 
 
 #include "state_tracker/st_context.h"
+#include "main/context.h"
 
 
 #ifdef __cplusplus
@@ -67,8 +68,8 @@ st_invalidate_readpix_cache(struct st_context *st)
 static inline bool
 st_user_clip_planes_enabled(struct gl_context *ctx)
 {
-   return (ctx->API == API_OPENGL_COMPAT ||
-           ctx->API == API_OPENGLES) && /* only ES 1.x */
+   return (_mesa_is_desktop_gl_compat(ctx) ||
+           _mesa_is_gles1(ctx)) && /* only ES 1.x */
           ctx->Transform.ClipPlanesEnabled;
 }
 
@@ -104,6 +105,39 @@ st_point_size_per_vertex(struct gl_context *ctx)
       }
    }
    return false;
+}
+
+static inline void
+st_validate_state(struct st_context *st, uint64_t pipeline_state_mask)
+{
+   struct gl_context *ctx = st->ctx;
+
+   /* Inactive states are shader states not used by shaders at the moment. */
+   uint64_t dirty = ctx->NewDriverState & st->active_states & pipeline_state_mask;
+
+   if (dirty) {
+      ctx->NewDriverState &= ~dirty;
+
+      /* Execute functions that set states that have been changed since
+       * the last draw.
+       *
+       * x86_64: u_bit_scan64 is negligibly faster than u_bit_scan
+       * i386:   u_bit_scan64 is noticably slower than u_bit_scan
+       */
+      if (sizeof(void*) == 8) {
+         while (dirty)
+            st_update_functions[u_bit_scan64(&dirty)](st);
+      } else {
+         /* Split u_bit_scan64 into 2x u_bit_scan32 for i386. */
+         uint32_t dirty_lo = dirty;
+         uint32_t dirty_hi = dirty >> 32;
+
+         while (dirty_lo)
+            st_update_functions[u_bit_scan(&dirty_lo)](st);
+         while (dirty_hi)
+            st_update_functions[32 + u_bit_scan(&dirty_hi)](st);
+      }
+   }
 }
 
 #ifdef __cplusplus

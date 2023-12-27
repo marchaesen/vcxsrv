@@ -38,18 +38,12 @@ gpir_reg *gpir_create_reg(gpir_compiler *comp)
    return reg;
 }
 
-static gpir_reg *reg_for_nir_reg(gpir_compiler *comp, nir_register *nir_reg)
-{
-   unsigned index = nir_reg->index;
-   gpir_reg *reg = comp->reg_for_reg[index];
-   if (reg)
-      return reg;
-   reg = gpir_create_reg(comp);
-   comp->reg_for_reg[index] = reg;
-   return reg;
-}
-
-static void register_node_ssa(gpir_block *block, gpir_node *node, nir_ssa_def *ssa)
+/* Register the given gpir_node as providing the given NIR destination, so
+ * that gpir_node_find() will return it. Also insert any stores necessary if
+ * the destination will be used after the end of this basic block. The node
+ * must already be inserted.
+ */
+static void register_node_ssa(gpir_block *block, gpir_node *node, nir_def *ssa)
 {
    block->comp->node_for_ssa[ssa->index] = node;
    snprintf(node->name, sizeof(node->name), "ssa%d", ssa->index);
@@ -59,7 +53,7 @@ static void register_node_ssa(gpir_block *block, gpir_node *node, nir_ssa_def *s
     */
    bool needs_register = false;
    nir_foreach_use(use, ssa) {
-      if (use->parent_instr->block != ssa->parent_instr->block) {
+      if (nir_src_parent_instr(use)->block != ssa->parent_instr->block) {
          needs_register = true;
          break;
       }
@@ -67,7 +61,7 @@ static void register_node_ssa(gpir_block *block, gpir_node *node, nir_ssa_def *s
 
    if (!needs_register) {
       nir_foreach_if_use(use, ssa) {
-         if (nir_cf_node_prev(&use->parent_if->cf_node) !=
+         if (nir_cf_node_prev(&nir_src_parent_if(use)->cf_node) !=
              &ssa->parent_instr->block->cf_node) {
             needs_register = true;
             break;
@@ -85,31 +79,18 @@ static void register_node_ssa(gpir_block *block, gpir_node *node, nir_ssa_def *s
    }
 }
 
-static void register_node_reg(gpir_block *block, gpir_node *node, nir_reg_dest *nir_reg)
+static void register_node_reg(gpir_block *block, gpir_node *node, int index)
 {
-   block->comp->node_for_reg[nir_reg->reg->index] = node;
+   block->comp->node_for_ssa[index] = node;
    gpir_store_node *store = gpir_node_create(block, gpir_op_store_reg);
 
-   snprintf(node->name, sizeof(node->name), "reg%d", nir_reg->reg->index);
+   snprintf(store->node.name, sizeof(node->name), "reg%d", index);
 
    store->child = node;
-   store->reg = reg_for_nir_reg(block->comp, nir_reg->reg);
+   store->reg = block->comp->reg_for_ssa[index];
    gpir_node_add_dep(&store->node, node, GPIR_DEP_INPUT);
 
    list_addtail(&store->node.list, &block->node_list);
-}
-
-/* Register the given gpir_node as providing the given NIR destination, so
- * that gpir_node_find() will return it. Also insert any stores necessary if
- * the destination will be used after the end of this basic block. The node
- * must already be inserted.
- */
-static void register_node(gpir_block *block, gpir_node *node, nir_dest *dest)
-{
-   if (dest->is_ssa)
-      register_node_ssa(block, node, &dest->ssa);
-   else
-      register_node_reg(block, node, &dest->reg);
 }
 
 static gpir_node *gpir_node_find(gpir_block *block, nir_src *src,
@@ -117,24 +98,17 @@ static gpir_node *gpir_node_find(gpir_block *block, nir_src *src,
 {
    gpir_reg *reg = NULL;
    gpir_node *pred = NULL;
-   if (src->is_ssa) {
-      if (src->ssa->num_components > 1) {
-         for (int i = 0; i < GPIR_VECTOR_SSA_NUM; i++) {
-            if (block->comp->vector_ssa[i].ssa == src->ssa->index) {
-               return block->comp->vector_ssa[i].nodes[channel];
-            }
+   if (src->ssa->num_components > 1) {
+      for (int i = 0; i < GPIR_VECTOR_SSA_NUM; i++) {
+         if (block->comp->vector_ssa[i].ssa == src->ssa->index) {
+            return block->comp->vector_ssa[i].nodes[channel];
          }
-      } else {
-         gpir_node *pred = block->comp->node_for_ssa[src->ssa->index];
-         if (pred->block == block)
-            return pred;
-         reg = block->comp->reg_for_ssa[src->ssa->index];
       }
    } else {
-      pred = block->comp->node_for_reg[src->reg.reg->index];
+      gpir_node *pred = block->comp->node_for_ssa[src->ssa->index];
       if (pred && pred->block == block)
          return pred;
-      reg = reg_for_nir_reg(block->comp, src->reg.reg);
+      reg = block->comp->reg_for_ssa[src->ssa->index];
    }
 
    assert(reg);
@@ -179,7 +153,7 @@ static bool gpir_emit_alu(gpir_block *block, nir_instr *ni)
    if (instr->op == nir_op_mov) {
       gpir_node *child = gpir_node_find(block, &instr->src[0].src,
                                         instr->src[0].swizzle[0]);
-      register_node(block, child, &instr->dest.dest);
+      register_node_ssa(block, child, &instr->def);
       return true;
    }
 
@@ -200,7 +174,6 @@ static bool gpir_emit_alu(gpir_block *block, nir_instr *ni)
 
    for (int i = 0; i < num_child; i++) {
       nir_alu_src *src = instr->src + i;
-      node->children_negate[i] = src->negate;
 
       gpir_node *child = gpir_node_find(block, &src->src, src->swizzle[0]);
       node->children[i] = child;
@@ -209,12 +182,12 @@ static bool gpir_emit_alu(gpir_block *block, nir_instr *ni)
    }
 
    list_addtail(&node->node.list, &block->node_list);
-   register_node(block, &node->node, &instr->dest.dest);
+   register_node_ssa(block, &node->node, &instr->def);
 
    return true;
 }
 
-static gpir_node *gpir_create_load(gpir_block *block, nir_dest *dest,
+static gpir_node *gpir_create_load(gpir_block *block, nir_def *def,
                                    int op, int index, int component)
 {
    gpir_load_node *load = gpir_node_create(block, op);
@@ -224,25 +197,24 @@ static gpir_node *gpir_create_load(gpir_block *block, nir_dest *dest,
    load->index = index;
    load->component = component;
    list_addtail(&load->node.list, &block->node_list);
-   register_node(block, &load->node, dest);
+   register_node_ssa(block, &load->node, def);
    return &load->node;
 }
 
-static bool gpir_create_vector_load(gpir_block *block, nir_dest *dest, int index)
+static bool gpir_create_vector_load(gpir_block *block, nir_def *def, int index)
 {
-   assert(dest->is_ssa);
    assert(index < GPIR_VECTOR_SSA_NUM);
 
-   block->comp->vector_ssa[index].ssa = dest->ssa.index;
+   block->comp->vector_ssa[index].ssa = def->index;
 
-   for (int i = 0; i < dest->ssa.num_components; i++) {
-      gpir_node *node = gpir_create_load(block, dest, gpir_op_load_uniform,
+   for (int i = 0; i < def->num_components; i++) {
+      gpir_node *node = gpir_create_load(block, def, gpir_op_load_uniform,
                                          block->comp->constant_base + index, i);
       if (!node)
          return false;
 
       block->comp->vector_ssa[index].nodes[i] = node;
-      snprintf(node->name, sizeof(node->name), "ssa%d.%c", dest->ssa.index, "xyzw"[i]);
+      snprintf(node->name, sizeof(node->name), "ssa%d.%c", def->index, "xyzw"[i]);
    }
 
    return true;
@@ -253,8 +225,28 @@ static bool gpir_emit_intrinsic(gpir_block *block, nir_instr *ni)
    nir_intrinsic_instr *instr = nir_instr_as_intrinsic(ni);
 
    switch (instr->intrinsic) {
+   case nir_intrinsic_decl_reg:
+   {
+      gpir_reg *reg = gpir_create_reg(block->comp);
+      block->comp->reg_for_ssa[instr->def.index] = reg;
+      return true;
+   }
+   case nir_intrinsic_load_reg:
+   {
+      gpir_node *node = gpir_node_find(block, &instr->src[0], 0);
+      assert(node);
+      block->comp->node_for_ssa[instr->def.index] = node;
+      return true;
+   }
+   case nir_intrinsic_store_reg:
+   {
+      gpir_node *child = gpir_node_find(block, &instr->src[0], 0);
+      assert(child);
+      register_node_reg(block, child, instr->src[1].ssa->index);
+      return true;
+   }
    case nir_intrinsic_load_input:
-      return gpir_create_load(block, &instr->dest,
+      return gpir_create_load(block, &instr->def,
                               gpir_op_load_attribute,
                               nir_intrinsic_base(instr),
                               nir_intrinsic_component(instr)) != NULL;
@@ -263,14 +255,14 @@ static bool gpir_emit_intrinsic(gpir_block *block, nir_instr *ni)
       int offset = nir_intrinsic_base(instr);
       offset += (int)nir_src_as_float(instr->src[0]);
 
-      return gpir_create_load(block, &instr->dest,
+      return gpir_create_load(block, &instr->def,
                               gpir_op_load_uniform,
                               offset / 4, offset % 4) != NULL;
    }
    case nir_intrinsic_load_viewport_scale:
-      return gpir_create_vector_load(block, &instr->dest, GPIR_VECTOR_SSA_VIEWPORT_SCALE);
+      return gpir_create_vector_load(block, &instr->def, GPIR_VECTOR_SSA_VIEWPORT_SCALE);
    case nir_intrinsic_load_viewport_offset:
-      return gpir_create_vector_load(block, &instr->dest, GPIR_VECTOR_SSA_VIEWPORT_OFFSET);
+      return gpir_create_vector_load(block, &instr->def, GPIR_VECTOR_SSA_VIEWPORT_OFFSET);
    case nir_intrinsic_store_output:
    {
       gpir_store_node *store = gpir_node_create(block, gpir_op_store_varying);
@@ -312,7 +304,7 @@ static bool gpir_emit_load_const(gpir_block *block, nir_instr *ni)
 
 static bool gpir_emit_ssa_undef(gpir_block *block, nir_instr *ni)
 {
-   gpir_error("nir_ssa_undef_instr is not supported\n");
+   gpir_error("nir_undef_instr is not supported\n");
    return false;
 }
 
@@ -332,7 +324,7 @@ static bool (*gpir_emit_instr[nir_instr_type_phi])(gpir_block *, nir_instr *) = 
    [nir_instr_type_alu]        = gpir_emit_alu,
    [nir_instr_type_intrinsic]  = gpir_emit_intrinsic,
    [nir_instr_type_load_const] = gpir_emit_load_const,
-   [nir_instr_type_ssa_undef]  = gpir_emit_ssa_undef,
+   [nir_instr_type_undef]      = gpir_emit_ssa_undef,
    [nir_instr_type_tex]        = gpir_emit_tex,
    [nir_instr_type_jump]       = gpir_emit_jump,
 };
@@ -398,7 +390,7 @@ static bool gpir_emit_function(gpir_compiler *comp, nir_function_impl *impl)
    return true;
 }
 
-static gpir_compiler *gpir_compiler_create(void *prog, unsigned num_reg, unsigned num_ssa)
+static gpir_compiler *gpir_compiler_create(void *prog, unsigned num_ssa)
 {
    gpir_compiler *comp = rzalloc(prog, gpir_compiler);
 
@@ -409,9 +401,7 @@ static gpir_compiler *gpir_compiler_create(void *prog, unsigned num_reg, unsigne
       comp->vector_ssa[i].ssa = -1;
 
    comp->node_for_ssa = rzalloc_array(comp, gpir_node *, num_ssa);
-   comp->node_for_reg = rzalloc_array(comp, gpir_node *, num_reg);
    comp->reg_for_ssa = rzalloc_array(comp, gpir_reg *, num_ssa);
-   comp->reg_for_reg = rzalloc_array(comp, gpir_reg *, num_reg);
    comp->prog = prog;
    return comp;
 }
@@ -448,7 +438,7 @@ bool gpir_compile_nir(struct lima_vs_compiled_shader *prog, struct nir_shader *n
                       struct util_debug_callback *debug)
 {
    nir_function_impl *func = nir_shader_get_entrypoint(nir);
-   gpir_compiler *comp = gpir_compiler_create(prog, func->reg_alloc, func->ssa_alloc);
+   gpir_compiler *comp = gpir_compiler_create(prog, func->ssa_alloc);
    if (!comp)
       return false;
 

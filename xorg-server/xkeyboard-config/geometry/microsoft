@@ -7,26 +7,26 @@ default xkb_geometry "natural" {
 
     shape.cornerRadius= 1;
     shape "LDEF" { { [ 18,18] }, { [2,1], [15,15] } };
-    shape "TABK" { { [ 26,18] }, { [2,1], [23,15] } }; 
-    shape "CAPS" { { [ 30,18] }, { [2,1], [23,15] } }; 
+    shape "TABK" { { [ 26,18] }, { [2,1], [23,15] } };
+    shape "CAPS" { { [ 30,18] }, { [2,1], [23,15] } };
     shape "LFSH" { { [ 41,18] }, { [2,1], [38,15] } };
     shape "KEY6" { { [ 22,18] }, { [2,1], [15,15] } };
     shape "KEYT" { { [ 33,18] }, { [2,1], [15,15] } };
     shape "KEYG" { { [ 29,18] }, { [2,1], [15,15] } };
-    shape "LCTL" { 
+    shape "LCTL" {
 	approx= { [ 32, 22 ] },
 	{ [  0, 0], [ 32, 0 ], [ 32, 23 ], [ 0, 22 ] },
-	{ [  2, 1], [ 29, 1 ], [ 29, 17 ], [ 2, 15 ] } 
+	{ [  2, 1], [ 29, 1 ], [ 29, 17 ], [ 2, 15 ] }
     };
-    shape "LWIN" { 
+    shape "LWIN" {
 	approx= { [ 32, 23 ] },
 	{ [  0, 0], [ 32, 0 ], [ 32, 24 ], [ 0, 23 ] },
-	{ [  2, 1], [ 29, 1 ], [ 29, 18 ], [ 2, 17 ] } 
+	{ [  2, 1], [ 29, 1 ], [ 29, 18 ], [ 2, 17 ] }
     };
-    shape "LALT" { 
+    shape "LALT" {
 	approx= { [ 32, 24 ] },
 	{ [  0, 0], [ 32, 0 ], [ 32, 25 ], [ 0, 24 ] },
-	{ [  2, 1], [ 29, 1 ], [ 29, 20 ], [ 2, 19 ] } 
+	{ [  2, 1], [ 29, 1 ], [ 29, 20 ], [ 2, 19 ] }
     };
     shape "RDEF" { { [ 18,18] }, { [3,1], [15,15] } };
     shape "KEY7" {	{ [ 28, 18 ] }, { [ 14, 1], [26, 15] } };
@@ -36,32 +36,32 @@ default xkb_geometry "natural" {
     shape "BKSL" {	{ [ 24, 18 ] }, { [  3, 1], [22, 15] } };
     shape "RTRN" {	{ [ 37, 18 ] }, { [  3, 1], [35, 15] } };
     shape "RTSH" {	{ [ 43, 18 ] }, { [  3, 1], [41, 15] } };
-    shape "RALT" { 
+    shape "RALT" {
 	approx= { [ 27, 24 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 24 ], [ 0, 25 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 19 ], [ 3, 20 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 19 ], [ 3, 20 ] }
     };
-    shape "RWIN" { 
+    shape "RWIN" {
 	approx= { [ 27, 23 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 23 ], [ 0, 24 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 18 ], [ 3, 19 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 18 ], [ 3, 19 ] }
     };
-    shape "MENU" { 
+    shape "MENU" {
 	approx= { [ 27, 21 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 21 ], [ 0, 23 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 16 ], [ 3, 17 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 16 ], [ 3, 17 ] }
     };
-    shape "RCTL" { 
+    shape "RCTL" {
 	approx= { [ 27, 19 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 19 ], [ 0, 21 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 14 ], [ 3, 15 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 14 ], [ 3, 15 ] }
     };
     shape "KPAD" { { [ 18, 37 ] },	{ [ 3, 1 ], [ 16, 34 ] } };
     shape "KP0"  { { [ 37, 18 ] },	{ [ 3, 1 ], [ 35, 15 ] } };
     shape "SPCE" {
-	{ [  4, 3], [42,10], [44, 0], [88, 0], [90,10], [130, 3], 
+	{ [  4, 3], [42,10], [44, 0], [88, 0], [90,10], [130, 3],
 	  [134,26], [99,30], [67,33], [33,30], [  0,26] },
-	{ [  6, 4.5], [43,11], [45, 1], [87, 1], [89,11], [128, 4.5], 
+	{ [  6, 4.5], [43,11], [45, 1], [87, 1], [89,11], [128, 4.5],
 	  [131,23], [99,28], [67,32], [33,28], [  3,23] }
     };
 
@@ -113,7 +113,7 @@ default xkb_geometry "natural" {
 	};
 	row {
 	    top= 58;
-	    keys { 	{ <LFSH>, "LFSH" }, 
+	    keys { 	{ <LFSH>, "LFSH" },
 			<AB01>, <AB02>, <AB03>, <AB04>, <AB05>
 	    };
 	};
@@ -143,13 +143,13 @@ default xkb_geometry "natural" {
 	row {
 	    top= 1;
 	    keys {	{ <AE07>, "KEY7" },
-			<AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+			<AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 			{ <BKSP>, "BKSP" }
 	    };
 	};
 	row {
 	    top= 20;
-	    keys { 
+	    keys {
 		<AD06>, <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		{ <BKSL>, "BKSL" }
 	    };
@@ -171,7 +171,7 @@ default xkb_geometry "natural" {
 	row {
 	    top= 77;
 	    left= 40;
-	    keys { 	{ <RALT>, "RALT" }, { <RWIN>, "RWIN" }, 
+	    keys { 	{ <RALT>, "RALT" }, { <RWIN>, "RWIN" },
 			{ <MENU>, "MENU" }, { <RCTL>, "RCTL" }
 	    };
 	};
@@ -210,7 +210,7 @@ default xkb_geometry "natural" {
 	};
     }; // End of "Editing" section
 
-    shape "LED"  { 
+    shape "LED"  {
 	cornerRadius= 0,
 	{ [  3,  1 ] }
     };
@@ -221,7 +221,7 @@ default xkb_geometry "natural" {
     indicator "Num Lock"     { top= 90; };
     indicator "Caps Lock"    { top= 107; };
     indicator "Scroll Lock"  { top= 127; };
-    
+
     section "Keypad" {
 	top= 47;
 	left= 456;
@@ -252,7 +252,7 @@ default xkb_geometry "natural" {
 };
 
 // Approximate layout for a Microsoft Natural(R) Keyboard Elite
-// 
+//
 // Modified by Pavel Kurashov <pavell@mail.ru> Mon Oct  8 22:08:20 NOVST 2007
 //
 // * Function, editing and navigation keys are reduced in height
@@ -271,26 +271,26 @@ xkb_geometry "elite" {
     shape.cornerRadius= 1;
     shape "LDEF" { { [ 18,18] }, { [2,1], [15,15] } };
     shape "FKEY" { { [ 18,13] }, { [2,1], [15,10] } };
-    shape "TABK" { { [ 26,18] }, { [2,1], [23,15] } }; 
-    shape "CAPS" { { [ 30,18] }, { [2,1], [23,15] } }; 
+    shape "TABK" { { [ 26,18] }, { [2,1], [23,15] } };
+    shape "CAPS" { { [ 30,18] }, { [2,1], [23,15] } };
     shape "LFSH" { { [ 41,18] }, { [2,1], [38,15] } };
     shape "KEY6" { { [ 22,18] }, { [2,1], [15,15] } };
     shape "KEYT" { { [ 33,18] }, { [2,1], [15,15] } };
     shape "KEYG" { { [ 29,18] }, { [2,1], [15,15] } };
-    shape "LCTL" { 
+    shape "LCTL" {
 	approx= { [ 32, 22 ] },
 	{ [  0, 0], [ 32, 0 ], [ 32, 23 ], [ 0, 22 ] },
-	{ [  2, 1], [ 29, 1 ], [ 29, 17 ], [ 2, 15 ] } 
+	{ [  2, 1], [ 29, 1 ], [ 29, 17 ], [ 2, 15 ] }
     };
-    shape "LWIN" { 
+    shape "LWIN" {
 	approx= { [ 32, 23 ] },
 	{ [  0, 0], [ 32, 0 ], [ 32, 24 ], [ 0, 23 ] },
-	{ [  2, 1], [ 29, 1 ], [ 29, 18 ], [ 2, 17 ] } 
+	{ [  2, 1], [ 29, 1 ], [ 29, 18 ], [ 2, 17 ] }
     };
-    shape "LALT" { 
+    shape "LALT" {
 	approx= { [ 32, 24 ] },
 	{ [  0, 0], [ 32, 0 ], [ 32, 25 ], [ 0, 24 ] },
-	{ [  2, 1], [ 29, 1 ], [ 29, 20 ], [ 2, 19 ] } 
+	{ [  2, 1], [ 29, 1 ], [ 29, 20 ], [ 2, 19 ] }
     };
     shape "RDEF" { 	{ [ 18,18  ] }, { [  2, 1], [15, 15] } };
     shape "KEY7" {	{ [ 28, 18 ] }, { [ 14, 1], [26, 15] } };
@@ -300,32 +300,32 @@ xkb_geometry "elite" {
     shape "BKSL" {	{ [ 24, 18 ] }, { [  2, 1], [22, 15] } };
     shape "RTRN" {	{ [ 37, 18 ] }, { [  2, 1], [35, 15] } };
     shape "RTSH" {	{ [ 43, 18 ] }, { [  2, 1], [41, 15] } };
-    shape "RALT" { 
+    shape "RALT" {
 	approx= { [ 27, 24 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 24 ], [ 0, 25 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 19 ], [ 3, 20 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 19 ], [ 3, 20 ] }
     };
-    shape "RWIN" { 
+    shape "RWIN" {
 	approx= { [ 27, 23 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 23 ], [ 0, 24 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 18 ], [ 3, 19 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 18 ], [ 3, 19 ] }
     };
-    shape "MENU" { 
+    shape "MENU" {
 	approx= { [ 27, 21 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 21 ], [ 0, 23 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 16 ], [ 3, 17 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 16 ], [ 3, 17 ] }
     };
-    shape "RCTL" { 
+    shape "RCTL" {
 	approx= { [ 27, 19 ] },
 	{ [  0, 0], [ 27, 0 ], [ 27, 19 ], [ 0, 21 ] },
-	{ [  3, 1], [ 25, 1 ], [ 25, 14 ], [ 3, 15 ] } 
+	{ [  3, 1], [ 25, 1 ], [ 25, 14 ], [ 3, 15 ] }
     };
     shape "KPAD" { { [ 18, 37 ] },	{ [ 3, 1 ], [ 16, 34 ] } };
     shape "KP0"  { { [ 37, 18 ] },	{ [ 3, 1 ], [ 35, 15 ] } };
     shape "SPCE" {
-	{ [  4, 3], [42,10], [44, 0], [88, 0], [90,10], [130, 3], 
+	{ [  4, 3], [42,10], [44, 0], [88, 0], [90,10], [130, 3],
 	  [134,26], [99,30], [67,33], [33,30], [  0,26] },
-	{ [  6, 4.5], [43,11], [45, 1], [87, 1], [89,11], [128, 4.5], 
+	{ [  6, 4.5], [43,11], [45, 1], [87, 1], [89,11], [128, 4.5],
 	  [131,23], [99,28], [67,32], [33,28], [  3,23] }
     };
 
@@ -378,7 +378,7 @@ xkb_geometry "elite" {
 	};
 	row {
 	    top= 58;
-	    keys { 	{ <LFSH>, "LFSH" }, 
+	    keys { 	{ <LFSH>, "LFSH" },
 			<AB01>, <AB02>, <AB03>, <AB04>, <AB05>
 	    };
 	};
@@ -409,13 +409,13 @@ xkb_geometry "elite" {
 	row {
 	    top= 1;
 	    keys {	{ <AE07>, "KEY7" },
-			<AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+			<AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 			{ <BKSP>, "BKSP" }
 	    };
 	};
 	row {
 	    top= 20;
-	    keys { 
+	    keys {
 		<AD06>, <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		{ <BKSL>, "BKSL" }
 	    };
@@ -437,7 +437,7 @@ xkb_geometry "elite" {
 	row {
 	    top= 77;
 	    left= 40;
-	    keys { 	{ <RALT>, "RALT" }, { <RWIN>, "RWIN" }, 
+	    keys { 	{ <RALT>, "RALT" }, { <RWIN>, "RWIN" },
 			{ <MENU>, "MENU" }, { <RCTL>, "RCTL" }
 	    };
 	};
@@ -460,17 +460,17 @@ xkb_geometry "elite" {
 	};
 	row {
 	    top= 22;
-	    left=20;	
+	    left=20;
 	    keys { <HOME>, <PGUP> };
 	};
 	row {
 	    top= 36;
-	    left=20;	
+	    left=20;
 	    keys {  <END>, <PGDN> };
 	};
 	row {
 	    top= 50;
-	    left=20;	
+	    left=20;
 	    keys { <DELE>, <INS> };
 	};
 	row {
@@ -480,17 +480,17 @@ xkb_geometry "elite" {
     	};
 	row {
 	    top= 89;
-	    left=20;	
+	    left=20;
 	    keys { <LEFT>, <RGHT> };
 	};
 	row {
 	    top= 103;
-	    left=29;	
+	    left=29;
 	    keys { <DOWN> };
 	};
     }; // End of "Editing" section
 
-    shape "LED"  { 
+    shape "LED"  {
 	cornerRadius= 1,
 	{ [  7,  2 ] }
     };
@@ -501,7 +501,7 @@ xkb_geometry "elite" {
     indicator "Num Lock"     { top= 90; };
     indicator "Caps Lock"    { top= 107; };
     indicator "Scroll Lock"  { top= 127; };
-    
+
     section "Keypad" {
 	top= 44;
 	left= 412;

@@ -87,7 +87,7 @@ Eric Engestrom (11):
 - scons: bump c++ standard to 14 to match meson
 - docs: add release notes for 20.1.7
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 - clover/spirv: Don't call llvm::regularizeLlvmForSpirv
 - intel/nir: Pass the nir_builder by reference in lower_alpha_to_coverage

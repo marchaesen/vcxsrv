@@ -245,6 +245,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    _mesa_init_teximage_fields(ctx, texImage,
                               res->width0, res->height0, 1, 0, GL_RGBA,
                               texFormat);
+   _mesa_update_texture_object_swizzle(ctx, texObj);
 
    pipe_resource_reference(&texObj->pt, res);
    st_texture_release_all_sampler_views(st, texObj);

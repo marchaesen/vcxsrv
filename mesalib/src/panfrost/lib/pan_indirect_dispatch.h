@@ -25,26 +25,22 @@
 #define __PAN_INDIRECT_DISPATCH_SHADERS_H__
 
 #include "genxml/gen_macros.h"
+#include "pan_jc.h"
 
 struct pan_device;
-struct pan_scoreboard;
+struct pan_jc;
 struct pan_pool;
 
 struct pan_indirect_dispatch_info {
-        mali_ptr job;
-        mali_ptr indirect_dim;
-        mali_ptr num_wg_sysval[3];
+   mali_ptr job;
+   mali_ptr indirect_dim;
+   mali_ptr num_wg_sysval[3];
 } PACKED;
 
-unsigned
-GENX(pan_indirect_dispatch_emit)(struct pan_pool *pool,
-                                 struct pan_scoreboard *scoreboard,
-                                 const struct pan_indirect_dispatch_info *dispatch_info);
+unsigned GENX(pan_indirect_dispatch_emit)(
+   struct pan_pool *pool, struct pan_jc *jc,
+   const struct pan_indirect_dispatch_info *dispatch_info);
 
-void
-GENX(pan_indirect_dispatch_init)(struct panfrost_device *dev);
-
-void
-GENX(pan_indirect_dispatch_cleanup)(struct panfrost_device *dev);
+void GENX(pan_indirect_dispatch_cleanup)(struct panfrost_device *dev);
 
 #endif

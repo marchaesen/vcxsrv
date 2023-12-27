@@ -31,7 +31,7 @@
  * GL_ARB_texture_view functions
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "enums.h"
 
@@ -608,6 +608,22 @@ texture_view(struct gl_context *ctx, struct gl_texture_object *origTexObj,
    }
 
    if (!no_error) {
+      /* OpenGL 4.6 (Core Profile) - May 14, 2018, 8.18 Texture Views, p.271
+       *  An INVALID_OPERATION error is generated if the computed values of
+       * TEXTURE_VIEW_NUM_LEVELS or TEXTURE_VIEW_NUM_LAYERS for texture,
+       * as described above, are less than or equal to zero.
+       */
+      if (newViewNumLevels == 0) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glTextureView(invalid minlevels or numlevels)");
+         return;
+      }
+      if (newViewNumLayers == 0) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glTextureView(invalid minlayers or numlayers)");
+         return;
+      }
+
       /* If the dimensions of the original texture are larger than the maximum
        * supported dimensions of the new target, the error INVALID_OPERATION is
        * generated. For example, if the original texture has a TEXTURE_2D_ARRAY

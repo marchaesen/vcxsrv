@@ -72,7 +72,8 @@ remove_unused_by_block(struct ir3_block *block)
    bool progress = false;
    foreach_instr_safe (instr, &block->instr_list) {
       if (instr->opc == OPC_END || instr->opc == OPC_CHSH ||
-          instr->opc == OPC_CHMASK)
+          instr->opc == OPC_CHMASK || instr->opc == OPC_LOCK ||
+          instr->opc == OPC_UNLOCK)
          continue;
       if (instr->flags & IR3_INSTR_UNUSED) {
          if (instr->opc == OPC_META_SPLIT) {
@@ -112,13 +113,6 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
    foreach_block (block, &ir->block_list) {
       foreach_instr (instr, &block->instr_list) {
          if (instr->opc == OPC_META_INPUT) {
-            /* special case, if pre-fs texture fetch used, we cannot
-             * eliminate the barycentric i/j input
-             */
-            if (so->num_sampler_prefetch &&
-                instr->input.sysval == SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL)
-               continue;
-
             /* Without GS header geometry shader is never invoked. */
             if (instr->input.sysval == SYSTEM_VALUE_GS_HEADER_IR3)
                continue;

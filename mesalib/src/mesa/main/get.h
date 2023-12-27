@@ -32,7 +32,7 @@
 #define GET_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_vertex_array_object;
 

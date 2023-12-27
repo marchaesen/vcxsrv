@@ -28,7 +28,7 @@
 #ifndef FONT_H
 #define FONT_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 struct pipe_resource;
 struct pipe_context;
@@ -52,7 +52,7 @@ struct util_font {
    unsigned glyph_height;
 };
 
-boolean
+bool
 util_font_create(struct pipe_context *pipe, enum util_font_name name,
                          struct util_font *out_font);
 

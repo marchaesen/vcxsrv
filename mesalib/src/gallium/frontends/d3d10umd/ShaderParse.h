@@ -138,7 +138,7 @@ struct Shader_opcode {
    D3D10_SB_NAME dcl_siv_name;
    D3D10_SB_RESOURCE_RETURN_TYPE dcl_resource_ret_type[4];
 
-   boolean saturate;
+   bool saturate;
 
    struct {
       int u:4;
@@ -160,7 +160,7 @@ void
 Shader_parse_init(struct Shader_parser *parser,
                        const unsigned *code);
 
-boolean
+bool
 Shader_parse_opcode(struct Shader_parser *parser,
                          struct Shader_opcode *opcode);
 

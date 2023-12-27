@@ -93,6 +93,15 @@ present_destroy_window(WindowPtr window)
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
     present_window_priv_ptr window_priv = present_window_priv(window);
 
+    present_send_config_notify(window,
+                               window->drawable.x,
+                               window->drawable.y,
+                               window->drawable.width,
+                               window->drawable.height,
+                               window->borderWidth,
+                               window->nextSib,
+                               PresentWindowDestroyed);
+
     if (window_priv) {
         present_clear_window_notifies(window);
         present_free_events(window);
@@ -123,7 +132,7 @@ present_config_notify(WindowPtr window,
     ScreenPtr screen = window->drawable.pScreen;
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    present_send_config_notify(window, x, y, w, h, bw, sibling);
+    present_send_config_notify(window, x, y, w, h, bw, sibling, 0);
 
     unwrap(screen_priv, screen, ConfigNotify);
     if (screen->ConfigNotify)
@@ -180,6 +189,26 @@ present_screen_priv_init(ScreenPtr screen)
     dixSetPrivate(&screen->devPrivates, &present_screen_private_key, screen_priv);
 
     return screen_priv;
+}
+
+static int
+check_flip_visit(WindowPtr window, void *data)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    present_screen_priv_ptr screen_priv = present_screen_priv(screen);
+
+    if (!screen_priv)
+        return WT_DONTWALKCHILDREN;
+
+    screen_priv->check_flip_window(window);
+
+    return WT_WALKCHILDREN;
+}
+
+void
+present_check_flips(WindowPtr window)
+{
+    TraverseTree(window, check_flip_visit, NULL);
 }
 
 /*

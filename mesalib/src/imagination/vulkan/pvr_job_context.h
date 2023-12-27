@@ -24,8 +24,11 @@
 #ifndef PVR_JOB_CONTEXT_H
 #define PVR_JOB_CONTEXT_H
 
+#include "pvr_common.h"
 #include "pvr_private.h"
+#include "pvr_transfer_frag_store.h"
 #include "pvr_types.h"
+#include "pvr_uscgen.h"
 #include "pvr_winsys.h"
 
 /* Support PDS code/data loading/storing to the 'B' shared register state
@@ -37,17 +40,15 @@
 struct pvr_reset_cmd {
 };
 
-struct pvr_compute_ctx;
-
 struct rogue_sr_programs {
    struct pvr_bo *store_load_state_bo;
 
    struct {
       uint8_t unified_size;
 
-      struct pvr_bo *store_program_bo;
+      struct pvr_suballoc_bo *store_program_bo;
 
-      struct pvr_bo *load_program_bo;
+      struct pvr_suballoc_bo *load_program_bo;
    } usc;
 
    struct {
@@ -55,6 +56,10 @@ struct rogue_sr_programs {
       struct pvr_pds_upload load_program;
    } pds;
 };
+
+/******************************************************************************
+   Render context
+ ******************************************************************************/
 
 struct pvr_render_ctx {
    struct pvr_device *device;
@@ -141,9 +146,9 @@ struct pvr_transfer_ctx {
 
    struct pvr_winsys_transfer_ctx *ws_ctx;
 
-   /* Multiple on-chip render targets (MRT). */
-   pvr_dev_addr_t transfer_mrts[PVR_TRANSFER_MAX_RENDER_TARGETS];
-   struct pvr_bo *usc_eot_bo;
+   struct pvr_transfer_frag_store frag_store;
+
+   struct pvr_suballoc_bo *usc_eot_bos[PVR_TRANSFER_MAX_RENDER_TARGETS];
 
    struct pvr_pds_upload pds_unitex_code[PVR_TRANSFER_MAX_TEXSTATE_DMA]
                                         [PVR_TRANSFER_MAX_UNIFORM_DMA];

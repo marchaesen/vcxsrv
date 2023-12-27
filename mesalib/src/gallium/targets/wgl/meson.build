@@ -25,9 +25,7 @@ wgl_def = custom_target(
   'gallium_wgl.def',
   input: 'gallium_wgl.def.in',
   output : 'gallium_wgl.def',
-  command : [prog_python, gen_vs_module_defs_py,
-             '--in_file', '@INPUT@', '--out_file', '@OUTPUT@',
-             '--compiler_id', cc.get_argument_syntax(), '--cpu_family', host_machine.cpu_family()]
+  command : gen_vs_module_defs_normal_command,
 )
 
 gallium_wgl_name = get_option('gallium-windows-dll-name')

@@ -24,8 +24,8 @@
 
 @RET@           FcAtomic *
 @FUNC@          FcAtomicCreate
-@TYPE1@         const FcChar8   *           	@ARG1@          file
-@PURPOSE@	create an FcAtomic object
+@TYPE1@         const FcChar8   *               @ARG1@          file
+@PURPOSE@       create an FcAtomic object
 @DESC@
 Creates a data structure containing data needed to control access to <parameter>file</parameter>.
 Writing is done to a separate file.  Once that file is complete, the original
@@ -36,7 +36,7 @@ a consistent and complete file without the need to lock for reading.
 @RET@           FcBool
 @FUNC@          FcAtomicLock
 @TYPE1@         FcAtomic *                      @ARG1@          atomic
-@PURPOSE@	lock a file
+@PURPOSE@       lock a file
 @DESC@
 Attempts to lock the file referenced by <parameter>atomic</parameter>.
 Returns FcFalse if the file is already locked, else returns FcTrue and
@@ -46,7 +46,7 @@ leaves the file locked.
 @RET@           FcChar8 *
 @FUNC@          FcAtomicNewFile
 @TYPE1@         FcAtomic *                      @ARG1@          atomic
-@PURPOSE@	return new temporary file name 
+@PURPOSE@       return new temporary file name
 @DESC@
 Returns the filename for writing a new version of the file referenced
 by <parameter>atomic</parameter>.
@@ -55,7 +55,7 @@ by <parameter>atomic</parameter>.
 @RET@           FcChar8 *
 @FUNC@          FcAtomicOrigFile
 @TYPE1@         FcAtomic *                      @ARG1@          atomic
-@PURPOSE@	return original file name
+@PURPOSE@       return original file name
 @DESC@
 Returns the file referenced by <parameter>atomic</parameter>.
 @@
@@ -63,7 +63,7 @@ Returns the file referenced by <parameter>atomic</parameter>.
 @RET@           FcBool
 @FUNC@          FcAtomicReplaceOrig
 @TYPE1@         FcAtomic *                      @ARG1@          atomic
-@PURPOSE@	replace original with new
+@PURPOSE@       replace original with new
 @DESC@
 Replaces the original file referenced by <parameter>atomic</parameter> with
 the new file. Returns FcFalse if the file cannot be replaced due to
@@ -73,7 +73,7 @@ permission issues in the filesystem. Otherwise returns FcTrue.
 @RET@           void
 @FUNC@          FcAtomicDeleteNew
 @TYPE1@         FcAtomic *                      @ARG1@          atomic
-@PURPOSE@	delete new file
+@PURPOSE@       delete new file
 @DESC@
 Deletes the new file.  Used in error recovery to back out changes.
 @@
@@ -81,7 +81,7 @@ Deletes the new file.  Used in error recovery to back out changes.
 @RET@           void
 @FUNC@          FcAtomicUnlock
 @TYPE1@         FcAtomic *                      @ARG1@          atomic
-@PURPOSE@	unlock a file
+@PURPOSE@       unlock a file
 @DESC@
 Unlocks the file.
 @@
@@ -89,7 +89,7 @@ Unlocks the file.
 @RET@           void
 @FUNC@          FcAtomicDestroy
 @TYPE1@         FcAtomic *                      @ARG1@          atomic
-@PURPOSE@	destroy an FcAtomic object
+@PURPOSE@       destroy an FcAtomic object
 @DESC@
 Destroys <parameter>atomic</parameter>.
 @@

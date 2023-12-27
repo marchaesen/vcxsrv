@@ -26,7 +26,7 @@
 #ifndef RENDERBUFFER_H
 #define RENDERBUFFER_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "menums.h"
 
 #ifdef __cplusplus

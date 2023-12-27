@@ -1,27 +1,8 @@
 /**************************************************************************
  *
  * Copyright 2013 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR
- * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  **************************************************************************/
 
@@ -62,7 +43,7 @@ bool si_vid_create_buffer(struct pipe_screen *screen, struct rvid_buffer *buffer
     * able to move buffers around individually, so request a
     * non-sub-allocated buffer.
     */
-   buffer->res = si_resource(pipe_buffer_create(screen, PIPE_BIND_SHARED, usage, size));
+   buffer->res = si_resource(pipe_buffer_create(screen, PIPE_BIND_CUSTOM, usage, size));
 
    return buffer->res != NULL;
 }
@@ -73,7 +54,7 @@ bool si_vid_create_tmz_buffer(struct pipe_screen *screen, struct rvid_buffer *bu
 {
    memset(buffer, 0, sizeof(*buffer));
    buffer->usage = usage;
-   buffer->res = si_resource(pipe_buffer_create(screen, PIPE_BIND_SHARED | PIPE_BIND_PROTECTED,
+   buffer->res = si_resource(pipe_buffer_create(screen, PIPE_BIND_CUSTOM | PIPE_BIND_PROTECTED,
                                                 usage, size));
    return buffer->res != NULL;
 }
@@ -87,7 +68,8 @@ void si_vid_destroy_buffer(struct rvid_buffer *buffer)
 
 /* reallocate a buffer, preserving its content */
 bool si_vid_resize_buffer(struct pipe_screen *screen, struct radeon_cmdbuf *cs,
-                          struct rvid_buffer *new_buf, unsigned new_size)
+                          struct rvid_buffer *new_buf, unsigned new_size,
+                          struct rvid_buf_offset_info *buf_ofst_info)
 {
    struct si_screen *sscreen = (struct si_screen *)screen;
    struct radeon_winsys *ws = sscreen->ws;
@@ -106,11 +88,20 @@ bool si_vid_resize_buffer(struct pipe_screen *screen, struct radeon_cmdbuf *cs,
    if (!dst)
       goto error;
 
-   memcpy(dst, src, bytes);
-   if (new_size > bytes) {
-      new_size -= bytes;
-      dst += bytes;
+   if (buf_ofst_info) {
       memset(dst, 0, new_size);
+      for(int i =0; i < buf_ofst_info->num_units; i++) {
+          memcpy(dst, src, buf_ofst_info->old_offset);
+          dst += buf_ofst_info->new_offset;
+          src += buf_ofst_info->old_offset;
+      }
+   } else {
+      memcpy(dst, src, bytes);
+      if (new_size > bytes) {
+         new_size -= bytes;
+         dst += bytes;
+         memset(dst, 0, new_size);
+      }
    }
    ws->buffer_unmap(ws, new_buf->res->buf);
    ws->buffer_unmap(ws, old_buf.res->buf);

@@ -36,7 +36,7 @@
 
 #include "state_tracker/st_context.h"
 
-static simple_mtx_t override_lock = _SIMPLE_MTX_INITIALIZER_NP;
+static simple_mtx_t override_lock = SIMPLE_MTX_INITIALIZER;
 
 /**
  * Scans 'string' to see if it ends with 'ending'.
@@ -136,8 +136,8 @@ create_version_string(struct gl_context *ctx, const char *prefix)
 		     "%s%u.%u%s Mesa " PACKAGE_VERSION MESA_GIT_SHA1,
 		     prefix,
 		     ctx->Version / 10, ctx->Version % 10,
-		     (ctx->API == API_OPENGL_CORE) ? " (Core Profile)" :
-                     (ctx->API == API_OPENGL_COMPAT && ctx->Version >= 32) ?
+		     _mesa_is_desktop_gl_core(ctx) ? " (Core Profile)" :
+                     (_mesa_is_desktop_gl_compat(ctx) && ctx->Version >= 32) ?
                         " (Compatibility Profile)" : ""
 		     );
    }
@@ -252,17 +252,14 @@ compute_version(const struct gl_extensions *extensions,
    GLuint major, minor, version;
 
    const bool ver_1_4 = (extensions->ARB_shadow);
-   const bool ver_1_5 = (ver_1_4 &&
-                         extensions->ARB_occlusion_query);
+   const bool ver_1_5 = ver_1_4;
    const bool ver_2_0 = (ver_1_5 &&
-                         extensions->ARB_point_sprite &&
                          extensions->ARB_vertex_shader &&
                          extensions->ARB_fragment_shader &&
                          extensions->ARB_texture_non_power_of_two &&
                          extensions->EXT_blend_equation_separate &&
                          extensions->EXT_stencil_two_side);
    const bool ver_2_1 = (ver_2_0 &&
-                         extensions->EXT_pixel_buffer_object &&
                          extensions->EXT_texture_sRGB);
    /* We lie about the minimum number of color attachments. Strictly, OpenGL
     * 3.0 requires 8, whereas OpenGL ES requires 4. OpenGL ES 3.0 class
@@ -314,7 +311,6 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_blend_func_extended &&
                          extensions->ARB_explicit_attrib_location &&
                          extensions->ARB_instanced_arrays &&
-                         extensions->ARB_occlusion_query2 &&
                          extensions->ARB_shader_bit_encoding &&
                          extensions->ARB_texture_rgb10_a2ui &&
                          extensions->ARB_timer_query &&
@@ -339,6 +335,9 @@ compute_version(const struct gl_extensions *extensions,
                          consts->GLSLVersion >= 410 &&
                          consts->MaxTextureSize >= 16384 &&
                          consts->MaxRenderbufferSize >= 16384 &&
+                         consts->MaxCubeTextureLevels >= 15 &&
+                         consts->Max3DTextureLevels >= 12 &&
+                         consts->MaxArrayTextureLayers >= 2048 &&
                          extensions->ARB_ES2_compatibility &&
                          extensions->ARB_shader_precision &&
                          extensions->ARB_vertex_attrib_64bit &&
@@ -376,7 +375,6 @@ compute_version(const struct gl_extensions *extensions,
                          consts->GLSLVersion >= 440 &&
                          consts->MaxVertexAttribStride >= 2048 &&
                          extensions->ARB_buffer_storage &&
-                         extensions->ARB_clear_texture &&
                          extensions->ARB_enhanced_layouts &&
                          extensions->ARB_query_buffer_object &&
                          extensions->ARB_texture_mirror_clamp_to_edge &&
@@ -396,7 +394,6 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_gl_spirv &&
                          extensions->ARB_spirv_extensions &&
                          extensions->ARB_indirect_parameters &&
-                         extensions->ARB_pipeline_statistics_query &&
                          extensions->ARB_polygon_offset_clamp &&
                          extensions->ARB_shader_atomic_counter_ops &&
                          extensions->ARB_shader_draw_parameters &&
@@ -504,6 +501,7 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->EXT_texture_sRGB &&
                          extensions->EXT_transform_feedback &&
                          extensions->ARB_draw_instanced &&
+                         extensions->ARB_instanced_arrays &&
                          extensions->ARB_uniform_buffer_object &&
                          extensions->EXT_texture_snorm &&
                          (extensions->NV_primitive_restart ||
@@ -652,7 +650,7 @@ _mesa_compute_version(struct gl_context *ctx)
    }
 
 done:
-   if (ctx->API == API_OPENGL_COMPAT && ctx->Version >= 31)
+   if (_mesa_is_desktop_gl_compat(ctx) && ctx->Version >= 31)
       ctx->Extensions.ARB_compatibility = GL_TRUE;
 
    /* Precompute valid primitive types for faster draw time validation. */
@@ -665,7 +663,7 @@ done:
                            (1 << GL_TRIANGLE_STRIP) |
                            (1 << GL_TRIANGLE_FAN);
 
-   if (ctx->API == API_OPENGL_COMPAT) {
+   if (_mesa_is_desktop_gl_compat(ctx)) {
       ctx->SupportedPrimMask |= (1 << GL_QUADS) |
                                (1 << GL_QUAD_STRIP) |
                                (1 << GL_POLYGON);
@@ -680,6 +678,16 @@ done:
 
    if (_mesa_has_tessellation(ctx))
       ctx->SupportedPrimMask |= 1 << GL_PATCHES;
+
+   /* Appendix F.2 of the OpenGL ES 3.0 spec says:
+    *
+    *     "OpenGL ES 3.0 requires that all cube map filtering be
+    *     seamless. OpenGL ES 2.0 specified that a single cube map face be
+    *     selected and used for filtering."
+    *
+    * Now that we know our version, enable seamless filtering for GLES3 only.
+    */
+   ctx->Texture.CubeMapSeamless = _mesa_is_gles3(ctx);
 
    /* First time initialization. */
    _mesa_update_valid_to_render_state(ctx);
@@ -762,14 +770,13 @@ _mesa_get_shading_language_version(const struct gl_context *ctx,
       GLSL_VERSION("");
 
    /* GLSL es */
-   if ((ctx->API == API_OPENGLES2 && ctx->Version >= 32) ||
-        ctx->Extensions.ARB_ES3_2_compatibility)
+   if (_mesa_is_gles32(ctx) || ctx->Extensions.ARB_ES3_2_compatibility)
       GLSL_VERSION("320 es");
    if (_mesa_is_gles31(ctx) || ctx->Extensions.ARB_ES3_1_compatibility)
       GLSL_VERSION("310 es");
    if (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility)
       GLSL_VERSION("300 es");
-   if (ctx->API == API_OPENGLES2 || ctx->Extensions.ARB_ES2_compatibility)
+   if (_mesa_is_gles2(ctx) || ctx->Extensions.ARB_ES2_compatibility)
       GLSL_VERSION("100");
 
 #undef GLSL_VERSION

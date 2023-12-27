@@ -1,3 +1,0 @@
-[*.{c,h,cpp,hpp,cc,hh}]
-indent_style = space
-indent_size = 8

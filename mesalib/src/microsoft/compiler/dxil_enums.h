@@ -24,6 +24,10 @@
 #ifndef DIXL_ENUMS_H
 #define DIXL_ENUMS_H
 
+#include <stdbool.h>
+
+#include "shader_enums.h"
+
 enum dxil_signature_kind {
    DXIL_SIG_INVALID = 0,
    DXIL_SIG_INPUT,
@@ -197,6 +201,7 @@ enum dxil_interpolation_mode  {
 
 enum overload_type {
    DXIL_NONE,
+   DXIL_I1,
    DXIL_I16,
    DXIL_I32,
    DXIL_I64,
@@ -271,6 +276,7 @@ enum dxil_shader_tag {
    DXIL_SHADER_TAG_DS_STATE    = 2,
    DXIL_SHADER_TAG_HS_STATE    = 3,
    DXIL_SHADER_TAG_NUM_THREADS = 4,
+   DXIL_SHADER_TAG_WAVE_SIZE   = 11,
 };
 
 enum dxil_barrier_mode {
@@ -346,21 +352,42 @@ enum dxil_signature_element_extended_properties {
    DXIL_SIGNATURE_ELEMENT_USAGE_COMPONENT_MASK = 3,
 };
 
+enum dxil_quad_op_kind {
+   QUAD_READ_ACROSS_X = 0,
+   QUAD_READ_ACROSS_Y = 1,
+   QUAD_READ_ACROSS_DIAGONAL = 2,
+};
+
+enum dxil_wave_op_kind {
+   DXIL_WAVE_OP_SUM = 0,
+   DXIL_WAVE_OP_PRODUCT = 1,
+   DXIL_WAVE_OP_MIN = 2,
+   DXIL_WAVE_OP_MAX = 3,
+};
+
+enum dxil_wave_bit_op_kind {
+   DXIL_WAVE_BIT_OP_AND = 0,
+   DXIL_WAVE_BIT_OP_OR = 1,
+   DXIL_WAVE_BIT_OP_XOR = 2,
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct glsl_type;
+enum glsl_sampler_dim;
 
 enum dxil_component_type dxil_get_comp_type(const struct glsl_type *type);
 
 enum dxil_prog_sig_comp_type dxil_get_prog_sig_comp_type(const struct glsl_type *type);
 
+enum dxil_resource_kind dxil_sampler_dim_to_resource_kind(enum glsl_sampler_dim dim, bool is_array);
 enum dxil_resource_kind dxil_get_resource_kind(const struct glsl_type *type);
 
-enum dxil_primitive_topology dxil_get_primitive_topology(unsigned topology);
+enum dxil_primitive_topology dxil_get_primitive_topology(enum mesa_prim topology);
 
-enum dxil_input_primitive dxil_get_input_primitive(unsigned primitive);
+enum dxil_input_primitive dxil_get_input_primitive(enum mesa_prim primitive);
 
 const char *dxil_overload_suffix( enum overload_type overload);
 

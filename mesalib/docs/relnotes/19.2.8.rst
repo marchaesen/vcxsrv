@@ -60,7 +60,7 @@ Iván Briano (1):
 
 -  anv: Export filter_minmax support only when it's really supported
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  anv: Re-emit all compute state on pipeline switch
 -  anv: Don't leak when set_tiling fails

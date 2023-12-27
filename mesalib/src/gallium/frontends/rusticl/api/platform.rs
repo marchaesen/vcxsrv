@@ -1,29 +1,26 @@
 use crate::api::icd::CLResult;
-use crate::api::icd::DISPATCH;
 use crate::api::util::*;
+use crate::core::platform::*;
 use crate::core::version::*;
 
 use mesa_rust_util::ptr::*;
 use rusticl_opencl_gen::*;
+use rusticl_proc_macros::cl_entrypoint;
+use rusticl_proc_macros::cl_info_entrypoint;
 
-#[repr(C)]
-#[allow(non_camel_case_types)]
-pub struct _cl_platform_id {
-    dispatch: &'static cl_icd_dispatch,
-    extensions: [cl_name_version; 1],
-}
+use std::mem::MaybeUninit;
 
+#[cl_info_entrypoint(cl_get_platform_info)]
 impl CLInfo<cl_platform_info> for cl_platform_id {
-    fn query(&self, q: cl_platform_info, _: &[u8]) -> CLResult<Vec<u8>> {
-        let p = self.get_ref()?;
+    fn query(&self, q: cl_platform_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
+        self.get_ref()?;
         Ok(match q {
             // TODO spirv
-            CL_PLATFORM_EXTENSIONS => cl_prop("cl_khr_icd"),
-            //            CL_PLATFORM_EXTENSIONS => cl_prop("cl_khr_icd cl_khr_il_program"),
+            CL_PLATFORM_EXTENSIONS => cl_prop(PLATFORM_EXTENSION_STR),
             CL_PLATFORM_EXTENSIONS_WITH_VERSION => {
-                cl_prop::<Vec<cl_name_version>>(p.extensions.to_vec())
+                cl_prop::<Vec<cl_name_version>>(PLATFORM_EXTENSIONS.to_vec())
             }
-            CL_PLATFORM_HOST_TIMER_RESOLUTION => cl_prop::<cl_ulong>(0),
+            CL_PLATFORM_HOST_TIMER_RESOLUTION => cl_prop::<cl_ulong>(1),
             CL_PLATFORM_ICD_SUFFIX_KHR => cl_prop("MESA"),
             CL_PLATFORM_NAME => cl_prop("rusticl"),
             CL_PLATFORM_NUMERIC_VERSION => cl_prop::<cl_version>(CLVersion::Cl3_0 as u32),
@@ -37,35 +34,8 @@ impl CLInfo<cl_platform_info> for cl_platform_id {
     }
 }
 
-static PLATFORM: _cl_platform_id = _cl_platform_id {
-    dispatch: &DISPATCH,
-    extensions: [
-        mk_cl_version_ext(1, 0, 0, "cl_khr_icd"),
-        // TODO spirv
-        //        mk_cl_version_ext(1, 0, 0, "cl_khr_il_program"),
-    ],
-};
-
-pub fn get_platform() -> cl_platform_id {
-    &PLATFORM as *const crate::api::platform::_cl_platform_id
-        as *mut ::rusticl_opencl_gen::_cl_platform_id
-}
-
-pub trait GetPlatformRef {
-    fn get_ref(&self) -> CLResult<&'static _cl_platform_id>;
-}
-
-impl GetPlatformRef for cl_platform_id {
-    fn get_ref(&self) -> CLResult<&'static _cl_platform_id> {
-        if !self.is_null() && *self == get_platform() {
-            Ok(&PLATFORM)
-        } else {
-            Err(CL_INVALID_PLATFORM)
-        }
-    }
-}
-
-pub fn get_platform_ids(
+#[cl_entrypoint]
+fn get_platform_ids(
     num_entries: cl_uint,
     platforms: *mut cl_platform_id,
     num_platforms: *mut cl_uint,
@@ -80,12 +50,15 @@ pub fn get_platform_ids(
         return Err(CL_INVALID_VALUE);
     }
 
+    // run initialization code once
+    Platform::init_once();
+
     // platforms returns a list of OpenCL platforms available for access through the Khronos ICD Loader.
     // The cl_platform_id values returned in platforms are ICD compatible and can be used to identify a
     // specific OpenCL platform. If the platforms argument is NULL, then this argument is ignored. The
     // number of OpenCL platforms returned is the minimum of the value specified by num_entries or the
     // number of OpenCL platforms available.
-    platforms.write_checked(get_platform());
+    platforms.write_checked(Platform::get().as_ptr());
 
     // num_platforms returns the number of OpenCL platforms available. If num_platforms is NULL, then
     // this argument is ignored.
@@ -94,7 +67,8 @@ pub fn get_platform_ids(
     Ok(())
 }
 
-pub fn unload_platform_compiler(platform: cl_platform_id) -> CLResult<()> {
+#[cl_entrypoint]
+fn unload_platform_compiler(platform: cl_platform_id) -> CLResult<()> {
     platform.get_ref()?;
     // TODO unload the compiler
     Ok(())

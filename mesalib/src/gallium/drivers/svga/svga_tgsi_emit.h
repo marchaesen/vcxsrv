@@ -75,8 +75,8 @@ struct svga_shader_emitter
    int internal_color_idx[2]; /* diffuse, specular */
    int internal_color_count;
 
-   boolean emitted_vface;
-   boolean emit_frontface;
+   bool emitted_vface;
+   bool emit_frontface;
    int internal_frontface_idx;
 
    int ps30_input_count;
@@ -85,14 +85,14 @@ struct svga_shader_emitter
    int dynamic_branching_level;
 
    unsigned num_output_writes;
-   boolean constant_color_output;
+   bool constant_color_output;
 
-   boolean in_main_func;
+   bool in_main_func;
 
-   boolean created_common_immediate;
+   bool created_common_immediate;
    int common_immediate_idx[2];
 
-   boolean created_loop_const;
+   bool created_loop_const;
    int loop_const_idx;
 
    unsigned inverted_texcoords;  /**< bitmask of which texcoords are flipped */
@@ -107,8 +107,8 @@ struct svga_shader_emitter
    struct src_register input_map[PIPE_MAX_ATTRIBS];
    SVGA3dShaderDestToken output_map[PIPE_MAX_ATTRIBS];
 
-   boolean ps_reads_pos;
-   boolean emitted_depth_fog;
+   bool ps_reads_pos;
+   bool emitted_depth_fog;
    struct src_register ps_true_pos;
    struct src_register ps_depth_pos;
    SVGA3dShaderDestToken ps_temp_pos;
@@ -142,25 +142,25 @@ struct svga_shader_emitter
 };
 
 
-boolean
+bool
 svga_shader_emit_dword(struct svga_shader_emitter *emit, unsigned dword);
 
-boolean
+bool
 svga_shader_emit_dwords(struct svga_shader_emitter *emit,
                         const unsigned *dwords, unsigned nr);
 
-boolean
+bool
 svga_shader_emit_opcode(struct svga_shader_emitter *emit,
                         unsigned opcode);
 
-boolean
+bool
 svga_shader_emit_instructions(struct svga_shader_emitter *emit,
                               const struct tgsi_token *tokens);
 
-boolean
+bool
 svga_shader_emit_samplers_decl(struct svga_shader_emitter *emit);
 
-boolean
+bool
 svga_translate_decl_sm30(struct svga_shader_emitter *emit,
                          const struct tgsi_full_declaration *decl);
 
@@ -179,7 +179,7 @@ svga_translate_decl_sm30(struct svga_shader_emitter *emit,
 
 
 /** Emit the given SVGA3dShaderInstToken opcode */
-static inline boolean
+static inline bool
 emit_instruction(struct svga_shader_emitter *emit,
                  SVGA3dShaderInstToken opcode)
 {

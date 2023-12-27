@@ -31,6 +31,8 @@
 
 #include "ir3/ir3_shader.h"
 
+BEGINC;
+
 /*
  * An in-memory cache for mapping shader state objects plus shader key to
  * hw specific state object for the specified shader variant.  This is to
@@ -46,6 +48,7 @@ struct ir3_cache_key {
     * not the compiled shader:
     */
    unsigned clip_plane_enable : PIPE_MAX_CLIP_PLANES;
+   unsigned patch_vertices;
 };
 
 /* per-gen backend program state object should subclass this for it's
@@ -58,10 +61,10 @@ struct ir3_program_state {
 
 struct ir3_cache_funcs {
    struct ir3_program_state *(*create_state)(
-      void *data, struct ir3_shader_variant *bs, /* binning pass vs */
-      struct ir3_shader_variant *vs, struct ir3_shader_variant *hs,
-      struct ir3_shader_variant *ds, struct ir3_shader_variant *gs,
-      struct ir3_shader_variant *fs, const struct ir3_cache_key *key);
+      void *data, const struct ir3_shader_variant *bs, /* binning pass vs */
+      const struct ir3_shader_variant *vs, const struct ir3_shader_variant *hs,
+      const struct ir3_shader_variant *ds, const struct ir3_shader_variant *gs,
+      const struct ir3_shader_variant *fs, const struct ir3_cache_key *key);
    void (*destroy_state)(void *data, struct ir3_program_state *state);
 };
 
@@ -83,5 +86,7 @@ struct ir3_program_state *ir3_cache_lookup(struct ir3_cache *cache,
  * cache entries which reference that state object.
  */
 void ir3_cache_invalidate(struct ir3_cache *cache, void *stobj);
+
+ENDC;
 
 #endif /* IR3_CACHE_H_ */

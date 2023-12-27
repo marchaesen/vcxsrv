@@ -93,7 +93,7 @@ lower_subroutine_visitor::visit_leave(ir_call *ir)
       bool is_compat = false;
 
       for (int i = 0; i < fn->num_subroutine_types; i++) {
-         if (ir->sub_var->type->without_array() == fn->subroutine_types[i]) {
+         if (glsl_without_array(ir->sub_var->type) == fn->subroutine_types[i]) {
             is_compat = true;
             break;
          }

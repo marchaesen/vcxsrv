@@ -856,11 +856,11 @@ pixman_contract_from_float (uint32_t     *dst,
 /* Region Helpers */
 pixman_bool_t
 pixman_region32_copy_from_region16 (pixman_region32_t *dst,
-                                    pixman_region16_t *src);
+                                    const pixman_region16_t *src);
 
 pixman_bool_t
 pixman_region16_copy_from_region32 (pixman_region16_t *dst,
-                                    pixman_region32_t *src);
+                                    const pixman_region32_t *src);
 
 /* Doubly linked lists */
 typedef struct pixman_link_t pixman_link_t;

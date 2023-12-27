@@ -35,7 +35,7 @@
 #ifndef LP_SCENE_H
 #define LP_SCENE_H
 
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "lp_rast.h"
 #include "lp_debug.h"
 
@@ -84,7 +84,7 @@ struct cmd_block {
 
 
 struct data_block {
-   ubyte data[DATA_BLOCK_SIZE];
+   uint8_t data[DATA_BLOCK_SIZE];
    unsigned used;
    struct data_block *next;
 };
@@ -129,6 +129,7 @@ struct lp_scene_surface {
    unsigned nr_samples;
 };
 
+
 /**
  * All bins and bin data are contained here.
  * Per-bin data goes into the 'tile' bins.
@@ -146,7 +147,7 @@ struct lp_scene {
    struct llvmpipe_query *active_queries[LP_MAX_ACTIVE_BINNED_QUERIES];
    unsigned num_active_queries;
    /* If queries were either active or there were begin/end query commands */
-   boolean had_queries;
+   bool had_queries;
 
    /* Framebuffer mappings - valid only between begin_rasterization()
     * and end_rasterization().
@@ -185,8 +186,8 @@ struct lp_scene {
     */
    unsigned resource_reference_size;
 
-   boolean alloc_failed;
-   boolean permit_linear_rasterizer;
+   bool alloc_failed;
+   bool permit_linear_rasterizer;
 
    /**
     * Number of active tiles in each dimension.
@@ -208,25 +209,25 @@ struct lp_scene *lp_scene_create(struct lp_setup_context *setup);
 
 void lp_scene_destroy(struct lp_scene *scene);
 
-boolean lp_scene_is_empty(struct lp_scene *scene);
-boolean lp_scene_is_oom(struct lp_scene *scene);
+bool lp_scene_is_empty(struct lp_scene *scene);
 
+bool lp_scene_is_oom(struct lp_scene *scene);
 
 struct data_block *lp_scene_new_data_block(struct lp_scene *scene);
 
 struct cmd_block *lp_scene_new_cmd_block(struct lp_scene *scene,
                                          struct cmd_bin *bin);
 
-boolean lp_scene_add_resource_reference(struct lp_scene *scene,
-                                        struct pipe_resource *resource,
-                                        boolean initializing_scene,
-                                        boolean writeable);
+bool lp_scene_add_resource_reference(struct lp_scene *scene,
+                                     struct pipe_resource *resource,
+                                     bool initializing_scene,
+                                     bool writeable);
 
 unsigned lp_scene_is_resource_referenced(const struct lp_scene *scene,
                                          const struct pipe_resource *resource);
 
-boolean lp_scene_add_frag_shader_reference(struct lp_scene *scene,
-                                           struct lp_fragment_shader_variant *variant);
+bool lp_scene_add_frag_shader_reference(struct lp_scene *scene,
+                                        struct lp_fragment_shader_variant *variant);
 
 
 
@@ -257,7 +258,7 @@ lp_scene_alloc(struct lp_scene *scene, unsigned size)
    }
 
    {
-      ubyte *data = block->data + block->used;
+      uint8_t *data = block->data + block->used;
       block->used += size;
       return data;
    }
@@ -289,7 +290,7 @@ lp_scene_alloc_aligned(struct lp_scene *scene, unsigned size,
    }
 
    {
-      ubyte *data = block->data + block->used;
+      uint8_t *data = block->data + block->used;
       unsigned offset = (((uintptr_t)data + alignment - 1) & ~(alignment - 1)) - (uintptr_t)data;
       block->used += offset + size;
       return data + offset;
@@ -313,7 +314,7 @@ lp_scene_bin_reset(struct lp_scene *scene, unsigned x, unsigned y);
 
 /* Add a command to bin[x][y].
  */
-static inline boolean
+static inline bool
 lp_scene_bin_command(struct lp_scene *scene,
                      unsigned x, unsigned y,
                      enum lp_rast_op cmd,
@@ -329,7 +330,7 @@ lp_scene_bin_command(struct lp_scene *scene,
    if (tail == NULL || tail->count == CMD_BLOCK_MAX) {
       tail = lp_scene_new_cmd_block(scene, bin);
       if (!tail) {
-         return FALSE;
+         return false;
       }
       assert(tail->count == 0);
    }
@@ -341,11 +342,11 @@ lp_scene_bin_command(struct lp_scene *scene,
       tail->count++;
    }
 
-   return TRUE;
+   return true;
 }
 
 
-static inline boolean
+static inline bool
 lp_scene_bin_cmd_with_state(struct lp_scene *scene,
                             unsigned x, unsigned y,
                             const struct lp_rast_state *state,
@@ -359,19 +360,19 @@ lp_scene_bin_cmd_with_state(struct lp_scene *scene,
       if (!lp_scene_bin_command(scene, x, y,
                                 LP_RAST_OP_SET_STATE,
                                 lp_rast_arg_state(state)))
-         return FALSE;
+         return false;
    }
 
    if (!lp_scene_bin_command(scene, x, y, cmd, arg))
-      return FALSE;
+      return false;
 
-   return TRUE;
+   return true;
 }
 
 
 /* Add a command to all active bins.
  */
-static inline boolean
+static inline bool
 lp_scene_bin_everywhere(struct lp_scene *scene,
                         enum lp_rast_op cmd,
                         const union lp_rast_cmd_arg arg)
@@ -379,11 +380,11 @@ lp_scene_bin_everywhere(struct lp_scene *scene,
    for (unsigned i = 0; i < scene->tiles_x; i++) {
       for (unsigned j = 0; j < scene->tiles_y; j++) {
          if (!lp_scene_bin_command(scene, i, j, cmd, arg))
-            return FALSE;
+            return false;
       }
    }
 
-   return TRUE;
+   return true;
 }
 
 
@@ -421,4 +422,4 @@ void
 lp_scene_end_rasterization(struct lp_scene *scene);
 
 
-#endif /* LP_BIN_H */
+#endif /* LP_SCENE_H */

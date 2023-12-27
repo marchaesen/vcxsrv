@@ -35,7 +35,7 @@ extern "C" {
 #endif
 
 struct cso_context;
-struct st_context_iface;
+struct st_context;
 
 struct pp_queue_t;              /* Forward definition */
 struct pp_program;
@@ -43,6 +43,9 @@ struct pp_program;
 /* Less typing later on */
 typedef void (*pp_func) (struct pp_queue_t *, struct pipe_resource *,
                          struct pipe_resource *, unsigned int);
+
+typedef void (*pp_st_invalidate_state_func)(struct st_context *st,
+                                            unsigned flags);
 
 /* Main functions */
 
@@ -54,7 +57,8 @@ typedef void (*pp_func) (struct pp_queue_t *, struct pipe_resource *,
 struct pp_queue_t *pp_init(struct pipe_context *pipe,
                            const unsigned int *enabled,
                            struct cso_context *,
-                           struct st_context_iface *st);
+                           struct st_context *st,
+                           pp_st_invalidate_state_func st_invalidate_state);
 
 void pp_run(struct pp_queue_t *, struct pipe_resource *,
             struct pipe_resource *, struct pipe_resource *);

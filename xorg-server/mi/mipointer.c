@@ -397,8 +397,21 @@ miPointerWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 #ifdef PANORAMIX
         && noPanoramiXExtension
 #endif
-        )
-        UpdateSpriteForScreen(pDev, pScreen);
+        ) {
+            DeviceIntPtr master = GetMaster(pDev, MASTER_POINTER);
+            /* Hack for CVE-2023-5380: if we're moving
+             * screens PointerWindows[] keeps referring to the
+             * old window. If that gets destroyed we have a UAF
+             * bug later. Only happens when jumping from a window
+             * to the root window on the other screen.
+             * Enter/Leave events are incorrect for that case but
+             * too niche to fix.
+             */
+            LeaveWindow(pDev);
+            if (master)
+                LeaveWindow(master);
+            UpdateSpriteForScreen(pDev, pScreen);
+    }
 }
 
 /**

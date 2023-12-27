@@ -31,7 +31,7 @@
 
 
 #include "glformats.h"
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "enums.h"
 #include "fbobject.h"
@@ -163,7 +163,7 @@ clear(struct gl_context *ctx, GLbitfield mask, bool no_error)
        * existed in OpenGL ES.
        */
       if ((mask & GL_ACCUM_BUFFER_BIT) != 0
-          && (ctx->API == API_OPENGL_CORE || _mesa_is_gles(ctx))) {
+          && (_mesa_is_desktop_gl_core(ctx) || _mesa_is_gles(ctx))) {
          _mesa_error( ctx, GL_INVALID_VALUE, "glClear(GL_ACCUM_BUFFER_BIT)");
          return;
       }

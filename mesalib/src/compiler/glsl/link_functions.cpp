@@ -202,9 +202,9 @@ public:
             formal_param_node = formal_param_node->get_next();
             actual_param_node = actual_param_node->get_next();
 
-            if (formal_param->type->is_array()) {
+            if (glsl_type_is_array(formal_param->type)) {
                ir_dereference_variable *deref = actual_param->as_dereference_variable();
-               if (deref && deref->var && deref->var->type->is_array()) {
+               if (deref && deref->var && glsl_type_is_array(deref->var->type)) {
                   deref->var->data.max_array_access =
                      MAX2(formal_param->data.max_array_access,
                          deref->var->data.max_array_access);
@@ -232,7 +232,7 @@ public:
 	    linked->symbols->add_variable(var);
 	    linked->ir->push_head(var);
 	 } else {
-            if (var->type->is_array()) {
+            if (glsl_type_is_array(var->type)) {
                /* It is possible to have a global array declared in multiple
                 * shaders without a size.  The array is implicitly sized by
                 * the maximal access to it in *any* shader.  Because of this,

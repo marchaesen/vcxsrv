@@ -38,8 +38,7 @@ _mesa_glthread_ProgramChanged(struct gl_context *ctx)
 
 uint32_t
 _mesa_unmarshal_GetActiveUniform(struct gl_context *ctx,
-                                 const struct marshal_cmd_GetActiveUniform *cmd,
-                                 const uint64_t *last)
+                                 const struct marshal_cmd_GetActiveUniform *restrict cmd)
 {
    unreachable("never executed");
    return 0;
@@ -66,7 +65,7 @@ _mesa_marshal_GetActiveUniform(GLuint program, GLuint index, GLsizei bufSize,
    /* This will generate GL_INVALID_OPERATION, as it should. */
    if (ctx->GLThread.inside_begin_end) {
       _mesa_glthread_finish_before(ctx, "GetActiveUniform");
-      CALL_GetActiveUniform(ctx->CurrentServerDispatch,
+      CALL_GetActiveUniform(ctx->Dispatch.Current,
                             (program, index, bufSize, length, size, type,
                              name));
       return;
@@ -87,8 +86,7 @@ _mesa_marshal_GetActiveUniform(GLuint program, GLuint index, GLsizei bufSize,
 
 uint32_t
 _mesa_unmarshal_GetUniformLocation(struct gl_context *ctx,
-                                   const struct marshal_cmd_GetUniformLocation *cmd,
-                                   const uint64_t *last)
+                                   const struct marshal_cmd_GetUniformLocation *restrict cmd)
 {
    unreachable("never executed");
    return 0;
@@ -102,7 +100,7 @@ _mesa_marshal_GetUniformLocation(GLuint program, const GLchar *name)
    /* This will generate GL_INVALID_OPERATION, as it should. */
    if (ctx->GLThread.inside_begin_end) {
       _mesa_glthread_finish_before(ctx, "GetUniformLocation");
-      return CALL_GetUniformLocation(ctx->CurrentServerDispatch, (program, name));
+      return CALL_GetUniformLocation(ctx->Dispatch.Current, (program, name));
    }
 
    wait_for_glLinkProgram(ctx);

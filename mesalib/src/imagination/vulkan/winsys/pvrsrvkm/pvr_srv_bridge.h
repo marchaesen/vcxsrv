@@ -46,6 +46,7 @@
 
 #define PVR_SRV_BRIDGE_SYNC_ALLOCSYNCPRIMITIVEBLOCK 0UL
 #define PVR_SRV_BRIDGE_SYNC_FREESYNCPRIMITIVEBLOCK 1UL
+#define PVR_SRV_BRIDGE_SYNC_SYNCPRIMSET 2UL
 
 #define PVR_SRV_BRIDGE_MM 6UL
 
@@ -98,21 +99,30 @@
  * These defines must be prefixed with "DRM_".
  */
 #define DRM_SRVKM_CMD 0U /* PVR Services command. */
+
+/* PVR Sync commands */
+#define DRM_SRVKM_SYNC_FORCE_SW_ONLY_CMD 2U
+
+/* PVR Software Sync commands */
+#define DRM_SRVKM_SW_SYNC_CREATE_FENCE_CMD 3U
+#define DRM_SRVKM_SW_SYNC_INC_CMD 4U
+
+/* PVR Services Render Device Init command */
 #define DRM_SRVKM_INIT 5U /* PVR Services Render Device Init command. */
 
 /* These defines must be prefixed with "DRM_IOCTL_". */
 #define DRM_IOCTL_SRVKM_CMD \
    DRM_IOWR(DRM_COMMAND_BASE + DRM_SRVKM_CMD, struct drm_srvkm_cmd)
+#define DRM_IOCTL_SRVKM_SYNC_FORCE_SW_ONLY_CMD \
+   DRM_IO(DRM_COMMAND_BASE + DRM_SRVKM_SYNC_FORCE_SW_ONLY_CMD)
+#define DRM_IOCTL_SRVKM_SW_SYNC_CREATE_FENCE_CMD                   \
+   DRM_IOWR(DRM_COMMAND_BASE + DRM_SRVKM_SW_SYNC_CREATE_FENCE_CMD, \
+            struct drm_srvkm_sw_sync_create_fence_data)
+#define DRM_IOCTL_SRVKM_SW_SYNC_INC_CMD                  \
+   DRM_IOR(DRM_COMMAND_BASE + DRM_SRVKM_SW_SYNC_INC_CMD, \
+           struct drm_srvkm_sw_timeline_advance_data)
 #define DRM_IOCTL_SRVKM_INIT \
    DRM_IOWR(DRM_COMMAND_BASE + DRM_SRVKM_INIT, struct drm_srvkm_init_data)
-
-/******************************************************************************
-   Bridge call specific defines
- ******************************************************************************/
-
-/* Flags for PVR_SRV_BRIDGE_RGXTQ_RGXSUBMITTRANSFER2 bridge call. */
-#define PVR_TRANSFER_PREP_FLAGS_START BITFIELD_BIT(5U)
-#define PVR_TRANSFER_PREP_FLAGS_END BITFIELD_BIT(6U)
 
 /******************************************************************************
    Misc defines
@@ -235,6 +245,20 @@ struct pvr_srv_bridge_free_sync_primitive_block_cmd {
 } PACKED;
 
 struct pvr_srv_bridge_free_sync_primitive_block_ret {
+   enum pvr_srv_error error;
+} PACKED;
+
+/******************************************************************************
+   PVR_SRV_BRIDGE_SYNC_SYNCPRIMSET structs
+ ******************************************************************************/
+
+struct pvr_srv_bridge_sync_prim_set_cmd {
+   void *handle;
+   uint32_t index;
+   uint32_t value;
+} PACKED;
+
+struct pvr_srv_bridge_sync_prim_set_ret {
    enum pvr_srv_error error;
 } PACKED;
 
@@ -823,6 +847,17 @@ struct drm_srvkm_init_data {
    uint32_t init_module;
 };
 
+struct drm_srvkm_sw_sync_create_fence_data {
+   char name[32];
+   __s32 fence;
+   __u32 pad;
+   __u64 sync_pt_idx;
+};
+
+struct drm_srvkm_sw_timeline_advance_data {
+   __u64 sync_pt_idx;
+};
+
 /******************************************************************************
    DRM helper enum
  ******************************************************************************/
@@ -837,6 +872,15 @@ enum pvr_srvkm_module_type {
  ******************************************************************************/
 
 VkResult pvr_srv_init_module(int fd, enum pvr_srvkm_module_type module);
+
+VkResult pvr_srv_set_timeline_sw_only(int sw_timeline_fd);
+
+VkResult pvr_srv_create_sw_fence(int sw_timeline_fd,
+                                 int *new_fence_fd,
+                                 uint64_t *sync_pt_idx);
+
+VkResult pvr_srv_sw_sync_timeline_increment(int sw_timeline_fd,
+                                            uint64_t *sync_pt_idx);
 
 /******************************************************************************
    Bridge function prototypes
@@ -856,6 +900,10 @@ VkResult pvr_srv_alloc_sync_primitive_block(int fd,
                                             uint32_t *const size_out,
                                             uint32_t *const addr_out);
 void pvr_srv_free_sync_primitive_block(int fd, void *handle);
+VkResult pvr_srv_set_sync_primitive(int fd,
+                                    void *handle,
+                                    uint32_t index,
+                                    uint32_t value);
 
 VkResult pvr_srv_get_heap_count(int fd, uint32_t *const heap_count_out);
 VkResult pvr_srv_get_heap_details(int fd,

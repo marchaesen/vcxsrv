@@ -58,7 +58,7 @@ static void enc_GetPictureParamPreset(struct pipe_h264_enc_picture_desc *picture
    picture->motion_est.enc_disable_sub_mode = 0x000000fe;
    picture->motion_est.enc_ime2_search_range_x = 0x00000001;
    picture->motion_est.enc_ime2_search_range_y = 0x00000001;
-   picture->pic_ctrl.enc_constraint_set_flags = 0x00000040;
+   picture->seq.enc_constraint_set_flags = 0x00000040;
 }
 
 enum pipe_video_profile enc_TranslateOMXProfileToPipe(unsigned omx_profile)
@@ -162,7 +162,7 @@ void vid_enc_BufferEncoded_common(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTY
 
    /* ------------- get size of result ----------------- */
 
-   priv->codec->get_feedback(priv->codec, task->feedback, &size);
+   priv->codec->get_feedback(priv->codec, task->feedback, &size, NULL);
 
    output->nOffset = 0;
    output->nFilledLen = size; /* mark buffer as full */

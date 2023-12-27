@@ -26,6 +26,7 @@
 #include "util/u_memory.h"
 #include "util/format/u_format.h"
 #include "util/u_inlines.h"
+#include "util/u_resource.h"
 #include "util/u_surface.h"
 #include "util/u_transfer_helper.h"
 #include "util/u_upload_mgr.h"
@@ -36,7 +37,8 @@
 #include "v3d_screen.h"
 #include "v3d_context.h"
 #include "v3d_resource.h"
-#include "broadcom/cle/v3d_packet_v33_pack.h"
+/* The packets used here the same across V3D versions. */
+#include "broadcom/cle/v3d_packet_v42_pack.h"
 
 static void
 v3d_debug_resource_layout(struct v3d_resource *rsc, const char *caller)
@@ -99,7 +101,17 @@ v3d_resource_bo_alloc(struct v3d_resource *rsc)
         struct pipe_screen *pscreen = prsc->screen;
         struct v3d_bo *bo;
 
-        bo = v3d_bo_alloc(v3d_screen(pscreen), rsc->size, "resource");
+        /* Buffers may be read using ldunifa, which prefetches the next
+         * 4 bytes after a read. If the buffer's size is exactly a multiple
+         * of a page size and the shader reads the last 4 bytes with ldunifa
+         * the prefetching would read out of bounds and cause an MMU error,
+         * so we allocate extra space to avoid kernel error spamming.
+         */
+        uint32_t size = rsc->size;
+        if (rsc->base.target == PIPE_BUFFER && (size % 4096 == 0))
+                size += 4;
+
+        bo = v3d_bo_alloc(v3d_screen(pscreen), size, "resource");
         if (bo) {
                 v3d_bo_unreference(&rsc->bo);
                 rsc->bo = bo;
@@ -161,8 +173,10 @@ rebind_sampler_views(struct v3d_context *v3d,
 
                         struct v3d_sampler_view *sview =
                                 v3d_sampler_view(psview);
+                        struct v3d_device_info *devinfo =
+                                &v3d->screen->devinfo;
 
-                        v3d_create_texture_shader_state_bo(v3d, sview);
+                        v3d_X(devinfo, create_texture_shader_state_bo)(v3d, sview);
 
                         v3d_flag_dirty_sampler_state(v3d, st);
                 }
@@ -346,7 +360,7 @@ v3d_texture_subdata(struct pipe_context *pctx,
                     const struct pipe_box *box,
                     const void *data,
                     unsigned stride,
-                    unsigned layer_stride)
+                    uintptr_t layer_stride)
 {
         struct v3d_resource *rsc = v3d_resource(prsc);
         struct v3d_resource_slice *slice = &rsc->slices[level];
@@ -461,17 +475,21 @@ v3d_resource_get_param(struct pipe_screen *pscreen,
                        enum pipe_resource_param param,
                        unsigned usage, uint64_t *value)
 {
-        struct v3d_resource *rsc = v3d_resource(prsc);
+        struct v3d_resource *rsc =
+                (struct v3d_resource *)util_resource_at_index(prsc, plane);
 
         switch (param) {
         case PIPE_RESOURCE_PARAM_STRIDE:
                 *value = rsc->slices[level].stride;
                 return true;
         case PIPE_RESOURCE_PARAM_OFFSET:
-                *value = 0;
+                *value = rsc->slices[level].offset;
                 return true;
         case PIPE_RESOURCE_PARAM_MODIFIER:
                 *value = v3d_resource_modifier(rsc);
+                return true;
+        case PIPE_RESOURCE_PARAM_NPLANES:
+                *value = util_resource_num(prsc);
                 return true;
         default:
                 return false;
@@ -524,6 +542,27 @@ v3d_get_ub_pad(struct v3d_resource *rsc, uint32_t height)
         return 0;
 }
 
+/**
+ * Computes the dimension with required padding for mip levels.
+ *
+ * This padding is required for width and height dimensions when the mip
+ * level is greater than 1, and for the depth dimension when the mip level
+ * is greater than 0. This function expects to be passed a mip level >= 1.
+ *
+ * Note: Hardware documentation seems to suggest that the third argument
+ * should be the utile dimensions, but through testing it was found that
+ * the block dimension should be used instead.
+ */
+static uint32_t
+v3d_get_dimension_mpad(uint32_t dimension, uint32_t level, uint32_t block_dimension)
+{
+        assert(level >= 1);
+        uint32_t pot_dim = u_minify(dimension, 1);
+        pot_dim = util_next_power_of_two(DIV_ROUND_UP(pot_dim, block_dimension));
+        uint32_t padded_dim = block_dimension * pot_dim;
+        return u_minify(padded_dim, level - 1);
+}
+
 static void
 v3d_setup_slices(struct v3d_resource *rsc, uint32_t winsys_stride,
                  bool uif_top)
@@ -532,14 +571,6 @@ v3d_setup_slices(struct v3d_resource *rsc, uint32_t winsys_stride,
         uint32_t width = prsc->width0;
         uint32_t height = prsc->height0;
         uint32_t depth = prsc->depth0;
-        /* Note that power-of-two padding is based on level 1.  These are not
-         * equivalent to just util_next_power_of_two(dimension), because at a
-         * level 0 dimension of 9, the level 1 power-of-two padded value is 4,
-         * not 8.
-         */
-        uint32_t pot_width = 2 * util_next_power_of_two(u_minify(width, 1));
-        uint32_t pot_height = 2 * util_next_power_of_two(u_minify(height, 1));
-        uint32_t pot_depth = 2 * util_next_power_of_two(u_minify(depth, 1));
         uint32_t offset = 0;
         uint32_t utile_w = v3d_utile_width(rsc->cpp);
         uint32_t utile_h = v3d_utile_height(rsc->cpp);
@@ -547,6 +578,21 @@ v3d_setup_slices(struct v3d_resource *rsc, uint32_t winsys_stride,
         uint32_t uif_block_h = utile_h * 2;
         uint32_t block_width = util_format_get_blockwidth(prsc->format);
         uint32_t block_height = util_format_get_blockheight(prsc->format);
+
+        /* Note that power-of-two padding is based on level 1.  These are not
+         * equivalent to just util_next_power_of_two(dimension), because at a
+         * level 0 dimension of 9, the level 1 power-of-two padded value is 4,
+         * not 8. Additionally the pot padding is based on the block size.
+         */
+        uint32_t pot_width = 2 * v3d_get_dimension_mpad(width,
+                                                        1,
+                                                        block_width);
+        uint32_t pot_height = 2 * v3d_get_dimension_mpad(height,
+                                                         1,
+                                                         block_height);
+        uint32_t pot_depth = 2 * v3d_get_dimension_mpad(depth,
+                                                        1,
+                                                        1);
         bool msaa = prsc->nr_samples > 1;
 
         /* MSAA textures/renderbuffers are always laid out as single-level
@@ -586,7 +632,8 @@ v3d_setup_slices(struct v3d_resource *rsc, uint32_t winsys_stride,
 
                 if (!rsc->tiled) {
                         slice->tiling = V3D_TILING_RASTER;
-                        if (prsc->target == PIPE_TEXTURE_1D)
+                        if (prsc->target == PIPE_TEXTURE_1D ||
+                            prsc->target == PIPE_TEXTURE_1D_ARRAY)
                                 level_width = align(level_width, 64 / rsc->cpp);
                 } else {
                         if ((i != 0 || !uif_top) &&
@@ -706,8 +753,8 @@ static struct v3d_resource *
 v3d_resource_setup(struct pipe_screen *pscreen,
                    const struct pipe_resource *tmpl)
 {
-        struct v3d_screen *screen = v3d_screen(pscreen);
         struct v3d_resource *rsc = CALLOC_STRUCT(v3d_resource);
+
         if (!rsc)
                 return NULL;
         struct pipe_resource *prsc = &rsc->base;
@@ -717,35 +764,7 @@ v3d_resource_setup(struct pipe_screen *pscreen,
         pipe_reference_init(&prsc->reference, 1);
         prsc->screen = pscreen;
 
-        if (prsc->nr_samples <= 1 ||
-            screen->devinfo.ver >= 40 ||
-            util_format_is_depth_or_stencil(prsc->format)) {
-                rsc->cpp = util_format_get_blocksize(prsc->format);
-                if (screen->devinfo.ver < 40 && prsc->nr_samples > 1)
-                        rsc->cpp *= prsc->nr_samples;
-        } else {
-                assert(v3d_rt_format_supported(&screen->devinfo, prsc->format));
-                uint32_t output_image_format =
-                        v3d_get_rt_format(&screen->devinfo, prsc->format);
-                uint32_t internal_type;
-                uint32_t internal_bpp;
-                v3d_get_internal_type_bpp_for_output_format(&screen->devinfo,
-                                                            output_image_format,
-                                                            &internal_type,
-                                                            &internal_bpp);
-                switch (internal_bpp) {
-                case V3D_INTERNAL_BPP_32:
-                        rsc->cpp = 4;
-                        break;
-                case V3D_INTERNAL_BPP_64:
-                        rsc->cpp = 8;
-                        break;
-                case V3D_INTERNAL_BPP_128:
-                        rsc->cpp = 16;
-                        break;
-                }
-        }
-
+        rsc->cpp = util_format_get_blocksize(prsc->format);
         rsc->serial_id++;
 
         assert(rsc->cpp);
@@ -975,6 +994,9 @@ v3d_resource_from_handle(struct pipe_screen *pscreen,
                 slice->stride = whandle->stride;
         }
 
+        /* Prevent implicit clearing of the imported buffer contents. */
+        rsc->writes = 1;
+
         return prsc;
 
 fail:
@@ -1045,6 +1067,7 @@ v3d_create_surface(struct pipe_context *pctx,
 {
         struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_screen *screen = v3d->screen;
+        struct v3d_device_info *devinfo = &screen->devinfo;
         struct v3d_surface *surface = CALLOC_STRUCT(v3d_surface);
         struct v3d_resource *rsc = v3d_resource(ptex);
 
@@ -1070,7 +1093,7 @@ v3d_create_surface(struct pipe_context *pctx,
                                            psurf->u.tex.first_layer);
         surface->tiling = slice->tiling;
 
-        surface->format = v3d_get_rt_format(&screen->devinfo, psurf->format);
+        surface->format = v3d_get_rt_format(devinfo, psurf->format);
 
         const struct util_format_description *desc =
                 util_format_description(psurf->format);
@@ -1092,9 +1115,8 @@ v3d_create_surface(struct pipe_context *pctx,
                 }
         } else {
                 uint32_t bpp, type;
-                v3d_get_internal_type_bpp_for_output_format(&screen->devinfo,
-                                                            surface->format,
-                                                            &type, &bpp);
+                v3d_X(devinfo, get_internal_type_bpp_for_output_format)
+                   (surface->format, &type, &bpp);
                 surface->internal_type = type;
                 surface->internal_bpp = bpp;
         }

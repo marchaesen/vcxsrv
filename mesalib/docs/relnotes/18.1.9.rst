@@ -92,7 +92,7 @@ Gert Wollny (1):
 
 -  winsys/virgl: correct resource and handle allocation (v2)
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  anv/pipeline: Only consider double elements which actually exist
 -  i965: Workaround the gen9 hw astc5x5 sampler bug

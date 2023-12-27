@@ -28,8 +28,8 @@ if build_glamor
         srcs += 'ephyr_glamor_xv.c'
     endif
     xephyr_glamor += glamor
-    xephyr_glamor += glamor_egl_stubs
     xephyr_dep += epoxy_dep
+    xephyr_dep += dependency('xcb-glx')
 endif
 
 if build_xv

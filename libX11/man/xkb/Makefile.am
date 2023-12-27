@@ -20,7 +20,6 @@ libman_PRE = \
 	XkbAllocCompatMap.man                   \
 	XkbAllocControls.man                    \
 	XkbAllocDeviceInfo.man                  \
-	XkbAllocDeviceLedInfo.man               \
 	XkbAllocGeomColors.man                  \
 	XkbAllocGeomDoodads.man                 \
 	XkbAllocGeomKeyAliases.man              \
@@ -46,7 +45,6 @@ libman_PRE = \
 	XkbChangeControls.man                   \
 	XkbChangeDeviceInfo.man                 \
 	XkbChangeEnabledControls.man            \
-	XkbChangeIndicators.man                 \
 	XkbChangeMap.man                        \
 	XkbChangeNames.man                      \
 	XkbChangeTypesOfKey.man                 \
@@ -84,10 +82,8 @@ libman_PRE = \
 	XkbFreeKeyboard.man                     \
 	XkbFreeNames.man                        \
 	XkbFreeServerMap.man                    \
-	XkbGetAccessXTimeout.man                \
 	XkbGetAutoRepeatRate.man                \
 	XkbGetAutoResetControls.man             \
-	XkbGetBounceKeysDelay.man               \
 	XkbGetCompatMap.man                     \
 	XkbGetControls.man                      \
 	XkbGetControlsChanges.man               \
@@ -97,7 +93,6 @@ libman_PRE = \
 	XkbGetDeviceInfoChanges.man             \
 	XkbGetDeviceLedInfo.man                 \
 	XkbGetGeometry.man                      \
-	XkbGetIndicatorChanges.man              \
 	XkbGetIndicatorMap.man                  \
 	XkbGetIndicatorState.man                \
 	XkbGetKeyActions.man                    \
@@ -110,14 +105,11 @@ libman_PRE = \
 	XkbGetKeyboard.man                      \
 	XkbGetKeyboardByName.man                \
 	XkbGetMap.man                           \
-	XkbGetNameChanges.man                   \
 	XkbGetNamedDeviceIndicator.man          \
 	XkbGetNamedGeometry.man                 \
 	XkbGetNamedIndicator.man                \
 	XkbGetNames.man                         \
-	XkbGetSlowKeysDelay.man                 \
 	XkbGetState.man                         \
-	XkbGetStickyKeysOptions.man             \
 	XkbGetUpdatedMap.man                    \
 	XkbGetVirtualMods.man                   \
 	XkbGetXlibControls.man                  \
@@ -130,14 +122,13 @@ libman_PRE = \
 	XkbKeyGroupWidth.man                    \
 	XkbKeyGroupsWidth.man                   \
 	XkbKeyHasActions.man                    \
+	XkbKeyKeyType.man                       \
+	XkbKeyKeyTypeIndex.man                  \
 	XkbKeyNumActions.man                    \
 	XkbKeyNumGroups.man                     \
 	XkbKeyNumSyms.man                       \
 	XkbKeySymEntry.man                      \
-	XkbKeySymsOffset.man                    \
 	XkbKeySymsPtr.man                       \
-	XkbKeyType.man                          \
-	XkbKeyTypeIndex.man                     \
 	XkbKeyTypesForCoreSymbols.man           \
 	XkbKeycodeToKeysym.man                  \
 	XkbKeysymToModifiers.man                \
@@ -152,7 +143,6 @@ libman_PRE = \
 	XkbModActionVMods.man                   \
 	XkbNoteControlsChanges.man              \
 	XkbNoteDeviceChanges.man                \
-	XkbNoteIndicatorChanges.man             \
 	XkbNoteNameChanges.man                  \
 	XkbOpenDisplay.man                      \
 	XkbOutOfRangeGroupInfo.man              \
@@ -165,7 +155,7 @@ libman_PRE = \
 	XkbResizeKeyActions.man                 \
 	XkbResizeKeySyms.man                    \
 	XkbResizeKeyType.man                    \
-	XkbSAActionSetCtrls.man                 \
+	XkbActionSetCtrls.man                   \
 	XkbSAGroup.man                          \
 	XkbSAPtrDfltValue.man                   \
 	XkbSARedirectSetVMods.man               \
@@ -178,10 +168,8 @@ libman_PRE = \
 	XkbSASetScreen.man                      \
 	XkbSelectEventDetails.man               \
 	XkbSelectEvents.man                     \
-	XkbSetAccessXTimeout.man                \
 	XkbSetAutoRepeatRate.man                \
 	XkbSetAutoResetControls.man             \
-	XkbSetBounceKeysDelay.man               \
 	XkbSetCompatMap.man                     \
 	XkbSetControls.man                      \
 	XkbSetDebuggingFlags.man                \

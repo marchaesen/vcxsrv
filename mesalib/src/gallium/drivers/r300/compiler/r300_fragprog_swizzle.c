@@ -64,6 +64,9 @@ static const struct swizzle_data native_swizzles[] = {
 };
 
 static const int num_native_swizzles = ARRAY_SIZE(native_swizzles);
+/* Only swizzles with srcp_stride != 0 can be used for presub, so
+ * just the first five from the list. */
+static const int num_presub_swizzles = 5;
 
 /**
  * Find a native RGB swizzle that matches the given swizzle.
@@ -158,7 +161,9 @@ static void r300_swizzle_split(
 		unsigned int best_matchmask = 0;
 		int i, comp;
 
-		for(i = 0; i < num_native_swizzles; ++i) {
+		unsigned num_swizzles = src.File == RC_FILE_PRESUB ? num_presub_swizzles : num_native_swizzles;
+
+		for(i = 0; i < num_swizzles; ++i) {
 			const struct swizzle_data *sd = &native_swizzles[i];
 			unsigned int matchcount = 0;
 			unsigned int matchmask = 0;

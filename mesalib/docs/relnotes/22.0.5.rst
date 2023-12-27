@@ -84,7 +84,7 @@ Icecream95 (5):
 - pan/mdg: Read base for combined stores
 - panfrost: Only write depth / stencil once if MRT is used
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 - intel/fs: Copy color_outputs_valid into wm_prog_data
 - anv: Drop alpha_to_coverage from the NULL FS optimization

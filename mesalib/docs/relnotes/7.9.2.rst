@@ -113,7 +113,7 @@ This list is likely incomplete.
 -  `Ubuntu bug
    691653 <https://bugs.launchpad.net/ubuntu/+source/mesa/+bug/691653>`__
    - compiz crashes when using alt-tab (the radeon driver kills it)
--  `Meego bug 13005 <https://bugs.meego.com/show_bug.cgi?id=13005>`__ -
+-  Meego bug 13005 -
    Graphics GLSL issue lead to camera preview fail on Pinetrail
 
 Changes

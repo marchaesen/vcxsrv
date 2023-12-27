@@ -25,7 +25,7 @@
 .\"
 .TH XdbeGetVisualInfo __libmansuffix__ __xorgversion__ "X FUNCTIONS"
 .SH NAME
-XdbeGetVisualInfo - Get dbe Visual Informations
+XdbeGetVisualInfo - Get dbe Visual Information
 .SH SYNOPSIS
 \&#include <X11/extensions/Xdbe.h>
 

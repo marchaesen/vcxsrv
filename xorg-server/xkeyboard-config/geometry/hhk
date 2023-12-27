@@ -197,7 +197,7 @@ partial hidden xkb_geometry "basic" {
 	description = "Happy Hacking";
 	width = 290;
 	height = 106;
-	
+
 	shape.cornerRadius = 1;
 	shape "NORM" { { [18, 18] }, { [2, 1], [14, 14] } };
 	shape "BKSP" { { [28, 18] }, { [2, 1], [24, 14] } };
@@ -223,10 +223,10 @@ partial hidden xkb_geometry "basic" {
 		row {
 			top = 1;
 			keys {
-				 <ESC>, 
-				<AE01>, <AE02>, <AE03>, <AE04>, <AE05>, 
-				<AE06>, <AE07>, <AE08>, <AE09>, <AE10>, 
-				<AE11>, <AE12>, 
+				 <ESC>,
+				<AE01>, <AE02>, <AE03>, <AE04>, <AE05>,
+				<AE06>, <AE07>, <AE08>, <AE09>, <AE10>,
+				<AE11>, <AE12>,
 				<BKSL>, <TLDE>
 			};
 		};
@@ -246,7 +246,7 @@ partial hidden xkb_geometry "basic" {
 				{ <LCTL>, "CTRL" },
 				<AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
 				<AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
-				<AC11>, 
+				<AC11>,
 				{ <RTRN>, "RTRN" }
 			};
 		};

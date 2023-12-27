@@ -95,7 +95,7 @@ Icecream95 (1):
 
 - panfrost: Don't initialise the trampolines array
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 - lavapipe: Reset the free_cmd_buffers list in TrimCommandPool
 - anv: Allow MSAA resolve with different numbers of planes

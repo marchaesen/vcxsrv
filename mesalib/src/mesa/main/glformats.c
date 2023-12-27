@@ -522,55 +522,6 @@ _mesa_bytes_per_pixel(GLenum format, GLenum type)
 
 
 /**
- * Get the number of bytes for a vertex attrib with the given number of
- * components and type.
- *
- * \param comps number of components.
- * \param type data type.
- *
- * \return bytes per attribute, or -1 if a bad comps/type combination was given.
- */
-GLint
-_mesa_bytes_per_vertex_attrib(GLint comps, GLenum type)
-{
-   switch (type) {
-   case GL_BYTE:
-   case GL_UNSIGNED_BYTE:
-      return comps * sizeof(GLubyte);
-   case GL_SHORT:
-   case GL_UNSIGNED_SHORT:
-      return comps * sizeof(GLshort);
-   case GL_INT:
-   case GL_UNSIGNED_INT:
-      return comps * sizeof(GLint);
-   case GL_FLOAT:
-      return comps * sizeof(GLfloat);
-   case GL_HALF_FLOAT_ARB:
-   case GL_HALF_FLOAT_OES:
-      return comps * sizeof(GLhalfARB);
-   case GL_DOUBLE:
-      return comps * sizeof(GLdouble);
-   case GL_FIXED:
-      return comps * sizeof(GLfixed);
-   case GL_INT_2_10_10_10_REV:
-   case GL_UNSIGNED_INT_2_10_10_10_REV:
-      if (comps == 4)
-         return sizeof(GLuint);
-      else
-         return -1;
-   case GL_UNSIGNED_INT_10F_11F_11F_REV:
-      if (comps == 3)
-         return sizeof(GLuint);
-      else
-         return -1;
-   case GL_UNSIGNED_INT64_ARB:
-      return comps * 8;
-   default:
-      return -1;
-   }
-}
-
-/**
  * Test if the given format is unsized.
  */
 GLboolean
@@ -1379,7 +1330,7 @@ _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format)
    case GL_PALETTE8_R5_G6_B5_OES:
    case GL_PALETTE8_RGBA4_OES:
    case GL_PALETTE8_RGB5_A1_OES:
-      return ctx->API == API_OPENGLES;
+      return _mesa_is_gles1(ctx);
    }
 
    switch (_mesa_get_format_layout(m_format)) {
@@ -1854,14 +1805,14 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
          break; /* OK */
       }
       if (type == GL_UNSIGNED_INT_2_10_10_10_REV && format == GL_RGB &&
-          ctx->API == API_OPENGLES2) {
+          _mesa_is_gles2(ctx)) {
          break; /* OK by GL_EXT_texture_type_2_10_10_10_REV */
       }
       return GL_INVALID_OPERATION;
 
    case GL_UNSIGNED_INT_24_8:
       /* Depth buffer OK to read in OpenGL ES (NV_read_depth). */
-      if (ctx->API == API_OPENGLES2 && format == GL_DEPTH_COMPONENT)
+      if (_mesa_is_gles2(ctx) && format == GL_DEPTH_COMPONENT)
          return GL_NO_ERROR;
 
       if (format != GL_DEPTH_STENCIL) {
@@ -1985,7 +1936,7 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
                return GL_NO_ERROR;
             case GL_UNSIGNED_INT_2_10_10_10_REV:
                /* OK by GL_EXT_texture_type_2_10_10_10_REV */
-               return (ctx->API == API_OPENGLES2)
+               return _mesa_is_gles2(ctx)
                   ? GL_NO_ERROR : GL_INVALID_ENUM;
             case GL_UNSIGNED_INT_5_9_9_9_REV:
                return _mesa_has_texture_shared_exponent(ctx)
@@ -2336,7 +2287,7 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
 
    if (_mesa_has_ARB_ES2_compatibility(ctx) ||
        _mesa_has_OES_framebuffer_object(ctx) ||
-       ctx->API == API_OPENGLES2) {
+       _mesa_is_gles2(ctx)) {
       switch (internalFormat) {
       case GL_RGB565:
          return GL_RGB;

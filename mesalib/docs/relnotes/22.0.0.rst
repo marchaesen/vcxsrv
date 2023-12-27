@@ -63,7 +63,7 @@ Bug fixes
 - [REGRESSION][BISECTED] iris: Qutebrowser/QtWebEngine sporadically flashes the window in white
 - Flickering Intel Uhd 620 Graphics
 - Vulkan Wayland WSI returns empty surface formats
-- [radeon, rs690] piglit spec@glsl-1.10@execution@built-in-functions@fs-atan-float + 10 other 'atan' tests crash (mesa-22dev)
+- [radeon, rs690] piglit spec\@glsl-1.10\@execution\@built-in-functions\@fs-atan-float + 10 other 'atan' tests crash (mesa-22dev)
 - [bisected] artifacts in vaapi h.264 playback
 - [bisected] artifacts in vaapi h.264 playback
 - radv: msaa regression
@@ -1875,7 +1875,7 @@ Jan Zielinski (3):
 - gallium/swr: Remove common code and build options
 - gallium/swr: clean up the documentation after SWR removal from main
 
-Jason Ekstrand (158):
+Faith Ekstrand (158):
 
 - vulkan/log: Tweak our handling of a couple error enums
 - vulkan/log: Don't assert on non-client-visible objects
@@ -2016,7 +2016,7 @@ Jason Ekstrand (158):
 - spirv,radv: Fix some GL enum comments
 - vulkan/runtime: Implement 1.3 features/properties
 - anv/pass: Don't set first_subpass_layout for stencil-only attachments
-- .mailmap: Switch Jason Ekstrand to @collabora.com
+- .mailmap: Switch Faith Ekstrand to @collabora.com
 - anv: Implement 1.3 features/properties
 - anv: Advertise Vulkan 1.3
 - vulkan/wsi: Set MUTABLE_FORMAT_BIT in the prime path

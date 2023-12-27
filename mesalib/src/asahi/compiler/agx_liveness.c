@@ -1,31 +1,13 @@
 /*
- * Copyright (C) 2021 Alyssa Rosenzweig
- * Copyright (C) 2019-2020 Collabora, Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright 2021 Alyssa Rosenzweig
+ * Copyright 2019-2020 Collabora, Ltd.
+ * SPDX-License-Identifier: MIT
  */
 
-#include "agx_compiler.h"
-#include "util/u_memory.h"
 #include "util/list.h"
 #include "util/set.h"
+#include "util/u_memory.h"
+#include "agx_compiler.h"
 
 /* Liveness analysis is a backwards-may dataflow analysis pass. Within a block,
  * we compute live_out from live_in. The intrablock pass is linear-time. It
@@ -36,18 +18,15 @@
 void
 agx_liveness_ins_update(BITSET_WORD *live, agx_instr *I)
 {
-   agx_foreach_dest(I, d) {
-      if (I->dest[d].type == AGX_INDEX_NORMAL)
-         BITSET_CLEAR(live, I->dest[d].value);
-   }
+   agx_foreach_ssa_dest(I, d)
+      BITSET_CLEAR(live, I->dest[d].value);
 
-   agx_foreach_src(I, s) {
-      if (I->src[s].type == AGX_INDEX_NORMAL) {
-         /* If the source is not live after this instruction, but becomes live
-          * at this instruction, this is the use that kills the source */
-         I->src[s].kill = !BITSET_TEST(live, I->src[s].value);
-         BITSET_SET(live, I->src[s].value);
-      }
+   agx_foreach_ssa_src(I, s) {
+      /* If the source is not live after this instruction, but becomes live
+       * at this instruction, this is the use that kills the source
+       */
+      I->src[s].kill = !BITSET_TEST(live, I->src[s].value);
+      BITSET_SET(live, I->src[s].value);
    }
 }
 
@@ -80,7 +59,7 @@ agx_compute_liveness(agx_context *ctx)
    }
 
    /* Iterate the work list */
-   while(!u_worklist_is_empty(&worklist)) {
+   while (!u_worklist_is_empty(&worklist)) {
       /* Pop in reverse order since liveness is a backwards pass */
       agx_block *blk = agx_worklist_pop_head(&worklist);
 
@@ -88,21 +67,15 @@ agx_compute_liveness(agx_context *ctx)
       memcpy(blk->live_in, blk->live_out, words * sizeof(BITSET_WORD));
 
       agx_foreach_instr_in_block_rev(blk, I) {
-         /* Phi nodes are handled separately, so we skip them. As phi nodes are at
-          * the beginning and we're iterating backwards, we stop as soon as we hit
-          * a phi node.
-          */
-         if (I->op == AGX_OPCODE_PHI)
-            break;
-
-         agx_liveness_ins_update(blk->live_in, I);
+         if (I->op != AGX_OPCODE_PHI)
+            agx_liveness_ins_update(blk->live_in, I);
       }
 
       /* Propagate the live in of the successor (blk) to the live out of
        * predecessors.
        *
-       * Phi nodes are logically on the control flow edge and act in parallel. To
-       * handle when propagating, we kill writes from phis and make live the
+       * Phi nodes are logically on the control flow edge and act in parallel.
+       * To handle when propagating, we kill writes from phis and make live the
        * corresponding sources.
        */
       agx_foreach_predecessor(blk, pred) {
@@ -110,20 +83,16 @@ agx_compute_liveness(agx_context *ctx)
          memcpy(live, blk->live_in, words * sizeof(BITSET_WORD));
 
          /* Kill write */
-         agx_foreach_instr_in_block(blk, I) {
-            if (I->op != AGX_OPCODE_PHI) break;
-
-            assert(I->dest[0].type == AGX_INDEX_NORMAL);
-            BITSET_CLEAR(live, I->dest[0].value);
+         agx_foreach_phi_in_block(blk, phi) {
+            assert(phi->dest[0].type == AGX_INDEX_NORMAL);
+            BITSET_CLEAR(live, phi->dest[0].value);
          }
 
          /* Make live the corresponding source */
-         agx_foreach_instr_in_block(blk, I) {
-            if (I->op != AGX_OPCODE_PHI) break;
-
-            agx_index operand = I->src[agx_predecessor_index(blk, *pred)];
-            assert(operand.type == AGX_INDEX_NORMAL);
-            BITSET_SET(live, operand.value);
+         agx_foreach_phi_in_block(blk, phi) {
+            agx_index operand = phi->src[agx_predecessor_index(blk, *pred)];
+            if (operand.type == AGX_INDEX_NORMAL)
+               BITSET_SET(live, operand.value);
          }
 
          bool progress = false;

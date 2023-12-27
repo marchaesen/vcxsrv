@@ -75,8 +75,6 @@ lower_large_src(nir_src *src, void *s)
 {
    lower_state *state = s;
 
-   assert(src->is_ssa);
-
    nir_instr *parent = src->ssa->parent_instr;
 
    /* No need to visit instructions we've already visited.. this also
@@ -125,37 +123,25 @@ lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
 {
    switch (intr->intrinsic) {
    case nir_intrinsic_load_ubo:
-      //# src[] = { buffer_index, offset }.
+      // # src[] = { buffer_index, offset }.
       if (large_ubo(state, intr->src[0]))
          lower_large_src(&intr->src[1], state);
       return;
 
    case nir_intrinsic_load_ssbo:
-      //# src[] = { buffer_index, offset }.
+      // # src[] = { buffer_index, offset }.
       if (large_ssbo(state, intr->src[0]))
          lower_large_src(&intr->src[1], state);
       return;
 
    case nir_intrinsic_store_ssbo:
-      //# src[] = { value, block_index, offset }
+      // # src[] = { value, block_index, offset }
       if (large_ssbo(state, intr->src[1]))
          lower_large_src(&intr->src[2], state);
       return;
 
-   case nir_intrinsic_ssbo_atomic_add:
-   case nir_intrinsic_ssbo_atomic_imin:
-   case nir_intrinsic_ssbo_atomic_umin:
-   case nir_intrinsic_ssbo_atomic_imax:
-   case nir_intrinsic_ssbo_atomic_umax:
-   case nir_intrinsic_ssbo_atomic_and:
-   case nir_intrinsic_ssbo_atomic_or:
-   case nir_intrinsic_ssbo_atomic_xor:
-   case nir_intrinsic_ssbo_atomic_exchange:
-   case nir_intrinsic_ssbo_atomic_comp_swap:
-   case nir_intrinsic_ssbo_atomic_fadd:
-   case nir_intrinsic_ssbo_atomic_fmin:
-   case nir_intrinsic_ssbo_atomic_fmax:
-   case nir_intrinsic_ssbo_atomic_fcomp_swap:
+   case nir_intrinsic_ssbo_atomic:
+   case nir_intrinsic_ssbo_atomic_swap:
       /* 0: SSBO index
        * 1: offset
        */
@@ -163,20 +149,8 @@ lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
          lower_large_src(&intr->src[1], state);
       return;
 
-   case nir_intrinsic_global_atomic_add:
-   case nir_intrinsic_global_atomic_imin:
-   case nir_intrinsic_global_atomic_umin:
-   case nir_intrinsic_global_atomic_imax:
-   case nir_intrinsic_global_atomic_umax:
-   case nir_intrinsic_global_atomic_and:
-   case nir_intrinsic_global_atomic_or:
-   case nir_intrinsic_global_atomic_xor:
-   case nir_intrinsic_global_atomic_exchange:
-   case nir_intrinsic_global_atomic_comp_swap:
-   case nir_intrinsic_global_atomic_fadd:
-   case nir_intrinsic_global_atomic_fmin:
-   case nir_intrinsic_global_atomic_fmax:
-   case nir_intrinsic_global_atomic_fcomp_swap:
+   case nir_intrinsic_global_atomic:
+   case nir_intrinsic_global_atomic_swap:
    case nir_intrinsic_load_global_constant:
    case nir_intrinsic_load_global:
       /* just assume we that 24b is not sufficient: */
@@ -189,20 +163,8 @@ lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
       return;
 
    /* These should all be small enough to unconditionally use imul24: */
-   case nir_intrinsic_shared_atomic_add:
-   case nir_intrinsic_shared_atomic_imin:
-   case nir_intrinsic_shared_atomic_umin:
-   case nir_intrinsic_shared_atomic_imax:
-   case nir_intrinsic_shared_atomic_umax:
-   case nir_intrinsic_shared_atomic_and:
-   case nir_intrinsic_shared_atomic_or:
-   case nir_intrinsic_shared_atomic_xor:
-   case nir_intrinsic_shared_atomic_exchange:
-   case nir_intrinsic_shared_atomic_comp_swap:
-   case nir_intrinsic_shared_atomic_fadd:
-   case nir_intrinsic_shared_atomic_fmin:
-   case nir_intrinsic_shared_atomic_fmax:
-   case nir_intrinsic_shared_atomic_fcomp_swap:
+   case nir_intrinsic_shared_atomic:
+   case nir_intrinsic_shared_atomic_swap:
    case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_input:
    case nir_intrinsic_load_output:
@@ -253,7 +215,7 @@ nir_lower_amul(nir_shader *shader,
    /* Figure out which UBOs or SSBOs are large enough to be
     * disqualified from imul24:
     */
-   nir_foreach_variable_in_shader (var, shader) {
+   nir_foreach_variable_in_shader(var, shader) {
       if (var->data.mode == nir_var_mem_ubo) {
          if (is_large(&state, var)) {
             state.has_large_ubo = true;
@@ -271,25 +233,9 @@ nir_lower_amul(nir_shader *shader,
       }
    }
 
-   /* clear pass flags: */
-   nir_foreach_function(function, shader) {
-      nir_function_impl *impl = function->impl;
-      if (!impl)
-         continue;
+   nir_shader_clear_pass_flags(shader);
 
-      nir_foreach_block(block, impl) {
-         nir_foreach_instr(instr, block) {
-            instr->pass_flags = 0;
-         }
-      }
-   }
-
-   nir_foreach_function(function, shader) {
-      nir_function_impl *impl = function->impl;
-
-      if (!impl)
-         continue;
-
+   nir_foreach_function_impl(impl, shader) {
       nir_foreach_block(block, impl) {
          nir_foreach_instr(instr, block) {
             lower_instr(&state, instr);
@@ -304,12 +250,7 @@ nir_lower_amul(nir_shader *shader,
     * Note the exception for 64b (such as load/store_global where
     * address size is 64b) as imul24 cannot have 64b bitsize
     */
-   nir_foreach_function(function, shader) {
-      nir_function_impl *impl = function->impl;
-
-      if (!impl)
-         continue;
-
+   nir_foreach_function_impl(impl, shader) {
       nir_foreach_block(block, impl) {
          nir_foreach_instr(instr, block) {
             if (instr->type != nir_instr_type_alu)
@@ -319,7 +260,7 @@ nir_lower_amul(nir_shader *shader,
             if (alu->op != nir_op_amul)
                continue;
 
-            if (nir_dest_bit_size(alu->dest.dest) <= 32)
+            if (alu->def.bit_size <= 32)
                alu->op = nir_op_imul24;
             else
                alu->op = nir_op_imul;
@@ -329,8 +270,7 @@ nir_lower_amul(nir_shader *shader,
       }
 
       nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
-
+                                     nir_metadata_dominance);
    }
 
    return state.progress;

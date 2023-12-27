@@ -678,7 +678,7 @@ parseline(
 		b->treesize = newsize;
 		/* Re-derive top after realloc() to avoid undefined behaviour
 		   (and crashes on architectures that track pointer bounds). */
-		if (top >= (DTIndex *) old && top < (DTIndex *) &old[oldsize])
+		if (old && top >= (DTIndex *) old && top < (DTIndex *) &old[oldsize])
 		    top = (DTIndex *) (((char *)new) + (((char *)top)-(char *)old));
 	    }
 	    p = &b->tree[b->treeused];

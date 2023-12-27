@@ -61,6 +61,7 @@ typedef enum {
     OPTION_VARIABLE_REFRESH,
     OPTION_USE_GAMMA_LUT,
     OPTION_ASYNC_FLIP_SECONDARIES,
+    OPTION_TEARFREE,
 } modesettingOpts;
 
 typedef struct
@@ -86,10 +87,13 @@ struct ms_drm_queue {
     struct xorg_list list;
     xf86CrtcPtr crtc;
     uint32_t seq;
+    uint64_t msc;
     void *data;
     ScrnInfoPtr scrn;
     ms_drm_handler_proc handler;
     ms_drm_abort_proc abort;
+    Bool kernel_queued;
+    Bool aborted;
 };
 
 typedef struct _modesettingRec {
@@ -125,7 +129,8 @@ typedef struct _modesettingRec {
     DamagePtr damage;
     Bool dirty_enabled;
 
-    uint32_t cursor_width, cursor_height;
+    uint32_t min_cursor_width, min_cursor_height;
+    uint32_t max_cursor_width, max_cursor_height;
 
     Bool has_queue_sequence;
     Bool tried_queue_sequence;
@@ -202,6 +207,8 @@ void ms_drm_abort(ScrnInfoPtr scrn,
                   void *match_data);
 void ms_drm_abort_seq(ScrnInfoPtr scrn, uint32_t seq);
 
+Bool ms_drm_queue_is_empty(void);
+
 Bool xf86_crtc_on(xf86CrtcPtr crtc);
 
 xf86CrtcPtr ms_dri2_crtc_covering_drawable(DrawablePtr pDraw);
@@ -232,14 +239,26 @@ typedef void (*ms_pageflip_abort_proc)(modesettingPtr ms, void *data);
 Bool ms_do_pageflip(ScreenPtr screen,
                     PixmapPtr new_front,
                     void *event,
-                    int ref_crtc_vblank_pipe,
+                    xf86CrtcPtr ref_crtc,
                     Bool async,
                     ms_pageflip_handler_proc pageflip_handler,
                     ms_pageflip_abort_proc pageflip_abort,
                     const char *log_prefix);
 
+Bool
+ms_tearfree_dri_abort(xf86CrtcPtr crtc,
+                      Bool (*match)(void *data, void *match_data),
+                      void *match_data);
+
+void
+ms_tearfree_dri_abort_all(xf86CrtcPtr crtc);
+
+Bool ms_do_tearfree_flip(ScreenPtr screen, xf86CrtcPtr crtc);
+
 #endif
 
 int ms_flush_drm_events(ScreenPtr screen);
+void ms_drain_drm_events(ScreenPtr screen);
 Bool ms_window_has_variable_refresh(modesettingPtr ms, WindowPtr win);
 void ms_present_set_screen_vrr(ScrnInfoPtr scrn, Bool vrr_enabled);
+Bool ms_tearfree_is_active_on_crtc(xf86CrtcPtr crtc);

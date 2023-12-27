@@ -25,7 +25,7 @@
 //
 default xkb_geometry "138" {
 
-    // This is an approximate layout for a (US/ASCII) Fujitsu keyboard.  
+    // This is an approximate layout for a (US/ASCII) Fujitsu keyboard.
 
     description= "Fujitsu English keyboard";
 
@@ -36,7 +36,7 @@ default xkb_geometry "138" {
     shape.cornerRadius= 1;
     shape "NORM" { { [ 18,18] }, { [2,1], [ 16,17] } };
     shape "TABK" { { [ 27,18] }, { [2,1], [ 25,17] } };
-    shape "RTRN" { 
+    shape "RTRN" {
 	    approx = { [ 0, 0], [28,37] },
 	    { [ 0, 0], [28, 0], [28,37],
 	      [ 5,37], [ 5,19], [ 0,19] },
@@ -66,8 +66,8 @@ default xkb_geometry "138" {
 	top= 28;
 	row {
 	    top= 1;
-	    keys { 
-		  <BREA>, { <PRSC>, 6 }, 
+	    keys {
+		  <BREA>, { <PRSC>, 6 },
 		{ <FK13>, 30 }, <FK14>, <FK15>, <FK16>,
 		{ <FK17>, 6 }, <FK18>, <FK19>, <FK20>,
 		{ <FK21>, 6 }, <FK22>, <FK23>, <FK24>,
@@ -94,10 +94,10 @@ default xkb_geometry "138" {
 	};
 	row {
 	    top= 54;
-	    keys { 
-		  <UNDO>, { <ESC>, 6 }, 
-		  <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, 
-		  <AE06>, <AE07>, <AE08>, <AE09>, <AE10>, 
+	    keys {
+		  <UNDO>, { <ESC>, 6 },
+		  <AE01>, <AE02>, <AE03>, <AE04>, <AE05>,
+		  <AE06>, <AE07>, <AE08>, <AE09>, <AE10>,
 		  <AE11>, <AE12>, <TLDE>, <BKSP>,
 		{ <KPMU>, 68 }, <KPDV>, <KPAD>, <KPSU>
 
@@ -112,20 +112,20 @@ default xkb_geometry "138" {
 	};
 	row {
 	    top= 73;
-	    keys { <COPY>, 
+	    keys { <COPY>,
 		 { <TAB>, 6, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN" },
 		 { <KP7>, 68 }, <KP8>, <KP9>, <KPEQ>
 	    };
 	};
 	row {
 	    top= 92;
-	    keys { <PAST>, 
+	    keys { <PAST>,
 		 { <LCTL>, 6, "LCTL" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <BKSL>,
 		 { <UP>, 49 },
 		 { <KP4>, 25 }, <KP5>, <KP6>, <KPDC>
@@ -139,10 +139,10 @@ default xkb_geometry "138" {
 	};
 	row {
 	    top= 111;
-	    keys { <CUT>, 
-		 { <LFSH>, 6 , "LFSH" }, 
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+	    keys { <CUT>,
+		 { <LFSH>, 6 , "LFSH" },
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		   <AB11>, { <RTSH>, "RTSH" },
 		 { <DOWN>, 25 },
 		 { <KP1>, 25 }, <KP2>, <KP3>, { <KPEN>, "KPEN" }
@@ -151,16 +151,16 @@ default xkb_geometry "138" {
 	row {
 	    top= 130;
 	    keys { <HELP>, { <CAPS>, 6 },
-		   <LALT>, <LMTA>, 
+		   <LALT>, <LMTA>,
 		 { <SPCE>, "SPCE" },
-		   <RMTA>, <RALT>, <COMP>, <LNFD>, 
+		   <RMTA>, <RALT>, <COMP>, <LNFD>,
 		 { <KP0>, 68, "KP0" }, <KP00>
 	    };
 	};
 	row {
 	    top= 149;
 	    left= 316;
-	    keys { 
+	    keys {
 		 { <EXEC>, "EXEC" }
 	    };
 	};
@@ -169,7 +169,7 @@ default xkb_geometry "138" {
 
 xkb_geometry "140" {
 
-    // This is an approximate layout for a Fujitsu Japanese keyboard.  
+    // This is an approximate layout for a Fujitsu Japanese keyboard.
 
     description= "Fujitsu Japanese keyboard";
 
@@ -180,7 +180,7 @@ xkb_geometry "140" {
     shape.cornerRadius= 1;
     shape "NORM" { { [ 18,18] }, { [2,1], [ 16,17] } };
     shape "TABK" { { [ 27,18] }, { [2,1], [ 25,17] } };
-    shape "RTRN" { 
+    shape "RTRN" {
 	    approx = { [ 0, 0], [28,37] },
 	    { [ 0, 0], [28, 0], [28,37],
 	      [ 5,37], [ 5,19], [ 0,19] },
@@ -211,8 +211,8 @@ xkb_geometry "140" {
 	top= 28;
 	row {
 	    top= 1;
-	    keys { 
-		  <BREA>, { <PRSC>, 6 }, 
+	    keys {
+		  <BREA>, { <PRSC>, 6 },
 		{ <FK13>, 30 }, <FK14>, <FK15>, <FK16>,
 		{ <FK17>, 6 }, <FK18>, <FK19>, <FK20>,
 		{ <FK21>, 6 }, <FK22>, <FK23>, <FK24>,
@@ -239,10 +239,10 @@ xkb_geometry "140" {
 	};
 	row {
 	    top= 54;
-	    keys { 
-		  <UNDO>, { <ESC>, 6 }, 
-		  <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, 
-		  <AE06>, <AE07>, <AE08>, <AE09>, <AE10>, 
+	    keys {
+		  <UNDO>, { <ESC>, 6 },
+		  <AE01>, <AE02>, <AE03>, <AE04>, <AE05>,
+		  <AE06>, <AE07>, <AE08>, <AE09>, <AE10>,
 		  <AE11>, <AE12>, <BKSL>, <BKSP>,
 		{ <KPMU>, 68 }, <KPDV>, <KPAD>, <KPSU>
 
@@ -257,20 +257,20 @@ xkb_geometry "140" {
 	};
 	row {
 	    top= 73;
-	    keys { <COPY>, 
+	    keys { <COPY>,
 		 { <TAB>, 6, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN" },
 		 { <KP7>, 68 }, <KP8>, <KP9>, <KPEQ>
 	    };
 	};
 	row {
 	    top= 92;
-	    keys { <PAST>, 
+	    keys { <PAST>,
 		 { <LCTL>, 6, "LCTL" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <TLDE>,
 		 { <UP>, 49 },
 		 { <KP4>, 25 }, <KP5>, <KP6>, <KPDC>
@@ -284,11 +284,11 @@ xkb_geometry "140" {
 	};
 	row {
 	    top= 111;
-	    keys { <CUT>, 
-		 { <LFSH>, 6 , "LFSH" }, 
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
-		   <AB11>, { <RTSH>, "RTSH" }, 
+	    keys { <CUT>,
+		 { <LFSH>, 6 , "LFSH" },
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
+		   <AB11>, { <RTSH>, "RTSH" },
 		 { <DOWN>, 25 },
 		 { <KP1>, 25 }, <KP2>, <KP3>, { <KPEN>, "KPEN" }
 	    };
@@ -305,8 +305,8 @@ xkb_geometry "140" {
 	row {
 	    top= 149;
 	    left= 134;
-	    keys { 
-		 { <UNK7>, "HNKN" }, { <UNK8>, "HNKN" }, 
+	    keys {
+		 { <UNK7>, "HNKN" }, { <UNK8>, "HNKN" },
 		 { <EXEC>, 132, "EXEC" }
 	    };
 	};

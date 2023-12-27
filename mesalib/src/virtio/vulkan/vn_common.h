@@ -20,9 +20,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syscall.h>
 #include <vulkan/vulkan.h>
 
 #include "c11/threads.h"
+#include "drm-uapi/drm_fourcc.h"
 #include "util/bitscan.h"
 #include "util/bitset.h"
 #include "util/compiler.h"
@@ -37,14 +39,18 @@
 #include "vk_alloc.h"
 #include "vk_debug_report.h"
 #include "vk_device.h"
+#include "vk_device_memory.h"
+#include "vk_image.h"
 #include "vk_instance.h"
 #include "vk_object.h"
 #include "vk_physical_device.h"
+#include "vk_queue.h"
 #include "vk_util.h"
 
 #include "vn_entrypoints.h"
 
 #define VN_DEFAULT_ALIGN 8
+#define VN_WATCHDOG_REPORT_PERIOD_US 3000000
 
 #define VN_DEBUG(category) (unlikely(vn_env.debug & VN_DEBUG_##category))
 #define VN_PERF(category) (unlikely(vn_env.perf & VN_PERF_##category))
@@ -54,8 +60,6 @@
 #define vn_result(instance, result)                                          \
    ((result) >= VK_SUCCESS ? (result) : vn_error((instance), (result)))
 
-#define VN_TRACE_BEGIN(name) MESA_TRACE_BEGIN(name)
-#define VN_TRACE_END() MESA_TRACE_END()
 #define VN_TRACE_SCOPE(name) MESA_TRACE_SCOPE(name)
 #define VN_TRACE_FUNC() MESA_TRACE_SCOPE(__func__)
 
@@ -89,6 +93,7 @@ struct vn_command_buffer;
 
 struct vn_cs_encoder;
 struct vn_cs_decoder;
+struct vn_ring;
 
 struct vn_renderer;
 struct vn_renderer_shmem;
@@ -101,6 +106,10 @@ enum vn_debug {
    VN_DEBUG_VTEST = 1ull << 2,
    VN_DEBUG_WSI = 1ull << 3,
    VN_DEBUG_NO_ABORT = 1ull << 4,
+   VN_DEBUG_LOG_CTX_INFO = 1ull << 5,
+   VN_DEBUG_CACHE = 1ull << 6,
+   VN_DEBUG_NO_SPARSE = 1ull << 7,
+   VN_DEBUG_GPL = 1ull << 8,
 };
 
 enum vn_perf {
@@ -109,6 +118,13 @@ enum vn_perf {
    VN_PERF_NO_ASYNC_QUEUE_SUBMIT = 1ull << 2,
    VN_PERF_NO_EVENT_FEEDBACK = 1ull << 3,
    VN_PERF_NO_FENCE_FEEDBACK = 1ull << 4,
+   VN_PERF_NO_MEMORY_SUBALLOC = 1ull << 5,
+   VN_PERF_NO_CMD_BATCHING = 1ull << 6,
+   VN_PERF_NO_TIMELINE_SEM_FEEDBACK = 1ull << 7,
+   VN_PERF_NO_QUERY_FEEDBACK = 1ull << 8,
+   VN_PERF_NO_ASYNC_MEM_ALLOC = 1ull << 9,
+   VN_PERF_NO_TILED_WSI_IMAGE = 1ull << 10,
+   VN_PERF_NO_MULTI_RING = 1ull << 11,
 };
 
 typedef uint64_t vn_object_id;
@@ -131,6 +147,24 @@ struct vn_device_base {
    vn_object_id id;
 };
 
+/* base class of vn_queue */
+struct vn_queue_base {
+   struct vk_queue base;
+   vn_object_id id;
+};
+
+/* base class of vn_device_memory */
+struct vn_device_memory_base {
+   struct vk_device_memory base;
+   vn_object_id id;
+};
+
+/* base class of vn_image */
+struct vn_image_base {
+   struct vk_image base;
+   vn_object_id id;
+};
+
 /* base class of other driver objects */
 struct vn_object_base {
    struct vk_object_base base;
@@ -150,6 +184,41 @@ struct vn_env {
 };
 extern struct vn_env vn_env;
 
+/* Only one "waiting" thread may fulfill the "watchdog" role at a time. Every
+ * VN_WATCHDOG_REPORT_PERIOD_US or longer, the watchdog tests the ring's ALIVE
+ * status, updates the "alive" atomic, and resets the ALIVE status for the
+ * next cycle. Other waiting threads just check the "alive" atomic. The
+ * watchdog role may be released and acquired by another waiting thread
+ * dynamically.
+ *
+ * Examples of "waiting" are to wait for:
+ * - ring to reach a seqno
+ * - ring space to be released
+ * - sync primitives to signal
+ * - query result being available
+ */
+struct vn_watchdog {
+   mtx_t mutex;
+   atomic_int tid;
+   atomic_bool alive;
+};
+
+struct vn_relax_state {
+   struct vn_instance *instance;
+   uint32_t iter;
+   const char *reason;
+};
+
+struct vn_tls {
+   /* Track swapchain and command pool creations on threads so dispatch of the
+    * following on non-tracked threads can be routed as synchronous on the
+    * secondary ring:
+    * - pipeline creations
+    * - pipeline cache retrievals
+    */
+   bool primary_ring_submission;
+};
+
 void
 vn_env_init(void);
 
@@ -166,10 +235,7 @@ vn_log_result(struct vn_instance *instance,
               const char *where);
 
 #define VN_REFCOUNT_INIT(val)                                                \
-   (struct vn_refcount)                                                      \
-   {                                                                         \
-      .count = (val),                                                        \
-   }
+   (struct vn_refcount) { .count = (val), }
 
 static inline int
 vn_refcount_load_relaxed(const struct vn_refcount *ref)
@@ -220,8 +286,44 @@ vn_refcount_dec(struct vn_refcount *ref)
 uint32_t
 vn_extension_get_spec_version(const char *name);
 
+static inline void
+vn_watchdog_init(struct vn_watchdog *watchdog)
+{
+#ifndef NDEBUG
+   /* ensure minimum check period is greater than maximum renderer
+    * reporting period (with margin of safety to ensure no false
+    * positives).
+    *
+    * first_warn_time is pre-calculated based on parameters in vn_relax
+    * and must update together.
+    */
+   static const uint32_t first_warn_time = 3481600;
+   static const uint32_t safety_margin = 250000;
+   assert(first_warn_time - safety_margin >= VN_WATCHDOG_REPORT_PERIOD_US);
+#endif
+
+   mtx_init(&watchdog->mutex, mtx_plain);
+
+   watchdog->tid = 0;
+
+   /* initialized to be alive to avoid vn_watchdog_timout false alarm */
+   watchdog->alive = true;
+}
+
+static inline void
+vn_watchdog_fini(struct vn_watchdog *watchdog)
+{
+   mtx_destroy(&watchdog->mutex);
+}
+
+struct vn_relax_state
+vn_relax_init(struct vn_instance *instance, const char *reason);
+
 void
-vn_relax(uint32_t *iter, const char *reason);
+vn_relax(struct vn_relax_state *state);
+
+void
+vn_relax_fini(struct vn_relax_state *state);
 
 static_assert(sizeof(vn_object_id) >= sizeof(uintptr_t), "");
 
@@ -254,7 +356,7 @@ vn_physical_device_base_init(
 {
    VkResult result =
       vk_physical_device_init(&physical_dev->base, &instance->base,
-                              supported_extensions, dispatch_table);
+                              supported_extensions, NULL, NULL, dispatch_table);
    physical_dev->id = (uintptr_t)physical_dev;
    return result;
 }
@@ -282,6 +384,24 @@ static inline void
 vn_device_base_fini(struct vn_device_base *dev)
 {
    vk_device_finish(&dev->base);
+}
+
+static inline VkResult
+vn_queue_base_init(struct vn_queue_base *queue,
+                   struct vn_device_base *dev,
+                   const VkDeviceQueueCreateInfo *queue_info,
+                   uint32_t queue_index)
+{
+   VkResult result =
+      vk_queue_init(&queue->base, &dev->base, queue_info, queue_index);
+   queue->id = (uintptr_t)queue;
+   return result;
+}
+
+static inline void
+vn_queue_base_fini(struct vn_queue_base *queue)
+{
+   vk_queue_finish(&queue->base);
 }
 
 static inline void
@@ -313,6 +433,15 @@ vn_object_set_id(void *obj, vn_object_id id, VkObjectType type)
    case VK_OBJECT_TYPE_DEVICE:
       ((struct vn_device_base *)obj)->id = id;
       break;
+   case VK_OBJECT_TYPE_QUEUE:
+      ((struct vn_queue_base *)obj)->id = id;
+      break;
+   case VK_OBJECT_TYPE_DEVICE_MEMORY:
+      ((struct vn_device_memory_base *)obj)->id = id;
+      break;
+   case VK_OBJECT_TYPE_IMAGE:
+      ((struct vn_image_base *)obj)->id = id;
+      break;
    default:
       ((struct vn_object_base *)obj)->id = id;
       break;
@@ -330,9 +459,45 @@ vn_object_get_id(const void *obj, VkObjectType type)
       return ((struct vn_physical_device_base *)obj)->id;
    case VK_OBJECT_TYPE_DEVICE:
       return ((struct vn_device_base *)obj)->id;
+   case VK_OBJECT_TYPE_QUEUE:
+      return ((struct vn_queue_base *)obj)->id;
+   case VK_OBJECT_TYPE_DEVICE_MEMORY:
+      return ((struct vn_device_memory_base *)obj)->id;
+   case VK_OBJECT_TYPE_IMAGE:
+      return ((struct vn_image_base *)obj)->id;
    default:
       return ((struct vn_object_base *)obj)->id;
    }
+}
+
+static inline pid_t
+vn_gettid(void)
+{
+#ifdef ANDROID
+   return gettid();
+#else
+   return syscall(SYS_gettid);
+#endif
+}
+
+struct vn_tls *
+vn_tls_get(void);
+
+static inline void
+vn_tls_set_primary_ring_submission(void)
+{
+   struct vn_tls *tls = vn_tls_get();
+   if (likely(tls))
+      tls->primary_ring_submission = true;
+}
+
+static inline bool
+vn_tls_get_primary_ring_submission(void)
+{
+   const struct vn_tls *tls = vn_tls_get();
+   if (likely(tls))
+      return tls->primary_ring_submission;
+   return true;
 }
 
 #endif /* VN_COMMON_H */

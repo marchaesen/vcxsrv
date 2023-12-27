@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, Oracle and/or its affiliates.
  * Copyright 2010 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -145,5 +145,10 @@
 #define XFixesClientDisconnectFlagDefault   0
 /* The server may disconnect this client to shut down */
 #define XFixesClientDisconnectFlagTerminate  (1L << 0)
+
+/*************** Version 6.1 ******************/
+
+/* The server must terminate if this client exits */
+#define XFixesClientDisconnectFlagForceTerminate  (1L << 1)
 
 #endif	/* _XFIXESWIRE_H_ */

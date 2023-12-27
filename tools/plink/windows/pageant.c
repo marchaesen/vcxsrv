@@ -531,7 +531,7 @@ static void win_add_keyfile(Filename *filename, bool encrypted)
     }
 
   error:
-    message_box(traywindow, err, APPNAME, MB_OK | MB_ICONERROR,
+    message_box(traywindow, err, APPNAME, MB_OK | MB_ICONERROR, false,
                 HELPCTXID(errors_cantloadkey));
   done:
     sfree(err);
@@ -549,7 +549,7 @@ static void prompt_add_keyfile(bool encrypted)
     if (!keypath) keypath = filereq_new();
     memset(&of, 0, sizeof(of));
     of.hwndOwner = traywindow;
-    of.lpstrFilter = FILTER_KEY_FILES;
+    of.lpstrFilter = FILTER_KEY_FILES_C;
     of.lpstrCustomFilter = NULL;
     of.nFilterIndex = 1;
     of.lpstrFile = filelist;
@@ -559,7 +559,7 @@ static void prompt_add_keyfile(bool encrypted)
     of.lpstrTitle = "Select Private Key File";
     of.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
     if (request_file(keypath, &of, true, false)) {
-        if(strlen(filelist) > of.nFileOffset) {
+        if (strlen(filelist) > of.nFileOffset) {
             /* Only one filename returned? */
             Filename *fn = filename_from_str(filelist);
             win_add_keyfile(fn, encrypted);
@@ -804,7 +804,7 @@ static INT_PTR CALLBACK KeyListProc(HWND hwnd, UINT msg,
 
                 /* do the same for the rsa keys */
                 for (i = rCount - 1; (itemNum >= 0) && (i >= 0); i--) {
-                    if(selectedArray[itemNum] == i) {
+                    if (selectedArray[itemNum] == i) {
                         switch (LOWORD(wParam)) {
                           case IDC_KEYLIST_REMOVE:
                             pageant_delete_nth_ssh1_key(i);
@@ -909,10 +909,10 @@ static void update_sessions(void)
     if (!putty_path)
         return;
 
-    if(ERROR_SUCCESS != RegOpenKey(HKEY_CURRENT_USER, PUTTY_REGKEY, &hkey))
+    if (ERROR_SUCCESS != RegOpenKey(HKEY_CURRENT_USER, PUTTY_REGKEY, &hkey))
         return;
 
-    for(num_entries = GetMenuItemCount(session_menu);
+    for (num_entries = GetMenuItemCount(session_menu);
         num_entries > initial_menuitems_count;
         num_entries--)
         RemoveMenu(session_menu, 0, MF_BYPOSITION);
@@ -921,8 +921,8 @@ static void update_sessions(void)
     index_menu = 0;
 
     sb = strbuf_new();
-    while(ERROR_SUCCESS == RegEnumKey(hkey, index_key, buf, MAX_PATH)) {
-        if(strcmp(buf, PUTTY_DEFAULT) != 0) {
+    while (ERROR_SUCCESS == RegEnumKey(hkey, index_key, buf, MAX_PATH)) {
+        if (strcmp(buf, PUTTY_DEFAULT) != 0) {
             strbuf_clear(sb);
             unescape_registry_key(buf, sb);
 
@@ -942,7 +942,7 @@ static void update_sessions(void)
 
     RegCloseKey(hkey);
 
-    if(index_menu == 0) {
+    if (index_menu == 0) {
         mii.cbSize = sizeof(mii);
         mii.fMask = MIIM_TYPE | MIIM_STATE;
         mii.fType = MFT_STRING;
@@ -1311,8 +1311,8 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
             if (restrict_putty_acl)
                 strcat(cmdline, "&R");
 
-            if((INT_PTR)ShellExecute(hwnd, NULL, putty_path, cmdline,
-                                     _T(""), SW_SHOW) <= 32) {
+            if ((INT_PTR)ShellExecute(hwnd, NULL, putty_path, cmdline,
+                                      _T(""), SW_SHOW) <= 32) {
                 MessageBox(NULL, "Unable to execute PuTTY!",
                            "Error", MB_OK | MB_ICONERROR);
             }
@@ -1371,7 +1371,7 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
             launch_help(hwnd, WINHELP_CTX_pageant_general);
             break;
           default: {
-            if(wParam >= IDM_SESSIONS_BASE && wParam <= IDM_SESSIONS_MAX) {
+            if (wParam >= IDM_SESSIONS_BASE && wParam <= IDM_SESSIONS_MAX) {
                 MENUITEMINFO mii;
                 TCHAR buf[MAX_PATH + 1];
                 TCHAR param[MAX_PATH + 1];
@@ -1386,8 +1386,8 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
                     strcat(param, "&R");
                 strcat(param, "@");
                 strcat(param, mii.dwTypeData);
-                if((INT_PTR)ShellExecute(hwnd, NULL, putty_path, param,
-                                         _T(""), SW_SHOW) <= 32) {
+                if ((INT_PTR)ShellExecute(hwnd, NULL, putty_path, param,
+                                          _T(""), SW_SHOW) <= 32) {
                     MessageBox(NULL, "Unable to execute PuTTY!", "Error",
                                MB_OK | MB_ICONERROR);
                 }
@@ -1598,7 +1598,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      * started up the main agent. Details of keys to be added are
      * stored in the 'clkeys' array.
      */
-    split_into_argv(cmdline, &argc, &argv, &argstart);
+    split_into_argv(cmdline, false, &argc, &argv, &argstart);
     bool add_keys_encrypted = false;
     AuxMatchOpt amo = aux_match_opt_init(argc, argv, 0, opt_error);
     while (!aux_match_done(&amo)) {
@@ -1741,7 +1741,17 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
                                MB_ICONERROR | MB_OK);
                     return 1;
                 }
-                fprintf(fp, "IdentityAgent %s\n", pipename);
+                fputs("IdentityAgent \"", fp);
+                /* Some versions of Windows OpenSSH prefer / to \ as the path
+                 * separator; others don't mind, but as far as we know, no
+                 * version _objects_ to /, so we use it unconditionally. */
+                for (const char *p = pipename; *p; p++) {
+                    char c = *p;
+                    if (c == '\\')
+                        c = '/';
+                    fputc(c, fp);
+                }
+                fputs("\"\n", fp);
                 fclose(fp);
             }
 
@@ -1835,7 +1845,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
             args = strchr(command, ' ');
         if (args) {
             *args++ = 0;
-            while(*args && isspace(*args)) args++;
+            while (*args && isspace((unsigned char)*args)) args++;
         }
         spawn_cmd(command, args, show);
     }

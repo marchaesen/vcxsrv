@@ -37,7 +37,7 @@
 #include "pipe/p_state.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "util/u_inlines.h"
 #include "util/format/u_format.h"
 #include "util/u_transfer_helper.h"
@@ -141,7 +141,6 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    switch (param) {
    case PIPE_CAP_NPOT_TEXTURES:
    case PIPE_CAP_ANISOTROPIC_FILTER:
-   case PIPE_CAP_POINT_SPRITE:
    case PIPE_CAP_OCCLUSION_QUERY:
    case PIPE_CAP_TEXTURE_SWIZZLE:
    case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
@@ -151,20 +150,17 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_PRIMITIVE_RESTART:
    case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
    case PIPE_CAP_INDEP_BLEND_ENABLE:
-   case PIPE_CAP_RGB_OVERRIDE_DST_ALPHA_BLEND:
    case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
    case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
    case PIPE_CAP_DEPTH_CLIP_DISABLE:
    case PIPE_CAP_VS_INSTANCEID:
    case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
-   case PIPE_CAP_MIXED_COLORBUFFER_FORMATS:
    case PIPE_CAP_SEAMLESS_CUBE_MAP:
    case PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE:
    case PIPE_CAP_CONDITIONAL_RENDER:
    case PIPE_CAP_TEXTURE_BARRIER:
    case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
    case PIPE_CAP_START_INSTANCE:
-   case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
    case PIPE_CAP_FORCE_PERSAMPLE_INTERP:
    case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
    case PIPE_CAP_VS_LAYER_VIEWPORT:
@@ -181,7 +177,6 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_POLYGON_OFFSET_CLAMP:
    case PIPE_CAP_TGSI_TEX_TXF_LZ:
    case PIPE_CAP_MULTISAMPLE_Z_RESOLVE:
-   case PIPE_CAP_CLEAR_TEXTURE:
    case PIPE_CAP_SHADER_GROUP_VOTE:
    case PIPE_CAP_VS_WINDOW_SPACE_POSITION:
    case PIPE_CAP_TEXTURE_GATHER_SM5:
@@ -196,9 +191,9 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_DEMOTE_TO_HELPER_INVOCATION:
    case PIPE_CAP_GL_CLAMP:
    case PIPE_CAP_LEGACY_MATH_RULES:
+   case PIPE_CAP_NATIVE_FENCE_FD:
       return true;
    case PIPE_CAP_INT64:
-   case PIPE_CAP_INT64_DIVMOD:
    case PIPE_CAP_SHADER_BALLOT:
    case PIPE_CAP_PACKED_UNIFORMS:
       return devinfo->ver == 8;
@@ -225,6 +220,7 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_DOUBLES:
    case PIPE_CAP_MEMOBJ:
    case PIPE_CAP_IMAGE_STORE_FORMATTED:
+   case PIPE_CAP_ALPHA_TO_COVERAGE_DITHER_CONTROL:
       return devinfo->ver >= 7;
    case PIPE_CAP_QUERY_BUFFER_OBJECT:
    case PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR:
@@ -394,6 +390,9 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_HARDWARE_GL_SELECT:
       return 0;
 
+   case PIPE_CAP_TIMER_RESOLUTION:
+      return DIV_ROUND_UP(1000000000ull, devinfo->timestamp_frequency);
+
    default:
       return u_pipe_screen_get_param_defaults(pscreen, param);
    }
@@ -449,6 +448,10 @@ crocus_get_shader_param(struct pipe_screen *pscreen,
    gl_shader_stage stage = stage_from_pipe(p_stage);
    struct crocus_screen *screen = (struct crocus_screen *)pscreen;
    const struct intel_device_info *devinfo = &screen->devinfo;
+
+   if (p_stage == PIPE_SHADER_MESH ||
+       p_stage == PIPE_SHADER_TASK)
+      return 0;
 
    if (devinfo->ver < 6 &&
        p_stage != PIPE_SHADER_VERTEX &&
@@ -518,14 +521,8 @@ crocus_get_shader_param(struct pipe_screen *pscreen,
    case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
    case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
       return 0;
-   case PIPE_SHADER_CAP_PREFERRED_IR:
-      return PIPE_SHADER_IR_NIR;
    case PIPE_SHADER_CAP_SUPPORTED_IRS:
       return 1 << PIPE_SHADER_IR_NIR;
-   case PIPE_SHADER_CAP_DROUND_SUPPORTED:
-   case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
-      return 1;
-   case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
    case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
    case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
    case PIPE_SHADER_CAP_FP16_DERIVATIVES:
@@ -587,7 +584,7 @@ crocus_get_compute_param(struct pipe_screen *pscreen,
    case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
       RET((uint32_t []) { 1 });
 
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZE:
+   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
       RET((uint32_t []) { BRW_SUBGROUP_SIZE });
 
    case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
@@ -599,6 +596,7 @@ crocus_get_compute_param(struct pipe_screen *pscreen,
    case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE:
    case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
    case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
+   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
 
       // XXX: I think these are for Clover...
       return 0;
@@ -612,10 +610,11 @@ static uint64_t
 crocus_get_timestamp(struct pipe_screen *pscreen)
 {
    struct crocus_screen *screen = (struct crocus_screen *) pscreen;
-   const unsigned TIMESTAMP = 0x2358;
    uint64_t result;
 
-   crocus_reg_read(screen->bufmgr, TIMESTAMP | 1, &result);
+   if (!intel_gem_read_render_timestamp(crocus_bufmgr_get_fd(screen->bufmgr),
+                                        screen->devinfo.kmd_type, &result))
+      return 0;
 
    result = intel_device_info_timebase_scale(&screen->devinfo, result);
    result &= (1ull << TIMESTAMP_BITS) - 1;
@@ -710,6 +709,14 @@ crocus_shader_perf_log(void *data, unsigned *id, const char *fmt, ...)
    va_end(args);
 }
 
+static int
+crocus_screen_get_fd(struct pipe_screen *pscreen)
+{
+   struct crocus_screen *screen = (struct crocus_screen *)pscreen;
+
+   return screen->winsys_fd;
+}
+
 struct pipe_screen *
 crocus_screen_create(int fd, const struct pipe_screen_config *config)
 {
@@ -768,7 +775,7 @@ crocus_screen_create(int fd, const struct pipe_screen_config *config)
    screen->driconf.lower_depth_range_rate =
       driQueryOptionf(config->options, "lower_depth_range_rate");
 
-   screen->precompile = env_var_as_boolean("shader_precompile", true);
+   screen->precompile = debug_get_bool_option("shader_precompile", true);
 
    isl_device_init(&screen->isl_dev, &screen->devinfo);
 
@@ -797,6 +804,7 @@ crocus_screen_create(int fd, const struct pipe_screen_config *config)
    pscreen->get_name = crocus_get_name;
    pscreen->get_vendor = crocus_get_vendor;
    pscreen->get_device_vendor = crocus_get_device_vendor;
+   pscreen->get_screen_fd = crocus_screen_get_fd;
    pscreen->get_param = crocus_get_param;
    pscreen->get_shader_param = crocus_get_shader_param;
    pscreen->get_compute_param = crocus_get_compute_param;

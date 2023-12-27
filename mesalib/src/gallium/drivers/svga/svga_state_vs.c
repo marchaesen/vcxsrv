@@ -188,7 +188,7 @@ svga_reemit_vs_bindings(struct svga_context *svga)
    if (ret != PIPE_OK)
       return ret;
 
-   svga->rebind.flags.vs = FALSE;
+   svga->rebind.flags.vs = false;
    return PIPE_OK;
 }
 
@@ -345,7 +345,7 @@ emit_hw_vs(struct svga_context *svga, uint64_t dirty)
          ret = svga_set_shader(svga, SVGA3D_SHADERTYPE_VS, variant);
          if (ret != PIPE_OK)
             goto done;
-         svga->rebind.flags.vs = FALSE;
+         svga->rebind.flags.vs = false;
       }
 
       svga->dirty |= SVGA_NEW_VS_VARIANT;

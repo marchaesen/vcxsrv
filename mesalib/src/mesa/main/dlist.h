@@ -83,13 +83,13 @@ void
 _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist);
 
 void
-_mesa_initialize_save_table(const struct gl_context *);
+_mesa_init_dispatch_save(const struct gl_context *);
 
 void
 _mesa_init_display_list(struct gl_context * ctx);
 
 void
-_mesa_install_save_vtxfmt(struct gl_context *ctx);
+_mesa_init_dispatch_save_begin_end(struct gl_context *ctx);
 
 bool
 _mesa_get_list(struct gl_context *ctx, GLuint list,

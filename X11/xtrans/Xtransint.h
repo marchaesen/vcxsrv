@@ -297,7 +297,9 @@ typedef struct _Xtransport_table {
 #define TRANS_DISABLED	(1<<2)	/* Don't open this one */
 #define TRANS_NOLISTEN  (1<<3)  /* Don't listen on this one */
 #define TRANS_NOUNLINK	(1<<4)	/* Don't unlink transport endpoints */
-#define TRANS_ABSTRACT	(1<<5)	/* Use abstract sockets if available */
+#define TRANS_ABSTRACT	(1<<5)	/* This previously meant that abstract sockets should be used available.  For security
+                                 * reasons, this is now a no-op on the client side, but it is still supported for servers.
+                                 */
 #define TRANS_NOXAUTH	(1<<6)	/* Don't verify authentication (because it's secure some other way at the OS layer) */
 #define TRANS_RECEIVED	(1<<7)  /* The fd for this has already been opened by someone else. */
 

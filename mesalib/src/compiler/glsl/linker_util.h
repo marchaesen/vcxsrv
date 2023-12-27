@@ -25,11 +25,28 @@
 #define GLSL_LINKER_UTIL_H
 
 #include "util/bitset.h"
+#include "util/glheader.h"
 #include "compiler/glsl/list.h"
+#include "compiler/glsl_types.h"
 
 struct gl_constants;
 struct gl_shader_program;
 struct gl_uniform_storage;
+
+/**
+ * Built-in / reserved GL variables names start with "gl_"
+ */
+static inline bool
+is_gl_identifier(const char *s)
+{
+   return s && s[0] == 'g' && s[1] == 'l' && s[2] == '_';
+}
+
+static inline GLenum
+glsl_get_gl_type(const struct glsl_type *t)
+{
+   return t->gl_type;
+}
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,6 +126,20 @@ void
 link_util_mark_array_elements_referenced(const struct array_deref_range *dr,
                                          unsigned count, unsigned array_depth,
                                          BITSET_WORD *bits);
+
+/**
+ * Get the string value for an interpolation qualifier
+ *
+ * \return The string that would be used in a shader to specify \c
+ * mode will be returned.
+ *
+ * This function is used to generate error messages of the form "shader
+ * uses %s interpolation qualifier", so in the case where there is no
+ * interpolation qualifier, it returns "no".
+ *
+ * This function should only be used on a shader input or output variable.
+ */
+const char *interpolation_string(unsigned interpolation);
 
 #ifdef __cplusplus
 }

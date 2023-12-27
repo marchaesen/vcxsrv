@@ -83,7 +83,7 @@ Eric Anholt (1):
 
 -  v3d: Fix leak of the renderonly struct on screen destruction.
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  glsl/lower_vector_derefs: Don't use a temporary for TCS outputs
 -  glsl/list: Add a list variant of insert_after

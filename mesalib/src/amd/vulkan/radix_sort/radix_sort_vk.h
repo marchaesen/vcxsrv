@@ -198,19 +198,19 @@ radix_sort_vk_destroy(radix_sort_vk_t *             rs,  //
 // must be honored.  All alignments are power of 2.
 //
 //   Input:
-//     count             : Maximum number of keyvals
+//     count              : Maximum number of keyvals
 //
 //   Outputs:
-//     keyval_size       : Size of a single keyval
+//     keyval_size        : Size of a single keyval
 //
-//     keyvals_size      : Minimum size of the even and odd keyval buffers
-//     keyvals_alignment : Alignment of each keyval buffer
+//     keyvals_size       : Minimum size of the even and odd keyval buffers
+//     keyvals_alignment  : Alignment of each keyval buffer
 //
-//     internal_size     : Minimum size of internal buffer
-//     internal_aligment : Alignment of the internal buffer
+//     internal_size      : Minimum size of internal buffer
+//     internal_alignment : Alignment of the internal buffer
 //
-//     indirect_size     : Minimum size of indirect buffer
-//     indirect_aligment : Alignment of the indirect buffer
+//     indirect_size      : Minimum size of indirect buffer
+//     indirect_alignment : Alignment of the indirect buffer
 //
 //   .keyvals_even/odd
 //   -----------------

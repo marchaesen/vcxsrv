@@ -100,6 +100,7 @@ kernel::launch(command_queue &q,
    copy(pad_vector(q, reduced_grid_size, 1), info.grid);
    info.pc = find(name_equals(_name), b.syms).offset;
    info.input = exec.input.data();
+   info.variable_shared_mem = exec.mem_local;
 
    q.pipe->launch_grid(q.pipe, &info);
 
@@ -274,14 +275,14 @@ kernel::exec_context::bind(intrusive_ptr<command_queue> _q,
 
    // Create a new compute state if anything changed.
    if (!st || q != _q ||
-       cs.req_local_mem != mem_local ||
        cs.req_input_mem != input.size()) {
       if (st)
          _q->pipe->delete_compute_state(_q->pipe, st);
 
       cs.ir_type = q->device().ir_format();
       cs.prog = &(msec.data[0]);
-      cs.req_local_mem = mem_local;
+      // we only pass in NIRs or LLVMs and both IRs decode the size
+      cs.static_shared_mem = 0;
       cs.req_input_mem = input.size();
       st = q->pipe->create_compute_state(q->pipe, &cs);
       if (!st) {
@@ -334,7 +335,7 @@ namespace {
    ///
    template<typename T>
    void
-   align(T &v, size_t n) {
+   align_vector(T &v, size_t n) {
       v.resize(util_align_npot(v.size(), n));
    }
 
@@ -450,7 +451,7 @@ kernel::scalar_argument::bind(exec_context &ctx,
 
    extend(w, barg.ext_type, barg.target_size);
    byteswap(w, ctx.q->device().endianness());
-   align(ctx.input, barg.target_align);
+   align_vector(ctx.input, barg.target_align);
    insert(ctx.input, w);
 }
 
@@ -481,7 +482,7 @@ kernel::global_argument::set_svm(const void *value) {
 void
 kernel::global_argument::bind(exec_context &ctx,
                               const binary::argument &barg) {
-   align(ctx.input, barg.target_align);
+   align_vector(ctx.input, barg.target_align);
 
    if (buf) {
       const resource &r = buf->resource_in(*ctx.q);
@@ -535,7 +536,7 @@ kernel::local_argument::bind(exec_context &ctx,
 
    extend(v, binary::argument::zero_ext, barg.target_size);
    byteswap(v, ctx.q->device().endianness());
-   align(ctx.input, ctx.q->device().address_bits() / 8);
+   align_vector(ctx.input, ctx.q->device().address_bits() / 8);
    insert(ctx.input, v);
 
    ctx.mem_local += _storage;
@@ -560,7 +561,7 @@ kernel::constant_argument::set(size_t size, const void *value) {
 void
 kernel::constant_argument::bind(exec_context &ctx,
                                 const binary::argument &barg) {
-   align(ctx.input, barg.target_align);
+   align_vector(ctx.input, barg.target_align);
 
    if (buf) {
       resource &r = buf->resource_in(*ctx.q);
@@ -606,7 +607,7 @@ kernel::image_rd_argument::bind(exec_context &ctx,
 
    extend(v, binary::argument::zero_ext, barg.target_size);
    byteswap(v, ctx.q->device().endianness());
-   align(ctx.input, barg.target_align);
+   align_vector(ctx.input, barg.target_align);
    insert(ctx.input, v);
 
    st = img->resource_in(*ctx.q).bind_sampler_view(*ctx.q);
@@ -637,7 +638,7 @@ kernel::image_wr_argument::bind(exec_context &ctx,
 
    extend(v, binary::argument::zero_ext, barg.target_size);
    byteswap(v, ctx.q->device().endianness());
-   align(ctx.input, barg.target_align);
+   align_vector(ctx.input, barg.target_align);
    insert(ctx.input, v);
    ctx.iviews.push_back(img->resource_in(*ctx.q).create_image_view(*ctx.q));
 }

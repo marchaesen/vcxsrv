@@ -116,8 +116,7 @@ vc4_context_destroy(struct pipe_context *pctx)
 
         slab_destroy_child(&vc4->transfer_pool);
 
-        pipe_surface_reference(&vc4->framebuffer.cbufs[0], NULL);
-        pipe_surface_reference(&vc4->framebuffer.zsbuf, NULL);
+        util_unreference_framebuffer_state(&vc4->framebuffer);
 
         if (vc4->yuv_linear_blit_vs)
                 pctx->delete_vs_state(pctx, vc4->yuv_linear_blit_vs);

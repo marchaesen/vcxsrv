@@ -1,6 +1,8 @@
 #include <gtk/gtk.h>
-#include <config.h>
-#include "../test/utils.h"
+#ifdef HAVE_CONFIG_H
+#include <pixman-config.h>
+#endif
+#include "utils.h"
 #include "gtk-utils.h"
 
 pixman_image_t *

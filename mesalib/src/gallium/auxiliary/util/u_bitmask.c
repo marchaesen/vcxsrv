@@ -33,7 +33,7 @@
  */
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
 
 #include "util/u_memory.h"
@@ -86,7 +86,7 @@ util_bitmask_create(void)
 /**
  * Resize the bitmask if necessary
  */
-static inline boolean
+static inline bool
 util_bitmask_resize(struct util_bitmask *bm,
                     unsigned minimum_index)
 {
@@ -96,10 +96,10 @@ util_bitmask_resize(struct util_bitmask *bm,
 
    /* Check integer overflow */
    if (!minimum_size)
-      return FALSE;
+      return false;
 
    if (bm->size >= minimum_size)
-      return TRUE;
+      return true;
 
    assert(bm->size % UTIL_BITMASK_BITS_PER_WORD == 0);
    new_size = bm->size;
@@ -107,7 +107,7 @@ util_bitmask_resize(struct util_bitmask *bm,
       new_size *= 2;
       /* Check integer overflow */
       if (new_size < bm->size)
-         return FALSE;
+         return false;
    }
    assert(new_size);
    assert(new_size % UTIL_BITMASK_BITS_PER_WORD == 0);
@@ -117,7 +117,7 @@ util_bitmask_resize(struct util_bitmask *bm,
               bm->size / UTIL_BITMASK_BITS_PER_BYTE,
               new_size / UTIL_BITMASK_BITS_PER_BYTE);
    if (!new_words)
-      return FALSE;
+      return false;
 
    memset(new_words + bm->size/UTIL_BITMASK_BITS_PER_WORD,
           0,
@@ -126,7 +126,7 @@ util_bitmask_resize(struct util_bitmask *bm,
    bm->size = new_size;
    bm->words = new_words;
 
-   return TRUE;
+   return true;
 }
 
 
@@ -249,7 +249,7 @@ util_bitmask_clear(struct util_bitmask *bm,
 }
 
 
-boolean
+bool
 util_bitmask_get(struct util_bitmask *bm,
                  unsigned index)
 {
@@ -261,18 +261,18 @@ util_bitmask_get(struct util_bitmask *bm,
 
    if (index < bm->filled) {
       assert(bm->words[word] & mask);
-      return TRUE;
+      return true;
    }
 
    if (index >= bm->size)
-      return FALSE;
+      return false;
 
    if (bm->words[word] & mask) {
       util_bitmask_filled_set(bm, index);
-      return TRUE;
+      return true;
    }
    else
-      return FALSE;
+      return false;
 }
 
 

@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 
-extern const char *tgsi_processor_type_names[PIPE_SHADER_TYPES];
+extern const char *tgsi_processor_type_names[PIPE_SHADER_MESH_TYPES];
 
 extern const char *tgsi_semantic_names[TGSI_SEMANTIC_COUNT];
 
@@ -54,7 +54,7 @@ extern const char *tgsi_interpolate_locations[TGSI_INTERPOLATE_LOC_COUNT];
 
 extern const char *tgsi_invariant_name;
 
-extern const char *tgsi_primitive_names[PIPE_PRIM_MAX];
+extern const char *tgsi_primitive_names[MESA_PRIM_COUNT];
 
 extern const char *tgsi_fs_coord_origin_names[2];
 

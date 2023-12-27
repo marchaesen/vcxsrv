@@ -32,56 +32,52 @@
 #include "st_atifs_to_nir.h"
 #include "compiler/nir/nir_builder.h"
 
-#define FOG_PARAMS_UNIFORM (MAX_NUM_FRAGMENT_CONSTANTS_ATI + 0)
-#define FOG_COLOR_UNIFORM (MAX_NUM_FRAGMENT_CONSTANTS_ATI + 1)
-
 /**
  * Intermediate state used during shader translation.
  */
 struct st_translate {
    nir_builder *b;
    struct ati_fragment_shader *atifs;
-   const struct st_fp_variant_key *key;
 
-   nir_ssa_def *temps[MAX_PROGRAM_TEMPS];
+   nir_def *temps[MAX_PROGRAM_TEMPS];
 
    nir_variable *fragcolor;
    nir_variable *constants;
    nir_variable *samplers[MAX_TEXTURE_UNITS];
 
-   nir_ssa_def *inputs[VARYING_SLOT_MAX];
+   nir_def *inputs[VARYING_SLOT_MAX];
 
    unsigned current_pass;
 
    bool regs_written[MAX_NUM_PASSES_ATI][MAX_NUM_FRAGMENT_REGISTERS_ATI];
 
-   boolean error;
+   bool error;
 };
 
-static nir_ssa_def *
-nir_channel_vec4(nir_builder *b, nir_ssa_def *src, unsigned channel)
+static nir_def *
+nir_channel_vec4(nir_builder *b, nir_def *src, unsigned channel)
 {
    unsigned swizzle[4] = { channel, channel, channel, channel };
    return nir_swizzle(b, src, swizzle, 4);
 }
 
-static nir_ssa_def *
+static nir_def *
 nir_imm_vec4_float(nir_builder *b, float f)
 {
-   return nir_channel_vec4(b, nir_imm_float(b, f), 0);
+   return nir_imm_vec4(b, f, f, f, f);
 }
 
-static nir_ssa_def *
+static nir_def *
 get_temp(struct st_translate *t, unsigned index)
 {
    if (!t->temps[index])
-      t->temps[index] = nir_ssa_undef(t->b, 4, 32);
+      t->temps[index] = nir_undef(t->b, 4, 32);
    return t->temps[index];
 }
 
-static nir_ssa_def *
+static nir_def *
 apply_swizzle(struct st_translate *t,
-              struct nir_ssa_def *src, GLuint swizzle)
+              struct nir_def *src, GLuint swizzle)
 {
    /* From the ATI_fs spec:
     *
@@ -101,10 +97,10 @@ apply_swizzle(struct st_translate *t,
       static unsigned xywz[4] = { 0, 1, 3, 2 };
       return nir_swizzle(t->b, src, xywz, 4);
    } else {
-      nir_ssa_def *rcp = nir_frcp(t->b, nir_channel(t->b, src,
+      nir_def *rcp = nir_frcp(t->b, nir_channel(t->b, src,
                                                     swizzle == GL_SWIZZLE_STR_DR_ATI ? 2 : 3));
 
-      nir_ssa_def *st_mul = nir_fmul(t->b, nir_channels(t->b, src, 0x3), rcp);
+      nir_def *st_mul = nir_fmul(t->b, nir_trim_vector(t->b, src, 2), rcp);
 
       return nir_vec4(t->b,
                       nir_channel(t->b, st_mul, 0),
@@ -114,17 +110,12 @@ apply_swizzle(struct st_translate *t,
    }
 }
 
-static nir_ssa_def *
+static nir_def *
 load_input(struct st_translate *t, gl_varying_slot slot)
 {
    if (!t->inputs[slot]) {
-      const char *slot_name =
-         gl_varying_slot_name_for_stage(slot, MESA_SHADER_FRAGMENT);
-      nir_variable *var = nir_variable_create(t->b->shader, nir_var_shader_in,
-                                              slot == VARYING_SLOT_FOGC ?
-                                              glsl_float_type() : glsl_vec4_type(),
-                                              slot_name);
-      var->data.location = slot;
+      nir_variable *var = nir_create_variable_with_location(t->b->shader, nir_var_shader_in, slot,
+                                                            glsl_vec4_type());
       var->data.interpolation = INTERP_MODE_NONE;
 
       t->inputs[slot] = nir_load_var(t->b, var);
@@ -133,7 +124,7 @@ load_input(struct st_translate *t, gl_varying_slot slot)
    return t->inputs[slot];
 }
 
-static nir_ssa_def *
+static nir_def *
 atifs_load_uniform(struct st_translate *t, int index)
 {
    nir_deref_instr *deref = nir_build_deref_array(t->b,
@@ -142,7 +133,7 @@ atifs_load_uniform(struct st_translate *t, int index)
    return nir_load_deref(t->b, deref);
 }
 
-static struct nir_ssa_def *
+static struct nir_def *
 get_source(struct st_translate *t, GLenum src_type)
 {
    if (src_type >= GL_REG_0_ATI && src_type <= GL_REG_5_ATI) {
@@ -176,7 +167,7 @@ get_source(struct st_translate *t, GLenum src_type)
    }
 }
 
-static nir_ssa_def *
+static nir_def *
 prepare_argument(struct st_translate *t, const struct atifs_instruction *inst,
                  const unsigned argId, bool alpha)
 {
@@ -187,7 +178,7 @@ prepare_argument(struct st_translate *t, const struct atifs_instruction *inst,
 
    const struct atifragshader_src_register *srcReg = &inst->SrcReg[alpha][argId];
 
-   nir_ssa_def *src = get_source(t, srcReg->Index);
+   nir_def *src = get_source(t, srcReg->Index);
 
    switch (srcReg->argRep) {
    case GL_NONE:
@@ -209,9 +200,9 @@ prepare_argument(struct st_translate *t, const struct atifs_instruction *inst,
    t->temps[MAX_NUM_FRAGMENT_REGISTERS_ATI + argId] = src;
 
    if (srcReg->argMod & GL_COMP_BIT_ATI)
-      src = nir_fsub(t->b, nir_imm_vec4_float(t->b, 1.0), src);
+      src = nir_fsub_imm(t->b, 1.0, src);
    if (srcReg->argMod & GL_BIAS_BIT_ATI)
-      src = nir_fadd(t->b, src, nir_imm_vec4_float(t->b, -0.5));
+      src = nir_fadd_imm(t->b, src, -0.5);
    if (srcReg->argMod & GL_2X_BIT_ATI)
       src = nir_fadd(t->b, src, src);
    if (srcReg->argMod & GL_NEGATE_BIT_ATI)
@@ -220,12 +211,12 @@ prepare_argument(struct st_translate *t, const struct atifs_instruction *inst,
    return src;
 }
 
-static nir_ssa_def *
+static nir_def *
 emit_arith_inst(struct st_translate *t,
                 const struct atifs_instruction *inst,
                 bool alpha)
 {
-   nir_ssa_def *src[3] = {0};
+   nir_def *src[3] = {0};
    for (int i = 0; i < inst->ArgCount[alpha]; i++)
       src[i] = prepare_argument(t, inst, i, alpha);
 
@@ -250,13 +241,13 @@ emit_arith_inst(struct st_translate *t,
 
    case GL_CND_ATI:
       return nir_bcsel(t->b,
-                       nir_fge(t->b, nir_imm_vec4_float(t->b, 0.5), src[2]),
+                       nir_fle_imm(t->b, src[2], 0.5),
                        src[1],
                        src[0]);
 
    case GL_CND0_ATI:
       return nir_bcsel(t->b,
-                       nir_fge(t->b, src[2], nir_imm_vec4_float(t->b, 0.0)),
+                       nir_fge_imm(t->b, src[2], 0.0),
                        src[0],
                        src[1]);
 
@@ -278,9 +269,9 @@ emit_arith_inst(struct st_translate *t,
    }
 }
 
-static nir_ssa_def *
+static nir_def *
 emit_dstmod(struct st_translate *t,
-            struct nir_ssa_def *dst, GLuint dstMod)
+            struct nir_def *dst, GLuint dstMod)
 {
    switch (dstMod & ~GL_SATURATE_BIT_ATI) {
    case GL_2X_BIT_ATI:
@@ -324,7 +315,7 @@ compile_setupinst(struct st_translate *t,
 
    GLuint pass_tex = texinst->src;
 
-   nir_ssa_def *coord;
+   nir_def *coord;
 
    if (pass_tex >= GL_TEXTURE0_ARB && pass_tex <= GL_TEXTURE7_ARB) {
       unsigned attr = pass_tex - GL_TEXTURE0_ARB;
@@ -340,18 +331,19 @@ compile_setupinst(struct st_translate *t,
          coord = nir_imm_vec4_float(t->b, 0.0f);
       }
    } else {
-      coord = nir_ssa_undef(t->b, 4, 32);
+      coord = nir_undef(t->b, 4, 32);
    }
    coord = apply_swizzle(t, coord, texinst->swizzle);
 
    if (texinst->Opcode == ATI_FRAGMENT_SHADER_SAMPLE_OP) {
       nir_variable *tex_var = t->samplers[r];
       if (!tex_var) {
-         bool is_array;
-         enum glsl_sampler_dim sampler_dim =
-             _mesa_texture_index_to_sampler_dim(t->key->texture_index[r], &is_array);
+         /* The actual sampler dim will be determined at draw time and lowered
+          * by st_nir_update_atifs_samplers. Setting it to 3D for now means we
+          * don't optimize out coordinate channels we may need later.
+          */
          const struct glsl_type *sampler_type =
-             glsl_sampler_type(sampler_dim, false, false, GLSL_TYPE_FLOAT);
+             glsl_sampler_type(GLSL_SAMPLER_DIM_3D, false, false, GLSL_TYPE_FLOAT);
 
          tex_var = nir_variable_create(t->b->shader, nir_var_uniform, sampler_type, "tex");
          tex_var->data.binding = r;
@@ -367,19 +359,17 @@ compile_setupinst(struct st_translate *t,
       tex->coord_components =
          glsl_get_sampler_dim_coordinate_components(tex->sampler_dim);
 
-      tex->src[0].src_type = nir_tex_src_texture_deref;
-      tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
-      tex->src[1].src_type = nir_tex_src_sampler_deref;
-      tex->src[1].src = nir_src_for_ssa(&tex_deref->dest.ssa);
-      tex->src[2].src_type = nir_tex_src_coord;
-      tex->src[2].src =
-         nir_src_for_ssa(nir_channels(t->b, coord,
-                                    (1 << tex->coord_components) - 1));
+      tex->src[0] = nir_tex_src_for_ssa(nir_tex_src_texture_deref,
+                                        &tex_deref->def);
+      tex->src[1] = nir_tex_src_for_ssa(nir_tex_src_sampler_deref,
+                                        &tex_deref->def);
+      tex->src[2] = nir_tex_src_for_ssa(nir_tex_src_coord,
+                                        nir_trim_vector(t->b, coord, tex->coord_components));
 
-      nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
+      nir_def_init(&tex->instr, &tex->def, 4, 32);
       nir_builder_instr_insert(t->b, &tex->instr);
 
-      t->temps[r] = &tex->dest.ssa;
+      t->temps[r] = &tex->def;
    } else if (texinst->Opcode == ATI_FRAGMENT_SHADER_PASS_OP) {
       t->temps[r] = coord;
    }
@@ -403,14 +393,14 @@ compile_instruction(struct st_translate *t,
          continue;
 
       /* Execute the op */
-      nir_ssa_def *result = emit_arith_inst(t, inst, optype);
+      nir_def *result = emit_arith_inst(t, inst, optype);
       result = emit_dstmod(t, result, inst->DstReg[optype].dstMod);
 
       /* Do the writemask */
-      nir_const_value wrmask[4] = { 0 };
+      nir_const_value wrmask[4];
       for (int i = 0; i < 4; i++) {
-         if (inst->DstReg[optype].dstMask & (1 << i))
-            wrmask[i].b = 1;
+         bool bit = inst->DstReg[optype].dstMask & (1 << i);
+         wrmask[i] = nir_const_value_for_bool(bit, 1);
       }
 
       t->temps[dstreg] = nir_bcsel(t->b,
@@ -422,8 +412,7 @@ compile_instruction(struct st_translate *t,
 }
 
 
-/* Creates the uniform variable referencing the ATI_fragment_shader constants
- * plus the optimized fog state.
+/* Creates the uniform variable referencing the ATI_fragment_shader constants.
  */
 static void
 st_atifs_setup_uniforms(struct st_translate *t, struct gl_program *program)
@@ -441,7 +430,6 @@ st_atifs_setup_uniforms(struct st_translate *t, struct gl_program *program)
  */
 nir_shader *
 st_translate_atifs_program(struct ati_fragment_shader *atifs,
-                           const struct st_fp_variant_key *key,
                            struct gl_program *program,
                            const nir_shader_compiler_options *options)
 {
@@ -450,7 +438,6 @@ st_translate_atifs_program(struct ati_fragment_shader *atifs,
    struct st_translate translate = {
       .atifs = atifs,
       .b = &b,
-      .key = key,
    };
    struct st_translate *t = &translate;
 
@@ -461,9 +448,8 @@ st_translate_atifs_program(struct ati_fragment_shader *atifs,
    s->info.name = ralloc_asprintf(s, "ATIFS%d", program->Id);
    s->info.internal = false;
 
-   t->fragcolor = nir_variable_create(b.shader, nir_var_shader_out,
-                                      glsl_vec4_type(), "gl_FragColor");
-   t->fragcolor->data.location = FRAG_RESULT_COLOR;
+   t->fragcolor = nir_create_variable_with_location(b.shader, nir_var_shader_out,
+                                                    FRAG_RESULT_COLOR, glsl_vec4_type());
 
    st_atifs_setup_uniforms(t, program);
 
@@ -480,129 +466,82 @@ st_translate_atifs_program(struct ati_fragment_shader *atifs,
       }
    }
 
-   if (t->regs_written[atifs->NumPasses-1][0]) {
-      nir_ssa_def *color = t->temps[0];
-
-      if (key->fog) {
-         nir_ssa_def *fogc = load_input(t, VARYING_SLOT_FOGC);
-
-         nir_ssa_def *params = atifs_load_uniform(t, FOG_PARAMS_UNIFORM);
-
-         /* compute the 1 component fog factor f */
-         nir_ssa_def *f = NULL;
-         if (key->fog == FOG_LINEAR) {
-            f = nir_ffma(t->b, fogc,
-                         nir_channel(t->b, params, 0),
-                         nir_channel(t->b, params, 1));
-         } else if (key->fog == FOG_EXP) {
-            /* EXP formula: f = exp(-dens * z)
-             * with optimized parameters:
-             *    f = MUL(fogcoord, oparams.z); f= EX2(-f)
-             */
-            f = nir_fmul(t->b, fogc, nir_channel(t->b, params, 2));
-            f = nir_fexp2(t->b, nir_fneg(t->b, f));
-         } else if (key->fog == FOG_EXP2) {
-            /* EXP2 formula: f = exp(-(dens * z)^2)
-             * with optimized parameters:
-             *    f = MUL(fogcoord, oparams.w); f=MUL(f, f); f= EX2(-f)
-             */
-            f = nir_fmul(t->b, fogc, nir_channel(t->b, params, 3));
-            f = nir_fmul(t->b, f, f);
-            f = nir_fexp2(t->b, nir_fneg(t->b, f));
-         }
-         f = nir_fsat(t->b, f);
-
-         nir_ssa_def *fog_color = nir_flrp(t->b,
-                                           atifs_load_uniform(t, FOG_COLOR_UNIFORM),
-                                           color,
-                                           f);
-         color = nir_vec4(t->b,
-                          nir_channel(t->b, fog_color, 0),
-                          nir_channel(t->b, fog_color, 1),
-                          nir_channel(t->b, fog_color, 2),
-                          nir_channel(t->b, color, 3));
-      }
-
-      nir_store_var(t->b, t->fragcolor, color, 0xf);
-   }
+   if (t->regs_written[atifs->NumPasses-1][0])
+      nir_store_var(t->b, t->fragcolor, t->temps[0], 0xf);
 
    return b.shader;
 }
 
-/**
- * Called in ProgramStringNotify, we need to fill the metadata of the
- * gl_program attached to the ati_fragment_shader
- */
-void
-st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
+static bool
+st_nir_lower_atifs_samplers_instr(nir_builder *b, nir_instr *instr, void *data)
 {
-   /* we know this is st_fragment_program, because of st_new_ati_fs() */
-   struct ati_fragment_shader *atifs = prog->ati_fs;
+   const uint8_t *texture_index = data;
 
-   unsigned pass, i, r, optype, arg;
-
-   static const gl_state_index16 fog_params_state[STATE_LENGTH] =
-      {STATE_FOG_PARAMS_OPTIMIZED, 0, 0};
-   static const gl_state_index16 fog_color[STATE_LENGTH] =
-      {STATE_FOG_COLOR, 0, 0, 0};
-
-   prog->info.inputs_read = 0;
-   prog->info.outputs_written = BITFIELD64_BIT(FRAG_RESULT_COLOR);
-   prog->SamplersUsed = 0;
-   prog->Parameters = _mesa_new_parameter_list();
-
-   /* fill in inputs_read, SamplersUsed, TexturesUsed */
-   for (pass = 0; pass < atifs->NumPasses; pass++) {
-      for (r = 0; r < MAX_NUM_FRAGMENT_REGISTERS_ATI; r++) {
-         struct atifs_setupinst *texinst = &atifs->SetupInst[pass][r];
-         GLuint pass_tex = texinst->src;
-
-         if (texinst->Opcode == ATI_FRAGMENT_SHADER_SAMPLE_OP) {
-            /* mark which texcoords are used */
-            prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_TEX0 + pass_tex - GL_TEXTURE0_ARB);
-            /* by default there is 1:1 mapping between samplers and textures */
-            prog->SamplersUsed |= (1 << r);
-            /* the target is unknown here, it will be fixed in the draw call */
-            prog->TexturesUsed[r] = TEXTURE_2D_BIT;
-         } else if (texinst->Opcode == ATI_FRAGMENT_SHADER_PASS_OP) {
-            if (pass_tex >= GL_TEXTURE0_ARB && pass_tex <= GL_TEXTURE7_ARB) {
-               prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_TEX0 + pass_tex - GL_TEXTURE0_ARB);
-            }
-         }
-      }
+   /* Can't just do this in tex handling below, as llvmpipe leaves dead code
+    * derefs around.
+    */
+   if (instr->type == nir_instr_type_deref) {
+      nir_deref_instr *deref = nir_instr_as_deref(instr);
+      nir_variable *var = nir_deref_instr_get_variable(deref);
+      if (glsl_type_is_sampler(var->type))
+         deref->type = var->type;
    }
-   for (pass = 0; pass < atifs->NumPasses; pass++) {
-      for (i = 0; i < atifs->numArithInstr[pass]; i++) {
-         struct atifs_instruction *inst = &atifs->Instructions[pass][i];
 
-         for (optype = 0; optype < 2; optype++) { /* color, alpha */
-            if (inst->Opcode[optype]) {
-               for (arg = 0; arg < inst->ArgCount[optype]; arg++) {
-                  GLint index = inst->SrcReg[optype][arg].Index;
-                  if (index == GL_PRIMARY_COLOR_EXT) {
-                     prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_COL0);
-                  } else if (index == GL_SECONDARY_INTERPOLATOR_ATI) {
-                     /* note: ATI_fragment_shader.txt never specifies what
-                      * GL_SECONDARY_INTERPOLATOR_ATI is, swrast uses
-                      * VARYING_SLOT_COL1 for this input */
-                     prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_COL1);
-                  }
-               }
-            }
-         }
-      }
-   }
-   /* we may need fog */
-   prog->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_FOGC);
+   if (instr->type != nir_instr_type_tex)
+      return false;
 
-   /* we always have the ATI_fs constants, and the fog params */
-   for (i = 0; i < MAX_NUM_FRAGMENT_CONSTANTS_ATI; i++) {
-      _mesa_add_parameter(prog->Parameters, PROGRAM_UNIFORM,
-                          NULL, 4, GL_FLOAT, NULL, NULL, true);
+   b->cursor = nir_before_instr(instr);
+
+   nir_tex_instr *tex = nir_instr_as_tex(instr);
+
+   unsigned unit;
+   int sampler_src_idx = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
+   if (sampler_src_idx >= 0) {
+      nir_deref_instr *deref = nir_src_as_deref(tex->src[sampler_src_idx].src);
+      nir_variable *var = nir_deref_instr_get_variable(deref);
+      unit = var->data.binding;
+   } else {
+      unit = tex->sampler_index;
    }
-   ASSERTED uint32_t ref;
-   ref = _mesa_add_state_reference(prog->Parameters, fog_params_state);
-   assert(ref == FOG_PARAMS_UNIFORM);
-   ref = _mesa_add_state_reference(prog->Parameters, fog_color);
-   assert(ref == FOG_COLOR_UNIFORM);
+
+   bool is_array;
+   tex->sampler_dim =
+       _mesa_texture_index_to_sampler_dim(texture_index[unit], &is_array);
+
+   int coords_idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+   assert(coords_idx >= 0);
+   int coord_components =
+       glsl_get_sampler_dim_coordinate_components(tex->sampler_dim);
+   /* Trim unused coords, or append undefs as necessary (if someone
+    * accidentally enables a cube array).
+    */
+   if (coord_components != tex->coord_components) {
+      nir_def *coords = tex->src[coords_idx].src.ssa;
+      nir_src_rewrite(&tex->src[coords_idx].src,
+                      nir_resize_vector(b, coords, coord_components));
+      tex->coord_components = coord_components;
+   }
+
+   return true;
+}
+
+/**
+ * Rewrites sampler dimensions and coordinate components for the currently
+ * active texture unit at draw time.
+ */
+bool
+st_nir_lower_atifs_samplers(struct nir_shader *s, const uint8_t *texture_index)
+{
+   nir_foreach_uniform_variable(var, s) {
+      if (!glsl_type_is_sampler(var->type))
+         continue;
+      bool is_array;
+      enum glsl_sampler_dim sampler_dim =
+          _mesa_texture_index_to_sampler_dim(texture_index[var->data.binding], &is_array);
+      var->type = glsl_sampler_type(sampler_dim, false, is_array, GLSL_TYPE_FLOAT);
+   }
+
+   return nir_shader_instructions_pass(s, st_nir_lower_atifs_samplers_instr,\
+                                       nir_metadata_block_index |
+                                       nir_metadata_dominance, (void *)texture_index);
 }

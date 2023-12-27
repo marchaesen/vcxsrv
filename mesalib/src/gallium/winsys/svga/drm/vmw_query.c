@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2015 VMware, Inc.  All rights reserved.
+ * Copyright 2015-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -37,7 +37,7 @@ vmw_svga_winsys_query_create(struct svga_winsys_screen *sws,
                              uint32 queryResultLen)
 {
    struct vmw_winsys_screen *vws = vmw_winsys_screen(sws);
-   struct pb_manager *provider = vws->pools.gmr;
+   struct pb_manager *provider = vws->pools.dma_base;
    struct pb_desc desc = {0};
    struct pb_buffer *pb_buf;
    struct svga_winsys_gb_query *query;

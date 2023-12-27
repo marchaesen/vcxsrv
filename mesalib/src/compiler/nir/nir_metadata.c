@@ -19,9 +19,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
  */
 
 #include "nir.h"
@@ -41,8 +38,8 @@ nir_metadata_require(nir_function_impl *impl, nir_metadata required, ...)
       nir_index_instrs(impl);
    if (NEEDS_UPDATE(nir_metadata_dominance))
       nir_calc_dominance_impl(impl);
-   if (NEEDS_UPDATE(nir_metadata_live_ssa_defs))
-      nir_live_ssa_defs_impl(impl);
+   if (NEEDS_UPDATE(nir_metadata_live_defs))
+      nir_live_defs_impl(impl);
    if (NEEDS_UPDATE(nir_metadata_loop_analysis)) {
       va_list ap;
       va_start(ap, required);
@@ -70,9 +67,8 @@ nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved)
 void
 nir_shader_preserve_all_metadata(nir_shader *shader)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         nir_metadata_preserve(function->impl, nir_metadata_all);
+   nir_foreach_function_impl(impl, shader) {
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 }
 
@@ -86,10 +82,8 @@ nir_shader_preserve_all_metadata(nir_shader *shader)
 void
 nir_metadata_set_validation_flag(nir_shader *shader)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         function->impl->valid_metadata |= nir_metadata_not_properly_reset;
-      }
+   nir_foreach_function_impl(impl, shader) {
+      impl->valid_metadata |= nir_metadata_not_properly_reset;
    }
 }
 
@@ -103,11 +97,8 @@ nir_metadata_set_validation_flag(nir_shader *shader)
 void
 nir_metadata_check_validation_flag(nir_shader *shader)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         assert(!(function->impl->valid_metadata &
-                  nir_metadata_not_properly_reset));
-      }
+   nir_foreach_function_impl(impl, shader) {
+      assert(!(impl->valid_metadata & nir_metadata_not_properly_reset));
    }
 }
 #endif

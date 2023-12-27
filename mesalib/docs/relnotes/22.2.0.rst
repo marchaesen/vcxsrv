@@ -229,7 +229,7 @@ Bug fixes
 - dEQP-GLES31.functional.shaders.builtin_functions.integer.[i|u]mulextended.* fail
 - Radv leaks a descriptor set layout
 - radeonsi: KHR_debug thread safety
-- [radeon, rv370] Running piglit shaders@glsl-vs-raytrace-bug26691 test causes hard lockup & reboot
+- [radeon, rv370] Running piglit shaders\@glsl-vs-raytrace-bug26691 test causes hard lockup & reboot
 - clover: Assertion \`NumContainedTys && "Attempting to get element type of opaque pointer"' failed
 - wsi/x11: Avoid using xcb_wait_for_special_event in FIFO modes causes memory leak in Apex Legends
 - v3d: port v3dv workaround for GFXH-1918
@@ -1617,7 +1617,7 @@ David Heidelberg (58):
 - ci/etnaviv: add recent flakes for gc2000
 - ci/etnaviv: gc2000: drop flakes from fails
 - ci/freedreno: add Blender, Warzone2100, Freedoom and Unvanquished traces
-- ci/freedreno: fix A530 glmark2@ideas:speed=10000 trace
+- ci/freedreno: fix A530 glmark2\@ideas:speed=10000 trace
 - ci/llvmpipe: add Blender, Warzone2100, Freedoom and Unvanquished traces
 - ci/iris: add Blender, Warzone2100, Freedoom and Unvanquished traces
 - ci/virgl: add Blender, Warzone2100, Freedoom and Unvanquished traces
@@ -2707,7 +2707,7 @@ Jan Palus (1):
 
 - pvr: use UINT64_C for 64-bit constant
 
-Jason Ekstrand (312):
+Faith Ekstrand (312):
 
 - clc: Only initialize LLVM once
 - clc: Rework logging a bit
@@ -5582,7 +5582,7 @@ Samuel Pitoiset (213):
 
 Sarah Walker (2):
 
-- pvr: Update for firmware 1.17@6256262
+- pvr: Update for firmware 1.17\@6256262
 - pvr: Move BRN 44079, 48492 and 66011 code into pvrsrvkm specific directory
 
 Sathishkumar S (2):

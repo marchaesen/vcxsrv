@@ -61,7 +61,8 @@ get_interpolation(nir_variable *var)
    if (var->data.patch)
       return DXIL_INTERP_UNDEFINED;
 
-   if (glsl_type_is_integer(glsl_without_array_or_matrix(var->type)))
+   if (glsl_type_is_integer(glsl_without_array_or_matrix(var->type)) ||
+       glsl_type_is_64bit(glsl_without_array_or_matrix(var->type)))
       return DXIL_INTERP_CONSTANT;
 
    if (var->data.sample) {
@@ -130,12 +131,12 @@ get_additional_semantic_info(nir_shader *s, nir_variable *var, struct semantic_i
 
    bool is_depth = is_depth_output(info->kind);
 
-   if (!glsl_type_is_struct(type)) {
+   if (!glsl_type_is_struct(glsl_without_array(type))) {
       info->sig_comp_type = dxil_get_comp_type(type);
-   } else if (var->data.interpolation == INTERP_MODE_FLAT) {
-      info->sig_comp_type = DXIL_COMP_TYPE_U32;
-      info->comp_type = DXIL_PROG_SIG_COMP_TYPE_UINT32;
    } else {
+      /* For structs, just emit them as float registers. This way, they can be
+       * interpolated or not, and it doesn't matter, and it avoids linking issues
+       * that we'd see if the type here tried to depend on (e.g.) interp mode. */
       info->sig_comp_type = DXIL_COMP_TYPE_F32;
       info->comp_type = DXIL_PROG_SIG_COMP_TYPE_FLOAT32;
    }
@@ -147,7 +148,7 @@ get_additional_semantic_info(nir_shader *s, nir_variable *var, struct semantic_i
    info->rows = 1;
    if (info->kind == DXIL_SEM_TARGET) {
       info->start_row = info->index;
-      info->cols = (uint8_t)glsl_get_components(type);
+      info->cols = 4;
    } else if (is_depth ||
               (info->kind == DXIL_SEM_PRIMITIVE_ID && is_gs_input) ||
               info->kind == DXIL_SEM_COVERAGE ||
@@ -163,12 +164,8 @@ get_additional_semantic_info(nir_shader *s, nir_variable *var, struct semantic_i
       info->cols = 1;
       next_row += info->rows;
    } else if (var->data.compact) {
-      if (var->data.location_frac) {
-         info->start_row = next_row - 1;
-      } else {
-         info->start_row = next_row;
-         next_row++;
-      }
+      info->start_row = next_row;
+      next_row++;
 
       assert(glsl_type_is_array(type) && info->kind == DXIL_SEM_CLIP_DISTANCE);
       unsigned num_floats = glsl_get_aoa_size(type);
@@ -290,13 +287,13 @@ get_semantic_name(nir_variable *var, struct semantic_info *info,
       break;
 
     case VARYING_SLOT_FACE:
-      assert(glsl_get_components(var->type) == 1);
+      assert(glsl_get_components(type) == 1);
       snprintf(info->name, 64, "%s", "SV_IsFrontFace");
       info->kind = DXIL_SEM_IS_FRONT_FACE;
       break;
 
    case VARYING_SLOT_PRIMITIVE_ID:
-     assert(glsl_get_components(var->type) == 1);
+     assert(glsl_get_components(type) == 1);
      snprintf(info->name, 64, "%s", "SV_PrimitiveID");
      info->kind = DXIL_SEM_PRIMITIVE_ID;
      break;
@@ -311,25 +308,25 @@ get_semantic_name(nir_variable *var, struct semantic_info *info,
       break;
 
    case VARYING_SLOT_TESS_LEVEL_INNER:
-      assert(glsl_get_components(var->type) <= 2);
+      assert(glsl_get_components(type) <= 2);
       snprintf(info->name, 64, "%s", "SV_InsideTessFactor");
       info->kind = DXIL_SEM_INSIDE_TESS_FACTOR;
       break;
 
    case VARYING_SLOT_TESS_LEVEL_OUTER:
-      assert(glsl_get_components(var->type) <= 4);
+      assert(glsl_get_components(type) <= 4);
       snprintf(info->name, 64, "%s", "SV_TessFactor");
       info->kind = DXIL_SEM_TESS_FACTOR;
       break;
 
    case VARYING_SLOT_VIEWPORT:
-      assert(glsl_get_components(var->type) == 1);
+      assert(glsl_get_components(type) == 1);
       snprintf(info->name, 64, "%s", "SV_ViewportArrayIndex");
       info->kind = DXIL_SEM_VIEWPORT_ARRAY_INDEX;
       break;
 
    case VARYING_SLOT_LAYER:
-      assert(glsl_get_components(var->type) == 1);
+      assert(glsl_get_components(type) == 1);
       snprintf(info->name, 64, "%s", "SV_RenderTargetArrayIndex");
       info->kind = DXIL_SEM_RENDERTARGET_ARRAY_INDEX;
       break;
@@ -429,7 +426,7 @@ append_semantic_index_to_table(struct dxil_psv_sem_index_table *table, uint32_t 
          i += j - 1;
    }
    uint32_t retval = table->size;
-   assert(table->size + num_rows <= 80);
+   assert(table->size + num_rows <= ARRAY_SIZE(table->data));
    for (unsigned i = 0; i < num_rows; ++i)
       table->data[table->size++] = index + i;
    return retval;
@@ -573,7 +570,30 @@ get_input_signature_group(struct dxil_module *mod,
       struct semantic_info semantic = {0};
       get_semantics(var, &semantic, s->info.stage);
       mod->inputs[num_inputs].sysvalue = semantic.sysvalue_name;
-      *row_iter = get_additional_semantic_info(s, var, &semantic, *row_iter, input_clip_size);
+      nir_variable *base_var = var;
+      if (var->data.location_frac) {
+         /* Note: Specifically search for a variable that has space for these additional components */
+         nir_foreach_variable_with_modes(test_var, s, modes) {
+            if (var->data.location == test_var->data.location) {
+               /* Variables should be sorted such that we're only looking for an already-emitted variable */
+               if (test_var == var)
+                  break;
+               base_var = test_var;
+               if (test_var->data.location_frac == 0 &&
+                   glsl_get_component_slots(
+                      nir_is_arrayed_io(test_var, s->info.stage) ?
+                      glsl_get_array_element(test_var->type) : test_var->type) <= var->data.location_frac)
+                  break;
+            }
+         }
+      }
+      if (base_var != var)
+         /* Combine fractional vars into any already existing row */
+         get_additional_semantic_info(s, var, &semantic,
+                                      mod->psv_inputs[mod->input_mappings[base_var->data.driver_location]].start_row,
+                                      input_clip_size);
+      else
+         *row_iter = get_additional_semantic_info(s, var, &semantic, *row_iter, input_clip_size);
 
       mod->input_mappings[var->data.driver_location] = num_inputs;
       struct dxil_psv_signature_element *psv_elm = &mod->psv_inputs[num_inputs];
@@ -586,7 +606,7 @@ get_input_signature_group(struct dxil_module *mod,
                                  semantic.start_row + semantic.rows);
 
       ++num_inputs;
-      assert(num_inputs < VARYING_SLOT_MAX);
+      assert(num_inputs < VARYING_SLOT_MAX * 4);
    }
    return num_inputs;
 }
@@ -648,7 +668,24 @@ process_output_signature(struct dxil_module *mod, nir_shader *s)
          get_semantic_name(var, &semantic, type);
          mod->outputs[num_outputs].sysvalue = out_sysvalue_name(var);
       }
-      next_row = get_additional_semantic_info(s, var, &semantic, next_row, s->info.clip_distance_array_size);
+      nir_variable *base_var = var;
+      if (var->data.location_frac) {
+         if (s->info.stage == MESA_SHADER_FRAGMENT) {
+            /* Fragment shader outputs are all either scalars, or must be declared as a single 4-component vector.
+             * Any attempt to declare partial vectors split across multiple variables is ignored.
+             */
+            continue;
+         }
+         base_var = nir_find_variable_with_location(s, nir_var_shader_out, var->data.location);
+      }
+      if (base_var != var &&
+          base_var->data.stream == var->data.stream)
+         /* Combine fractional vars into any already existing row */
+         get_additional_semantic_info(s, var, &semantic,
+                                      mod->psv_outputs[base_var->data.driver_location].start_row,
+                                      s->info.clip_distance_array_size);
+      else
+         next_row = get_additional_semantic_info(s, var, &semantic, next_row, s->info.clip_distance_array_size);
 
       mod->info.has_out_position |= semantic.kind== DXIL_SEM_POSITION;
       mod->info.has_out_depth |= semantic.kind == DXIL_SEM_DEPTH;
@@ -755,6 +792,61 @@ process_patch_const_signature(struct dxil_module *mod, nir_shader *s)
    mod->num_sig_patch_consts = num_consts;
 }
 
+static void
+prepare_dependency_tables(struct dxil_module *mod, nir_shader *s)
+{
+   bool uses_view_id = BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_VIEW_INDEX);
+   uint32_t num_output_streams = s->info.stage == MESA_SHADER_GEOMETRY ? 4 : 1;
+   uint32_t num_tables = s->info.stage == MESA_SHADER_TESS_CTRL || s->info.stage == MESA_SHADER_TESS_EVAL ? 2 : num_output_streams;
+
+   const uint32_t output_vecs_per_dword = 32 /* bits per dword */ / 4 /* components per vec */;
+   const uint32_t masks_per_input_vec = 4 /* components per vec */;
+
+   for (uint32_t i = 0; i < num_output_streams; ++i)
+      mod->dependency_table_dwords_per_input[i] = DIV_ROUND_UP(mod->num_psv_outputs[i], output_vecs_per_dword);
+   if (s->info.stage == MESA_SHADER_TESS_CTRL)
+      mod->dependency_table_dwords_per_input[1] = DIV_ROUND_UP(mod->num_psv_patch_consts, output_vecs_per_dword);
+
+   uint32_t view_id_table_sizes[4] = { 0 };
+   if (uses_view_id) {
+      for (uint32_t i = 0; i < 4; ++i)
+         view_id_table_sizes[i] = mod->dependency_table_dwords_per_input[i];
+   }
+
+   for (uint32_t i = 0; i < num_output_streams; ++i)
+      mod->io_dependency_table_size[i] = mod->dependency_table_dwords_per_input[i] * mod->num_psv_inputs * masks_per_input_vec;
+   if (s->info.stage == MESA_SHADER_TESS_CTRL)
+      mod->io_dependency_table_size[1] = mod->dependency_table_dwords_per_input[1] * mod->num_psv_inputs * masks_per_input_vec;
+   else if (s->info.stage == MESA_SHADER_TESS_EVAL)
+      mod->io_dependency_table_size[1] = mod->dependency_table_dwords_per_input[0] * mod->num_psv_patch_consts * masks_per_input_vec;
+
+   mod->serialized_dependency_table_size = num_tables + 1;
+   for (uint32_t i = 0; i < num_tables; ++i) {
+      mod->serialized_dependency_table_size += view_id_table_sizes[i] + mod->io_dependency_table_size[i];
+   }
+
+   uint32_t *table = calloc(mod->serialized_dependency_table_size, sizeof(uint32_t));
+   mod->serialized_dependency_table = table;
+
+   *(table++) = mod->num_psv_inputs * 4;
+   for (uint32_t i = 0; i < num_output_streams; ++i) {
+      *(table++) = mod->num_psv_outputs[i] * 4;
+      mod->viewid_dependency_table[i] = table;
+      table += view_id_table_sizes[i];
+      mod->io_dependency_table[i] = table;
+      table += mod->io_dependency_table_size[i];
+   }
+   if (s->info.stage == MESA_SHADER_TESS_CTRL || s->info.stage == MESA_SHADER_TESS_EVAL) {
+      *(table++) = mod->num_psv_patch_consts * 4;
+      if (s->info.stage == MESA_SHADER_TESS_CTRL) {
+         mod->viewid_dependency_table[1] = table;
+         table += view_id_table_sizes[1];
+      }
+      mod->io_dependency_table[1] = table;
+      table += mod->io_dependency_table_size[1];
+   }
+}
+
 void
 preprocess_signatures(struct dxil_module *mod, nir_shader *s, unsigned input_clip_size)
 {
@@ -765,6 +857,8 @@ preprocess_signatures(struct dxil_module *mod, nir_shader *s, unsigned input_cli
    process_input_signature(mod, s, input_clip_size);
    process_output_signature(mod, s);
    process_patch_const_signature(mod, s);
+
+   prepare_dependency_tables(mod, s);
 }
 
 static const struct dxil_mdnode *
@@ -777,7 +871,7 @@ get_signature_metadata(struct dxil_module *mod,
    if (num_elements == 0)
       return NULL;
 
-   const struct dxil_mdnode *nodes[VARYING_SLOT_MAX];
+   const struct dxil_mdnode *nodes[VARYING_SLOT_MAX * 4];
    for (unsigned i = 0; i < num_elements; ++i) {
       nodes[i] = fill_SV_param_nodes(mod, i, &recs[i], &psvs[i], is_input);
    }

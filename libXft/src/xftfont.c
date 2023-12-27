@@ -120,7 +120,7 @@ XftFontOpenName (Display *dpy, int screen, const char *name)
     FcResult	    result;
     XftFont	    *font;
 
-    pat = FcNameParse ((FcChar8 *) name);
+    pat = FcNameParse ((const FcChar8 *) name);
     if (XftDebug () & XFT_DBG_OPEN)
     {
 	printf ("XftFontOpenName \"%s\": ", name);

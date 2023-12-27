@@ -60,7 +60,7 @@ write_tsv_header(FILE *fp)
 static void
 write_tsv_row(FILE *fp,
               const struct util_format_description *desc,
-              boolean success)
+              bool success)
 {
    fprintf(fp, "%s\t", success ? "pass" : "fail");
 
@@ -120,7 +120,7 @@ add_fetch_rgba_test(struct gallivm_state *gallivm, unsigned verbose,
    block = LLVMAppendBasicBlockInContext(context, func, "entry");
    LLVMPositionBuilderAtEnd(builder, block);
 
-   rgba = lp_build_fetch_rgba_aos(gallivm, desc, type, TRUE,
+   rgba = lp_build_fetch_rgba_aos(gallivm, desc, type, true,
                                   packed_ptr, offset, i, j, cache);
 
    LLVMBuildStore(builder, rgba, rgba_ptr);
@@ -133,8 +133,8 @@ add_fetch_rgba_test(struct gallivm_state *gallivm, unsigned verbose,
 }
 
 
-PIPE_ALIGN_STACK
-static boolean
+UTIL_ALIGN_STACK
+static bool
 test_format_float(unsigned verbose, FILE *fp,
                   const struct util_format_description *desc,
                   unsigned use_cache)
@@ -145,12 +145,12 @@ test_format_float(unsigned verbose, FILE *fp,
    fetch_ptr_t fetch_ptr;
    alignas(16) uint8_t packed[UTIL_FORMAT_MAX_PACKED_BYTES];
    alignas(16) float unpacked[4];
-   boolean first = TRUE;
-   boolean success = TRUE;
+   bool first = true;
+   bool success = true;
    unsigned i, j, k, l;
 
    context = LLVMContextCreate();
-#if LLVM_VERSION_MAJOR >= 15
+#if LLVM_VERSION_MAJOR == 15
    LLVMContextSetOpaquePointers(context, false);
 #endif
    gallivm = gallivm_create("test_module_float", context, NULL);
@@ -173,7 +173,7 @@ test_format_float(unsigned verbose, FILE *fp,
             printf("Testing %s (float) ...\n",
                    desc->name);
             fflush(stdout);
-            first = FALSE;
+            first = false;
          }
 
          /* To ensure it's 16-byte aligned */
@@ -181,30 +181,30 @@ test_format_float(unsigned verbose, FILE *fp,
 
          for (i = 0; i < desc->block.height; ++i) {
             for (j = 0; j < desc->block.width; ++j) {
-               boolean match = TRUE;
+               bool match = true;
 
                memset(unpacked, 0, sizeof unpacked);
 
                fetch_ptr(unpacked, packed, j, i, use_cache ? cache_ptr : NULL);
 
-               for(k = 0; k < 4; ++k) {
+               for (k = 0; k < 4; ++k) {
                   if (util_double_inf_sign(test->unpacked[i][j][k]) != util_inf_sign(unpacked[k])) {
-                     match = FALSE;
+                     match = false;
                   }
 
                   if (util_is_double_nan(test->unpacked[i][j][k]) != util_is_nan(unpacked[k])) {
-                     match = FALSE;
+                     match = false;
                   }
 
                   if (!util_is_double_inf_or_nan(test->unpacked[i][j][k]) &&
                       fabs((float)test->unpacked[i][j][k] - unpacked[k]) > FLT_EPSILON) {
-                     match = FALSE;
+                     match = false;
                   }
                }
 
                /* Ignore errors in S3TC for now */
                if (desc->layout == UTIL_FORMAT_LAYOUT_S3TC) {
-                  match = TRUE;
+                  match = true;
                }
 
                if (!match) {
@@ -220,7 +220,7 @@ test_format_float(unsigned verbose, FILE *fp,
                          test->unpacked[i][j][2],
                          test->unpacked[i][j][3]);
                   fflush(stdout);
-                  success = FALSE;
+                  success = false;
                }
             }
          }
@@ -230,15 +230,15 @@ test_format_float(unsigned verbose, FILE *fp,
    gallivm_destroy(gallivm);
    LLVMContextDispose(context);
 
-   if(fp)
+   if (fp)
       write_tsv_row(fp, desc, success);
 
    return success;
 }
 
 
-PIPE_ALIGN_STACK
-static boolean
+UTIL_ALIGN_STACK
+static bool
 test_format_unorm8(unsigned verbose, FILE *fp,
                    const struct util_format_description *desc,
                    unsigned use_cache)
@@ -249,12 +249,12 @@ test_format_unorm8(unsigned verbose, FILE *fp,
    fetch_ptr_t fetch_ptr;
    alignas(16) uint8_t packed[UTIL_FORMAT_MAX_PACKED_BYTES];
    uint8_t unpacked[4];
-   boolean first = TRUE;
-   boolean success = TRUE;
+   bool first = true;
+   bool success = true;
    unsigned i, j, k, l;
 
    context = LLVMContextCreate();
-#if LLVM_VERSION_MAJOR >= 15
+#if LLVM_VERSION_MAJOR == 15
    LLVMContextSetOpaquePointers(context, false);
 #endif
    gallivm = gallivm_create("test_module_unorm8", context, NULL);
@@ -276,7 +276,7 @@ test_format_unorm8(unsigned verbose, FILE *fp,
          if (first) {
             printf("Testing %s (unorm8) ...\n",
                    desc->name);
-            first = FALSE;
+            first = false;
          }
 
          /* To ensure it's 16-byte aligned */
@@ -285,14 +285,14 @@ test_format_unorm8(unsigned verbose, FILE *fp,
 
          for (i = 0; i < desc->block.height; ++i) {
             for (j = 0; j < desc->block.width; ++j) {
-               boolean match;
+               bool match;
 
                memset(unpacked, 0, sizeof unpacked);
 
                fetch_ptr(unpacked, packed, j, i, use_cache ? cache_ptr : NULL);
 
-               match = TRUE;
-               for(k = 0; k < 4; ++k) {
+               match = true;
+               for (k = 0; k < 4; ++k) {
                   int error = float_to_ubyte(test->unpacked[i][j][k]) - unpacked[k];
 
                   if (util_is_double_nan(test->unpacked[i][j][k]))
@@ -302,12 +302,12 @@ test_format_unorm8(unsigned verbose, FILE *fp,
                      error = -error;
 
                   if (error > 1)
-                     match = FALSE;
+                     match = false;
                }
 
                /* Ignore errors in S3TC as we only implement a poor man approach */
                if (desc->layout == UTIL_FORMAT_LAYOUT_S3TC) {
-                  match = TRUE;
+                  match = true;
                }
 
                if (!match) {
@@ -323,7 +323,7 @@ test_format_unorm8(unsigned verbose, FILE *fp,
                          float_to_ubyte(test->unpacked[i][j][2]),
                          float_to_ubyte(test->unpacked[i][j][3]));
 
-                  success = FALSE;
+                  success = false;
                }
             }
          }
@@ -333,7 +333,7 @@ test_format_unorm8(unsigned verbose, FILE *fp,
    gallivm_destroy(gallivm);
    LLVMContextDispose(context);
 
-   if(fp)
+   if (fp)
       write_tsv_row(fp, desc, success);
 
    return success;
@@ -342,30 +342,30 @@ test_format_unorm8(unsigned verbose, FILE *fp,
 
 
 
-static boolean
+static bool
 test_one(unsigned verbose, FILE *fp,
          const struct util_format_description *format_desc,
          unsigned use_cache)
 {
-   boolean success = TRUE;
+   bool success = true;
 
    if (!test_format_float(verbose, fp, format_desc, use_cache)) {
-     success = FALSE;
+     success = false;
    }
 
    if (!test_format_unorm8(verbose, fp, format_desc, use_cache)) {
-     success = FALSE;
+     success = false;
    }
 
    return success;
 }
 
 
-boolean
+bool
 test_all(unsigned verbose, FILE *fp)
 {
    enum pipe_format format;
-   boolean success = TRUE;
+   bool success = true;
    unsigned use_cache;
 
    cache_ptr = align_malloc(sizeof(struct lp_build_format_cache), 16);
@@ -402,7 +402,7 @@ test_all(unsigned verbose, FILE *fp)
          }
 
          if (!test_one(verbose, fp, format_desc, use_cache)) {
-            success = FALSE;
+            success = false;
          }
       }
    }
@@ -412,7 +412,7 @@ test_all(unsigned verbose, FILE *fp)
 }
 
 
-boolean
+bool
 test_some(unsigned verbose, FILE *fp,
           unsigned long n)
 {
@@ -420,9 +420,9 @@ test_some(unsigned verbose, FILE *fp,
 }
 
 
-boolean
+bool
 test_single(unsigned verbose, FILE *fp)
 {
    printf("no test_single()");
-   return TRUE;
+   return true;
 }

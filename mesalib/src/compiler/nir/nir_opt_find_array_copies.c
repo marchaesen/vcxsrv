@@ -77,7 +77,7 @@ create_match_node(const struct glsl_type *type, struct match_state *state)
 
    struct match_node *node = rzalloc_size(state->dead_ctx,
                                           sizeof(struct match_node) +
-                                          num_children * sizeof(struct match_node *));
+                                             num_children * sizeof(struct match_node *));
    node->num_children = num_children;
    node->src_wildcard_idx = -1;
    node->first_src_read = UINT32_MAX;
@@ -316,7 +316,7 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
                 nir_deref_path *deref_path, int arr_idx,
                 nir_deref_instr *dst)
 {
-   for (int i = 0; ; i++) {
+   for (int i = 0;; i++) {
       nir_deref_instr *b = base_path->path[i];
       nir_deref_instr *d = deref_path->path[i];
       /* They have to be the same length */
@@ -328,7 +328,8 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
 
       /* This can happen if one is a deref_array and the other a wildcard */
       if (b->deref_type != d->deref_type)
-         return false;;
+         return false;
+      ;
 
       switch (b->deref_type) {
       case nir_deref_type_var:
@@ -336,8 +337,7 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
             return false;
          continue;
 
-      case nir_deref_type_array:
-         assert(b->arr.index.is_ssa && d->arr.index.is_ssa);
+      case nir_deref_type_array: {
          const bool const_b_idx = nir_src_is_const(b->arr.index);
          const bool const_d_idx = nir_src_is_const(d->arr.index);
          const unsigned b_idx = const_b_idx ? nir_src_as_uint(b->arr.index) : 0;
@@ -352,7 +352,7 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
              const_b_idx && b_idx == 0 &&
              const_d_idx && d_idx == arr_idx &&
              glsl_get_length(nir_deref_instr_parent(b)->type) ==
-             glsl_get_length(nir_deref_instr_parent(dst)->type)) {
+                glsl_get_length(nir_deref_instr_parent(dst)->type)) {
             *path_array_idx = i;
             continue;
          }
@@ -371,6 +371,7 @@ try_match_deref(nir_deref_path *base_path, int *path_array_idx,
             continue;
 
          return false;
+      }
 
       case nir_deref_type_array_wildcard:
          continue;
@@ -492,8 +493,8 @@ handle_write(nir_deref_instr *dst, nir_deref_instr *src,
 
          if (src_node->last_overwritten <= dst_node->first_src_read) {
             nir_copy_deref(b, build_wildcard_deref(b, &dst_path, idx),
-                              build_wildcard_deref(b, &dst_node->first_src_path,
-                                                   dst_node->src_wildcard_idx));
+                           build_wildcard_deref(b, &dst_node->first_src_path,
+                                                dst_node->src_wildcard_idx));
             foreach_aliasing_node(&dst_path, clobber, state);
             return true;
          }
@@ -501,7 +502,7 @@ handle_write(nir_deref_instr *dst, nir_deref_instr *src,
          continue;
       }
 
-reset:
+   reset:
       dst_node->next_array_idx = 0;
       dst_node->src_wildcard_idx = -1;
       dst_node->last_successful_write = 0;
@@ -601,7 +602,7 @@ opt_find_array_copies_block(nir_builder *b, nir_block *block,
        */
       if (src_deref &&
           !nir_deref_mode_must_be(src_deref, nir_var_function_temp |
-                                             nir_var_read_only_modes)) {
+                                                nir_var_read_only_modes)) {
          src_deref = NULL;
       }
 
@@ -617,7 +618,7 @@ opt_find_array_copies_block(nir_builder *b, nir_block *block,
            nir_deref_instr_has_indirect(dst_deref) ||
            !glsl_type_is_vector_or_scalar(src_deref->type) ||
            glsl_get_bare_type(src_deref->type) !=
-           glsl_get_bare_type(dst_deref->type))) {
+              glsl_get_bare_type(dst_deref->type))) {
          src_deref = NULL;
       }
 
@@ -632,8 +633,7 @@ opt_find_array_copies_block(nir_builder *b, nir_block *block,
 static bool
 opt_find_array_copies_impl(nir_function_impl *impl)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    bool progress = false;
 
@@ -641,7 +641,7 @@ opt_find_array_copies_impl(nir_function_impl *impl)
    s.dead_ctx = ralloc_context(NULL);
    s.var_nodes = _mesa_pointer_hash_table_create(s.dead_ctx);
    s.cast_nodes = _mesa_pointer_hash_table_create(s.dead_ctx);
-   nir_builder_init(&s.builder, impl);
+   s.builder = nir_builder_create(impl);
 
    nir_foreach_block(block, impl) {
       if (opt_find_array_copies_block(&b, block, &s))
@@ -652,7 +652,7 @@ opt_find_array_copies_impl(nir_function_impl *impl)
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+                                     nir_metadata_dominance);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }
@@ -676,8 +676,8 @@ nir_opt_find_array_copies(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl && opt_find_array_copies_impl(function->impl))
+   nir_foreach_function_impl(impl, shader) {
+      if (opt_find_array_copies_impl(impl))
          progress = true;
    }
 

@@ -113,7 +113,7 @@ Ilia Mirkin (1):
 
 - glsl: only expose int64 atomics when extension is enabled
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - intel/compiler: Return 1 for immediates in regs_read
 - intel/fs: QUAD_SWIZZLE requires packed data

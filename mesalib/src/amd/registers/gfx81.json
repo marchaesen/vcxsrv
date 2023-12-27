@@ -710,12 +710,16 @@
   "SX_BLEND_OPT_EPSILON__MRT0_EPSILON": {
    "entries": [
     {"name": "EXACT", "value": 0},
-    {"name": "11BIT_FORMAT", "value": 1},
-    {"name": "10BIT_FORMAT", "value": 3},
-    {"name": "8BIT_FORMAT", "value": 6},
-    {"name": "6BIT_FORMAT", "value": 11},
-    {"name": "5BIT_FORMAT", "value": 13},
-    {"name": "4BIT_FORMAT", "value": 15}
+    {"name": "10BIT_FORMAT_0_5", "value": 2},
+    {"name": "10BIT_FORMAT_0_75", "value": 3},
+    {"name": "8BIT_FORMAT_0_5", "value": 6},
+    {"name": "8BIT_FORMAT_0_75", "value": 7},
+    {"name": "6BIT_FORMAT_0_5", "value": 10},
+    {"name": "6BIT_FORMAT_0_75", "value": 11},
+    {"name": "5BIT_FORMAT_0_5", "value": 12},
+    {"name": "5BIT_FORMAT_0_75", "value": 13},
+    {"name": "4BIT_FORMAT_0_5", "value": 14},
+    {"name": "4BIT_FORMAT_0_75", "value": 15}
    ]
   },
   "SX_DOWNCONVERT_FORMAT": {

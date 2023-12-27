@@ -25,7 +25,7 @@
 #include "d3d12_public.h"
 #include "d3d12_debug.h"
 
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "util/u_memory.h"
 #include "util/u_dl.h"
 
@@ -81,7 +81,7 @@ choose_dxgi_adapter(IDXGIFactory4 *factory, LUID *adapter)
       debug_printf("D3D12: requested adapter missing, falling back to auto-detection...\n");
    }
 
-   bool want_warp = env_var_as_boolean("LIBGL_ALWAYS_SOFTWARE", false);
+   bool want_warp = debug_get_bool_option("LIBGL_ALWAYS_SOFTWARE", false);
    if (want_warp) {
       if (SUCCEEDED(factory->EnumWarpAdapter(IID_PPV_ARGS(&ret))))
          return ret;
@@ -203,7 +203,10 @@ d3d12_create_dxgi_screen(struct sw_winsys *winsys, LUID *adapter_luid)
    if (!screen)
       return nullptr;
 
-   d3d12_init_screen_base(&screen->base, winsys, adapter_luid);
+   if (!d3d12_init_screen_base(&screen->base, winsys, adapter_luid)) {
+      d3d12_destroy_screen(&screen->base);
+      return nullptr;
+   }
    screen->base.base.destroy = d3d12_destroy_dxgi_screen;
    screen->base.init = d3d12_init_dxgi_screen;
    screen->base.deinit = d3d12_deinit_dxgi_screen;

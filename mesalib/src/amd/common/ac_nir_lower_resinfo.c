@@ -1,24 +1,7 @@
 /*
  * Copyright © 2022 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 /* Implement query_size, query_levels, and query_samples by extracting the information from
@@ -29,20 +12,20 @@
 #include "nir_builder.h"
 #include "amdgfxregs.h"
 
-static nir_ssa_def *get_field(nir_builder *b, nir_ssa_def *desc, unsigned index, unsigned mask)
+static nir_def *get_field(nir_builder *b, nir_def *desc, unsigned index, unsigned mask)
 {
    return nir_ubfe_imm(b, nir_channel(b, desc, index), ffs(mask) - 1, util_bitcount(mask));
 }
 
-static nir_ssa_def *handle_null_desc(nir_builder *b, nir_ssa_def *desc, nir_ssa_def *value)
+static nir_def *handle_null_desc(nir_builder *b, nir_def *desc, nir_def *value)
 {
-   nir_ssa_def *is_null = nir_ieq_imm(b, nir_channel(b, desc, 1), 0);
+   nir_def *is_null = nir_ieq_imm(b, nir_channel(b, desc, 1), 0);
    return nir_bcsel(b, is_null, nir_imm_int(b, 0), value);
 }
 
-static nir_ssa_def *query_samples(nir_builder *b, nir_ssa_def *desc, enum glsl_sampler_dim dim)
+static nir_def *query_samples(nir_builder *b, nir_def *desc, enum glsl_sampler_dim dim)
 {
-   nir_ssa_def *samples;
+   nir_def *samples;
 
    if (dim == GLSL_SAMPLER_DIM_MS) {
       /* LAST_LEVEL contains log2(num_samples). */
@@ -55,22 +38,22 @@ static nir_ssa_def *query_samples(nir_builder *b, nir_ssa_def *desc, enum glsl_s
    return handle_null_desc(b, desc, samples);
 }
 
-static nir_ssa_def *query_levels(nir_builder *b, nir_ssa_def *desc)
+static nir_def *query_levels(nir_builder *b, nir_def *desc)
 {
-   nir_ssa_def *base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
-   nir_ssa_def *last_level = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL);
+   nir_def *base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
+   nir_def *last_level = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL);
 
-   nir_ssa_def *levels = nir_iadd_imm(b, nir_isub(b, last_level, base_level), 1);
+   nir_def *levels = nir_iadd_imm(b, nir_isub(b, last_level, base_level), 1);
 
    return handle_null_desc(b, desc, levels);
 }
 
-static nir_ssa_def *
-lower_query_size(nir_builder *b, nir_ssa_def *desc, nir_src *lod,
+static nir_def *
+lower_query_size(nir_builder *b, nir_def *desc, nir_src *lod,
                  enum glsl_sampler_dim dim, bool is_array, enum amd_gfx_level gfx_level)
 {
    if (dim == GLSL_SAMPLER_DIM_BUF) {
-      nir_ssa_def *size = nir_channel(b, desc, 2);
+      nir_def *size = nir_channel(b, desc, 2);
 
       if (gfx_level == GFX8) {
          /* On GFX8, the descriptor contains the size in bytes,
@@ -89,14 +72,14 @@ lower_query_size(nir_builder *b, nir_ssa_def *desc, nir_src *lod,
    bool has_width = dim != GLSL_SAMPLER_DIM_CUBE;
    bool has_height = dim != GLSL_SAMPLER_DIM_1D;
    bool has_depth = dim == GLSL_SAMPLER_DIM_3D;
-   nir_ssa_def *width = NULL, *height = NULL, *layers = NULL, *base_array = NULL;
-   nir_ssa_def *last_array = NULL, *depth = NULL;
+   nir_def *width = NULL, *height = NULL, *layers = NULL, *base_array = NULL;
+   nir_def *last_array = NULL, *depth = NULL;
 
    /* Get the width, height, depth, layers. */
    if (gfx_level >= GFX10) {
       if (has_width) {
-         nir_ssa_def *width_lo = get_field(b, desc, 1, ~C_00A004_WIDTH_LO);
-         nir_ssa_def *width_hi = get_field(b, desc, 2, ~C_00A008_WIDTH_HI);
+         nir_def *width_lo = get_field(b, desc, 1, ~C_00A004_WIDTH_LO);
+         nir_def *width_hi = get_field(b, desc, 2, ~C_00A008_WIDTH_HI);
          /* Use iadd to get s_lshl2_add_u32 in the end. */
          width = nir_iadd(b, width_lo, nir_ishl_imm(b, width_hi, 2));
       }
@@ -128,6 +111,19 @@ lower_query_size(nir_builder *b, nir_ssa_def *desc, nir_src *lod,
       }
    }
 
+   /* On GFX10.3+, DEPTH contains the pitch if the type is 1D, 2D, or 2D_MSAA. We only program
+    * the pitch for 2D. We need to set depth and last_array to 0 in that case.
+    */
+   if (gfx_level >= GFX10_3 && (has_depth || is_array)) {
+      nir_def *type = get_field(b, desc, 3, ~C_00A00C_TYPE);
+      nir_def *is_2d = nir_ieq_imm(b, type, V_008F1C_SQ_RSRC_IMG_2D);
+
+      if (has_depth)
+         depth = nir_bcsel(b, is_2d, nir_imm_int(b, 0), depth);
+      if (is_array)
+         last_array = nir_bcsel(b, is_2d, nir_imm_int(b, 0), last_array);
+   }
+
    /* All values are off by 1. */
    if (has_width)
       width = nir_iadd_imm(b, width, 1);
@@ -143,8 +139,8 @@ lower_query_size(nir_builder *b, nir_ssa_def *desc, nir_src *lod,
 
    /* Minify the dimensions according to base_level + lod. */
    if (dim != GLSL_SAMPLER_DIM_MS && dim != GLSL_SAMPLER_DIM_RECT) {
-      nir_ssa_def *base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
-      nir_ssa_def *level = lod ? nir_iadd(b, base_level, lod->ssa) : base_level;
+      nir_def *base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
+      nir_def *level = lod ? nir_iadd(b, base_level, lod->ssa) : base_level;
 
       if (has_width)
          width = nir_ushr(b, width, level);
@@ -167,7 +163,18 @@ lower_query_size(nir_builder *b, nir_ssa_def *desc, nir_src *lod,
       }
    }
 
-   nir_ssa_def *result = NULL;
+   /* Special case for sliced storage 3D views which shouldn't be minified. */
+   if (gfx_level >= GFX10 && has_depth) {
+      nir_def *uav3d =
+         nir_ieq_imm(b, get_field(b, desc, 5, ~C_00A014_ARRAY_PITCH), 1);
+      nir_def *layers_3d =
+         nir_isub(b, get_field(b, desc, 4, ~C_00A010_DEPTH),
+                     get_field(b, desc, 4, ~C_00A010_BASE_ARRAY));
+      layers_3d = nir_iadd_imm(b, layers_3d, 1);
+      depth = nir_bcsel(b, uav3d, layers_3d, depth);
+   }
+
+   nir_def *result = NULL;
 
    /* Construct the result. */
    switch (dim) {
@@ -196,16 +203,16 @@ lower_query_size(nir_builder *b, nir_ssa_def *desc, nir_src *lod,
 static bool lower_resinfo(nir_builder *b, nir_instr *instr, void *data)
 {
    enum amd_gfx_level gfx_level = *(enum amd_gfx_level*)data;
-   nir_ssa_def *result = NULL, *dst = NULL;
+   nir_def *result = NULL, *dst = NULL;
 
    if (instr->type == nir_instr_type_intrinsic) {
       nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
       const struct glsl_type *type;
       enum glsl_sampler_dim dim;
       bool is_array;
-      nir_ssa_def *desc = NULL;
+      nir_def *desc = NULL;
 
-      dst = &intr->dest.ssa;
+      dst = &intr->def;
       b->cursor = nir_before_instr(instr);
 
       switch (intr->intrinsic) {
@@ -258,10 +265,10 @@ static bool lower_resinfo(nir_builder *b, nir_instr *instr, void *data)
    } else if (instr->type == nir_instr_type_tex) {
       nir_tex_instr *tex = nir_instr_as_tex(instr);
       nir_tex_instr *new_tex;
-      nir_ssa_def *desc = NULL;
+      nir_def *desc = NULL;
       nir_src *lod = NULL;
 
-      dst = &tex->dest.ssa;
+      dst = &tex->def;
       b->cursor = nir_before_instr(instr);
 
       switch (tex->op) {
@@ -279,12 +286,12 @@ static bool lower_resinfo(nir_builder *b, nir_instr *instr, void *data)
                new_tex->texture_index = tex->texture_index;
                new_tex->sampler_index = tex->sampler_index;
                new_tex->dest_type = nir_type_int32;
-               nir_src_copy(&new_tex->src[0].src, &tex->src[i].src, &new_tex->instr);
+               new_tex->src[0].src = nir_src_for_ssa(tex->src[i].src.ssa);
                new_tex->src[0].src_type = tex->src[i].src_type;
-               nir_ssa_dest_init(&new_tex->instr, &new_tex->dest,
-                                 nir_tex_instr_dest_size(new_tex), 32, NULL);
+               nir_def_init(&new_tex->instr, &new_tex->def,
+                            nir_tex_instr_dest_size(new_tex), 32);
                nir_builder_instr_insert(b, &new_tex->instr);
-               desc = &new_tex->dest.ssa;
+               desc = &new_tex->def;
                break;
 
             case nir_tex_src_lod:
@@ -319,7 +326,7 @@ static bool lower_resinfo(nir_builder *b, nir_instr *instr, void *data)
    if (!result)
       return false;
 
-   nir_ssa_def_rewrite_uses_after(dst, result, instr);
+   nir_def_rewrite_uses_after(dst, result, instr);
    nir_instr_remove(instr);
    return true;
 }

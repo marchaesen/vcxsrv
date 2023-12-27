@@ -29,8 +29,8 @@
 #include <vulkan/vulkan.h>
 
 #include "compiler/shader_enums.h"
+#include "pan_desc.h"
 #include "panfrost-job.h"
-#include "pan_cs.h"
 
 #include "vk_util.h"
 
@@ -66,29 +66,30 @@ panvk_per_arch(translate_compare_func)(VkCompareOp comp)
    STATIC_ASSERT(VK_COMPARE_OP_LESS_OR_EQUAL == (VkCompareOp)MALI_FUNC_LEQUAL);
    STATIC_ASSERT(VK_COMPARE_OP_GREATER == (VkCompareOp)MALI_FUNC_GREATER);
    STATIC_ASSERT(VK_COMPARE_OP_NOT_EQUAL == (VkCompareOp)MALI_FUNC_NOT_EQUAL);
-   STATIC_ASSERT(VK_COMPARE_OP_GREATER_OR_EQUAL == (VkCompareOp)MALI_FUNC_GEQUAL);
+   STATIC_ASSERT(VK_COMPARE_OP_GREATER_OR_EQUAL ==
+                 (VkCompareOp)MALI_FUNC_GEQUAL);
    STATIC_ASSERT(VK_COMPARE_OP_ALWAYS == (VkCompareOp)MALI_FUNC_ALWAYS);
 
    return (enum mali_func)comp;
 }
 
 static inline enum mali_func
-panvk_per_arch(translate_sampler_compare_func)(const VkSamplerCreateInfo *pCreateInfo)
+panvk_per_arch(translate_sampler_compare_func)(
+   const VkSamplerCreateInfo *pCreateInfo)
 {
    if (!pCreateInfo->compareEnable)
       return MALI_FUNC_NEVER;
 
-   enum mali_func f = panvk_per_arch(translate_compare_func)(pCreateInfo->compareOp);
+   enum mali_func f =
+      panvk_per_arch(translate_compare_func)(pCreateInfo->compareOp);
    return panfrost_flip_compare_func(f);
 }
 #endif
 
-void
-panvk_sysval_upload_viewport_scale(const VkViewport *viewport,
-                                   union panvk_sysval_vec4 *data);
+void panvk_sysval_upload_viewport_scale(const VkViewport *viewport,
+                                        union panvk_sysval_vec4 *data);
 
-void
-panvk_sysval_upload_viewport_offset(const VkViewport *viewport,
-                                    union panvk_sysval_vec4 *data);
+void panvk_sysval_upload_viewport_offset(const VkViewport *viewport,
+                                         union panvk_sysval_vec4 *data);
 
 #endif

@@ -1,23 +1,24 @@
 /*
+ * Copyright © 2022 Thomas E. Dickey
  * Copyright © 2000 Keith Packard
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
- * the above copyright notice appear in all copies and that both that
- * copyright notice and this permission notice appear in supporting
- * documentation, and that the name of Keith Packard not be used in
- * advertising or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Keith Packard makes no
+ * the above copyright notice appear in all copies and that both that copyright
+ * notice and this permission notice appear in supporting documentation, and
+ * that the name of the above copyright holders not be used in advertising or
+ * publicity pertaining to distribution of the software without specific,
+ * written prior permission.  The above copyright holders make no
  * representations about the suitability of this software for any purpose.  It
  * is provided "as is" without express or implied warranty.
  *
- * KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
- * EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
- * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * THE ABOVE LISTED COPYRIGHT HOLDER(S) DISCLAIM ALL WARRANTIES WITH REGARD TO
+ * THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT HOLDER(S) BE LIABLE
+ * FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #include "xftint.h"
@@ -45,7 +46,7 @@ _XftGetFile (const FcChar8 *file, int id)
 
     for (f = _XftFtFiles; f; f = f->next)
     {
-	if (!strcmp (f->file, (char *) file) && f->id == id)
+	if (!strcmp (f->file, (const char *) file) && f->id == id)
 	{
 	    ++f->ref;
 	    if (XftDebug () & XFT_DBG_REF)
@@ -54,11 +55,11 @@ _XftGetFile (const FcChar8 *file, int id)
 	    return f;
 	}
     }
-    f = malloc (sizeof (XftFtFile) + strlen ((char *) file) + 1);
+    f = malloc (sizeof (XftFtFile) + strlen ((const char *) file) + 1);
     if (!f)
 	return NULL;
 
-    XftMemAlloc (XFT_MEM_FILE, sizeof (XftFtFile) + strlen ((char *) file) + 1);
+    XftMemAlloc (XFT_MEM_FILE, sizeof (XftFtFile) + strlen ((const char *) file) + 1);
     if (XftDebug () & XFT_DBG_REF)
     	printf ("FontFile %s/%d matches new\n",
 		file, id);
@@ -68,7 +69,7 @@ _XftGetFile (const FcChar8 *file, int id)
     f->ref = 1;
 
     f->file = (char *) (f+1);
-    strcpy (f->file, (char *) file);
+    strcpy (f->file, (const char *) file);
     f->id = id;
 
     f->lock = 0;
@@ -87,7 +88,7 @@ _XftGetFaceFile (FT_Face face)
     f = malloc (sizeof (XftFtFile));
     if (!f)
 	return NULL;
-    XftMemAlloc (XFT_MEM_FILE, sizeof(XftFtFile));
+    XftMemAlloc (XFT_MEM_FILE, sizeof (XftFtFile));
     f->next = NULL;
 
     f->ref = 1;
@@ -132,7 +133,7 @@ _XftUncacheFiles (void)
     XftFtFile	*f;
     while ((n = _XftNumFiles ()) > XftMaxFreeTypeFiles)
     {
-	f = _XftNthFile (rand () % n);
+	f = _XftNthFile (n ? (rand () % n) : 0);
 	if (f)
 	{
 	    if (XftDebug() & XFT_DBG_REF)
@@ -276,7 +277,7 @@ _XftReleaseFile (XftFtFile *f)
 	    FT_Done_Face (f->face);
     }
     XftMemFree (XFT_MEM_FILE,
-		sizeof (XftFtFile) + (f->file ? strlen (f->file) + 1 : 0));
+		(sizeof (XftFtFile) + (f->file ? strlen (f->file) + 1 : 0)));
     free (f);
 }
 
@@ -366,10 +367,10 @@ XftFontInfoFill (Display *dpy, _Xconst FcPattern *pattern, XftFontInfo *fi)
 {
     XftDisplayInfo  *info = _XftDisplayInfoGet (dpy, True);
     FcChar8	    *filename;
-    int		    id;
+    int		    id, mid;
     double	    dsize;
     double	    aspect;
-    FcMatrix	    *font_matrix;
+    FcMatrix	    *font_matrix, fm1;
     FcBool	    hinting, vertical_layout, autohint, global_advance;
     int             hint_style;
     FcChar32	    hash, *hashp;
@@ -385,7 +386,7 @@ XftFontInfoFill (Display *dpy, _Xconst FcPattern *pattern, XftFontInfo *fi)
      * hash or XftFontInfoEqual().
      */
 
-    memset (fi, '\0', sizeof(*fi));
+    memset (fi, '\0', sizeof (*fi));
 
     /*
      * Find the associated file
@@ -432,7 +433,7 @@ XftFontInfoFill (Display *dpy, _Xconst FcPattern *pattern, XftFontInfo *fi)
 
     if (XftDebug() & XFT_DBG_OPEN)
 	printf ("XftFontInfoFill: %s: %d (%g pixels)\n",
-		(filename ? filename : (FcChar8 *) "<none>"), id, dsize);
+		(filename ? filename : (const FcChar8 *) "<none>"), id, dsize);
     /*
      * Get antialias value
      */
@@ -481,13 +482,29 @@ XftFontInfoFill (Display *dpy, _Xconst FcPattern *pattern, XftFontInfo *fi)
 	fi->matrix.xy = fi->matrix.yx = 0;
 	break;
     case FcResultMatch:
-	fi->matrix.xx = 0x10000L * font_matrix->xx;
-	fi->matrix.yy = 0x10000L * font_matrix->yy;
-	fi->matrix.xy = 0x10000L * font_matrix->xy;
-	fi->matrix.yx = 0x10000L * font_matrix->yx;
+	fi->matrix.xx = (FT_Fixed)(0x10000L * font_matrix->xx);
+	fi->matrix.yy = (FT_Fixed)(0x10000L * font_matrix->yy);
+	fi->matrix.xy = (FT_Fixed)(0x10000L * font_matrix->xy);
+	fi->matrix.yx = (FT_Fixed)(0x10000L * font_matrix->yx);
 	break;
     default:
 	goto bail1;
+    }
+
+    mid = 1;
+    while (FcPatternGetMatrix (pattern, FC_MATRIX, mid, &font_matrix) == FcResultMatch) {
+	FcMatrixInit(&fm1);
+#define PreScale(value) ((double) (value) / (double) 0x10000L)
+	fm1.xx = PreScale(fi->matrix.xx);
+	fm1.yy = PreScale(fi->matrix.yy);
+	fm1.xy = PreScale(fi->matrix.xy);
+	fm1.yx = PreScale(fi->matrix.yx);
+	FcMatrixMultiply(&fm1, font_matrix, &fm1);
+	fi->matrix.xx = (FT_Fixed)(0x10000L * fm1.xx);
+	fi->matrix.yy = (FT_Fixed)(0x10000L * fm1.yy);
+	fi->matrix.xy = (FT_Fixed)(0x10000L * fm1.xy);
+	fi->matrix.yx = (FT_Fixed)(0x10000L * fm1.yx);
+	mid++;
     }
 
     fi->transform = (fi->matrix.xx != 0x10000 || fi->matrix.xy != 0 ||
@@ -499,6 +516,15 @@ XftFontInfoFill (Display *dpy, _Xconst FcPattern *pattern, XftFontInfo *fi)
     if (info->hasRender)
     {
 	switch (FcPatternGetBool (pattern, XFT_RENDER, 0, &fi->render)) {
+	case FcResultTypeMismatch:
+	    /*
+	     * Fontconfig no longer supports xft's custom values in
+	     * text patterns, so any name specifying render:true or
+	     * render:false will have an invalid type in the resulting
+	     * pattern. Just ignore that case so that the app doesn't
+	     * just fail
+	     */
+	    /* fall through ... */
 	case FcResultNoMatch:
 	    fi->render = info->hasRender;
 	    break;
@@ -514,7 +540,7 @@ XftFontInfoFill (Display *dpy, _Xconst FcPattern *pattern, XftFontInfo *fi)
     /*
      * Compute glyph load flags
      */
-    fi->load_flags = FT_LOAD_DEFAULT;
+    fi->load_flags = FT_LOAD_DEFAULT | FT_LOAD_COLOR;
 
 #ifndef XFT_EMBEDDED_BITMAP
 #define XFT_EMBEDDED_BITMAP "embeddedbitmap"
@@ -708,7 +734,7 @@ bail0:
 }
 
 static void
-XftFontInfoEmpty (Display *dpy, XftFontInfo *fi)
+XftFontInfoEmpty (Display *dpy _X_UNUSED, XftFontInfo *fi)
 {
     if (fi->file)
 	_XftReleaseFile (fi->file);
@@ -748,7 +774,7 @@ XftFontInfoHash (_Xconst XftFontInfo *fi)
 _X_EXPORT FcBool
 XftFontInfoEqual (_Xconst XftFontInfo *a, _Xconst XftFontInfo *b)
 {
-    return memcmp ((void *) a, (void *) b, sizeof (XftFontInfo)) == 0;
+    return memcmp ((const void *) a, (const void *) b, sizeof (XftFontInfo)) == 0;
 }
 
 _X_EXPORT XftFont *
@@ -766,11 +792,12 @@ XftFontOpenInfo (Display	*dpy,
     FcChar32		hash_value;
     FcChar32		rehash_value;
     FcBool		antialias;
+    FcBool		color;
     int			max_glyph_memory;
-    int			alloc_size;
+    size_t		alloc_size;
     int			ascent, descent, height;
     int			i;
-    int			num_glyphs;
+    FT_UInt		num_glyphs;
 
     if (!info)
 	return NULL;
@@ -822,12 +849,22 @@ XftFontOpenInfo (Display	*dpy,
     if (!(face->face_flags & FT_FACE_FLAG_SCALABLE))
 	antialias = FcFalse;
 
+#ifdef FT_HAS_SVG
+    color = (FT_HAS_COLOR(face) && !FT_HAS_SVG(face)) ? FcTrue : FcFalse;
+#else
+    color = FT_HAS_COLOR(face) ? FcTrue : FcFalse;
+#endif
+
     /*
      * Find the appropriate picture format
      */
     if (fi->render)
     {
-	if (antialias)
+	if (color)
+	{
+	    format = XRenderFindStandardFormat (dpy, PictStandardARGB32);
+	}
+	else if (antialias)
 	{
 	    switch (fi->rgba) {
 	    case FC_RGBA_RGB:
@@ -860,7 +897,6 @@ XftFontOpenInfo (Display	*dpy,
     }
     else
     {
-	num_unicode = 0;
 	hash_value = 0;
 	rehash_value = 0;
     }
@@ -869,9 +905,9 @@ XftFontOpenInfo (Display	*dpy,
      * Sometimes the glyphs are numbered 1..n, other times 0..n-1,
      * accept either numbering scheme by making room in the table
      */
-    num_glyphs = face->num_glyphs + 1;
+    num_glyphs = (FT_UInt)face->num_glyphs + 1;
     alloc_size = (sizeof (XftFontInt) +
-		  num_glyphs * sizeof (XftGlyph *) +
+		  (size_t)num_glyphs * sizeof (XftGlyph *) +
 		  hash_value * sizeof (XftUcsHash));
     font = malloc (alloc_size);
 
@@ -890,12 +926,12 @@ XftFontOpenInfo (Display	*dpy,
 	vector.x = 0;
 	vector.y = face->size->metrics.descender;
 	FT_Vector_Transform (&vector, &fi->matrix);
-	descent = -(vector.y >> 6);
+	descent = (int)(-(vector.y >> 6));
 
 	vector.x = 0;
 	vector.y = face->size->metrics.ascender;
 	FT_Vector_Transform (&vector, &fi->matrix);
-	ascent = vector.y >> 6;
+	ascent = (int)(vector.y >> 6);
 
 	if (fi->minspace)
 	    height = ascent + descent;
@@ -904,17 +940,17 @@ XftFontOpenInfo (Display	*dpy,
 	    vector.x = 0;
 	    vector.y = face->size->metrics.height;
 	    FT_Vector_Transform (&vector, &fi->matrix);
-	    height = vector.y >> 6;
+	    height = (int)(vector.y >> 6);
 	}
     }
     else
     {
-	descent = -(face->size->metrics.descender >> 6);
-	ascent = face->size->metrics.ascender >> 6;
+	descent = -(int)(face->size->metrics.descender >> 6);
+	ascent = (int)(face->size->metrics.ascender >> 6);
 	if (fi->minspace)
 	    height = ascent + descent;
 	else
-	    height = face->size->metrics.height >> 6;
+	    height = (int)(face->size->metrics.height >> 6);
     }
     font->public.ascent = ascent;
     font->public.descent = descent;
@@ -930,10 +966,10 @@ XftFontOpenInfo (Display	*dpy,
 	    vector.x = face->size->metrics.max_advance;
 	    vector.y = 0;
 	    FT_Vector_Transform (&vector, &fi->matrix);
-	    font->public.max_advance_width = vector.x >> 6;
+	    font->public.max_advance_width = (int)(vector.x >> 6);
 	}
 	else
-	    font->public.max_advance_width = face->size->metrics.max_advance >> 6;
+	    font->public.max_advance_width = (int)(face->size->metrics.max_advance >> 6);
     }
     font->public.charset = charset;
     font->public.pattern = pattern;
@@ -959,6 +995,13 @@ XftFontOpenInfo (Display	*dpy,
      * which doesn't happen in XftFontInfoFill
      */
     font->info.antialias = antialias;
+
+    /*
+     * Set color value, which is only known once the
+     * font was loaded
+     */
+    font->info.color = color;
+
     /*
      * bump XftFile reference count
      */
@@ -968,19 +1011,24 @@ XftFontOpenInfo (Display	*dpy,
      * Per glyph information
      */
     font->glyphs = (XftGlyph **) (font + 1);
-    memset (font->glyphs, '\0', num_glyphs * sizeof (XftGlyph *));
+    memset (font->glyphs, '\0', (size_t)num_glyphs * sizeof (XftGlyph *));
     font->num_glyphs = num_glyphs;
+    /*
+     * Memory-usage tracking
+     */
+    font->newest = FT_UINT_MAX;
+    font->total_inuse = 0;
     /*
      * Unicode hash table information
      */
     font->hash_table = (XftUcsHash *) (font->glyphs + font->num_glyphs);
-    for (i = 0; i < hash_value; i++)
+    for (i = 0; (FcChar32) i < hash_value; i++)
     {
 	font->hash_table[i].ucs4 = ((FcChar32) ~0);
 	font->hash_table[i].glyph = 0;
     }
-    font->hash_value = hash_value;
-    font->rehash_value = rehash_value;
+    font->hash_value = (int)hash_value;
+    font->rehash_value = (int)rehash_value;
     /*
      * X specific fields
      */
@@ -990,9 +1038,13 @@ XftFontOpenInfo (Display	*dpy,
     /*
      * Glyph memory management fields
      */
-    font->glyph_memory = 0;
-    font->max_glyph_memory = max_glyph_memory;
-    font->use_free_glyphs = info->use_free_glyphs;
+    font->glyph_memory     = 0;
+    font->max_glyph_memory = (unsigned long)max_glyph_memory;
+    font->track_mem_usage  = info->track_mem_usage;
+    font->use_free_glyphs  = info->use_free_glyphs;
+    font->sizeof_glyph     = (font->track_mem_usage
+    			      ? sizeof(XftGlyphUsage)
+			      : sizeof(XftGlyph));
 
     _XftUnlockFile (fi->file);
 
@@ -1021,7 +1073,7 @@ XftFontOpenPattern (Display *dpy, FcPattern *pattern)
 }
 
 _X_EXPORT XftFont *
-XftFontCopy (Display *dpy, XftFont *public)
+XftFontCopy (Display *dpy _X_UNUSED, XftFont *public)
 {
     XftFontInt	    *font = (XftFontInt *) public;
 
@@ -1034,7 +1086,7 @@ XftFontDestroy (Display *dpy, XftFont *public)
 {
     XftDisplayInfo  *info = _XftDisplayInfoGet (dpy, False);
     XftFontInt	    *font = (XftFontInt *) public;
-    int		    i;
+    FT_UInt	    i;
 
     /* note reduction in memory use */
     if (info)
@@ -1061,9 +1113,9 @@ XftFontDestroy (Display *dpy, XftFont *public)
     FcCharSetDestroy (font->public.charset);
 
     /* Finally, free the font structure */
-    XftMemFree (XFT_MEM_FONT, sizeof (XftFontInt) +
-		font->num_glyphs * sizeof (XftGlyph *) +
-		font->hash_value * sizeof (XftUcsHash));
+    XftMemFree (XFT_MEM_FONT, (sizeof (XftFontInt) +
+		(size_t)font->num_glyphs * sizeof (XftGlyph *) +
+		(size_t)font->hash_value * sizeof (XftUcsHash)));
     free (font);
 }
 

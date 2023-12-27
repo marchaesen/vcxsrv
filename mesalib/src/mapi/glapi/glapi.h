@@ -125,8 +125,7 @@ _glapi_get_dispatch_table_size(void);
 
 
 _GLAPI_EXPORT int
-_glapi_add_dispatch( const char * const * function_names,
-		     const char * parameter_signature );
+_glapi_add_dispatch( const char * function_name );
 
 _GLAPI_EXPORT int
 _glapi_get_proc_offset(const char *funcName);

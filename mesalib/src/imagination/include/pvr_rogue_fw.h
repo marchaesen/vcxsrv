@@ -28,25 +28,6 @@
 #ifndef PVR_ROGUE_FW_H
 #define PVR_ROGUE_FW_H
 
-/**
- * Maximum PB free list size supported by RGX and Services.
- *
- * Maximum PB free list size must ensure that no PM address space can be fully
- * used, because if the full address space was used it would wrap and corrupt
- * itself. Since there are two freelists (local is always minimum sized) this
- * can be described as following three conditions being met:
- *
- *  Minimum PB + Maximum PB < ALIST PM address space size (16GB)
- *  Minimum PB + Maximum PB < TE PM address space size (16GB) / NUM_TE_PIPES
- *  Minimum PB + Maximum PB < VCE PM address space size (16GB) / NUM_VCE_PIPES
- *
- * Since the max of NUM_TE_PIPES and NUM_VCE_PIPES is 4, we have a hard limit
- * of 4GB minus the Minimum PB. For convenience we take the smaller power-of-2
- * value of 2GB. This is far more than any normal application would request
- * or use.
- */
-#define ROGUE_FREE_LIST_MAX_SIZE (2ULL * 1024ULL * 1024ULL * 1024ULL)
-
 /* FIXME: This will change based on the firmware configuration, which will vary
  * depending on the BVNC and firmware version. The powervr KM driver allows this
  * information to be queried, but the pvrsrvkm KM driver doesn't. This

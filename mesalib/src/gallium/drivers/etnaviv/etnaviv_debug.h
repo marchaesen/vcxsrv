@@ -25,38 +25,43 @@
 #ifndef H_ETNA_DEBUG
 #define H_ETNA_DEBUG
 
+#include "util/u_debug.h"
 #include "util/log.h"
+#include "util/macros.h"
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Logging */
-#define ETNA_DBG_MSGS            0x1 /* Warnings and non-fatal errors */
-#define ETNA_DBG_FRAME_MSGS      0x2
-#define ETNA_DBG_RESOURCE_MSGS   0x4
-#define ETNA_DBG_COMPILER_MSGS   0x8
-#define ETNA_DBG_LINKER_MSGS     0x10
-#define ETNA_DBG_DUMP_SHADERS    0x20
-#define ETNA_DRM_MSGS            0x40 /* Debug messages from DRM */
+enum etna_dbg {
+   /* Logging */
+   ETNA_DBG_MSGS            = BITFIELD_BIT(0), /* Warnings and non-fatal errors */
+   ETNA_DBG_FRAME_MSGS      = BITFIELD_BIT(1),
+   ETNA_DBG_RESOURCE_MSGS   = BITFIELD_BIT(2),
+   ETNA_DBG_COMPILER_MSGS   = BITFIELD_BIT(3),
+   ETNA_DBG_LINKER_MSGS     = BITFIELD_BIT(4),
+   ETNA_DBG_DUMP_SHADERS    = BITFIELD_BIT(5),
+   ETNA_DRM_MSGS            = BITFIELD_BIT(6), /* Debug messages from DRM */
+   ETNA_DBG_PERF            = BITFIELD_BIT(7),
 
-/* Bypasses */
-#define ETNA_DBG_NO_TS           0x1000   /* Disable TS */
-#define ETNA_DBG_NO_AUTODISABLE  0x2000   /* Disable autodisable */
-#define ETNA_DBG_NO_SUPERTILE    0x4000   /* Disable supertile */
-#define ETNA_DBG_NO_EARLY_Z      0x8000   /* Disable early z */
-#define ETNA_DBG_CFLUSH_ALL      0x10000  /* Flush before every state update + draw call */
-#define ETNA_DBG_MSAA_2X         0x20000  /* Force 2X MSAA for screen */
-#define ETNA_DBG_MSAA_4X         0x40000  /* Force 4X MSAA for screen */
-#define ETNA_DBG_FINISH_ALL      0x80000  /* Finish on every flush */
-#define ETNA_DBG_FLUSH_ALL       0x100000 /* Flush after every rendered primitive */
-#define ETNA_DBG_ZERO            0x200000 /* Zero all resources after allocation */
-#define ETNA_DBG_DRAW_STALL      0x400000 /* Stall FE/PE after every draw op */
-#define ETNA_DBG_SHADERDB        0x800000 /* dump program compile information */
-#define ETNA_DBG_NO_SINGLEBUF    0x1000000 /* disable single buffer feature */
-#define ETNA_DBG_DEQP            0x2000000 /* Hacks to run dEQP GLES3 tests */
-#define ETNA_DBG_NOCACHE         0x4000000 /* Disable shader cache */
-#define ETNA_DBG_NO_LINEAR_PE    0x8000000 /* Disable linear PE */
+   /* Bypasses */
+   ETNA_DBG_NO_TS           = BITFIELD_BIT(12), /* Disable TS */
+   ETNA_DBG_NO_AUTODISABLE  = BITFIELD_BIT(13), /* Disable autodisable */
+   ETNA_DBG_NO_SUPERTILE    = BITFIELD_BIT(14), /* Disable supertile */
+   ETNA_DBG_NO_EARLY_Z      = BITFIELD_BIT(15), /* Disable early z */
+   ETNA_DBG_CFLUSH_ALL      = BITFIELD_BIT(16), /* Flush before every state update + draw call */
+   ETNA_DBG_FINISH_ALL      = BITFIELD_BIT(17), /* Finish on every flush */
+   ETNA_DBG_FLUSH_ALL       = BITFIELD_BIT(18), /* Flush after every rendered primitive */
+   ETNA_DBG_ZERO            = BITFIELD_BIT(19), /* Zero all resources after allocation */
+   ETNA_DBG_DRAW_STALL      = BITFIELD_BIT(20), /* Stall FE/PE after every draw op */
+   ETNA_DBG_SHADERDB        = BITFIELD_BIT(21), /* dump program compile information */
+   ETNA_DBG_NO_SINGLEBUF    = BITFIELD_BIT(22), /* disable single buffer feature */
+   ETNA_DBG_DEQP            = BITFIELD_BIT(23), /* Hacks to run dEQP GLES3 tests */
+   ETNA_DBG_NOCACHE         = BITFIELD_BIT(24), /* Disable shader cache */
+   ETNA_DBG_LINEAR_PE       = BITFIELD_BIT(25), /* Enable linear PE */
+   ETNA_DBG_MSAA            = BITFIELD_BIT(26), /* Enable MSAA */
+   ETNA_DBG_SHARED_TS       = BITFIELD_BIT(27), /* Enable TS sharing */
+};
 
 extern int etna_mesa_debug; /* set in etnaviv_screen.c from ETNA_MESA_DEBUG */
 
@@ -64,22 +69,39 @@ extern int etna_mesa_debug; /* set in etnaviv_screen.c from ETNA_MESA_DEBUG */
 
 #define DBG_F(flag, fmt, ...)                             \
    do {                                                   \
-      if (etna_mesa_debug & (flag))                       \
-         mesa_logd("%s:%d: " fmt, __FUNCTION__, __LINE__, \
+      if (DBG_ENABLED(flag))                              \
+         mesa_logd("%s:%d: " fmt, __func__, __LINE__,     \
                    ##__VA_ARGS__);                        \
    } while (0)
 
 #define DBG(fmt, ...)                                     \
    do {                                                   \
-      if (etna_mesa_debug & ETNA_DBG_MSGS)                \
-         mesa_logd("%s:%d: " fmt, __FUNCTION__, __LINE__, \
+      if (DBG_ENABLED(ETNA_DBG_MSGS))                     \
+         mesa_logd("%s:%d: " fmt, __func__, __LINE__,     \
                    ##__VA_ARGS__);                        \
    } while (0)
 
 /* A serious bug, show this even in non-debug mode */
 #define BUG(fmt, ...)                                                  \
    do {                                                                \
-      mesa_loge("%s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__); \
+      mesa_loge("%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__);     \
    } while (0)
+
+#define perf_debug_message(debug, type, ...)                           \
+   do {                                                                \
+      if (DBG_ENABLED(ETNA_DBG_PERF))                                  \
+         mesa_logw(__VA_ARGS__);                                       \
+      struct util_debug_callback *__d = (debug);                       \
+      if (__d)                                                         \
+         util_debug_message(__d, type, __VA_ARGS__);                   \
+   } while (0)
+
+#define perf_debug_ctx(ctx, ...)                                                 \
+   do {                                                                          \
+      struct etna_context *__c = (ctx);                                          \
+      perf_debug_message(__c ? &__c->base.debug : NULL, PERF_INFO, __VA_ARGS__); \
+   } while (0)
+
+#define perf_debug(...) perf_debug_ctx(NULL, PERF_INFO, __VA_ARGS__)
 
 #endif

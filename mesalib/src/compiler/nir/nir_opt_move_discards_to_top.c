@@ -27,17 +27,6 @@
 #include "nir_worklist.h"
 
 static bool
-nir_op_is_derivative(nir_op op)
-{
-   return op == nir_op_fddx ||
-          op == nir_op_fddy ||
-          op == nir_op_fddx_fine ||
-          op == nir_op_fddy_fine ||
-          op == nir_op_fddx_coarse ||
-          op == nir_op_fddy_coarse;
-}
-
-static bool
 nir_texop_implies_derivative(nir_texop op)
 {
    return op == nir_texop_tex ||
@@ -54,9 +43,6 @@ nir_texop_implies_derivative(nir_texop op)
 static bool
 can_move_src(nir_src *src, void *worklist)
 {
-   if (!src->is_ssa)
-      return false;
-
    nir_instr *instr = src->ssa->parent_instr;
    if (instr->pass_flags)
       return true;
@@ -156,7 +142,7 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
 
          case nir_instr_type_deref:
          case nir_instr_type_load_const:
-         case nir_instr_type_ssa_undef:
+         case nir_instr_type_undef:
          case nir_instr_type_phi:
             /* These are all safe */
             continue;
@@ -210,7 +196,7 @@ break_all:
        * This provides stability for the algorithm and ensures that we don't
        * accidentally get dependencies out-of-order.
        */
-      nir_cursor cursor = nir_before_block(nir_start_block(impl));
+      nir_cursor cursor = nir_before_impl(impl);
       nir_foreach_block(block, impl) {
          nir_foreach_instr_safe(instr, block) {
             if (instr->pass_flags == STOP_PROCESSING_INSTR_FLAG)
@@ -240,10 +226,10 @@ nir_opt_move_discards_to_top(nir_shader *shader)
    if (!shader->info.fs.uses_discard)
       return false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl && opt_move_discards_to_top_impl(function->impl)) {
-         nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                               nir_metadata_dominance);
+   nir_foreach_function_impl(impl, shader) {
+      if (opt_move_discards_to_top_impl(impl)) {
+         nir_metadata_preserve(impl, nir_metadata_block_index |
+                                        nir_metadata_dominance);
          progress = true;
       }
    }

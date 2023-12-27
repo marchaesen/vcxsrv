@@ -35,12 +35,13 @@
 struct etna_surface {
    struct pipe_surface base;
 
-   struct etna_resource_level surf;
    struct compiled_rs_state clear_command;
    /* Keep pointer to resource level, for fast clear */
    struct etna_resource_level *level;
    struct etna_reloc reloc[ETNA_MAX_PIXELPIPES];
    struct etna_reloc ts_reloc;
+   uint32_t offset; /* pre-calculated level + layer offset */
+   uint32_t ts_offset; /* pre-calculated level + layer TS offset */
    /* keep pointer to original resource (for when a render compatible resource is used) */
    struct pipe_resource *prsc;
 };

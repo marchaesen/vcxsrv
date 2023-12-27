@@ -811,8 +811,10 @@ XvdiSelectVideoNotify(ClientPtr client, DrawablePtr pDraw, BOOL onoff)
         tpn = pn;
         while (tpn) {
             if (tpn->client == client) {
-                if (!onoff)
+                if (!onoff) {
                     tpn->client = NULL;
+                    FreeResource(tpn->id, XvRTVideoNotify);
+                }
                 return Success;
             }
             if (!tpn->client)

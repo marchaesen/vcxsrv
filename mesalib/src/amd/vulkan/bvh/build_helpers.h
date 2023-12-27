@@ -157,10 +157,15 @@
 #define VK_GEOMETRY_TYPE_TRIANGLES_KHR 0
 #define VK_GEOMETRY_TYPE_AABBS_KHR     1
 
-#define TYPE(type, align)                                                                          \
-   layout(buffer_reference, buffer_reference_align = align) buffer type##_ref                      \
-   {                                                                                               \
-      type value;                                                                                  \
+#define VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR 1
+#define VK_GEOMETRY_INSTANCE_TRIANGLE_FLIP_FACING_BIT_KHR         2
+#define VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR                 4
+#define VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR              8
+
+#define TYPE(type, align)                                                                                              \
+   layout(buffer_reference, buffer_reference_align = align, scalar) buffer type##_ref                                  \
+   {                                                                                                                   \
+      type value;                                                                                                      \
    };
 
 #define REF(type)  type##_ref
@@ -168,7 +173,7 @@
 #define NULL       0
 #define DEREF(var) var.value
 
-#define SIZEOF(type) uint32_t(uint64_t(REF(type)(uint64_t(0))+1))
+#define SIZEOF(type) uint32_t(uint64_t(REF(type)(uint64_t(0)) + 1))
 
 #define OFFSET(ptr, offset) (uint64_t(ptr) + offset)
 
@@ -196,32 +201,27 @@ TYPE(uvec4, 16);
 
 TYPE(VOID_REF, 8);
 
-void
-min_float_emulated(REF(int32_t) addr, float f)
+/* copied from u_math.h */
+uint32_t
+align(uint32_t value, uint32_t alignment)
 {
-   int32_t bits = floatBitsToInt(f);
-   atomicMin(DEREF(addr), f < 0 ? -2147483648 - bits : bits);
+   return (value + alignment - 1) & ~(alignment - 1);
 }
 
-void
-max_float_emulated(REF(int32_t) addr, float f)
+int32_t
+to_emulated_float(float f)
 {
    int32_t bits = floatBitsToInt(f);
-   atomicMax(DEREF(addr), f < 0 ? -2147483648 - bits : bits);
+   return f < 0 ? -2147483648 - bits : bits;
 }
 
 float
-load_minmax_float_emulated(VOID_REF addr)
+from_emulated_float(int32_t bits)
 {
-   int32_t bits = DEREF(REF(int32_t)(addr));
    return intBitsToFloat(bits < 0 ? -2147483648 - bits : bits);
 }
 
-struct AABB {
-   vec3 min;
-   vec3 max;
-};
-TYPE(AABB, 4);
+TYPE(radv_aabb, 4);
 
 struct key_id_pair {
    uint32_t id;
@@ -236,6 +236,12 @@ TYPE(radv_bvh_aabb_node, 4);
 TYPE(radv_bvh_instance_node, 8);
 TYPE(radv_bvh_box16_node, 4);
 TYPE(radv_bvh_box32_node, 4);
+
+TYPE(radv_ir_header, 4);
+TYPE(radv_ir_node, 4);
+TYPE(radv_ir_box_node, 4);
+
+TYPE(radv_global_sync_data, 4);
 
 uint32_t
 id_to_offset(uint32_t id)
@@ -255,80 +261,183 @@ pack_node_id(uint32_t offset, uint32_t type)
    return (offset >> 3) | type;
 }
 
-#define NULL_NODE_ID 0xFFFFFFFF
-
-AABB
-calculate_instance_node_bounds(radv_bvh_instance_node instance)
+uint64_t
+node_to_addr(uint64_t node)
 {
-   AABB aabb;
-   radv_accel_struct_header header = DEREF(REF(radv_accel_struct_header)(instance.base_ptr));
-
-   for (uint32_t comp = 0; comp < 3; ++comp) {
-      aabb.min[comp] = instance.otw_matrix[comp][3];
-      aabb.max[comp] = instance.otw_matrix[comp][3];
-      for (uint32_t col = 0; col < 3; ++col) {
-         aabb.min[comp] += min(instance.otw_matrix[comp][col] * header.aabb[0][col],
-                               instance.otw_matrix[comp][col] * header.aabb[1][col]);
-         aabb.max[comp] += max(instance.otw_matrix[comp][col] * header.aabb[0][col],
-                               instance.otw_matrix[comp][col] * header.aabb[1][col]);
-      }
-   }
-   return aabb;
+   node &= ~7ul;
+   node <<= 19;
+   return int64_t(node) >> 16;
 }
 
-AABB
-calculate_node_bounds(VOID_REF bvh, uint32_t id)
+uint64_t
+addr_to_node(uint64_t addr)
 {
-   AABB aabb;
-
-   VOID_REF node = OFFSET(bvh, id_to_offset(id));
-   switch (id_to_type(id)) {
-   case radv_bvh_node_triangle: {
-      radv_bvh_triangle_node triangle = DEREF(REF(radv_bvh_triangle_node)(node));
-
-      vec3 v0 = vec3(triangle.coords[0][0], triangle.coords[0][1], triangle.coords[0][2]);
-      vec3 v1 = vec3(triangle.coords[1][0], triangle.coords[1][1], triangle.coords[1][2]);
-      vec3 v2 = vec3(triangle.coords[2][0], triangle.coords[2][1], triangle.coords[2][2]);
-
-      aabb.min = min(min(v0, v1), v2);
-      aabb.max = max(max(v0, v1), v2);
-      break;
-   }
-   case radv_bvh_node_internal: {
-      radv_bvh_box32_node internal = DEREF(REF(radv_bvh_box32_node)(node));
-      aabb.min = vec3(INFINITY);
-      aabb.max = vec3(-INFINITY);
-      for (uint32_t i = 0; i < 4; i++) {
-         aabb.min.x = min(aabb.min.x, internal.coords[i][0][0]);
-         aabb.min.y = min(aabb.min.y, internal.coords[i][0][1]);
-         aabb.min.z = min(aabb.min.z, internal.coords[i][0][2]);
-
-         aabb.max.x = max(aabb.max.x, internal.coords[i][1][0]);
-         aabb.max.y = max(aabb.max.y, internal.coords[i][1][1]);
-         aabb.max.z = max(aabb.max.z, internal.coords[i][1][2]);
-      }
-      break;
-   }
-   case radv_bvh_node_instance: {
-      radv_bvh_instance_node instance = DEREF(REF(radv_bvh_instance_node)(node));
-      aabb = calculate_instance_node_bounds(instance);
-      break;
-   }
-   case radv_bvh_node_aabb: {
-      radv_bvh_aabb_node custom = DEREF(REF(radv_bvh_aabb_node)(node));
-
-      aabb.min.x = custom.aabb[0][0];
-      aabb.min.y = custom.aabb[0][1];
-      aabb.min.z = custom.aabb[0][2];
-
-      aabb.max.x = custom.aabb[1][0];
-      aabb.max.y = custom.aabb[1][1];
-      aabb.max.z = custom.aabb[1][2];
-      break;
-   }
-   }
-
-   return aabb;
+   return (addr >> 3) & ((1ul << 45) - 1);
 }
+
+uint32_t
+ir_id_to_offset(uint32_t id)
+{
+   return id & (~3u);
+}
+
+uint32_t
+ir_id_to_type(uint32_t id)
+{
+   return id & 3u;
+}
+
+uint32_t
+pack_ir_node_id(uint32_t offset, uint32_t type)
+{
+   return offset | type;
+}
+
+uint32_t
+ir_type_to_bvh_type(uint32_t type)
+{
+   switch (type) {
+   case radv_ir_node_triangle:
+      return radv_bvh_node_triangle;
+   case radv_ir_node_internal:
+      return radv_bvh_node_box32;
+   case radv_ir_node_instance:
+      return radv_bvh_node_instance;
+   case radv_ir_node_aabb:
+      return radv_bvh_node_aabb;
+   }
+   /* unreachable in valid nodes */
+   return RADV_BVH_INVALID_NODE;
+}
+
+float
+aabb_surface_area(radv_aabb aabb)
+{
+   vec3 diagonal = aabb.max - aabb.min;
+   return 2 * diagonal.x * diagonal.y + 2 * diagonal.y * diagonal.z + 2 * diagonal.x * diagonal.z;
+}
+
+/** Compute ceiling of integer quotient of A divided by B.
+    From macros.h */
+#define DIV_ROUND_UP(A, B) (((A) + (B)-1) / (B))
+
+#ifdef USE_GLOBAL_SYNC
+
+/* There might be more invocations available than tasks to do.
+ * In that case, the fetched task index is greater than the
+ * counter offset for the next phase. To avoid out-of-bounds
+ * accessing, phases will be skipped until the task index is
+ * is in-bounds again. */
+uint32_t num_tasks_to_skip = 0;
+uint32_t phase_index = 0;
+bool should_skip = false;
+shared uint32_t global_task_index;
+
+shared uint32_t shared_phase_index;
+
+uint32_t
+task_count(REF(radv_ir_header) header)
+{
+   uint32_t phase_index = DEREF(header).sync_data.phase_index;
+   return DEREF(header).sync_data.task_counts[phase_index & 1];
+}
+
+/* Sets the task count for the next phase. */
+void
+set_next_task_count(REF(radv_ir_header) header, uint32_t new_count)
+{
+   uint32_t phase_index = DEREF(header).sync_data.phase_index;
+   DEREF(header).sync_data.task_counts[(phase_index + 1) & 1] = new_count;
+}
+
+/*
+ * This function has two main objectives:
+ * Firstly, it partitions pending work among free invocations.
+ * Secondly, it guarantees global synchronization between different phases.
+ *
+ * After every call to fetch_task, a new task index is returned.
+ * fetch_task will also set num_tasks_to_skip. Use should_execute_phase
+ * to determine if the current phase should be executed or skipped.
+ *
+ * Since tasks are assigned per-workgroup, there is a possibility of the task index being
+ * greater than the total task count.
+ */
+uint32_t
+fetch_task(REF(radv_ir_header) header, bool did_work)
+{
+   /* Perform a memory + control barrier for all buffer writes for the entire workgroup.
+    * This guarantees that once the workgroup leaves the PHASE loop, all invocations have finished
+    * and their results are written to memory. */
+   controlBarrier(gl_ScopeWorkgroup, gl_ScopeDevice, gl_StorageSemanticsBuffer,
+                  gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
+   if (gl_LocalInvocationIndex == 0) {
+      if (did_work)
+         atomicAdd(DEREF(header).sync_data.task_done_counter, 1);
+      global_task_index = atomicAdd(DEREF(header).sync_data.task_started_counter, 1);
+
+      do {
+         /* Perform a memory barrier to refresh the current phase's end counter, in case
+          * another workgroup changed it. */
+         memoryBarrier(gl_ScopeDevice, gl_StorageSemanticsBuffer,
+                       gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
+
+         /* The first invocation of the first workgroup in a new phase is responsible to initiate the
+          * switch to a new phase. It is only possible to switch to a new phase if all tasks of the
+          * previous phase have been completed. Switching to a new phase and incrementing the phase
+          * end counter in turn notifies all invocations for that phase that it is safe to execute.
+          */
+         if (global_task_index == DEREF(header).sync_data.current_phase_end_counter &&
+             DEREF(header).sync_data.task_done_counter == DEREF(header).sync_data.current_phase_end_counter) {
+            if (DEREF(header).sync_data.next_phase_exit_flag != 0) {
+               DEREF(header).sync_data.phase_index = TASK_INDEX_INVALID;
+               memoryBarrier(gl_ScopeDevice, gl_StorageSemanticsBuffer,
+                             gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
+            } else {
+               atomicAdd(DEREF(header).sync_data.phase_index, 1);
+               DEREF(header).sync_data.current_phase_start_counter = DEREF(header).sync_data.current_phase_end_counter;
+               /* Ensure the changes to the phase index and start/end counter are visible for other
+                * workgroup waiting in the loop. */
+               memoryBarrier(gl_ScopeDevice, gl_StorageSemanticsBuffer,
+                             gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
+               atomicAdd(DEREF(header).sync_data.current_phase_end_counter,
+                         DIV_ROUND_UP(task_count(header), gl_WorkGroupSize.x));
+            }
+            break;
+         }
+
+         /* If other invocations have finished all nodes, break out; there is no work to do */
+         if (DEREF(header).sync_data.phase_index == TASK_INDEX_INVALID) {
+            break;
+         }
+      } while (global_task_index >= DEREF(header).sync_data.current_phase_end_counter);
+
+      shared_phase_index = DEREF(header).sync_data.phase_index;
+   }
+
+   barrier();
+   if (DEREF(header).sync_data.phase_index == TASK_INDEX_INVALID)
+      return TASK_INDEX_INVALID;
+
+   num_tasks_to_skip = shared_phase_index - phase_index;
+
+   uint32_t local_task_index = global_task_index - DEREF(header).sync_data.current_phase_start_counter;
+   return local_task_index * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+}
+
+bool
+should_execute_phase()
+{
+   if (num_tasks_to_skip > 0) {
+      /* Skip to next phase. */
+      ++phase_index;
+      --num_tasks_to_skip;
+      return false;
+   }
+   return true;
+}
+
+#define PHASE(header)                                                                                                  \
+   for (; task_index != TASK_INDEX_INVALID && should_execute_phase(); task_index = fetch_task(header, true))
+#endif
 
 #endif

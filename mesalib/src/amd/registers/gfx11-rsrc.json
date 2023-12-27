@@ -305,6 +305,7 @@
   "SQ_IMG_RSRC_WORD4": {
    "fields": [
     {"bits": [0, 12], "name": "DEPTH"},
+    {"bits": [13, 13], "comment": "1D, 2D, 2D_MSAA: the pitch if pitch > width, the low bits are in DEPTH", "name": "PITCH_MSB"},
     {"bits": [16, 28], "name": "BASE_ARRAY"}
    ]
   },

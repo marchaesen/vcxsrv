@@ -544,7 +544,7 @@ ra_realloc_interference_graph(struct ra_graph *g, unsigned int alloc)
     * easier to memset the top of the growing bitsets.
     */
    assert(g->alloc % BITSET_WORDBITS == 0);
-   alloc = align64(alloc, BITSET_WORDBITS);
+   alloc = align(alloc, BITSET_WORDBITS);
    g->nodes = rerzalloc(g, g->nodes, struct ra_node, g->alloc, alloc);
    g->adjacency = rerzalloc(g, g->adjacency, BITSET_WORD,
                             BITSET_WORDS(ra_get_num_adjacency_bits(g->alloc)),

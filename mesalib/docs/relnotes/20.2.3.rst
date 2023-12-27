@@ -90,7 +90,7 @@ Igor V. Kovalenko (1):
 
 - r600: amend space check for chips older than EVERGREEN
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 - mesa/spirv: Lower variable initializers for global variables
 - nir: Handle incomplete derefs in split_struct_vars

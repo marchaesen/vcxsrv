@@ -15,8 +15,8 @@
     <param name="divisor" type="GLuint"/>
   </function>
 
-  <function name="VertexArrayVertexAttribDivisorEXT"
-            marshal_call_after="if (COMPAT) _mesa_glthread_AttribDivisor(ctx, &amp;vaobj, VERT_ATTRIB_GENERIC(index), divisor);">
+  <function name="VertexArrayVertexAttribDivisorEXT" deprecated="3.1"
+            marshal_call_after="_mesa_glthread_AttribDivisor(ctx, &amp;vaobj, VERT_ATTRIB_GENERIC(index), divisor);">
 	<param name="vaobj" type="GLuint"/>
     <param name="index" type="GLuint"/>
     <param name="divisor" type="GLuint"/>
@@ -24,5 +24,16 @@
 
 </category>
 
+<category name="GL_EXT_instanced_arrays" number="156">
+
+  <enum name="VERTEX_ATTRIB_ARRAY_DIVISOR_EXT" value="0x88FE"/>
+
+  <function name="VertexAttribDivisorEXT" alias="VertexAttribDivisor" es2="2.0">
+    <param name="index" type="GLuint"/>
+    <param name="divisor" type="GLuint"/>
+  </function>
+  <!-- The rest of the bits for this is already in ARB_draw_instanced.xml. -->
+
+</category>
 
 </OpenGLAPI>

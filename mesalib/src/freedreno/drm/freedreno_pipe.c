@@ -53,7 +53,7 @@ fd_pipe_new2(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
       return NULL;
    }
 
-   pipe->dev = fd_device_ref(dev);
+   pipe->dev = dev;
    pipe->id = id;
    p_atomic_set(&pipe->refcnt, 1);
 
@@ -63,8 +63,15 @@ fd_pipe_new2(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
    fd_pipe_get_param(pipe, FD_CHIP_ID, &val);
    pipe->dev_id.chip_id = val;
 
+   pipe->is_64bit = fd_dev_64b(&pipe->dev_id);
+
+   /* Use the _NOSYNC flags because we don't want the control_mem bo to hold
+    * a reference to the ourself.  This also means that we won't be able
+    * to determine if the buffer is idle which is needed by bo-cache.  But
+    * pipe creation/destroy is not a high frequency event.
+    */
    pipe->control_mem = fd_bo_new(dev, sizeof(*pipe->control),
-                                 FD_BO_CACHED_COHERENT,
+                                 FD_BO_CACHED_COHERENT | _FD_BO_NOSYNC,
                                  "pipe-control");
    pipe->control = fd_bo_map(pipe->control_mem);
 
@@ -72,14 +79,6 @@ fd_pipe_new2(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
     * is not garbage:
     */
    pipe->control->fence = 0;
-
-   /* We don't want the control_mem bo to hold a reference to the ourself,
-    * so disable userspace fencing.  This also means that we won't be able
-    * to determine if the buffer is idle which is needed by bo-cache.  But
-    * pipe creation/destroy is not a high frequency event so just disable
-    * the bo-cache as well:
-    */
-   pipe->control_mem->nosync = true;
    pipe->control_mem->bo_reuse = NO_CACHE;
 
    return pipe;
@@ -94,76 +93,64 @@ fd_pipe_new(struct fd_device *dev, enum fd_pipe_id id)
 struct fd_pipe *
 fd_pipe_ref(struct fd_pipe *pipe)
 {
-   simple_mtx_lock(&table_lock);
+   simple_mtx_lock(&fence_lock);
    fd_pipe_ref_locked(pipe);
-   simple_mtx_unlock(&table_lock);
+   simple_mtx_unlock(&fence_lock);
    return pipe;
 }
 
 struct fd_pipe *
 fd_pipe_ref_locked(struct fd_pipe *pipe)
 {
-   simple_mtx_assert_locked(&table_lock);
+   simple_mtx_assert_locked(&fence_lock);
    pipe->refcnt++;
    return pipe;
-}
-
-
-static void
-pipe_del_locked(struct fd_pipe *pipe)
-{
-   fd_bo_del_locked(pipe->control_mem);
-   fd_device_del_locked(pipe->dev);
-   pipe->funcs->destroy(pipe);
 }
 
 void
 fd_pipe_del(struct fd_pipe *pipe)
 {
-   if (!p_atomic_dec_zero(&pipe->refcnt))
-      return;
-   simple_mtx_lock(&table_lock);
-   pipe_del_locked(pipe);
-   simple_mtx_unlock(&table_lock);
+   simple_mtx_lock(&fence_lock);
+   fd_pipe_del_locked(pipe);
+   simple_mtx_unlock(&fence_lock);
 }
 
 void
 fd_pipe_del_locked(struct fd_pipe *pipe)
 {
-   simple_mtx_assert_locked(&table_lock);
-   if (!p_atomic_dec_zero(&pipe->refcnt))
+   simple_mtx_assert_locked(&fence_lock);
+   if (--pipe->refcnt)
       return;
-   pipe_del_locked(pipe);
+
+   fd_bo_del(pipe->control_mem);
+   pipe->funcs->destroy(pipe);
 }
 
 /**
- * Discard any unflushed deferred submits.  This is called at context-
+ * Flush any unflushed deferred submits.  This is called at context-
  * destroy to make sure we don't leak unflushed submits.
  */
 void
 fd_pipe_purge(struct fd_pipe *pipe)
 {
    struct fd_device *dev = pipe->dev;
-   struct list_head deferred_submits;
-
-   list_inithead(&deferred_submits);
+   struct fd_fence *unflushed_fence = NULL;
 
    simple_mtx_lock(&dev->submit_lock);
 
-   foreach_submit_safe (deferred_submit, &dev->deferred_submits) {
-      if (deferred_submit->pipe != pipe)
-         continue;
-
-      list_del(&deferred_submit->node);
-      list_addtail(&deferred_submit->node, &deferred_submits);
-      dev->deferred_cmds -= fd_ringbuffer_cmd_count(deferred_submit->primary);
+   /* We only queue up deferred submits for a single pipe at a time, so
+    * if there is a deferred_submits_fence on the same pipe as us, we
+    * know we have deferred_submits queued, which need to be flushed:
+    */
+   if (dev->deferred_submits_fence && dev->deferred_submits_fence->pipe == pipe) {
+      unflushed_fence = fd_fence_ref(dev->deferred_submits_fence);
    }
 
    simple_mtx_unlock(&dev->submit_lock);
 
-   foreach_submit_safe (deferred_submit, &deferred_submits) {
-      list_del(&deferred_submit->node);
-      fd_submit_del(deferred_submit);
+   if (unflushed_fence) {
+      fd_fence_flush(unflushed_fence);
+      fd_fence_del(unflushed_fence);
    }
 }
 
@@ -198,6 +185,9 @@ fd_pipe_wait_timeout(struct fd_pipe *pipe, const struct fd_fence *fence,
    if (!fd_fence_after(fence->ufence, pipe->control->fence))
       return 0;
 
+   if (!timeout)
+      return -ETIMEDOUT;
+
    fd_pipe_flush(pipe, fence->ufence);
 
    return pipe->funcs->wait(pipe, fence, timeout);
@@ -208,7 +198,7 @@ fd_pipe_emit_fence(struct fd_pipe *pipe, struct fd_ringbuffer *ring)
 {
    uint32_t fence = ++pipe->last_fence;
 
-   if (fd_dev_64b(&pipe->dev_id)) {
+   if (pipe->is_64bit) {
       OUT_PKT7(ring, CP_EVENT_WRITE, 4);
       OUT_RING(ring, CP_EVENT_WRITE_0_EVENT(CACHE_FLUSH_TS));
       OUT_RELOC(ring, control_ptr(pipe, fence));   /* ADDR_LO/HI */
@@ -221,4 +211,82 @@ fd_pipe_emit_fence(struct fd_pipe *pipe, struct fd_ringbuffer *ring)
    }
 
    return fence;
+}
+
+struct fd_fence *
+fd_fence_new(struct fd_pipe *pipe, bool use_fence_fd)
+{
+   struct fd_fence *f = calloc(1, sizeof(*f));
+
+   f->refcnt = 1;
+   f->pipe = fd_pipe_ref(pipe);
+   util_queue_fence_init(&f->ready);
+   f->use_fence_fd = use_fence_fd;
+   f->fence_fd = -1;
+
+   return f;
+}
+
+struct fd_fence *
+fd_fence_ref(struct fd_fence *f)
+{
+   simple_mtx_lock(&fence_lock);
+   fd_fence_ref_locked(f);
+   simple_mtx_unlock(&fence_lock);
+
+   return f;
+}
+
+struct fd_fence *
+fd_fence_ref_locked(struct fd_fence *f)
+{
+   simple_mtx_assert_locked(&fence_lock);
+   f->refcnt++;
+   return f;
+}
+
+void
+fd_fence_del(struct fd_fence *f)
+{
+   simple_mtx_lock(&fence_lock);
+   fd_fence_del_locked(f);
+   simple_mtx_unlock(&fence_lock);
+}
+
+void
+fd_fence_del_locked(struct fd_fence *f)
+{
+   simple_mtx_assert_locked(&fence_lock);
+
+   if (--f->refcnt)
+      return;
+
+   fd_pipe_del_locked(f->pipe);
+
+   if (f->use_fence_fd && (f->fence_fd != -1))
+      close(f->fence_fd);
+
+   free(f);
+}
+
+/**
+ * Wait until corresponding submit is flushed to kernel
+ */
+void
+fd_fence_flush(struct fd_fence *f)
+{
+   MESA_TRACE_FUNC();
+   /*
+    * TODO we could simplify this to remove the flush_sync part of
+    * fd_pipe_sp_flush() and just rely on the util_queue_fence_wait()
+    */
+   fd_pipe_flush(f->pipe, f->ufence);
+   util_queue_fence_wait(&f->ready);
+}
+
+int
+fd_fence_wait(struct fd_fence *f)
+{
+   MESA_TRACE_FUNC();
+   return fd_pipe_wait(f->pipe, f);
 }

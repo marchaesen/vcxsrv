@@ -95,7 +95,7 @@ Ian Romanick (2):
 -  glcpp: Handle '#version 0' and other invalid values
 -  glsl: Parse 0 as a preprocessor INTCONSTANT
 
-Jason Ekstrand (15):
+Faith Ekstrand (15):
 
 -  anv/gen8: Stall when needed in Cmd(Set|Reset)Event
 -  anv/wsi: Set the fence to signaled in AcquireNextImageKHR

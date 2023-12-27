@@ -267,7 +267,9 @@ SOFTWARE.
     <field name="width" start="34" end="47" type="uint">
       <define name="MAX_SIZE" value="16383"/>
     </field>
-    <field name="texformat" start="27" end="33" type="FORMAT"/>
+    <field name="texformat" start="27" end="33" type="FORMAT">
+      <define name="MAX_SIZE" value="127"/>
+    </field>
     <field name="texformat_compressed" start="27" end="33" type="FORMAT_COMPRESSED"/>
     <field name="minlod" start="17" end="26" type="uint"/>
     <field name="swiz0" start="14" end="16" type="SWIZ"/>
@@ -325,7 +327,9 @@ SOFTWARE.
     <field name="texaddr_plane2_lo" start="50" end="63" shift="2" type="address"/>
     <field name="cmp_mode" start="59" end="61" type="CMP_MODE"/>
     <field name="addrmode_w" start="56" end="58" type="ADDRMODE"/>
-    <field name="bordercolor_index" start="50" end="55" type="uint"/>
+    <field name="bordercolor_index" start="50" end="55" type="uint">
+      <define name="MAX_SIZE" value="63"/>
+    </field>
     <field name="non_normalized_coords" start="49" end="49" type="bool"/>
     <field name="lumakey_alphamult" start="48" end="48" type="bool"/>
     <field name="lumakey" start="47" end="47" type="bool"/>

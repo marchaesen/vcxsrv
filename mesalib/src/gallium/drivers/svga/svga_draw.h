@@ -26,7 +26,7 @@
 #ifndef SVGA_DRAW_H
 #define SVGA_DRAW_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #include "svga_hw_reg.h"
 
@@ -42,7 +42,7 @@ struct svga_hwtnl *svga_hwtnl_create(struct svga_context *svga);
 void svga_hwtnl_destroy(struct svga_hwtnl *hwtnl);
 
 void svga_hwtnl_set_flatshade(struct svga_hwtnl *hwtnl,
-                              boolean flatshade, boolean flatshade_first);
+                              bool flatshade, bool flatshade_first);
 
 void svga_hwtnl_set_fillmode(struct svga_hwtnl *hwtnl, unsigned mode);
 
@@ -59,9 +59,9 @@ svga_hwtnl_vertex_buffers(struct svga_hwtnl *hwtnl,
 
 enum pipe_error
 svga_hwtnl_draw_arrays(struct svga_hwtnl *hwtnl,
-                       enum pipe_prim_type prim, unsigned start, unsigned count,
+                       enum mesa_prim prim, unsigned start, unsigned count,
                        unsigned start_instance, unsigned instance_count,
-                       ubyte vertices_per_patch);
+                       uint8_t vertices_per_patch);
 
 enum pipe_error
 svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
@@ -69,7 +69,7 @@ svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
                                const struct pipe_draw_start_count_bias *draw,
                                unsigned count);
 
-boolean
+bool
 svga_hwtnl_is_buffer_referred(struct svga_hwtnl *hwtnl,
                               struct pipe_resource *buffer);
 

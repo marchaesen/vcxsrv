@@ -40,25 +40,25 @@
     </enum>
 
 
-    <function name="VertexAttribI1iEXT" exec="vtxfmt">
+    <function name="VertexAttribI1iEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLint"/>
     </function>
 
-    <function name="VertexAttribI2iEXT" exec="vtxfmt">
+    <function name="VertexAttribI2iEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
     </function>
 
-    <function name="VertexAttribI3iEXT" exec="vtxfmt">
+    <function name="VertexAttribI3iEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="z" type="GLint"/>
     </function>
 
-    <function name="VertexAttribI4iEXT" exec="vtxfmt">
+    <function name="VertexAttribI4iEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
@@ -66,25 +66,25 @@
         <param name="w" type="GLint"/>
     </function>
 
-    <function name="VertexAttribI1uiEXT" exec="vtxfmt">
+    <function name="VertexAttribI1uiEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLuint"/>
     </function>
 
-    <function name="VertexAttribI2uiEXT" exec="vtxfmt">
+    <function name="VertexAttribI2uiEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLuint"/>
         <param name="y" type="GLuint"/>
     </function>
 
-    <function name="VertexAttribI3uiEXT" exec="vtxfmt">
+    <function name="VertexAttribI3uiEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLuint"/>
         <param name="y" type="GLuint"/>
         <param name="z" type="GLuint"/>
     </function>
 
-    <function name="VertexAttribI4uiEXT" exec="vtxfmt">
+    <function name="VertexAttribI4uiEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLuint"/>
         <param name="y" type="GLuint"/>
@@ -97,17 +97,17 @@
         <param name="v" type="const GLint *"/>
     </function>
 
-    <function name="VertexAttribI2ivEXT" exec="vtxfmt">
+    <function name="VertexAttribI2ivEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLint *" count="2"/>
     </function>
 
-    <function name="VertexAttribI3ivEXT" exec="vtxfmt">
+    <function name="VertexAttribI3ivEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLint *" count="3"/>
     </function>
 
-    <function name="VertexAttribI4ivEXT" exec="vtxfmt">
+    <function name="VertexAttribI4ivEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLint *" count="4"/>
     </function>
@@ -117,17 +117,17 @@
         <param name="v" type="const GLuint *"/>
     </function>
 
-    <function name="VertexAttribI2uivEXT" exec="vtxfmt">
+    <function name="VertexAttribI2uivEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLuint *" count="2"/>
     </function>
 
-    <function name="VertexAttribI3uivEXT" exec="vtxfmt">
+    <function name="VertexAttribI3uivEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLuint *" count="3"/>
     </function>
 
-    <function name="VertexAttribI4uivEXT" exec="vtxfmt">
+    <function name="VertexAttribI4uivEXT" exec="beginend">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLuint *" count="4"/>
     </function>

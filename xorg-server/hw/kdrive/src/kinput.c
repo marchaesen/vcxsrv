@@ -940,6 +940,8 @@ KdParseKeyboard(const char *arg)
     if (!ki)
         return NULL;
 
+    if (ki->name)
+        free(ki->name);
     ki->name = strdup("Unknown KDrive Keyboard");
     ki->path = NULL;
     ki->driver = NULL;

@@ -58,6 +58,12 @@ GestureInitGestureInfo(GestureInfoPtr gi)
     return TRUE;
 }
 
+void
+GestureFreeGestureInfo(GestureInfoPtr gi)
+{
+    free(gi->sprite.spriteTrace);
+}
+
 /**
  * Given an event type returns the associated gesture event info.
  */

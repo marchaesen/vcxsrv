@@ -388,7 +388,7 @@ class ABIPrinter(object):
         """Return the initializer for struct mapi_stub array."""
         stubs = []
         for ent in self.entries_sorted_by_names:
-            stubs.append('%s{ (void *) %d, %d, NULL }' % (
+            stubs.append('%s{ %d, %d }' % (
                 self.indent, pool_offsets[ent], ent.slot))
 
         return ',\n'.join(stubs)
@@ -479,8 +479,8 @@ class ABIPrinter(object):
         print('#ifdef MAPI_TMP_DEFINES')
         print(self.c_public_includes())
         print()
-        print('#ifdef MemoryBarrier')
-        print('#undef MemoryBarrier')
+        print('#if defined(_WIN32) && defined(_WINDOWS_)')
+        print('#error "Should not include <windows.h> here"')
         print('#endif')
         print()
         print(self.c_public_declarations(self.prefix_lib))
@@ -578,10 +578,10 @@ class GLAPIPrinter(ABIPrinter):
             self._override_for_api(ent)
         super(GLAPIPrinter, self).__init__(entries)
 
-        self.api_defines = ['GL_GLEXT_PROTOTYPES']
-        self.api_headers = ['"GL/gl.h"', '"GL/glext.h"']
+        self.api_defines = []
+        self.api_headers = []
         self.api_call = 'GLAPI'
-        self.api_entry = 'APIENTRY'
+        self.api_entry = 'GLAPIENTRY'
         self.api_attrs = ''
 
         self.lib_need_table_size = False
@@ -608,7 +608,7 @@ class GLAPIPrinter(ABIPrinter):
 #define GLAPI_PREFIX(func)  gl##func
 #define GLAPI_PREFIX_STR(func)  "gl"#func
 
-typedef int GLclampx;
+#include "util/glheader.h"
 #endif /* _GLAPI_TMP_H_ */"""
 
         return header
@@ -635,7 +635,7 @@ class SharedGLAPIPrinter(GLAPIPrinter):
     def _get_c_header(self):
         header = """#ifndef _GLAPI_TMP_H_
 #define _GLAPI_TMP_H_
-typedef int GLclampx;
+#include "util/glheader.h"
 #endif /* _GLAPI_TMP_H_ */"""
 
         return header

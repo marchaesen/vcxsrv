@@ -22,32 +22,8 @@
  */
 
 #include "nir_instr_set.h"
-#include "nir_vla.h"
 #include "util/half_float.h"
-
-static bool
-src_is_ssa(nir_src *src, void *data)
-{
-   (void) data;
-   return src->is_ssa;
-}
-
-static bool
-dest_is_ssa(nir_dest *dest, void *data)
-{
-   (void) data;
-   return dest->is_ssa;
-}
-
-ASSERTED static inline bool
-instr_each_src_and_dest_is_ssa(const nir_instr *instr)
-{
-   if (!nir_foreach_dest((nir_instr *)instr, dest_is_ssa, NULL) ||
-       !nir_foreach_src((nir_instr *)instr, src_is_ssa, NULL))
-      return false;
-
-   return true;
-}
+#include "nir_vla.h"
 
 /* This function determines if uses of an instruction can safely be rewritten
  * to use another identical instruction instead. Note that this function must
@@ -58,9 +34,6 @@ instr_each_src_and_dest_is_ssa(const nir_instr *instr)
 static bool
 instr_can_rewrite(const nir_instr *instr)
 {
-   /* We only handle SSA. */
-   assert(instr_each_src_and_dest_is_ssa(instr));
-
    switch (instr->type) {
    case nir_instr_type_alu:
    case nir_instr_type_deref:
@@ -72,7 +45,7 @@ instr_can_rewrite(const nir_instr *instr)
       return nir_intrinsic_can_reorder(nir_instr_as_intrinsic(instr));
    case nir_instr_type_call:
    case nir_instr_type_jump:
-   case nir_instr_type_ssa_undef:
+   case nir_instr_type_undef:
       return false;
    case nir_instr_type_parallel_copy:
    default:
@@ -82,13 +55,11 @@ instr_can_rewrite(const nir_instr *instr)
    return false;
 }
 
-
 #define HASH(hash, data) XXH32(&(data), sizeof(data), hash)
 
 static uint32_t
 hash_src(uint32_t hash, const nir_src *src)
 {
-   assert(src->is_ssa);
    hash = HASH(hash, src->ssa);
    return hash;
 }
@@ -96,9 +67,6 @@ hash_src(uint32_t hash, const nir_src *src)
 static uint32_t
 hash_alu_src(uint32_t hash, const nir_alu_src *src, unsigned num_components)
 {
-   hash = HASH(hash, src->abs);
-   hash = HASH(hash, src->negate);
-
    for (unsigned i = 0; i < num_components; i++)
       hash = HASH(hash, src->swizzle[i]);
 
@@ -116,8 +84,8 @@ hash_alu(uint32_t hash, const nir_alu_instr *instr)
                    instr->no_unsigned_wrap << 1;
    hash = HASH(hash, flags);
 
-   hash = HASH(hash, instr->dest.dest.ssa.num_components);
-   hash = HASH(hash, instr->dest.dest.ssa.bit_size);
+   hash = HASH(hash, instr->def.num_components);
+   hash = HASH(hash, instr->def.bit_size);
 
    if (nir_op_infos[instr->op].algebraic_properties & NIR_OP_IS_2SRC_COMMUTATIVE) {
       assert(nir_op_infos[instr->op].num_inputs >= 2);
@@ -212,7 +180,7 @@ cmp_phi_src(const void *data1, const void *data2)
 {
    nir_phi_src *src1 = *(nir_phi_src **)data1;
    nir_phi_src *src2 = *(nir_phi_src **)data2;
-   return src1->pred - src2->pred;
+   return src1->pred > src2->pred ? 1 : (src1->pred == src2->pred ? 0 : -1);
 }
 
 static uint32_t
@@ -245,8 +213,8 @@ hash_intrinsic(uint32_t hash, const nir_intrinsic_instr *instr)
    hash = HASH(hash, instr->intrinsic);
 
    if (info->has_dest) {
-      hash = HASH(hash, instr->dest.ssa.num_components);
-      hash = HASH(hash, instr->dest.ssa.bit_size);
+      hash = HASH(hash, instr->def.num_components);
+      hash = HASH(hash, instr->def.bit_size);
    }
 
    hash = XXH32(instr->const_index, info->num_indices * sizeof(instr->const_index[0]), hash);
@@ -283,6 +251,7 @@ hash_tex(uint32_t hash, const nir_tex_instr *instr)
    hash = HASH(hash, instr->sampler_index);
    hash = HASH(hash, instr->texture_non_uniform);
    hash = HASH(hash, instr->sampler_non_uniform);
+   hash = HASH(hash, instr->backend_flags);
 
    return hash;
 }
@@ -328,28 +297,7 @@ hash_instr(const void *data)
 bool
 nir_srcs_equal(nir_src src1, nir_src src2)
 {
-   if (src1.is_ssa) {
-      if (src2.is_ssa) {
-         return src1.ssa == src2.ssa;
-      } else {
-         return false;
-      }
-   } else {
-      if (src2.is_ssa) {
-         return false;
-      } else {
-         if ((src1.reg.indirect == NULL) != (src2.reg.indirect == NULL))
-            return false;
-
-         if (src1.reg.indirect) {
-            if (!nir_srcs_equal(*src1.reg.indirect, *src2.reg.indirect))
-               return false;
-         }
-
-         return src1.reg.reg == src2.reg.reg &&
-                src1.reg.base_offset == src2.reg.base_offset;
-      }
-   }
+   return src1.ssa == src2.ssa;
 }
 
 /**
@@ -363,7 +311,8 @@ get_neg_instr(nir_src s)
    nir_alu_instr *alu = nir_src_as_alu_instr(s);
 
    return alu != NULL && (alu->op == nir_op_fneg || alu->op == nir_op_ineg)
-          ? alu : NULL;
+             ? alu
+             : NULL;
 }
 
 bool
@@ -442,10 +391,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
    }
 #endif
 
-   if (alu1->src[src1].abs != alu2->src[src2].abs)
-      return false;
-
-   bool parity = alu1->src[src1].negate != alu2->src[src2].negate;
+   bool parity = false;
 
    /* Handling load_const instructions is tricky. */
 
@@ -482,7 +428,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
       return true;
    }
 
-   uint8_t alu1_swizzle[NIR_MAX_VEC_COMPONENTS] = {0};
+   uint8_t alu1_swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
    nir_src alu1_actual_src;
    nir_alu_instr *neg1 = get_neg_instr(alu1->src[src1].src);
 
@@ -499,7 +445,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
          alu1_swizzle[i] = i;
    }
 
-   uint8_t alu2_swizzle[NIR_MAX_VEC_COMPONENTS] = {0};
+   uint8_t alu2_swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
    nir_src alu2_actual_src;
    nir_alu_instr *neg2 = get_neg_instr(alu2->src[src2].src);
 
@@ -529,10 +475,6 @@ bool
 nir_alu_srcs_equal(const nir_alu_instr *alu1, const nir_alu_instr *alu2,
                    unsigned src1, unsigned src2)
 {
-   if (alu1->src[src1].abs != alu2->src[src2].abs ||
-       alu1->src[src1].negate != alu2->src[src2].negate)
-      return false;
-
    for (unsigned i = 0; i < nir_ssa_alu_instr_src_components(alu1, src1); i++) {
       if (alu1->src[src1].swizzle[i] != alu2->src[src2].swizzle[i])
          return false;
@@ -574,10 +516,10 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
       /* TODO: We can probably acutally do something more inteligent such
        * as allowing different numbers and taking a maximum or something
        * here */
-      if (alu1->dest.dest.ssa.num_components != alu2->dest.dest.ssa.num_components)
+      if (alu1->def.num_components != alu2->def.num_components)
          return false;
 
-      if (alu1->dest.dest.ssa.bit_size != alu2->dest.dest.ssa.bit_size)
+      if (alu1->def.bit_size != alu2->def.bit_size)
          return false;
 
       if (nir_op_infos[alu1->op].algebraic_properties & NIR_OP_IS_2SRC_COMMUTATIVE) {
@@ -667,8 +609,9 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
           tex1->is_shadow != tex2->is_shadow ||
           tex1->is_new_style_shadow != tex2->is_new_style_shadow ||
           tex1->component != tex2->component ||
-         tex1->texture_index != tex2->texture_index ||
-         tex1->sampler_index != tex2->sampler_index) {
+          tex1->texture_index != tex2->texture_index ||
+          tex1->sampler_index != tex2->sampler_index ||
+          tex1->backend_flags != tex2->backend_flags) {
          return false;
       }
 
@@ -707,6 +650,14 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
       if (phi1->instr.block != phi2->instr.block)
          return false;
 
+      /* In case of phis with no sources, the dest needs to be checked
+       * to ensure that phis with incompatible dests won't get merged
+       * during CSE. */
+      if (phi1->def.num_components != phi2->def.num_components)
+         return false;
+      if (phi1->def.bit_size != phi2->def.bit_size)
+         return false;
+
       nir_foreach_phi_src(src1, phi1) {
          nir_foreach_phi_src(src2, phi2) {
             if (src1->pred == src2->pred) {
@@ -730,12 +681,12 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
           intrinsic1->num_components != intrinsic2->num_components)
          return false;
 
-      if (info->has_dest && intrinsic1->dest.ssa.num_components !=
-                            intrinsic2->dest.ssa.num_components)
+      if (info->has_dest && intrinsic1->def.num_components !=
+                               intrinsic2->def.num_components)
          return false;
 
-      if (info->has_dest && intrinsic1->dest.ssa.bit_size !=
-                            intrinsic2->dest.ssa.bit_size)
+      if (info->has_dest && intrinsic1->def.bit_size !=
+                               intrinsic2->def.bit_size)
          return false;
 
       for (unsigned i = 0; i < info->num_srcs; i++) {
@@ -752,7 +703,7 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
    }
    case nir_instr_type_call:
    case nir_instr_type_jump:
-   case nir_instr_type_ssa_undef:
+   case nir_instr_type_undef:
    case nir_instr_type_parallel_copy:
    default:
       unreachable("Invalid instruction type");
@@ -761,27 +712,22 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
    unreachable("All cases in the above switch should return");
 }
 
-static nir_ssa_def *
-nir_instr_get_dest_ssa_def(nir_instr *instr)
+static nir_def *
+nir_instr_get_def_def(nir_instr *instr)
 {
    switch (instr->type) {
    case nir_instr_type_alu:
-      assert(nir_instr_as_alu(instr)->dest.dest.is_ssa);
-      return &nir_instr_as_alu(instr)->dest.dest.ssa;
+      return &nir_instr_as_alu(instr)->def;
    case nir_instr_type_deref:
-      assert(nir_instr_as_deref(instr)->dest.is_ssa);
-      return &nir_instr_as_deref(instr)->dest.ssa;
+      return &nir_instr_as_deref(instr)->def;
    case nir_instr_type_load_const:
       return &nir_instr_as_load_const(instr)->def;
    case nir_instr_type_phi:
-      assert(nir_instr_as_phi(instr)->dest.is_ssa);
-      return &nir_instr_as_phi(instr)->dest.ssa;
+      return &nir_instr_as_phi(instr)->def;
    case nir_instr_type_intrinsic:
-      assert(nir_instr_as_intrinsic(instr)->dest.is_ssa);
-      return &nir_instr_as_intrinsic(instr)->dest.ssa;
+      return &nir_instr_as_intrinsic(instr)->def;
    case nir_instr_type_tex:
-      assert(nir_instr_as_tex(instr)->dest.is_ssa);
-      return &nir_instr_as_tex(instr)->dest.ssa;
+      return &nir_instr_as_tex(instr)->def;
    default:
       unreachable("We never ask for any of these");
    }
@@ -807,21 +753,21 @@ nir_instr_set_destroy(struct set *instr_set)
 
 bool
 nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr,
-                             bool (*cond_function) (const nir_instr *a,
-                                                    const nir_instr *b))
+                             bool (*cond_function)(const nir_instr *a,
+                                                   const nir_instr *b))
 {
    if (!instr_can_rewrite(instr))
       return false;
 
    struct set_entry *e = _mesa_set_search_or_add(instr_set, instr, NULL);
-   nir_instr *match = (nir_instr *) e->key;
+   nir_instr *match = (nir_instr *)e->key;
    if (match == instr)
       return false;
 
    if (!cond_function || cond_function(match, instr)) {
       /* rewrite instruction if condition is matched */
-      nir_ssa_def *def = nir_instr_get_dest_ssa_def(instr);
-      nir_ssa_def *new_def = nir_instr_get_dest_ssa_def(match);
+      nir_def *def = nir_instr_get_def_def(instr);
+      nir_def *new_def = nir_instr_get_def_def(match);
 
       /* It's safe to replace an exact instruction with an inexact one as
        * long as we make it exact.  If we got here, the two instructions are
@@ -831,7 +777,7 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr,
       if (instr->type == nir_instr_type_alu && nir_instr_as_alu(instr)->exact)
          nir_instr_as_alu(match)->exact = true;
 
-      nir_ssa_def_rewrite_uses(def, new_def);
+      nir_def_rewrite_uses(def, new_def);
 
       nir_instr_remove(instr);
 
@@ -853,4 +799,3 @@ nir_instr_set_remove(struct set *instr_set, nir_instr *instr)
    if (entry)
       _mesa_set_remove(instr_set, entry);
 }
-

@@ -1,7 +1,7 @@
 default xkb_geometry "model100" {
 
     // This is an approximate layout for a Kinesis Ergonomic keyboard
-    // Generated completely by eye.  I didn't actually *measure* a real 
+    // Generated completely by eye.  I didn't actually *measure* a real
     // keyboard.
 
     description= "Kinesis Ergonomic";
@@ -31,7 +31,7 @@ default xkb_geometry "model100" {
 	row {
 	    left= 1;
 	    top= 1;
-	    keys { 
+	    keys {
 	    	<ESC>,  <FK01>, <FK02>, <FK03>, <FK04>,
 		<FK05>, <FK06>, <FK07>, <FK08>
 	    };
@@ -47,7 +47,7 @@ default xkb_geometry "model100" {
 	    left= 1;
 	    top= 0.2;
 	    keys {
-		<FK09>, <FK10>, <FK11>, <FK12>, <PRSC>, 
+		<FK09>, <FK10>, <FK11>, <FK12>, <PRSC>,
 		<SCLK>, <PAUS>, <FK16>, <FK17>
 	    };
 	};
@@ -57,11 +57,11 @@ default xkb_geometry "model100" {
     row.top= 1;
     key.gap= 0.5;
 
-    logo "KinesisLogoImage" 	{ 
+    logo "KinesisLogoImage" 	{
 	top= 25;
 	left= 240;
-	name= "Kinesis"; 
-	shape= "LOGO"; 
+	name= "Kinesis";
+	shape= "LOGO";
     };
 
     indicator.shape= "LED";

@@ -36,7 +36,7 @@
 #define PB_VALIDATE_H_
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_defines.h"
 
 #ifdef __cplusplus
@@ -62,7 +62,7 @@ pb_validate_add_buffer(struct pb_validate *vl,
                        struct pb_buffer *buf,
                        enum pb_usage_flags flags,
                        struct hash_table *ht,
-                       boolean *already_present);
+                       bool *already_present);
 
 enum pipe_error
 pb_validate_foreach(struct pb_validate *vl,

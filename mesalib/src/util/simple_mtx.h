@@ -29,10 +29,7 @@
 #include "util/u_call_once.h"
 #include "u_atomic.h"
 
-#include "c11/threads.h"
-
 #if UTIL_FUTEX_SUPPORTED
-
 #if defined(HAVE_VALGRIND) && !defined(NDEBUG)
 #  include <valgrind.h>
 #  include <helgrind.h>
@@ -40,7 +37,8 @@
 #else
 #  define HG(x)
 #endif
-
+#else /* !UTIL_FUTEX_SUPPORTED */
+#  include "c11/threads.h"
 #endif /* UTIL_FUTEX_SUPPORTED */
 
 #ifdef __cplusplus
@@ -77,7 +75,7 @@ typedef struct {
    uint32_t val;
 } simple_mtx_t;
 
-#define _SIMPLE_MTX_INITIALIZER_NP { 0 }
+#define SIMPLE_MTX_INITIALIZER { 0 }
 
 #define _SIMPLE_MTX_INVALID_VALUE 0xd0d0d0d0
 
@@ -151,7 +149,7 @@ typedef struct simple_mtx_t {
    mtx_t mtx;
 } simple_mtx_t;
 
-#define _SIMPLE_MTX_INITIALIZER_NP { UTIL_ONCE_FLAG_INIT }
+#define SIMPLE_MTX_INITIALIZER { UTIL_ONCE_FLAG_INIT }
 
 void _simple_mtx_plain_init_once(simple_mtx_t *mtx);
 

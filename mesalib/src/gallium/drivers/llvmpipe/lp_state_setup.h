@@ -40,7 +40,7 @@ struct lp_setup_variant_key {
 typedef void (*lp_jit_setup_triangle)(const float (*v0)[4],
                                       const float (*v1)[4],
                                       const float (*v2)[4],
-                                      boolean front_facing,
+                                      bool front_facing,
                                       float (*a0)[4],
                                       float (*dadx)[4],
                                       float (*dady)[4],

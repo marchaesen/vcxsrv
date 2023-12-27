@@ -19,10 +19,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
- *
  */
 
 #include "nir.h"
@@ -75,67 +71,40 @@ split_deref_copy_instr(nir_builder *b,
    } else if (glsl_type_is_struct_or_ifc(src->type)) {
       for (unsigned i = 0; i < glsl_get_length(src->type); i++) {
          split_deref_copy_instr(b, nir_build_deref_struct(b, dst, i),
-                                   nir_build_deref_struct(b, src, i),
-                                   dst_access, src_access);
+                                nir_build_deref_struct(b, src, i),
+                                dst_access, src_access);
       }
    } else {
       assert(glsl_type_is_matrix(src->type) || glsl_type_is_array(src->type));
       split_deref_copy_instr(b, nir_build_deref_array_wildcard(b, dst),
-                                nir_build_deref_array_wildcard(b, src),
-                                dst_access, src_access);
+                             nir_build_deref_array_wildcard(b, src),
+                             dst_access, src_access);
    }
 }
 
 static bool
-split_var_copies_impl(nir_function_impl *impl)
+split_var_copies_instr(nir_builder *b, nir_intrinsic_instr *copy,
+                       UNUSED void *cb_data)
 {
-   bool progress = false;
+   if (copy->intrinsic != nir_intrinsic_copy_deref)
+      return false;
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   b->cursor = nir_instr_remove(&copy->instr);
 
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
+   nir_deref_instr *dst = nir_instr_as_deref(copy->src[0].ssa->parent_instr);
+   nir_deref_instr *src = nir_instr_as_deref(copy->src[1].ssa->parent_instr);
+   split_deref_copy_instr(b, dst, src,
+                          nir_intrinsic_dst_access(copy),
+                          nir_intrinsic_src_access(copy));
 
-         nir_intrinsic_instr *copy = nir_instr_as_intrinsic(instr);
-         if (copy->intrinsic != nir_intrinsic_copy_deref)
-            continue;
-
-         b.cursor = nir_instr_remove(&copy->instr);
-
-         nir_deref_instr *dst =
-            nir_instr_as_deref(copy->src[0].ssa->parent_instr);
-         nir_deref_instr *src =
-            nir_instr_as_deref(copy->src[1].ssa->parent_instr);
-         split_deref_copy_instr(&b, dst, src,
-                                nir_intrinsic_dst_access(copy),
-                                nir_intrinsic_src_access(copy));
-
-         progress = true;
-      }
-   }
-
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return true;
 }
 
 bool
 nir_split_var_copies(nir_shader *shader)
 {
-   bool progress = false;
-
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress = split_var_copies_impl(function->impl) || progress;
-   }
-
-   return progress;
+   return nir_shader_intrinsics_pass(shader, split_var_copies_instr,
+                                       nir_metadata_block_index |
+                                          nir_metadata_dominance,
+                                       NULL);
 }

@@ -65,13 +65,13 @@ main (void)
 	    goto bail;
     } END (expect);
     BEGIN (expect) {
-	FcPatternAddInteger (expect, FC_WIDTH, FC_WIDTH_NORMAL);
-	if ((ret = test ((const FcChar8 *)":normal", expect)) != 0)
+	FcPatternAddInteger (expect, FC_WEIGHT, FC_WEIGHT_NORMAL);
+	if ((ret = test ((const FcChar8 *)":weight=normal", expect)) != 0)
 	    goto bail;
     } END (expect);
     BEGIN (expect) {
 	FcPatternAddInteger (expect, FC_WIDTH, FC_WIDTH_NORMAL);
-	if ((ret = test ((const FcChar8 *)":normal", expect)) != 0)
+	if ((ret = test ((const FcChar8 *)":width=normal", expect)) != 0)
 	    goto bail;
     } END (expect);
     BEGIN (expect) {

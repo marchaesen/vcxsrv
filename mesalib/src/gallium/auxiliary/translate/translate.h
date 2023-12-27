@@ -40,8 +40,8 @@
 #define _TRANSLATE_H
 
 
-#include "pipe/p_compiler.h"
-#include "pipe/p_format.h"
+#include "util/compiler.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_state.h"
 
 /**
@@ -86,28 +86,28 @@ struct translate_key {
 struct translate;
 
 
-typedef void (PIPE_CDECL *run_elts_func)(struct translate *,
+typedef void (UTIL_CDECL *run_elts_func)(struct translate *,
                                          const unsigned *elts,
                                          unsigned count,
                                          unsigned start_instance,
                                          unsigned instance_id,
                                          void *output_buffer);
 
-typedef void (PIPE_CDECL *run_elts16_func)(struct translate *,
+typedef void (UTIL_CDECL *run_elts16_func)(struct translate *,
                                            const uint16_t *elts,
                                            unsigned count,
                                            unsigned start_instance,
                                            unsigned instance_id,
                                            void *output_buffer);
 
-typedef void (PIPE_CDECL *run_elts8_func)(struct translate *,
+typedef void (UTIL_CDECL *run_elts8_func)(struct translate *,
                                           const uint8_t *elts,
                                           unsigned count,
                                           unsigned start_instance,
                                           unsigned instance_id,
                                           void *output_buffer);
 
-typedef void (PIPE_CDECL *run_func)(struct translate *,
+typedef void (UTIL_CDECL *run_func)(struct translate *,
                                     unsigned start,
                                     unsigned count,
                                     unsigned start_instance,
@@ -135,7 +135,7 @@ struct translate {
 
 struct translate *translate_create( const struct translate_key *key );
 
-boolean translate_is_output_format_supported(enum pipe_format format);
+bool translate_is_output_format_supported(enum pipe_format format);
 
 static inline int translate_keysize( const struct translate_key *key )
 {
@@ -171,6 +171,6 @@ struct translate *translate_sse2_create( const struct translate_key *key );
 
 struct translate *translate_generic_create( const struct translate_key *key );
 
-boolean translate_generic_is_output_format_supported(enum pipe_format format);
+bool translate_generic_is_output_format_supported(enum pipe_format format);
 
 #endif

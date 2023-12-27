@@ -37,6 +37,10 @@
 #define FOZ_DB_UTIL 1
 #endif
 
+#ifdef HAVE_SYS_INOTIFY_H
+#define FOZ_DB_UTIL_DYNAMIC_LIST 1
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -72,6 +76,13 @@ struct foz_db_entry {
    struct foz_payload_header header;
 };
 
+struct foz_dbs_list_updater {
+   int inotify_fd;
+   int inotify_wd; /* watch descriptor */
+   const char *list_filename;
+   thrd_t thrd;
+};
+
 struct foz_db {
    FILE *file[FOZ_MAX_DBS];          /* An array of all foz dbs */
    FILE *db_idx;                     /* The default writable foz db idx */
@@ -80,6 +91,8 @@ struct foz_db {
    void *mem_ctx;
    struct hash_table_u64 *index_db;  /* Hash table of all foz db entries */
    bool alive;
+   const char *cache_path;
+   struct foz_dbs_list_updater updater;
 };
 
 bool

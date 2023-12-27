@@ -42,7 +42,7 @@ iris_fine_fence_destroy(struct iris_screen *screen,
 }
 
 struct iris_fine_fence *
-iris_fine_fence_new(struct iris_batch *batch, unsigned flags)
+iris_fine_fence_new(struct iris_batch *batch)
 {
    struct iris_fine_fence *fine = calloc(1, sizeof(*fine));
    if (!fine)
@@ -58,18 +58,16 @@ iris_fine_fence_new(struct iris_batch *batch, unsigned flags)
    pipe_resource_reference(&fine->ref.res, batch->fine_fences.ref.res);
    fine->ref.offset = batch->fine_fences.ref.offset;
    fine->map = batch->fine_fences.map;
-   fine->flags = flags;
 
-   unsigned pc;
-   if (flags & IRIS_FENCE_TOP_OF_PIPE) {
-      pc = PIPE_CONTROL_WRITE_IMMEDIATE | PIPE_CONTROL_CS_STALL;
-   } else {
-      pc = PIPE_CONTROL_WRITE_IMMEDIATE |
-           PIPE_CONTROL_RENDER_TARGET_FLUSH |
-           PIPE_CONTROL_TILE_CACHE_FLUSH |
-           PIPE_CONTROL_DEPTH_CACHE_FLUSH |
-           PIPE_CONTROL_DATA_CACHE_FLUSH;
-   }
+   unsigned pc = PIPE_CONTROL_WRITE_IMMEDIATE |
+                 PIPE_CONTROL_RENDER_TARGET_FLUSH |
+                 PIPE_CONTROL_TILE_CACHE_FLUSH |
+                 PIPE_CONTROL_DEPTH_CACHE_FLUSH |
+                 PIPE_CONTROL_DATA_CACHE_FLUSH;
+
+   if (batch->name == IRIS_BATCH_COMPUTE)
+      pc &= ~PIPE_CONTROL_GRAPHICS_BITS;
+
    iris_emit_pipe_control_write(batch, "fence: fine", pc,
                                 iris_resource_bo(fine->ref.res),
                                 fine->ref.offset,

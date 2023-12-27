@@ -116,7 +116,7 @@ George Barrett (1):
 
 -  glsl: Catch subscripted calls to undeclared subroutines
 
-Jason Ekstrand (9):
+Faith Ekstrand (9):
 
 -  intel/fs: Use ANY/ALL32 predicates in SIMD32
 -  intel/fs: Use an explicit D type for vote any/all/eq intrinsics

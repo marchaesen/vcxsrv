@@ -253,7 +253,7 @@ Ilia Mirkin (1):
 
 -  gallium/vl: use compute preference for all multimedia, not just blit
 
-Jason Ekstrand (9):
+Faith Ekstrand (9):
 
 -  anv: Bump maxComputeWorkgroupSize
 -  nir: Handle complex derefs in nir_split_array_vars

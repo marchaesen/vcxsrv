@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,14 +22,14 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 
 #ifndef LP_DEBUG_H
 #define LP_DEBUG_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
 
 #define DEBUG_PIPE      0x1
@@ -45,13 +45,13 @@
 #define DEBUG_MEM           0x4000
 #define DEBUG_FS            0x8000
 #define DEBUG_CS            0x10000
-#define DEBUG_TGSI_IR       0x20000
-#define DEBUG_CACHE_STATS   0x40000
+// unused                   0x40000
 #define DEBUG_NO_FASTPATH   0x80000
 #define DEBUG_LINEAR        0x100000
 #define DEBUG_LINEAR2       0x200000
 #define DEBUG_SHOW_DEPTH    0x400000
 #define DEBUG_ACCURATE_A0   0x800000 /* verbose */
+#define DEBUG_MESH         0x1000000
 
 /* Performance flags.  These are active even on release builds.
  */
@@ -69,25 +69,21 @@
 
 extern int LP_PERF;
 
-#ifdef DEBUG
 extern int LP_DEBUG;
-#else
-#define LP_DEBUG 0
-#endif
 
-void st_debug_init( void );
+void
+st_debug_init(void);
+
 
 static inline void
-LP_DBG( unsigned flag, const char *fmt, ... )
+LP_DBG(unsigned flag, const char *fmt, ...)
 {
-    if (LP_DEBUG & flag)
-    {
-        va_list args;
-
-        va_start( args, fmt );
-        debug_vprintf( fmt, args );
-        va_end( args );
-    }
+   if (LP_DEBUG & flag) {
+      va_list args;
+      va_start(args, fmt);
+      debug_vprintf(fmt, args);
+      va_end(args);
+   }
 }
 
 

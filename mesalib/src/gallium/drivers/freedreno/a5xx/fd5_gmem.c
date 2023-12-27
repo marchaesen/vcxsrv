@@ -263,6 +263,14 @@ use_hw_binning(struct fd_batch *batch)
 {
    const struct fd_gmem_stateobj *gmem = batch->gmem_state;
 
+   /* workaround: Like on a3xx, hw binning and scissor optimization
+    * don't play nice together.
+    *
+    * Disable binning if scissor optimization is used.
+    */
+   if (gmem->minx || gmem->miny)
+      return false;
+
    if ((gmem->maxpw * gmem->maxph) > 32)
       return false;
 
@@ -386,6 +394,7 @@ emit_binning_pass(struct fd_batch *batch) assert_dt
 static void
 fd5_emit_tile_init(struct fd_batch *batch) assert_dt
 {
+   struct fd_context *ctx = batch->ctx;
    struct fd_ringbuffer *ring = batch->gmem;
    struct pipe_framebuffer_state *pfb = &batch->framebuffer;
 
@@ -403,10 +412,10 @@ fd5_emit_tile_init(struct fd_batch *batch) assert_dt
    OUT_RING(ring, 0x0);
 
    OUT_PKT4(ring, REG_A5XX_PC_POWER_CNTL, 1);
-   OUT_RING(ring, 0x00000003); /* PC_POWER_CNTL */
+   OUT_RING(ring, ctx->screen->info->num_sp_cores - 1); /* PC_POWER_CNTL */
 
    OUT_PKT4(ring, REG_A5XX_VFD_POWER_CNTL, 1);
-   OUT_RING(ring, 0x00000003); /* VFD_POWER_CNTL */
+   OUT_RING(ring, ctx->screen->info->num_sp_cores - 1); /* VFD_POWER_CNTL */
 
    /* 0x10000000 for BYPASS.. 0x7c13c080 for GMEM: */
    fd_wfi(batch, ring);
@@ -707,6 +716,7 @@ fd5_emit_tile_fini(struct fd_batch *batch) assert_dt
 static void
 fd5_emit_sysmem_prep(struct fd_batch *batch) assert_dt
 {
+   struct fd_context *ctx = batch->ctx;
    struct fd_ringbuffer *ring = batch->gmem;
 
    fd5_emit_restore(batch, ring);
@@ -722,10 +732,10 @@ fd5_emit_sysmem_prep(struct fd_batch *batch) assert_dt
    fd5_event_write(batch, ring, PC_CCU_INVALIDATE_COLOR, false);
 
    OUT_PKT4(ring, REG_A5XX_PC_POWER_CNTL, 1);
-   OUT_RING(ring, 0x00000003); /* PC_POWER_CNTL */
+   OUT_RING(ring, ctx->screen->info->num_sp_cores - 1); /* PC_POWER_CNTL */
 
    OUT_PKT4(ring, REG_A5XX_VFD_POWER_CNTL, 1);
-   OUT_RING(ring, 0x00000003); /* VFD_POWER_CNTL */
+   OUT_RING(ring, ctx->screen->info->num_sp_cores - 1); /* VFD_POWER_CNTL */
 
    /* 0x10000000 for BYPASS.. 0x7c13c080 for GMEM: */
    fd_wfi(batch, ring);

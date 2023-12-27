@@ -25,35 +25,36 @@
  *
  **************************************************************************/
 
+#include "util/simple_mtx.h"
 #include "util/u_handle_table.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "vdpau_private.h"
 
 static struct handle_table *htab = NULL;
-static mtx_t htab_lock = _MTX_INITIALIZER_NP;
+static simple_mtx_t htab_lock = SIMPLE_MTX_INITIALIZER;
 
-boolean vlCreateHTAB(void)
+bool vlCreateHTAB(void)
 {
-   boolean ret;
+   bool ret;
 
    /* Make sure handle table handles match VDPAU handles. */
    assert(sizeof(unsigned) <= sizeof(vlHandle));
-   mtx_lock(&htab_lock);
+   simple_mtx_lock(&htab_lock);
    if (!htab)
       htab = handle_table_create();
    ret = htab != NULL;
-   mtx_unlock(&htab_lock);
+   simple_mtx_unlock(&htab_lock);
    return ret;
 }
 
 void vlDestroyHTAB(void)
 {
-   mtx_lock(&htab_lock);
+   simple_mtx_lock(&htab_lock);
    if (htab && !handle_table_get_first_handle(htab)) {
       handle_table_destroy(htab);
       htab = NULL;
    }
-   mtx_unlock(&htab_lock);
+   simple_mtx_unlock(&htab_lock);
 }
 
 vlHandle vlAddDataHTAB(void *data)
@@ -61,10 +62,10 @@ vlHandle vlAddDataHTAB(void *data)
    vlHandle handle = 0;
 
    assert(data);
-   mtx_lock(&htab_lock);
+   simple_mtx_lock(&htab_lock);
    if (htab)
       handle = handle_table_add(htab, data);
-   mtx_unlock(&htab_lock);
+   simple_mtx_unlock(&htab_lock);
    return handle;
 }
 
@@ -73,17 +74,17 @@ void* vlGetDataHTAB(vlHandle handle)
    void *data = NULL;
 
    assert(handle);
-   mtx_lock(&htab_lock);
+   simple_mtx_lock(&htab_lock);
    if (htab)
       data = handle_table_get(htab, handle);
-   mtx_unlock(&htab_lock);
+   simple_mtx_unlock(&htab_lock);
    return data;
 }
 
 void vlRemoveDataHTAB(vlHandle handle)
 {
-   mtx_lock(&htab_lock);
+   simple_mtx_lock(&htab_lock);
    if (htab)
       handle_table_remove(htab, handle);
-   mtx_unlock(&htab_lock);
+   simple_mtx_unlock(&htab_lock);
 }

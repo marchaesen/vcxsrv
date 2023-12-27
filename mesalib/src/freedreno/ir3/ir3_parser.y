@@ -294,6 +294,7 @@ struct ir3 * ir3_parse(struct ir3_shader_variant *v,
 	int tok;
 	int num;
 	uint32_t unum;
+	uint64_t u64;
 	double flt;
 	const char *str;
 	struct ir3_register *reg;
@@ -342,6 +343,7 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_NEG
 %token <tok> T_ABS
 %token <tok> T_R
+%token <tok> T_LAST
 
 %token <tok> T_HR
 %token <tok> T_HC
@@ -371,6 +373,7 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_SY
 %token <tok> T_SS
 %token <tok> T_JP
+%token <tok> T_EQ_FLAG
 %token <tok> T_SAT
 %token <num> T_RPT
 %token <tok> T_UL
@@ -541,6 +544,7 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_OP_QSHUFFLE_H
 %token <tok> T_OP_QSHUFFLE_V
 %token <tok> T_OP_QSHUFFLE_DIAG
+%token <tok> T_OP_TCINV
 
 /* category 6: */
 %token <tok> T_OP_LDG
@@ -615,10 +619,24 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_OP_GETWID
 %token <tok> T_OP_GETFIBERID
 %token <tok> T_OP_STC
+%token <tok> T_OP_STSC
 
 /* category 7: */
 %token <tok> T_OP_BAR
 %token <tok> T_OP_FENCE
+%token <tok> T_OP_SLEEP
+%token <tok> T_OP_ICINV
+%token <tok> T_OP_DCCLN
+%token <tok> T_OP_DCINV
+%token <tok> T_OP_DCFLU
+%token <tok> T_OP_CCINV
+%token <tok> T_OP_LOCK
+%token <tok> T_OP_UNLOCK
+%token <tok> T_OP_ALIAS
+
+%token <u64> T_RAW
+
+%token <tok> T_OP_PRINT
 
 /* type qualifiers: */
 %token <tok> T_TYPE_F16
@@ -667,6 +685,11 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <num> T_P0
 %token <num> T_W
 %token <str> T_CAT1_TYPE_TYPE
+%token <str> T_INSTR_TYPE
+
+%token <tok> T_MOD_TEX
+%token <tok> T_MOD_MEM
+%token <tok> T_MOD_RT
 
 %type <num> integer offset
 %type <num> flut_immed
@@ -786,6 +809,7 @@ tex_header:        T_A_TEX '(' T_REGISTER ')'
 iflag:             T_SY   { iflags.flags |= IR3_INSTR_SY; }
 |                  T_SS   { iflags.flags |= IR3_INSTR_SS; }
 |                  T_JP   { iflags.flags |= IR3_INSTR_JP; }
+|                  T_EQ_FLAG { iflags.flags |= IR3_INSTR_EQ; }
 |                  T_SAT  { iflags.flags |= IR3_INSTR_SAT; }
 |                  T_RPT  { iflags.repeat = $1; }
 |                  T_UL   { iflags.flags |= IR3_INSTR_UL; }
@@ -805,6 +829,8 @@ instr:             iflags cat0_instr
 |                  iflags cat5_instr { fixup_cat5_s2en(); }
 |                  iflags cat6_instr
 |                  iflags cat7_instr
+|                  raw_instr
+|                  meta_print
 |                  label
 
 label:             T_IDENTIFIER ':' { new_label($1); }
@@ -1076,11 +1102,14 @@ cat5_a1:           src_reg        { instr->flags |= IR3_INSTR_A1EN; }
 cat5_instr:        cat5_opc_dsxypp cat5_flags dst_reg ',' src_reg
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' src_reg
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' cat5_samp ',' cat5_tex
+|                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' cat5_samp ',' cat5_a1
+|                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' cat5_tex ',' cat5_a1
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' cat5_samp
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' cat5_tex
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' cat5_samp ',' cat5_tex
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' cat5_samp ',' cat5_a1
+|                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' cat5_tex ',' cat5_a1
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' cat5_samp
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' cat5_tex
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg
@@ -1088,6 +1117,7 @@ cat5_instr:        cat5_opc_dsxypp cat5_flags dst_reg ',' src_reg
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' cat5_samp
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' cat5_tex
 |                  cat5_opc cat5_flags cat5_type dst_reg
+|                  T_OP_TCINV { new_instr(OPC_TCINV); }
 
 cat6_typed:        '.' T_UNTYPED  { instr->cat6.typed = 0; }
 |                  '.' T_TYPED    { instr->cat6.typed = 1; }
@@ -1106,20 +1136,31 @@ cat6_dst_offset:   offset    { instr->cat6.dst_offset = $1; }
 
 cat6_immed:        integer   { instr->cat6.iim_val = $1; }
 
-cat6_stg_ldg_a6xx_offset:
-                    '+' '(' src offset ')' '<' '<' integer {
-                        assert($8 == 2);
-                        new_src(0, IR3_REG_IMMED)->uim_val = 0;
+cat6_a6xx_global_address_pt3:
+                   '<' '<' integer offset '<' '<' integer {
+                        assert($7 == 2);
+                        new_src(0, IR3_REG_IMMED)->uim_val = $3 - 2;
                         new_src(0, IR3_REG_IMMED)->uim_val = $4;
-                    }
-|                  '+' src '<' '<' integer offset '<' '<' integer {
-                        assert($9 == 2);
-                        new_src(0, IR3_REG_IMMED)->uim_val = $5 - 2;
-                        new_src(0, IR3_REG_IMMED)->uim_val = $6;
-                    }
+                   }
+|                  '+' cat6_reg_or_immed {
+                        // Dummy src to smooth the difference between a6xx and a7xx
+                        new_src(0, IR3_REG_IMMED)->uim_val = 0;
+                   }
+
+cat6_a6xx_global_address_pt2:
+                   '(' src offset ')' '<' '<' integer {
+                        assert($7 == 2);
+                        new_src(0, IR3_REG_IMMED)->uim_val = 0;
+                        new_src(0, IR3_REG_IMMED)->uim_val = $3;
+                   }
+
+|                  src cat6_a6xx_global_address_pt3
+
+cat6_a6xx_global_address:
+                   src_reg_or_const '+' cat6_a6xx_global_address_pt2
 
 cat6_load:         T_OP_LDG   { new_instr(OPC_LDG); }   cat6_type dst_reg ',' 'g' '[' src cat6_offset ']' ',' immediate
-|                  T_OP_LDG_A { new_instr(OPC_LDG_A); } cat6_type dst_reg ',' 'g' '[' src cat6_stg_ldg_a6xx_offset ']' ',' immediate
+|                  T_OP_LDG_A { new_instr(OPC_LDG_A); } cat6_type dst_reg ',' 'g' '[' cat6_a6xx_global_address ']' ',' immediate
 |                  T_OP_LDP   { new_instr(OPC_LDP); }   cat6_type dst_reg ',' 'p' '[' src cat6_offset ']' ',' immediate
 |                  T_OP_LDL   { new_instr(OPC_LDL); }   cat6_type dst_reg ',' 'l' '[' src cat6_offset ']' ',' immediate
 |                  T_OP_LDLW  { new_instr(OPC_LDLW); }  cat6_type dst_reg ',' 'l' '[' src cat6_offset ']' ',' immediate
@@ -1128,7 +1169,7 @@ cat6_load:         T_OP_LDG   { new_instr(OPC_LDG); }   cat6_type dst_reg ',' 'g
                    } ',' immediate
 
 cat6_store:        T_OP_STG   { new_instr(OPC_STG); dummy_dst(); }   cat6_type 'g' '[' src cat6_imm_offset ']' ',' src ',' immediate
-|                  T_OP_STG_A { new_instr(OPC_STG_A); dummy_dst(); } cat6_type 'g' '[' src cat6_stg_ldg_a6xx_offset ']' ',' src ',' immediate
+|                  T_OP_STG_A { new_instr(OPC_STG_A); dummy_dst(); } cat6_type 'g' '[' cat6_a6xx_global_address ']' ',' src ',' immediate
 |                  T_OP_STP  { new_instr(OPC_STP); dummy_dst(); }  cat6_type 'p' '[' src cat6_dst_offset ']' ',' src ',' immediate
 |                  T_OP_STL  { new_instr(OPC_STL); dummy_dst(); }  cat6_type 'l' '[' src cat6_dst_offset ']' ',' src ',' immediate
 |                  T_OP_STLW { new_instr(OPC_STLW); dummy_dst(); } cat6_type 'l' '[' src cat6_dst_offset ']' ',' src ',' immediate
@@ -1248,7 +1289,9 @@ stc_dst:          integer { new_src(0, IR3_REG_IMMED)->iim_val = $1; }
 |                 T_A1 { new_src(0, IR3_REG_IMMED)->iim_val = 0; instr->flags |= IR3_INSTR_A1EN; }
 |                 T_A1 '+' integer { new_src(0, IR3_REG_IMMED)->iim_val = $3; instr->flags |= IR3_INSTR_A1EN; }
 
-cat6_stc: T_OP_STC { new_instr(OPC_STC); } cat6_type 'c' '[' stc_dst ']' ',' src_reg ',' cat6_immed
+cat6_stc:
+              T_OP_STC  { new_instr(OPC_STC); }  cat6_type 'c' '[' stc_dst ']' ',' src_reg ',' cat6_immed
+|             T_OP_STSC { new_instr(OPC_STSC); } cat6_type 'c' '[' stc_dst ']' ',' immediate ',' cat6_immed
 
 cat6_todo:         T_OP_G2L                 { new_instr(OPC_G2L); }
 |                  T_OP_L2G                 { new_instr(OPC_L2G); }
@@ -1278,7 +1321,82 @@ cat7_scopes:
 cat7_barrier:      T_OP_BAR                { new_instr(OPC_BAR); } cat7_scopes
 |                  T_OP_FENCE              { new_instr(OPC_FENCE); } cat7_scopes
 
+cat7_data_cache:   T_OP_DCCLN              { new_instr(OPC_DCCLN); }
+|                  T_OP_DCINV              { new_instr(OPC_DCINV); }
+|                  T_OP_DCFLU              { new_instr(OPC_DCFLU); }
+
+cat7_alias_src:    src_reg_or_const
+|                  immediate_cat1
+
+cat7_alias_scope: T_MOD_TEX	{ instr->cat7.alias_scope = ALIAS_TEX; }
+|                 T_MOD_MEM	{ instr->cat7.alias_scope = ALIAS_MEM; }
+|                 T_MOD_RT	{ instr->cat7.alias_scope = ALIAS_RT; }
+
 cat7_instr:        cat7_barrier
+|                  cat7_data_cache
+|                  T_OP_SLEEP              { new_instr(OPC_SLEEP); }
+|                  T_OP_CCINV              { new_instr(OPC_CCINV); }
+|                  T_OP_ICINV              { new_instr(OPC_ICINV); }
+|                  T_OP_LOCK               { new_instr(OPC_LOCK); }
+|                  T_OP_UNLOCK             { new_instr(OPC_UNLOCK); }
+|                  T_OP_ALIAS {
+                       /* TODO: handle T_INSTR_TYPE */
+                       new_instr(OPC_ALIAS);
+                   } '.' cat7_alias_scope '.' T_INSTR_TYPE '.' integer dst_reg ',' cat7_alias_src {
+                       new_src(0, IR3_REG_IMMED)->uim_val = $8;
+                   }
+
+raw_instr: T_RAW   {new_instr(OPC_META_RAW)->raw.value = $1;}
+
+meta_print: T_OP_PRINT T_REGISTER ',' T_REGISTER {
+	/* low */
+	new_instr(OPC_MOV);
+	instr->cat1.src_type = TYPE_U32;
+	instr->cat1.dst_type = TYPE_U32;
+	new_dst($2, IR3_REG_R);
+	new_src(0, IR3_REG_IMMED)->uim_val = info->shader_print_buffer_iova & 0xffffffff;
+
+	/* high */
+	new_instr(OPC_MOV);
+	instr->cat1.src_type = TYPE_U32;
+	instr->cat1.dst_type = TYPE_U32;
+	new_dst($2 + 2, IR3_REG_R);
+	new_src(0, IR3_REG_IMMED)->uim_val = info->shader_print_buffer_iova >> 32;
+
+	/* offset */
+	new_instr(OPC_MOV);
+	instr->cat1.src_type = TYPE_U32;
+	instr->cat1.dst_type = TYPE_U32;
+	new_dst($2 + 4, IR3_REG_R);
+	new_src(0, IR3_REG_IMMED)->uim_val = 4;
+
+	new_instr(OPC_NOP);
+	instr->repeat = 5;
+
+	/* Increment and get current offset into print buffer */
+	new_instr(OPC_ATOMIC_G_ADD);
+	instr->cat6.d = 1;
+	instr->cat6.typed = 0;
+	instr->cat6.type = TYPE_U32;
+	instr->cat6.iim_val = 1;
+
+	new_dst($2, IR3_REG_R);
+	new_src($2, IR3_REG_R);
+	new_src($2 + 4, IR3_REG_R);
+
+	/* Store the value */
+	new_instr(OPC_STG);
+	dummy_dst();
+	instr->cat6.type = TYPE_U32;
+	instr->flags = IR3_INSTR_SY;
+	new_src($2, IR3_REG_R);
+	new_src(0, IR3_REG_IMMED)->iim_val = 0;
+	new_src($4, IR3_REG_R);
+	new_src(0, IR3_REG_IMMED)->iim_val = 1;
+
+	new_instr(OPC_NOP);
+	instr->flags = IR3_INSTR_SY;
+}
 
 src:               T_REGISTER     { $$ = new_src($1, 0); }
 |                  T_A0           { $$ = new_src((61 << 3), IR3_REG_HALF); }
@@ -1309,6 +1427,7 @@ src_reg_flag:      T_ABSNEG       { rflags.flags |= IR3_REG_ABS|IR3_REG_NEGATE; 
 |                  T_NEG          { rflags.flags |= IR3_REG_NEGATE; }
 |                  T_ABS          { rflags.flags |= IR3_REG_ABS; }
 |                  T_R            { rflags.flags |= IR3_REG_R; }
+|                  T_LAST         { rflags.flags |= IR3_REG_LAST_USE; }
 
 src_reg_flags:     src_reg_flag
 |                  src_reg_flag src_reg_flags

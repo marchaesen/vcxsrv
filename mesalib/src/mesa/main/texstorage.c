@@ -27,7 +27,7 @@
  * GL_ARB_texture_storage functions
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "enums.h"
 

@@ -675,6 +675,7 @@ const struct dxil_type *
 dxil_get_overload_type(struct dxil_module *mod, enum overload_type overload)
 {
    switch (overload) {
+   case DXIL_I1: return get_int1_type(mod);
    case DXIL_I16: return get_int16_type(mod);
    case DXIL_I32: return get_int32_type(mod);
    case DXIL_I64: return get_int64_type(mod);
@@ -704,12 +705,12 @@ const struct dxil_type *
 dxil_module_get_cbuf_ret_type(struct dxil_module *mod, enum overload_type overload)
 {
    const struct dxil_type *overload_type = dxil_get_overload_type(mod, overload);
-   const struct dxil_type *fields[4] = { overload_type, overload_type, overload_type, overload_type };
+   const struct dxil_type *fields[8] = { overload_type, overload_type, overload_type, overload_type,
+                                         overload_type, overload_type, overload_type, overload_type };
    unsigned num_fields;
 
    char name[64];
-   snprintf(name, sizeof(name), "dx.types.CBufRet.%s", dxil_overload_suffix(overload));
-
+   const char *additional = "";
    switch (overload) {
    case DXIL_I32:
    case DXIL_F32:
@@ -719,9 +720,15 @@ dxil_module_get_cbuf_ret_type(struct dxil_module *mod, enum overload_type overlo
    case DXIL_F64:
       num_fields = 2;
       break;
+   case DXIL_I16:
+   case DXIL_F16:
+      num_fields = 8;
+      additional = ".8";
+      break;
    default:
       unreachable("unexpected overload type");
    }
+   snprintf(name, sizeof(name), "dx.types.CBufRet.%s%s", dxil_overload_suffix(overload), additional);
 
    return dxil_module_get_struct_type(mod, name, fields, num_fields);
 }
@@ -798,12 +805,13 @@ get_res_ms_postfix(enum dxil_resource_kind kind)
       return ", 0";
 
    default:
-      return " ";
+      return "";
    }
 }
 const struct dxil_type *
 dxil_module_get_res_type(struct dxil_module *m, enum dxil_resource_kind kind,
-                         enum dxil_component_type comp_type, bool readwrite)
+                         enum dxil_component_type comp_type, unsigned num_comps,
+                         bool readwrite)
 {
    switch (kind) {
    case DXIL_RESOURCE_KIND_TYPED_BUFFER:
@@ -818,12 +826,18 @@ dxil_module_get_res_type(struct dxil_module *m, enum dxil_resource_kind kind,
    case DXIL_RESOURCE_KIND_TEXTURECUBE_ARRAY:
    {
       const struct dxil_type *component_type = dxil_module_get_type_from_comp_type(m, comp_type);
-      const struct dxil_type *vec_type = dxil_module_get_vector_type(m, component_type, 4);
+      const struct dxil_type *vec_type = num_comps == 1 ? component_type :
+         dxil_module_get_vector_type(m, component_type, num_comps);
+      char vector_name[64] = { 0 };
+      if (num_comps == 1)
+         snprintf(vector_name, 64, "%s", get_res_comp_type_name(comp_type));
+      else
+         snprintf(vector_name, 64, "vector<%s, %d>", get_res_comp_type_name(comp_type), num_comps);
       char class_name[64] = { 0 };
-      snprintf(class_name, 64, "class.%s%s<vector<%s, 4>%s>",
+      snprintf(class_name, 64, "class.%s%s<%s%s>",
                readwrite ? "RW" : "",
                get_res_dimension_type_name(kind),
-               get_res_comp_type_name(comp_type),
+               vector_name,
                get_res_ms_postfix(kind));
       return dxil_module_get_struct_type(m, class_name, &vec_type, 1);
    }
@@ -854,8 +868,10 @@ dxil_module_get_resret_type(struct dxil_module *m, enum overload_type overload)
       { overload_type, overload_type, overload_type, overload_type, int32_type };
 
    switch (overload) {
+   case DXIL_I16: name = "dx.types.ResRet.i16"; break;
    case DXIL_I32: name = "dx.types.ResRet.i32"; break;
    case DXIL_I64: name = "dx.types.ResRet.i64"; break;
+   case DXIL_F16: name = "dx.types.ResRet.f16"; break;
    case DXIL_F32: name = "dx.types.ResRet.f32"; break;
    case DXIL_F64: name = "dx.types.ResRet.f64"; break;
    default:
@@ -906,6 +922,16 @@ dxil_module_get_res_props_type(struct dxil_module *mod)
    const struct dxil_type *fields[2] = { int32_type, int32_type };
 
    return dxil_module_get_struct_type(mod, "dx.types.ResourceProperties", fields, 2);
+}
+
+const struct dxil_type *
+dxil_module_get_fouri32_type(struct dxil_module *mod)
+{
+   /* %dx.types.fouri32 = type { i32, i32, i32, i32 } */
+   const struct dxil_type *int32_type = dxil_module_get_int_type(mod, 32);
+   const struct dxil_type *fields[4] = { int32_type, int32_type, int32_type, int32_type };
+
+   return dxil_module_get_struct_type(mod, "dx.types.fouri32", fields, 4);
 }
 
 const struct dxil_type *
@@ -1303,17 +1329,36 @@ static bool
 emit_attrib_group(struct dxil_module *m, int id, uint32_t slot,
                   const struct dxil_attrib *attrs, size_t num_attrs)
 {
-   uint64_t record[64];
+   uint64_t record[128];
    record[0] = id;
    record[1] = slot;
    size_t size = 2;
 
    for (int i = 0; i < num_attrs; ++i) {
+      assert(size < ARRAY_SIZE(record) - 2);
+      record[size++] = attrs[i].type;
       switch (attrs[i].type) {
       case DXIL_ATTR_ENUM:
-         assert(size < ARRAY_SIZE(record) - 2);
+         record[size++] = attrs[i].key.kind;
+         break;
+      case DXIL_ATTR_ENUM_VALUE:
+         record[size++] = attrs[i].key.kind;
+         record[size++] = attrs[i].value.integer;
+         break;
+      case DXIL_ATTR_STRING:
+      case DXIL_ATTR_STRING_VALUE:
+         assert(size < ARRAY_SIZE(record) - strlen(attrs[i].key.str));
+         for (int j = 0; attrs[i].key.str[j]; ++j)
+            record[size++] = attrs[i].key.str[j];
          record[size++] = 0;
-         record[size++] = attrs[i].kind;
+
+         if (attrs[i].type == DXIL_ATTR_STRING)
+            break;
+
+         assert(size < ARRAY_SIZE(record) - strlen(attrs[i].value.str));
+         for (int j = 0; attrs[i].value.str[j]; ++j)
+            record[size++] = attrs[i].value.str[j];
+         record[size++] = 0;
          break;
 
       default:
@@ -1769,6 +1814,33 @@ dxil_module_get_array_const(struct dxil_module *m, const struct dxil_type *type,
 }
 
 const struct dxil_value *
+dxil_module_get_vector_const(struct dxil_module *m, const struct dxil_type *type,
+                            const struct dxil_value **values)
+{
+   assert(type->type == TYPE_VECTOR);
+   unsigned int num_values = type->array_or_vector_def.num_elems;
+
+   struct dxil_const *c;
+   LIST_FOR_EACH_ENTRY(c, &m->const_list, head) {
+      if (c->value.type != type || c->undef)
+         continue;
+
+      if (!memcmp(c->vector_values, values, sizeof(*values) * num_values))
+         return &c->value;
+   }
+
+   c = create_const(m, type, false);
+   if (!c)
+      return NULL;
+   void *tmp =
+      ralloc_array(m->ralloc_ctx, struct dxil_value *, num_values);
+   memcpy(tmp, values, sizeof(*values) * num_values);
+   c->vector_values = tmp;
+
+   return &c->value;
+}
+
+const struct dxil_value *
 dxil_module_get_undef(struct dxil_module *m, const struct dxil_type *type)
 {
    assert(type != NULL);
@@ -1786,8 +1858,8 @@ dxil_module_get_undef(struct dxil_module *m, const struct dxil_type *type)
    return c ? &c->value : NULL;
 }
 
-static const struct dxil_value *
-get_struct_const(struct dxil_module *m, const struct dxil_type *type,
+const struct dxil_value *
+dxil_module_get_struct_const(struct dxil_module *m, const struct dxil_type *type,
                  const struct dxil_value **values)
 {
    assert(type->type == TYPE_STRUCT);
@@ -1835,7 +1907,7 @@ dxil_module_get_res_bind_const(struct dxil_module *m,
    if (!values[0] || !values[1] || !values[2] || !values[3])
       return NULL;
 
-   return get_struct_const(m, type, values);
+   return dxil_module_get_struct_const(m, type, values);
 }
 
 static uint32_t
@@ -1991,7 +2063,145 @@ dxil_module_get_res_props_const(struct dxil_module *m,
    if (!values[0] || !values[1])
       return NULL;
 
-   return get_struct_const(m, type, values);
+   return dxil_module_get_struct_const(m, type, values);
+}
+
+static enum dxil_component_type
+comp_type_from_alu_type(nir_alu_type type)
+{
+   switch (type & NIR_ALU_TYPE_BASE_TYPE_MASK)
+   {
+   case nir_type_int: return DXIL_COMP_TYPE_I32;
+   case nir_type_uint: return DXIL_COMP_TYPE_U32;
+   case nir_type_float: return DXIL_COMP_TYPE_F32;
+   default: unreachable("Unexpected component type");
+   }
+}
+
+const struct dxil_value *
+dxil_module_get_srv_res_props_const(struct dxil_module *m,
+                                    const nir_tex_instr *tex)
+{
+   const struct dxil_type *type = dxil_module_get_res_props_type(m);
+   if (!type)
+      return NULL;
+
+   uint32_t dwords[2];
+   dwords[0] = get_basic_srv_uav_res_props_dword(false, false, false, false,
+                                                 dxil_sampler_dim_to_resource_kind(tex->sampler_dim, tex->is_array));
+   dwords[1] = get_typed_srv_uav_res_props_dword(comp_type_from_alu_type(tex->dest_type),
+                                                 nir_tex_instr_dest_size(tex),
+                                                 0);
+
+   const struct dxil_value *values[2] = {
+      dxil_module_get_int32_const(m, dwords[0]),
+      dxil_module_get_int32_const(m, dwords[1])
+   };
+   if (!values[0] || !values[1])
+      return NULL;
+
+   return dxil_module_get_struct_const(m, type, values);
+}
+
+const struct dxil_value *
+dxil_module_get_sampler_res_props_const(struct dxil_module *m,
+                                        bool is_shadow)
+{
+   const struct dxil_type *type = dxil_module_get_res_props_type(m);
+   if (!type)
+      return NULL;
+
+   uint32_t dwords[2] = { get_sampler_res_props_dword(is_shadow), 0 };
+
+   const struct dxil_value *values[2] = {
+      dxil_module_get_int32_const(m, dwords[0]),
+      dxil_module_get_int32_const(m, dwords[1])
+   };
+   if (!values[0] || !values[1])
+      return NULL;
+
+   return dxil_module_get_struct_const(m, type, values);
+}
+
+static nir_alu_type
+alu_type_from_image_intr(nir_intrinsic_instr *intr)
+{
+   switch (intr->intrinsic)
+   {
+   case nir_intrinsic_image_load:
+   case nir_intrinsic_image_deref_load:
+   case nir_intrinsic_bindless_image_load:
+      return nir_intrinsic_dest_type(intr);
+   case nir_intrinsic_image_store:
+   case nir_intrinsic_image_deref_store:
+   case nir_intrinsic_bindless_image_store:
+      return nir_intrinsic_src_type(intr);
+   default:
+      if (nir_intrinsic_has_atomic_op(intr))
+         return nir_atomic_op_type(nir_intrinsic_atomic_op(intr));
+      return nir_type_uint;
+   }
+}
+
+const struct dxil_value *
+dxil_module_get_uav_res_props_const(struct dxil_module *m,
+                                    nir_intrinsic_instr *intr)
+{
+   const struct dxil_type *type = dxil_module_get_res_props_type(m);
+   if (!type)
+      return NULL;
+
+   uint32_t dwords[2];
+   dwords[0] = get_basic_srv_uav_res_props_dword(true, false, false /*TODO*/, false,
+                                                 dxil_sampler_dim_to_resource_kind(nir_intrinsic_image_dim(intr),
+                                                                                   nir_intrinsic_image_array(intr)));
+   unsigned num_comps = intr->num_components ? intr->num_components : 1;
+   if (nir_intrinsic_has_format(intr)) {
+      enum pipe_format format = nir_intrinsic_format(intr);
+      if (format != PIPE_FORMAT_NONE)
+         num_comps = util_format_get_nr_components(format);
+   }
+   dwords[1] = get_typed_srv_uav_res_props_dword(comp_type_from_alu_type(alu_type_from_image_intr(intr)),
+                                                 num_comps, 0);
+
+   const struct dxil_value *values[2] = {
+      dxil_module_get_int32_const(m, dwords[0]),
+      dxil_module_get_int32_const(m, dwords[1])
+   };
+   if (!values[0] || !values[1])
+      return NULL;
+
+   return dxil_module_get_struct_const(m, type, values);
+}
+
+const struct dxil_value *
+dxil_module_get_buffer_res_props_const(struct dxil_module *m,
+                                       enum dxil_resource_class class,
+                                       enum dxil_resource_kind kind)
+{
+   const struct dxil_type *type = dxil_module_get_res_props_type(m);
+   if (!type)
+      return NULL;
+
+   uint32_t dwords[2];
+   if (class == DXIL_RESOURCE_CLASS_CBV) {
+      dwords[0] = kind;
+      dwords[1] = 4096 /* vec4s */ * 4 /* components */ * 4 /* bytes */;
+   } else {
+      dwords[0] = get_basic_srv_uav_res_props_dword(class == DXIL_RESOURCE_CLASS_UAV,
+                                                    false, false /*TODO*/, false,
+                                                    kind);
+      dwords[1] = 0;
+   }
+
+   const struct dxil_value *values[2] = {
+      dxil_module_get_int32_const(m, dwords[0]),
+      dxil_module_get_int32_const(m, dwords[1])
+   };
+   if (!values[0] || !values[1])
+      return NULL;
+
+   return dxil_module_get_struct_const(m, type, values);
 }
 
 enum dxil_module_code {
@@ -2105,13 +2315,82 @@ add_function(struct dxil_module *m, const char *name,
    return func;
 }
 
+static bool attrs_equal(const struct dxil_attrib *a, const struct dxil_attrib *b)
+{
+   if (a->type != b->type)
+      return false;
+   switch (a->type) {
+   case DXIL_ATTR_ENUM:
+      return a->key.kind == b->key.kind;
+   case DXIL_ATTR_ENUM_VALUE:
+      return a->key.kind == b->key.kind && a->value.integer == b->value.integer;
+   case DXIL_ATTR_STRING:
+      return a->key.str == b->key.str || !strcmp(a->key.str, b->key.str);
+   case DXIL_ATTR_STRING_VALUE:
+      return (a->key.str == b->key.str || !strcmp(a->key.str, b->key.str)) &&
+         (a->value.str == b->value.str || !strcmp(a->value.str, b->value.str));
+   default:
+      unreachable("Invalid attr type");
+   }
+}
+
+static bool attr_sets_equal(unsigned num_attrs, const struct dxil_attrib *a, const struct dxil_attrib *b)
+{
+   for (unsigned i = 0; i < num_attrs; ++i) {
+      if (!attrs_equal(&a[i], &b[i]))
+         return false;
+   }
+   return true;
+}
+
+static unsigned
+dxil_get_string_attr_set(struct dxil_module *m,
+                         const char *const *attr_keys, const char *const *attr_values)
+{
+   if (!attr_keys)
+      return 0;
+
+   struct dxil_attrib attrs[2];
+   unsigned num_attrs = 0;
+   for (; num_attrs < ARRAY_SIZE(attrs) && attr_keys[num_attrs]; ++num_attrs) {
+      if (attr_values && attr_values[num_attrs])
+         attrs[num_attrs] = (struct dxil_attrib){ DXIL_ATTR_STRING_VALUE, {.str = attr_keys[num_attrs]}, {.str = attr_values[num_attrs]} };
+      else
+         attrs[num_attrs] = (struct dxil_attrib){ DXIL_ATTR_STRING, {.str = attr_keys[num_attrs]} };
+   }
+
+   if (num_attrs == 0)
+      return 0;
+
+   int index = 1;
+   struct attrib_set *as;
+   LIST_FOR_EACH_ENTRY(as, &m->attr_set_list, head) {
+      if (as->num_attrs == num_attrs && attr_sets_equal(num_attrs, as->attrs, attrs))
+         return index;
+      index++;
+   }
+
+   as = ralloc_size(m->ralloc_ctx, sizeof(struct attrib_set));
+   if (!as)
+      return 0;
+
+   memcpy(as->attrs, attrs, sizeof(attrs));
+   as->num_attrs = num_attrs;
+
+   list_addtail(&as->head, &m->attr_set_list);
+   assert(list_length(&m->attr_set_list) == index);
+   return index;
+}
+
 struct dxil_func_def *
 dxil_add_function_def(struct dxil_module *m, const char *name,
-                      const struct dxil_type *type, unsigned num_blocks)
+                      const struct dxil_type *type, unsigned num_blocks,
+                      const char *const *attr_keys, const char *const *attr_values)
 {
    struct dxil_func_def *def = ralloc_size(m->ralloc_ctx, sizeof(struct dxil_func_def));
 
-   def->func = add_function(m, name, type, false, 0);
+   unsigned attr_index = dxil_get_string_attr_set(m, attr_keys, attr_values);
+   def->func = add_function(m, name, type, false, attr_index);
    if (!def->func)
       return NULL;
 
@@ -2142,10 +2421,11 @@ get_attr_set(struct dxil_module *m, enum dxil_attr_kind attr)
       { DXIL_ATTR_ENUM, { attr } }
    };
 
+   unsigned num_attrs = attr == DXIL_ATTR_KIND_NONE ? 1 : 2;
    int index = 1;
    struct attrib_set *as;
    LIST_FOR_EACH_ENTRY(as, &m->attr_set_list, head) {
-      if (!memcmp(as->attrs, attrs, sizeof(attrs)))
+      if (as->num_attrs == num_attrs && attr_sets_equal(num_attrs, as->attrs, attrs))
          return index;
       index++;
    }
@@ -2155,9 +2435,7 @@ get_attr_set(struct dxil_module *m, enum dxil_attr_kind attr)
       return 0;
 
    memcpy(as->attrs, attrs, sizeof(attrs));
-   as->num_attrs = 1;
-   if (attr != DXIL_ATTR_KIND_NONE)
-      as->num_attrs++;
+   as->num_attrs = num_attrs;
 
    list_addtail(&as->head, &m->attr_set_list);
    assert(list_length(&m->attr_set_list) == index);
@@ -3100,11 +3378,10 @@ dxil_emit_extractval(struct dxil_module *m, const struct dxil_value *src,
 
 const struct dxil_value *
 dxil_emit_alloca(struct dxil_module *m, const struct dxil_type *alloc_type,
-                 const struct dxil_type *size_type,
                  const struct dxil_value *size,
                  unsigned int align)
 {
-   assert(size_type && size_type->type == TYPE_INTEGER);
+   assert(size->type->type == TYPE_INTEGER);
 
    const struct dxil_type *return_type =
       dxil_module_get_pointer_type(m, alloc_type);
@@ -3116,7 +3393,7 @@ dxil_emit_alloca(struct dxil_module *m, const struct dxil_type *alloc_type,
       return NULL;
 
    instr->alloca.alloc_type = alloc_type;
-   instr->alloca.size_type = size_type;
+   instr->alloca.size_type = size->type;
    instr->alloca.size = size;
    instr->alloca.align = util_logbase2(align) + 1;
    assert(instr->alloca.align < (1 << 5));

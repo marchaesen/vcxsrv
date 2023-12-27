@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -27,7 +27,7 @@
 #define SVGA_BUFFER_H
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_state.h"
 #include "util/u_transfer.h"
 
@@ -89,12 +89,12 @@ struct svga_buffer
    /**
     * Whether swbuf was created by the user or not.
     */
-   boolean user;
+   bool user;
 
    /**
     * Whether swbuf is used for this buffer.
     */
-   boolean use_swbuf;
+   bool use_swbuf;
 
    /**
     * Creation key for the host surface handle.
@@ -186,7 +186,7 @@ struct svga_buffer
        *
        * If not set then the rest of the information is null.
        */
-      boolean pending;
+      bool pending;
 
       SVGA3dSurfaceDMAFlags flags;
 
@@ -215,14 +215,14 @@ struct svga_buffer
 
    unsigned size;  /**< Approximate size in bytes */
 
-   boolean dirty;  /**< Need to do a readback before mapping? */
-   boolean uav;    /* Set if the buffer is bound to a uav */
+   bool dirty;  /**< Need to do a readback before mapping? */
+   bool uav;    /* Set if the buffer is bound to a uav */
 
    /** In some cases we try to keep the results of the translate_indices()
     * function from svga_draw_elements.c
     */
    struct {
-      enum pipe_prim_type orig_prim, new_prim;
+      enum mesa_prim orig_prim, new_prim;
       struct pipe_resource *buffer;
       unsigned index_size;
       unsigned offset;  /**< first index */
@@ -244,13 +244,13 @@ svga_buffer(struct pipe_resource *resource)
  * Returns TRUE for user buffers.  We may
  * decide to use an alternate upload path for these buffers.
  */
-static inline boolean
+static inline bool
 svga_buffer_is_user_buffer(struct pipe_resource *buffer)
 {
    if (buffer) {
       return svga_buffer(buffer)->user;
    } else {
-      return FALSE;
+      return false;
    }
 }
 
@@ -269,13 +269,13 @@ svga_buffer_winsys_screen(struct svga_buffer *sbuf)
  * Returns whether a buffer has hardware storage that is
  * visible to the GPU.
  */
-static inline boolean
+static inline bool
 svga_buffer_has_hw_storage(struct svga_buffer *sbuf)
 {
    if (svga_buffer_winsys_screen(sbuf)->have_gb_objects)
-      return (sbuf->handle ? TRUE : FALSE);
+      return (sbuf->handle ? true : false);
    else
-      return (sbuf->hwbuf ? TRUE : FALSE);
+      return (sbuf->hwbuf ? true : false);
 }
 
 /**
@@ -285,7 +285,7 @@ svga_buffer_has_hw_storage(struct svga_buffer *sbuf)
 static inline void *
 svga_buffer_hw_storage_map(struct svga_context *svga,
                            struct svga_buffer *sbuf,
-                           unsigned flags, boolean *retry)
+                           unsigned flags, bool *retry)
 {
    struct svga_winsys_screen *sws = svga_buffer_winsys_screen(sbuf);
 
@@ -293,7 +293,7 @@ svga_buffer_hw_storage_map(struct svga_context *svga,
 
    if (sws->have_gb_objects) {
       struct svga_winsys_context *swc = svga->swc;
-      boolean rebind;
+      bool rebind;
       void *map;
 
       if (swc->force_coherent) {
@@ -313,7 +313,7 @@ svga_buffer_hw_storage_map(struct svga_context *svga,
       }
       return map;
    } else {
-      *retry = FALSE;
+      *retry = false;
       return sws->buffer_map(sws, sbuf->hwbuf, flags);
    }
 }
@@ -329,7 +329,7 @@ svga_buffer_hw_storage_unmap(struct svga_context *svga,
 
    if (sws->have_gb_objects) {
       struct svga_winsys_context *swc = svga->swc;
-      boolean rebind;
+      bool rebind;
 
       swc->surface_unmap(swc, sbuf->handle, &rebind);
       if (rebind) {
@@ -351,10 +351,19 @@ svga_set_buffer_rendered_to(struct svga_buffer_surface *bufsurf)
 }
 
 
-static inline boolean
+static inline bool
 svga_was_buffer_rendered_to(const struct svga_buffer_surface *bufsurf)
 {
    return (bufsurf->surface_state == SVGA_SURFACE_STATE_RENDERED);
+}
+
+
+static inline bool
+svga_has_raw_buffer_view(struct svga_buffer *sbuf)
+{
+   return (sbuf->uav ||
+           (sbuf->key.persistent &&
+            (sbuf->key.flags & SVGA3D_SURFACE_BIND_RAW_VIEWS) != 0));
 }
 
 

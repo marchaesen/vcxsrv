@@ -1,0 +1,331 @@
+# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0 filetype=yaml:
+
+{# You're looking at the template here, so you can ignore the below
+   warning. This is the right file to edit #}
+#######################################
+#                                     #
+# THIS FILE IS GENERATED, DO NOT EDIT #
+#                                     #
+#######################################
+
+# To change the gitlab CI, edit .gitlab-ci/ci.template and/or .gitlab-ci/config.yml
+# and run ci-fairy generate-template. For details, see
+# https://freedesktop.pages.freedesktop.org/ci-templates/ci-fairy.html#templating-gitlab-ci-yml
+
+.templates_sha: &template_sha d11c0dd4c1c9a69c14b4af9b50cdd12b89d24672
+
+include:
+  {% for distro in distributions|sort(attribute="name") %}
+  # {{ distro.name.capitalize() }} container builder template
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/{{distro.name}}.yml'
+  {% endfor %}
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/ci-fairy.yml'
+  - local: '.gitlab-ci/other.yml'
+
+stages:
+  - sanity check
+  - prep
+  - test
+  - deploy
+  - container_clean
+
+variables:
+  FDO_UPSTREAM_REPO: fontconfig/fontconfig
+  GIT_DEPTH: 1
+
+# these tags should be updated each time the list of packages is updated
+# changing these will force rebuilding the associated image
+# Note: these tags have no meaning and are not tied to a particular
+# fontconfig version
+{% for distro in distributions %}
+  {{"%-15s"| format(distro.name.upper() + '_TAG:')}}'{{distro.tag}}-{{
+    (ci_fairy.hashfiles('.gitlab-ci/config.yml',
+                        '.gitlab-ci/' + distro.name + '-install.sh'))[0:12]
+  }}'
+{% endfor %}
+
+{% for distro in distributions %}
+  {{"%-15s"| format(distro.name.upper() + '_EXEC:')}}'bash .gitlab-ci/{{distro.name}}-install.sh'
+{% endfor %}
+
+#######################################
+#                                     #
+#            sanity check             #
+#                                     #
+#######################################
+
+fail-if-fork-is-not-public:
+  stage: sanity check
+  script:
+    - |
+      if [ $CI_PROJECT_VISIBILITY != "public" ]; then
+          echo "*************************************************************************************"
+          echo "Project visibility must be set to 'public'."
+          echo "Change this in $CI_PROJECT_URL/edit under 'Visibility, project features, permissions'"
+          echo "*************************************************************************************"
+          exit 1
+      fi
+  except:
+    - main@fontconfig/fontconfig
+
+check-ci-script:
+  extends:
+    - .fdo.ci-fairy
+  stage: sanity check
+  script:
+    - ci-fairy generate-template --verify && exit 0 || true
+    - >
+      printf "%s\n" \
+        "Committed gitlab-ci.yml differs from generated gitlab-ci.yml." \
+        "To change the gitlab CI, edit .gitlab-ci/ci.template and/or .gitlab-ci/config.yml" \
+        " and run ci-fairy generate-template. For details, see " \
+        "https://freedesktop.pages.freedesktop.org/ci-templates/ci-fairy.html#templating-gitlab-ci-yml"
+    - exit 1
+
+#######################################
+#                                     #
+#          containers stage           #
+#                                     #
+#######################################
+
+# Build a container for each distribution + version. The ci-templates
+# will re-use the containers if the tag doesn't change.
+{% for distro in distributions %}
+{% for version in distro.versions %}
+
+{{distro.name}}:{{version}}@container-prep:
+{% if distro.qemu_based %}
+  extends: .fdo.qemu-build@{{distro.name}}
+{% else %}
+  extends: .fdo.container-build@{{distro.name}}
+{% endif %}
+{% if distro.qemu_based %}
+  tags:
+    - kvm
+{% endif %}
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+    FDO_DISTRIBUTION_VERSION: '{{version}}'
+    FDO_DISTRIBUTION_PACKAGES: '{{' '.join(packages[distro.name].needed)}}'
+    FDO_DISTRIBUTION_TAG: ${{distro.name.upper()}}_TAG
+    FDO_DISTRIBUTION_EXEC: ${{distro.name.upper()}}_EXEC
+{% endfor %}
+{% endfor %}
+
+#######################################
+#                                     #
+#        container clean stage        #
+#                                     #
+#######################################
+
+#
+# This stage will look for the container images e currently have in
+# the registry and will remove any that are not tagged with the provided
+# $container_image:$tag
+#
+# This job only runs for a scheduled pipeline.
+#
+# Go to your Profile, Settings, Access Tokens
+# Create a personal token with `api' scope, copy the value.
+# Go to CI/CD, Schedules, schedule a monthly job.
+# Define a variable of type File named AUTHFILE. Content is that token
+# value.
+.container-clean:
+  stage: container_clean
+  image: golang:alpine
+  before_script:
+    - apk add python3 py-pip git
+    - pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates
+  script:
+    - ci-fairy -v --authfile $AUTHFILE delete-image
+            --repository $FDO_DISTRIBUTION_NAME/$FDO_DISTRIBUTION_VERSION
+            --exclude-tag $FDO_DISTRIBUTION_TAG
+  dependencies: []
+  allow_failure: true
+  only:
+    - schedules
+
+{% for distro in distributions %}
+{% for version in distro.versions %}
+{{distro.name}}:{{version}}@container-clean:
+  extends:
+    - .container-clean
+  variables:
+    GIT_STRATEGY: none
+    CURRENT_CONTAINER_IMAGE: $CI_REGISTRY_IMAGE/{{distro.name}}/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG
+    FDO_DISTRIBUTION_VERSION: '{{version}}'
+    FDO_DISTRIBUTION_TAG: ${{distro.name.upper()}}_TAG
+
+{% endfor %}
+{% endfor %}
+
+#######################################
+#                                     #
+#             build stage             #
+#                                     #
+#######################################
+
+.check_tainted: &check_tainted |
+  # make sure the kernel is not tainted
+  if [[ "$(ssh localhost -p 5555 cat /proc/sys/kernel/tainted)" -gt 0 ]];
+  then
+    echo tainted kernel ;
+    exit 1 ;
+  fi
+
+.build-in-qemu@template:
+  tags:
+    - kvm
+  script:
+    - /app/vmctl start || (echo "Error - Failed to start the VM." && exit 1)
+
+    - *check_tainted
+
+    - export BUILD_ID="fontconfig-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
+    - export PREFIX="$(pwd)/prefix-$BUILD_ID"
+    - export BUILDDIR="$(pwd)/build-$BUILD_ID"
+    - export MAKEFLAGS="-j4"
+    - |
+      buildopt=()
+      for bo in $FC_BUILD_ENABLED; do
+        buildopt+=(-e $bo)
+      done
+      for bo in $FC_BUILD_DISABLED; do
+        buildopt+=(-d $bo)
+      done
+      [ -n "$FC_BUILD_ARCH" ] && buildopt+=(-a $FC_BUILD_ARCH)
+      [ $FC_BUILD_DISTCHECK -eq 1 ] && buildopt+=(-c)
+      [ $FC_BUILD_NO_INSTALL -eq 1 ] && buildopt+=(-I)
+      [ $FC_BUILD_NO_CHECK -eq 1 ] && buildopt+=(-C)
+      buildopt+=(-s $FC_BUILDSYS)
+      buildopt+=(-t $FC_BUILD_TYPE)
+      buildopt+=(-X $FC_XML_BACKEND)
+      export buildopt
+    - "scp -r $(pwd) vm:"
+    - echo "CI_JOB_ID=\"$CI_JOB_ID\"" > fcenv
+    - echo "CI_JOB_NAME=\"$CI_JOB_NAME\"" >> fcenv
+    - echo "BUILD_ID=\"$BUILD_ID\"" >> fcenv
+    - echo "MAKEFLAGS=\"$MAKEFLAGS\"" >> fcenv
+    - echo "MAKE=\"$MAKE\"" >> fcenv
+    - "scp fcenv vm:~/$CI_PROJECT_NAME/.gitlab-ci/fcenv"
+    - /app/vmctl exec "cd $CI_PROJECT_NAME ; bash .gitlab-ci/build.sh ${buildopt[@]}" && touch .success || true
+    - scp -r vm:$CI_PROJECT_NAME/build $BUILDDIR
+
+    - *check_tainted
+
+    - /app/vmctl stop
+    - if [[ ! -e .success ]];
+      then
+        exit 1 ;
+      fi
+  variables:
+    FC_BUILDSYS: autotools
+    FC_XML_BACKEND: expat
+    FC_BUILD_TYPE: both
+    FC_BUILD_DISTCHECK: 0
+    FC_BUILD_NO_INSTALL: 0
+    FC_BUILD_NO_CHECK: 0
+
+.build@template:
+  script:
+    - export BUILD_ID="fontconfig-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
+    - export PREFIX="$(pwd)/prefix-$BUILD_ID"
+    - export BUILDDIR="$(pwd)/build-$BUILD_ID"
+    - export MAKEFLAGS="-j4"
+    - |
+      buildopt=()
+      for bo in $FC_BUILD_ENABLED; do
+        buildopt+=(-e $bo)
+      done
+      for bo in $FC_BUILD_DISABLED; do
+        buildopt+=(-d $bo)
+      done
+      [ -n "$FC_BUILD_ARCH" ] && buildopt+=(-a $FC_BUILD_ARCH)
+      [ $FC_BUILD_DISTCHECK -eq 1 ] && buildopt+=(-c)
+      [ $FC_BUILD_NO_INSTALL -eq 1 ] && buildopt+=(-I)
+      [ $FC_BUILD_NO_CHECK -eq 1 ] && buildopt+=(-C)
+      buildopt+=(-s $FC_BUILDSYS)
+      buildopt+=(-t $FC_BUILD_TYPE)
+      buildopt+=(-X $FC_XML_BACKEND)
+      sh .gitlab-ci/build.sh ${buildopt[@]}
+  variables:
+    FC_BUILDSYS: autotools
+    FC_XML_BACKEND: expat
+    FC_BUILD_TYPE: both
+    FC_BUILD_DISTCHECK: 0
+    FC_BUILD_NO_INSTALL: 0
+    FC_BUILD_NO_CHECK: 0
+
+.fc_artifacts:
+  artifacts:
+    name: fontconfig-$CI_COMMIT_SHA-$CI_JOB_ID
+    when: always
+    expire_in: 5 days
+    paths:
+      - build*/fc-build.log
+      - build*/fontconfig-*.tar.*
+      - build*/test/*log
+      - build*/fontconfig*/_build
+      - build*/meson-logs/*
+
+#######################################
+#                                     #
+#              test stage             #
+#                                     #
+#######################################
+
+{% for distro in distributions %}
+{% for version in distro.versions %}
+{% for build in distro.builds %}
+
+{% if not 'build_only' in build or build.build_only == version %}
+t_{{distro.name}}:{{version}}:{{build.name}}:
+  extends:
+{% if distro.qemu_based %}
+    - .build-in-qemu@template
+{% else %}
+    - .build@template
+{% endif %}
+    - .fdo.distribution-image@{{distro.name}}
+    - .fc_artifacts
+  variables:
+    FC_DISTRO_NAME: {{distro.name}}
+    FDO_DISTRIBUTION_VERSION: '{{version}}'
+    FDO_DISTRIBUTION_TAG: ${{distro.name.upper()}}_TAG
+    {# Where we have extra_variables defined, add them to the list #}
+    {% if build.variables is defined %}
+    {% for key, value in build.variables.items() %}
+    {{key}}: {{value}}
+    {% endfor %}
+    {% endif %}
+  needs:
+    - '{{distro.name}}:{{version}}@container-prep'
+{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% endfor %}
+
+#######################################
+#                                     #
+#            deploy stage             #
+#                                     #
+#######################################
+
+check-merge-request:
+  extends:
+    - .fdo.ci-fairy
+  stage: deploy
+  script:
+    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
+  artifacts:
+    when: on_failure
+    reports:
+      junit: results.xml
+  allow_failure: true
+

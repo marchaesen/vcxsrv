@@ -1,6 +1,6 @@
-// New style XKB layout for some widely used Hungarian keyboard layouts
-//
-// Based on old style 'xkb/symbols/hu"
+// Keyboard layouts for Hungary.
+
+// Some widely used Hungarian keyboard layouts.
 //
 // (C) 2002-2004 Soós Péter <sp@osb.hu>
 // (C) 2010 Andras Timar <timar@fsf.hu>
@@ -346,13 +346,13 @@ xkb_symbols "def_qwerty" {
     key <AB01>  { [            z,            Z,           greater                  ] };
 };
 
-// def_dot: 	 
-// The Hungarian standard is the comma on the keypad not decimal dot, 	 
-// but programmers hate it 	 
-hidden partial keypad_keys 	 
-xkb_symbols "def_dot" { 	 
-    key <KPDL>  { [    KP_Delete,   KP_Decimal                                     ] }; 	 
-}; 	 
+// def_dot:
+// The Hungarian standard is the comma on the keypad not decimal dot,
+// but programmers hate it
+hidden partial keypad_keys
+xkb_symbols "def_dot" {
+    key <KPDL>  { [    KP_Delete,   KP_Decimal                                     ] };
+};
 
 
 // def_dead:
@@ -433,9 +433,7 @@ xkb_symbols "def_common" {
 
 // EXTRAS:
 
-// New style XKB layout used Old Hungarian keyboard layouts
-//
-// 
+// Old Hungarian keyboard layouts.
 //
 // (C) 2013 Andras Tisza
 // (C) 2017,2018,2020  Viktor Kovacs <kov.h.vik@gmail.com>
@@ -450,12 +448,13 @@ xkb_symbols "def_common" {
 // Changes:
 // 2013 - Planned Old Hungarian layout
 // 2017 - Added Old Hungarian layout
-// 2018 - Resolved several easy-to-use issue, added extra punctuation and quotation marks  
-// 2020 - Added ligature capable layout ( with Zero-widt-joiner), added copyright, copyleft symbols 
-// 2020 - Added ZWNJ key to "Old Hungarian (for ligatures)", replaced its ohu_lig id to oldhunlig, replaced its ohu_lig short description to oldhun(lig).
+// 2018 - Resolved several easy-of-use issues, added extra punctuation and quotation marks.
+// 2020 - Added ligature-capable layout (with zero-width-joiner), added copyright, copyleft symbols.
+// 2020 - Added ZWNJ key to "Old Hungarian (for ligatures)", changed its ohu_lig id to oldhunlig.
 // Added "oldhun_magic_numpad" for both "Old Hungarian" layouts, as a specialised numpad.
+// 2023, Added decimal comma
 
-// Old Hungartian layout
+// Old Hungarian layout
 partial alphanumeric_keys
 xkb_symbols "oldhun" {
 name[Group1]="Old Hungarian";
@@ -476,76 +475,76 @@ include "level3(ralt_switch)"
 };
 
 // The base Old Hungarian keys
-// In the remarks you can read characters displayed only Unicode point 
+// In the remarks you can read characters displayed only Unicode point
 hidden partial alphanumeric_keys
-xkb_symbols "oldhun_base" { 
+xkb_symbols "oldhun_base" {
 key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
     key <AD01> {[ U10CCE, U10C8E, backslash ]};
-//Old-Hungarian gy, Gy    
-    key <AD02> {[ U10CF0, U10CB0 ]}; 
+//Old-Hungarian gy, Gy
+    key <AD02> {[ U10CF0, U10CB0 ]};
 //Old Hungarian zs, Zs
     key <AD03> {[ U10CC9, U10C89, U10CCA, U10C8A ]};
  //Old Hungarian e, E, close e, close E
     key <AD04> {[ U10CE2, U10CA2, U10CE3, U10CA3 ]};
-//Old Hungarian r, R, short r, short R    
+//Old Hungarian r, R, short r, short R
     key <AD05> {[ U10CE6, U10CA6, U10CF1, U10CB1 ]};
-//Old Hungarian t, T, ent-sharped sign,Ent-sharped sign    
+//Old Hungarian t, T, ent-sharped sign,Ent-sharped sign
     key <AD06> {[ U10CEF, U10CAF ]};
-//Old Hungarian z, Z    
+//Old Hungarian z, Z
     key <AD07> {[ U10CEA, U10CAA, U10CF2, U10CB2 ]};
-//Old Hungarian u, U,  Old Hungarian us, Us    
+//Old Hungarian u, U,  Old Hungarian us, Us
     key <AD08> {[ U10CD0, U10C90, U10CD1, U10C91 ]};
-//Old Hungarian i, I, ii, II  
+//Old Hungarian i, I, ii, II
     key <AD09> {[ U10CDB, U10C9B ]};
-//Old Hungarian o, O    
+//Old Hungarian o, O
     key <AD10> {[ U10CE0, U10CA0 ]};
-//Old Hungarian p, P    
+//Old Hungarian p, P
     key <AD11> {[ U10CDF, U10C9F ]};
 //Old Hungarian oee, Oee
     key <AD12> {[ U10CEB, U10CAB, U10CD5, U10C95 ]};
-//Old Hungarian uu,Uu,unk,Unk   
+//Old Hungarian uu,Uu,unk,Unk
     key <AC01> {[ U10CC0, U10C80, U10CC3, U10C83 ]};
-//Old Hungarian a,A,amb,Amb    
+//Old Hungarian a,A,amb,Amb
     key <AC02> {[ U10CE4, U10CA4, U10CE1, U10CA1 ]};
-//Old Hungarian s,S,emp,Emp    
+//Old Hungarian s,S,emp,Emp
     key <AC03> {[ U10CC7, U10C87, U10CE7, U10CA7 ]};
 //Old Hungarian d,D, ent/ant/int, Ent/Ant/Int
 	key <AC04> {[ U10CCC, U10C8C, bracketleft ]};
-//Old Hungarian f,F    
+//Old Hungarian f,F
     key <AC05> {[ U10CCD, U10C8D, bracketright ]};
-//Old Hungarian g, G    
+//Old Hungarian g, G
     key <AC06> {[ U10CCF, U10C8F, U10CE9, U10CA9 ]};
-//Old Hungarian h, H,ech, Ech    
+//Old Hungarian h, H,ech, Ech
     key <AC07> {[ U10CD2, U10C92, backslash ]};
-//Old Hungarian j, J    
+//Old Hungarian j, J
     key <AC08> {[ U10CD3, U10C93, U10CD4, U10C94 ]};
-//Old Hungarian open k, open K, close k, close K    
+//Old Hungarian open k, open K, close k, close K
     key <AC09> {[ U10CD6, U10C96 ]};
-//Old Hungarian l, L    
+//Old Hungarian l, L
     key <AC10> {[ U10CCB, U10C8B ]};
-//Old Hungarian ee, EE    
+//Old Hungarian ee, EE
     key <AC11> {[ U10CC1, U10C81, U10CC8, U10C88 ]};
-//Old Hungarian aa, AA, and And	     
+//Old Hungarian aa, AA, and And
     key <BKSL> {[ U10CEC, U10CAC ]};
-//Old Hungarian ue, Ue    
+//Old Hungarian ue, Ue
     key <AB01> {[ U10CD7, U10C97, greater ]};
-//Old Hungarian ly, Ly    
+//Old Hungarian ly, Ly
     key <AB02> {[ U10CE5, U10CA5, numbersign ]};
-//Old Hungarian sz, Sz    
+//Old Hungarian sz, Sz
     key <AB03> {[ U10CC4, U10C84, U10CC5, U10C85 ]};
-//Old Hungarian c,C, enc, Enc    
+//Old Hungarian c,C, enc, Enc
     key <AB04> {[ U10CEE, U10CAE, at ]};
-//Old Hungarian v,V    
+//Old Hungarian v,V
     key <AB05> {[ U10CC2, U10C82, braceleft ]};
-//Old Hungarian b, B    
+//Old Hungarian b, B
     key <AB06> {[ U10CD9, U10C99, braceright ]};
-//Old Hungarian n, N    
+//Old Hungarian n, N
     key <AB07> {[ U10CD8, U10C98, less ]};
-//Old Hungarian m, M    
-    key <AB08> {[ U2E41, U2E2E, U204F ]};
-//reversed question mark,reversed semicolon, reversed comma    
-    key <AB09> {[ period, colon, greater ]};    
-    key <AB10> {[ minus, underscore, asterisk ]};    
+//Old Hungarian m, M
+    key <AB08> {[ U2E41, U2E2E, U204F, comma ]};
+//reversed question mark,reversed semicolon, reversed comma
+    key <AB09> {[ period, colon, greater ]};
+    key <AB10> {[ minus, underscore, asterisk ]};
 	key <LSGT> {[ U10CD1, U10C91, less ]};
 //Old Hungarian ii,II
 };
@@ -570,9 +569,9 @@ key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
     key <AE06> {[ U10CFF, slash, backslash, 6 ]};
 //Old Hungarian thousand
     key <AE07> {[ U10CC6, U10C86, equal, 7 ]};
-//Old Hungarian cs, Cs    
+//Old Hungarian cs, Cs
     key <AE08> {[ U10CDA, U10C9A, parenleft, 8 ]};
-//Old Hungarian ny, Ny    
+//Old Hungarian ny, Ny
     key <AE09> {[ U10CE8, U10CA8, parenright, 9 ]};
 //Old Hungarian ty, Ty
     key <AE10> {[ U10CDE, U10C9E, U10CDD, U10C9D ]};
@@ -580,7 +579,7 @@ key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
     key <AE11> {[ U10CED, U10CAD, section ]};
 //Old Hungarian ue , Ue
     key <AE12> {[ U10CDC, U10C9C, copyright, U1F12F ]};
-//Old Hungarian oo, OO, copyleft    
+//Old Hungarian oo, OO, copyleft
 };
 
 //Special section for "Old Hungarian (for ligatures)" layout
@@ -598,23 +597,23 @@ key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
     key <AE03> {[ U10CFC, plus, minus, 3 ]};
 //Old Hungarian ten
     key <AE04> {[ U10CFD, exclam, U203C, 4 ]};
-//Old Hungarian fifty,double exclam    
+//Old Hungarian fifty,double exclam
     key <AE05> {[ U10CFE, percent, U2026, 5 ]};
 //Old Hungarian hundred, triple dot
     key <AE06> {[ U10CFF, slash, backslash, 6 ]};
 //Old Hungarian thousand
     key <AE07> {[ U10CC6, U10C86, equal, 7 ]};
-//Old Hungarian cs, Cs    
+//Old Hungarian cs, Cs
     key <AE08> {[ U10CDA, U10C9A, parenleft, 8 ]};
-//Old Hungarian ny, Ny    
+//Old Hungarian ny, Ny
     key <AE09> {[ U10CE8, U10CA8, parenright, 9 ]};
 //Old Hungarian ty, Ty
     key <AE10> {[ U10CDE, U10C9E, U10CDD, U10C9D ]};
-//Old Hungarian Rudimenta oe, Oe, Nikolsburg oe, Oe    
+//Old Hungarian Rudimenta oe, Oe, Nikolsburg oe, Oe
     key <AE11> {[ U10CED, U10CAD, section ]};
-//Old Hungarian ue , Ue    
+//Old Hungarian ue , Ue
     key <AE12> {[ U10CDC, U10C9C, copyright, U1F12F ]};
-//Old Hungarian oo, OO, copyleft    
+//Old Hungarian oo, OO, copyleft
 };
 
 //Numpad for Old Hungarian layouts
@@ -651,4 +650,25 @@ xkb_symbols "oldhun_magic_numpad" {
     key <KPMU> {[ KP_Multiply, KP_Multiply, KP_Multiply, KP_Multiply ]};
     key <KPSU> {[ KP_Subtract, KP_Subtract,	KP_Subtract, KP_Subtract ]};
     key <KPAD> {[ KP_Add, KP_Add, KP_Add, KP_Add ]};
+};
+
+// English (US layout with Hungarian characters)
+// Hungarian characters are included on right alt layer
+partial alphanumeric_keys
+xkb_symbols "us" {
+    include "us"
+    name[Group1] = "Hungarian (US)";
+
+    key <AD03>  {[ e,            E,          eacute,        Eacute       ]}; // e E é É
+    key <AD05>  {[ t,            T,          udoubleacute,  Udoubleacute ]}; // t T ű Ű
+    key <AD06>  {[ y,            Y,          udiaeresis,    Udiaeresis   ]}; // y Y ü Ü
+    key <AD07>  {[ u,            U,          uacute,        Uacute       ]}; // u U ú Ú
+    key <AD08>  {[ i,            I,          iacute,        Iacute       ]}; // i I í Í
+    key <AD09>  {[ o,            O,          oacute,        Oacute       ]}; // o O ó Ó
+    key <AD10>  {[ p,            P,          odiaeresis,    Odiaeresis   ]}; // p P ö Ö
+    key <AD11>  {[ bracketleft,  braceleft,  odoubleacute,  Odoubleacute ]}; // [ { ő Ő
+
+    key <AC01>  {[ a,            A,          aacute,        Aacute       ]}; // a A á Á
+
+    include "level3(ralt_switch)"
 };

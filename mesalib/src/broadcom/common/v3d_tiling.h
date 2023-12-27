@@ -24,7 +24,7 @@
 #ifndef V3D_TILING_H
 #define V3D_TILING_H
 
-#include "util/u_box.h"
+#include "util/format/u_format.h"
 
 /* A UIFblock is a 256-byte region of memory that's 256-byte aligned.  These
  * will be grouped in 4x4 blocks (left-to-right, then top-to-bottom) in a 4KB
@@ -62,6 +62,8 @@ enum v3d_tiling_mode {
          */
         V3D_TILING_UIF_XOR,
 };
+
+struct pipe_box;
 
 uint32_t v3d_utile_width(int cpp) ATTRIBUTE_CONST;
 uint32_t v3d_utile_height(int cpp) ATTRIBUTE_CONST;

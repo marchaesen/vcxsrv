@@ -44,6 +44,8 @@ int xf86platformProbe(void);
 int xf86platformProbeDev(DriverPtr drvp);
 int xf86platformAddGPUDevices(DriverPtr drvp);
 void xf86MergeOutputClassOptions(int entityIndex, void **options);
+void xf86PlatformScanPciDev(void);
+const char *xf86PlatformFindHotplugDriver(int dev_index);
 
 extern int xf86_num_platform_devices;
 extern struct xf86_platform_device *xf86_platform_devices;
@@ -56,7 +58,7 @@ extern Bool
 xf86_get_platform_device_unowned(int index);
 
 extern int
-xf86platformAddDevice(int index);
+xf86platformAddDevice(const char *driver_name, int index);
 extern void
 xf86platformRemoveDevice(int index);
 

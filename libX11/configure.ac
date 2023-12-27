@@ -1,15 +1,15 @@
 
 # Initialize Autoconf
-AC_PREREQ([2.60])
-AC_INIT([libX11], [1.8.1],
-        [https://gitlab.freedesktop.org/xorg/lib/libx11/issues], [libX11])
+AC_PREREQ([2.70])
+AC_INIT([libX11], [1.8.7],
+        [https://gitlab.freedesktop.org/xorg/lib/libx11/-/issues], [libX11])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([src/config.h include/X11/XlibConf.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 # Set common system defines for POSIX extensions, such as _GNU_SOURCE
-# Must be called before any macros that run the compiler (like AC_PROG_LIBTOOL)
+# Must be called before any macros that run the compiler (like LT_INIT)
 # to avoid autoconf errors.
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -17,7 +17,7 @@ AC_USE_SYSTEM_EXTENSIONS
 AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Initialize libtool
-AC_PROG_LIBTOOL
+LT_INIT
 
 AC_SYS_LARGEFILE
 
@@ -98,7 +98,6 @@ m4_pattern_forbid([^XTRANS_CONNECTION_FLAGS$])
 XTRANS_CONNECTION_FLAGS
 
 # Check for dlopen
-AC_MSG_CHECKING([if run-time linking is supported])
 AC_SEARCH_LIBS(dlopen,[dl svld])
 if test "x$ac_cv_search_dlopen" = xno; then
 	AC_SEARCH_LIBS(shl_load,[dld])
@@ -111,6 +110,7 @@ else
 	AC_DEFINE(HAVE_DLOPEN,1,[Use dlopen to load shared libraries])
 	AC_CHECK_HEADERS([dlfcn.h])
 fi
+AC_MSG_CHECKING([if run-time linking is supported])
 if test "x$ac_cv_header_dlfcn_h" = xyes -o "x$ac_cv_header_dl_h" = xyes; then
 	HAVE_LOADABLE_MODULES=yes
 else
@@ -222,9 +222,6 @@ xyes)
 	;;
 esac
 
-AC_CHECK_LIB(c, pthread_self, [thrstubs="no"], [thrstubs="yes"])
-AM_CONDITIONAL(THRSTUBS, test x$thrstubs = xyes)
-
 # XXX incomplete, please fill this in
 if test x$xthreads = xyes ; then
     case $host_os in
@@ -245,6 +242,17 @@ fi
 AC_SUBST(XTHREADLIB)
 AC_SUBST(XTHREAD_CFLAGS)
 
+if test "x$USE_THREAD_SAFETY_CONSTRUCTOR" = "xyes"; then
+    USE_THREAD_LIBS="$XTHREADLIB"
+else
+    # This should be kept in sync with libxcb
+    case $host_os in
+    linux*|darwin*|solaris*) ;;
+         *) X11_REQUIRES="$X11_REQUIRES pthread-stubs" ;;
+    esac
+fi
+AC_SUBST(USE_THREAD_LIBS)
+
 AC_CHECK_FUNC(poll, [AC_DEFINE(USE_POLL, 1, [poll() function is available])], )
 
 #
@@ -252,7 +260,7 @@ AC_CHECK_FUNC(poll, [AC_DEFINE(USE_POLL, 1, [poll() function is available])], )
 #
 AC_MSG_CHECKING([keysym definitions])
 AC_ARG_WITH([keysymdefdir],
-        [AC_HELP_STRING([--with-keysymdefdir=DIR], [The location of keysymdef.h (defaults to xproto include dir)])],
+        [AS_HELP_STRING([--with-keysymdefdir=DIR], [The location of keysymdef.h (defaults to xproto include dir)])],
         [KEYSYMDEFDIR=$withval],
         [KEYSYMDEFDIR=`$PKG_CONFIG --variable=includedir xproto`/X11])
 
@@ -432,13 +440,12 @@ AC_CONFIG_FILES([Makefile
 AC_OUTPUT
 
 echo ""
-echo "X11 will be built with the following settings:"
+echo "$PACKAGE_STRING will be built with the following settings:"
 echo " Loadable i18n module support:            "$XLIB_LOADABLE_I18N
 echo " Loadable xcursor library support:        "$XLIB_LOADABLE_XCURSOR
 echo " Threading support:                       "$xthreads
 echo " Use Threads safe API:                    "$mtsafeapi
 echo " Use thread safety constructor:           "$USE_THREAD_SAFETY_CONSTRUCTOR
-echo " Threads stubs in libX11:                 "$thrstubs
 echo " XCMS:                                    "$XCMS
 echo " Internationalization support:            "$XLOCALE
 echo " XF86BigFont support:                     "$XF86BIGFONT

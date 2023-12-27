@@ -43,10 +43,11 @@ dzn_sync_init(struct vk_device *device,
    struct dzn_sync *dsync = container_of(sync, struct dzn_sync, vk);
    struct dzn_device *ddev = container_of(device, struct dzn_device, vk);
 
-   assert(!(sync->flags & VK_SYNC_IS_SHAREABLE));
+   D3D12_FENCE_FLAGS flags = (sync->flags & VK_SYNC_IS_SHAREABLE) ?
+      D3D12_FENCE_FLAG_SHARED : D3D12_FENCE_FLAG_NONE;
 
    if (FAILED(ID3D12Device1_CreateFence(ddev->dev, initial_value,
-                                        D3D12_FENCE_FLAG_NONE,
+                                        flags,
                                         &IID_ID3D12Fence,
                                         (void **)&dsync->fence)))
       return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
@@ -61,6 +62,11 @@ dzn_sync_finish(struct vk_device *device,
    struct dzn_sync *dsync = container_of(sync, struct dzn_sync, vk);
 
    ID3D12Fence_Release(dsync->fence);
+
+#ifdef _WIN32
+   if (dsync->export_handle)
+      CloseHandle(dsync->export_handle);
+#endif
 }
 
 static VkResult
@@ -134,7 +140,7 @@ dzn_sync_wait(struct vk_device *device,
    struct dzn_device *ddev = container_of(device, struct dzn_device, vk);
 
 #ifdef _WIN32
-   HANDLE event = CreateEventA(NULL, FALSE, FALSE, NULL);
+   HANDLE event = CreateEventA(NULL, false, false, NULL);
    if (event == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 #else
@@ -215,6 +221,93 @@ dzn_sync_wait(struct vk_device *device,
    return ret;
 }
 
+#ifdef _WIN32
+static VkResult
+dzn_sync_import_win32_handle(struct vk_device *device, struct vk_sync *sync,
+                             HANDLE handle, LPCWSTR name)
+{
+   struct dzn_sync *dsync = container_of(sync, struct dzn_sync, vk);
+   struct dzn_device *ddev = container_of(device, struct dzn_device, vk);
+
+   dzn_sync_finish(device, sync);
+
+   HANDLE handle_to_close = NULL;
+   if (name) {
+      if (FAILED(ID3D12Device_OpenSharedHandleByName(ddev->dev, name, GENERIC_ALL, &handle_to_close)))
+         return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+      handle = handle_to_close;
+   }
+
+   HRESULT hr = ID3D12Device_OpenSharedHandle(ddev->dev, handle, &IID_ID3D12Fence, (void **)&dsync->fence);
+   if (handle_to_close)
+      CloseHandle(handle_to_close);
+   if (FAILED(hr))
+      return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+   return VK_SUCCESS;
+}
+
+static VkResult
+dzn_sync_export_win32_handle(struct vk_device *device, struct vk_sync *sync, HANDLE *handle)
+{
+   struct dzn_sync *dsync = container_of(sync, struct dzn_sync, vk);
+   if (dsync->export_handle) {
+      if (!DuplicateHandle(GetCurrentProcess(), dsync->export_handle,
+                           GetCurrentProcess(), handle,
+                           0, false, DUPLICATE_SAME_ACCESS))
+         return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+      return VK_SUCCESS;
+   }
+
+   struct dzn_device *ddev = container_of(device, struct dzn_device, vk);
+   if (FAILED(ID3D12Device_CreateSharedHandle(ddev->dev, (ID3D12DeviceChild *)dsync->fence,
+                                              NULL, GENERIC_ALL, NULL, handle)))
+      return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+   return VK_SUCCESS;
+}
+
+static VkResult
+dzn_sync_prep_win32_export(struct vk_device *device, struct vk_sync *sync,
+                           const void *security_attributes, uint32_t access,
+                           const wchar_t *name)
+{
+   struct dzn_sync *dsync = container_of(sync, struct dzn_sync, vk);
+   struct dzn_device *ddev = container_of(device, struct dzn_device, vk);
+   if (FAILED(ID3D12Device_CreateSharedHandle(ddev->dev, (ID3D12DeviceChild *)dsync->fence,
+                                              (const LPSECURITY_ATTRIBUTES)security_attributes,
+                                              GENERIC_ALL, name, &dsync->export_handle)))
+      return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+   return VK_SUCCESS;
+}
+#else
+static VkResult
+dzn_sync_import_opaque_fd(struct vk_device *device, struct vk_sync *sync,
+                          int fd)
+{
+   struct dzn_sync *dsync = container_of(sync, struct dzn_sync, vk);
+   struct dzn_device *ddev = container_of(device, struct dzn_device, vk);
+
+   dzn_sync_finish(device, sync);
+
+   HANDLE handle = (HANDLE)(intptr_t)fd;
+   if (FAILED(ID3D12Device_OpenSharedHandle(ddev->dev, handle, &IID_ID3D12Fence, (void **)&dsync->fence)))
+      return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+   return VK_SUCCESS;
+}
+
+static VkResult
+dzn_sync_export_opaque_fd(struct vk_device *device, struct vk_sync *sync, int *fd)
+{
+   struct dzn_sync *dsync = container_of(sync, struct dzn_sync, vk);
+   struct dzn_device *ddev = container_of(device, struct dzn_device, vk);
+   HANDLE handle;
+   if (FAILED(ID3D12Device_CreateSharedHandle(ddev->dev, (ID3D12DeviceChild *)dsync->fence,
+                                              NULL, GENERIC_ALL, NULL, &handle)))
+      return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+   *fd = (int)(intptr_t)handle;
+   return VK_SUCCESS;
+}
+#endif
+
 const struct vk_sync_type dzn_sync_type = {
    .size = sizeof(struct dzn_sync),
    .features = (enum vk_sync_features)
@@ -232,4 +325,12 @@ const struct vk_sync_type dzn_sync_type = {
    .reset = dzn_sync_reset,
    .move = dzn_sync_move,
    .wait_many = dzn_sync_wait,
+#ifdef _WIN32
+   .import_win32_handle = dzn_sync_import_win32_handle,
+   .export_win32_handle = dzn_sync_export_win32_handle,
+   .set_win32_export_params = dzn_sync_prep_win32_export,
+#else
+   .import_opaque_fd = dzn_sync_import_opaque_fd,
+   .export_opaque_fd = dzn_sync_export_opaque_fd,
+#endif
 };

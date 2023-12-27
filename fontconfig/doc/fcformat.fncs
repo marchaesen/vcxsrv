@@ -22,11 +22,11 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-@RET@		FcChar8 *
-@FUNC@		FcPatternFormat
-@TYPE1@		FcPattern *			@ARG1@		pat
-@TYPE2@		const FcChar8 *			@ARG2@		format
-@PURPOSE@	Format a pattern into a string according to a format specifier
+@RET@           FcChar8 *
+@FUNC@          FcPatternFormat
+@TYPE1@         FcPattern *                     @ARG1@          pat
+@TYPE2@         const FcChar8 *                 @ARG2@          format
+@PURPOSE@       Format a pattern into a string according to a format specifier
 @DESC@
 
 Converts given pattern <parameter>pat</parameter> into text described by
@@ -305,5 +305,5 @@ For example, the format "%{family|downcase|delete( )}\n" will expand
 to the values of the family element in <parameter>pattern</parameter>,
 lower-cased and with spaces removed.
 
-@SINCE@		2.9.0
+@SINCE@         2.9.0
 @@

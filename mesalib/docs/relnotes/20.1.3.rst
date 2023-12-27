@@ -154,7 +154,7 @@ Ilia Mirkin (3):
 -  freedreno/a3xx: reinstate rgb10_a2ui texture format
 -  freedreno/ir3: avoid applying (sat) on bary.f
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  vulkan/wsi: Don't consider VK_SUBOPTIMAL_KHR to be an error condition
 -  anv: Handle clamping of inverted depth ranges

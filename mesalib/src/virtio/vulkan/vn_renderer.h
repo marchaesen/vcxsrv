@@ -62,12 +62,11 @@ struct vn_renderer_info {
    } pci;
 
    bool has_dma_buf_import;
-   bool has_cache_management;
    bool has_external_sync;
    bool has_implicit_fencing;
    bool has_guest_vram;
 
-   uint32_t max_sync_queue_count;
+   uint32_t max_timeline_count;
 
    /* hw capset */
    uint32_t wire_format_version;
@@ -78,6 +77,7 @@ struct vn_renderer_info {
    /* combined mask for vk_extension_mask1, 2,..., N */
    uint32_t vk_extension_mask[32];
    uint32_t allow_vk_wait_syncs;
+   uint32_t supports_multiple_timelines;
 };
 
 struct vn_renderer_submit_batch {
@@ -85,23 +85,18 @@ struct vn_renderer_submit_batch {
    size_t cs_size;
 
    /*
-    * Submit cs to the virtual sync queue identified by sync_queue_index.  The
-    * virtual queue is assumed to be associated with the physical VkQueue
-    * identified by vk_queue_id.  After the execution completes on the
-    * VkQueue, the virtual sync queue is signaled.
+    * Submit cs to the timeline identified by ring_idx. A timeline is
+    * typically associated with a physical VkQueue and bound to the ring_idx
+    * during VkQueue creation. After execution completes on the VkQueue, the
+    * timeline sync point is signaled.
     *
-    * sync_queue_index must be less than max_sync_queue_count.
-    *
-    * vk_queue_id specifies the object id of a VkQueue.
-    *
-    * When sync_queue_cpu is true, it specifies the special CPU sync queue,
-    * and sync_queue_index/vk_queue_id are ignored.  TODO revisit this later
+    * ring_idx 0 is reserved for the context-specific CPU timeline. sync
+    * points on the CPU timeline are signaled immediately after command
+    * processing by the renderer.
     */
-   uint32_t sync_queue_index;
-   bool sync_queue_cpu;
-   vn_object_id vk_queue_id;
+   uint32_t ring_idx;
 
-   /* syncs to update when the virtual sync queue is signaled */
+   /* syncs to update when the timeline is signaled */
    struct vn_renderer_sync *const *syncs;
    /* TODO allow NULL when syncs are all binary? */
    const uint64_t *sync_values;

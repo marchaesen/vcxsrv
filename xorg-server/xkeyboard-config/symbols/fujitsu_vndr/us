@@ -92,15 +92,15 @@ xkb_symbols "basic" {
     // End "Editing" section
 
     // Begin "Cursor" section
-    key <UNK0> { [ 		]	}; 
-    key <UNK1> { [ 		]	}; 
-    key <UNK2> { [ 		]	}; 
-    key <PGUP> { [ Prior	]	}; 
+    key <UNK0> { [ 		]	};
+    key <UNK1> { [ 		]	};
+    key <UNK2> { [ 		]	};
+    key <PGUP> { [ Prior	]	};
     key <HOME> { [ Home		]	};
-    key <PGDN> { [ Next		]	}; 
-    key <UNK3> { [ 		]	}; 
-    key <DEL>  { [ Delete	]	}; 
-    key <INS>  { [ Insert	]	}; 
+    key <PGDN> { [ Next		]	};
+    key <UNK3> { [ 		]	};
+    key <DEL>  { [ Delete	]	};
+    key <INS>  { [ Insert	]	};
     key <LEFT> { [ Left		]	};
     key <RGHT> { [ Right	]	};
     key <UP>   { [ Up		]	};
@@ -127,7 +127,7 @@ xkb_symbols "basic" {
     key  <KP1> { [  KP_1	]	};
     key  <KP2> { [  KP_2	]	};
     key  <KP3> { [  KP_3	]	};
-    key <KPEN> { [  KP_Enter	]	}; 
+    key <KPEN> { [  KP_Enter	]	};
 
     key  <KP0> { [  KP_0	]	};
     key <KP00> { [  KP_0	]	};

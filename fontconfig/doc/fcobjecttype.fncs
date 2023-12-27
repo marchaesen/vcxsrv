@@ -21,28 +21,28 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-@RET@		FcBool
-@FUNC@		FcNameRegisterObjectTypes
-@TYPE1@		const FcObjectType *		@ARG1@		types
-@TYPE2@		int%				@ARG2@		ntype
-@PURPOSE@	Register object types
+@RET@           FcBool
+@FUNC@          FcNameRegisterObjectTypes
+@TYPE1@         const FcObjectType *            @ARG1@          types
+@TYPE2@         int%                            @ARG2@          ntype
+@PURPOSE@       Register object types
 @DESC@
 Deprecated.  Does nothing.  Returns FcFalse.
 @@
 
-@RET@		FcBool
-@FUNC@		FcNameUnregisterObjectTypes
-@TYPE1@		const FcObjectType *		@ARG1@		types
-@TYPE2@		int% 				@ARG2@		ntype
-@PURPOSE@	Unregister object types
+@RET@           FcBool
+@FUNC@          FcNameUnregisterObjectTypes
+@TYPE1@         const FcObjectType *            @ARG1@          types
+@TYPE2@         int%                            @ARG2@          ntype
+@PURPOSE@       Unregister object types
 @DESC@
 Deprecated.  Does nothing.  Returns FcFalse.
 @@
 
-@RET@		const FcObjectType *
-@FUNC@		FcNameGetObjectType 
-@TYPE1@		const char *			@ARG1@		object
-@PURPOSE@	Lookup an object type
+@RET@           const FcObjectType *
+@FUNC@          FcNameGetObjectType
+@TYPE1@         const char *                    @ARG1@          object
+@PURPOSE@       Lookup an object type
 @DESC@
 Return the object type for the pattern element named <parameter>object</parameter>.
 @@

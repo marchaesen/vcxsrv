@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_PRIVATE_DATA_SLOT_H
 #define VN_PROTOCOL_DRIVER_PRIVATE_DATA_SLOT_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkPrivateDataSlotCreateInfo chain */
@@ -312,7 +312,7 @@ static inline void vn_decode_vkGetPrivateData_reply(struct vn_cs_decoder *dec, V
     }
 }
 
-static inline void vn_submit_vkCreatePrivateDataSlot(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkPrivateDataSlotCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPrivateDataSlot* pPrivateDataSlot, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreatePrivateDataSlot(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkPrivateDataSlotCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPrivateDataSlot* pPrivateDataSlot, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -324,16 +324,16 @@ static inline void vn_submit_vkCreatePrivateDataSlot(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreatePrivateDataSlot_reply(device, pCreateInfo, pAllocator, pPrivateDataSlot) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreatePrivateDataSlot(enc, cmd_flags, device, pCreateInfo, pAllocator, pPrivateDataSlot);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyPrivateDataSlot(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPrivateDataSlot privateDataSlot, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyPrivateDataSlot(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPrivateDataSlot privateDataSlot, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -345,16 +345,16 @@ static inline void vn_submit_vkDestroyPrivateDataSlot(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyPrivateDataSlot_reply(device, privateDataSlot, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyPrivateDataSlot(enc, cmd_flags, device, privateDataSlot, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkSetPrivateData(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t data, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkSetPrivateData(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t data, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -366,16 +366,16 @@ static inline void vn_submit_vkSetPrivateData(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkSetPrivateData_reply(device, objectType, objectHandle, privateDataSlot, data) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkSetPrivateData(enc, cmd_flags, device, objectType, objectHandle, privateDataSlot, data);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetPrivateData(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t* pData, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetPrivateData(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t* pData, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -387,95 +387,95 @@ static inline void vn_submit_vkGetPrivateData(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetPrivateData_reply(device, objectType, objectHandle, privateDataSlot, pData) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetPrivateData(enc, cmd_flags, device, objectType, objectHandle, privateDataSlot, pData);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreatePrivateDataSlot(struct vn_instance *vn_instance, VkDevice device, const VkPrivateDataSlotCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPrivateDataSlot* pPrivateDataSlot)
+static inline VkResult vn_call_vkCreatePrivateDataSlot(struct vn_ring *vn_ring, VkDevice device, const VkPrivateDataSlotCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPrivateDataSlot* pPrivateDataSlot)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreatePrivateDataSlot(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pPrivateDataSlot, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreatePrivateDataSlot(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pPrivateDataSlot, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreatePrivateDataSlot_reply(dec, device, pCreateInfo, pAllocator, pPrivateDataSlot);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreatePrivateDataSlot(struct vn_instance *vn_instance, VkDevice device, const VkPrivateDataSlotCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPrivateDataSlot* pPrivateDataSlot)
+static inline void vn_async_vkCreatePrivateDataSlot(struct vn_ring *vn_ring, VkDevice device, const VkPrivateDataSlotCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPrivateDataSlot* pPrivateDataSlot)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreatePrivateDataSlot(vn_instance, 0, device, pCreateInfo, pAllocator, pPrivateDataSlot, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreatePrivateDataSlot(vn_ring, 0, device, pCreateInfo, pAllocator, pPrivateDataSlot, &submit);
 }
 
-static inline void vn_call_vkDestroyPrivateDataSlot(struct vn_instance *vn_instance, VkDevice device, VkPrivateDataSlot privateDataSlot, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyPrivateDataSlot(struct vn_ring *vn_ring, VkDevice device, VkPrivateDataSlot privateDataSlot, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyPrivateDataSlot(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, privateDataSlot, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyPrivateDataSlot(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, privateDataSlot, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyPrivateDataSlot_reply(dec, device, privateDataSlot, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyPrivateDataSlot(struct vn_instance *vn_instance, VkDevice device, VkPrivateDataSlot privateDataSlot, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyPrivateDataSlot(struct vn_ring *vn_ring, VkDevice device, VkPrivateDataSlot privateDataSlot, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyPrivateDataSlot(vn_instance, 0, device, privateDataSlot, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyPrivateDataSlot(vn_ring, 0, device, privateDataSlot, pAllocator, &submit);
 }
 
-static inline VkResult vn_call_vkSetPrivateData(struct vn_instance *vn_instance, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t data)
+static inline VkResult vn_call_vkSetPrivateData(struct vn_ring *vn_ring, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t data)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkSetPrivateData(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, objectType, objectHandle, privateDataSlot, data, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkSetPrivateData(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, objectType, objectHandle, privateDataSlot, data, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkSetPrivateData_reply(dec, device, objectType, objectHandle, privateDataSlot, data);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkSetPrivateData(struct vn_instance *vn_instance, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t data)
+static inline void vn_async_vkSetPrivateData(struct vn_ring *vn_ring, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t data)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkSetPrivateData(vn_instance, 0, device, objectType, objectHandle, privateDataSlot, data, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkSetPrivateData(vn_ring, 0, device, objectType, objectHandle, privateDataSlot, data, &submit);
 }
 
-static inline void vn_call_vkGetPrivateData(struct vn_instance *vn_instance, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t* pData)
+static inline void vn_call_vkGetPrivateData(struct vn_ring *vn_ring, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t* pData)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetPrivateData(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, objectType, objectHandle, privateDataSlot, pData, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetPrivateData(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, objectType, objectHandle, privateDataSlot, pData, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkGetPrivateData_reply(dec, device, objectType, objectHandle, privateDataSlot, pData);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkGetPrivateData(struct vn_instance *vn_instance, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t* pData)
+static inline void vn_async_vkGetPrivateData(struct vn_ring *vn_ring, VkDevice device, VkObjectType objectType, uint64_t objectHandle, VkPrivateDataSlot privateDataSlot, uint64_t* pData)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetPrivateData(vn_instance, 0, device, objectType, objectHandle, privateDataSlot, pData, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetPrivateData(vn_ring, 0, device, objectType, objectHandle, privateDataSlot, pData, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_PRIVATE_DATA_SLOT_H */

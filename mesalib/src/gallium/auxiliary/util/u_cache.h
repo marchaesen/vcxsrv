@@ -36,7 +36,7 @@
 #define U_CACHE_H_
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 
 #ifdef __cplusplus

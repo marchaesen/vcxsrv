@@ -1,25 +1,7 @@
 /*
  * Copyright 2015 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AC_PERFCOUNTER_H
@@ -106,6 +88,7 @@ enum ac_pc_gpu_block {
    GEDIST  = 0x2E,
    GESE    = 0x2F,
    DF      = 0x30,
+   SQ_WGP  = 0x31, /* GFX11+ */
    NUM_GPU_BLOCK,
 };
 
@@ -136,6 +119,7 @@ struct ac_pc_block_gfxdescr {
 struct ac_pc_block {
    const struct ac_pc_block_gfxdescr *b;
    unsigned num_instances;
+   unsigned num_global_instances;
 
    unsigned num_groups;
    char *group_names;

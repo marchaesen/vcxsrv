@@ -42,13 +42,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xwinsock.h>
 #endif
 
-#ifdef USG
-#define NEED_UTSNAME
-#endif
 
-#ifdef NEED_UTSNAME
-#include <sys/utsname.h>
-#endif
 
 #include <X11/Xmu/SysUtil.h>
 
@@ -63,22 +57,9 @@ XmuGetHostname(char *buf, int maxlen)
 	return -1;
 #endif
 
-#ifdef NEED_UTSNAME
-    /*
-     * same host name crock as in server and xinit.
-     */
-    struct utsname name;
-
-    uname (&name);
-    len = strlen (name.nodename);
-    if (len >= maxlen) len = maxlen - 1;
-    strncpy (buf, name.nodename, len);
-    buf[len] = '\0';
-#else
     buf[0] = '\0';
     (void) gethostname (buf, maxlen);
     buf [maxlen - 1] = '\0';
     len = strlen(buf);
-#endif /* hpux */
     return len;
 }

@@ -65,9 +65,9 @@ struct r300_atom {
     /* Upper bound on number of dwords to emit. */
     unsigned size;
     /* Whether this atom should be emitted. */
-    boolean dirty;
+    bool dirty;
     /* Whether this atom may be emitted with state == NULL. */
-    boolean allow_null_state;
+    bool allow_null_state;
 };
 
 struct r300_aa_state {
@@ -114,9 +114,9 @@ struct r300_dsa_state {
     uint32_t alpha_function;
 
     /* Whether a two-sided stencil is enabled. */
-    boolean two_sided;
+    bool two_sided;
     /* Whether a fallback should be used for a two-sided stencil ref value. */
-    boolean two_sided_stencil_ref;
+    bool two_sided_stencil_ref;
 };
 
 struct r300_hyperz_state {
@@ -155,7 +155,7 @@ struct r300_rs_state {
     unsigned cull_mode_index;
 
     /* Whether polygon offset is enabled. */
-    boolean polygon_offset_enable;
+    bool polygon_offset_enable;
 
     /* This is emitted in the draw function. */
     uint32_t color_control;         /* R300_GA_COLOR_CONTROL: 0x4278 */
@@ -291,7 +291,7 @@ struct r300_query {
      * after end_query and flush. */
     unsigned num_results;
     /* if begin has been emitted */
-    boolean begin_emitted;
+    bool begin_emitted;
 
     /* The buffer where query results are stored. */
     struct pb_buffer *buf;
@@ -320,7 +320,7 @@ struct r300_surface {
     uint32_t cbzb_format;           /* ZB_FORMAT. */
 
     /* Whether the CBZB clear is allowed on the surface. */
-    boolean cbzb_allowed;
+    bool cbzb_allowed;
 
     unsigned colormask_swizzle;
 };
@@ -364,17 +364,17 @@ struct r300_texture_desc {
 
     /* Whether this texture has non-power-of-two dimensions.
      * It can be either a regular texture or a rectangle one. */
-    boolean is_npot;
+    bool is_npot;
 
     /* This flag says that hardware must use the stride for addressing
      * instead of the width. */
-    boolean uses_stride_addressing;
+    bool uses_stride_addressing;
 
     /* Whether CBZB fast color clear is allowed on the miplevel. */
-    boolean cbzb_allowed[R300_MAX_TEXTURE_LEVELS];
+    bool cbzb_allowed[R300_MAX_TEXTURE_LEVELS];
 
     /* Zbuffer compression info for each miplevel. */
-    boolean zcomp8x8[R300_MAX_TEXTURE_LEVELS];
+    bool zcomp8x8[R300_MAX_TEXTURE_LEVELS];
     /* If zero, then disable Z compression/HiZ. */
     unsigned zmask_dwords[R300_MAX_TEXTURE_LEVELS];
     unsigned hiz_dwords[R300_MAX_TEXTURE_LEVELS];
@@ -565,31 +565,31 @@ struct r300_context {
     /* Flag indicating whether or not the HW is dirty. */
     uint32_t dirty_hw;
     /* Whether polygon offset is enabled. */
-    boolean polygon_offset_enabled;
+    bool polygon_offset_enabled;
     /* Z buffer bit depth. */
     uint32_t zbuffer_bpp;
     /* Whether rendering is conditional and should be skipped. */
-    boolean skip_rendering;
+    bool skip_rendering;
     /* The flag above saved by blitter. */
     unsigned char blitter_saved_skip_rendering;
     /* Point sprites texcoord index,  1 bit per texcoord */
     int sprite_coord_enable;
     /* Whether we are drawing points, to disable sprite coord if not */
-    boolean is_point;
+    bool is_point;
     /* Whether two-sided color selection is enabled (AKA light_twoside). */
-    boolean two_sided_color;
-    boolean flatshade;
-    boolean clip_halfz;
+    bool two_sided_color;
+    bool flatshade;
+    bool clip_halfz;
     /* Whether fast color clear is enabled. */
-    boolean cbzb_clear;
+    bool cbzb_clear;
     /* Whether fragment shader needs to be validated. */
     enum r300_fs_validity_status fs_status;
     /* Framebuffer multi-write. */
-    boolean fb_multiwrite;
+    bool fb_multiwrite;
     unsigned num_samples;
-    boolean msaa_enable;
-    boolean alpha_to_one;
-    boolean alpha_to_coverage;
+    bool msaa_enable;
+    bool alpha_to_one;
+    bool alpha_to_coverage;
 
     void *dsa_decompress_zmask;
 
@@ -606,30 +606,30 @@ struct r300_context {
     int vs_const_base;
 
     /* Vertex array state info */
-    boolean vertex_arrays_dirty;
-    boolean vertex_arrays_indexed;
+    bool vertex_arrays_dirty;
+    bool vertex_arrays_indexed;
     int vertex_arrays_offset;
     int vertex_arrays_instance_id;
-    boolean instancing_enabled;
+    bool instancing_enabled;
 
     /* Hyper-Z stats. */
-    boolean hyperz_enabled;     /* Whether it owns Hyper-Z access. */
+    bool hyperz_enabled;     /* Whether it owns Hyper-Z access. */
     int64_t hyperz_time_of_last_flush; /* Time of the last flush with Z clear. */
     unsigned num_z_clears;      /* Since the last flush. */
 
     /* ZMask state. */
-    boolean zmask_in_use;       /* Whether ZMASK is enabled. */
-    boolean zmask_decompress;   /* Whether ZMASK is being decompressed. */
+    bool zmask_in_use;       /* Whether ZMASK is enabled. */
+    bool zmask_decompress;   /* Whether ZMASK is being decompressed. */
     struct pipe_surface *locked_zbuffer; /* Unbound zbuffer which still has data in ZMASK. */
 
     /* HiZ state. */
-    boolean hiz_in_use;         /* Whether HIZ is enabled. */
+    bool hiz_in_use;         /* Whether HIZ is enabled. */
     enum r300_hiz_func hiz_func; /* HiZ function. Can be either MIN or MAX. */
     uint32_t hiz_clear_value;   /* HiZ clear value. */
 
     /* CMASK state. */
-    boolean cmask_access;
-    boolean cmask_in_use;
+    bool cmask_access;
+    bool cmask_in_use;
     uint32_t color_clear_value; /* RGBA8 or RGBA1010102 */
     uint32_t color_clear_value_ar; /* RGBA16F */
     uint32_t color_clear_value_gb; /* RGBA16F */
@@ -637,6 +637,8 @@ struct r300_context {
     /* Compiler state. */
     struct rc_regalloc_state fs_regalloc_state; /* Register allocator info for
                                                  * fragment shaders. */
+    struct rc_regalloc_state vs_regalloc_state; /* Register allocator info for
+                                                 * vertex shaders. */
 };
 
 #define foreach_atom(r300, atom) \
@@ -679,7 +681,7 @@ static inline struct r300_vertex_shader *r300_vs(struct r300_context *r300)
 static inline void r300_mark_atom_dirty(struct r300_context *r300,
                                         struct r300_atom *atom)
 {
-    atom->dirty = TRUE;
+    atom->dirty = true;
 
     if (!r300->first_dirty) {
         r300->first_dirty = atom;
@@ -783,7 +785,7 @@ void r300_update_derived_state(struct r300_context* r300);
 void r500_dump_rs_block(struct r300_rs_block *rs);
 
 
-static inline boolean CTX_DBG_ON(struct r300_context * ctx, unsigned flags)
+static inline bool CTX_DBG_ON(struct r300_context * ctx, unsigned flags)
 {
     return SCREEN_DBG_ON(ctx->screen, flags);
 }

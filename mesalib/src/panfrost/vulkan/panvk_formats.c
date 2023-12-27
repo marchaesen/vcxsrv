@@ -27,18 +27,17 @@
 
 #include "panvk_private.h"
 
+#include "panfrost/lib/pan_texture.h"
 #include "util/format_r11g11b10f.h"
 #include "util/format_srgb.h"
 #include "util/half_float.h"
 #include "vulkan/util/vk_format.h"
 #include "vk_format.h"
 #include "vk_util.h"
-#include "panfrost/lib/pan_texture.h"
 
 static void
 get_format_properties(struct panvk_physical_device *physical_device,
-                      VkFormat format,
-                      VkFormatProperties *out_properties)
+                      VkFormat format, VkFormatProperties *out_properties)
 {
    struct panfrost_device *pdev = &physical_device->pdev;
    VkFormatFeatureFlags tex = 0, buffer = 0;
@@ -59,13 +58,13 @@ get_format_properties(struct panvk_physical_device *physical_device,
    if (util_format_is_compressed(pfmt))
       goto end;
 
-   buffer |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
-             VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+   buffer |=
+      VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
 
-   if (fmt.bind & PIPE_BIND_VERTEX_BUFFER)
+   if (fmt.bind & PAN_BIND_VERTEX_BUFFER)
       buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
 
-   if (fmt.bind & PIPE_BIND_SAMPLER_VIEW) {
+   if (fmt.bind & PAN_BIND_SAMPLER_VIEW) {
       tex |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
              VK_FORMAT_FEATURE_TRANSFER_DST_BIT |
              VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
@@ -73,8 +72,7 @@ get_format_properties(struct panvk_physical_device *physical_device,
              VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT;
 
       /* Integer formats only support nearest filtering */
-      if (!util_format_is_scaled(pfmt) &&
-          !util_format_is_pure_integer(pfmt))
+      if (!util_format_is_scaled(pfmt) && !util_format_is_pure_integer(pfmt))
          tex |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 
       buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
@@ -82,7 +80,8 @@ get_format_properties(struct panvk_physical_device *physical_device,
       tex |= VK_FORMAT_FEATURE_BLIT_SRC_BIT;
    }
 
-   if (fmt.bind & PIPE_BIND_RENDER_TARGET) {
+   /* SNORM rendering isn't working yet, disable */
+   if (fmt.bind & PAN_BIND_RENDER_TARGET && !util_format_is_snorm(pfmt)) {
       tex |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
              VK_FORMAT_FEATURE_BLIT_DST_BIT;
 
@@ -93,8 +92,8 @@ get_format_properties(struct panvk_physical_device *physical_device,
       tex |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
    }
 
-   if (fmt.bind & PIPE_BIND_DEPTH_STENCIL)
-         tex |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+   if (fmt.bind & PAN_BIND_DEPTH_STENCIL)
+      tex |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
 end:
    out_properties->linearTilingFeatures = tex;
@@ -104,8 +103,8 @@ end:
 
 void
 panvk_GetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice,
-                                      VkFormat format,
-                                      VkFormatProperties *pFormatProperties)
+                                        VkFormat format,
+                                        VkFormatProperties *pFormatProperties)
 {
    VK_FROM_HANDLE(panvk_physical_device, physical_device, physicalDevice);
 
@@ -122,14 +121,16 @@ panvk_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
    get_format_properties(physical_device, format,
                          &pFormatProperties->formatProperties);
 
-   VkDrmFormatModifierPropertiesListEXT *list =
-      vk_find_struct(pFormatProperties->pNext, DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT);
+   VkDrmFormatModifierPropertiesListEXT *list = vk_find_struct(
+      pFormatProperties->pNext, DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT);
    if (list) {
       VK_OUTARRAY_MAKE_TYPED(VkDrmFormatModifierPropertiesEXT, out,
                              list->pDrmFormatModifierProperties,
                              &list->drmFormatModifierCount);
 
-      vk_outarray_append_typed(VkDrmFormatModifierProperties2EXT, &out, mod_props) {
+      vk_outarray_append_typed(VkDrmFormatModifierProperties2EXT, &out,
+                               mod_props)
+      {
          mod_props->drmFormatModifier = DRM_FORMAT_MOD_LINEAR;
          mod_props->drmFormatModifierPlaneCount = 1;
       }
@@ -169,7 +170,8 @@ get_image_format_properties(struct panvk_physical_device *physical_device,
       if (util_format_is_depth_or_stencil(format))
          goto unsupported;
 
-      assert(format_props.optimalTilingFeatures == format_props.linearTilingFeatures);
+      assert(format_props.optimalTilingFeatures ==
+             format_props.linearTilingFeatures);
       FALLTHROUGH;
    case VK_IMAGE_TILING_OPTIMAL:
       format_feature_flags = format_props.optimalTilingFeatures;
@@ -246,7 +248,7 @@ get_image_format_properties(struct panvk_physical_device *physical_device,
       }
    }
 
-   *pImageFormatProperties = (VkImageFormatProperties) {
+   *pImageFormatProperties = (VkImageFormatProperties){
       .maxExtent = maxExtent,
       .maxMipLevels = maxMipLevels,
       .maxArrayLayers = maxArraySize,
@@ -263,8 +265,8 @@ get_image_format_properties(struct panvk_physical_device *physical_device,
 
    return VK_SUCCESS;
 unsupported:
-   *pImageFormatProperties = (VkImageFormatProperties) {
-      .maxExtent = { 0, 0, 0 },
+   *pImageFormatProperties = (VkImageFormatProperties){
+      .maxExtent = {0, 0, 0},
       .maxMipLevels = 0,
       .maxArrayLayers = 0,
       .sampleCounts = 0,
@@ -274,15 +276,12 @@ unsupported:
    return VK_ERROR_FORMAT_NOT_SUPPORTED;
 }
 
-
 VkResult
-panvk_GetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice,
-                                            VkFormat format,
-                                            VkImageType type,
-                                            VkImageTiling tiling,
-                                            VkImageUsageFlags usage,
-                                            VkImageCreateFlags createFlags,
-                                            VkImageFormatProperties *pImageFormatProperties)
+panvk_GetPhysicalDeviceImageFormatProperties(
+   VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type,
+   VkImageTiling tiling, VkImageUsageFlags usage,
+   VkImageCreateFlags createFlags,
+   VkImageFormatProperties *pImageFormatProperties)
 {
    VK_FROM_HANDLE(panvk_physical_device, physical_device, physicalDevice);
 
@@ -301,10 +300,11 @@ panvk_GetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice,
 }
 
 static VkResult
-panvk_get_external_image_format_properties(const struct panvk_physical_device *physical_device,
-                                           const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
-                                           VkExternalMemoryHandleTypeFlagBits handleType,
-                                           VkExternalMemoryProperties *external_properties)
+panvk_get_external_image_format_properties(
+   const struct panvk_physical_device *physical_device,
+   const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+   VkExternalMemoryHandleTypeFlagBits handleType,
+   VkExternalMemoryProperties *external_properties)
 {
    VkExternalMemoryFeatureFlagBits flags = 0;
    VkExternalMemoryHandleTypeFlags export_flags = 0;
@@ -330,9 +330,10 @@ panvk_get_external_image_format_properties(const struct panvk_physical_device *p
             VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
          break;
       default:
-         return vk_errorf(physical_device, VK_ERROR_FORMAT_NOT_SUPPORTED,
-                          "VkExternalMemoryTypeFlagBits(0x%x) unsupported for VkImageType(%d)",
-                          handleType, pImageFormatInfo->type);
+         return vk_errorf(
+            physical_device, VK_ERROR_FORMAT_NOT_SUPPORTED,
+            "VkExternalMemoryTypeFlagBits(0x%x) unsupported for VkImageType(%d)",
+            handleType, pImageFormatInfo->type);
       }
       break;
    case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
@@ -345,7 +346,7 @@ panvk_get_external_image_format_properties(const struct panvk_physical_device *p
                        handleType);
    }
 
-   *external_properties = (VkExternalMemoryProperties) {
+   *external_properties = (VkExternalMemoryProperties){
       .externalMemoryFeatures = flags,
       .exportFromImportedHandleTypes = export_flags,
       .compatibleHandleTypes = compat_flags,
@@ -355,9 +356,10 @@ panvk_get_external_image_format_properties(const struct panvk_physical_device *p
 }
 
 VkResult
-panvk_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
-                                              const VkPhysicalDeviceImageFormatInfo2 *base_info,
-                                              VkImageFormatProperties2 *base_props)
+panvk_GetPhysicalDeviceImageFormatProperties2(
+   VkPhysicalDevice physicalDevice,
+   const VkPhysicalDeviceImageFormatInfo2 *base_info,
+   VkImageFormatProperties2 *base_props)
 {
    VK_FROM_HANDLE(panvk_physical_device, physical_device, physicalDevice);
    const VkPhysicalDeviceExternalImageFormatInfo *external_info = NULL;
@@ -375,14 +377,13 @@ panvk_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
       return result;
 
    /* Extract input structs */
-   vk_foreach_struct_const(s, base_info->pNext)
-   {
+   vk_foreach_struct_const(s, base_info->pNext) {
       switch (s->sType) {
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO:
-         external_info = (const void *) s;
+         external_info = (const void *)s;
          break;
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT:
-         image_view_info = (const void *) s;
+         image_view_info = (const void *)s;
          break;
       default:
          break;
@@ -390,17 +391,16 @@ panvk_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
    }
 
    /* Extract output structs */
-   vk_foreach_struct(s, base_props->pNext)
-   {
+   vk_foreach_struct(s, base_props->pNext) {
       switch (s->sType) {
       case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES:
-         external_props = (void *) s;
+         external_props = (void *)s;
          break;
       case VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT:
-         cubic_props = (void *) s;
+         cubic_props = (void *)s;
          break;
       case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES:
-         ycbcr_props = (void *) s;
+         ycbcr_props = (void *)s;
          break;
       default:
          break;
@@ -414,10 +414,9 @@ panvk_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
     *    present and VkExternalImageFormatProperties will be ignored.
     */
    if (external_info && external_info->handleType != 0) {
-      result = panvk_get_external_image_format_properties(physical_device,
-                                                          base_info,
-                                                          external_info->handleType,
-                                                          &external_props->externalMemoryProperties);
+      result = panvk_get_external_image_format_properties(
+         physical_device, base_info, external_info->handleType,
+         &external_props->externalMemoryProperties);
       if (result != VK_SUCCESS)
          goto fail;
    }
@@ -428,7 +427,8 @@ panvk_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
        */
       if ((image_view_info->imageViewType == VK_IMAGE_VIEW_TYPE_2D ||
            image_view_info->imageViewType == VK_IMAGE_VIEW_TYPE_2D_ARRAY) &&
-          (format_feature_flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT)) {
+          (format_feature_flags &
+           VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT)) {
          cubic_props->filterCubic = true;
          cubic_props->filterCubicMinmax = true;
       } else {
@@ -451,40 +451,37 @@ fail:
        *    the implementation for use in vkCreateImage, then all members of
        *    imageFormatProperties will be filled with zero.
        */
-      base_props->imageFormatProperties = (VkImageFormatProperties) {};
+      base_props->imageFormatProperties = (VkImageFormatProperties){};
    }
 
    return result;
 }
 
 void
-panvk_GetPhysicalDeviceSparseImageFormatProperties(VkPhysicalDevice physicalDevice,
-                                                   VkFormat format,
-                                                   VkImageType type,
-                                                   uint32_t samples,
-                                                   VkImageUsageFlags usage,
-                                                   VkImageTiling tiling,
-                                                   uint32_t *pNumProperties,
-                                                   VkSparseImageFormatProperties *pProperties)
+panvk_GetPhysicalDeviceSparseImageFormatProperties(
+   VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type,
+   VkSampleCountFlagBits samples, VkImageUsageFlags usage, VkImageTiling tiling,
+   uint32_t *pNumProperties, VkSparseImageFormatProperties *pProperties)
 {
    /* Sparse images are not yet supported. */
    *pNumProperties = 0;
 }
 
 void
-panvk_GetPhysicalDeviceSparseImageFormatProperties2(VkPhysicalDevice physicalDevice,
-                                                    const VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
-                                                    uint32_t *pPropertyCount,
-                                                    VkSparseImageFormatProperties2 *pProperties)
+panvk_GetPhysicalDeviceSparseImageFormatProperties2(
+   VkPhysicalDevice physicalDevice,
+   const VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
+   uint32_t *pPropertyCount, VkSparseImageFormatProperties2 *pProperties)
 {
    /* Sparse images are not yet supported. */
    *pPropertyCount = 0;
 }
 
 void
-panvk_GetPhysicalDeviceExternalBufferProperties(VkPhysicalDevice physicalDevice,
-                                                const VkPhysicalDeviceExternalBufferInfo *pExternalBufferInfo,
-                                                VkExternalBufferProperties *pExternalBufferProperties)
+panvk_GetPhysicalDeviceExternalBufferProperties(
+   VkPhysicalDevice physicalDevice,
+   const VkPhysicalDeviceExternalBufferInfo *pExternalBufferInfo,
+   VkExternalBufferProperties *pExternalBufferProperties)
 {
    panvk_stub();
 }

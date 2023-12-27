@@ -85,8 +85,8 @@ tgsi_write_vpos(const struct tgsi_token *tokens_in,
                 unsigned num_immediates)
 {
    struct write_vpos_context transform;
-   const uint num_new_tokens = 1000; /* should be enough */
-   const uint new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
+   const unsigned num_new_tokens = 1000; /* should be enough */
+   const unsigned new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
 
    /* setup transformation context */
    memset(&transform, 0, sizeof(transform));

@@ -1,3 +1,5 @@
+// Keyboard layouts for Belarus.
+
 // Belarusian standard keyboard, by Alexander Mikhailian <mikhailian@altern.org>.
 // Reworked to use Russian keymap as base and winkeys by default,
 // by Paul Lubetsky <vegeek@gmail.com>, see https://bugs.freedesktop.org/23604.
@@ -10,6 +12,7 @@ xkb_symbols "basic" {
 	include "ru(winkeys)"
 	name[Group1]= "Belarusian";
 
+	key <AD07> {[  Cyrillic_ghe,         Cyrillic_GHE,        Ukrainian_ghe_with_upturn,  Ukrainian_GHE_WITH_UPTURN  ]};
 	key <AD09> {[  Byelorussian_shortu,  Byelorussian_SHORTU  ]};
 	key <AD12> {[  apostrophe,           apostrophe           ]};
 	key <AB05> {[  Ukrainian_i,          Ukrainian_I          ]};
@@ -38,12 +41,19 @@ xkb_symbols "latin" {
 	key <AD02> {[    w,    W,    scaron,    Scaron    ]};
 	key <AD07> {[    u,    U,    ubreve,    Ubreve    ]};
 	key <AC02> {[    s,    S,    sacute,    Sacute    ]};
+	key <AC08> {[    k,    K,    lacute,    Lacute    ]};
 	key <AC09> {[    l,    L,    lstroke,   Lstroke   ]};
 	key <AB01> {[    z,    Z,    zacute,    Zacute    ]};
 	key <AB02> {[    x,    X,    zcaron,    Zcaron    ]};
 	key <AB03> {[    c,    C,    cacute,    Cacute    ]};
 	key <AB04> {[    v,    V,    ccaron,    Ccaron    ]};
 	key <AB06> {[    n,    N,    nacute,    Nacute    ]};
+
+	// Poland
+	key <AD03> {[    e,    E,    eogonek,     Eogonek   ]};
+	key <AD09> {[    o,    O,    oacute,      Oacute    ]};
+	key <AC01> {[    a,    A,    aogonek,     Aogonek   ]};
+	key <AC07> {[    j,    J,    zabovedot,   Zabovedot   ]};
 
 	include "level3(ralt_switch)"
 };
@@ -89,15 +99,15 @@ xkb_symbols "phonetic" {
 	// Belarusian i and ў (u-short) instead of щ (shcha). We also
 	// keep originals on level3 just in case.
 	key <AD12> {[ Byelorussian_shortu, Byelorussian_SHORTU, Cyrillic_shcha, Cyrillic_SHCHA ]};
-	key <LatI> {[ Ukrainian_i, Ukrainian_I, Cyrillic_i, Cyrillic_I ]};
+	key <AD08> {[ Ukrainian_i, Ukrainian_I, Cyrillic_i, Cyrillic_I ]};
 
 	// Lets also add level3+u to enable another way to input u-short
-	key <LatU> {[ Cyrillic_u, Cyrillic_U, Byelorussian_shortu, Byelorussian_SHORTU ]};
+	key <AD07> {[ Cyrillic_u, Cyrillic_U, Byelorussian_shortu, Byelorussian_SHORTU ]};
 
 	// Since we already enable level3 lets also do alternative
 	// means for io and hardsign.
-	key <LatE> {[ Cyrillic_ie, Cyrillic_IE, Cyrillic_io, Cyrillic_IO ]};
-	key <LatX> {[ Cyrillic_softsign, Cyrillic_SOFTSIGN, Cyrillic_hardsign, Cyrillic_HARDSIGN ]};
+	key <AD03> {[ Cyrillic_ie, Cyrillic_IE, Cyrillic_io, Cyrillic_IO ]};
+	key <AB02> {[ Cyrillic_softsign, Cyrillic_SOFTSIGN, Cyrillic_hardsign, Cyrillic_HARDSIGN ]};
 
 	include "level3(ralt_switch)"
 };

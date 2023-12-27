@@ -22,7 +22,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <pixman-config.h>
 #endif
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ pixman_sample_floor_y (pixman_fixed_t y,
 
     if (f < Y_FRAC_FIRST (n))
     {
-	if (pixman_fixed_to_int (i) == 0x8000)
+	if (pixman_fixed_to_int (i) == 0xffff8000)
 	{
 	    f = 0; /* saturate */
 	}

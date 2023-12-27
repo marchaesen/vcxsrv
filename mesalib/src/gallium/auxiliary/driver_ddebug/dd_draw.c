@@ -38,17 +38,18 @@
 #include "tgsi/tgsi_scan.h"
 #include "util/os_time.h"
 #include <inttypes.h>
-#include "pipe/p_config.h"
+#include "util/detect.h"
 
 void
 dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose)
 {
    static unsigned index;
-   char proc_name[128], dir[256];
+   char dir[256];
+   const char *proc_name = util_get_process_name();
 
-   if (!os_get_process_name(proc_name, sizeof(proc_name))) {
+   if (!proc_name) {
       fprintf(stderr, "dd: can't get the process name\n");
-      strcpy(proc_name, "unknown");
+      proc_name = "unknown";
    }
 
    snprintf(dir, sizeof(dir), "%s/"DD_DIR, debug_get_option("HOME", "."));
@@ -106,7 +107,7 @@ void
 dd_write_header(FILE *f, struct pipe_screen *screen, unsigned apitrace_call_number)
 {
    char cmd_line[4096];
-   if (os_get_command_line(cmd_line, sizeof(cmd_line)))
+   if (util_get_command_line(cmd_line, sizeof(cmd_line)))
       fprintf(f, "Command: %s\n", cmd_line);
    fprintf(f, "Driver vendor: %s\n", screen->get_vendor(screen));
    fprintf(f, "Device vendor: %s\n", screen->get_device_vendor(screen));
@@ -132,7 +133,7 @@ dd_get_file_stream(struct dd_screen *dscreen, unsigned apitrace_call_number)
 static void
 dd_dump_dmesg(FILE *f)
 {
-#ifdef PIPE_OS_LINUX
+#if DETECT_OS_LINUX
    char line[2000];
    FILE *p = popen("dmesg | tail -n60", "r");
 
@@ -697,7 +698,7 @@ dd_dump_call(FILE *f, struct dd_draw_state *state, struct dd_call *call)
 static void
 dd_kill_process(void)
 {
-#ifdef PIPE_OS_UNIX
+#if DETECT_OS_UNIX
    sync();
 #endif
    fprintf(stderr, "dd: Aborting the process...\n");
@@ -1807,7 +1808,7 @@ dd_context_texture_subdata(struct pipe_context *_pipe,
                            unsigned level, unsigned usage,
                            const struct pipe_box *box,
                            const void *data, unsigned stride,
-                           unsigned layer_stride)
+                           uintptr_t layer_stride)
 {
    struct dd_context *dctx = dd_context(_pipe);
    struct pipe_context *pipe = dctx->pipe;

@@ -78,7 +78,7 @@ Jan Vesely (1):
 
 -  clover: use pipe_resource references
 
-Jason Ekstrand (9):
+Faith Ekstrand (9):
 
 -  anv/query: Invalidate the correct range
 -  anv/GetQueryPoolResults: Actually implement the spec

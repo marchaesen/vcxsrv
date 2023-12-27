@@ -29,7 +29,7 @@
 #include "util/format_srgb.h"
 #include "util/u_math.h"
 
-#include "../../mesa/main/texcompress_bptc_tmp.h"
+#include "util/format/texcompress_bptc_tmp.h"
 
 void
 util_format_bptc_rgba_unorm_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,

@@ -108,6 +108,7 @@
 #include "crocus_resource.h"
 
 #include "crocus_genx_macros.h"
+#include "intel/common/intel_genX_state.h"
 #include "intel/common/intel_guardband.h"
 #include "main/macros.h" /* UNCLAMPED_* */
 
@@ -184,31 +185,31 @@ UNUSED static void pipe_asserts()
 }
 
 static unsigned
-translate_prim_type(enum pipe_prim_type prim, uint8_t verts_per_patch)
+translate_prim_type(enum mesa_prim prim, uint8_t verts_per_patch)
 {
    static const unsigned map[] = {
-      [PIPE_PRIM_POINTS]                   = _3DPRIM_POINTLIST,
-      [PIPE_PRIM_LINES]                    = _3DPRIM_LINELIST,
-      [PIPE_PRIM_LINE_LOOP]                = _3DPRIM_LINELOOP,
-      [PIPE_PRIM_LINE_STRIP]               = _3DPRIM_LINESTRIP,
-      [PIPE_PRIM_TRIANGLES]                = _3DPRIM_TRILIST,
-      [PIPE_PRIM_TRIANGLE_STRIP]           = _3DPRIM_TRISTRIP,
-      [PIPE_PRIM_TRIANGLE_FAN]             = _3DPRIM_TRIFAN,
-      [PIPE_PRIM_QUADS]                    = _3DPRIM_QUADLIST,
-      [PIPE_PRIM_QUAD_STRIP]               = _3DPRIM_QUADSTRIP,
-      [PIPE_PRIM_POLYGON]                  = _3DPRIM_POLYGON,
+      [MESA_PRIM_POINTS]                   = _3DPRIM_POINTLIST,
+      [MESA_PRIM_LINES]                    = _3DPRIM_LINELIST,
+      [MESA_PRIM_LINE_LOOP]                = _3DPRIM_LINELOOP,
+      [MESA_PRIM_LINE_STRIP]               = _3DPRIM_LINESTRIP,
+      [MESA_PRIM_TRIANGLES]                = _3DPRIM_TRILIST,
+      [MESA_PRIM_TRIANGLE_STRIP]           = _3DPRIM_TRISTRIP,
+      [MESA_PRIM_TRIANGLE_FAN]             = _3DPRIM_TRIFAN,
+      [MESA_PRIM_QUADS]                    = _3DPRIM_QUADLIST,
+      [MESA_PRIM_QUAD_STRIP]               = _3DPRIM_QUADSTRIP,
+      [MESA_PRIM_POLYGON]                  = _3DPRIM_POLYGON,
 #if GFX_VER >= 6
-      [PIPE_PRIM_LINES_ADJACENCY]          = _3DPRIM_LINELIST_ADJ,
-      [PIPE_PRIM_LINE_STRIP_ADJACENCY]     = _3DPRIM_LINESTRIP_ADJ,
-      [PIPE_PRIM_TRIANGLES_ADJACENCY]      = _3DPRIM_TRILIST_ADJ,
-      [PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY] = _3DPRIM_TRISTRIP_ADJ,
+      [MESA_PRIM_LINES_ADJACENCY]          = _3DPRIM_LINELIST_ADJ,
+      [MESA_PRIM_LINE_STRIP_ADJACENCY]     = _3DPRIM_LINESTRIP_ADJ,
+      [MESA_PRIM_TRIANGLES_ADJACENCY]      = _3DPRIM_TRILIST_ADJ,
+      [MESA_PRIM_TRIANGLE_STRIP_ADJACENCY] = _3DPRIM_TRISTRIP_ADJ,
 #endif
 #if GFX_VER >= 7
-      [PIPE_PRIM_PATCHES]                  = _3DPRIM_PATCHLIST_1 - 1,
+      [MESA_PRIM_PATCHES]                  = _3DPRIM_PATCHLIST_1 - 1,
 #endif
    };
 
-   return map[prim] + (prim == PIPE_PRIM_PATCHES ? verts_per_patch : 0);
+   return map[prim] + (prim == MESA_PRIM_PATCHES ? verts_per_patch : 0);
 }
 
 static unsigned
@@ -1172,7 +1173,7 @@ setup_l3_config(struct crocus_batch *batch, const struct intel_l3_config *cfg)
    crocus_emit_lri(batch, L3CNTLREG2, l3cr2);
    crocus_emit_lri(batch, L3CNTLREG3, l3cr3);
 
-#if GFX_VERSIONx10 == 75
+#if GFX_VERx10 == 75
    /* TODO: Fail screen creation if command parser version < 4 */
    uint32_t scratch1, chicken3;
    crocus_pack_state(GENX(SCRATCH1), &scratch1, reg) {
@@ -2372,7 +2373,7 @@ crocus_upload_sampler_state(struct crocus_batch *batch,
       samp.TCZAddressControlMode = wrap_r;
 
 #if GFX_VER >= 6
-      samp.NonnormalizedCoordinateEnable = !state->normalized_coords;
+      samp.NonnormalizedCoordinateEnable = state->unnormalized_coords;
 #endif
       samp.MinModeFilter = state->min_img_filter;
       samp.MagModeFilter = cso->mag_img_filter;
@@ -2799,12 +2800,6 @@ crocus_create_sampler_view(struct pipe_context *ctx,
    }
 #endif
 #endif
-   /* Fill out SURFACE_STATE for this view. */
-   if (tmpl->target != PIPE_BUFFER) {
-      if (crocus_resource_unfinished_aux_import(isv->res))
-         crocus_resource_finish_aux_import(&screen->base, isv->res);
-
-   }
 
    return &isv->base;
 }
@@ -2865,7 +2860,6 @@ crocus_create_surface(struct pipe_context *ctx,
    psurf->format = tmpl->format;
    psurf->width = tex->width0;
    psurf->height = tex->height0;
-   psurf->texture = tex;
    psurf->u.tex.first_layer = tmpl->u.tex.first_layer;
    psurf->u.tex.last_layer = tmpl->u.tex.last_layer;
    psurf->u.tex.level = tmpl->u.tex.level;
@@ -2904,9 +2898,6 @@ crocus_create_surface(struct pipe_context *ctx,
       return psurf;
 
    if (!isl_format_is_compressed(res->surf.format)) {
-      if (crocus_resource_unfinished_aux_import(res))
-         crocus_resource_finish_aux_import(&screen->base, res);
-
       memcpy(&surf->surf, &res->surf, sizeof(surf->surf));
       uint64_t temp_offset;
       uint32_t temp_x, temp_y;
@@ -2953,6 +2944,7 @@ crocus_create_surface(struct pipe_context *ctx,
    assert(view->levels == 1);
 
    /* TODO: compressed pbo uploads aren't working here */
+   pipe_surface_reference(&psurf, NULL);
    return NULL;
 
    uint64_t offset_B = 0;
@@ -2973,8 +2965,10 @@ crocus_create_surface(struct pipe_context *ctx,
        * Return NULL to force the state tracker to take fallback paths.
        */
       // TODO: check if the gen7 check is right, originally gen8
-      if (view->array_len > 1 || GFX_VER == 7)
+      if (view->array_len > 1 || GFX_VER == 7) {
+         pipe_surface_reference(&psurf, NULL);
          return NULL;
+      }
 
       const bool is_3d = res->surf.dim == ISL_SURF_DIM_3D;
       isl_surf_get_image_surf(&screen->isl_dev, &res->surf,
@@ -3664,7 +3658,7 @@ crocus_delete_state(struct pipe_context *ctx, void *state)
  */
 static void
 crocus_set_vertex_buffers(struct pipe_context *ctx,
-                          unsigned start_slot, unsigned count,
+                          unsigned count,
                           unsigned unbind_num_trailing_slots,
                           bool take_ownership,
                           const struct pipe_vertex_buffer *buffers)
@@ -3674,15 +3668,15 @@ crocus_set_vertex_buffers(struct pipe_context *ctx,
    const unsigned padding =
       (GFX_VERx10 < 75 && screen->devinfo.platform != INTEL_PLATFORM_BYT) * 2;
    ice->state.bound_vertex_buffers &=
-      ~u_bit_consecutive64(start_slot, count + unbind_num_trailing_slots);
+      ~u_bit_consecutive64(0, count + unbind_num_trailing_slots);
 
    util_set_vertex_buffers_mask(ice->state.vertex_buffers, &ice->state.bound_vertex_buffers,
-                                buffers, start_slot, count, unbind_num_trailing_slots,
+                                buffers, count, unbind_num_trailing_slots,
                                 take_ownership);
 
    for (unsigned i = 0; i < count; i++) {
       struct pipe_vertex_buffer *state =
-         &ice->state.vertex_buffers[start_slot + i];
+         &ice->state.vertex_buffers[i];
 
       if (!state->is_user_buffer && state->buffer.resource) {
          struct crocus_resource *res = (void *)state->buffer.resource;
@@ -3692,7 +3686,7 @@ crocus_set_vertex_buffers(struct pipe_context *ctx,
       uint32_t end = 0;
       if (state->buffer.resource)
          end = state->buffer.resource->width0 + padding;
-      ice->state.vb_end[start_slot + i] = end;
+      ice->state.vb_end[i] = end;
    }
    ice->state.dirty |= CROCUS_DIRTY_VERTEX_BUFFERS;
 }
@@ -3757,6 +3751,7 @@ struct crocus_vertex_element_state {
 #endif
    uint32_t step_rate[16];
    uint8_t wa_flags[33];
+   uint16_t strides[16];
    unsigned count;
 };
 
@@ -3779,7 +3774,7 @@ crocus_create_vertex_elements(struct pipe_context *ctx,
    struct crocus_screen *screen = (struct crocus_screen *)ctx->screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
    struct crocus_vertex_element_state *cso =
-      malloc(sizeof(struct crocus_vertex_element_state));
+      calloc(1, sizeof(struct crocus_vertex_element_state));
 
    cso->count = count;
 
@@ -3841,6 +3836,7 @@ crocus_create_vertex_elements(struct pipe_context *ctx,
 #endif
 
       cso->step_rate[state[i].vertex_buffer_index] = state[i].instance_divisor;
+      cso->strides[state[i].vertex_buffer_index] = state[i].src_stride;
 
       switch (isl_format_get_num_channels(fmt.fmt)) {
       case 0: comp[0] = VFCOMP_STORE_0; FALLTHROUGH;
@@ -4453,7 +4449,7 @@ crocus_is_drawing_points(const struct crocus_context *ice)
          (void *) ice->shaders.prog[MESA_SHADER_TESS_EVAL]->prog_data;
       return tes_data->output_topology == BRW_TESS_OUTPUT_TOPOLOGY_POINT;
    } else {
-      return ice->state.prim_mode == PIPE_PRIM_POINTS;
+      return ice->state.prim_mode == MESA_PRIM_POINTS;
    }
 }
 #endif
@@ -4809,23 +4805,23 @@ crocus_populate_fs_key(const struct crocus_context *ice,
    key->stats_wm = ice->state.stats_wm;
 #endif
 
-   uint32_t line_aa = BRW_WM_AA_NEVER;
+   uint32_t line_aa = BRW_NEVER;
    if (rast->cso.line_smooth) {
       int reduced_prim = ice->state.reduced_prim_mode;
-      if (reduced_prim == PIPE_PRIM_LINES)
-         line_aa = BRW_WM_AA_ALWAYS;
-      else if (reduced_prim == PIPE_PRIM_TRIANGLES) {
+      if (reduced_prim == MESA_PRIM_LINES)
+         line_aa = BRW_ALWAYS;
+      else if (reduced_prim == MESA_PRIM_TRIANGLES) {
          if (rast->cso.fill_front == PIPE_POLYGON_MODE_LINE) {
-            line_aa = BRW_WM_AA_SOMETIMES;
+            line_aa = BRW_SOMETIMES;
 
             if (rast->cso.fill_back == PIPE_POLYGON_MODE_LINE ||
                 rast->cso.cull_face == PIPE_FACE_BACK)
-               line_aa = BRW_WM_AA_ALWAYS;
+               line_aa = BRW_ALWAYS;
          } else if (rast->cso.fill_back == PIPE_POLYGON_MODE_LINE) {
-            line_aa = BRW_WM_AA_SOMETIMES;
+            line_aa = BRW_SOMETIMES;
 
             if (rast->cso.cull_face == PIPE_FACE_FRONT)
-               line_aa = BRW_WM_AA_ALWAYS;
+               line_aa = BRW_ALWAYS;
          }
       }
    }
@@ -4835,17 +4831,20 @@ crocus_populate_fs_key(const struct crocus_context *ice,
 
    key->clamp_fragment_color = rast->cso.clamp_fragment_color;
 
-   key->alpha_to_coverage = blend->cso.alpha_to_coverage;
+   key->alpha_to_coverage = blend->cso.alpha_to_coverage ?
+      BRW_ALWAYS : BRW_NEVER;
 
    key->alpha_test_replicate_alpha = fb->nr_cbufs > 1 && zsa->cso.alpha_enabled;
 
    key->flat_shade = rast->cso.flatshade &&
       (info->inputs_read & (VARYING_BIT_COL0 | VARYING_BIT_COL1));
 
-   key->persample_interp = rast->cso.force_persample_interp;
-   key->multisample_fbo = rast->cso.multisample && fb->samples > 1;
+   const bool multisample_fbo = rast->cso.multisample && fb->samples > 1;
+   key->multisample_fbo = multisample_fbo ? BRW_ALWAYS : BRW_NEVER;
+   key->persample_interp =
+      rast->cso.force_persample_interp ? BRW_ALWAYS : BRW_NEVER;
 
-   key->ignore_sample_mask_out = !key->multisample_fbo;
+   key->ignore_sample_mask_out = !multisample_fbo;
    key->coherent_fb_fetch = false; // TODO: needed?
 
    key->force_dual_color_blend =
@@ -6152,7 +6151,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
       be.AlphaTestFunction = translate_compare_func(cso_zsa->cso.alpha_func);
       be.AlphaToCoverageEnable = cso_blend->cso.alpha_to_coverage;
       be.AlphaToOneEnable = cso_blend->cso.alpha_to_one;
-      be.AlphaToCoverageDitherEnable = GFX_VER >= 7 && cso_blend->cso.alpha_to_coverage;
+      be.AlphaToCoverageDitherEnable = GFX_VER >= 7 && cso_blend->cso.alpha_to_coverage_dither;
       be.ColorDitherEnable = cso_blend->cso.dither;
 
 #if GFX_VER >= 8
@@ -6446,9 +6445,10 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
           */
          ps.VectorMaskEnable = GFX_VER >= 8 && wm_prog_data->uses_vmask;
 
-         ps._8PixelDispatchEnable = wm_prog_data->dispatch_8;
-         ps._16PixelDispatchEnable = wm_prog_data->dispatch_16;
-         ps._32PixelDispatchEnable = wm_prog_data->dispatch_32;
+         intel_set_ps_dispatch_state(&ps, &batch->screen->devinfo,
+                                     wm_prog_data,
+                                     ice->state.framebuffer.samples,
+                                     0 /* msaa_flags */);
 
          ps.DispatchGRFStartRegisterForConstantSetupData0 =
             brw_wm_prog_data_dispatch_grf_start_reg(wm_prog_data, ps, 0);
@@ -6516,7 +6516,8 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
          psx.AttributeEnable = wm_prog_data->num_varying_inputs != 0;
          psx.PixelShaderUsesSourceDepth = wm_prog_data->uses_src_depth;
          psx.PixelShaderUsesSourceW = wm_prog_data->uses_src_w;
-         psx.PixelShaderIsPerSample = wm_prog_data->persample_dispatch;
+         psx.PixelShaderIsPerSample =
+            brw_wm_prog_data_is_persample(wm_prog_data, 0);
 
          /* _NEW_MULTISAMPLE | BRW_NEW_CONSERVATIVE_RASTERIZATION */
          if (wm_prog_data->uses_sample_mask)
@@ -7290,7 +7291,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
             else
                wm.MultisampleRasterizationMode = MSRASTMODE_OFF_PIXEL;
 
-            if (wm_prog_data->persample_dispatch)
+            if (brw_wm_prog_data_is_persample(wm_prog_data, 0))
                wm.MultisampleDispatchMode = MSDISPMODE_PERSAMPLE;
             else
                wm.MultisampleDispatchMode = MSDISPMODE_PERPIXEL;
@@ -7608,7 +7609,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
             emit_vertex_buffer_state(batch, i, bo,
                                      buf->buffer_offset,
                                      ice->state.vb_end[i],
-                                     buf->stride,
+                                     ice->state.cso_vertex_elements->strides[i],
                                      step_rate,
                                      &map);
          }
@@ -8279,6 +8280,8 @@ crocus_upload_compute_state(struct crocus_context *ice,
 static void
 crocus_destroy_state(struct crocus_context *ice)
 {
+   struct pipe_framebuffer_state *cso = &ice->state.framebuffer;
+
    pipe_resource_reference(&ice->draw.draw_params.res, NULL);
    pipe_resource_reference(&ice->draw.derived_draw_params.res, NULL);
 
@@ -8288,10 +8291,7 @@ crocus_destroy_state(struct crocus_context *ice)
       pipe_so_target_reference(&ice->state.so_target[i], NULL);
    }
 
-   for (unsigned i = 0; i < ice->state.framebuffer.nr_cbufs; i++) {
-      pipe_surface_reference(&ice->state.framebuffer.cbufs[i], NULL);
-   }
-   pipe_surface_reference(&ice->state.framebuffer.zsbuf, NULL);
+   util_unreference_framebuffer_state(cso);
 
    for (int stage = 0; stage < MESA_SHADER_STAGES; stage++) {
       struct crocus_shader_state *shs = &ice->state.shaders[stage];
@@ -9299,8 +9299,8 @@ genX(crocus_init_state)(struct crocus_context *ice)
 
    ice->state.sample_mask = 0xff;
    ice->state.num_viewports = 1;
-   ice->state.prim_mode = PIPE_PRIM_MAX;
-   ice->state.reduced_prim_mode = PIPE_PRIM_MAX;
+   ice->state.prim_mode = MESA_PRIM_COUNT;
+   ice->state.reduced_prim_mode = MESA_PRIM_COUNT;
    ice->state.genx = calloc(1, sizeof(struct crocus_genx_state));
    ice->draw.derived_params.drawid = -1;
 

@@ -202,13 +202,35 @@ TRANS(ParseAddress) (const char *address,
      * If a "::" is found then assume DNET.
      */
 
-    char	*mybuf, *tmpptr;
-    const char	*_protocol;
+    char	*mybuf, *tmpptr = NULL;
+    const char	*_protocol = NULL;
     char	*_host, *_port;
     char	hostnamebuf[256];
     int		_host_len;
 
     prmsg (3,"ParseAddress(%s)\n", address);
+
+    /* First, check for AF_UNIX socket paths */
+    if (address[0] == '/') {
+        _protocol = "local";
+        _host = "";
+        _port = address;
+    } else
+#ifdef HAVE_LAUNCHD
+    /* launchd sockets will look like 'local//tmp/launch-XgkNns/:0' */
+    if(!strncmp(address,"local//",7)) {
+        _protocol="local";
+        _host="";
+        _port=address+6;
+    } else
+#endif
+    if (!strncmp(address, "unix:", 5)) {
+        _protocol = "local";
+        _host = "";
+        _port = address + 5;
+    }
+    if (_protocol)
+        goto done_parsing;
 
     /* Copy the string so it can be changed */
 
@@ -331,15 +353,7 @@ TRANS(ParseAddress) (const char *address,
      */
 #endif
 
-#ifdef HAVE_LAUNCHD
-    /* launchd sockets will look like 'local//tmp/launch-XgkNns/:0' */
-    if(address != NULL && strlen(address)>8 && (!strncmp(address,"local//",7))) {
-      _protocol="local";
-      _host="";
-      _port=address+6;
-    }
-#endif
-
+done_parsing:
     /*
      * Now that we have all of the components, allocate new
      * string space for them.
@@ -1170,6 +1184,9 @@ TRANS(MakeAllCOTSServerListeners) (const char *port, int *partial,
 
 	if ((status = TRANS(CreateListener (ciptr, port, flags))) < 0)
 	{
+            if (*partial != 0)
+		continue;
+
 	    if (status == TRANS_ADDR_IN_USE)
 	    {
 		/*

@@ -672,6 +672,17 @@ glamor_make_current(glamor_screen_private *glamor_priv)
         lastGLContext = glamor_priv->ctx.ctx;
         glamor_priv->ctx.make_current(&glamor_priv->ctx);
     }
+    glamor_priv->dirty = TRUE;
+}
+
+static inline void
+glamor_flush(glamor_screen_private *glamor_priv)
+{
+    if (glamor_priv->dirty) {
+        glamor_make_current(glamor_priv);
+        glFlush();
+        glamor_priv->dirty = FALSE;
+    }
 }
 
 static inline BoxRec

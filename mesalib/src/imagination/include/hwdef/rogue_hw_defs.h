@@ -84,6 +84,11 @@
 /* Number of PBESTATE_REG_WORD values that need setting up. */
 #define ROGUE_NUM_PBESTATE_REG_WORDS 3U
 
+/* Number of PBESTATE_REG_WORD used in transfer.
+ * The last word is not used.
+ */
+#define ROGUE_NUM_PBESTATE_REG_WORDS_FOR_TRANSFER 2U
+
 /* Number of PBESTATE_STATE_WORD values that need setting up. */
 #define ROGUE_NUM_PBESTATE_STATE_WORDS 2U
 
@@ -124,6 +129,16 @@
  * task will be able to run and allocations will be freed.
  */
 #define ROGUE_MAX_OVERLAPPED_PIXEL_TASK_INSTANCES 7U
+
+/* Size of the image state in 64-bit units. */
+#define ROGUE_MAXIMUM_IMAGE_STATE_SIZE_IN_ULONGLONGS 2U
+
+/* Size of the image state in dwords. The last 64-bit word is optional for
+ * non-YUV textures.
+ */
+#define ROGUE_MAXIMUM_IMAGE_STATE_SIZE             \
+   (ROGUE_MAXIMUM_IMAGE_STATE_SIZE_IN_ULONGLONGS * \
+    (sizeof(uint64_t) / sizeof(uint32_t)))
 
 #define PVR_NUM_PBE_EMIT_REGS 8U
 

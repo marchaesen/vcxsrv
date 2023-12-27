@@ -63,11 +63,7 @@ nir_opt_conditional_discard_block(nir_builder *b, nir_block *block)
     * make sure no subsequent phi nodes point at this if.
     */
    nir_block *after = nir_cf_node_as_block(nir_cf_node_next(&if_stmt->cf_node));
-   nir_foreach_instr_safe(instr, after) {
-      if (instr->type != nir_instr_type_phi)
-         break;
-      nir_phi_instr *phi = nir_instr_as_phi(instr);
-
+   nir_foreach_phi_safe(phi, after) {
       nir_foreach_phi_src(phi_src, phi) {
          if (phi_src->pred == then_block ||
              phi_src->pred == else_block)
@@ -84,8 +80,7 @@ nir_opt_conditional_discard_block(nir_builder *b, nir_block *block)
 
    nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
    nir_intrinsic_op op = intrin->intrinsic;
-   assert(if_stmt->condition.is_ssa);
-   nir_ssa_def *cond = if_stmt->condition.ssa;
+   nir_def *cond = if_stmt->condition.ssa;
    b->cursor = nir_before_cf_node(prev_node);
 
    switch (intrin->intrinsic) {
@@ -101,7 +96,6 @@ nir_opt_conditional_discard_block(nir_builder *b, nir_block *block)
    case nir_intrinsic_discard_if:
    case nir_intrinsic_demote_if:
    case nir_intrinsic_terminate_if:
-      assert(intrin->src[0].is_ssa);
       cond = nir_iand(b, cond, intrin->src[0].ssa);
       break;
    default:
@@ -126,22 +120,20 @@ nir_opt_conditional_discard(nir_shader *shader)
 
    nir_builder builder;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_builder_init(&builder, function->impl);
+   nir_foreach_function_impl(impl, shader) {
+      builder = nir_builder_create(impl);
 
-         bool impl_progress = false;
-         nir_foreach_block_safe(block, function->impl) {
-            if (nir_opt_conditional_discard_block(&builder, block))
-               impl_progress = true;
-         }
+      bool impl_progress = false;
+      nir_foreach_block_safe(block, impl) {
+         if (nir_opt_conditional_discard_block(&builder, block))
+            impl_progress = true;
+      }
 
-         if (impl_progress) {
-            nir_metadata_preserve(function->impl, nir_metadata_none);
-            progress = true;
-         } else {
-            nir_metadata_preserve(function->impl, nir_metadata_all);
-         }
+      if (impl_progress) {
+         nir_metadata_preserve(impl, nir_metadata_none);
+         progress = true;
+      } else {
+         nir_metadata_preserve(impl, nir_metadata_all);
       }
    }
    return progress;

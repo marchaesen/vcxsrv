@@ -30,18 +30,18 @@
 
 #include "hud/hud_private.h"
 #include "util/os_time.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "util/u_memory.h"
 #include "util/u_queue.h"
 #include <stdio.h>
 #include <inttypes.h>
-#ifdef PIPE_OS_WINDOWS
+#if DETECT_OS_WINDOWS
 #include <windows.h>
 #endif
-#if defined(PIPE_OS_BSD)
+#if DETECT_OS_BSD
 #include <sys/types.h>
 #include <sys/sysctl.h>
-#if defined(PIPE_OS_NETBSD) || defined(PIPE_OS_OPENBSD)
+#if DETECT_OS_NETBSD || DETECT_OS_OPENBSD
 #include <sys/sched.h>
 #else
 #include <sys/resource.h>
@@ -49,7 +49,7 @@
 #endif
 
 
-#ifdef PIPE_OS_WINDOWS
+#if DETECT_OS_WINDOWS
 
 static inline uint64_t
 filetime_to_scalar(FILETIME ft)
@@ -60,7 +60,7 @@ filetime_to_scalar(FILETIME ft)
    return uli.QuadPart;
 }
 
-static boolean
+static bool
 get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
 {
    SYSTEM_INFO sysInfo;
@@ -70,13 +70,13 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
    assert(sysInfo.dwNumberOfProcessors >= 1);
    if (cpu_index != ALL_CPUS && cpu_index >= sysInfo.dwNumberOfProcessors) {
       /* Tell hud_get_num_cpus there are only this many CPUs. */
-      return FALSE;
+      return false;
    }
 
    /* Get accumulated user and sys time for all threads */
    if (!GetProcessTimes(GetCurrentProcess(), &ftCreation, &ftExit,
                         &ftKernel, &ftUser))
-      return FALSE;
+      return false;
 
    GetSystemTimeAsFileTime(&ftNow);
 
@@ -92,15 +92,15 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
    /* XXX: we ignore cpu_index, i.e, we assume that the individual CPU usage
     * and the system usage are one and the same.
     */
-   return TRUE;
+   return true;
 }
 
-#elif defined(PIPE_OS_BSD)
+#elif DETECT_OS_BSD
 
-static boolean
+static bool
 get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
 {
-#if defined(PIPE_OS_NETBSD) || defined(PIPE_OS_OPENBSD)
+#if DETECT_OS_NETBSD || DETECT_OS_OPENBSD
    uint64_t cp_time[CPUSTATES];
 #else
    long cp_time[CPUSTATES];
@@ -110,51 +110,51 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
    if (cpu_index == ALL_CPUS) {
       len = sizeof(cp_time);
 
-#if defined(PIPE_OS_NETBSD)
+#if DETECT_OS_NETBSD
       int mib[] = { CTL_KERN, KERN_CP_TIME };
 
       if (sysctl(mib, ARRAY_SIZE(mib), cp_time, &len, NULL, 0) == -1)
-         return FALSE;
-#elif defined(PIPE_OS_OPENBSD)
+         return false;
+#elif DETECT_OS_OPENBSD
       int mib[] = { CTL_KERN, KERN_CPTIME };
       long sum_cp_time[CPUSTATES];
 
       len = sizeof(sum_cp_time);
       if (sysctl(mib, ARRAY_SIZE(mib), sum_cp_time, &len, NULL, 0) == -1)
-         return FALSE;
+         return false;
 
       for (int state = 0; state < CPUSTATES; state++)
          cp_time[state] = sum_cp_time[state];
 #else
       if (sysctlbyname("kern.cp_time", cp_time, &len, NULL, 0) == -1)
-         return FALSE;
+         return false;
 #endif
    } else {
-#if defined(PIPE_OS_NETBSD)
+#if DETECT_OS_NETBSD
       int mib[] = { CTL_KERN, KERN_CP_TIME, cpu_index };
 
       len = sizeof(cp_time);
       if (sysctl(mib, ARRAY_SIZE(mib), cp_time, &len, NULL, 0) == -1)
-         return FALSE;
-#elif defined(PIPE_OS_OPENBSD)
+         return false;
+#elif DETECT_OS_OPENBSD
       int mib[] = { CTL_KERN, KERN_CPTIME2, cpu_index };
 
       len = sizeof(cp_time);
       if (sysctl(mib, ARRAY_SIZE(mib), cp_time, &len, NULL, 0) == -1)
-         return FALSE;
+         return false;
 #else
       long *cp_times = NULL;
 
       if (sysctlbyname("kern.cp_times", NULL, &len, NULL, 0) == -1)
-         return FALSE;
+         return false;
 
       if (len < (cpu_index + 1) * sizeof(cp_time))
-         return FALSE;
+         return false;
 
       cp_times = malloc(len);
 
       if (sysctlbyname("kern.cp_times", cp_times, &len, NULL, 0) == -1)
-         return FALSE;
+         return false;
 
       memcpy(cp_time, cp_times + (cpu_index * CPUSTATES),
             sizeof(cp_time));
@@ -167,12 +167,12 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
 
    *total_time = *busy_time + cp_time[CP_IDLE];
 
-   return TRUE;
+   return true;
 }
 
 #else
 
-static boolean
+static bool
 get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
 {
    char cpuname[32];
@@ -186,7 +186,7 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
 
    f = fopen("/proc/stat", "r");
    if (!f)
-      return FALSE;
+      return false;
 
    while (!feof(f) && fgets(line, sizeof(line), f)) {
       if (strstr(line, cpuname) == line) {
@@ -201,7 +201,7 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
                       &v[6], &v[7], &v[8], &v[9], &v[10], &v[11]);
          if (num < 5) {
             fclose(f);
-            return FALSE;
+            return false;
          }
 
          /* user + nice + system */
@@ -213,11 +213,11 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
             *total_time += v[i];
          }
          fclose(f);
-         return TRUE;
+         return true;
       }
    }
    fclose(f);
-   return FALSE;
+   return false;
 }
 #endif
 
@@ -395,24 +395,35 @@ hud_thread_busy_install(struct hud_pane *pane, const char *name, bool main)
 
 struct counter_info {
    enum hud_counter counter;
-   unsigned last_value;
    int64_t last_time;
 };
 
 static unsigned get_counter(struct hud_graph *gr, enum hud_counter counter)
 {
    struct util_queue_monitoring *mon = gr->pane->hud->monitored_queue;
+   unsigned value;
 
    if (!mon || !mon->queue)
       return 0;
 
+   /* Reset the counters to 0 to only display values for 1 frame. */
    switch (counter) {
    case HUD_COUNTER_OFFLOADED:
-      return mon->num_offloaded_items;
+      value = mon->num_offloaded_items;
+      mon->num_offloaded_items = 0;
+      return value;
    case HUD_COUNTER_DIRECT:
-      return mon->num_direct_items;
+      value = mon->num_direct_items;
+      mon->num_direct_items = 0;
+      return value;
    case HUD_COUNTER_SYNCS:
-      return mon->num_syncs;
+      value = mon->num_syncs;
+      mon->num_syncs = 0;
+      return value;
+   case HUD_COUNTER_BATCHES:
+      value = mon->num_batches;
+      mon->num_batches = 0;
+      return value;
    default:
       assert(0);
       return 0;
@@ -424,18 +435,15 @@ query_thread_counter(struct hud_graph *gr, struct pipe_context *pipe)
 {
    struct counter_info *info = gr->query_data;
    int64_t now = os_time_get_nano();
+   unsigned value = get_counter(gr, info->counter);
 
    if (info->last_time) {
       if (info->last_time + gr->pane->period*1000 <= now) {
-         unsigned current_value = get_counter(gr, info->counter);
-
-         hud_graph_add_value(gr, current_value - info->last_value);
-         info->last_value = current_value;
+         hud_graph_add_value(gr, value);
          info->last_time = now;
       }
    } else {
       /* initialize */
-      info->last_value = get_counter(gr, info->counter);
       info->last_time = now;
    }
 }

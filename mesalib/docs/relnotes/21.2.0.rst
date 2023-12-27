@@ -2048,7 +2048,7 @@ Emma Anholt (251):
 - ci: Add a flakes IRC channel for llvmpipe/softpipe.
 - ci/deqp: Skip dEQP-VK.wsi.display.get_display_plane_capabilities
 - ci/piglit: Move the WGL skip to a common skips file.
-- ci/piglit: Skip glx_arb_sync_control@timing.* on all systems.
+- ci/piglit: Skip glx_arb_sync_control\@timing.* on all systems.
 - freedreno: Drop batch-cache orphan tracking.
 - freedreno: Make a bunch of the batch cache take ctx as the arg.
 - freedreno: Drop a bit of indirection around the batch cache flush path.
@@ -2892,7 +2892,7 @@ Jan Beich (1):
 
 - anv: adjust headers for non-GNU after e9e1e0362b6c
 
-Jason Ekstrand (139):
+Faith Ekstrand (139):
 
 - intel/compiler: Don't insert barriers for NULL sources
 - anv: Use the same re-order mode for streamout as for GS
@@ -5075,7 +5075,7 @@ Tomeu Vizoso (51):
 - ci/zink: Add nearest_linear_mirror_l8_pot flake
 - ci/freedreno: Fix name of flake
 - ci/freedreno: Add new flake after "ci: Configure DUTs for max performance"
-- ci/freedreno: Add spec@arb_copy_buffer@dlist flake on a530
+- ci/freedreno: Add spec\@arb_copy_buffer\@dlist flake on a530
 - Partial revert of "ci: Add a manual job for tracking the performance of Freedreno"
 - ci/freedreno: Skip Portal 2 trace on a630, due to flakiness
 - Revert "ci/freedreno: Skip Portal 2 trace on a630, due to flakiness"

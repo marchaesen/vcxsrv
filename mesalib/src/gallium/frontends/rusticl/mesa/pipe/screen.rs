@@ -5,10 +5,14 @@ use crate::pipe::resource::*;
 use crate::util::disk_cache::*;
 
 use mesa_rust_gen::*;
+use mesa_rust_util::has_required_feature;
 use mesa_rust_util::string::*;
 
 use std::convert::TryInto;
+use std::ffi::CStr;
 use std::mem::size_of;
+use std::os::raw::c_schar;
+use std::os::raw::c_uchar;
 use std::os::raw::c_void;
 use std::ptr;
 use std::sync::Arc;
@@ -18,6 +22,9 @@ pub struct PipeScreen {
     ldev: PipeLoaderDevice,
     screen: *mut pipe_screen,
 }
+
+pub const UUID_SIZE: usize = PIPE_UUID_SIZE as usize;
+const LUID_SIZE: usize = PIPE_LUID_SIZE as usize;
 
 // until we have a better solution
 pub trait ComputeParam<T> {
@@ -30,6 +37,9 @@ macro_rules! compute_param_impl {
             fn compute_param(&self, cap: pipe_compute_cap) -> $ty {
                 let size = self.compute_param_wrapped(cap, ptr::null_mut());
                 let mut d = [0; size_of::<$ty>()];
+                if size == 0 {
+                    return Default::default();
+                }
                 assert_eq!(size as usize, d.len());
                 self.compute_param_wrapped(cap, d.as_mut_ptr().cast());
                 <$ty>::from_ne_bytes(d)
@@ -59,13 +69,32 @@ impl ComputeParam<Vec<u64>> for PipeScreen {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ResourceType {
+    Normal,
+    Staging,
+}
+
+impl ResourceType {
+    fn apply(&self, tmpl: &mut pipe_resource) {
+        match self {
+            Self::Staging => {
+                tmpl.set_usage(pipe_resource_usage::PIPE_USAGE_STAGING.0);
+                tmpl.flags |= PIPE_RESOURCE_FLAG_MAP_PERSISTENT | PIPE_RESOURCE_FLAG_MAP_COHERENT;
+                tmpl.bind |= PIPE_BIND_LINEAR;
+            }
+            Self::Normal => {}
+        }
+    }
+}
+
 impl PipeScreen {
-    pub(super) fn new(ldev: PipeLoaderDevice, screen: *mut pipe_screen) -> Option<Arc<Self>> {
+    pub(super) fn new(ldev: PipeLoaderDevice, screen: *mut pipe_screen) -> Option<Self> {
         if screen.is_null() || !has_required_cbs(screen) {
             return None;
         }
 
-        Some(Arc::new(Self { ldev, screen }))
+        Some(Self { ldev, screen })
     }
 
     pub fn create_context(self: &Arc<Self>) -> Option<PipeContext> {
@@ -74,7 +103,7 @@ impl PipeScreen {
                 (*self.screen).context_create.unwrap()(
                     self.screen,
                     ptr::null_mut(),
-                    PIPE_CONTEXT_COMPUTE_ONLY,
+                    PIPE_CONTEXT_COMPUTE_ONLY | PIPE_CONTEXT_NO_LOD_BIAS,
                 )
             },
             self,
@@ -102,7 +131,11 @@ impl PipeScreen {
         }
     }
 
-    pub fn resource_create_buffer(&self, size: u32) -> Option<PipeResource> {
+    pub fn resource_create_buffer(
+        &self,
+        size: u32,
+        res_type: ResourceType,
+    ) -> Option<PipeResource> {
         let mut tmpl = pipe_resource::default();
 
         tmpl.set_target(pipe_texture_target::PIPE_BUFFER);
@@ -111,6 +144,8 @@ impl PipeScreen {
         tmpl.depth0 = 1;
         tmpl.array_size = 1;
         tmpl.bind = PIPE_BIND_GLOBAL;
+
+        res_type.apply(&mut tmpl);
 
         self.resource_create(&tmpl)
     }
@@ -140,6 +175,8 @@ impl PipeScreen {
         array_size: u16,
         target: pipe_texture_target,
         format: pipe_format,
+        res_type: ResourceType,
+        support_image: bool,
     ) -> Option<PipeResource> {
         let mut tmpl = pipe_resource::default();
 
@@ -149,7 +186,13 @@ impl PipeScreen {
         tmpl.height0 = height;
         tmpl.depth0 = depth;
         tmpl.array_size = array_size;
-        tmpl.bind = PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_SHADER_IMAGE;
+        tmpl.bind = PIPE_BIND_SAMPLER_VIEW;
+
+        if support_image {
+            tmpl.bind |= PIPE_BIND_SHADER_IMAGE;
+        }
+
+        res_type.apply(&mut tmpl);
 
         self.resource_create(&tmpl)
     }
@@ -163,6 +206,7 @@ impl PipeScreen {
         target: pipe_texture_target,
         format: pipe_format,
         mem: *mut c_void,
+        support_image: bool,
     ) -> Option<PipeResource> {
         let mut tmpl = pipe_resource::default();
 
@@ -172,9 +216,50 @@ impl PipeScreen {
         tmpl.height0 = height;
         tmpl.depth0 = depth;
         tmpl.array_size = array_size;
-        tmpl.bind = PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_SHADER_IMAGE;
+        tmpl.bind = PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_LINEAR;
+
+        if support_image {
+            tmpl.bind |= PIPE_BIND_SHADER_IMAGE;
+        }
 
         self.resource_create_from_user(&tmpl, mem)
+    }
+
+    pub fn resource_import_dmabuf(
+        &self,
+        handle: u32,
+        modifier: u64,
+        target: pipe_texture_target,
+        format: pipe_format,
+        stride: u32,
+        width: u32,
+        height: u16,
+        depth: u16,
+        array_size: u16,
+    ) -> Option<PipeResource> {
+        let mut tmpl = pipe_resource::default();
+        let mut handle = winsys_handle {
+            type_: WINSYS_HANDLE_TYPE_FD,
+            handle: handle,
+            modifier: modifier,
+            format: format as u64,
+            stride: stride,
+            ..Default::default()
+        };
+
+        tmpl.set_target(target);
+        tmpl.set_format(format);
+        tmpl.width0 = width;
+        tmpl.height0 = height;
+        tmpl.depth0 = depth;
+        tmpl.array_size = array_size;
+
+        unsafe {
+            PipeResource::new(
+                (*self.screen).resource_from_handle.unwrap()(self.screen, &tmpl, &mut handle, 0),
+                false,
+            )
+        }
     }
 
     pub fn param(&self, cap: pipe_cap) -> i32 {
@@ -186,28 +271,78 @@ impl PipeScreen {
     }
 
     fn compute_param_wrapped(&self, cap: pipe_compute_cap, ptr: *mut c_void) -> i32 {
-        let s = &mut unsafe { *self.screen };
         unsafe {
-            s.get_compute_param.unwrap()(self.screen, pipe_shader_ir::PIPE_SHADER_IR_NIR, cap, ptr)
+            (*self.screen).get_compute_param.unwrap()(
+                self.screen,
+                pipe_shader_ir::PIPE_SHADER_IR_NIR,
+                cap,
+                ptr,
+            )
         }
+    }
+
+    pub fn driver_name(&self) -> String {
+        self.ldev.driver_name()
     }
 
     pub fn name(&self) -> String {
+        unsafe { c_string_to_string((*self.screen).get_name.unwrap()(self.screen)) }
+    }
+
+    pub fn device_node_mask(&self) -> Option<u32> {
+        unsafe { Some((*self.screen).get_device_node_mask?(self.screen)) }
+    }
+
+    pub fn device_uuid(&self) -> Option<[c_uchar; UUID_SIZE]> {
+        let mut uuid = [0; UUID_SIZE];
+        let ptr = uuid.as_mut_ptr();
         unsafe {
-            let s = *self.screen;
-            c_string_to_string(s.get_name.unwrap()(self.screen))
+            (*self.screen).get_device_uuid?(self.screen, ptr.cast());
         }
+
+        Some(uuid)
+    }
+
+    pub fn device_luid(&self) -> Option<[c_uchar; LUID_SIZE]> {
+        let mut luid = [0; LUID_SIZE];
+        let ptr = luid.as_mut_ptr();
+        unsafe { (*self.screen).get_device_luid?(self.screen, ptr.cast()) }
+
+        Some(luid)
     }
 
     pub fn device_vendor(&self) -> String {
-        unsafe {
-            let s = *self.screen;
-            c_string_to_string(s.get_device_vendor.unwrap()(self.screen))
-        }
+        unsafe { c_string_to_string((*self.screen).get_device_vendor.unwrap()(self.screen)) }
     }
 
     pub fn device_type(&self) -> pipe_loader_device_type {
         unsafe { *self.ldev.ldev }.type_
+    }
+
+    pub fn driver_uuid(&self) -> Option<[c_schar; UUID_SIZE]> {
+        let mut uuid = [0; UUID_SIZE];
+        let ptr = uuid.as_mut_ptr();
+        unsafe {
+            (*self.screen).get_driver_uuid?(self.screen, ptr.cast());
+        }
+
+        Some(uuid)
+    }
+
+    pub fn cl_cts_version(&self) -> &CStr {
+        unsafe {
+            let ptr = (*self.screen)
+                .get_cl_cts_version
+                .map_or(ptr::null(), |get_cl_cts_version| {
+                    get_cl_cts_version(self.screen)
+                });
+            if ptr.is_null() {
+                // this string is good enough to pass the CTS
+                CStr::from_bytes_with_nul(b"v0000-01-01-00\0").unwrap()
+            } else {
+                CStr::from_ptr(ptr)
+            }
+        }
     }
 
     pub fn is_format_supported(
@@ -216,8 +351,25 @@ impl PipeScreen {
         target: pipe_texture_target,
         bindings: u32,
     ) -> bool {
-        let s = &mut unsafe { *self.screen };
-        unsafe { s.is_format_supported.unwrap()(self.screen, format, target, 0, 0, bindings) }
+        unsafe {
+            (*self.screen).is_format_supported.unwrap()(self.screen, format, target, 0, 0, bindings)
+        }
+    }
+
+    pub fn get_timestamp(&self) -> u64 {
+        // We have get_timestamp in has_required_cbs, so it will exist
+        unsafe {
+            (*self.screen)
+                .get_timestamp
+                .expect("get_timestamp should be required")(self.screen)
+        }
+    }
+
+    pub fn is_res_handle_supported(&self) -> bool {
+        unsafe {
+            (*self.screen).resource_from_handle.is_some()
+                && (*self.screen).resource_get_handle.is_some()
+        }
     }
 
     pub fn nir_shader_compiler_options(
@@ -235,9 +387,7 @@ impl PipeScreen {
     }
 
     pub fn shader_cache(&self) -> Option<DiskCacheBorrowed> {
-        let s = &mut unsafe { *self.screen };
-
-        let ptr = if let Some(func) = s.get_disk_shader_cache {
+        let ptr = if let Some(func) = unsafe { *self.screen }.get_disk_shader_cache {
             unsafe { func(self.screen) }
         } else {
             ptr::null_mut()
@@ -247,8 +397,7 @@ impl PipeScreen {
     }
 
     pub fn finalize_nir(&self, nir: &NirShader) {
-        let s = &mut unsafe { *self.screen };
-        if let Some(func) = s.finalize_nir {
+        if let Some(func) = unsafe { *self.screen }.finalize_nir {
             unsafe {
                 func(self.screen, nir.get_nir().cast());
             }
@@ -257,15 +406,18 @@ impl PipeScreen {
 
     pub(super) fn unref_fence(&self, mut fence: *mut pipe_fence_handle) {
         unsafe {
-            let s = &mut *self.screen;
-            s.fence_reference.unwrap()(s, &mut fence, ptr::null_mut());
+            (*self.screen).fence_reference.unwrap()(self.screen, &mut fence, ptr::null_mut());
         }
     }
 
     pub(super) fn fence_finish(&self, fence: *mut pipe_fence_handle) {
         unsafe {
-            let s = &mut *self.screen;
-            s.fence_finish.unwrap()(s, ptr::null_mut(), fence, PIPE_TIMEOUT_INFINITE as u64);
+            (*self.screen).fence_finish.unwrap()(
+                self.screen,
+                ptr::null_mut(),
+                fence,
+                OS_TIMEOUT_INFINITE as u64,
+            );
         }
     }
 }
@@ -279,16 +431,19 @@ impl Drop for PipeScreen {
 }
 
 fn has_required_cbs(screen: *mut pipe_screen) -> bool {
-    let s = unsafe { *screen };
-    s.context_create.is_some()
-        && s.destroy.is_some()
-        && s.fence_finish.is_some()
-        && s.fence_reference.is_some()
-        && s.get_compiler_options.is_some()
-        && s.get_compute_param.is_some()
-        && s.get_name.is_some()
-        && s.get_param.is_some()
-        && s.get_shader_param.is_some()
-        && s.is_format_supported.is_some()
-        && s.resource_create.is_some()
+    let screen = unsafe { *screen };
+    // Use '&' to evaluate all features and to not stop
+    // on first missing one to list all missing features.
+    has_required_feature!(screen, context_create)
+        & has_required_feature!(screen, destroy)
+        & has_required_feature!(screen, fence_finish)
+        & has_required_feature!(screen, fence_reference)
+        & has_required_feature!(screen, get_compiler_options)
+        & has_required_feature!(screen, get_compute_param)
+        & has_required_feature!(screen, get_name)
+        & has_required_feature!(screen, get_param)
+        & has_required_feature!(screen, get_shader_param)
+        & has_required_feature!(screen, get_timestamp)
+        & has_required_feature!(screen, is_format_supported)
+        & has_required_feature!(screen, resource_create)
 }

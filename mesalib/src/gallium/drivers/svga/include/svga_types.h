@@ -26,7 +26,7 @@
 #ifndef _SVGA_TYPES_H_
 #define _SVGA_TYPES_H_
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #ifndef __HAIKU__
 typedef int64_t int64;

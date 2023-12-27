@@ -29,7 +29,8 @@
 #include <vulkan/vulkan_core.h>
 
 #include "compiler/shader_enums.h"
-#include "rogue/rogue_build_data.h"
+#include "rogue/rogue.h"
+#include "util/u_dynarray.h"
 
 /**
  * \file pvr_hardcode.h
@@ -38,7 +39,7 @@
  * This should eventually be deleted as the compiler becomes more capable.
  */
 
-struct pvr_compute_pipeline_shader_state;
+struct pvr_compute_shader_state;
 struct pvr_device;
 struct pvr_fragment_shader_state;
 struct pvr_hard_coding_data;
@@ -52,8 +53,8 @@ struct pvr_explicit_constant_usage {
 };
 
 struct pvr_hard_code_compute_build_info {
-   struct rogue_ubo_data ubo_data;
-   struct rogue_compile_time_consts_data compile_time_consts_data;
+   rogue_ubo_data ubo_data;
+   rogue_compile_time_consts_data compile_time_consts_data;
 
    uint32_t local_invocation_regs[2];
    uint32_t work_group_regs[3];
@@ -64,23 +65,23 @@ struct pvr_hard_code_compute_build_info {
 };
 
 struct pvr_hard_code_graphics_build_info {
-   struct rogue_build_data stage_data;
+   rogue_build_data stage_data;
 
-   struct rogue_common_build_data vert_common_data;
-   struct rogue_common_build_data frag_common_data;
+   rogue_common_build_data vert_common_data;
+   rogue_common_build_data frag_common_data;
 
    struct pvr_explicit_constant_usage vert_explicit_conts_usage;
    struct pvr_explicit_constant_usage frag_explicit_conts_usage;
 };
 
-/* Returns true if the shader for the currently running program requires hard
- * coded shaders.
+/* Returns true if the shader for the currently running program has a hard coded
+ * shader.
  */
-bool pvr_hard_code_shader_required(const struct pvr_device_info *const dev_info);
+bool pvr_has_hard_coded_shaders(const struct pvr_device_info *const dev_info);
 
 VkResult pvr_hard_code_compute_pipeline(
    struct pvr_device *const device,
-   struct pvr_compute_pipeline_shader_state *const shader_state_out,
+   struct pvr_compute_shader_state *const shader_state_out,
    struct pvr_hard_code_compute_build_info *const build_info_out);
 
 /* Returns a mask of MESA_SHADER_* (gl_shader_stage) indicating which stage
@@ -95,11 +96,10 @@ pvr_hard_code_graphics_get_flags(const struct pvr_device_info *const dev_info);
  *    This pipeline number to request data for the first pipeline to be created
  *    is 0 and should be incremented for each subsequent pipeline.
  */
-void pvr_hard_code_graphics_shader(
-   const struct pvr_device_info *const dev_info,
-   uint32_t pipeline_n,
-   gl_shader_stage stage,
-   struct rogue_shader_binary **const shader_out);
+void pvr_hard_code_graphics_shader(const struct pvr_device_info *const dev_info,
+                                   uint32_t pipeline_n,
+                                   gl_shader_stage stage,
+                                   struct util_dynarray *shader_out);
 
 void pvr_hard_code_graphics_vertex_state(
    const struct pvr_device_info *const dev_info,
@@ -115,18 +115,21 @@ void pvr_hard_code_graphics_get_build_info(
    const struct pvr_device_info *const dev_info,
    uint32_t pipeline_n,
    gl_shader_stage stage,
-   struct rogue_common_build_data *const common_build_data,
-   struct rogue_build_data *const build_data,
+   rogue_common_build_data *const common_build_data,
+   rogue_build_data *const build_data,
    struct pvr_explicit_constant_usage *const explicit_const_usage);
 
 void pvr_hard_code_get_idfwdf_program(
    const struct pvr_device_info *const dev_info,
-   const struct rogue_shader_binary **const program_out,
+   struct util_dynarray *program_out,
    uint32_t *usc_shareds_out,
    uint32_t *usc_temps_out);
 
 void pvr_hard_code_get_passthrough_vertex_shader(
    const struct pvr_device_info *const dev_info,
-   const struct rogue_shader_binary **const program_out);
+   struct util_dynarray *program_out);
+void pvr_hard_code_get_passthrough_rta_vertex_shader(
+   const struct pvr_device_info *const dev_info,
+   struct util_dynarray *program_out);
 
 #endif /* PVR_HARDCODE_SHADERS_H */

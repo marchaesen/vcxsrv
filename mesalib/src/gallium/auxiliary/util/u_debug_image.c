@@ -291,7 +291,7 @@ error1:
 void
 debug_dump_ubyte_rgba_bmp(const char *filename,
                           unsigned width, unsigned height,
-                          const ubyte *rgba, unsigned stride)
+                          const uint8_t *rgba, unsigned stride)
 {
    FILE *stream;
    struct bmp_file_header bmfh;
@@ -330,7 +330,7 @@ debug_dump_ubyte_rgba_bmp(const char *filename,
 
    y = height;
    while (y--) {
-      const ubyte *ptr = rgba + (stride * y * 4);
+      const uint8_t *ptr = rgba + (stride * y * 4);
       for (x = 0; x < width; ++x) {
          struct bmp_rgb_quad pixel;
          pixel.rgbRed   = ptr[x*4 + 0];

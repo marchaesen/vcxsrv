@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
  /*
@@ -44,47 +44,38 @@
 #include "draw_vs.h"
 #include "draw_gs.h"
 #include "draw_tess.h"
+#include "draw_mesh.h"
 
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
 #include "gallivm/lp_bld_init.h"
 #include "gallivm/lp_bld_limits.h"
 #include "draw_llvm.h"
-
-boolean
-draw_get_option_use_llvm(void)
-{
-   return debug_get_bool_option("DRAW_USE_LLVM", TRUE);
-}
-#else
-boolean
-draw_get_option_use_llvm(void)
-{
-   return FALSE;
-}
 #endif
 
+
 bool
-draw_has_llvm(void)
+draw_get_option_use_llvm(void)
 {
-#ifdef DRAW_LLVM_AVAILABLE
-   return draw_get_option_use_llvm();
+#if DRAW_LLVM_AVAILABLE
+   return debug_get_bool_option("DRAW_USE_LLVM", true);
 #else
    return false;
 #endif
 }
+
 
 /**
  * Create new draw module context with gallivm state for LLVM JIT.
  */
 static struct draw_context *
 draw_create_context(struct pipe_context *pipe, void *context,
-                    boolean try_llvm)
+                    bool try_llvm)
 {
-   struct draw_context *draw = CALLOC_STRUCT( draw_context );
+   struct draw_context *draw = CALLOC_STRUCT(draw_context);
    if (!draw)
       goto err_out;
 
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
    if (try_llvm && draw_get_option_use_llvm()) {
       draw->llvm = draw_llvm_create(draw, (LLVMContextRef)context);
    }
@@ -103,7 +94,7 @@ draw_create_context(struct pipe_context *pipe, void *context,
    return draw;
 
 err_destroy:
-   draw_destroy( draw );
+   draw_destroy(draw);
 err_out:
    return NULL;
 }
@@ -115,18 +106,19 @@ err_out:
 struct draw_context *
 draw_create(struct pipe_context *pipe)
 {
-   return draw_create_context(pipe, NULL, TRUE);
+   return draw_create_context(pipe, NULL, true);
 }
 
 
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
 struct draw_context *
 draw_create_with_llvm_context(struct pipe_context *pipe,
                               void *context)
 {
-   return draw_create_context(pipe, context, TRUE);
+   return draw_create_context(pipe, context, true);
 }
 #endif
+
 
 /**
  * Create a new draw context, without LLVM JIT.
@@ -134,11 +126,12 @@ draw_create_with_llvm_context(struct pipe_context *pipe,
 struct draw_context *
 draw_create_no_llvm(struct pipe_context *pipe)
 {
-   return draw_create_context(pipe, NULL, FALSE);
+   return draw_create_context(pipe, NULL, false);
 }
 
 
-boolean draw_init(struct draw_context *draw)
+bool
+draw_init(struct draw_context *draw)
 {
    /*
     * Note that several functions compute the clipmask of the predefined
@@ -146,68 +139,68 @@ boolean draw_init(struct draw_context *draw)
     * here must be reflected there too.
     */
 
-   ASSIGN_4V( draw->plane[0], -1,  0,  0, 1 );
-   ASSIGN_4V( draw->plane[1],  1,  0,  0, 1 );
-   ASSIGN_4V( draw->plane[2],  0, -1,  0, 1 );
-   ASSIGN_4V( draw->plane[3],  0,  1,  0, 1 );
-   ASSIGN_4V( draw->plane[4],  0,  0,  1, 1 ); /* yes these are correct */
-   ASSIGN_4V( draw->plane[5],  0,  0, -1, 1 ); /* mesa's a bit wonky */
-   draw->clip_xy = TRUE;
-   draw->clip_z = TRUE;
+   ASSIGN_4V(draw->plane[0], -1,  0,  0, 1);
+   ASSIGN_4V(draw->plane[1],  1,  0,  0, 1);
+   ASSIGN_4V(draw->plane[2],  0, -1,  0, 1);
+   ASSIGN_4V(draw->plane[3],  0,  1,  0, 1);
+   ASSIGN_4V(draw->plane[4],  0,  0,  1, 1); /* yes these are correct */
+   ASSIGN_4V(draw->plane[5],  0,  0, -1, 1); /* mesa's a bit wonky */
+   draw->clip_xy = true;
+   draw->clip_z = true;
 
    draw->pt.user.planes = (float (*) [DRAW_TOTAL_CLIP_PLANES][4]) &(draw->plane[0]);
    draw->pt.user.eltMax = ~0;
 
-   if (!draw_pipeline_init( draw ))
-      return FALSE;
+   if (!draw_pipeline_init(draw))
+      return false;
 
-   if (!draw_pt_init( draw ))
-      return FALSE;
+   if (!draw_pt_init(draw))
+      return false;
 
-   if (!draw_vs_init( draw ))
-      return FALSE;
+   if (!draw_vs_init(draw))
+      return false;
 
-   if (!draw_gs_init( draw ))
-      return FALSE;
+   if (!draw_gs_init(draw))
+      return false;
 
    draw->quads_always_flatshade_last = !draw->pipe->screen->get_param(
       draw->pipe->screen, PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION);
 
    draw->floating_point_depth = false;
 
-   return TRUE;
+   return true;
 }
+
 
 /*
  * Called whenever we're starting to draw a new instance.
  * Some internal structures don't want to have to reset internal
  * members on each invocation (because their state might have to persist
- * between multiple primitive restart rendering call) but might have to 
- * for each new instance. 
+ * between multiple primitive restart rendering call) but might have to
+ * for each new instance.
  * This is particularly the case for primitive id's in geometry shader.
  */
-void draw_new_instance(struct draw_context *draw)
+void
+draw_new_instance(struct draw_context *draw)
 {
    draw_geometry_shader_new_instance(draw->gs.geometry_shader);
    draw_prim_assembler_new_instance(draw->ia);
 }
 
 
-void draw_destroy( struct draw_context *draw )
+void
+draw_destroy(struct draw_context *draw)
 {
-   struct pipe_context *pipe;
-   unsigned i, j, k;
-
    if (!draw)
       return;
 
-   pipe = draw->pipe;
+   struct pipe_context *pipe = draw->pipe;
 
    /* free any rasterizer CSOs that we may have created.
     */
-   for (i = 0; i < 2; i++) {
-      for (j = 0; j < 2; j++) {
-         for (k = 0; k < 2; k++) {
+   for (unsigned i = 0; i < 2; i++) {
+      for (unsigned j = 0; j < 2; j++) {
+         for (unsigned k = 0; k < 2; k++) {
             if (draw->rasterizer_no_cull[i][j][k]) {
                pipe->delete_rasterizer_state(pipe, draw->rasterizer_no_cull[i][j][k]);
             }
@@ -215,33 +208,33 @@ void draw_destroy( struct draw_context *draw )
       }
    }
 
-   for (i = 0; i < draw->pt.nr_vertex_buffers; i++)
+   for (unsigned i = 0; i < draw->pt.nr_vertex_buffers; i++)
       pipe_vertex_buffer_unreference(&draw->pt.vertex_buffer[i]);
 
    /* Not so fast -- we're just borrowing this at the moment.
-    * 
+    *
    if (draw->render)
-      draw->render->destroy( draw->render );
+      draw->render->destroy(draw->render);
    */
 
    draw_prim_assembler_destroy(draw->ia);
-   draw_pipeline_destroy( draw );
-   draw_pt_destroy( draw );
-   draw_vs_destroy( draw );
-   draw_gs_destroy( draw );
-#ifdef DRAW_LLVM_AVAILABLE
+   draw_pipeline_destroy(draw);
+   draw_pt_destroy(draw);
+   draw_vs_destroy(draw);
+   draw_gs_destroy(draw);
+#if DRAW_LLVM_AVAILABLE
    if (draw->llvm)
-      draw_llvm_destroy( draw->llvm );
+      draw_llvm_destroy(draw->llvm);
 #endif
 
-   FREE( draw );
+   FREE(draw);
 }
 
 
-
-void draw_flush( struct draw_context *draw )
+void
+draw_flush(struct draw_context *draw)
 {
-   draw_do_flush( draw, DRAW_FLUSH_BACKEND );
+   draw_do_flush(draw, DRAW_FLUSH_BACKEND);
 }
 
 
@@ -252,7 +245,8 @@ void draw_flush( struct draw_context *draw )
  * the rasterization algorithm and the arithmetic performed on Z
  * values between vertex shading and rasterization.
  */
-void draw_set_zs_format(struct draw_context *draw, enum pipe_format format)
+void
+draw_set_zs_format(struct draw_context *draw, enum pipe_format format)
 {
    const struct util_format_description *desc = util_format_description(format);
 
@@ -289,10 +283,10 @@ draw_update_clip_flags(struct draw_context *draw)
    draw->clip_user = draw->rasterizer &&
                      draw->rasterizer->clip_plane_enable != 0 &&
                      !window_space;
-   draw->guard_band_points_xy = draw->guard_band_xy ||
-                                (draw->driver.bypass_clip_points &&
+   draw->guard_band_points_lines_xy = draw->guard_band_xy ||
+                                (draw->driver.bypass_clip_points_lines &&
                                 (draw->rasterizer &&
-                                 draw->rasterizer->point_tri_clip));
+                                 draw->rasterizer->point_line_tri_clip));
 }
 
 
@@ -309,12 +303,12 @@ draw_update_viewport_flags(struct draw_context *draw)
  * Register new primitive rasterization/rendering state.
  * This causes the drawing pipeline to be rebuilt.
  */
-void draw_set_rasterizer_state( struct draw_context *draw,
+void draw_set_rasterizer_state(struct draw_context *draw,
                                 const struct pipe_rasterizer_state *raster,
-                                void *rast_handle )
+                                void *rast_handle)
 {
    if (!draw->suspend_flushing) {
-      draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+      draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
       draw->rasterizer = raster;
       draw->rast_handle = rast_handle;
@@ -322,42 +316,45 @@ void draw_set_rasterizer_state( struct draw_context *draw,
    }
 }
 
+
 /* With a little more work, llvmpipe will be able to turn this off and
- * do its own x/y clipping.  
+ * do its own x/y clipping.
  *
  * Some hardware can turn off clipping altogether - in particular any
  * hardware with a TNL unit can do its own clipping, even if it is
  * relying on the draw module for some other reason.
- * Setting bypass_clip_points to achieve d3d-style point clipping (the driver
+ * Setting bypass_clip_points_lines to achieve d3d-style point clipping (the driver
  * will need to do the "vp scissoring") _requires_ the driver to implement
  * wide points / point sprites itself (points will still be clipped if rasterizer
- * point_tri_clip isn't set). Only relevant if bypass_clip_xy isn't set.
+ * point_line_tri_clip isn't set). Only relevant if bypass_clip_xy isn't set.
  */
-void draw_set_driver_clipping( struct draw_context *draw,
-                               boolean bypass_clip_xy,
-                               boolean bypass_clip_z,
-                               boolean guard_band_xy,
-                               boolean bypass_clip_points)
+void
+draw_set_driver_clipping(struct draw_context *draw,
+                         bool bypass_clip_xy,
+                         bool bypass_clip_z,
+                         bool guard_band_xy,
+                         bool bypass_clip_points_lines)
 {
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
    draw->driver.bypass_clip_xy = bypass_clip_xy;
    draw->driver.bypass_clip_z = bypass_clip_z;
    draw->driver.guard_band_xy = guard_band_xy;
-   draw->driver.bypass_clip_points = bypass_clip_points;
+   draw->driver.bypass_clip_points_lines = bypass_clip_points_lines;
    draw_update_clip_flags(draw);
 }
 
 
-/** 
+/**
  * Plug in the primitive rendering/rasterization stage (which is the last
  * stage in the drawing pipeline).
  * This is provided by the device driver.
  */
-void draw_set_rasterize_stage( struct draw_context *draw,
-                               struct draw_stage *stage )
+void
+draw_set_rasterize_stage(struct draw_context *draw,
+                         struct draw_stage *stage)
 {
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
    draw->pipeline.rasterize = stage;
 }
@@ -366,8 +363,9 @@ void draw_set_rasterize_stage( struct draw_context *draw,
 /**
  * Set the draw module's clipping state.
  */
-void draw_set_clip_state( struct draw_context *draw,
-                          const struct pipe_clip_state *clip )
+void
+draw_set_clip_state(struct draw_context *draw,
+                    const struct pipe_clip_state *clip)
 {
    draw_do_flush(draw, DRAW_FLUSH_PARAMETER_CHANGE);
 
@@ -378,10 +376,11 @@ void draw_set_clip_state( struct draw_context *draw,
 /**
  * Set the draw module's viewport state.
  */
-void draw_set_viewport_states( struct draw_context *draw,
-                               unsigned start_slot,
-                               unsigned num_viewports,
-                               const struct pipe_viewport_state *vps )
+void
+draw_set_viewport_states(struct draw_context *draw,
+                         unsigned start_slot,
+                         unsigned num_viewports,
+                         const struct pipe_viewport_state *vps)
 {
    const struct pipe_viewport_state *viewport = vps;
    draw_do_flush(draw, DRAW_FLUSH_PARAMETER_CHANGE);
@@ -403,18 +402,17 @@ void draw_set_viewport_states( struct draw_context *draw,
 }
 
 
-
 void
 draw_set_vertex_buffers(struct draw_context *draw,
-                        unsigned start_slot, unsigned count,
+                        unsigned count,
                         unsigned unbind_num_trailing_slots,
                         const struct pipe_vertex_buffer *buffers)
 {
-   assert(start_slot + count <= PIPE_MAX_ATTRIBS);
+   assert(count <= PIPE_MAX_ATTRIBS);
 
    util_set_vertex_buffers_count(draw->pt.vertex_buffer,
                                  &draw->pt.nr_vertex_buffers,
-                                 buffers, start_slot, count,
+                                 buffers, count,
                                  unbind_num_trailing_slots, false);
 }
 
@@ -428,10 +426,12 @@ draw_set_vertex_elements(struct draw_context *draw,
 
    /* We could improve this by only flushing the frontend and the fetch part
     * of the middle. This would avoid recalculating the emit keys.*/
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
    memcpy(draw->pt.vertex_element, elements, count * sizeof(elements[0]));
    draw->pt.nr_vertex_elements = count;
+   for (unsigned i = 0; i < count; i++)
+      draw->pt.vertex_strides[elements[i].vertex_buffer_index] = elements[i].src_stride;
 }
 
 
@@ -453,7 +453,7 @@ draw_set_mapped_constant_buffer(struct draw_context *draw,
                                 enum pipe_shader_type shader_type,
                                 unsigned slot,
                                 const void *buffer,
-                                unsigned size )
+                                unsigned size)
 {
    assert(shader_type == PIPE_SHADER_VERTEX ||
                 shader_type == PIPE_SHADER_GEOMETRY ||
@@ -463,26 +463,8 @@ draw_set_mapped_constant_buffer(struct draw_context *draw,
 
    draw_do_flush(draw, DRAW_FLUSH_PARAMETER_CHANGE);
 
-   switch (shader_type) {
-   case PIPE_SHADER_VERTEX:
-      draw->pt.user.vs_constants[slot] = buffer;
-      draw->pt.user.vs_constants_size[slot] = size;
-      break;
-   case PIPE_SHADER_GEOMETRY:
-      draw->pt.user.gs_constants[slot] = buffer;
-      draw->pt.user.gs_constants_size[slot] = size;
-      break;
-   case PIPE_SHADER_TESS_CTRL:
-      draw->pt.user.tcs_constants[slot] = buffer;
-      draw->pt.user.tcs_constants_size[slot] = size;
-      break;
-   case PIPE_SHADER_TESS_EVAL:
-      draw->pt.user.tes_constants[slot] = buffer;
-      draw->pt.user.tes_constants_size[slot] = size;
-      break;
-   default:
-      assert(0 && "invalid shader type in draw_set_mapped_constant_buffer");
-   }
+   draw->pt.user.constants[shader_type][slot].ptr = buffer;
+   draw->pt.user.constants[shader_type][slot].size = size;
 }
 
 void
@@ -490,7 +472,7 @@ draw_set_mapped_shader_buffer(struct draw_context *draw,
                               enum pipe_shader_type shader_type,
                               unsigned slot,
                               const void *buffer,
-                              unsigned size )
+                              unsigned size)
 {
    assert(shader_type == PIPE_SHADER_VERTEX ||
                 shader_type == PIPE_SHADER_GEOMETRY ||
@@ -500,27 +482,10 @@ draw_set_mapped_shader_buffer(struct draw_context *draw,
 
    draw_do_flush(draw, DRAW_FLUSH_PARAMETER_CHANGE);
 
-   switch (shader_type) {
-   case PIPE_SHADER_VERTEX:
-      draw->pt.user.vs_ssbos[slot] = buffer;
-      draw->pt.user.vs_ssbos_size[slot] = size;
-      break;
-   case PIPE_SHADER_GEOMETRY:
-      draw->pt.user.gs_ssbos[slot] = buffer;
-      draw->pt.user.gs_ssbos_size[slot] = size;
-      break;
-   case PIPE_SHADER_TESS_CTRL:
-      draw->pt.user.tcs_ssbos[slot] = buffer;
-      draw->pt.user.tcs_ssbos_size[slot] = size;
-      break;
-   case PIPE_SHADER_TESS_EVAL:
-      draw->pt.user.tes_ssbos[slot] = buffer;
-      draw->pt.user.tes_ssbos_size[slot] = size;
-      break;
-   default:
-      assert(0 && "invalid shader type in draw_set_mapped_shader_buffer");
-   }
+   draw->pt.user.ssbos[shader_type][slot].ptr = buffer;
+   draw->pt.user.ssbos[shader_type][slot].size = size;
 }
+
 
 /**
  * Tells the draw module to draw points with triangles if their size
@@ -529,7 +494,7 @@ draw_set_mapped_shader_buffer(struct draw_context *draw,
 void
 draw_wide_point_threshold(struct draw_context *draw, float threshold)
 {
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
    draw->pipeline.wide_point_threshold = threshold;
 }
 
@@ -538,9 +503,9 @@ draw_wide_point_threshold(struct draw_context *draw, float threshold)
  * Should the draw module handle point->quad conversion for drawing sprites?
  */
 void
-draw_wide_point_sprites(struct draw_context *draw, boolean draw_sprite)
+draw_wide_point_sprites(struct draw_context *draw, bool draw_sprite)
 {
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
    draw->pipeline.wide_point_sprites = draw_sprite;
 }
 
@@ -552,7 +517,7 @@ draw_wide_point_sprites(struct draw_context *draw, boolean draw_sprite)
 void
 draw_wide_line_threshold(struct draw_context *draw, float threshold)
 {
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
    draw->pipeline.wide_line_threshold = roundf(threshold);
 }
 
@@ -561,9 +526,9 @@ draw_wide_line_threshold(struct draw_context *draw, float threshold)
  * Tells the draw module whether or not to implement line stipple.
  */
 void
-draw_enable_line_stipple(struct draw_context *draw, boolean enable)
+draw_enable_line_stipple(struct draw_context *draw, bool enable)
 {
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
    draw->pipeline.line_stipple = enable;
 }
 
@@ -572,12 +537,11 @@ draw_enable_line_stipple(struct draw_context *draw, boolean enable)
  * Tells draw module whether to convert points to quads for sprite mode.
  */
 void
-draw_enable_point_sprites(struct draw_context *draw, boolean enable)
+draw_enable_point_sprites(struct draw_context *draw, bool enable)
 {
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
    draw->pipeline.point_sprite = enable;
 }
-
 
 
 /**
@@ -590,19 +554,16 @@ draw_enable_point_sprites(struct draw_context *draw, boolean enable)
  */
 int
 draw_alloc_extra_vertex_attrib(struct draw_context *draw,
-                               uint semantic_name, uint semantic_index)
+                               enum tgsi_semantic semantic_name,
+                               unsigned semantic_index)
 {
-   int slot;
-   uint num_outputs;
-   uint n;
-
-   slot = draw_find_shader_output(draw, semantic_name, semantic_index);
+   int slot = draw_find_shader_output(draw, semantic_name, semantic_index);
    if (slot >= 0) {
       return slot;
    }
 
-   num_outputs = draw_current_shader_outputs(draw);
-   n = draw->extra_shader_outputs.num;
+   unsigned num_outputs = draw_current_shader_outputs(draw);
+   unsigned n = draw->extra_shader_outputs.num;
 
    assert(n < ARRAY_SIZE(draw->extra_shader_outputs.semantic_name));
 
@@ -633,8 +594,9 @@ draw_remove_extra_vertex_attribs(struct draw_context *draw)
 struct tgsi_shader_info *
 draw_get_shader_info(const struct draw_context *draw)
 {
-
-   if (draw->gs.geometry_shader) {
+   if (draw->ms.mesh_shader) {
+      return &draw->ms.mesh_shader->info;
+   } else if (draw->gs.geometry_shader) {
       return &draw->gs.geometry_shader->info;
    } else if (draw->tes.tess_eval_shader) {
       return &draw->tes.tess_eval_shader->info;
@@ -642,6 +604,7 @@ draw_get_shader_info(const struct draw_context *draw)
       return &draw->vs.vertex_shader->info;
    }
 }
+
 
 /**
  * Prepare outputs slots from the draw module
@@ -666,6 +629,7 @@ draw_prepare_shader_outputs(struct draw_context *draw)
       draw_aaline_prepare_outputs(draw, draw->pipeline.aaline);
 }
 
+
 /**
  * Ask the draw module for the location/slot of the given vertex attribute in
  * a post-transformed vertex.
@@ -684,19 +648,19 @@ draw_prepare_shader_outputs(struct draw_context *draw)
  */
 int
 draw_find_shader_output(const struct draw_context *draw,
-                        uint semantic_name, uint semantic_index)
+                        enum tgsi_semantic semantic_name,
+                        unsigned semantic_index)
 {
    const struct tgsi_shader_info *info = draw_get_shader_info(draw);
-   uint i;
 
-   for (i = 0; i < info->num_outputs; i++) {
+   for (unsigned i = 0; i < info->num_outputs; i++) {
       if (info->output_semantic_name[i] == semantic_name &&
           info->output_semantic_index[i] == semantic_index)
          return i;
    }
 
    /* Search the extra vertex attributes */
-   for (i = 0; i < draw->extra_shader_outputs.num; i++) {
+   for (unsigned i = 0; i < draw->extra_shader_outputs.num; i++) {
       if (draw->extra_shader_outputs.semantic_name[i] == semantic_name &&
           draw->extra_shader_outputs.semantic_index[i] == semantic_index) {
          return draw->extra_shader_outputs.slot[i];
@@ -716,16 +680,11 @@ draw_find_shader_output(const struct draw_context *draw,
  * If geometry shader is present, its output will be returned,
  * if not vertex shader is used.
  */
-uint
+unsigned
 draw_num_shader_outputs(const struct draw_context *draw)
 {
    const struct tgsi_shader_info *info = draw_get_shader_info(draw);
-   uint count;
-
-   count = info->num_outputs;
-   count += draw->extra_shader_outputs.num;
-
-   return count;
+   return info->num_outputs + draw->extra_shader_outputs.num;
 }
 
 
@@ -735,7 +694,7 @@ draw_num_shader_outputs(const struct draw_context *draw)
  * be filled in by some draw stages (such as AA point, AA line,
  * front face).
  */
-uint
+unsigned
 draw_total_vs_outputs(const struct draw_context *draw)
 {
    const struct tgsi_shader_info *info = &draw->vs.vertex_shader->info;
@@ -743,56 +702,48 @@ draw_total_vs_outputs(const struct draw_context *draw)
    return info->num_outputs + draw->extra_shader_outputs.num;
 }
 
+
 /**
  * Return total number of the geometry shader outputs. This function
  * also counts any extra geometry output attributes that may
  * be filled in by some draw stages (such as AA point, AA line, front
  * face).
  */
-uint
+unsigned
 draw_total_gs_outputs(const struct draw_context *draw)
-{   
-   const struct tgsi_shader_info *info;
-
+{
    if (!draw->gs.geometry_shader)
       return 0;
-
-   info = &draw->gs.geometry_shader->info;
-
+   const struct tgsi_shader_info *info = &draw->gs.geometry_shader->info;
    return info->num_outputs + draw->extra_shader_outputs.num;
 }
+
 
 /**
  * Return total number of the tess ctrl shader outputs.
  */
-uint
+unsigned
 draw_total_tcs_outputs(const struct draw_context *draw)
 {
-   const struct tgsi_shader_info *info;
-
    if (!draw->tcs.tess_ctrl_shader)
       return 0;
-
-   info = &draw->tcs.tess_ctrl_shader->info;
-
+   const struct tgsi_shader_info *info = &draw->tcs.tess_ctrl_shader->info;
    return info->num_outputs;
 }
+
 
 /**
  * Return total number of the tess eval shader outputs.
  */
-uint
+unsigned
 draw_total_tes_outputs(const struct draw_context *draw)
 {
-   const struct tgsi_shader_info *info;
-
    if (!draw->tes.tess_eval_shader)
       return 0;
-
-   info = &draw->tes.tess_eval_shader->info;
-
+   const struct tgsi_shader_info *info = &draw->tes.tess_eval_shader->info;
    return info->num_outputs + draw->extra_shader_outputs.num;
 }
+
 
 /**
  * Provide TGSI sampler objects for vertex/geometry shaders that use
@@ -811,17 +762,12 @@ draw_texture_sampler(struct draw_context *draw,
    case PIPE_SHADER_GEOMETRY:
       draw->gs.tgsi.sampler = sampler;
       break;
-   case PIPE_SHADER_TESS_CTRL:
-      draw->tcs.tgsi.sampler = sampler;
-      break;
-   case PIPE_SHADER_TESS_EVAL:
-      draw->tes.tgsi.sampler = sampler;
-      break;
    default:
       assert(0);
       break;
    }
 }
+
 
 /**
  * Provide TGSI image objects for vertex/geometry shaders that use
@@ -840,17 +786,12 @@ draw_image(struct draw_context *draw,
    case PIPE_SHADER_GEOMETRY:
       draw->gs.tgsi.image = image;
       break;
-   case PIPE_SHADER_TESS_CTRL:
-      draw->tcs.tgsi.image = image;
-      break;
-   case PIPE_SHADER_TESS_EVAL:
-      draw->tes.tgsi.image = image;
-      break;
    default:
       assert(0);
       break;
    }
 }
+
 
 /**
  * Provide TGSI buffer objects for vertex/geometry shaders that use
@@ -869,12 +810,6 @@ draw_buffer(struct draw_context *draw,
    case PIPE_SHADER_GEOMETRY:
       draw->gs.tgsi.buffer = buffer;
       break;
-   case PIPE_SHADER_TESS_CTRL:
-      draw->tcs.tgsi.buffer = buffer;
-      break;
-   case PIPE_SHADER_TESS_EVAL:
-      draw->tes.tgsi.buffer = buffer;
-      break;
    default:
       assert(0);
       break;
@@ -882,8 +817,9 @@ draw_buffer(struct draw_context *draw,
 }
 
 
-void draw_set_render( struct draw_context *draw, 
-		      struct vbuf_render *render )
+void
+draw_set_render(struct draw_context *draw,
+                struct vbuf_render *render)
 {
    draw->render = render;
 }
@@ -913,19 +849,18 @@ draw_set_indexes(struct draw_context *draw,
 
 /* Revamp me please:
  */
-void draw_do_flush( struct draw_context *draw, unsigned flags )
+void draw_do_flush(struct draw_context *draw, unsigned flags)
 {
-   if (!draw->suspend_flushing)
-   {
+   if (!draw->suspend_flushing) {
       assert(!draw->flushing); /* catch inadvertant recursion */
 
-      draw->flushing = TRUE;
+      draw->flushing = true;
 
-      draw_pipeline_flush( draw, flags );
+      draw_pipeline_flush(draw, flags);
 
-      draw_pt_flush( draw, flags );
+      draw_pt_flush(draw, flags);
 
-      draw->flushing = FALSE;
+      draw->flushing = false;
    }
 }
 
@@ -936,9 +871,11 @@ void draw_do_flush( struct draw_context *draw, unsigned flags )
  * outputs from the vertex shader.
  * \sa draw_num_shader_outputs
  */
-uint
+unsigned
 draw_current_shader_outputs(const struct draw_context *draw)
 {
+   if (draw->ms.mesh_shader)
+      return draw->ms.num_ms_outputs;
    if (draw->gs.geometry_shader)
       return draw->gs.num_gs_outputs;
    if (draw->tes.tess_eval_shader)
@@ -951,9 +888,11 @@ draw_current_shader_outputs(const struct draw_context *draw)
  * Return the index of the shader output which will contain the
  * vertex position.
  */
-uint
+unsigned
 draw_current_shader_position_output(const struct draw_context *draw)
 {
+   if (draw->ms.mesh_shader)
+      return draw->ms.position_output;
    if (draw->gs.geometry_shader)
       return draw->gs.position_output;
    if (draw->tes.tess_eval_shader)
@@ -966,9 +905,11 @@ draw_current_shader_position_output(const struct draw_context *draw)
  * Return the index of the shader output which will contain the
  * viewport index.
  */
-uint
+unsigned
 draw_current_shader_viewport_index_output(const struct draw_context *draw)
 {
+   if (draw->ms.mesh_shader)
+      return draw->ms.mesh_shader->viewport_index_output;
    if (draw->gs.geometry_shader)
       return draw->gs.geometry_shader->viewport_index_output;
    else if (draw->tes.tess_eval_shader)
@@ -976,13 +917,16 @@ draw_current_shader_viewport_index_output(const struct draw_context *draw)
    return draw->vs.vertex_shader->viewport_index_output;
 }
 
+
 /**
  * Returns true if there's a geometry shader bound and the geometry
  * shader writes out a viewport index.
  */
-boolean
+bool
 draw_current_shader_uses_viewport_index(const struct draw_context *draw)
 {
+   if (draw->ms.mesh_shader)
+      return draw->ms.mesh_shader->info.writes_viewport_index;
    if (draw->gs.geometry_shader)
       return draw->gs.geometry_shader->info.writes_viewport_index;
    else if (draw->tes.tess_eval_shader)
@@ -997,9 +941,11 @@ draw_current_shader_uses_viewport_index(const struct draw_context *draw)
  * Note we don't support clipvertex output in the gs. For clipping
  * to work correctly hence we return ordinary position output instead.
  */
-uint
+unsigned
 draw_current_shader_clipvertex_output(const struct draw_context *draw)
 {
+   if (draw->ms.mesh_shader)
+      return draw->ms.clipvertex_output;
    if (draw->gs.geometry_shader)
       return draw->gs.clipvertex_output;
    if (draw->tes.tess_eval_shader)
@@ -1007,10 +953,13 @@ draw_current_shader_clipvertex_output(const struct draw_context *draw)
    return draw->vs.clipvertex_output;
 }
 
-uint
+
+unsigned
 draw_current_shader_ccdistance_output(const struct draw_context *draw, int index)
 {
    assert(index < PIPE_MAX_CLIP_OR_CULL_DISTANCE_ELEMENT_COUNT);
+   if (draw->ms.mesh_shader)
+      return draw->ms.mesh_shader->ccdistance_output[index];
    if (draw->gs.geometry_shader)
       return draw->gs.geometry_shader->ccdistance_output[index];
    if (draw->tes.tess_eval_shader)
@@ -1019,9 +968,11 @@ draw_current_shader_ccdistance_output(const struct draw_context *draw, int index
 }
 
 
-uint
+unsigned
 draw_current_shader_num_written_clipdistances(const struct draw_context *draw)
 {
+   if (draw->ms.mesh_shader)
+      return draw->ms.mesh_shader->info.num_written_clipdistance;
    if (draw->gs.geometry_shader)
       return draw->gs.geometry_shader->info.num_written_clipdistance;
    if (draw->tes.tess_eval_shader)
@@ -1029,15 +980,18 @@ draw_current_shader_num_written_clipdistances(const struct draw_context *draw)
    return draw->vs.vertex_shader->info.num_written_clipdistance;
 }
 
-uint
+unsigned
 draw_current_shader_num_written_culldistances(const struct draw_context *draw)
 {
+   if (draw->ms.mesh_shader)
+      return draw->ms.mesh_shader->info.num_written_culldistance;
    if (draw->gs.geometry_shader)
       return draw->gs.geometry_shader->info.num_written_culldistance;
    if (draw->tes.tess_eval_shader)
       return draw->tes.tess_eval_shader->info.num_written_culldistance;
    return draw->vs.vertex_shader->info.num_written_culldistance;
 }
+
 
 /**
  * Return a pointer/handle for a driver/CSO rasterizer object which
@@ -1051,8 +1005,8 @@ draw_current_shader_num_written_culldistances(const struct draw_context *draw)
  * \return  rasterizer CSO handle
  */
 void *
-draw_get_rasterizer_no_cull( struct draw_context *draw,
-                             const struct pipe_rasterizer_state *base_rast )
+draw_get_rasterizer_no_cull(struct draw_context *draw,
+                             const struct pipe_rasterizer_state *base_rast)
 {
    if (!draw->rasterizer_no_cull[base_rast->scissor][base_rast->flatshade][base_rast->rasterizer_discard]) {
       /* create now */
@@ -1074,22 +1028,22 @@ draw_get_rasterizer_no_cull( struct draw_context *draw,
    return draw->rasterizer_no_cull[base_rast->scissor][base_rast->flatshade][base_rast->rasterizer_discard];
 }
 
+
 void
 draw_set_mapped_so_targets(struct draw_context *draw,
-                           int num_targets,
+                           unsigned num_targets,
                            struct draw_so_target *targets[PIPE_MAX_SO_BUFFERS])
 {
-   int i;
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
-
-   for (i = 0; i < num_targets; i++)
+   for (unsigned i = 0; i < num_targets; i++)
       draw->so.targets[i] = targets[i];
-   for (i = num_targets; i < PIPE_MAX_SO_BUFFERS; i++)
+   for (unsigned i = num_targets; i < PIPE_MAX_SO_BUFFERS; i++)
       draw->so.targets[i] = NULL;
 
    draw->so.num_targets = num_targets;
 }
+
 
 void
 draw_set_sampler_views(struct draw_context *draw,
@@ -1097,20 +1051,19 @@ draw_set_sampler_views(struct draw_context *draw,
                        struct pipe_sampler_view **views,
                        unsigned num)
 {
-   unsigned i;
-
-   assert(shader_stage < PIPE_SHADER_TYPES);
+   assert(shader_stage < DRAW_MAX_SHADER_STAGE);
    assert(num <= PIPE_MAX_SHADER_SAMPLER_VIEWS);
 
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
-   for (i = 0; i < num; ++i)
+   for (unsigned i = 0; i < num; ++i)
       draw->sampler_views[shader_stage][i] = views[i];
-   for (i = num; i < draw->num_sampler_views[shader_stage]; ++i)
+   for (unsigned i = num; i < draw->num_sampler_views[shader_stage]; ++i)
       draw->sampler_views[shader_stage][i] = NULL;
 
    draw->num_sampler_views[shader_stage] = num;
 }
+
 
 void
 draw_set_samplers(struct draw_context *draw,
@@ -1118,25 +1071,24 @@ draw_set_samplers(struct draw_context *draw,
                   struct pipe_sampler_state **samplers,
                   unsigned num)
 {
-   unsigned i;
-
-   assert(shader_stage < PIPE_SHADER_TYPES);
+   assert(shader_stage < DRAW_MAX_SHADER_STAGE);
    assert(num <= PIPE_MAX_SAMPLERS);
 
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
-   for (i = 0; i < num; ++i)
+   for (unsigned i = 0; i < num; ++i)
       draw->samplers[shader_stage][i] = samplers[i];
-   for (i = num; i < PIPE_MAX_SAMPLERS; ++i)
+   for (unsigned i = num; i < PIPE_MAX_SAMPLERS; ++i)
       draw->samplers[shader_stage][i] = NULL;
 
    draw->num_samplers[shader_stage] = num;
 
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
    if (draw->llvm)
       draw_llvm_set_sampler_state(draw, shader_stage);
 #endif
 }
+
 
 void
 draw_set_images(struct draw_context *draw,
@@ -1144,20 +1096,19 @@ draw_set_images(struct draw_context *draw,
                 struct pipe_image_view *views,
                 unsigned num)
 {
-   unsigned i;
-
-   assert(shader_stage < PIPE_SHADER_TYPES);
+   assert(shader_stage < DRAW_MAX_SHADER_STAGE);
    assert(num <= PIPE_MAX_SHADER_IMAGES);
 
-   draw_do_flush( draw, DRAW_FLUSH_STATE_CHANGE );
+   draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
 
-   for (i = 0; i < num; ++i)
+   for (unsigned i = 0; i < num; ++i)
       draw->images[shader_stage][i] = &views[i];
-   for (i = num; i < draw->num_sampler_views[shader_stage]; ++i)
+   for (unsigned i = num; i < draw->num_sampler_views[shader_stage]; ++i)
       draw->images[shader_stage][i] = NULL;
 
    draw->num_images[shader_stage] = num;
 }
+
 
 void
 draw_set_mapped_texture(struct draw_context *draw,
@@ -1172,7 +1123,7 @@ draw_set_mapped_texture(struct draw_context *draw,
                         uint32_t img_stride[PIPE_MAX_TEXTURE_LEVELS],
                         uint32_t mip_offsets[PIPE_MAX_TEXTURE_LEVELS])
 {
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
    if (draw->llvm)
       draw_llvm_set_mapped_texture(draw,
                                    shader_stage,
@@ -1182,6 +1133,7 @@ draw_set_mapped_texture(struct draw_context *draw,
                                    row_stride, img_stride, mip_offsets);
 #endif
 }
+
 
 void
 draw_set_mapped_image(struct draw_context *draw,
@@ -1194,7 +1146,7 @@ draw_set_mapped_image(struct draw_context *draw,
                       uint32_t num_samples,
                       uint32_t sample_stride)
 {
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
    if (draw->llvm)
       draw_llvm_set_mapped_image(draw,
                                  shader_stage,
@@ -1205,6 +1157,7 @@ draw_set_mapped_image(struct draw_context *draw,
                                  num_samples, sample_stride);
 #endif
 }
+
 
 /**
  * XXX: Results for PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS because there are two
@@ -1223,6 +1176,7 @@ draw_get_shader_param_no_llvm(enum pipe_shader_type shader,
    }
 }
 
+
 /**
  * XXX: Results for PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS because there are two
  * different ways of setting textures, and drivers typically only support one.
@@ -1232,8 +1186,7 @@ draw_get_shader_param_no_llvm(enum pipe_shader_type shader,
 int
 draw_get_shader_param(enum pipe_shader_type shader, enum pipe_shader_cap param)
 {
-
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
    if (draw_get_option_use_llvm()) {
       switch(shader) {
       case PIPE_SHADER_VERTEX:
@@ -1250,6 +1203,7 @@ draw_get_shader_param(enum pipe_shader_type shader, enum pipe_shader_cap param)
    return draw_get_shader_param_no_llvm(shader, param);
 }
 
+
 /**
  * Enables or disables collection of statistics.
  *
@@ -1262,10 +1216,11 @@ draw_get_shader_param(enum pipe_shader_type shader, enum pipe_shader_cap param)
  */
 void
 draw_collect_pipeline_statistics(struct draw_context *draw,
-                                 boolean enable)
+                                 bool enable)
 {
    draw->collect_statistics = enable;
 }
+
 
 /**
  * Enable/disable primitives generated gathering.
@@ -1275,6 +1230,7 @@ void draw_collect_primitives_generated(struct draw_context *draw,
 {
    draw->collect_primgen = enable;
 }
+
 
 /**
  * Computes clipper invocation statistics.
@@ -1308,14 +1264,14 @@ draw_stats_clipper_primitives(struct draw_context *draw,
  * outputs. This is done to preserve the front-facing
  * info when decomposing primitives into wireframes.
  */
-boolean
+bool
 draw_will_inject_frontface(const struct draw_context *draw)
 {
    unsigned reduced_prim = u_reduced_prim(draw->pt.prim);
    const struct pipe_rasterizer_state *rast = draw->rasterizer;
 
-   if (reduced_prim != PIPE_PRIM_TRIANGLES) {
-      return FALSE;
+   if (reduced_prim != MESA_PRIM_TRIANGLES) {
+      return false;
    }
 
    return (rast &&
@@ -1323,16 +1279,18 @@ draw_will_inject_frontface(const struct draw_context *draw)
             rast->fill_back != PIPE_POLYGON_MODE_FILL));
 }
 
+
 void
 draw_set_tess_state(struct draw_context *draw,
-		    const float default_outer_level[4],
-		    const float default_inner_level[2])
+                    const float default_outer_level[4],
+                    const float default_inner_level[2])
 {
    for (unsigned i = 0; i < 4; i++)
       draw->default_outer_tess_level[i] = default_outer_level[i];
    for (unsigned i = 0; i < 2; i++)
       draw->default_inner_tess_level[i] = default_inner_level[i];
 }
+
 
 void
 draw_set_disk_cache_callbacks(struct draw_context *draw,
@@ -1349,7 +1307,9 @@ draw_set_disk_cache_callbacks(struct draw_context *draw,
    draw->disk_cache_cookie = data_cookie;
 }
 
-void draw_set_constant_buffer_stride(struct draw_context *draw, unsigned num_bytes)
+
+void
+draw_set_constant_buffer_stride(struct draw_context *draw, unsigned num_bytes)
 {
    draw->constant_buffer_stride = num_bytes;
 }

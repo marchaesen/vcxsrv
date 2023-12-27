@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_ADVANCES_H
@@ -92,7 +93,7 @@ static const FcFtEncoding   fcFtEncoding[] = {
  {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_SYMBOL_CS,	"UTF-16BE" },
  {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_UNICODE_CS,	"UTF-16BE" },
  {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_SJIS,		"SJIS-WIN" },
- {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_GB2312,	"GB2312" },
+ {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_PRC,		"GB18030" },
  {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_BIG_5,		"BIG-5" },
  {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_WANSUNG,	"Wansung" },
  {  TT_PLATFORM_MICROSOFT,	TT_MS_ID_JOHAB,		"Johab" },
@@ -698,6 +699,7 @@ FcSfntNameTranscode (FT_SfntName *sname)
     iconv_t cd;
 #endif
     FcChar8 *utf8;
+    FcBool redecoded = FcFalse;
 
     for (i = 0; i < NUM_FC_FT_ENCODING; i++)
 	if (fcFtEncoding[i].platform_id == sname->platform_id &&
@@ -708,6 +710,7 @@ FcSfntNameTranscode (FT_SfntName *sname)
 	return 0;
     fromcode = fcFtEncoding[i].fromcode;
 
+retry:
     /*
      * Many names encoded for TT_PLATFORM_MACINTOSH are broken
      * in various ways. Kludge around them.
@@ -716,6 +719,10 @@ FcSfntNameTranscode (FT_SfntName *sname)
     {
 	if (sname->language_id == TT_MAC_LANGID_ENGLISH &&
 	    FcLooksLikeSJIS (sname->string, sname->string_len))
+	{
+	    fromcode = "SJIS";
+	}
+	else if (sname->language_id == TT_MAC_LANGID_JAPANESE)
 	{
 	    fromcode = "SJIS";
 	}
@@ -748,7 +755,7 @@ FcSfntNameTranscode (FT_SfntName *sname)
 	int	    ilen, olen;
 	FcChar8	    *u8;
 	FcChar32    ucs4;
-	
+
 	/*
 	 * Convert Utf16 to Utf8
 	 */
@@ -782,7 +789,7 @@ FcSfntNameTranscode (FT_SfntName *sname)
 	int	    olen;
 	FcChar8	    *u8;
 	FcChar32    ucs4;
-	
+
 	/*
 	 * Convert Latin1 to Utf8. Freed below
 	 */
@@ -837,17 +844,17 @@ FcSfntNameTranscode (FT_SfntName *sname)
 	size_t	    in_bytes_left = sname->string_len;
 	size_t	    out_bytes_left = sname->string_len * FC_UTF8_MAX_LEN;
 	char	    *inbuf, *outbuf;
-	
+
 	utf8 = malloc (out_bytes_left + 1);
 	if (!utf8)
 	{
 	    iconv_close (cd);
 	    return 0;
 	}
-	
+
 	outbuf = (char *) utf8;
 	inbuf = (char *) sname->string;
-	
+
 	while (in_bytes_left)
 	{
 	    size_t	did = iconv (cd,
@@ -857,12 +864,27 @@ FcSfntNameTranscode (FT_SfntName *sname)
 	    {
 		iconv_close (cd);
 		free (utf8);
+		if (!redecoded)
+		{
+		    /* Regard the encoding as UTF-16BE and try again. */
+		    redecoded = FcTrue;
+		    fromcode = "UTF-16BE";
+		    goto retry;
+		}
 		return 0;
 	    }
 	}
     	iconv_close (cd);
 	*outbuf = '\0';
 	goto done;
+    }
+#else
+    if (!redecoded)
+    {
+	/* Regard the encoding as UTF-16BE and try again. */
+	redecoded = FcTrue;
+	fromcode = "UTF-16BE";
+	goto retry;
     }
 #endif
     return 0;
@@ -1204,7 +1226,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     int		    spacing;
 
     /* Support for glyph-variation named-instances. */
-    FT_MM_Var       *master = NULL;
+    FT_MM_Var       *mmvar = NULL;
     FT_Var_Named_Style *instance = NULL;
     double          weight_mult = 1.0;
     double          width_mult = 1.0;
@@ -1258,7 +1280,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	    goto bail1;
     }
 
-    ftresult = FT_Get_MM_Var (face, &master);
+    ftresult = FT_Get_MM_Var (face, &mmvar);
 
     if (id >> 16)
     {
@@ -1269,17 +1291,17 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
       {
 	  /* Query variable font itself. */
 	  unsigned int i;
-	  for (i = 0; i < master->num_axis; i++)
+	  for (i = 0; i < mmvar->num_axis; i++)
 	  {
-	      double min_value = master->axis[i].minimum / (double) (1U << 16);
-	      double def_value = master->axis[i].def / (double) (1U << 16);
-	      double max_value = master->axis[i].maximum / (double) (1U << 16);
+	      double min_value = mmvar->axis[i].minimum / (double) (1U << 16);
+	      double def_value = mmvar->axis[i].def / (double) (1U << 16);
+	      double max_value = mmvar->axis[i].maximum / (double) (1U << 16);
 	      FcObject obj = FC_INVALID_OBJECT;
 
 	      if (min_value > def_value || def_value > max_value || min_value == max_value)
 		  continue;
 
-	      switch (master->axis[i].tag)
+	      switch (mmvar->axis[i].tag)
 	      {
 		case FT_MAKE_TAG ('w','g','h','t'):
 		  obj = FC_WEIGHT_OBJECT;
@@ -1321,20 +1343,20 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 
 	  id &= 0xFFFF;
       }
-      else if ((id >> 16) - 1 < master->num_namedstyles)
+      else if ((id >> 16) - 1 < mmvar->num_namedstyles)
       {
 	  /* Pull out weight and width from named-instance. */
 	  unsigned int i;
 
-	  instance = &master->namedstyle[(id >> 16) - 1];
+	  instance = &mmvar->namedstyle[(id >> 16) - 1];
 
-	  for (i = 0; i < master->num_axis; i++)
+	  for (i = 0; i < mmvar->num_axis; i++)
 	  {
 	      double value = instance->coords[i] / (double) (1U << 16);
-	      double default_value = master->axis[i].def / (double) (1U << 16);
+	      double default_value = mmvar->axis[i].def / (double) (1U << 16);
 	      double mult = default_value ? value / default_value : 1;
-	      //printf ("named-instance, axis %d tag %lx value %g\n", i, master->axis[i].tag, value);
-	      switch (master->axis[i].tag)
+	      //printf ("named-instance, axis %d tag %lx value %g\n", i, mmvar->axis[i].tag, value);
+	      switch (mmvar->axis[i].tag)
 	      {
 		case FT_MAKE_TAG ('w','g','h','t'):
 		  weight_mult = mult;
@@ -1359,12 +1381,12 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	if (!ftresult)
 	{
 	    unsigned int i;
-	    for (i = 0; i < master->num_axis; i++)
+	    for (i = 0; i < mmvar->num_axis; i++)
 	    {
-		switch (master->axis[i].tag)
+		switch (mmvar->axis[i].tag)
 		{
 		case FT_MAKE_TAG ('o','p','s','z'):
-		    if (!FcPatternObjectAddDouble (pat, FC_SIZE_OBJECT, master->axis[i].def / (double) (1U << 16)))
+		    if (!FcPatternObjectAddDouble (pat, FC_SIZE_OBJECT, mmvar->axis[i].def / (double) (1U << 16)))
 			goto bail1;
 		    variable_size = FcTrue;
 		    break;
@@ -1490,7 +1512,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		case TT_NAME_ID_WWS_FAMILY:
 		case TT_NAME_ID_TYPOGRAPHIC_FAMILY:
 		case TT_NAME_ID_FONT_FAMILY:
-#if 0	
+#if 0
 		case TT_NAME_ID_UNIQUE_ID:
 #endif
 		    if (FcDebug () & FC_DBG_SCANV)
@@ -1650,7 +1672,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     {
 	FcChar8	*start, *end;
 	FcChar8	*family;
-	
+
 	start = (FcChar8 *) strrchr ((char *) file, '/');
 	if (start)
 	    start++;
@@ -1719,7 +1741,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	    goto bail1;
 	len = strlen ((const char *) style);
 	for (i = 0; style[i] != 0 && isspace (style[i]); i++);
-	memcpy (style, &style[i], len - i);
+	memmove (style, &style[i], len - i);
 	FcStrBufInit (&sbuf, NULL, 0);
 	FcStrBufString (&sbuf, family);
 	FcStrBufChar (&sbuf, ' ');
@@ -1971,7 +1993,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	     prop.type == BDF_PROPERTY_TYPE_CARDINAL))
 	{
 	    FT_Int32	value;
-	
+
 	    if (prop.type == BDF_PROPERTY_TYPE_INTEGER)
 		value = prop.u.integer;
 	    else
@@ -2163,6 +2185,9 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	if (!FcPatternObjectAddBool (pat, FC_ANTIALIAS_OBJECT, FcFalse))
 	    goto bail2;
     }
+
+    FcChar8* wrapper = NULL;
+
 #if HAVE_FT_GET_X11_FONT_FORMAT
     /*
      * Use the (not well documented or supported) X-specific function
@@ -2171,10 +2196,44 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     {
 	const char *font_format = FT_Get_X11_Font_Format (face);
 	if (font_format)
+	{
 	    if (!FcPatternObjectAddString (pat, FC_FONTFORMAT_OBJECT, (FcChar8 *) font_format))
 		goto bail2;
+
+	    /* If this is not a SFNT font and format is CFF, then it is a standlone CFF font */
+	    if (!FT_IS_SFNT (face) && !strcmp (font_format, "CFF"))
+		wrapper = (FcChar8*) "CFF";
+	}
     }
 #endif
+
+    if (!FcPatternObjectAddBool (pat, FC_NAMED_INSTANCE_OBJECT, !!(id > 0xffff)))
+	    goto bail2;
+
+    if (FT_IS_SFNT (face))
+    {
+	/* If this is an SFNT wrapper, try to sniff the SFNT tag which is the
+	 * first 4 bytes, to see if it is a WOFF or WOFF2 wrapper. */
+	wrapper = (FcChar8*) "SFNT";
+
+	char buf[4];
+	int fd = FcOpen ((char *) file, O_RDONLY);
+	if (fd != -1 && read (fd, buf, 4))
+	{
+	    if (buf[0] == 'w' && buf[1] == 'O' && buf[2] == 'F')
+	    {
+		if (buf[3] == 'F')
+		    wrapper = (FcChar8*) "WOFF";
+		else if (buf[3] == '2')
+		    wrapper = (FcChar8*) "WOFF2";
+	    }
+	}
+	close (fd);
+    }
+
+    if (wrapper)
+	if (!FcPatternObjectAddString (pat, FC_FONT_WRAPPER_OBJECT, wrapper))
+	    goto bail2;
 
     /*
      * Drop our reference to the charset
@@ -2183,13 +2242,13 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     if (foundry_)
 	free (foundry_);
 
-    if (master)
+    if (mmvar)
     {
 #ifdef HAVE_FT_DONE_MM_VAR
 	if (face->glyph)
-	    FT_Done_MM_Var (face->glyph->library, master);
+	    FT_Done_MM_Var (face->glyph->library, mmvar);
 #else
-	free (master);
+	free (mmvar);
 #endif
     }
 
@@ -2199,13 +2258,13 @@ bail2:
     FcCharSetDestroy (cs);
 bail1:
     FcPatternDestroy (pat);
-    if (master)
+    if (mmvar)
     {
 #ifdef HAVE_FT_DONE_MM_VAR
 	if (face->glyph)
-	    FT_Done_MM_Var (face->glyph->library, master);
+	    FT_Done_MM_Var (face->glyph->library, mmvar);
 #else
-	free (master);
+	free (mmvar);
 #endif
     }
     if (!nm_share && name_mapping)
@@ -2350,12 +2409,26 @@ skip:
 	    cs = NULL;
 	    FT_Done_Face (face);
 	    face = NULL;
+#ifdef HAVE_FT_DONE_MM_VAR
+	    FT_Done_MM_Var (ftLibrary, mm_var);
+#else
+	    free (mm_var);
+#endif
+	    mm_var = NULL;
 
 	    face_num++;
 	    instance_num = set_instance_num;
 
 	    if (FT_New_Face (ftLibrary, (const char *) file, face_num, &face))
 	      break;
+
+	    num_instances = face->style_flags >> 16;
+	    if (num_instances && (!index_set || instance_num))
+	    {
+		FT_Get_MM_Var (face, &mm_var);
+		if (!mm_var)
+		    num_instances = 0;
+	    }
 	}
     } while (!err && (!index_set || face_num == set_face_num) && face_num < num_faces);
 
@@ -2643,7 +2716,7 @@ FcFreeTypeCharSetAndSpacing (FT_Face face, FcBlanks *blanks FC_UNUSED, int *spac
 #define FcIsSpace(x)	    (040 == (x))
 #define FcIsDigit(c)	    (('0' <= (c) && (c) <= '9'))
 #define FcIsValidScript(x)  (FcIsLower(x) || FcIsUpper (x) || FcIsDigit(x) || FcIsSpace(x))
-			
+
 static void
 addtag(FcChar8 *complex_, FT_ULong tag)
 {
@@ -2762,9 +2835,9 @@ GetScriptTags(FT_Face face, FT_ULong tabletag, FT_ULong **stags)
 	goto Fail;
 
     /* sort the tag list before returning it */
-    qsort(*stags, script_count, sizeof(FT_ULong), compareulong);
+    qsort(*stags, p, sizeof(FT_ULong), compareulong);
 
-    return script_count;
+    return p;
 
 Fail:
     free(*stags);

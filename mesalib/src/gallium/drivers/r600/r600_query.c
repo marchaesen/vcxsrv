@@ -410,7 +410,7 @@ static bool r600_query_sw_get_result(struct r600_common_context *rctx,
 		struct pipe_context *ctx = rquery->b.flushed ? NULL : &rctx->b;
 
 		result->b = screen->fence_finish(screen, ctx, query->fence,
-						 wait ? PIPE_TIMEOUT_INFINITE : 0);
+						 wait ? OS_TIMEOUT_INFINITE : 0);
 		return result->b;
 	}
 

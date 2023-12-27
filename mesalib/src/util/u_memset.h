@@ -25,12 +25,12 @@
  *
  **************************************************************************/
 
-#include "pipe/p_config.h"
+#include "util/detect.h"
 
 static inline void *
 util_memset32(void *s, uint32_t ui, size_t n)
 {
-#if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86_64)
+#if DETECT_CC_GCC && DETECT_ARCH_X86_64
    long d0, d1;
    __asm__ volatile("rep\n\t"
                     "stosl"
@@ -49,7 +49,7 @@ util_memset32(void *s, uint32_t ui, size_t n)
 static inline void *
 util_memset64(void *s, uint64_t ui, size_t n)
 {
-#if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86_64)
+#if DETECT_CC_GCC && DETECT_ARCH_X86_64
    long d0, d1;
    __asm__ volatile("rep\n\t"
                     "stosq"

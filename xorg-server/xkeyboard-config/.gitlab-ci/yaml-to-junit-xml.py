@@ -16,13 +16,23 @@ parser.add_argument(
     type=pathlib.Path,
     help="The YAML output file from the keyboard layout tester",
 )
+parser.add_argument(
+    "--additional-successful-tests",
+    type=int,
+    default=0,
+    help="Number of successful tests from another source",
+)
 args = parser.parse_args()
 if not args.inputfile.exists():
     print(f"No such file: {args.inputfile}")
     sys.exit(0)
 
-with open(args.inputfile) as fd:
+with args.inputfile.open() as fd:
     yml = yaml.safe_load(fd)
+
+    # Ensure there is a yaml document
+    if yml is None:
+        yml = yaml.safe_load("[]")
 
     doc = minidom.Document()
     suite = doc.createElement("testsuite")
@@ -33,7 +43,7 @@ with open(args.inputfile) as fd:
     # and errors (something else blew up)
     # We use failures for unrecognized keysyms and errors
     # for everything else (i.e. keymap compilation errors)
-    ntests, nfailures, nerrors = 0, 0, 0
+    ntests, nfailures, nerrors = args.additional_successful_tests, 0, 0
 
     for testcase in yml:
         ntests += 1

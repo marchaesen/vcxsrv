@@ -195,12 +195,6 @@ cleanup:
    return retval;
 }
 
-static uint32_t
-compute_input_output_table_dwords(unsigned input_vectors, unsigned output_vectors)
-{
-   return ((output_vectors + 7) >> 3) * input_vectors * 4;
-}
-
 bool
 dxil_container_add_state_validation(struct dxil_container *c,
                                     const struct dxil_module *m,
@@ -237,29 +231,13 @@ dxil_container_add_state_validation(struct dxil_container *c,
    for (unsigned i = 0; i < 4; ++i)
       state->state.psv1.sig_output_vectors[i] = (uint8_t)m->num_psv_outputs[i];
 
-   // TODO: Add viewID records size
+   if (state->state.psv1.uses_view_id) {
+      for (unsigned i = 0; i < 4; ++i)
+         size += m->dependency_table_dwords_per_input[i] * sizeof(uint32_t);
+   }
 
-   uint32_t dependency_table_size = 0;
-   if (state->state.psv1.sig_input_vectors > 0) {
-      for (unsigned i = 0; i < 4; ++i) {
-         if (state->state.psv1.sig_output_vectors[i] > 0)
-            dependency_table_size += sizeof(uint32_t) *
-            compute_input_output_table_dwords(state->state.psv1.sig_input_vectors,
-               state->state.psv1.sig_output_vectors[i]);
-      }
-      if (state->state.psv1.shader_stage == DXIL_HULL_SHADER && state->state.psv1.sig_patch_const_or_prim_vectors) {
-         dependency_table_size += sizeof(uint32_t) * compute_input_output_table_dwords(state->state.psv1.sig_input_vectors,
-            state->state.psv1.sig_patch_const_or_prim_vectors);
-      }
-   }
-   if (state->state.psv1.shader_stage == DXIL_DOMAIN_SHADER &&
-       state->state.psv1.sig_patch_const_or_prim_vectors &&
-       state->state.psv1.sig_output_vectors[0]) {
-      dependency_table_size += sizeof(uint32_t) * compute_input_output_table_dwords(
-         state->state.psv1.sig_patch_const_or_prim_vectors, state->state.psv1.sig_output_vectors[0]);
-   }
-   size += dependency_table_size;
-   // TODO: Domain shader table goes here
+   for (unsigned i = 0; i < 4; ++i)
+      size += m->io_dependency_table_size[i] * sizeof(uint32_t);
 
    if (!add_part_header(c, DXIL_PSV0, size))
       return false;
@@ -309,12 +287,40 @@ dxil_container_add_state_validation(struct dxil_container *c,
          return false;
    }
 
-   // TODO: Handle case when ViewID is used
+   /* This looks to be a bug in the DXIL validation logic. When replicating these I/O dependency
+    * tables from the metadata to the container, the pointer is advanced for each stream,
+    * and then copied for all streams... meaning that the first streams have zero data, since the
+    * pointer is advanced and then never written to. The last stream (that has data) then has the
+    * data from all streams written to it. However, if any stream before the last one has a larger
+    * size, this will cause corruption, since it's writing to the smaller space that was allocated
+    * for the last stream. We assume that never happens, and just zero all earlier streams. */
+   if (m->shader_kind == DXIL_GEOMETRY_SHADER) {
+      bool zero_view_id_deps = false, zero_io_deps = false;
+      for (int i = 3; i >= 0; --i) {
+         if (state->state.psv1.uses_view_id && m->dependency_table_dwords_per_input[i]) {
+            if (zero_view_id_deps)
+               memset(m->viewid_dependency_table[i], 0, sizeof(uint32_t) * m->dependency_table_dwords_per_input[i]);
+            zero_view_id_deps = true;
+         }
+         if (m->io_dependency_table_size[i]) {
+            if (zero_io_deps)
+               memset(m->io_dependency_table[i], 0, sizeof(uint32_t) * m->io_dependency_table_size[i]);
+            zero_io_deps = true;
+         }
+      }
+   }
 
-   // TODO: Handle sig input output dependency table
+   if (state->state.psv1.uses_view_id) {
+      for (unsigned i = 0; i < 4; ++i)
+         if (!blob_write_bytes(&c->parts, m->viewid_dependency_table[i],
+                               sizeof(uint32_t) * m->dependency_table_dwords_per_input[i]))
+            return false;
+   }
 
-   for (uint32_t i = 0; i < dependency_table_size; ++i)
-      blob_write_uint8(&c->parts, 0);
+   for (unsigned i = 0; i < 4; ++i)
+      if (!blob_write_bytes(&c->parts, m->io_dependency_table[i],
+                            sizeof(uint32_t) * m->io_dependency_table_size[i]))
+         return false;
 
    return true;
 }

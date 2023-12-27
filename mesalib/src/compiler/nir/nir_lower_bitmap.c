@@ -52,33 +52,16 @@
  * Run before nir_lower_io.
  */
 
-static nir_variable *
-get_texcoord(nir_shader *shader)
-{
-   nir_variable *texcoord =
-      nir_find_variable_with_location(shader, nir_var_shader_in,
-                                      VARYING_SLOT_TEX0);
-   /* otherwise create it: */
-   if (texcoord == NULL) {
-      texcoord = nir_variable_create(shader,
-                                     nir_var_shader_in,
-                                     glsl_vec4_type(),
-                                     "gl_TexCoord");
-      texcoord->data.location = VARYING_SLOT_TEX0;
-   }
-
-   return texcoord;
-}
-
 static void
 lower_bitmap(nir_shader *shader, nir_builder *b,
              const nir_lower_bitmap_options *options)
 {
-   nir_ssa_def *texcoord;
+   nir_def *texcoord;
    nir_tex_instr *tex;
-   nir_ssa_def *cond;
+   nir_def *cond;
 
-   texcoord = nir_load_var(b, get_texcoord(shader));
+   texcoord = nir_load_var(b, nir_get_variable_with_location(shader, nir_var_shader_in,
+                                                             VARYING_SLOT_TEX0, glsl_vec4_type()));
 
    const struct glsl_type *sampler2D =
       glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false, GLSL_TYPE_FLOAT);
@@ -96,21 +79,19 @@ lower_bitmap(nir_shader *shader, nir_builder *b,
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
    tex->dest_type = nir_type_float32;
-   tex->src[0].src_type = nir_tex_src_texture_deref;
-   tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
-   tex->src[1].src_type = nir_tex_src_sampler_deref;
-   tex->src[1].src = nir_src_for_ssa(&tex_deref->dest.ssa);
-   tex->src[2].src_type = nir_tex_src_coord;
-   tex->src[2].src =
-      nir_src_for_ssa(nir_channels(b, texcoord,
-                                   (1 << tex->coord_components) - 1));
+   tex->src[0] = nir_tex_src_for_ssa(nir_tex_src_texture_deref,
+                                     &tex_deref->def);
+   tex->src[1] = nir_tex_src_for_ssa(nir_tex_src_sampler_deref,
+                                     &tex_deref->def);
+   tex->src[2] = nir_tex_src_for_ssa(nir_tex_src_coord,
+                                     nir_trim_vector(b, texcoord, tex->coord_components));
 
-   nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
+   nir_def_init(&tex->instr, &tex->def, 4, 32);
    nir_builder_instr_insert(b, &tex->instr);
 
    /* kill if tex != 0.0.. take .x or .w channel according to format: */
-   cond = nir_f2b(b, nir_channel(b, &tex->dest.ssa,
-                  options->swizzle_xxxx ? 0 : 3));
+   cond = nir_fneu_imm(b, nir_channel(b, &tex->def, options->swizzle_xxxx ? 0 : 3),
+                       0.0);
 
    nir_discard_if(b, cond);
 
@@ -121,15 +102,12 @@ static void
 lower_bitmap_impl(nir_function_impl *impl,
                   const nir_lower_bitmap_options *options)
 {
-   nir_builder b;
-
-   nir_builder_init(&b, impl);
-   b.cursor = nir_before_cf_list(&impl->body);
+   nir_builder b = nir_builder_at(nir_before_impl(impl));
 
    lower_bitmap(impl->function->shader, &b, options);
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
+                                  nir_metadata_dominance);
 }
 
 void

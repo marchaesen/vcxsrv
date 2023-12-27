@@ -56,7 +56,7 @@ enum format
 struct blend_quad_stage
 {
    struct quad_stage base;
-   boolean clamp[PIPE_MAX_COLOR_BUFS];  /**< clamp colors to [0,1]? */
+   bool clamp[PIPE_MAX_COLOR_BUFS];  /**< clamp colors to [0,1]? */
    enum format base_format[PIPE_MAX_COLOR_BUFS];
    enum util_format_type format_type[PIPE_MAX_COLOR_BUFS];
 };
@@ -152,7 +152,7 @@ logicop_quad(struct quad_stage *qs,
              float (*dest)[4])
 {
    struct softpipe_context *softpipe = qs->softpipe;
-   ubyte src[4][4], dst[4][4], res[4][4];
+   uint8_t src[4][4], dst[4][4], res[4][4];
    uint *src4 = (uint *) src;
    uint *dst4 = (uint *) dst;
    uint *res4 = (uint *) res;
@@ -925,7 +925,7 @@ blend_fallback(struct quad_stage *qs,
    struct softpipe_context *softpipe = qs->softpipe;
    const struct pipe_blend_state *blend = softpipe->blend;
    unsigned cbuf;
-   boolean write_all =
+   bool write_all =
       softpipe->fs_variant->info.properties[TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS];
 
    for (cbuf = 0; cbuf < softpipe->framebuffer.nr_cbufs; cbuf++) {
@@ -937,9 +937,9 @@ blend_fallback(struct quad_stage *qs,
             = sp_get_cached_tile(softpipe->cbuf_cache[cbuf],
                                  quads[0]->input.x0, 
                                  quads[0]->input.y0, quads[0]->input.layer);
-         const boolean clamp = bqs->clamp[cbuf];
+         const bool clamp = bqs->clamp[cbuf];
          const float *blend_color;
-         const boolean dual_source_blend = util_blend_state_is_dual(blend, cbuf);
+         const bool dual_source_blend = util_blend_state_is_dual(blend, cbuf);
          uint q, i, j;
 
          if (clamp)

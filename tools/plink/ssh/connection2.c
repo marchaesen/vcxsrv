@@ -27,6 +27,7 @@ static const PacketProtocolLayerVtable ssh2_connection_vtable = {
     .special_cmd = ssh2_connection_special_cmd,
     .reconfigure = ssh2_connection_reconfigure,
     .queued_data_size = ssh_ppl_default_queued_data_size,
+    .final_output = ssh_ppl_default_final_output,
     .name = "ssh-connection",
 };
 
@@ -989,7 +990,7 @@ static void ssh2_connection_process_queue(PacketProtocolLayer *ppl)
      */
     if (ssh2_connection_need_antispoof_prompt(s)) {
         s->antispoof_prompt = ssh_ppl_new_prompts(&s->ppl);
-        s->antispoof_prompt->to_server = true;
+        s->antispoof_prompt->to_server = false;
         s->antispoof_prompt->from_server = false;
         s->antispoof_prompt->name = dupstr("Authentication successful");
         add_prompt(

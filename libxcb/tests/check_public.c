@@ -1,6 +1,10 @@
 #include <check.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef __unix__
+#include <unistd.h>
+#endif
 #include "check_suites.h"
 #include "xcb.h"
 #include "xcbext.h"
@@ -37,18 +41,18 @@ static void parse_display_pass(const char *name, const char *host, const int dis
 		got_display = got_screen = -42;
 		mark_point();
 		success = xcb_parse_display(argument, &got_host, &got_display, &got_screen);
-		fail_unless(success, "unexpected parse failure %sfor '%s'", test_string[test_type], name);
-		fail_unless(strcmp(host, got_host) == 0, "parse %sproduced unexpected hostname '%s' for '%s': expected '%s'", test_string[test_type], got_host, name, host);
-		fail_unless(display == got_display, "parse %sproduced unexpected display '%d' for '%s': expected '%d'", test_string[test_type], got_display, name, display);
-		fail_unless(screen == got_screen, "parse %sproduced unexpected screen '%d' for '%s': expected '%d'", test_string[test_type], got_screen, name, screen);
+		ck_assert_msg(success, "unexpected parse failure %sfor '%s'", test_string[test_type], name);
+		ck_assert_msg(strcmp(host, got_host) == 0, "parse %sproduced unexpected hostname '%s' for '%s': expected '%s'", test_string[test_type], got_host, name, host);
+		ck_assert_msg(display == got_display, "parse %sproduced unexpected display '%d' for '%s': expected '%d'", test_string[test_type], got_display, name, display);
+		ck_assert_msg(screen == got_screen, "parse %sproduced unexpected screen '%d' for '%s': expected '%d'", test_string[test_type], got_screen, name, screen);
 
 		got_host = (char *) -1;
 		got_display = got_screen = -42;
 		mark_point();
 		success = xcb_parse_display(argument, &got_host, &got_display, 0);
-		fail_unless(success, "unexpected screenless parse failure %sfor '%s'", test_string[test_type], name);
-		fail_unless(strcmp(host, got_host) == 0, "screenless parse %sproduced unexpected hostname '%s' for '%s': expected '%s'", test_string[test_type], got_host, name, host);
-		fail_unless(display == got_display, "screenless parse %sproduced unexpected display '%d' for '%s': expected '%d'", test_string[test_type], got_display, name, display);
+		ck_assert_msg(success, "unexpected screenless parse failure %sfor '%s'", test_string[test_type], name);
+		ck_assert_msg(strcmp(host, got_host) == 0, "screenless parse %sproduced unexpected hostname '%s' for '%s': expected '%s'", test_string[test_type], got_host, name, host);
+		ck_assert_msg(display == got_display, "screenless parse %sproduced unexpected display '%d' for '%s': expected '%d'", test_string[test_type], got_display, name, display);
 	}
 	putenv("DISPLAY=");
 }
@@ -79,24 +83,55 @@ static void parse_display_fail(const char *name)
 		got_display = got_screen = -42;
 		mark_point();
 		success = xcb_parse_display(argument, &got_host, &got_display, &got_screen);
-		fail_unless(!success, "unexpected parse success %sfor '%s'", test_string[test_type], name);
-		fail_unless(got_host == (char *) -1, "host changed on parse failure %sfor '%s': got %p", test_string[test_type], name, got_host);
-		fail_unless(got_display == -42, "display changed on parse failure %sfor '%s': got %d", test_string[test_type], name, got_display);
-		fail_unless(got_screen == -42, "screen changed on parse failure %sfor '%s': got %d", test_string[test_type], name, got_screen);
+		ck_assert_msg(!success, "unexpected parse success %sfor '%s'", test_string[test_type], name);
+		ck_assert_msg(got_host == (char *) -1, "host changed on parse failure %sfor '%s': got %p", test_string[test_type], name, got_host);
+		ck_assert_msg(got_display == -42, "display changed on parse failure %sfor '%s': got %d", test_string[test_type], name, got_display);
+		ck_assert_msg(got_screen == -42, "screen changed on parse failure %sfor '%s': got %d", test_string[test_type], name, got_screen);
 
 		got_host = (char *) -1;
 		got_display = got_screen = -42;
 		mark_point();
 		success = xcb_parse_display(argument, &got_host, &got_display, 0);
-		fail_unless(!success, "unexpected screenless parse success %sfor '%s'", test_string[test_type], name);
-		fail_unless(got_host == (char *) -1, "host changed on parse failure %sfor '%s': got %p", test_string[test_type], name, got_host);
-		fail_unless(got_display == -42, "display changed on parse failure %sfor '%s': got %d", test_string[test_type], name, got_display);
+		ck_assert_msg(!success, "unexpected screenless parse success %sfor '%s'", test_string[test_type], name);
+		ck_assert_msg(got_host == (char *) -1, "host changed on parse failure %sfor '%s': got %p", test_string[test_type], name, got_host);
+		ck_assert_msg(got_display == -42, "display changed on parse failure %sfor '%s': got %d", test_string[test_type], name, got_display);
 	}
 	putenv("DISPLAY=");
 }
 
 START_TEST(parse_display_unix)
 {
+#ifdef __unix__
+	char buf[sizeof "/tmp/xcb-test.XXXXXXX"];
+	char buf2[sizeof(buf) + 7];
+	int r, v;
+	memcpy(buf, "/tmp/xcb-test.XXXXXXX", sizeof buf);
+	v = mkstemp(buf);
+	ck_assert_msg(v >= 0, "cannot create temporary file");
+	parse_display_pass(buf, buf, 0, 0);
+	r = snprintf(buf2, sizeof buf2, "unix:%s", buf);
+	if (r < 5 || r >= (int)sizeof buf2) {
+		ck_assert_msg(0, "snprintf() failed (return value %d)", r);
+		unlink(buf);
+		return;
+	}
+	parse_display_pass(buf2, buf, 0, 0);
+	r = snprintf(buf2, sizeof buf2, "unix:%s.1", buf);
+	if (r < 7 || r >= (int)sizeof buf2) {
+		ck_assert_msg(0, "snprintf() failed (return value %d)", r);
+		unlink(buf);
+		return;
+	}
+	parse_display_pass(buf2, buf, 0, 1);
+	r = snprintf(buf2, sizeof buf2, "%s.1", buf);
+	if (r < 2 || r >= (int)sizeof buf2) {
+		ck_assert_msg(0, "snprintf() failed (return value %d)", r);
+		unlink(buf);
+		return;
+	}
+	parse_display_pass(buf2, buf, 0, 1);
+	unlink(buf);
+#endif
 	parse_display_pass(":0", "", 0, 0);
 	parse_display_pass(":1", "", 1, 0);
 	parse_display_pass(":0.1", "", 0, 1);
@@ -183,7 +218,7 @@ END_TEST
 
 static void popcount_eq(uint32_t bits, int count)
 {
-	fail_unless(xcb_popcount(bits) == count, "unexpected popcount(%08x) != %d", bits, count);
+	ck_assert_msg(xcb_popcount(bits) == count, "unexpected popcount(%08x) != %d", bits, count);
 }
 
 START_TEST(popcount)

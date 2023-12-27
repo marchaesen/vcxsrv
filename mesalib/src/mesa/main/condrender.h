@@ -27,7 +27,7 @@
 #define CONDRENDER_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 
 extern GLboolean

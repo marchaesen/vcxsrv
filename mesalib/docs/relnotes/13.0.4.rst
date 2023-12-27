@@ -151,7 +151,7 @@ Ilia Mirkin (1):
 
 -  nouveau: take extra push space into account for pushbuf_space calls
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  i965/generator/tex: Handle an immediate sampler with an indirect
    texture

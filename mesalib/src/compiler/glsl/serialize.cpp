@@ -480,7 +480,7 @@ write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       if (has_uniform_storage(prog, i)) {
          unsigned vec_size =
-            prog->data->UniformStorage[i].type->component_slots() *
+            glsl_get_component_slots(prog->data->UniformStorage[i].type) *
             MAX2(prog->data->UniformStorage[i].array_elements, 1);
          unsigned slot =
             prog->data->UniformStorage[i].storage -
@@ -550,7 +550,7 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       if (has_uniform_storage(prog, i)) {
          unsigned vec_size =
-            prog->data->UniformStorage[i].type->component_slots() *
+            glsl_get_component_slots(prog->data->UniformStorage[i].type) *
             MAX2(prog->data->UniformStorage[i].array_elements, 1);
          unsigned slot =
             prog->data->UniformStorage[i].storage -
@@ -1111,8 +1111,8 @@ write_shader_metadata(struct blob *metadata, gl_linked_shader *shader)
    blob_write_uint32(metadata, glprog->ExternalSamplersUsed);
    blob_write_uint32(metadata, glprog->sh.ShaderStorageBlocksWriteAccess);
 
-   blob_write_bytes(metadata, glprog->sh.ImageAccess,
-                    sizeof(glprog->sh.ImageAccess));
+   blob_write_bytes(metadata, glprog->sh.image_access,
+                    sizeof(glprog->sh.image_access));
    blob_write_bytes(metadata, glprog->sh.ImageUnits,
                     sizeof(glprog->sh.ImageUnits));
 
@@ -1163,8 +1163,8 @@ read_shader_metadata(struct blob_reader *metadata,
    glprog->ExternalSamplersUsed = blob_read_uint32(metadata);
    glprog->sh.ShaderStorageBlocksWriteAccess = blob_read_uint32(metadata);
 
-   blob_copy_bytes(metadata, (uint8_t *) glprog->sh.ImageAccess,
-                   sizeof(glprog->sh.ImageAccess));
+   blob_copy_bytes(metadata, (uint8_t *) glprog->sh.image_access,
+                   sizeof(glprog->sh.image_access));
    blob_copy_bytes(metadata, (uint8_t *) glprog->sh.ImageUnits,
                    sizeof(glprog->sh.ImageUnits));
 
@@ -1259,7 +1259,7 @@ serialize_glsl_program(struct blob *blob, struct gl_context *ctx,
 
    write_hash_tables(blob, prog);
 
-   blob_write_uint32(blob, prog->data->Version);
+   blob_write_uint32(blob, prog->GLSL_Version);
    blob_write_uint32(blob, prog->IsES);
    blob_write_uint32(blob, prog->data->linked_stages);
 
@@ -1318,7 +1318,7 @@ deserialize_glsl_program(struct blob_reader *blob, struct gl_context *ctx,
 
    read_hash_tables(blob, prog);
 
-   prog->data->Version = blob_read_uint32(blob);
+   prog->GLSL_Version = blob_read_uint32(blob);
    prog->IsES = blob_read_uint32(blob);
    prog->data->linked_stages = blob_read_uint32(blob);
 

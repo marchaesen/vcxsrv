@@ -23,7 +23,7 @@
 
 #include "ir3_ra.h"
 #include "ir3_shader.h"
-#include "ralloc.h"
+#include "util/ralloc.h"
 
 /* A note on how phi node uses are handled:
  *

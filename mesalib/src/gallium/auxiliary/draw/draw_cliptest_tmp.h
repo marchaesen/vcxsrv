@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2010, VMware, inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,27 +22,25 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 #include "util/u_bitcast.h"
 #include <math.h>
 
-static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
-                                 struct draw_vertex_info *info,
-                                 const struct draw_prim_info *prim_info )
+static bool
+TAG(do_cliptest)(struct pt_post_vs *pvs,
+                 struct draw_vertex_info *info,
+                 const struct draw_prim_info *prim_info)
 {
    struct vertex_header *out = info->verts;
    /* const */ float (*plane)[4] = pvs->draw->plane;
    const unsigned pos = draw_current_shader_position_output(pvs->draw);
    const unsigned cv = draw_current_shader_clipvertex_output(pvs->draw);
-   unsigned cd[2];
    const unsigned ef = pvs->draw->vs.edgeflag_output;
    unsigned ucp_enable = pvs->draw->rasterizer->clip_plane_enable;
    unsigned flags = (FLAGS);
    unsigned need_pipeline = 0;
-   unsigned j;
-   unsigned i;
    bool have_cd = false;
    bool uses_vp_idx = draw_current_shader_uses_viewport_index(pvs->draw);
    unsigned viewport_index_output =
@@ -56,9 +54,9 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
       viewport_index = draw_clamp_viewport_idx(viewport_index);
    }
 
+   unsigned cd[2];
    cd[0] = draw_current_shader_ccdistance_output(pvs->draw, 0);
    cd[1] = draw_current_shader_ccdistance_output(pvs->draw, 1);
-
    if (cd[0] != pos || cd[1] != pos)
       have_cd = true;
 
@@ -71,7 +69,7 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
 
    assert(pos != -1);
    unsigned prim_idx = 0, prim_vert_idx = 0;
-   for (j = 0; j < info->count; j++) {
+   for (unsigned j = 0; j < info->count; j++) {
       float *position = out->data[pos];
       unsigned mask = 0x0;
 
@@ -98,7 +96,7 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
             clipvertex = out->data[cv];
          }
 
-         for (i = 0; i < 4; i++) {
+         for (unsigned i = 0; i < 4; i++) {
             out->clip_pos[i] = position[i];
          }
 
@@ -110,8 +108,7 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
             if (!( 0.50 * position[0] + position[3] >= 0)) mask |= (1<<1);
             if (!(-0.50 * position[1] + position[3] >= 0)) mask |= (1<<2);
             if (!( 0.50 * position[1] + position[3] >= 0)) mask |= (1<<3);
-         }
-         else if (flags & DO_CLIP_XY) {
+         } else if (flags & DO_CLIP_XY) {
             if (!(-position[0] + position[3] >= 0)) mask |= (1<<0);
             if (!( position[0] + position[3] >= 0)) mask |= (1<<1);
             if (!(-position[1] + position[3] >= 0)) mask |= (1<<2);
@@ -123,8 +120,7 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
          if (flags & DO_CLIP_FULL_Z) {
             if (!( position[2] + position[3] >= 0)) mask |= (1<<4);
             if (!(-position[2] + position[3] >= 0)) mask |= (1<<5);
-         }
-         else if (flags & DO_CLIP_HALF_Z) {
+         } else if (flags & DO_CLIP_HALF_Z) {
             if (!( position[2]               >= 0)) mask |= (1<<4);
             if (!(-position[2] + position[3] >= 0)) mask |= (1<<5);
          }
@@ -144,7 +140,7 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
                 */
                if (have_cd && num_written_clipdistance) {
                   float clipdist;
-                  i = plane_idx - 6;
+                  unsigned i = plane_idx - 6;
                   /* first four clip distance in first vector etc. */
                   if (i < 4)
                      clipdist = out->data[cd[0]][i];
@@ -167,16 +163,15 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
        * Transform the vertex position from clip coords to window coords,
        * if the vertex is unclipped.
        */
-      if ((flags & DO_VIEWPORT) && mask == 0)
-      {
-	 /* divide by w */
-	 float w = 1.0f / position[3];
+      if ((flags & DO_VIEWPORT) && mask == 0) {
+         /* divide by w */
+         float w = 1.0f / position[3];
 
-	 /* Viewport mapping */
-	 position[0] = position[0] * w * scale[0] + trans[0];
-	 position[1] = position[1] * w * scale[1] + trans[1];
-	 position[2] = position[2] * w * scale[2] + trans[2];
-	 position[3] = w;
+         /* Viewport mapping */
+         position[0] = position[0] * w * scale[0] + trans[0];
+         position[1] = position[1] * w * scale[1] + trans[1];
+         position[2] = position[2] * w * scale[2] + trans[2];
+         position[3] = w;
       }
 #ifdef DEBUG
       /* For debug builds, set the clipped vertex's window coordinate
@@ -196,8 +191,9 @@ static boolean TAG(do_cliptest)( struct pt_post_vs *pvs,
          need_pipeline |= !out->edgeflag;
       }
 
-      out = (struct vertex_header *)( (char *)out + info->stride );
+      out = (struct vertex_header *)((char *)out + info->stride);
    }
+
    return need_pipeline != 0;
 }
 

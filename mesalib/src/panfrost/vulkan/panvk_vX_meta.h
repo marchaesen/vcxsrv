@@ -29,25 +29,18 @@
 #error "no arch"
 #endif
 
-void
-panvk_per_arch(meta_init)(struct panvk_physical_device *dev);
+void panvk_per_arch(meta_init)(struct panvk_physical_device *dev);
 
-void
-panvk_per_arch(meta_cleanup)(struct panvk_physical_device *dev);
+void panvk_per_arch(meta_cleanup)(struct panvk_physical_device *dev);
 
-mali_ptr
-panvk_per_arch(meta_emit_viewport)(struct pan_pool *pool,
-                                   uint16_t minx, uint16_t miny,
-                                   uint16_t maxx, uint16_t maxy);
+mali_ptr panvk_per_arch(meta_emit_viewport)(struct pan_pool *pool,
+                                            uint16_t minx, uint16_t miny,
+                                            uint16_t maxx, uint16_t maxy);
 
-void
-panvk_per_arch(meta_clear_init)(struct panvk_physical_device *dev);
+void panvk_per_arch(meta_clear_init)(struct panvk_physical_device *dev);
 
-void
-panvk_per_arch(meta_blit_init)(struct panvk_physical_device *dev);
+void panvk_per_arch(meta_blit_init)(struct panvk_physical_device *dev);
 
-void
-panvk_per_arch(meta_blit_cleanup)(struct panvk_physical_device *dev);
+void panvk_per_arch(meta_blit_cleanup)(struct panvk_physical_device *dev);
 
-void
-panvk_per_arch(meta_copy_init)(struct panvk_physical_device *dev);
+void panvk_per_arch(meta_copy_init)(struct panvk_physical_device *dev);

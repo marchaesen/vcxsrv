@@ -8,11 +8,12 @@
 
 <category name="GL_ARB_base_instance" number="107">
 
-  <function name="DrawArraysInstancedBaseInstance" marshal="custom" exec="dlist">
+  <function name="DrawArraysInstancedBaseInstance" marshal="custom" exec="dlist"
+            marshal_struct="public">
     <param name="mode" type="GLenum"/>
     <param name="first" type="GLint"/>
     <param name="count" type="GLsizei"/>
-    <param name="primcount" type="GLsizei"/>
+    <param name="instance_count" type="GLsizei"/>
     <param name="baseinstance" type="GLuint"/>
   </function>
 
@@ -25,12 +26,13 @@
     <param name="baseinstance" type="GLuint"/>
   </function>
 
-  <function name="DrawElementsInstancedBaseVertexBaseInstance" marshal="custom" exec="dlist">
+  <function name="DrawElementsInstancedBaseVertexBaseInstance" marshal="custom" exec="dlist"
+            marshal_struct="public">
     <param name="mode" type="GLenum"/>
     <param name="count" type="GLsizei"/>
     <param name="type" type="GLenum"/>
     <param name="indices" type="const GLvoid *"/>
-    <param name="primcount" type="GLsizei"/>
+    <param name="instance_count" type="GLsizei"/>
     <param name="basevertex" type="GLint"/>
     <param name="baseinstance" type="GLuint"/>
   </function>

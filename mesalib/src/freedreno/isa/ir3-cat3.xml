@@ -40,12 +40,15 @@ SOFTWARE.
 
 <bitset name="#cat3-src-gpr" extends="#cat3-src">
 	<display>
-		{HALF}{SRC}
+		{LAST}{HALF}{SRC}
 	</display>
 	<field name="SRC" low="0" high="7" type="#reg-gpr"/>
-	<pattern low="8" high="12">00000</pattern>
+	<pattern low="8" high="9">00</pattern>
+	<field name="LAST" pos="10" type="bool" display="(last)"/>
+	<pattern low="11" high="12">00</pattern>
 	<encode>
 		<map name="SRC">src</map>
+		<map name="LAST">!!(src->flags &amp; IR3_REG_LAST_USE)</map>
 	</encode>
 </bitset>
 

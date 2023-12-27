@@ -78,7 +78,7 @@ Heinrich Fink (1):
 
 - softpipe: add missing sentinel to debug option array
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - iris: Don't leak the surface if uncompressed re-interp fails
 

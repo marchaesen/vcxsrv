@@ -549,7 +549,7 @@ RootlessCopyArea(DrawablePtr pSrc, DrawablePtr dst, GCPtr pGC,
     GC_SAVE(pGC);
     GCOP_UNWRAP(pGC);
 
-    RL_DEBUG_MSG("copy area start (src 0x%x, dst 0x%x)", pSrc, dst);
+    RL_DEBUG_MSG("copy area start (src %p, dst %p)", pSrc, dst);
 
     if (pSrc->type == DRAWABLE_WINDOW && IsFramedWindow((WindowPtr) pSrc)) {
         /* If both source and dest are windows, and we're doing
@@ -800,7 +800,7 @@ static void
 RootlessPolySegment(DrawablePtr dst, GCPtr pGC, int nseg, xSegment * pSeg)
 {
     GCOP_UNWRAP(pGC);
-    RL_DEBUG_MSG("poly segment start (win 0x%x)", dst);
+    RL_DEBUG_MSG("poly segment start (dst %p)", dst);
 
     RootlessStartDrawing((WindowPtr) dst);
     pGC->ops->PolySegment(dst, pGC, nseg, pSeg);
@@ -998,7 +998,7 @@ RootlessFillPolygon(DrawablePtr dst, GCPtr pGC,
 {
     GC_SAVE(pGC);
     GCOP_UNWRAP(pGC);
-    RL_DEBUG_MSG("fill poly start (win 0x%x, fillStyle 0x%x)", dst,
+    RL_DEBUG_MSG("fill poly start (dst %p, fillStyle 0x%x)", dst,
                  pGC->fillStyle);
 
     if (count <= 2) {
@@ -1072,7 +1072,7 @@ RootlessPolyFillRect(DrawablePtr dst, GCPtr pGC,
 {
     GC_SAVE(pGC);
     GCOP_UNWRAP(pGC);
-    RL_DEBUG_MSG("fill rect start (win 0x%x, fillStyle 0x%x)", dst,
+    RL_DEBUG_MSG("fill rect start (dst %p, fillStyle 0x%x)", dst,
                  pGC->fillStyle);
 
     if (nRectsInit <= 0) {

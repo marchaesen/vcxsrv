@@ -100,7 +100,7 @@ NineVolume9_ctor( struct NineVolume9 *This,
                                                     pDesc->Format,
                                                     This->info.target,
                                                     This->info.nr_samples,
-                                                    This->info.bind, FALSE,
+                                                    This->info.bind, false,
                                                     pDesc->Pool == D3DPOOL_SCRATCH);
 
     if (This->info.format == PIPE_FORMAT_NONE)
@@ -116,8 +116,8 @@ NineVolume9_ctor( struct NineVolume9 *This,
                                                          pDesc->Format,
                                                          This->info.target,
                                                          This->info.nr_samples,
-                                                         This->info.bind, FALSE,
-                                                         TRUE);
+                                                         This->info.bind, false,
+                                                         true);
     if (This->info.format != This->format_internal ||
         /* See surface9.c */
         (pParams->device->workarounds.dynamic_texture_workaround &&
@@ -201,7 +201,7 @@ NineVolume9_MarkContainerDirty( struct NineVolume9 *This )
     tex = NineBaseTexture9(This->base.container);
     assert(tex);
     if (This->desc.Pool == D3DPOOL_MANAGED)
-        tex->managed.dirty = TRUE;
+        tex->managed.dirty = true;
 
     BASETEX_REGISTER_UPDATE(tex);
 }

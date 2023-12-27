@@ -41,50 +41,51 @@
 #include "pan_minmax_cache.h"
 
 bool
-panfrost_minmax_cache_get(struct panfrost_minmax_cache *cache, unsigned start, unsigned count,
-                     unsigned *min_index, unsigned *max_index)
+panfrost_minmax_cache_get(struct panfrost_minmax_cache *cache, unsigned start,
+                          unsigned count, unsigned *min_index,
+                          unsigned *max_index)
 {
-        uint64_t ht_key = (((uint64_t)count) << 32) | start;
-        bool found = false;
+   uint64_t ht_key = (((uint64_t)count) << 32) | start;
+   bool found = false;
 
-        if (!cache)
-           return false;
+   if (!cache)
+      return false;
 
-        for (unsigned i = 0; i < cache->size; ++i) {
-                if (cache->keys[i] == ht_key) {
-                        uint64_t hit = cache->values[i];
+   for (unsigned i = 0; i < cache->size; ++i) {
+      if (cache->keys[i] == ht_key) {
+         uint64_t hit = cache->values[i];
 
-                        *min_index = hit & 0xffffffff;
-                        *max_index = hit >> 32;
-                        found = true;
-                        break;
-                }
-        }
+         *min_index = hit & 0xffffffff;
+         *max_index = hit >> 32;
+         found = true;
+         break;
+      }
+   }
 
-        return found;
+   return found;
 }
 
 void
-panfrost_minmax_cache_add(struct panfrost_minmax_cache *cache, unsigned start, unsigned count,
-                     unsigned min_index, unsigned max_index)
+panfrost_minmax_cache_add(struct panfrost_minmax_cache *cache, unsigned start,
+                          unsigned count, unsigned min_index,
+                          unsigned max_index)
 {
-        uint64_t ht_key = (((uint64_t)count) << 32) | start;
-        uint64_t value = min_index | (((uint64_t)max_index) << 32);
-        unsigned index = 0;
+   uint64_t ht_key = (((uint64_t)count) << 32) | start;
+   uint64_t value = min_index | (((uint64_t)max_index) << 32);
+   unsigned index = 0;
 
-        if (!cache)
-                return;
+   if (!cache)
+      return;
 
-        if (cache->size == PANFROST_MINMAX_SIZE) {
-                index = cache->index++;
-                cache->index = cache->index % PANFROST_MINMAX_SIZE;
-        } else {
-                index = cache->size++;
-        }
+   if (cache->size == PANFROST_MINMAX_SIZE) {
+      index = cache->index++;
+      cache->index = cache->index % PANFROST_MINMAX_SIZE;
+   } else {
+      index = cache->size++;
+   }
 
-        cache->keys[index] =  ht_key;
-        cache->values[index] = value;
-
+   cache->keys[index] = ht_key;
+   cache->values[index] = value;
 }
 
 /* If we've been caching min/max indices and we update the index
@@ -92,32 +93,34 @@ panfrost_minmax_cache_add(struct panfrost_minmax_cache *cache, unsigned start, u
  * what we've written, and throw out invalid entries. */
 
 void
-panfrost_minmax_cache_invalidate(struct panfrost_minmax_cache *cache, struct pipe_transfer *transfer)
+panfrost_minmax_cache_invalidate(struct panfrost_minmax_cache *cache,
+                                 struct pipe_transfer *transfer)
 {
-        /* Ensure there is a cache to invalidate and a write */
-        if (!cache)
-                return;
+   /* Ensure there is a cache to invalidate and a write */
+   if (!cache)
+      return;
 
-        if (!(transfer->usage & PIPE_MAP_WRITE))
-                return;
+   if (!(transfer->usage & PIPE_MAP_WRITE))
+      return;
 
-        unsigned valid_count = 0;
+   unsigned valid_count = 0;
 
-        for (unsigned i = 0; i < cache->size; ++i) {
-                uint64_t key = cache->keys[i];
+   for (unsigned i = 0; i < cache->size; ++i) {
+      uint64_t key = cache->keys[i];
 
-                uint32_t start = key & 0xffffffff;
-                uint32_t count = key >> 32;
+      uint32_t start = key & 0xffffffff;
+      uint32_t count = key >> 32;
 
-                /* 1D range intersection */
-                bool invalid = MAX2(transfer->box.x, start) < MIN2(transfer->box.x + transfer->box.width, start + count);
-                if (!invalid) {
-                        cache->keys[valid_count] = key;
-                        cache->values[valid_count] = cache->values[i];
-                        valid_count++;
-                }
-        }
+      /* 1D range intersection */
+      bool invalid = MAX2(transfer->box.x, start) <
+                     MIN2(transfer->box.x + transfer->box.width, start + count);
+      if (!invalid) {
+         cache->keys[valid_count] = key;
+         cache->values[valid_count] = cache->values[i];
+         valid_count++;
+      }
+   }
 
-        cache->size = valid_count;
-        cache->index = 0;
+   cache->size = valid_count;
+   cache->index = 0;
 }

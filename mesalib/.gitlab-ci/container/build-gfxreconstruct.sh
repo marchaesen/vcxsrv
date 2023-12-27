@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -ex
 
-GFXRECONSTRUCT_VERSION=5ed3caeecc46e976c4df31e263df8451ae176c26
+GFXRECONSTRUCT_VERSION=761837794a1e57f918a85af7000b12e531b178ae
 
 git clone https://github.com/LunarG/gfxreconstruct.git \
     --single-branch \

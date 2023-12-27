@@ -32,9 +32,16 @@
 #include "util/set.h"
 #include "util/u_memory.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#include <vulkan/vulkan_win32.h>
+#endif
+
 static void
 destroy_fence(struct zink_screen *screen, struct zink_tc_fence *mfence)
 {
+   if (mfence->fence)
+      util_dynarray_delete_unordered(&mfence->fence->mfences, struct zink_tc_fence *, mfence);
    mfence->fence = NULL;
    tc_unflushed_batch_token_reference(&mfence->tc_token, NULL);
    if (mfence->sem)
@@ -104,13 +111,13 @@ tc_fence_finish(struct zink_context *ctx, struct zink_tc_fence *mfence, uint64_t
       /* this is a tc mfence, so we're just waiting on the queue mfence to complete
        * after being signaled by the real mfence
        */
-      if (*timeout_ns == PIPE_TIMEOUT_INFINITE) {
+      if (*timeout_ns == OS_TIMEOUT_INFINITE) {
          util_queue_fence_wait(&mfence->ready);
       } else {
          if (!util_queue_fence_wait_timeout(&mfence->ready, abs_timeout))
             return false;
       }
-      if (*timeout_ns && *timeout_ns != PIPE_TIMEOUT_INFINITE) {
+      if (*timeout_ns && *timeout_ns != OS_TIMEOUT_INFINITE) {
          int64_t time_ns = os_time_get_nano();
          *timeout_ns = abs_timeout > time_ns ? abs_timeout - time_ns : 0;
       }
@@ -171,7 +178,7 @@ zink_fence_finish(struct zink_screen *screen, struct pipe_context *pctx, struct 
 
    struct zink_fence *fence = mfence->fence;
 
-   unsigned submit_diff = zink_batch_state(mfence->fence)->submit_count - mfence->submit_count;
+   unsigned submit_diff = zink_batch_state(mfence->fence)->usage.submit_count - mfence->submit_count;
    /* this batch is known to have finished because it has been submitted more than 1 time
     * since the tc fence last saw it
     */
@@ -230,7 +237,7 @@ zink_fence_server_signal(struct pipe_context *pctx, struct pipe_fence_handle *pf
    struct zink_batch_state *bs = ctx->batch.state;
    /* this must produce a synchronous flush that completes before the function returns */
    pctx->flush(pctx, NULL, 0);
-   if (zink_screen(ctx->base.screen)->threaded)
+   if (zink_screen(ctx->base.screen)->threaded_submit)
       util_queue_fence_wait(&bs->flush_completed);
 }
 
@@ -248,6 +255,8 @@ zink_fence_server_sync(struct pipe_context *pctx, struct pipe_fence_handle *pfen
    VkPipelineStageFlags flag = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
    util_dynarray_append(&ctx->batch.state->wait_semaphores, VkSemaphore, mfence->sem);
    util_dynarray_append(&ctx->batch.state->wait_semaphore_stages, VkPipelineStageFlags, flag);
+   pipe_reference(NULL, &mfence->reference);
+   util_dynarray_append(&ctx->batch.state->fences, struct zink_tc_fence*, mfence);
 
    /* transfer the external wait sempahore ownership to the next submit */
    mfence->sem = VK_NULL_HANDLE;

@@ -259,6 +259,21 @@ st_texture_image_insert_transfer(struct gl_texture_image *stImage,
    stImage->transfer[index].transfer = transfer;
 }
 
+/* See st_texture.h for more information. */
+GLuint
+st_texture_image_resource_level(struct gl_texture_image *stImage)
+{
+   /* An image for a non-finalized texture object only has a single level. */
+   if (stImage->pt != stImage->TexObject->pt)
+      return 0;
+
+   /* An immutable texture object may have views with an LOD offset. */
+   if (stImage->TexObject->Immutable)
+      return stImage->Level + stImage->TexObject->Attrib.MinLevel;
+
+   return stImage->Level;
+}
+
 /**
  * Map a texture image and return the address for a particular 2D face/slice/
  * layer.  The stImage indicates the cube face and mipmap level.  The slice
@@ -334,7 +349,7 @@ print_center_pixel(struct pipe_context *pipe, struct pipe_resource *src)
 {
    struct pipe_transfer *xfer;
    struct pipe_box region;
-   ubyte *map;
+   uint8_t *map;
 
    region.x = src->width0 / 2;
    region.y = src->height0 / 2;
@@ -523,16 +538,16 @@ st_create_texture_handle_from_unit(struct st_context *st,
    struct pipe_context *pipe = st->pipe;
    struct pipe_sampler_view *view;
    struct pipe_sampler_state sampler = {0};
+   const bool glsl130 =
+      (prog->shader_program ? prog->shader_program->GLSL_Version : 0) >= 130;
 
    /* TODO: Clarify the interaction of ARB_bindless_texture and EXT_texture_sRGB_decode */
-   view = st_update_single_texture(st, texUnit, prog->sh.data->Version >= 130,
-                                   true, false);
+   view = st_update_single_texture(st, texUnit, glsl130, true, false);
    if (!view)
       return 0;
 
    if (view->target != PIPE_BUFFER)
-      st_convert_sampler_from_unit(st, &sampler, texUnit,
-                                   prog->sh.data && prog->sh.data->Version >= 130);
+      st_convert_sampler_from_unit(st, &sampler, texUnit, glsl130);
 
    assert(st->ctx->Texture.Unit[texUnit]._Current);
 
@@ -550,7 +565,7 @@ st_create_image_handle_from_unit(struct st_context *st,
    struct pipe_context *pipe = st->pipe;
    struct pipe_image_view img;
 
-   st_convert_image_from_unit(st, &img, imgUnit, GL_READ_WRITE);
+   st_convert_image_from_unit(st, &img, imgUnit, 0);
 
    return pipe->create_image_handle(pipe, &img);
 }

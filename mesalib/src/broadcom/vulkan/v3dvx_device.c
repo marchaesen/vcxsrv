@@ -49,14 +49,23 @@ vk_to_v3d_compare_func[] = {
    [VK_COMPARE_OP_ALWAYS]                       = V3D_COMPARE_FUNC_ALWAYS,
 };
 
-
 static union pipe_color_union encode_border_color(
+   const struct v3dv_device *device,
    const VkSamplerCustomBorderColorCreateInfoEXT *bc_info)
 {
    const struct util_format_description *desc =
       vk_format_description(bc_info->format);
 
    const struct v3dv_format *format = v3dX(get_format)(bc_info->format);
+
+   /* YCbCr doesn't interact with border color at all. From spec:
+    *
+    *   "If sampler YCBCR conversion is enabled, addressModeU, addressModeV,
+    *    and addressModeW must be VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+    *    anisotropyEnable must be VK_FALSE, and unnormalizedCoordinates must
+    *    be VK_FALSE"
+    */
+   assert(format->plane_count == 1);
 
    /* We use the swizzle in our format table to determine swizzle configuration
     * for sampling as well as to decide if we need to use the Swap R/B and
@@ -68,19 +77,35 @@ static union pipe_color_union encode_border_color(
     * colors so we need to fix up the swizzle manually for this case.
     */
    uint8_t swizzle[4];
-   if (v3dv_format_swizzle_needs_reverse(format->swizzle) &&
-       v3dv_format_swizzle_needs_rb_swap(format->swizzle)) {
+   const bool v3d_has_reverse_swap_rb_bits =
+      v3dv_texture_shader_state_has_rb_swap_reverse_bits(device);
+   if (!v3d_has_reverse_swap_rb_bits &&
+       v3dv_format_swizzle_needs_reverse(format->planes[0].swizzle) &&
+       v3dv_format_swizzle_needs_rb_swap(format->planes[0].swizzle)) {
       swizzle[0] = PIPE_SWIZZLE_W;
       swizzle[1] = PIPE_SWIZZLE_X;
       swizzle[2] = PIPE_SWIZZLE_Y;
       swizzle[3] = PIPE_SWIZZLE_Z;
+   }
+   /* In v3d 7.x we no longer have a reverse flag for the border color. Instead
+    * we have to use the new reverse and swap_r/b flags in the texture shader
+    * state which will apply the format swizzle automatically when sampling
+    * the border color too and we should not apply it manually here.
+    */
+   else if (v3d_has_reverse_swap_rb_bits &&
+            (v3dv_format_swizzle_needs_rb_swap(format->planes[0].swizzle) ||
+             v3dv_format_swizzle_needs_reverse(format->planes[0].swizzle))) {
+      swizzle[0] = PIPE_SWIZZLE_X;
+      swizzle[1] = PIPE_SWIZZLE_Y;
+      swizzle[2] = PIPE_SWIZZLE_Z;
+      swizzle[3] = PIPE_SWIZZLE_W;
    } else {
-      memcpy(swizzle, format->swizzle, sizeof (swizzle));
+      memcpy(swizzle, format->planes[0].swizzle, sizeof (swizzle));
    }
 
    union pipe_color_union border;
    for (int i = 0; i < 4; i++) {
-      if (format->swizzle[i] <= 3)
+      if (format->planes[0].swizzle[i] <= 3)
          border.ui[i] = bc_info->customBorderColor.uint32[swizzle[i]];
       else
          border.ui[i] = 0;
@@ -109,7 +134,11 @@ static union pipe_color_union encode_border_color(
                              (1 << (desc->channel[i].size - 1)) - 1);
    }
 
-   /* convert from float to expected format */
+#if V3D_VERSION <= 42
+   /* The TMU in V3D 7.x always takes 32-bit floats and handles conversions
+    * for us. In V3D 4.x we need to manually convert floating point color
+    * values to the expected format.
+    */
    if (vk_format_is_srgb(bc_info->format) ||
        vk_format_is_compressed(bc_info->format)) {
       for (int i = 0; i < 4; i++)
@@ -161,12 +190,14 @@ static union pipe_color_union encode_border_color(
          }
       }
    }
+#endif
 
    return border;
 }
 
 void
-v3dX(pack_sampler_state)(struct v3dv_sampler *sampler,
+v3dX(pack_sampler_state)(const struct v3dv_device *device,
+                         struct v3dv_sampler *sampler,
                          const VkSamplerCreateInfo *pCreateInfo,
                          const VkSamplerCustomBorderColorCreateInfoEXT *bc_info)
 {
@@ -194,21 +225,6 @@ v3dX(pack_sampler_state)(struct v3dv_sampler *sampler,
       break;
    }
 
-   /* For some texture formats, when clamping to transparent black border the
-    * CTS expects alpha to be set to 1 instead of 0, but the border color mode
-    * will take priority over the texture state swizzle, so the only way to
-    * fix that is to apply a swizzle in the shader. Here we keep track of
-    * whether we are activating that mode and we will decide if we need to
-    * activate the texture swizzle lowering in the shader key at compile time
-    * depending on the actual texture format.
-    */
-   if ((pCreateInfo->addressModeU == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
-        pCreateInfo->addressModeV == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
-        pCreateInfo->addressModeW == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER) &&
-       border_color_mode == V3D_BORDER_COLOR_0000) {
-      sampler->clamp_to_transparent_black_border = true;
-   }
-
    v3dvx_pack(sampler->sampler_state, SAMPLER_STATE, s) {
       if (pCreateInfo->anisotropyEnable) {
          s.anisotropy_enable = true;
@@ -223,7 +239,7 @@ v3dX(pack_sampler_state)(struct v3dv_sampler *sampler,
       s.border_color_mode = border_color_mode;
 
       if (s.border_color_mode == V3D_BORDER_COLOR_FOLLOWS) {
-         union pipe_color_union border = encode_border_color(bc_info);
+         union pipe_color_union border = encode_border_color(device, bc_info);
 
          s.border_color_word_0 = border.ui[0];
          s.border_color_word_1 = border.ui[1];
@@ -259,11 +275,13 @@ v3dX(framebuffer_compute_internal_bpp_msaa)(
    const struct v3dv_framebuffer *framebuffer,
    const struct v3dv_cmd_buffer_attachment_state *attachments,
    const struct v3dv_subpass *subpass,
-   uint8_t *max_bpp,
+   uint8_t *max_internal_bpp,
+   uint8_t *total_color_bpp,
    bool *msaa)
 {
    STATIC_ASSERT(V3D_INTERNAL_BPP_32 == 0);
-   *max_bpp = V3D_INTERNAL_BPP_32;
+   *max_internal_bpp = V3D_INTERNAL_BPP_32;
+   *total_color_bpp = 0;
    *msaa = false;
 
    if (subpass) {
@@ -274,9 +292,13 @@ v3dX(framebuffer_compute_internal_bpp_msaa)(
 
          const struct v3dv_image_view *att = attachments[att_idx].image_view;
          assert(att);
+         assert(att->plane_count == 1);
 
-         if (att->vk.aspects & VK_IMAGE_ASPECT_COLOR_BIT)
-            *max_bpp = MAX2(*max_bpp, att->internal_bpp);
+         if (att->vk.aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
+            const uint32_t internal_bpp = att->planes[0].internal_bpp;
+            *max_internal_bpp = MAX2(*max_internal_bpp, internal_bpp);
+            *total_color_bpp += 4 * v3d_internal_bpp_words(internal_bpp);
+         }
 
          if (att->vk.image->samples > VK_SAMPLE_COUNT_1_BIT)
             *msaa = true;
@@ -290,7 +312,6 @@ v3dX(framebuffer_compute_internal_bpp_msaa)(
          if (att->vk.image->samples > VK_SAMPLE_COUNT_1_BIT)
             *msaa = true;
       }
-
       return;
    }
 
@@ -298,9 +319,13 @@ v3dX(framebuffer_compute_internal_bpp_msaa)(
    for (uint32_t i = 0; i < framebuffer->attachment_count; i++) {
       const struct v3dv_image_view *att = attachments[i].image_view;
       assert(att);
+      assert(att->plane_count == 1);
 
-      if (att->vk.aspects & VK_IMAGE_ASPECT_COLOR_BIT)
-         *max_bpp = MAX2(*max_bpp, att->internal_bpp);
+      if (att->vk.aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
+         const uint32_t internal_bpp = att->planes[0].internal_bpp;
+         *max_internal_bpp = MAX2(*max_internal_bpp, internal_bpp);
+         *total_color_bpp += 4 * v3d_internal_bpp_words(internal_bpp);
+      }
 
       if (att->vk.image->samples > VK_SAMPLE_COUNT_1_BIT)
          *msaa = true;

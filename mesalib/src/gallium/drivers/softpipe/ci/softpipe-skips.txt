@@ -18,10 +18,6 @@ maxsize
 # Unreliable on shared runners due to timing
 ext_timer_query@time-elapsed
 
-# Too slow, fixed in https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/624
-longprim
-streaming-texture-leak
-
 # piglit tests that are too long for CI
 shader-mem-barrier
 fs-execution-ordering
@@ -49,3 +45,16 @@ arb_tessellation_shader
 
 # Flakes due to using a time-based random seed, keep it from spamming IRC.
 spec@!opengl 1.4@triangle-rasterization
+
+# After piglit uprev, got this crash:
+# X Error of failed request:  BadMatch (invalid parameter attributes)
+#   Major opcode of failed request:  73 (X_GetImage)
+#   Serial number of failed request:  27
+#   Current serial number in output stream:  27
+# free(): invalid pointer
+# exit status: signal: 6 (core dumped) -->> The next 2
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7610
+spec@arb_separate_shader_objects@xfb-explicit-location-array_gs
+spec@arb_separate_shader_objects@xfb-explicit-location-array_gs_max
+# exit status: signal: 11 (core dumped) -->> The last one
+spec@arb_separate_shader_objects@xfb-explicit-location-array_vs

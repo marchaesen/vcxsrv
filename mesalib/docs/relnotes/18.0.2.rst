@@ -69,7 +69,7 @@ Ian Romanick (1):
 -  intel/compiler: Add scheduler deps for instructions that implicitly
    read g0
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965/fs: Return mlen \* 8 for size_read() for INTERPOLATE_AT\_\*
 

@@ -108,8 +108,6 @@ xkb_symbols "colemak" {
     key <BKSL>	{ [numbersign, asciitilde,   dead_grave,   dead_breve ]	};
 
     key <LSGT>	{ [ backslash,        bar,   asciitilde,    brokenbar ]	};
-
-    include "level3(ralt_switch)"
 };
 
 // Colemak-DH (ISO) layout, UK Variant, https://colemakmods.github.io/mod-dh/
@@ -129,8 +127,6 @@ xkb_symbols "colemak_dh" {
     key <BKSL>	{ [numbersign, asciitilde,   dead_grave,   dead_breve ]	};
 
     key <AB05>	{ [ backslash,        bar,   asciitilde,    brokenbar ]	};
-
-    include "level3(ralt_switch)"
 };
 
 
@@ -185,9 +181,9 @@ xkb_symbols "mac" {
 
 
 partial alphanumeric_keys
-xkb_symbols "mac_intl" { 
+xkb_symbols "mac_intl" {
 
-    include "latin" 
+    include "latin"
 
     name[Group1]="English (UK, Macintosh, intl.)";
 

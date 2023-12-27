@@ -49,11 +49,13 @@ void *fd6_rasterizer_state_create(struct pipe_context *pctx,
                                   const struct pipe_rasterizer_state *cso);
 void fd6_rasterizer_state_delete(struct pipe_context *, void *hwcso);
 
+template <chip CHIP>
 struct fd_ringbuffer *
 __fd6_setup_rasterizer_stateobj(struct fd_context *ctx,
                                 const struct pipe_rasterizer_state *cso,
                                 bool primitive_restart);
 
+template <chip CHIP>
 static inline struct fd_ringbuffer *
 fd6_rasterizer_state(struct fd_context *ctx, bool primitive_restart) assert_dt
 {
@@ -62,7 +64,7 @@ fd6_rasterizer_state(struct fd_context *ctx, bool primitive_restart) assert_dt
    unsigned variant = primitive_restart;
 
    if (unlikely(!rasterizer->stateobjs[variant])) {
-      rasterizer->stateobjs[variant] = __fd6_setup_rasterizer_stateobj(
+      rasterizer->stateobjs[variant] = __fd6_setup_rasterizer_stateobj<CHIP>(
          ctx, ctx->rasterizer, primitive_restart);
    }
 

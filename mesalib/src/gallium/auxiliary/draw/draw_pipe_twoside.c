@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /* Authors:  Keith Whitwell <keithw@vmware.com>
@@ -43,20 +43,22 @@ struct twoside_stage {
 };
 
 
-static inline struct twoside_stage *twoside_stage( struct draw_stage *stage )
+static inline struct twoside_stage *
+twoside_stage(struct draw_stage *stage)
 {
-   return (struct twoside_stage *)stage;
+   return (struct twoside_stage *) stage;
 }
+
 
 /**
  * Copy back color(s) to front color(s).
  */
 static inline struct vertex_header *
-copy_bfc( struct twoside_stage *twoside, 
-          const struct vertex_header *v,
-          unsigned idx )
-{   
-   struct vertex_header *tmp = dup_vert( &twoside->stage, v, idx );
+copy_bfc(struct twoside_stage *twoside,
+         const struct vertex_header *v,
+         unsigned idx)
+{
+   struct vertex_header *tmp = dup_vert(&twoside->stage, v, idx);
 
    if (twoside->attrib_back0 >= 0 && twoside->attrib_front0 >= 0) {
       COPY_4FV(tmp->data[twoside->attrib_front0],
@@ -73,8 +75,9 @@ copy_bfc( struct twoside_stage *twoside,
 
 /* Twoside tri:
  */
-static void twoside_tri( struct draw_stage *stage,
-			 struct prim_header *header )
+static void
+twoside_tri(struct draw_stage *stage,
+            struct prim_header *header)
 {
    struct twoside_stage *twoside = twoside_stage(stage);
 
@@ -90,21 +93,19 @@ static void twoside_tri( struct draw_stage *stage,
       tmp.v[1] = copy_bfc(twoside, header->v[1], 1);
       tmp.v[2] = copy_bfc(twoside, header->v[2], 2);
 
-      stage->next->tri( stage->next, &tmp );
-   }
-   else {
-      stage->next->tri( stage->next, header );
+      stage->next->tri(stage->next, &tmp);
+   } else {
+      stage->next->tri(stage->next, header);
    }
 }
 
 
-
-static void twoside_first_tri( struct draw_stage *stage, 
-			       struct prim_header *header )
+static void
+twoside_first_tri(struct draw_stage *stage,
+                  struct prim_header *header)
 {
    struct twoside_stage *twoside = twoside_stage(stage);
    const struct draw_vertex_shader *vs = stage->draw->vs.vertex_shader;
-   uint i;
 
    twoside->attrib_front0 = -1;
    twoside->attrib_front1 = -1;
@@ -115,7 +116,7 @@ static void twoside_first_tri( struct draw_stage *stage,
     * Find which vertex shader outputs are front/back colors
     * (only first two can be front or back).
     */
-   for (i = 0; i < vs->info.num_outputs; i++) {
+   for (unsigned i = 0; i < vs->info.num_outputs; i++) {
       if (vs->info.output_semantic_name[i] == TGSI_SEMANTIC_COLOR) {
          if (vs->info.output_semantic_index[i] == 0)
             twoside->attrib_front0 = i;
@@ -138,34 +139,38 @@ static void twoside_first_tri( struct draw_stage *stage,
    twoside->sign = stage->draw->rasterizer->front_ccw ? -1.0f : 1.0f;
 
    stage->tri = twoside_tri;
-   stage->tri( stage, header );
+   stage->tri(stage, header);
 }
 
 
-static void twoside_flush( struct draw_stage *stage, unsigned flags )
+static void
+twoside_flush(struct draw_stage *stage, unsigned flags)
 {
    stage->tri = twoside_first_tri;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 }
 
 
-static void twoside_reset_stipple_counter( struct draw_stage *stage )
+static void
+twoside_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void twoside_destroy( struct draw_stage *stage )
+static void
+twoside_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
 
 
 /**
  * Create twoside pipeline stage.
  */
-struct draw_stage *draw_twoside_stage( struct draw_context *draw )
+struct draw_stage *
+draw_twoside_stage(struct draw_context *draw)
 {
    struct twoside_stage *twoside = CALLOC_STRUCT(twoside_stage);
    if (!twoside)
@@ -181,14 +186,14 @@ struct draw_stage *draw_twoside_stage( struct draw_context *draw )
    twoside->stage.reset_stipple_counter = twoside_reset_stipple_counter;
    twoside->stage.destroy = twoside_destroy;
 
-   if (!draw_alloc_temp_verts( &twoside->stage, 3 ))
+   if (!draw_alloc_temp_verts(&twoside->stage, 3))
       goto fail;
 
    return &twoside->stage;
 
- fail:
+fail:
    if (twoside)
-      twoside->stage.destroy( &twoside->stage );
+      twoside->stage.destroy(&twoside->stage);
 
    return NULL;
 }

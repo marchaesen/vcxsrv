@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,7 +23,7 @@
  *
  **********************************************************/
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_inlines.h"
 #include "pipe/p_defines.h"
 #include "util/u_helpers.h"
@@ -68,7 +68,7 @@ svga_hwtnl_destroy(struct svga_hwtnl *hwtnl)
 {
    unsigned i, j;
 
-   for (i = 0; i < PIPE_PRIM_MAX; i++) {
+   for (i = 0; i < MESA_PRIM_COUNT; i++) {
       for (j = 0; j < IDX_CACHE_MAX; j++) {
          pipe_resource_reference(&hwtnl->index_cache[i][j].buffer, NULL);
       }
@@ -86,7 +86,7 @@ svga_hwtnl_destroy(struct svga_hwtnl *hwtnl)
 
 void
 svga_hwtnl_set_flatshade(struct svga_hwtnl *hwtnl,
-                         boolean flatshade, boolean flatshade_first)
+                         bool flatshade, bool flatshade_first)
 {
    struct svga_screen *svgascreen = svga_screen(hwtnl->svga->pipe.screen);
 
@@ -157,33 +157,33 @@ svga_hwtnl_vertex_buffers(struct svga_hwtnl *hwtnl,
  * Determine whether the specified buffer is referred in the primitive queue,
  * for which no commands have been written yet.
  */
-boolean
+bool
 svga_hwtnl_is_buffer_referred(struct svga_hwtnl *hwtnl,
                               struct pipe_resource *buffer)
 {
    unsigned i;
 
    if (svga_buffer_is_user_buffer(buffer)) {
-      return FALSE;
+      return false;
    }
 
    if (!hwtnl->cmd.prim_count) {
-      return FALSE;
+      return false;
    }
 
    for (i = 0; i < hwtnl->cmd.vbuf_count; ++i) {
       if (hwtnl->cmd.vbufs[i].buffer.resource == buffer) {
-         return TRUE;
+         return true;
       }
    }
 
    for (i = 0; i < hwtnl->cmd.prim_count; ++i) {
       if (hwtnl->cmd.prim_ib[i] == buffer) {
-         return TRUE;
+         return true;
       }
    }
 
-   return FALSE;
+   return false;
 }
 
 
@@ -419,7 +419,7 @@ svga_validate_sampler_resources(struct svga_context *svga,
          }
       }
    }
-   svga->rebind.flags.texture_samplers = FALSE;
+   svga->rebind.flags.texture_samplers = false;
 
    return PIPE_OK;
 }
@@ -503,7 +503,7 @@ svga_validate_constant_buffers(struct svga_context *svga,
       unsigned enabled_rawbufs = svga->state.hw_draw.enabled_rawbufs[shader] & ~1u;
       while (enabled_rawbufs) {
          unsigned i = u_bit_scan(&enabled_rawbufs);
-         buffer = svga_buffer(svga->curr.constbufs[shader][i].buffer);
+         buffer = svga_buffer(svga->state.hw_draw.rawbufs[shader][i].buffer);
 
          assert(buffer != NULL);
          handle = svga_buffer_handle(svga, &buffer->b,
@@ -519,7 +519,7 @@ svga_validate_constant_buffers(struct svga_context *svga,
          }
       }
    }
-   svga->rebind.flags.constbufs = FALSE;
+   svga->rebind.flags.constbufs = false;
 
    return PIPE_OK;
 }
@@ -558,7 +558,7 @@ svga_validate_image_views(struct svga_context *svga,
          return ret;
    }
 
-   svga->rebind.flags.images = FALSE;
+   svga->rebind.flags.images = false;
 
    return PIPE_OK;
 }
@@ -597,7 +597,7 @@ svga_validate_shader_buffers(struct svga_context *svga,
          return ret;
    }
 
-   svga->rebind.flags.shaderbufs = FALSE;
+   svga->rebind.flags.shaderbufs = false;
 
    ret = svga_validate_shader_buffer_resources(svga,
                svga->state.hw_draw.num_atomic_buffers,
@@ -607,7 +607,7 @@ svga_validate_shader_buffers(struct svga_context *svga,
    if (ret != PIPE_OK)
       return ret;
 
-   svga->rebind.flags.atomicbufs = FALSE;
+   svga->rebind.flags.atomicbufs = false;
 
    return PIPE_OK;
 }
@@ -646,7 +646,7 @@ last_command_was_draw(const struct svga_context *svga)
  * They are equal if the vertex buffer attributes and the vertex buffer
  * resources are identical.
  */
-static boolean
+static bool
 vertex_buffers_equal(unsigned count,
                      SVGA3dVertexBuffer_v2 *pVBufAttr1,
                      struct pipe_resource **pVBuf1,
@@ -702,7 +702,7 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
 
       /* Set IA slot0 input buffer to the SO buffer */
       assert(vbuf_count == 1);
-      vbuffer_attrs[0].stride = hwtnl->cmd.vbufs[0].stride;
+      vbuffer_attrs[0].stride = svga->curr.velems->strides[0];
       vbuffer_attrs[0].offset = hwtnl->cmd.vbufs[0].buffer_offset;
       vbuffer_attrs[0].sid = 0;
       assert(so_vertex_count->buffer != NULL);
@@ -717,7 +717,7 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
          struct svga_buffer *sbuf =
             svga_buffer(hwtnl->cmd.vbufs[i].buffer.resource);
 
-         vbuffer_attrs[i].stride = hwtnl->cmd.vbufs[i].stride;
+         vbuffer_attrs[i].stride = svga->curr.velems->strides[i];
          vbuffer_attrs[i].offset = hwtnl->cmd.vbufs[i].buffer_offset;
          vbuffer_attrs[i].sid = 0;
 
@@ -824,7 +824,7 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
             SVGA3dVertexBuffer_v2 *pbufAttrs = vbuffer_attrs;
             struct svga_winsys_surface **pbufHandles = vbuffer_handles;
             unsigned numVBuf = 0;
-            boolean emitVBufs =
+            bool emitVBufs =
                !svga_sws(svga)->have_index_vertex_buffer_offset_cmd ||
                svga->rebind.flags.vertexbufs;
 
@@ -833,7 +833,7 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
              * corresponding entries in the device's vertex buffer list.
              */
             for (i = 0; i < num_vbuffers; i++) {
-               boolean emit =
+               bool emit =
                   vertex_buffers_equal(1,
                                        &vbuffer_attrs[i],
                                        &vbuffers[i],
@@ -848,7 +848,7 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
                   /* Include the last vertex buffer in the next emit
                    * if it is different.
                    */
-                  emit = TRUE;
+                  emit = true;
                   numVBuf++;
                   i++;
                }
@@ -915,7 +915,7 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
       }
    }
 
-   svga->rebind.flags.vertexbufs = FALSE;
+   svga->rebind.flags.vertexbufs = false;
 
    return PIPE_OK;
 }
@@ -987,7 +987,7 @@ validate_index_buffer(struct svga_hwtnl *hwtnl,
       }
    }
 
-   svga->rebind.flags.indexbuf = FALSE;
+   svga->rebind.flags.indexbuf = false;
 
    return PIPE_OK;
 }
@@ -1410,7 +1410,7 @@ done:
 /**
  * Return TRUE if there are pending primitives.
  */
-boolean
+bool
 svga_hwtnl_has_pending_prim(struct svga_hwtnl *hwtnl)
 {
    return hwtnl->cmd.prim_count > 0;

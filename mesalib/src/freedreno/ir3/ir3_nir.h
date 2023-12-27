@@ -33,15 +33,20 @@
 
 #include "ir3_shader.h"
 
+BEGINC;
+
 bool ir3_nir_apply_trig_workarounds(nir_shader *shader);
 bool ir3_nir_lower_imul(nir_shader *shader);
 bool ir3_nir_lower_io_offsets(nir_shader *shader);
 bool ir3_nir_lower_load_barycentric_at_sample(nir_shader *shader);
 bool ir3_nir_lower_load_barycentric_at_offset(nir_shader *shader);
+bool ir3_nir_lower_push_consts_to_preamble(nir_shader *nir,
+                                           struct ir3_shader_variant *v);
 bool ir3_nir_move_varying_inputs(nir_shader *shader);
-int ir3_nir_coord_offset(nir_ssa_def *ssa);
+int ir3_nir_coord_offset(nir_def *ssa);
 bool ir3_nir_lower_tex_prefetch(nir_shader *shader);
 bool ir3_nir_lower_wide_load_store(nir_shader *shader);
+bool ir3_nir_lower_layer_id(nir_shader *shader);
 
 void ir3_nir_lower_to_explicit_output(nir_shader *shader,
                                       struct ir3_shader_variant *v,
@@ -60,6 +65,7 @@ void ir3_nir_lower_gs(nir_shader *shader);
 bool ir3_nir_lower_64b_intrinsics(nir_shader *shader);
 bool ir3_nir_lower_64b_undef(nir_shader *shader);
 bool ir3_nir_lower_64b_global(nir_shader *shader);
+bool ir3_nir_lower_64b_regs(nir_shader *shader);
 
 void ir3_optimize_loop(struct ir3_compiler *compiler, nir_shader *s);
 void ir3_nir_lower_io_to_temporaries(nir_shader *s);
@@ -76,16 +82,13 @@ bool ir3_nir_fixup_load_uniform(nir_shader *nir);
 bool ir3_nir_opt_preamble(nir_shader *nir, struct ir3_shader_variant *v);
 bool ir3_nir_lower_preamble(nir_shader *nir, struct ir3_shader_variant *v);
 
-nir_ssa_def *ir3_nir_try_propagate_bit_shift(nir_builder *b,
-                                             nir_ssa_def *offset,
+nir_def *ir3_nir_try_propagate_bit_shift(nir_builder *b,
+                                             nir_def *offset,
                                              int32_t shift);
 
 static inline nir_intrinsic_instr *
 ir3_bindless_resource(nir_src src)
 {
-   if (!src.is_ssa)
-      return NULL;
-
    if (src.ssa->parent_instr->type != nir_instr_type_intrinsic)
       return NULL;
 
@@ -129,5 +132,7 @@ is_intrinsic_load(nir_intrinsic_op op)
       return false;
    }
 }
+
+ENDC;
 
 #endif /* IR3_NIR_H_ */

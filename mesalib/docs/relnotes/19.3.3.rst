@@ -113,7 +113,7 @@ Jan Vesely (1):
 
 -  clover: Initialize Asm Parsers
 
-Jason Ekstrand (8):
+Faith Ekstrand (8):
 
 -  anv: Flag descriptors dirty when gl_NumWorkgroups is used
 -  intel/vec4: Support scoped_memory_barrier

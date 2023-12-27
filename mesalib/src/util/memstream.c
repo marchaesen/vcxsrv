@@ -27,10 +27,20 @@
 
 #include <stdlib.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 bool
 u_memstream_open(struct u_memstream *mem, char **bufp, size_t *sizep)
 {
-#if defined(_WIN32)
+#ifdef _GAMING_XBOX
+   int err = tmpfile_s(&mem->f);
+   mem->bufp = bufp;
+   mem->sizep = sizep;
+
+   return err == 0;
+#elif defined(_WIN32)
    bool success = false;
 
    char path[MAX_PATH];

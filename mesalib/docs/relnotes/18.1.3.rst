@@ -98,7 +98,7 @@ Ian Romanick (2):
 -  glsl: Don't copy propagate elements from SSBO or shared variables
    either
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  nir: Handle call instructions in foreach_src
 -  nir/validate: Use the type from the tail of call parameter derefs

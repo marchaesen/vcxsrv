@@ -178,9 +178,9 @@ ShapeOval(Widget w)
  *
  * Parameters:
  *	w	- widget to be reshaped
- *	ellipse - True if shape to ellise, rounded rectangle otherwise
+ *	ellipse - True if shape to ellipse, rounded rectangle otherwise
  *	ew	- horizontal radius of rounded rectangle
- *	eh	- vertical radius of rouded rectangle
+ *	eh	- vertical radius of rounded rectangle
  *
  * Description:
  *	  Based on the ellipse parameter, gives the widget a elliptical

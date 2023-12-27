@@ -31,13 +31,17 @@
 static uint32_t
 hash_tcs_variant_key(const void *key)
 {
-   return _mesa_hash_data(key, sizeof(struct d3d12_tcs_variant_key));
+   d3d12_tcs_variant_key *v = (d3d12_tcs_variant_key*)key;
+   uint32_t hash = _mesa_hash_data(v, offsetof(d3d12_tcs_variant_key, varyings));
+   if (v->varyings)
+      hash = _mesa_hash_data_with_seed(v->varyings->slots, sizeof(v->varyings->slots[0]) * v->varyings->max, hash);
+   return hash;
 }
 
 static bool
 equals_tcs_variant_key(const void *a, const void *b)
 {
-   return memcmp(a, b, sizeof(struct d3d12_tcs_variant_key)) == 0;
+   return memcmp(a, b, sizeof(d3d12_tcs_variant_key)) == 0;
 }
 
 void
@@ -79,12 +83,12 @@ create_tess_ctrl_shader_variant(struct d3d12_context *ctx, struct d3d12_tcs_vari
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_TESS_CTRL, &d3d12_screen(ctx->base.screen)->nir_options, "passthrough");
    nir_shader *nir = b.shader;
 
-   nir_ssa_def *invocation_id = nir_load_invocation_id(&b);
-   uint64_t varying_mask = key->varyings.mask;
+   nir_def *invocation_id = nir_load_invocation_id(&b);
+   uint64_t varying_mask = key->varyings->mask;
 
    while(varying_mask) {
       int var_idx = u_bit_scan64(&varying_mask);
-      auto slot = &key->varyings.slots[var_idx];
+      auto slot = &key->varyings->slots[var_idx];
       unsigned frac_mask = slot->location_frac_mask;
       while (frac_mask) {
          int frac = u_bit_scan(&frac_mask);
@@ -101,7 +105,7 @@ create_tess_ctrl_shader_variant(struct d3d12_context *ctx, struct d3d12_tcs_vari
          out->data.driver_location = in->data.driver_location = var->driver_location;
 
          for (unsigned i = 0; i < key->vertices_out; i++) {
-            nir_if *start_block = nir_push_if(&b, nir_ieq(&b, invocation_id, nir_imm_int(&b, i)));
+            nir_if *start_block = nir_push_if(&b, nir_ieq_imm(&b, invocation_id, i));
             nir_deref_instr *in_array_var = nir_build_deref_array(&b, nir_build_deref_var(&b, in), invocation_id);
             nir_deref_instr *out_array_var = nir_build_deref_array_imm(&b, nir_build_deref_var(&b, out), i);
             copy_vars(&b, out_array_var, in_array_var);
@@ -119,8 +123,8 @@ create_tess_ctrl_shader_variant(struct d3d12_context *ctx, struct d3d12_tcs_vari
    gl_TessLevelOuter->data.compact = 1;
 
    nir_variable *state_var_inner = NULL, *state_var_outer = NULL;
-   nir_ssa_def *load_inner = d3d12_get_state_var(&b, D3D12_STATE_VAR_DEFAULT_INNER_TESS_LEVEL, "d3d12_TessLevelInner", glsl_vec_type(2), &state_var_inner);
-   nir_ssa_def *load_outer = d3d12_get_state_var(&b, D3D12_STATE_VAR_DEFAULT_OUTER_TESS_LEVEL, "d3d12_TessLevelOuter", glsl_vec4_type(), &state_var_outer);
+   nir_def *load_inner = d3d12_get_state_var(&b, D3D12_STATE_VAR_DEFAULT_INNER_TESS_LEVEL, "d3d12_TessLevelInner", glsl_vec_type(2), &state_var_inner);
+   nir_def *load_outer = d3d12_get_state_var(&b, D3D12_STATE_VAR_DEFAULT_OUTER_TESS_LEVEL, "d3d12_TessLevelOuter", glsl_vec4_type(), &state_var_outer);
 
    for (unsigned i = 0; i < 2; i++) {
       nir_deref_instr *store_idx = nir_build_deref_array_imm(&b, nir_build_deref_var(&b, gl_TessLevelInner), i);
@@ -144,7 +148,7 @@ create_tess_ctrl_shader_variant(struct d3d12_context *ctx, struct d3d12_tcs_vari
    d3d12_shader_selector *tcs = d3d12_create_shader(ctx, PIPE_SHADER_TESS_CTRL, &templ);
    if (tcs) {
       tcs->is_variant = true;
-      memcpy(&tcs->tcs_key, key, sizeof(*key));
+      tcs->tcs_key = *key;
    }
    return tcs;
 }

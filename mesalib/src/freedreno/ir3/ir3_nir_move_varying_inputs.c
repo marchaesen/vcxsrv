@@ -78,7 +78,7 @@ check_precondition_instr(precond_state *state, nir_instr *instr)
    case nir_instr_type_alu:
    case nir_instr_type_deref:
    case nir_instr_type_load_const:
-   case nir_instr_type_ssa_undef:
+   case nir_instr_type_undef:
       /* These could be safely moved around */
       break;
    case nir_instr_type_intrinsic: {
@@ -124,8 +124,6 @@ check_precondition_block(precond_state *state, nir_block *block)
 static bool
 move_src(nir_src *src, void *state)
 {
-   /* At this point we shouldn't have any non-ssa src: */
-   assert(src->is_ssa);
    move_instruction_to_start_block(state, src->ssa->parent_instr);
    return true;
 }
@@ -168,8 +166,6 @@ move_varying_inputs_block(state *state, nir_block *block)
       default:
          continue;
       }
-
-      assert(intr->dest.is_ssa);
 
       move_instruction_to_start_block(state, instr);
 

@@ -29,6 +29,7 @@
 #include <vulkan/vulkan.h>
 
 #include "hwdef/rogue_hw_defs.h"
+#include "pvr_csb_enum_helpers.h"
 #include "pvr_private.h"
 #include "pvr_types.h"
 
@@ -39,20 +40,6 @@ enum pvr_pbe_gamma {
    PVR_PBE_GAMMA_REDGREEN,
    /* For all other pack formats. */
    PVR_PBE_GAMMA_ENABLED,
-};
-
-enum pvr_pbe_source_start_pos {
-   PVR_PBE_STARTPOS_BIT0,
-   PVR_PBE_STARTPOS_BIT32,
-   PVR_PBE_STARTPOS_BIT64,
-   PVR_PBE_STARTPOS_BIT96,
-   /* The below ones are available if has_eight_output_registers feature is
-    * enabled.
-    */
-   PVR_PBE_STARTPOS_BIT128,
-   PVR_PBE_STARTPOS_BIT160,
-   PVR_PBE_STARTPOS_BIT192,
-   PVR_PBE_STARTPOS_BIT224,
 };
 
 /**
@@ -99,7 +86,6 @@ struct pvr_pbe_surf_params {
 
    bool z_only_render;
    bool down_scale;
-   uint32_t msaa_mode;
 };
 
 /**

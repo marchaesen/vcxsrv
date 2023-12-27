@@ -35,6 +35,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xmu/StdCmap.h>
+#include "Xmuint.h"
 
 /*
  * Distinguishable colors routine.  Determines if two colors are
@@ -77,13 +78,13 @@ XmuDistinguishablePixels(Display *dpy, Colormap cmap,
 	for (j = i + 1; j < count; j++)
 	    if (pixels[i] == pixels[j])
 		return False;
-    defs = (XColor *) malloc (count * sizeof (XColor));
+    defs = Xmumallocarray (count, sizeof (XColor));
     if (!defs)
 	return False;
     for (i = 0; i < count; i++)
 	defs[i].pixel = pixels[i];
     XQueryColors (dpy, cmap, defs, count);
     ret = XmuDistinguishableColors (defs, count);
-    free ((char *) defs);
+    free (defs);
     return ret;
 }

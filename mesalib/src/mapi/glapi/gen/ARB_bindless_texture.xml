@@ -79,12 +79,12 @@
       <param name="handle" type="GLuint64" />
    </function>
 
-   <function name="VertexAttribL1ui64ARB" exec="vtxfmt">
+   <function name="VertexAttribL1ui64ARB" exec="beginend">
       <param name="index" type="GLuint" />
       <param name="x" type="GLuint64EXT" />
    </function>
 
-   <function name="VertexAttribL1ui64vARB" exec="vtxfmt">
+   <function name="VertexAttribL1ui64vARB" exec="beginend">
       <param name="index" type="GLuint" />
       <param name="v" type="const GLuint64EXT *" count="1"/>
    </function>

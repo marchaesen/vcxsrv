@@ -40,160 +40,190 @@
 static bool
 is_swizzle_0(unsigned *swizzle)
 {
-        for (unsigned c = 0; c < MIR_VEC_COMPONENTS; ++c)
-                if (swizzle[c])
-                        return false;
+   for (unsigned c = 0; c < MIR_VEC_COMPONENTS; ++c)
+      if (swizzle[c])
+         return false;
 
-        return true;
+   return true;
 }
 
 bool
 midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
 {
-        bool progress = false;
+   bool progress = false;
 
-        mir_foreach_instr_in_block_safe(block, ins) {
-                /* First search for fmul */
-                if (ins->type != TAG_ALU_4) continue;
-                if (ins->op != midgard_alu_op_fmul) continue;
+   mir_foreach_instr_in_block_safe(block, ins) {
+      /* First search for fmul */
+      if (ins->type != TAG_ALU_4)
+         continue;
+      if (ins->op != midgard_alu_op_fmul)
+         continue;
 
-                /* TODO: Flip */
+      /* TODO: Flip */
 
-                /* Check the swizzles */
-                
-                if (!mir_is_simple_swizzle(ins->swizzle[0], ins->mask)) continue;
-                if (!is_swizzle_0(ins->swizzle[1])) continue;
+      /* Check the swizzles */
 
-                /* Awesome, we're the right form. Now check where src2 is from */
-                unsigned frcp = ins->src[1];
-                unsigned to = ins->dest;
+      if (!mir_is_simple_swizzle(ins->swizzle[0], ins->mask))
+         continue;
+      if (!is_swizzle_0(ins->swizzle[1]))
+         continue;
 
-                if (frcp & PAN_IS_REG) continue;
-                if (to & PAN_IS_REG) continue;
+      /* Awesome, we're the right form. Now check where src2 is from */
+      unsigned frcp = ins->src[1];
+      unsigned to = ins->dest;
 
-                bool frcp_found = false;
-                unsigned frcp_component = 0;
-                unsigned frcp_from = 0;
+      if (frcp & PAN_IS_REG)
+         continue;
+      if (to & PAN_IS_REG)
+         continue;
 
-                mir_foreach_instr_in_block_safe(block, sub) {
-                        if (sub->dest != frcp) continue;
+      bool frcp_found = false;
+      unsigned frcp_component = 0;
+      unsigned frcp_from = 0;
 
-                        frcp_component = sub->swizzle[0][0];
-                        frcp_from = sub->src[0];
+      mir_foreach_instr_in_block_safe(block, sub) {
+         if (sub->dest != frcp)
+            continue;
 
-                        frcp_found =
-                                (sub->type == TAG_ALU_4) &&
-                                (sub->op == midgard_alu_op_frcp);
-                        break;
-                }
+         frcp_component = sub->swizzle[0][0];
+         frcp_from = sub->src[0];
 
-                if (!frcp_found) continue;
-                if (frcp_from != ins->src[0]) continue;
-                if (frcp_component != COMPONENT_W && frcp_component != COMPONENT_Z) continue;
-                if (!mir_single_use(ctx, frcp)) continue;
+         frcp_found =
+            (sub->type == TAG_ALU_4) && (sub->op == midgard_alu_op_frcp);
+         break;
+      }
 
-                /* Heuristic: check if the frcp is from a single-use varying */
+      if (!frcp_found)
+         continue;
+      if (frcp_from != ins->src[0])
+         continue;
+      if (frcp_component != COMPONENT_W && frcp_component != COMPONENT_Z)
+         continue;
+      if (!mir_single_use(ctx, frcp))
+         continue;
 
-                bool ok = false;
+      /* Heuristic: check if the frcp is from a single-use varying */
 
-                /* One for frcp and one for fmul */
-                if (mir_use_count(ctx, frcp_from) > 2) continue;
+      bool ok = false;
 
-                mir_foreach_instr_in_block_safe(block, v) {
-                        if (v->dest != frcp_from) continue;
-                        if (v->type != TAG_LOAD_STORE_4) break;
-                        if (!OP_IS_LOAD_VARY_F(v->op)) break;
+      /* One for frcp and one for fmul */
+      if (mir_use_count(ctx, frcp_from) > 2)
+         continue;
 
-                        ok = true;
-                        break;
-                }
+      mir_foreach_instr_in_block_safe(block, v) {
+         if (v->dest != frcp_from)
+            continue;
+         if (v->type != TAG_LOAD_STORE_4)
+            break;
+         if (!OP_IS_LOAD_VARY_F(v->op))
+            break;
 
-                if (!ok)
-                        continue;
+         ok = true;
+         break;
+      }
 
-                /* Nice, we got the form spot on. Let's convert! */
+      if (!ok)
+         continue;
 
-                midgard_instruction accel = {
-                        .type = TAG_LOAD_STORE_4,
-                        .mask = ins->mask,
-                        .dest = to,
-                        .dest_type = nir_type_float32,
-                        .src = { frcp_from, ~0, ~0, ~0 },
-                        .src_types = { nir_type_float32 },
-                        .swizzle = SWIZZLE_IDENTITY_4,
-                        .op = frcp_component == COMPONENT_W ?
-                                midgard_op_ldst_perspective_div_w :
-                                midgard_op_ldst_perspective_div_z,
-                        .load_store = {
-                                .bitsize_toggle = true,
-                        }
-                };
+      /* Nice, we got the form spot on. Let's convert! */
 
-                mir_insert_instruction_before(ctx, ins, accel);
-                mir_remove_instruction(ins);
+      midgard_instruction accel = {
+         .type = TAG_LOAD_STORE_4,
+         .mask = ins->mask,
+         .dest = to,
+         .dest_type = nir_type_float32,
+         .src =
+            {
+               frcp_from,
+               ~0,
+               ~0,
+               ~0,
+            },
+         .src_types =
+            {
+               nir_type_float32,
+            },
+         .swizzle = SWIZZLE_IDENTITY_4,
+         .op = frcp_component == COMPONENT_W
+                  ? midgard_op_ldst_perspective_div_w
+                  : midgard_op_ldst_perspective_div_z,
+         .load_store =
+            {
+               .bitsize_toggle = true,
+            },
+      };
 
-                progress |= true;
-        }
+      mir_insert_instruction_before(ctx, ins, accel);
+      mir_remove_instruction(ins);
 
-        return progress;
+      progress |= true;
+   }
+
+   return progress;
 }
 
 bool
 midgard_opt_varying_projection(compiler_context *ctx, midgard_block *block)
 {
-        bool progress = false;
+   bool progress = false;
 
-        mir_foreach_instr_in_block_safe(block, ins) {
-                /* Search for a projection */
-                if (ins->type != TAG_LOAD_STORE_4) continue;
-                if (!OP_IS_PROJECTION(ins->op)) continue;
+   mir_foreach_instr_in_block_safe(block, ins) {
+      /* Search for a projection */
+      if (ins->type != TAG_LOAD_STORE_4)
+         continue;
+      if (!OP_IS_PROJECTION(ins->op))
+         continue;
 
-                unsigned vary = ins->src[0];
-                unsigned to = ins->dest;
+      unsigned vary = ins->src[0];
+      unsigned to = ins->dest;
 
-                if (vary & PAN_IS_REG) continue;
-                if (to & PAN_IS_REG) continue;
-                if (!mir_single_use(ctx, vary)) continue;
+      if (vary & PAN_IS_REG)
+         continue;
+      if (to & PAN_IS_REG)
+         continue;
+      if (!mir_single_use(ctx, vary))
+         continue;
 
-                /* Check for a varying source. If we find it, we rewrite */
+      /* Check for a varying source. If we find it, we rewrite */
 
-                bool rewritten = false;
+      bool rewritten = false;
 
-                mir_foreach_instr_in_block_safe(block, v) {
-                        if (v->dest != vary) continue;
-                        if (v->type != TAG_LOAD_STORE_4) break;
-                        if (!OP_IS_LOAD_VARY_F(v->op)) break;
+      mir_foreach_instr_in_block_safe(block, v) {
+         if (v->dest != vary)
+            continue;
+         if (v->type != TAG_LOAD_STORE_4)
+            break;
+         if (!OP_IS_LOAD_VARY_F(v->op))
+            break;
 
-                        /* We found it, so rewrite it to project. Grab the
-                         * modifier */
+         /* We found it, so rewrite it to project. Grab the
+          * modifier */
 
-                        midgard_varying_params p =
-                                midgard_unpack_varying_params(v->load_store);
+         midgard_varying_params p =
+            midgard_unpack_varying_params(v->load_store);
 
-                        if (p.modifier != midgard_varying_mod_none)
-                                break;
+         if (p.modifier != midgard_varying_mod_none)
+            break;
 
-                        bool projects_w =
-                                ins->op == midgard_op_ldst_perspective_div_w;
+         bool projects_w = ins->op == midgard_op_ldst_perspective_div_w;
 
-                        p.modifier = projects_w ?
-                                midgard_varying_mod_perspective_w :
-                                midgard_varying_mod_perspective_z;
+         p.modifier = projects_w ? midgard_varying_mod_perspective_w
+                                 : midgard_varying_mod_perspective_z;
 
-                        midgard_pack_varying_params(&v->load_store, p);
+         midgard_pack_varying_params(&v->load_store, p);
 
-                        /* Use the new destination */
-                        v->dest = to;
+         /* Use the new destination */
+         v->dest = to;
 
-                        rewritten = true;
-                        break;
-                }
+         rewritten = true;
+         break;
+      }
 
-                if (rewritten)
-                        mir_remove_instruction(ins);
+      if (rewritten)
+         mir_remove_instruction(ins);
 
-                progress |= rewritten;
-        }
+      progress |= rewritten;
+   }
 
-        return progress;
+   return progress;
 }

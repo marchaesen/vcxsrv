@@ -1,4 +1,6 @@
-// Arabic AZERTY with modern Latin digits 
+// Keyboard layouts for Morocco.
+
+// Arabic AZERTY with modern Latin digits
 default partial alphanumeric_keys
 xkb_symbols "arabic" {
     include "ara(azerty)"
@@ -51,7 +53,7 @@ xkb_symbols "tifinagh" {
     key <AD09>	{ [ 0x1002d44 ]	};
     key <AD10>	{ [ 0x1002d43 ]	};
     key <AD11>	{ [ 0x1002d6f ]   };
-    key <AD12>	{ [    dollar,   sterling,   0x10000a4]	};
+    key <AD12>	{ [    dollar,   sterling,   currency ] };
 
     key <AC01>	{ [ 0x1002d47 ]	};
     key <AC02>	{ [ 0x1002d59, 0x1002d5a ]	};
@@ -82,38 +84,39 @@ xkb_symbols "tifinagh" {
 
 partial alphanumeric_keys
 xkb_symbols "tifinagh-phonetic" {
+
     include "ma(tifinagh)"
 
     name[Group1]="Berber (Morocco, Tifinagh phonetic)";
 
-    key <LatA>	{ [ 0x1002d30 ]	};
-    key <LatZ>	{ [ 0x1002d63, 0x1002d65 ]	};
-    key <LatE>	{ [ 0x1002d3b, NoSymbol,0x10020ac ]	};
-    key <LatR>	{ [ 0x1002d54, 0x1002d55 ]	};
-    key <LatT>	{ [ 0x1002d5c, 0x1002d5f ]	};
-    key <LatY>	{ [ 0x1002d62 ]	};
-    key <LatU>	{ [ 0x1002d53 ]	};
-    key <LatI>	{ [ 0x1002d49 ]	};
-    key <LatO>	{ [ 0x1002d44 ]	};
-    key <LatP>	{ [ 0x1002d43 ]	};
+    key <AD01>	{[ U2d30 ]};
+    key <AD02>	{[ U2d63, U2d65 ]};
+    key <AD03>	{[ U2d3b,   any, U20ac ]};
+    key <AD04>	{[ U2d54, U2d55 ]};
+    key <AD05>	{[ U2d5c, U2d5f ]};
+    key <AD06>	{[ U2d62 ]};
+    key <AD07>	{[ U2d53 ]};
+    key <AD08>	{[ U2d49 ]};
+    key <AD09>	{[ U2d44 ]};
+    key <AD10>	{[ U2d43 ]};
 
-    key <LatQ>	{ [ 0x1002d47 ]	};
-    key <LatS>	{ [ 0x1002d59, 0x1002d5a ]	};
-    key <LatD>	{ [ 0x1002d37, 0x1002d39 ]	};
-    key <LatF>	{ [ 0x1002d3c ]	};
-    key <LatG>	{ [ 0x1002d33 ]	};
-    key <LatH>	{ [ 0x1002d40 ]	};
-    key <LatJ>	{ [ 0x1002d4a ]	};
-    key <LatK>	{ [ 0x1002d3d ]	};
-    key <LatL>	{ [ 0x1002d4d ]	};
-    key <LatM>	{ [ 0x1002d4e ]	};
+    key <AC01>	{[ U2d47 ]};
+    key <AC02>	{[ U2d59, U2d5a ]};
+    key <AC03>	{[ U2d37, U2d39 ]};
+    key <AC04>	{[ U2d3c ]};
+    key <AC05>	{[ U2d33 ]};
+    key <AC06>	{[ U2d40 ]};
+    key <AC07>	{[ U2d4a ]};
+    key <AC08>	{[ U2d3d ]};
+    key <AC09>	{[ U2d4d ]};
+    key <AC10>	{[ U2d4e ]};
 
-    key <LatW>	{ [ 0x1002d61,0x1002d6f ]	};
-    key <LatX>	{ [ 0x1002d45 ]	};
-    key <LatC>	{ [ 0x1002d5b ]	};
-    key <LatV>	{ [ 0x1002d56 ]	};
-    key <LatB>	{ [ 0x1002d31 ]	};
-    key <LatN>	{ [ 0x1002d4f ]	};
+    key <AB01>	{[ U2d61, U2d6f ]};
+    key <AB02>	{[ U2d45 ]};
+    key <AB03>	{[ U2d5b ]};
+    key <AB04>	{[ U2d56 ]};
+    key <AB05>	{[ U2d31 ]};
+    key <AB06>	{[ U2d4f ]};
 
     include "level3(ralt_switch)"
 };
@@ -155,7 +158,7 @@ xkb_symbols "tifinagh-extended" {
     key <AD09>	{ [ 0x1002d44, 0x1002d5d ]	};
     key <AD10>	{ [ 0x1002d43, 0x1002d5e ]	};
     key <AD11>	{ [ 0x1002d6f, 0x1002d60 ]   };
-    key <AD12>	{ [    dollar,   sterling,   0x10000a4]	};
+    key <AD12>	{ [    dollar,   sterling,   currency ] };
 
     key <AC01>	{ [ 0x1002d47, 0x1002d48 ]	};
     key <AC02>	{ [ 0x1002d59, 0x1002d5a ]	};
@@ -186,38 +189,39 @@ xkb_symbols "tifinagh-extended" {
 
 partial alphanumeric_keys
 xkb_symbols "tifinagh-extended-phonetic" {
+
     include "ma(tifinagh-extended)"
 
     name[Group1]="Berber (Morocco, Tifinagh extended phonetic)";
 
-    key <LatA>	{ [ 0x1002d30 ]	};
-    key <LatZ>	{ [ 0x1002d63, 0x1002d65 ]	};
-    key <LatE>	{ [ 0x1002d3b, NoSymbol,0x10020ac ]	};
-    key <LatR>	{ [ 0x1002d54, 0x1002d55 ]	};
-    key <LatT>	{ [ 0x1002d5c, 0x1002d5f ]	};
-    key <LatY>	{ [ 0x1002d62 ]	};
-    key <LatU>	{ [ 0x1002d53 ]	};
-    key <LatI>	{ [ 0x1002d49 ]	};
-    key <LatO>	{ [ 0x1002d44 ]	};
-    key <LatP>	{ [ 0x1002d43 ]	};
+    key <AD01>	{[ U2d30 ]};
+    key <AD02>	{[ U2d63, U2d65 ]};
+    key <AD03>	{[ U2d3b,   any, U20ac ]};
+    key <AD04>	{[ U2d54, U2d55 ]};
+    key <AD05>	{[ U2d5c, U2d5f ]};
+    key <AD06>	{[ U2d62 ]};
+    key <AD07>	{[ U2d53 ]};
+    key <AD08>	{[ U2d49 ]};
+    key <AD09>	{[ U2d44 ]};
+    key <AD10>	{[ U2d43 ]};
 
-    key <LatQ>	{ [ 0x1002d47 ]	};
-    key <LatS>	{ [ 0x1002d59, 0x1002d5a ]	};
-    key <LatD>	{ [ 0x1002d37, 0x1002d39 ]	};
-    key <LatF>	{ [ 0x1002d3c ]	};
-    key <LatG>	{ [ 0x1002d33 ]	};
-    key <LatH>	{ [ 0x1002d40 ]	};
-    key <LatJ>	{ [ 0x1002d4a ]	};
-    key <LatK>	{ [ 0x1002d3d ]	};
-    key <LatL>	{ [ 0x1002d4d ]	};
-    key <LatM>	{ [ 0x1002d4e ]	};
+    key <AC01>	{[ U2d47 ]};
+    key <AC02>	{[ U2d59, U2d5a ]};
+    key <AC03>	{[ U2d37, U2d39 ]};
+    key <AC04>	{[ U2d3c ]};
+    key <AC05>	{[ U2d33 ]};
+    key <AC06>	{[ U2d40 ]};
+    key <AC07>	{[ U2d4a ]};
+    key <AC08>	{[ U2d3d ]};
+    key <AC09>	{[ U2d4d ]};
+    key <AC10>	{[ U2d4e ]};
 
-    key <LatW>	{ [ 0x1002d61 ]	};
-    key <LatX>	{ [ 0x1002d45 ]	};
-    key <LatC>	{ [ 0x1002d5b ]	};
-    key <LatV>	{ [ 0x1002d56 ]	};
-    key <LatB>	{ [ 0x1002d31 ]	};
-    key <LatN>	{ [ 0x1002d4f ]	};
+    key <AB01>	{[ U2d61 ]};
+    key <AB02>	{[ U2d45 ]};
+    key <AB03>	{[ U2d5b ]};
+    key <AB04>	{[ U2d56 ]};
+    key <AB05>	{[ U2d31 ]};
+    key <AB06>	{[ U2d4f ]};
 
     include "level3(ralt_switch)"
 };
@@ -287,38 +291,39 @@ xkb_symbols "tifinagh-alt" {
 
 partial alphanumeric_keys
 xkb_symbols "tifinagh-alt-phonetic" {
+
     include "ma(tifinagh-alt)"
 
     name[Group1]="Berber (Morocco, Tifinagh phonetic, alt.)";
 
-    key <LatA>	{ [ 0x1002d30 ]	};
-    key <LatZ>	{ [ 0x1002d63, 0x1002d65, 0x1002d64 ]	};
-    key <LatE>	{ [ 0x1002d3b ]	};
-    key <LatR>	{ [ 0x1002d54, 0x1002d55 ]	};
-    key <LatT>	{ [ 0x1002d5c, 0x1002d5f, 0x1002d5d ]	};
-    key <LatY>	{ [ 0x1002d62 ]	};
-    key <LatU>	{ [ 0x1002d53 ]	};
-    key <LatI>	{ [ 0x1002d49 ]	};
-    key <LatO>	{ [ 0x1002d44 ]	};
-    key <LatP>	{ [ 0x1002d43, 0x1002d52 ]	};
+    key <AD01>	{[ U2d30 ]};
+    key <AD02>	{[ U2d63, U2d65, U2d64 ]};
+    key <AD03>	{[ U2d3b ]};
+    key <AD04>	{[ U2d54, U2d55 ]};
+    key <AD05>	{[ U2d5c, U2d5f, U2d5d ]};
+    key <AD06>	{[ U2d62 ]};
+    key <AD07>	{[ U2d53 ]};
+    key <AD08>	{[ U2d49 ]};
+    key <AD09>	{[ U2d44 ]};
+    key <AD10>	{[ U2d43, U2d52 ]};
 
-    key <LatQ>	{ [ 0x1002d47, 0x1002d48 ]	};
-    key <LatS>	{ [ 0x1002d59, 0x1002d5a ]	};
-    key <LatD>	{ [ 0x1002d37, 0x1002d39, 0x1002d38, 0x1002d3a ]	};
-    key <LatF>	{ [ 0x1002d3c ]	};
-    key <LatG>	{ [ 0x1002d33, 0x1002d36, 0x1002d34, 0x1002d35 ]	};
-    key <LatH>	{ [ 0x1002d40, 0x1002d42, 0x1002d41 ]	};
-    key <LatJ>	{ [ 0x1002d4a, 0x1002d4c, 0x1002d4b ]	};
-    key <LatK>	{ [ 0x1002d3d, 0x1002d3e, 0x1002d3f ]	};
-    key <LatL>	{ [ 0x1002d4d ]	};
-    key <LatM>	{ [ 0x1002d4e ]	};
+    key <AC01>	{[ U2d47, U2d48 ]};
+    key <AC02>	{[ U2d59, U2d5a ]};
+    key <AC03>	{[ U2d37, U2d39, U2d38, U2d3a ]};
+    key <AC04>	{[ U2d3c ]};
+    key <AC05>	{[ U2d33, U2d36, U2d34, U2d35 ]};
+    key <AC06>	{[ U2d40, U2d42, U2d41 ]};
+    key <AC07>	{[ U2d4a, U2d4c, U2d4b ]};
+    key <AC08>	{[ U2d3d, U2d3e, U2d3f ]};
+    key <AC09>	{[ U2d4d ]};
+    key <AC10>	{[ U2d4e ]};
 
-    key <LatW>	{ [ 0x1002d61, 0x1002d6f, 0x1002d60 ]	};
-    key <LatX>	{ [ 0x1002d45, 0x1002d46 ]	};
-    key <LatC>	{ [ 0x1002d5b, 0x1002d5e ]	};
-    key <LatV>	{ [ 0x1002d56, 0x1002d57, 0x1002d58 ]	};
-    key <LatB>	{ [ 0x1002d31, 0x1002d31, 0x1002d32 ]	};
-    key <LatN>	{ [ 0x1002d4f, 0x1002d50, 0x1002d51 ]	};
+    key <AB01>	{[ U2d61, U2d6f, U2d60 ]};
+    key <AB02>	{[ U2d45, U2d46 ]};
+    key <AB03>	{[ U2d5b, U2d5e ]};
+    key <AB04>	{[ U2d56, U2d57, U2d58 ]};
+    key <AB05>	{[ U2d31, U2d31, U2d32 ]};
+    key <AB06>	{[ U2d4f, U2d50, U2d51 ]};
 
     include "level3(ralt_switch)"
 };
@@ -329,14 +334,14 @@ xkb_symbols "tifinagh-alt-phonetic" {
 
 partial alphanumeric_keys
 xkb_symbols "rif" {
-     // Tarifit keyboard (QWERTY varient)   
+     // Tarifit keyboard (QWERTY varient)
      // By Ilyahoo Proshel <ip@ipshel.com> 2021
      // Only "ʷ ɛ ṭ ḍ γ ḥ ẓ ṣ" are supported by Rif Community.
 
     include "us"
 
-    name[Group1]= "Tarifit"; 
-    
+    name[Group1]= "Tarifit";
+
     key <AD02>	{[	w,	W,		U02B7 	]}; // ʷ
     key <AD03>	{[	e,	E,		U025B,		U0190	]}; // e E ɛ Ɛ
     key <AD05>	{[	t,	T,		U1E6D,		U1E6C	]}; // t T ṭ Ṭ
@@ -349,4 +354,3 @@ xkb_symbols "rif" {
 
     include "level3(ralt_switch)"
 };
-

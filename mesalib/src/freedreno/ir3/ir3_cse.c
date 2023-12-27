@@ -24,7 +24,7 @@
 #include "ir3.h"
 
 #define XXH_INLINE_ALL
-#include "xxhash.h"
+#include "util/xxhash.h"
 
 /* This pass handles CSE'ing repeated expressions created in the process of
  * translating from NIR. Currently this is just collect's. Also, currently

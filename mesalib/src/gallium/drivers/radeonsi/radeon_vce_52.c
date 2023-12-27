@@ -1,27 +1,8 @@
 /**************************************************************************
  *
  * Copyright 2015 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR
- * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  **************************************************************************/
 
@@ -47,17 +28,7 @@ static void get_rate_control_param(struct rvce_encoder *enc, struct pipe_h264_en
    enc->enc_pic.rc.frame_rate_num = pic->rate_ctrl[0].frame_rate_num;
    enc->enc_pic.rc.frame_rate_den = pic->rate_ctrl[0].frame_rate_den;
    enc->enc_pic.rc.max_qp = 51;
-
-   /* For CBR mode, to guarantee bitrate of generated stream complies with
-    * target bitrate (e.g. no over +/-10%), vbv_buffer_size should be same
-    * as target bitrate.
-    */
-   if (enc->enc_pic.rc.rc_method == PIPE_H2645_ENC_RATE_CONTROL_METHOD_CONSTANT) {
-           enc->enc_pic.rc.vbv_buffer_size = pic->rate_ctrl[0].target_bitrate;
-   } else {
-           enc->enc_pic.rc.vbv_buffer_size = pic->rate_ctrl[0].vbv_buffer_size;
-   }
-
+   enc->enc_pic.rc.vbv_buffer_size = pic->rate_ctrl[0].vbv_buffer_size;
    enc->enc_pic.rc.vbv_buf_lv = pic->rate_ctrl[0].vbv_buf_lv;
    enc->enc_pic.rc.fill_data_enable = pic->rate_ctrl[0].fill_data_enable;
    enc->enc_pic.rc.enforce_hrd = pic->rate_ctrl[0].enforce_hrd;
@@ -69,13 +40,13 @@ static void get_rate_control_param(struct rvce_encoder *enc, struct pipe_h264_en
 static void get_motion_estimation_param(struct rvce_encoder *enc,
                                         struct pipe_h264_enc_picture_desc *pic)
 {
-   enc->enc_pic.me.motion_est_quarter_pixel = pic->motion_est.motion_est_quarter_pixel;
-   enc->enc_pic.me.enc_disable_sub_mode = pic->motion_est.enc_disable_sub_mode;
-   enc->enc_pic.me.lsmvert = pic->motion_est.lsmvert;
-   enc->enc_pic.me.enc_en_ime_overw_dis_subm = pic->motion_est.enc_en_ime_overw_dis_subm;
-   enc->enc_pic.me.enc_ime_overw_dis_subm_no = pic->motion_est.enc_ime_overw_dis_subm_no;
-   enc->enc_pic.me.enc_ime2_search_range_x = pic->motion_est.enc_ime2_search_range_x;
-   enc->enc_pic.me.enc_ime2_search_range_y = pic->motion_est.enc_ime2_search_range_y;
+   enc->enc_pic.me.motion_est_quarter_pixel = 1;
+   enc->enc_pic.me.enc_disable_sub_mode = 254;
+   enc->enc_pic.me.lsmvert = 2;
+   enc->enc_pic.me.enc_en_ime_overw_dis_subm = 0;
+   enc->enc_pic.me.enc_ime_overw_dis_subm_no = 0;
+   enc->enc_pic.me.enc_ime2_search_range_x = 4;
+   enc->enc_pic.me.enc_ime2_search_range_y = 4;
    enc->enc_pic.me.enc_ime_decimation_search = 0x00000001;
    enc->enc_pic.me.motion_est_half_pixel = 0x00000001;
    enc->enc_pic.me.enc_search_range_x = 0x00000010;
@@ -89,11 +60,11 @@ static void get_pic_control_param(struct rvce_encoder *enc, struct pipe_h264_enc
    unsigned encNumMBsPerSlice;
    encNumMBsPerSlice = align(enc->base.width, 16) / 16;
    encNumMBsPerSlice *= align(enc->base.height, 16) / 16;
-   if (pic->pic_ctrl.enc_frame_cropping_flag) {
-      enc->enc_pic.pc.enc_crop_left_offset = pic->pic_ctrl.enc_frame_crop_left_offset;
-      enc->enc_pic.pc.enc_crop_right_offset = pic->pic_ctrl.enc_frame_crop_right_offset;
-      enc->enc_pic.pc.enc_crop_top_offset = pic->pic_ctrl.enc_frame_crop_top_offset;
-      enc->enc_pic.pc.enc_crop_bottom_offset = pic->pic_ctrl.enc_frame_crop_bottom_offset;
+   if (pic->seq.enc_frame_cropping_flag) {
+      enc->enc_pic.pc.enc_crop_left_offset = pic->seq.enc_frame_crop_left_offset;
+      enc->enc_pic.pc.enc_crop_right_offset = pic->seq.enc_frame_crop_right_offset;
+      enc->enc_pic.pc.enc_crop_top_offset = pic->seq.enc_frame_crop_top_offset;
+      enc->enc_pic.pc.enc_crop_bottom_offset = pic->seq.enc_frame_crop_bottom_offset;
    } else {
       enc->enc_pic.pc.enc_crop_right_offset = (align(enc->base.width, 16) - enc->base.width) >> 1;
       enc->enc_pic.pc.enc_crop_bottom_offset =
@@ -106,7 +77,7 @@ static void get_pic_control_param(struct rvce_encoder *enc, struct pipe_h264_enc
    enc->enc_pic.pc.enc_num_default_active_ref_l0 = 0x00000001;
    enc->enc_pic.pc.enc_num_default_active_ref_l1 = 0x00000001;
    enc->enc_pic.pc.enc_cabac_enable = pic->pic_ctrl.enc_cabac_enable;
-   enc->enc_pic.pc.enc_constraint_set_flags = pic->pic_ctrl.enc_constraint_set_flags;
+   enc->enc_pic.pc.enc_constraint_set_flags = 0x00000040;
 }
 
 static void get_task_info_param(struct rvce_encoder *enc)
@@ -114,7 +85,7 @@ static void get_task_info_param(struct rvce_encoder *enc)
    enc->enc_pic.ti.offset_of_next_task_info = 0xffffffff;
 }
 
-static void get_feedback_buffer_param(struct rvce_encoder *enc)
+static void get_feedback_buffer_param(struct rvce_encoder *enc, struct pipe_enc_feedback_metadata* metadata)
 {
    enc->enc_pic.fb.feedback_ring_size = 0x00000001;
 }
@@ -126,12 +97,26 @@ static void get_config_ext_param(struct rvce_encoder *enc)
 
 static void get_vui_param(struct rvce_encoder *enc, struct pipe_h264_enc_picture_desc *pic)
 {
-   enc->enc_pic.enable_vui = pic->enable_vui;
-   enc->enc_pic.vui.video_format = 0x00000005;
-   enc->enc_pic.vui.color_prim = 0x00000002;
-   enc->enc_pic.vui.transfer_char = 0x00000002;
-   enc->enc_pic.vui.matrix_coef = 0x00000002;
-   enc->enc_pic.vui.timing_info_present_flag = 0x00000001;
+   enc->enc_pic.enable_vui = pic->seq.vui_parameters_present_flag;
+   enc->enc_pic.vui.aspect_ratio_info_present_flag =
+      pic->seq.vui_flags.aspect_ratio_info_present_flag;
+   enc->enc_pic.vui.aspect_ratio_idc = pic->seq.aspect_ratio_idc;
+   enc->enc_pic.vui.sar_width = pic->seq.sar_width;
+   enc->enc_pic.vui.sar_height = pic->seq.sar_height;
+   enc->enc_pic.vui.video_signal_type_present_flag =
+      pic->seq.vui_flags.video_signal_type_present_flag;
+   enc->enc_pic.vui.video_format = pic->seq.video_format;
+   enc->enc_pic.vui.video_full_range_flag = pic->seq.video_full_range_flag;
+   enc->enc_pic.vui.color_description_present_flag =
+      pic->seq.vui_flags.colour_description_present_flag;
+   enc->enc_pic.vui.color_prim = pic->seq.colour_primaries;
+   enc->enc_pic.vui.transfer_char = pic->seq.transfer_characteristics;
+   enc->enc_pic.vui.matrix_coef = pic->seq.matrix_coefficients;
+   enc->enc_pic.vui.chroma_loc_info_present_flag =
+      pic->seq.vui_flags.chroma_loc_info_present_flag;
+   enc->enc_pic.vui.chroma_loc_top = pic->seq.chroma_sample_loc_type_top_field;
+   enc->enc_pic.vui.chroma_loc_bottom = pic->seq.chroma_sample_loc_type_bottom_field;
+   enc->enc_pic.vui.timing_info_present_flag = pic->seq.vui_flags.timing_info_present_flag;
    enc->enc_pic.vui.num_units_in_tick = pic->rate_ctrl[0].frame_rate_den;
    enc->enc_pic.vui.time_scale = pic->rate_ctrl[0].frame_rate_num * 2;
    enc->enc_pic.vui.fixed_frame_rate_flag = 0x00000001;
@@ -156,7 +141,7 @@ void si_vce_52_get_param(struct rvce_encoder *enc, struct pipe_h264_enc_picture_
    get_motion_estimation_param(enc, pic);
    get_pic_control_param(enc, pic);
    get_task_info_param(enc);
-   get_feedback_buffer_param(enc);
+   get_feedback_buffer_param(enc, NULL);
    get_vui_param(enc, pic);
    get_config_ext_param(enc);
 

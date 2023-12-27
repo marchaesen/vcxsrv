@@ -98,10 +98,10 @@ is_simple_operand(const ir_rvalue *ir, unsigned depth = 1)
       return true;
 
    case ir_type_constant: {
-      if (ir->type == glsl_type::uint_type ||
-          ir->type == glsl_type::int_type ||
-          ir->type == glsl_type::float_type ||
-          ir->type == glsl_type::bool_type)
+      if (ir->type == &glsl_type_builtin_uint ||
+          ir->type == &glsl_type_builtin_int ||
+          ir->type == &glsl_type_builtin_float ||
+          ir->type == &glsl_type_builtin_bool)
          return true;
 
       const ir_constant *const c = (ir_constant *) ir;
@@ -226,14 +226,14 @@ ir_builder_print_visitor::visit(ir_variable *ir)
    }
 
    if (ir->data.mode == ir_var_temporary) {
-      print_with_indent("ir_variable *const r%04X = body.make_temp(glsl_type::%s_type, \"%s\");\n",
+      print_with_indent("ir_variable *const r%04X = body.make_temp(glsl_type_builtin_%s, \"%s\");\n",
                         my_index,
-                        ir->type->name,
+                        glsl_get_type_name(ir->type),
                         ir->name);
    } else {
-      print_with_indent("ir_variable *const r%04X = new(mem_ctx) ir_variable(glsl_type::%s_type, \"%s\", %s);\n",
+      print_with_indent("ir_variable *const r%04X = new(mem_ctx) ir_variable(glsl_type_builtin_%s, \"%s\", %s);\n",
                         my_index,
-                        ir->type->name,
+                        glsl_get_type_name(ir->type),
                         ir->name,
                         mode_str);
 
@@ -286,8 +286,8 @@ ir_builder_print_visitor::visit_enter(ir_function_signature *ir)
                      ir->function_name());
    indentation++;
    print_with_indent("ir_function_signature *const sig =\n");
-   print_with_indent("   new(mem_ctx) ir_function_signature(glsl_type::%s_type, avail);\n",
-                     ir->return_type->name);
+   print_with_indent("   new(mem_ctx) ir_function_signature(glsl_type_builtin_%s, avail);\n",
+                     glsl_get_type_name(ir->return_type));
 
    print_with_indent("ir_factory body(&sig->body, mem_ctx);\n");
    print_with_indent("sig->is_defined = true;\n\n");
@@ -313,7 +313,7 @@ ir_builder_print_visitor::visit_leave(ir_function_signature *ir)
 void
 ir_builder_print_visitor::print_without_declaration(const ir_constant *ir)
 {
-  if (ir->type->is_scalar()) {
+  if (glsl_type_is_scalar(ir->type)) {
       switch (ir->type->base_type) {
       case GLSL_TYPE_UINT:
          print_without_indent("body.constant(%uu)", ir->value.u[0]);
@@ -337,8 +337,8 @@ ir_builder_print_visitor::print_without_declaration(const ir_constant *ir)
    memset(&all_zero, 0, sizeof(all_zero));
 
    if (memcmp(&ir->value, &all_zero, sizeof(all_zero)) == 0) {
-      print_without_indent("ir_constant::zero(mem_ctx, glsl_type::%s_type)",
-                           ir->type->name);
+      print_without_indent("ir_constant::zero(mem_ctx, glsl_type_builtin_%s)",
+                           glsl_get_type_name(ir->type));
    }
 }
 
@@ -349,10 +349,10 @@ ir_builder_print_visitor::visit(ir_constant *ir)
 
    _mesa_hash_table_insert(index_map, ir, (void *)(uintptr_t) my_index);
 
-   if (ir->type == glsl_type::uint_type ||
-       ir->type == glsl_type::int_type ||
-       ir->type == glsl_type::float_type ||
-       ir->type == glsl_type::bool_type) {
+   if (ir->type == &glsl_type_builtin_uint ||
+       ir->type == &glsl_type_builtin_int ||
+       ir->type == &glsl_type_builtin_float ||
+       ir->type == &glsl_type_builtin_bool) {
       print_with_indent("ir_constant *const r%04X = ", my_index);
       print_without_declaration(ir);
       print_without_indent(";\n");
@@ -424,9 +424,9 @@ ir_builder_print_visitor::visit(ir_constant *ir)
          }
       }
 
-      print_with_indent("ir_constant *const r%04X = new(mem_ctx) ir_constant(glsl_type::%s_type, &r%04X_data);\n",
+      print_with_indent("ir_constant *const r%04X = new(mem_ctx) ir_constant(glsl_type_builtin_%s, &r%04X_data);\n",
                         my_index,
-                        ir->type->name,
+                        glsl_get_type_name(ir->type),
                         my_index);
    }
 

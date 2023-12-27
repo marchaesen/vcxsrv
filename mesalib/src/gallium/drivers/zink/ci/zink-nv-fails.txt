@@ -536,3 +536,7 @@ dEQP-GLES31.functional.texture.multisample.samples_8.sample_mask_and_alpha_to_co
 dEQP-GLES31.functional.texture.multisample.samples_8.sample_mask_and_sample_coverage,Fail
 dEQP-GLES31.functional.texture.multisample.samples_8.sample_mask_and_sample_coverage_and_alpha_to_coverage,Fail
 dEQP-GLES31.functional.texture.multisample.samples_8.sample_mask_only,Fail
+
+# Piglit xfb tests
+spec@ext_transform_feedback@tessellation quad_strip wireframe,Fail
+spec@ext_transform_feedback@tessellation quads wireframe,Fail

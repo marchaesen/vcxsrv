@@ -111,7 +111,7 @@ iris_is_format_supported(struct pipe_screen *pscreen,
                          unsigned usage)
 {
    struct iris_screen *screen = (struct iris_screen *) pscreen;
-   const struct intel_device_info *devinfo = &screen->devinfo;
+   const struct intel_device_info *devinfo = screen->devinfo;
    uint32_t max_samples = devinfo->ver == 8 ? 8 : 16;
 
    if (sample_count > max_samples ||

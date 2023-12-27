@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -53,7 +53,6 @@ ProcessIncludeFile(IncludeStmt * stmt,
                    unsigned file_type,
                    XkbFile ** file_rtrn, unsigned *merge_rtrn)
 {
-    FILE *file;
     XkbFile *rtrn, *mapToUse;
     char oldFile[1024] = {0};
     int oldLine = lineNum;
@@ -63,10 +62,10 @@ ProcessIncludeFile(IncludeStmt * stmt,
     {
         /* file not in cache, open it, parse it and store it in cache for next
            time. */
-        file = XkbFindFileInPath(stmt->file, file_type, &stmt->path);
+        FILE *file = XkbFindFileInPath(stmt->file, file_type, &stmt->path);
         if (file == NULL)
         {
-            ERROR2("Can't find file \"%s\" for %s include\n", stmt->file,
+            ERROR("Can't find file \"%s\" for %s include\n", stmt->file,
                    XkbDirectoryForInclude(file_type));
             ACTION("Exiting\n");
             return False;
@@ -74,13 +73,15 @@ ProcessIncludeFile(IncludeStmt * stmt,
         strcpy(oldFile, scanFile);
         oldLine = lineNum;
         setScanState(stmt->file, 1);
+#ifdef DEBUG
         if (debugFlags & 2)
-            INFO1("About to parse include file %s\n", stmt->file);
+            INFO("About to parse include file %s\n", stmt->file);
+#endif
         /* parse the file */
         if ((XKBParseFile(file, &rtrn) == 0) || (rtrn == NULL))
         {
             setScanState(oldFile, oldLine);
-            ERROR1("Error interpreting include file \"%s\"\n", stmt->file);
+            ERROR("Error interpreting include file \"%s\"\n", stmt->file);
             ACTION("Exiting\n");
             fclose(file);
             return False;
@@ -107,7 +108,7 @@ ProcessIncludeFile(IncludeStmt * stmt,
         }
         if (!mapToUse)
         {
-            ERROR3("No %s named \"%s\" in the include file \"%s\"\n",
+            ERROR("No %s named \"%s\" in the include file \"%s\"\n",
                    XkbConfigText(file_type, XkbMessage), stmt->map,
                    stmt->file);
             ACTION("Exiting\n");
@@ -124,9 +125,9 @@ ProcessIncludeFile(IncludeStmt * stmt,
         {
             if (warningLevel > 5)
             {
-                WARN1("No map in include statement, but \"%s\" contains several without a default map\n",
+                WARN("No map in include statement, but \"%s\" contains several without a default map\n",
                       stmt->file);
-                ACTION1("Using first defined map, \"%s\"\n", rtrn->name);
+                ACTION("Using first defined map, \"%s\"\n", rtrn->name);
             }
             mapToUse = rtrn;
         }
@@ -135,10 +136,10 @@ ProcessIncludeFile(IncludeStmt * stmt,
     setScanState(oldFile, oldLine);
     if (mapToUse->type != file_type)
     {
-        ERROR2("Include file wrong type (expected %s, got %s)\n",
+        ERROR("Include file wrong type (expected %s, got %s)\n",
                XkbConfigText(file_type, XkbMessage),
                XkbConfigText(mapToUse->type, XkbMessage));
-        ACTION1("Include file \"%s\" ignored\n", stmt->file);
+        ACTION("Include file \"%s\" ignored\n", stmt->file);
         return False;
     }
     /* FIXME: we have to check recursive includes here (or somewhere) */
@@ -154,16 +155,16 @@ ProcessIncludeFile(IncludeStmt * stmt,
 int
 ReportNotArray(const char *type, const char *field, const char *name)
 {
-    ERROR2("The %s %s field is not an array\n", type, field);
-    ACTION1("Ignoring illegal assignment in %s\n", name);
+    ERROR("The %s %s field is not an array\n", type, field);
+    ACTION("Ignoring illegal assignment in %s\n", name);
     return False;
 }
 
 int
 ReportShouldBeArray(const char *type, const char *field, char *name)
 {
-    ERROR2("Missing subscript for %s %s\n", type, field);
-    ACTION1("Ignoring illegal assignment in %s\n", name);
+    ERROR("Missing subscript for %s %s\n", type, field);
+    ACTION("Ignoring illegal assignment in %s\n", name);
     return False;
 }
 
@@ -171,40 +172,44 @@ int
 ReportBadType(const char *type, const char *field,
               const char *name, const char *wanted)
 {
-    ERROR3("The %s %s field must be a %s\n", type, field, wanted);
-    ACTION1("Ignoring illegal assignment in %s\n", name);
+    ERROR("The %s %s field must be a %s\n", type, field, wanted);
+    ACTION("Ignoring illegal assignment in %s\n", name);
     return False;
 }
 
+#if 0
 int
 ReportBadIndexType(char *type, char *field, char *name, char *wanted)
 {
-    ERROR3("Index for the %s %s field must be a %s\n", type, field, wanted);
-    ACTION1("Ignoring assignment to illegal field in %s\n", name);
+    ERROR("Index for the %s %s field must be a %s\n", type, field, wanted);
+    ACTION("Ignoring assignment to illegal field in %s\n", name);
     return False;
 }
+#endif
 
 int
 ReportBadField(const char *type, const char *field, const char *name)
 {
-    ERROR3("Unknown %s field %s in %s\n", type, field, name);
-    ACTION1("Ignoring assignment to unknown field in %s\n", name);
+    ERROR("Unknown %s field %s in %s\n", type, field, name);
+    ACTION("Ignoring assignment to unknown field in %s\n", name);
     return False;
 }
 
+#if 0
 int
 ReportMultipleDefs(char *type, char *field, char *name)
 {
-    WARN3("Multiple definitions of %s in %s \"%s\"\n", field, type, name);
+    WARN("Multiple definitions of %s in %s \"%s\"\n", field, type, name);
     ACTION("Using last definition\n");
     return False;
 }
+#endif
 
 /***====================================================================***/
 
 Bool
-UseNewField(unsigned field,
-            CommonInfo * oldDefs, CommonInfo * newDefs, unsigned *pCollide)
+UseNewField(unsigned field, const CommonInfo *oldDefs,
+            const CommonInfo *newDefs, unsigned *pCollide)
 {
     Bool useNew;
 
@@ -227,9 +232,10 @@ UseNewField(unsigned field,
     return useNew;
 }
 
-Bool
-MergeNewField(unsigned field,
-              CommonInfo * oldDefs, CommonInfo * newDefs, unsigned *pCollide)
+#if 0
+static Bool
+MergeNewField(unsigned field, const CommonInfo *oldDefs,
+            const CommonInfo *newDefs, unsigned *pCollide)
 {
     if ((oldDefs->defined & field) && (newDefs->defined & field))
     {
@@ -243,6 +249,7 @@ MergeNewField(unsigned field,
     }
     return False;
 }
+#endif
 
 XPointer
 ClearCommonInfo(CommonInfo * cmn)
@@ -253,7 +260,7 @@ ClearCommonInfo(CommonInfo * cmn)
         for (this = cmn; this != NULL; this = next)
         {
             next = this->next;
-            uFree(this);
+            free(this);
         }
     }
     return NULL;
@@ -289,141 +296,140 @@ typedef struct _KeyNameDesc
 } KeyNameDesc;
 
 static KeyNameDesc dfltKeys[] = {
-    {XK_Escape, NoSymbol, "ESC\0"},
-    {XK_quoteleft, XK_asciitilde, "TLDE"},
-    {XK_1, XK_exclam, "AE01"},
-    {XK_2, XK_at, "AE02"},
-    {XK_3, XK_numbersign, "AE03"},
-    {XK_4, XK_dollar, "AE04"},
-    {XK_5, XK_percent, "AE05"},
-    {XK_6, XK_asciicircum, "AE06"},
-    {XK_7, XK_ampersand, "AE07"},
-    {XK_8, XK_asterisk, "AE08"},
-    {XK_9, XK_parenleft, "AE09"},
-    {XK_0, XK_parenright, "AE10"},
-    {XK_minus, XK_underscore, "AE11"},
-    {XK_equal, XK_plus, "AE12"},
-    {XK_BackSpace, NoSymbol, "BKSP"},
-    {XK_Tab, NoSymbol, "TAB\0"},
-    {XK_q, XK_Q, "AD01"},
-    {XK_w, XK_W, "AD02"},
-    {XK_e, XK_E, "AD03"},
-    {XK_r, XK_R, "AD04"},
-    {XK_t, XK_T, "AD05"},
-    {XK_y, XK_Y, "AD06"},
-    {XK_u, XK_U, "AD07"},
-    {XK_i, XK_I, "AD08"},
-    {XK_o, XK_O, "AD09"},
-    {XK_p, XK_P, "AD10"},
-    {XK_bracketleft, XK_braceleft, "AD11"},
-    {XK_bracketright, XK_braceright, "AD12"},
-    {XK_Return, NoSymbol, "RTRN"},
-    {XK_Caps_Lock, NoSymbol, "CAPS"},
-    {XK_a, XK_A, "AC01"},
-    {XK_s, XK_S, "AC02"},
-    {XK_d, XK_D, "AC03"},
-    {XK_f, XK_F, "AC04"},
-    {XK_g, XK_G, "AC05"},
-    {XK_h, XK_H, "AC06"},
-    {XK_j, XK_J, "AC07"},
-    {XK_k, XK_K, "AC08"},
-    {XK_l, XK_L, "AC09"},
-    {XK_semicolon, XK_colon, "AC10"},
-    {XK_quoteright, XK_quotedbl, "AC11"},
-    {XK_Shift_L, NoSymbol, "LFSH"},
-    {XK_z, XK_Z, "AB01"},
-    {XK_x, XK_X, "AB02"},
-    {XK_c, XK_C, "AB03"},
-    {XK_v, XK_V, "AB04"},
-    {XK_b, XK_B, "AB05"},
-    {XK_n, XK_N, "AB06"},
-    {XK_m, XK_M, "AB07"},
-    {XK_comma, XK_less, "AB08"},
-    {XK_period, XK_greater, "AB09"},
-    {XK_slash, XK_question, "AB10"},
-    {XK_backslash, XK_bar, "BKSL"},
-    {XK_Control_L, NoSymbol, "LCTL"},
-    {XK_space, NoSymbol, "SPCE"},
-    {XK_Shift_R, NoSymbol, "RTSH"},
-    {XK_Alt_L, NoSymbol, "LALT"},
-    {XK_space, NoSymbol, "SPCE"},
-    {XK_Control_R, NoSymbol, "RCTL"},
-    {XK_Alt_R, NoSymbol, "RALT"},
-    {XK_F1, NoSymbol, "FK01"},
-    {XK_F2, NoSymbol, "FK02"},
-    {XK_F3, NoSymbol, "FK03"},
-    {XK_F4, NoSymbol, "FK04"},
-    {XK_F5, NoSymbol, "FK05"},
-    {XK_F6, NoSymbol, "FK06"},
-    {XK_F7, NoSymbol, "FK07"},
-    {XK_F8, NoSymbol, "FK08"},
-    {XK_F9, NoSymbol, "FK09"},
-    {XK_F10, NoSymbol, "FK10"},
-    {XK_F11, NoSymbol, "FK11"},
-    {XK_F12, NoSymbol, "FK12"},
-    {XK_Print, NoSymbol, "PRSC"},
-    {XK_Scroll_Lock, NoSymbol, "SCLK"},
-    {XK_Pause, NoSymbol, "PAUS"},
-    {XK_Insert, NoSymbol, "INS\0"},
-    {XK_Home, NoSymbol, "HOME"},
-    {XK_Prior, NoSymbol, "PGUP"},
-    {XK_Delete, NoSymbol, "DELE"},
-    {XK_End, NoSymbol, "END"},
-    {XK_Next, NoSymbol, "PGDN"},
-    {XK_Up, NoSymbol, "UP\0\0"},
-    {XK_Left, NoSymbol, "LEFT"},
-    {XK_Down, NoSymbol, "DOWN"},
-    {XK_Right, NoSymbol, "RGHT"},
-    {XK_Num_Lock, NoSymbol, "NMLK"},
-    {XK_KP_Divide, NoSymbol, "KPDV"},
-    {XK_KP_Multiply, NoSymbol, "KPMU"},
-    {XK_KP_Subtract, NoSymbol, "KPSU"},
-    {NoSymbol, XK_KP_7, "KP7\0"},
-    {NoSymbol, XK_KP_8, "KP8\0"},
-    {NoSymbol, XK_KP_9, "KP9\0"},
-    {XK_KP_Add, NoSymbol, "KPAD"},
-    {NoSymbol, XK_KP_4, "KP4\0"},
-    {NoSymbol, XK_KP_5, "KP5\0"},
-    {NoSymbol, XK_KP_6, "KP6\0"},
-    {NoSymbol, XK_KP_1, "KP1\0"},
-    {NoSymbol, XK_KP_2, "KP2\0"},
-    {NoSymbol, XK_KP_3, "KP3\0"},
-    {XK_KP_Enter, NoSymbol, "KPEN"},
-    {NoSymbol, XK_KP_0, "KP0\0"},
-    {XK_KP_Delete, NoSymbol, "KPDL"},
-    {XK_less, XK_greater, "LSGT"},
-    {XK_KP_Separator, NoSymbol, "KPCO"},
-    {XK_Find, NoSymbol, "FIND"},
-    {NoSymbol, NoSymbol, "\0\0\0\0"}
+    {XK_Escape, NoSymbol, "ESC\0", 0},
+    {XK_quoteleft, XK_asciitilde, "TLDE", 0},
+    {XK_1, XK_exclam, "AE01", 0},
+    {XK_2, XK_at, "AE02", 0},
+    {XK_3, XK_numbersign, "AE03", 0},
+    {XK_4, XK_dollar, "AE04", 0},
+    {XK_5, XK_percent, "AE05", 0},
+    {XK_6, XK_asciicircum, "AE06", 0},
+    {XK_7, XK_ampersand, "AE07", 0},
+    {XK_8, XK_asterisk, "AE08", 0},
+    {XK_9, XK_parenleft, "AE09", 0},
+    {XK_0, XK_parenright, "AE10", 0},
+    {XK_minus, XK_underscore, "AE11", 0},
+    {XK_equal, XK_plus, "AE12", 0},
+    {XK_BackSpace, NoSymbol, "BKSP", 0},
+    {XK_Tab, NoSymbol, "TAB\0", 0},
+    {XK_q, XK_Q, "AD01", 0},
+    {XK_w, XK_W, "AD02", 0},
+    {XK_e, XK_E, "AD03", 0},
+    {XK_r, XK_R, "AD04", 0},
+    {XK_t, XK_T, "AD05", 0},
+    {XK_y, XK_Y, "AD06", 0},
+    {XK_u, XK_U, "AD07", 0},
+    {XK_i, XK_I, "AD08", 0},
+    {XK_o, XK_O, "AD09", 0},
+    {XK_p, XK_P, "AD10", 0},
+    {XK_bracketleft, XK_braceleft, "AD11", 0},
+    {XK_bracketright, XK_braceright, "AD12", 0},
+    {XK_Return, NoSymbol, "RTRN", 0},
+    {XK_Caps_Lock, NoSymbol, "CAPS", 0},
+    {XK_a, XK_A, "AC01", 0},
+    {XK_s, XK_S, "AC02", 0},
+    {XK_d, XK_D, "AC03", 0},
+    {XK_f, XK_F, "AC04", 0},
+    {XK_g, XK_G, "AC05", 0},
+    {XK_h, XK_H, "AC06", 0},
+    {XK_j, XK_J, "AC07", 0},
+    {XK_k, XK_K, "AC08", 0},
+    {XK_l, XK_L, "AC09", 0},
+    {XK_semicolon, XK_colon, "AC10", 0},
+    {XK_quoteright, XK_quotedbl, "AC11", 0},
+    {XK_Shift_L, NoSymbol, "LFSH", 0},
+    {XK_z, XK_Z, "AB01", 0},
+    {XK_x, XK_X, "AB02", 0},
+    {XK_c, XK_C, "AB03", 0},
+    {XK_v, XK_V, "AB04", 0},
+    {XK_b, XK_B, "AB05", 0},
+    {XK_n, XK_N, "AB06", 0},
+    {XK_m, XK_M, "AB07", 0},
+    {XK_comma, XK_less, "AB08", 0},
+    {XK_period, XK_greater, "AB09", 0},
+    {XK_slash, XK_question, "AB10", 0},
+    {XK_backslash, XK_bar, "BKSL", 0},
+    {XK_Control_L, NoSymbol, "LCTL", 0},
+    {XK_space, NoSymbol, "SPCE", 0},
+    {XK_Shift_R, NoSymbol, "RTSH", 0},
+    {XK_Alt_L, NoSymbol, "LALT", 0},
+    {XK_space, NoSymbol, "SPCE", 0},
+    {XK_Control_R, NoSymbol, "RCTL", 0},
+    {XK_Alt_R, NoSymbol, "RALT", 0},
+    {XK_F1, NoSymbol, "FK01", 0},
+    {XK_F2, NoSymbol, "FK02", 0},
+    {XK_F3, NoSymbol, "FK03", 0},
+    {XK_F4, NoSymbol, "FK04", 0},
+    {XK_F5, NoSymbol, "FK05", 0},
+    {XK_F6, NoSymbol, "FK06", 0},
+    {XK_F7, NoSymbol, "FK07", 0},
+    {XK_F8, NoSymbol, "FK08", 0},
+    {XK_F9, NoSymbol, "FK09", 0},
+    {XK_F10, NoSymbol, "FK10", 0},
+    {XK_F11, NoSymbol, "FK11", 0},
+    {XK_F12, NoSymbol, "FK12", 0},
+    {XK_Print, NoSymbol, "PRSC", 0},
+    {XK_Scroll_Lock, NoSymbol, "SCLK", 0},
+    {XK_Pause, NoSymbol, "PAUS", 0},
+    {XK_Insert, NoSymbol, "INS\0", 0},
+    {XK_Home, NoSymbol, "HOME", 0},
+    {XK_Prior, NoSymbol, "PGUP", 0},
+    {XK_Delete, NoSymbol, "DELE", 0},
+    {XK_End, NoSymbol, "END", 0},
+    {XK_Next, NoSymbol, "PGDN", 0},
+    {XK_Up, NoSymbol, "UP\0\0", 0},
+    {XK_Left, NoSymbol, "LEFT", 0},
+    {XK_Down, NoSymbol, "DOWN", 0},
+    {XK_Right, NoSymbol, "RGHT", 0},
+    {XK_Num_Lock, NoSymbol, "NMLK", 0},
+    {XK_KP_Divide, NoSymbol, "KPDV", 0},
+    {XK_KP_Multiply, NoSymbol, "KPMU", 0},
+    {XK_KP_Subtract, NoSymbol, "KPSU", 0},
+    {NoSymbol, XK_KP_7, "KP7\0", 0},
+    {NoSymbol, XK_KP_8, "KP8\0", 0},
+    {NoSymbol, XK_KP_9, "KP9\0", 0},
+    {XK_KP_Add, NoSymbol, "KPAD", 0},
+    {NoSymbol, XK_KP_4, "KP4\0", 0},
+    {NoSymbol, XK_KP_5, "KP5\0", 0},
+    {NoSymbol, XK_KP_6, "KP6\0", 0},
+    {NoSymbol, XK_KP_1, "KP1\0", 0},
+    {NoSymbol, XK_KP_2, "KP2\0", 0},
+    {NoSymbol, XK_KP_3, "KP3\0", 0},
+    {XK_KP_Enter, NoSymbol, "KPEN", 0},
+    {NoSymbol, XK_KP_0, "KP0\0", 0},
+    {XK_KP_Delete, NoSymbol, "KPDL", 0},
+    {XK_less, XK_greater, "LSGT", 0},
+    {XK_KP_Separator, NoSymbol, "KPCO", 0},
+    {XK_Find, NoSymbol, "FIND", 0},
+    {NoSymbol, NoSymbol, "\0\0\0\0", 0}
 };
 
 Status
 ComputeKbdDefaults(XkbDescPtr xkb)
 {
-    Status rtrn;
-    register int i, tmp, nUnknown;
-    KeyNameDesc *name;
-    KeySym *syms;
-    char tmpname[XkbKeyNameLength + 1];
+    int nUnknown;
 
     if ((xkb->names == NULL) || (xkb->names->keys == NULL))
     {
+        Status rtrn;
         if ((rtrn = XkbAllocNames(xkb, XkbKeyNamesMask, 0, 0)) != Success)
             return rtrn;
     }
-    for (name = dfltKeys; (name->name[0] != '\0'); name++)
+    for (KeyNameDesc *name = dfltKeys; (name->name[0] != '\0'); name++)
     {
         name->used = False;
     }
     nUnknown = 0;
-    for (i = xkb->min_key_code; i <= xkb->max_key_code; i++)
+    for (int i = xkb->min_key_code; i <= xkb->max_key_code; i++)
     {
-        tmp = XkbKeyNumSyms(xkb, i);
+        int tmp = XkbKeyNumSyms(xkb, i);
         if ((xkb->names->keys[i].name[0] == '\0') && (tmp > 0))
         {
+            KeySym *syms;
+
             tmp = XkbKeyGroupsWidth(xkb, i);
             syms = XkbKeySymsPtr(xkb, i);
-            for (name = dfltKeys; (name->name[0] != '\0'); name++)
+            for (KeyNameDesc *name = dfltKeys; (name->name[0] != '\0'); name++)
             {
                 Bool match = True;
                 if (((name->level1 != syms[0])
@@ -444,12 +450,14 @@ ComputeKbdDefaults(XkbDescPtr xkb)
                     }
                     else
                     {
+                        char tmpname[XkbKeyNameLength + 1];
+
                         if (warningLevel > 2)
                         {
-                            WARN1
+                            WARN
                                 ("Several keys match pattern for %s\n",
                                  XkbKeyNameText(name->name, XkbMessage));
-                            ACTION2("Using <U%03d> for key %d\n",
+                            ACTION("Using <U%03d> for key %d\n",
                                     nUnknown, i);
                         }
                         snprintf(tmpname, sizeof(tmpname), "U%03d",
@@ -464,8 +472,10 @@ ComputeKbdDefaults(XkbDescPtr xkb)
             {
                 if (warningLevel > 2)
                 {
-                    WARN1("Key %d does not match any defaults\n", i);
-                    ACTION1("Using name <U%03d>\n", nUnknown);
+                    char tmpname[XkbKeyNameLength + 1];
+
+                    WARN("Key %d does not match any defaults\n", i);
+                    ACTION("Using name <U%03d>\n", nUnknown);
                     snprintf(tmpname, sizeof(tmpname), "U%03d", nUnknown++);
                     memcpy(xkb->names->keys[i].name, tmpname,
                            XkbKeyNameLength);
@@ -494,8 +504,6 @@ FindNamedKey(XkbDescPtr xkb,
              unsigned int *kc_rtrn,
              Bool use_aliases, Bool create, int start_from)
 {
-    register unsigned n;
-
     if (start_from < xkb->min_key_code)
     {
         start_from = xkb->min_key_code;
@@ -508,7 +516,7 @@ FindNamedKey(XkbDescPtr xkb,
     *kc_rtrn = 0;               /* some callers rely on this */
     if (xkb && xkb->names && xkb->names->keys)
     {
-        for (n = start_from; n <= xkb->max_key_code; n++)
+        for (unsigned n = start_from; n <= xkb->max_key_code; n++)
         {
             unsigned long tmp;
             tmp = KeyNameToLong(xkb->names->keys[n].name);
@@ -539,14 +547,14 @@ FindNamedKey(XkbDescPtr xkb,
                 if (warningLevel > 0)
                 {
                     WARN("Couldn't allocate key names in FindNamedKey\n");
-                    ACTION1("Key \"%s\" not automatically created\n",
+                    ACTION("Key \"%s\" not automatically created\n",
                             longText(name, XkbMessage));
                 }
                 return False;
             }
         }
         /* Find first unused keycode and store our key here */
-        for (n = xkb->min_key_code; n <= xkb->max_key_code; n++)
+        for (unsigned n = xkb->min_key_code; n <= xkb->max_key_code; n++)
         {
             if (xkb->names->keys[n].name[0] == '\0')
             {
@@ -565,7 +573,6 @@ Bool
 FindKeyNameForAlias(XkbDescPtr xkb, unsigned long lname,
                     unsigned long *real_name)
 {
-    register int i;
     char name[XkbKeyNameLength + 1];
 
     if (xkb && xkb->geom && xkb->geom->key_aliases)
@@ -574,7 +581,7 @@ FindKeyNameForAlias(XkbDescPtr xkb, unsigned long lname,
         a = xkb->geom->key_aliases;
         LongToKeyName(lname, name);
         name[XkbKeyNameLength] = '\0';
-        for (i = 0; i < xkb->geom->num_key_aliases; i++, a++)
+        for (int i = 0; i < xkb->geom->num_key_aliases; i++, a++)
         {
             if (strncmp(name, a->alias, XkbKeyNameLength) == 0)
             {
@@ -589,7 +596,7 @@ FindKeyNameForAlias(XkbDescPtr xkb, unsigned long lname,
         a = xkb->names->key_aliases;
         LongToKeyName(lname, name);
         name[XkbKeyNameLength] = '\0';
-        for (i = 0; i < xkb->names->num_key_aliases; i++, a++)
+        for (int i = 0; i < xkb->names->num_key_aliases; i++, a++)
         {
             if (strncmp(name, a->alias, XkbKeyNameLength) == 0)
             {

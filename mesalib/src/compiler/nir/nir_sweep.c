@@ -35,28 +35,12 @@
  * earlier, and even many times, trading CPU cycles for memory savings.
  */
 
-#define steal_list(mem_ctx, type, list) \
-   foreach_list_typed(type, obj, node, list) { ralloc_steal(mem_ctx, obj); }
+#define steal_list(mem_ctx, type, list)        \
+   foreach_list_typed(type, obj, node, list) { \
+      ralloc_steal(mem_ctx, obj);              \
+   }
 
 static void sweep_cf_node(nir_shader *nir, nir_cf_node *cf_node);
-
-static bool
-sweep_src_indirect(nir_src *src, void *nir)
-{
-   if (!src->is_ssa && src->reg.indirect)
-      gc_mark_live(((nir_shader*)nir)->gctx, src->reg.indirect);
-
-   return true;
-}
-
-static bool
-sweep_dest_indirect(nir_dest *dest, void *nir)
-{
-   if (!dest->is_ssa && dest->reg.indirect)
-      gc_mark_live(((nir_shader*)nir)->gctx, dest->reg.indirect);
-
-   return true;
-}
 
 static void
 sweep_block(nir_shader *nir, nir_block *block)
@@ -86,9 +70,6 @@ sweep_block(nir_shader *nir, nir_block *block)
       default:
          break;
       }
-
-      nir_foreach_src(instr, sweep_src_indirect, nir);
-      nir_foreach_dest(instr, sweep_dest_indirect, nir);
    }
 }
 
@@ -109,6 +90,7 @@ sweep_if(nir_shader *nir, nir_if *iff)
 static void
 sweep_loop(nir_shader *nir, nir_loop *loop)
 {
+   assert(!nir_loop_has_continue_construct(loop));
    ralloc_steal(nir, loop);
 
    foreach_list_typed(nir_cf_node, cf_node, node, &loop->body) {
@@ -140,7 +122,6 @@ sweep_impl(nir_shader *nir, nir_function_impl *impl)
    ralloc_steal(nir, impl);
 
    steal_list(nir, nir_variable, &impl->locals);
-   steal_list(nir, nir_register, &impl->registers);
 
    foreach_list_typed(nir_cf_node, cf_node, node, &impl->body) {
       sweep_cf_node(nir, cf_node);
@@ -181,7 +162,7 @@ nir_sweep(nir_shader *nir)
    if (nir->info.label)
       ralloc_steal(nir, (char *)nir->info.label);
 
-   /* Variables and registers are not dead.  Steal them back. */
+   /* Variables are not dead.  Steal them back. */
    steal_list(nir, nir_variable, &nir->variables);
 
    /* Recurse into functions, stealing their contents back. */

@@ -1,35 +1,27 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e
+
+overrideDll() {
+  if ! wine reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v "$1" /d native /f; then
+    echo -e "Failed to add override for $1"
+    exit 1
+  fi
+}
 
 dxvk_install_release() {
-    local DXVK_VERSION=${1:-"1.10.1"}
+    local DXVK_VERSION=${1:?}
 
-    wget "https://github.com/doitsujin/dxvk/releases/download/v${DXVK_VERSION}/dxvk-${DXVK_VERSION}.tar.gz"
+    curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
+	-O "https://github.com/doitsujin/dxvk/releases/download/v${DXVK_VERSION}/dxvk-${DXVK_VERSION}.tar.gz"
     tar xzpf dxvk-"${DXVK_VERSION}".tar.gz
-    "dxvk-${DXVK_VERSION}"/setup_dxvk.sh install
+    cp "dxvk-${DXVK_VERSION}"/x64/*.dll "$WINEPREFIX/drive_c/windows/system32/"
+    overrideDll d3d9
+    overrideDll d3d10core
+    overrideDll d3d11
+    overrideDll dxgi
     rm -rf "dxvk-${DXVK_VERSION}"
     rm dxvk-"${DXVK_VERSION}".tar.gz
 }
 
-# Install from a Github PR number
-dxvk_install_pr() {
-    local __prnum=$1
-
-    # NOTE: Clone all the ensite history of the repo so as not to think
-    # harder about cloning just enough for 'git describe' to work.  'git
-    # describe' is used by the dxvk build system to generate a
-    # dxvk_version Meson variable, which is nice-to-have.
-    git clone https://github.com/doitsujin/dxvk
-    pushd dxvk || exit 1
-    git fetch origin pull/"$__prnum"/head:pr
-    git checkout pr
-    ./package-release.sh pr ../dxvk-build --no-package
-    popd || exit 1
-    pushd ./dxvk-build/dxvk-pr || exit 1
-    ./setup_dxvk.sh install
-    popd || exit 1
-    rm -rf ./dxvk-build ./dxvk
-}
-
-dxvk_install_release "1.10.1"
-#dxvk_install_pr 2359
-
+dxvk_install_release "2.1"

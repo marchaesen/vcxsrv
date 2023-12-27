@@ -104,7 +104,7 @@ Ian Romanick (1):
 
 - i965: Disable EXT_texture_integer on Gfx4 and Gfx5
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - Revert "anv: Stop doing too much per-sample shading"
 

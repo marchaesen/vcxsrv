@@ -356,11 +356,13 @@ _mesa_format_convert(void *void_dst, uint32_t dst_format, size_t dst_stride,
                dst += dst_stride;
             }
             return;
+#if UTIL_ARCH_LITTLE_ENDIAN
          } else if (dst_array_format == BGRA8_UBYTE &&
                     src_format == MESA_FORMAT_R8G8B8A8_UNORM) {
              convert_ubyte_rgba_to_bgra(width, height, src, src_stride,
                                         dst, dst_stride);
              return;
+#endif
          } else if (dst_array_format == RGBA32_UINT &&
                     _mesa_is_format_unsigned(src_format)) {
             assert(_mesa_is_format_integer_color(src_format));
@@ -387,11 +389,14 @@ _mesa_format_convert(void *void_dst, uint32_t dst_format, size_t dst_stride,
          } else if (src_array_format == RGBA8_UBYTE) {
             assert(!_mesa_is_format_integer_color(dst_format));
 
+#if UTIL_ARCH_LITTLE_ENDIAN
             if (dst_format == MESA_FORMAT_B8G8R8A8_UNORM) {
                convert_ubyte_rgba_to_bgra(width, height, src, src_stride,
                                           dst, dst_stride);
             }
-            else {
+            else
+#endif
+            {
                for (row = 0; row < height; ++row) {
                   _mesa_pack_ubyte_rgba_row(dst_format, width, src, dst);
                   src += src_stride;

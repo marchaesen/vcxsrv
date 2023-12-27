@@ -48,4 +48,27 @@
 #define V3D33_TFU_ICFG_FORMAT_UIF_NO_XOR 14
 #define V3D33_TFU_ICFG_FORMAT_UIF_XOR 15
 
+/* Disable level 0 write, just write following mipmaps */
+#define V3D71_TFU_IOC_DIMTW (1 << 0)
+#define V3D71_TFU_IOC_FORMAT_SHIFT              12
+#define V3D71_TFU_IOC_FORMAT_LINEARTILE          3
+#define V3D71_TFU_IOA_FORMAT_UBLINEAR_1_COLUMN   4
+#define V3D71_TFU_IOA_FORMAT_UBLINEAR_2_COLUMN   5
+#define V3D71_TFU_IOA_FORMAT_UIF_NO_XOR          6
+#define V3D71_TFU_IOA_FORMAT_UIF_XOR             7
+
+#define V3D71_TFU_IOC_STRIDE_SHIFT              16
+#define V3D71_TFU_IOC_NUMMM_SHIFT                4
+
+#define V3D71_TFU_ICFG_OTYPE_SHIFT              16
+#define V3D71_TFU_ICFG_IFORMAT_SHIFT            23
+#define V3D71_TFU_ICFG_FORMAT_RASTER             0
+#define V3D71_TFU_ICFG_FORMAT_SAND_128           1
+#define V3D71_TFU_ICFG_FORMAT_SAND_256           2
+#define V3D71_TFU_ICFG_FORMAT_LINEARTILE        11
+#define V3D71_TFU_ICFG_FORMAT_UBLINEAR_1_COLUMN 12
+#define V3D71_TFU_ICFG_FORMAT_UBLINEAR_2_COLUMN 13
+#define V3D71_TFU_ICFG_FORMAT_UIF_NO_XOR        14
+#define V3D71_TFU_ICFG_FORMAT_UIF_XOR           15
+
 #endif

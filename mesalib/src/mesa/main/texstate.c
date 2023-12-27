@@ -29,7 +29,7 @@
  */
 
 #include <stdio.h>
-#include "glheader.h"
+#include "util/glheader.h"
 #include "bufferobj.h"
 #include "context.h"
 #include "enums.h"
@@ -541,7 +541,7 @@ update_tex_combine(struct gl_context *ctx,
    }
    else {
       const struct gl_texture_object *texObj = texUnit->_Current;
-      GLenum format = texObj->Image[0][texObj->Attrib.BaseLevel]->_BaseFormat;
+      GLenum format = _mesa_base_tex_image(texObj)->_BaseFormat;
 
       if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL_EXT) {
          format = texObj->Attrib.DepthMode;
@@ -704,7 +704,7 @@ update_single_program_texture(struct gl_context *ctx, struct gl_program *prog,
     * Mesa implements this by creating a hidden texture object with a pixel of
     * that value.
     */
-   texObj = _mesa_get_fallback_texture(ctx, target_index);
+   texObj = _mesa_get_fallback_texture(ctx, target_index, !!(prog->ShadowSamplers & BITFIELD_BIT(unit)));
    assert(texObj);
 
    return texObj;
@@ -870,7 +870,7 @@ fix_missing_textures_for_atifs(struct gl_context *ctx,
 
       if (!ctx->Texture.Unit[unit]._Current) {
          struct gl_texture_object *texObj =
-            _mesa_get_fallback_texture(ctx, target_index);
+            _mesa_get_fallback_texture(ctx, target_index, false);
          _mesa_reference_texobj(&ctx->Texture.Unit[unit]._Current, texObj);
          BITSET_SET(enabled_texture_units, unit);
          ctx->Texture._MaxEnabledTexImageUnit =
@@ -1031,23 +1031,6 @@ _mesa_init_texture(struct gl_context *ctx)
 
    /* Texture group */
    ctx->Texture.CurrentUnit = 0;      /* multitexture */
-
-   /* Appendix F.2 of the OpenGL ES 3.0 spec says:
-    *
-    *     "OpenGL ES 3.0 requires that all cube map filtering be
-    *     seamless. OpenGL ES 2.0 specified that a single cube map face be
-    *     selected and used for filtering."
-    *
-    * Unfortunatley, a call to _mesa_is_gles3 below will only work if
-    * the driver has already computed and set ctx->Version, however drivers
-    * seem to call _mesa_initialize_context (which calls this) early
-    * in the CreateContext hook and _mesa_compute_version much later (since
-    * it needs information about available extensions). So, we will
-    * enable seamless cubemaps by default since GLES2. This should work
-    * for most implementations and drivers that don't support seamless
-    * cubemaps for GLES2 can still disable it.
-    */
-   ctx->Texture.CubeMapSeamless = ctx->API == API_OPENGLES2;
 
    for (u = 0; u < ARRAY_SIZE(ctx->Texture.Unit); u++) {
       struct gl_texture_unit *texUnit = &ctx->Texture.Unit[u];

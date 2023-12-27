@@ -31,7 +31,11 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 #include <string.h>
 
 #include "xcb.h"
@@ -387,8 +391,14 @@ int xcb_take_socket(xcb_connection_t *c, void (*return_socket)(void *closure), v
     {
         c->out.return_socket = return_socket;
         c->out.socket_closure = closure;
-        if(flags)
-            _xcb_in_expect_reply(c, c->out.request, WORKAROUND_EXTERNAL_SOCKET_OWNER, flags);
+        if(flags) {
+            /* c->out.request + 1 will be the first request sent by the external
+             * socket owner. If the socket is returned before this request is sent
+             * it will be detected in _xcb_in_replies_done and this pending_reply
+             * will be discarded.
+             */
+            _xcb_in_expect_reply(c, c->out.request + 1, WORKAROUND_EXTERNAL_SOCKET_OWNER, flags);
+        }
         assert(c->out.request == c->out.request_written);
         *sent = c->out.request;
     }
@@ -437,6 +447,7 @@ int _xcb_out_init(_xcb_out *out)
 
     out->request = 0;
     out->request_written = 0;
+    out->request_expected_written = 0;
 
     if(pthread_mutex_init(&out->reqlenlock, 0))
         return 0;
@@ -447,8 +458,9 @@ int _xcb_out_init(_xcb_out *out)
 
 void _xcb_out_destroy(_xcb_out *out)
 {
-    pthread_cond_destroy(&out->cond);
     pthread_mutex_destroy(&out->reqlenlock);
+    pthread_cond_destroy(&out->cond);
+    pthread_cond_destroy(&out->socket_cond);
 }
 
 int _xcb_out_send(xcb_connection_t *c, struct iovec *vector, int count)
@@ -457,6 +469,7 @@ int _xcb_out_send(xcb_connection_t *c, struct iovec *vector, int count)
     while(ret && count)
         ret = _xcb_conn_wait(c, &c->out.cond, &vector, &count);
     c->out.request_written = c->out.request;
+    c->out.request_expected_written = c->in.request_expected;
     pthread_cond_broadcast(&c->out.cond);
     _xcb_in_wake_up_next_reader(c);
     return ret;

@@ -6,7 +6,7 @@ default xkb_geometry "XP5" {
 
     shape.cornerRadius= 1;
 
-    shape "NORM" { 
+    shape "NORM" {
 	{ [17,17] },
 	{ [ 2, 1], [ 15, 15 ] }
     };
@@ -55,28 +55,28 @@ default xkb_geometry "XP5" {
     section "Whole" {
 	top= 10;
 	row {
-	    top= 11; 
+	    top= 11;
 	    key.shape= "FKEY";
-	    keys { 
-	    	<ESC>,  
-	    	<FK01>, <FK02>, <FK03>, <FK04>, <FK05>, <FK06>,
+	    keys {
+		<ESC>,
+		<FK01>, <FK02>, <FK03>, <FK04>, <FK05>, <FK06>,
 		<FK07>, <FK08>, <FK09>, <FK10>, <FK11>, <FK12>,
 		<PAUS>, <HOME>, <END>, <PGUP>
 	    };
 	};
 	row {
 	    top= 22;
-	    keys { 
+	    keys {
 	    	{ <AEO1>, "ONE" },
 		<AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
 		<AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
-		{ <BKSP>, shape="WIDE" }, 
+		{ <BKSP>, shape="WIDE" },
 		<PGDN>
 	    };
 	};
 	row {
 	    top= 40;
-	    keys { 
+	    keys {
 	    	<TAB>, <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
 		<AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		{ <BKSL>, "WIDR" }
@@ -85,26 +85,26 @@ default xkb_geometry "XP5" {
 	row {
 	    top= 58;
 	    keys { { <CAPS>, shape="WIDE" },
-		<AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		<AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
-		<AC11>, 
+		<AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		<AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
+		<AC11>,
 		{ <RTRN>, shape="RTRN" }
 	    };
 	};
 	row {
 	    top= 76;
-	    keys { 
+	    keys {
 		{ <LFSH>, shape="WIDR" },
-		<AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		<AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
-		<RTSH>, <UP>, <NMLK> 
+		<AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		<AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
+		<RTSH>, <UP>, <NMLK>
 	    };
 	};
 	row {
 	    top= 94;
-	    keys { 
-		{ <LCTL>, "WIDE" }, <FUNC>, { <LALT>, "WIDE" }, 
-		<TLDE>, { <SPCE>, shape="SPCE" }, <INS>, <DELE>, 
+	    keys {
+		{ <LCTL>, "WIDE" }, <FUNC>, { <LALT>, "WIDE" },
+		<TLDE>, { <SPCE>, shape="SPCE" }, <INS>, <DELE>,
 		<LEFT>, <DOWN>, <RGHT>
 	    };
 	};

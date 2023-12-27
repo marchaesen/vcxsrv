@@ -33,7 +33,7 @@
 #define BLEND_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "formats.h"
 #include "extensions.h"

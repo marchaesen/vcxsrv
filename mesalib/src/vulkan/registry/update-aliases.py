@@ -34,6 +34,10 @@ def get_aliases(xml_file: pathlib.Path):
         + xml.findall('.//type[@alias]')
         + xml.findall('.//command[@alias]')
     ):
+        # Some renames only apply to some APIs
+        if 'api' in node.attrib and 'vulkan' not in node.attrib['api'].split(','):
+            continue
+
         yield node.attrib['name'], node.attrib['alias']
 
 
@@ -56,15 +60,60 @@ def chunks(lst: list, n: int):
         yield lst[i:i + n]
 
 
-def main(check_only: bool):
+def main(paths: list[str]):
     """
-    Entrypoint; perform the search for all the aliases, and if `check_only`
-    is not True, replace them.
+    Entrypoint; perform the search for all the aliases and replace them.
     """
     def prepare_identifier(identifier: str) -> str:
-        # vk_find_struct() prepends `VK_STRUCTURE_TYPE_`, so that prefix
-        # might not appear in the code
-        identifier = remove_prefix(identifier, 'VK_STRUCTURE_TYPE_')
+        prefixes_seen = []
+        for prefix in [
+            # Various macros prepend these, so they will not appear in the code using them.
+            # List generated using this command:
+            #   $ prefixes=$(git grep -woiE 'VK_\w+_' -- src/ ':!src/vulkan/registry/' | cut -d: -f2 | sort -u)
+            #   $ for prefix in $prefixes; do grep -q $prefix src/vulkan/registry/vk.xml && echo "'$prefix',"; done
+            # (the second part eliminates prefixes used only in mesa code and not upstream)
+            'VK_BLEND_FACTOR_',
+            'VK_BLEND_OP_',
+            'VK_BORDER_COLOR_',
+            'VK_COMMAND_BUFFER_RESET_',
+            'VK_COMMAND_POOL_RESET_',
+            'VK_COMPARE_OP_',
+            'VK_COMPONENT_SWIZZLE_',
+            'VK_DESCRIPTOR_TYPE_',
+            'VK_DRIVER_ID_',
+            'VK_DYNAMIC_STATE_',
+            'VK_ERROR_',
+            'VK_FORMAT_',
+            'VK_IMAGE_ASPECT_MEMORY_PLANE_',
+            'VK_IMAGE_ASPECT_PLANE_',
+            'VK_IMAGE_USAGE_',
+            'VK_NV_',
+            'VK_PERFORMANCE_COUNTER_UNIT_',
+            'VK_PIPELINE_BIND_POINT_',
+            'VK_SAMPLER_ADDRESS_MODE_',
+            'VK_SHADER_STAGE_TESSELLATION_',
+            'VK_SHADER_STAGE_',
+            'VK_STENCIL_OP_',
+            'VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_',
+            'VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_',
+            'VK_STRUCTURE_TYPE_',
+            'VK_USE_PLATFORM_',
+            'VK_VERSION_',
+
+            # Many places use the identifier without the `vk` prefix
+            # (eg. with the driver name as a prefix instead)
+            'VK_',
+            'Vk',
+            'vk',
+        ]:
+            # The order matters!  A shorter substring will match before a longer
+            # one, hiding its matches.
+            for prefix_seen in prefixes_seen:
+                assert not prefix.startswith(prefix_seen), f'{prefix_seen} must come before {prefix}'
+            prefixes_seen.append(prefix)
+
+            identifier = remove_prefix(identifier, prefix)
+
         return identifier
 
     aliases = {}
@@ -89,14 +138,20 @@ def main(check_only: bool):
     # be extremely slow.
     files_with_aliases = set()
     for aliases_chunk in chunks([*aliases], 500):
-        search_output = subprocess.check_output([
+        grep_cmd = [
             'git',
             'grep',
             '-rlP',
             '|'.join(aliases_chunk),
-            'src/'
-        ], stderr=subprocess.DEVNULL).decode()
+        ] + paths
+        search_output = subprocess.run(
+            grep_cmd,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        ).stdout.decode()
         files_with_aliases.update(search_output.splitlines())
+
 
     def file_matches_path(file: str, path: str) -> bool:
         # if path is a folder; match any file within
@@ -115,12 +170,7 @@ def main(check_only: bool):
         sys.exit(0)
 
     print(f'{len(files_with_aliases)} files contain aliases:')
-    print('\n'.join(f'- {file}' for file in files_with_aliases))
-
-    if check_only:
-        print('You can automatically fix this by running '
-              f'`{THIS_FILE.relative_to(CWD)}`.')
-        sys.exit(1)
+    print('\n'.join(f'- {file}' for file in sorted(files_with_aliases)))
 
     command = [
         'sed',
@@ -134,8 +184,9 @@ def main(check_only: bool):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--check-only',
-                        action='store_true',
-                        help='Replace aliases found')
+    parser.add_argument('paths',
+                        nargs=argparse.ZERO_OR_MORE,
+                        default=['src/'],
+                        help='Limit script to these paths (default: `src/`)')
     args = parser.parse_args()
     main(**vars(args))

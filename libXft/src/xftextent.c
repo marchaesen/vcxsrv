@@ -100,12 +100,12 @@ XftGlyphExtents (Display	    *dpy,
 		y += xftg->metrics.yOff;
 	    }
 	}
-	extents->x = -overall_left;
-	extents->y = -overall_top;
-	extents->width = overall_right - overall_left;
-	extents->height = overall_bottom - overall_top;
-	extents->xOff = x;
-	extents->yOff = y;
+	extents->x = (short)(-overall_left);
+	extents->y = (short)(-overall_top);
+	extents->width = (unsigned short)(overall_right - overall_left);
+	extents->height = (unsigned short)(overall_bottom - overall_top);
+	extents->xOff = (short)x;
+	extents->yOff = (short)y;
     }
     if (glyphs_loaded)
 	_XftFontManageMemory (dpy, pub);
@@ -123,11 +123,14 @@ XftTextExtents8 (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len < 0)
+	return;
+
     if (len <= NUM_LOCAL)
-	glyphs = glyphs_local;
+	*(glyphs = glyphs_local) = 0;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	{
 	    memset (extents, '\0', sizeof (XGlyphInfo));
@@ -151,11 +154,14 @@ XftTextExtents16 (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len < 0)
+	return;
+
     if (len <= NUM_LOCAL)
-	glyphs = glyphs_local;
+	*(glyphs = glyphs_local) = 0;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	{
 	    memset (extents, '\0', sizeof (XGlyphInfo));
@@ -179,11 +185,14 @@ XftTextExtents32 (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len < 0)
+	return;
+
     if (len <= NUM_LOCAL)
-	glyphs = glyphs_local;
+	*(glyphs = glyphs_local) = 0;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	{
 	    memset (extents, '\0', sizeof (XGlyphInfo));
@@ -210,14 +219,17 @@ XftTextExtentsUtf8 (Display	    *dpy,
     int		    l;
     int		    size;
 
+    if (len < 0)
+	return;
+
     i = 0;
-    glyphs = glyphs_local;
+    *(glyphs = glyphs_local) = 0;
     size = NUM_LOCAL;
     while (len && (l = FcUtf8ToUcs4 (string, &ucs4, len)) > 0)
     {
 	if (i == size)
 	{
-	    glyphs_new = malloc (size * 2 * sizeof (FT_UInt));
+	    glyphs_new = AllocUIntArray (size * 2);
 	    if (!glyphs_new)
 	    {
 		if (glyphs != glyphs_local)
@@ -225,7 +237,7 @@ XftTextExtentsUtf8 (Display	    *dpy,
 		memset (extents, '\0', sizeof (XGlyphInfo));
 		return;
 	    }
-	    memcpy (glyphs_new, glyphs, size * sizeof (FT_UInt));
+	    memcpy (glyphs_new, glyphs, (size_t)size * sizeof (FT_UInt));
 	    size *= 2;
 	    if (glyphs != glyphs_local)
 		free (glyphs);
@@ -254,14 +266,17 @@ XftTextExtentsUtf16 (Display		*dpy,
     int		    l;
     int		    size;
 
+    if (len < 0)
+	return;
+
     i = 0;
-    glyphs = glyphs_local;
+    *(glyphs = glyphs_local) = 0;
     size = NUM_LOCAL;
     while (len && (l = FcUtf16ToUcs4 (string, endian, &ucs4, len)) > 0)
     {
 	if (i == size)
 	{
-	    glyphs_new = malloc (size * 2 * sizeof (FT_UInt));
+	    glyphs_new = AllocUIntArray (size * 2);
 	    if (!glyphs_new)
 	    {
 		if (glyphs != glyphs_local)
@@ -269,7 +284,7 @@ XftTextExtentsUtf16 (Display		*dpy,
 		memset (extents, '\0', sizeof (XGlyphInfo));
 		return;
 	    }
-	    memcpy (glyphs_new, glyphs, size * sizeof (FT_UInt));
+	    memcpy (glyphs_new, glyphs, (size_t)size * sizeof (FT_UInt));
 	    size *= 2;
 	    if (glyphs != glyphs_local)
 		free (glyphs);

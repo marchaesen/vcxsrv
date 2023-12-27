@@ -10,3 +10,7 @@ option('xorg-rules-symlinks',
        type: 'boolean',
        value: false,
        description: 'create "xorg" symlinks to the "base" rules files [default=false]')
+option('nls',
+       type: 'boolean',
+       value: true,
+       description: 'build with native language support (NLS) [default=true]')

@@ -32,6 +32,7 @@
 #include "main/uniforms.h"
 #include "pipe/p_shader_tokens.h"
 #include "util/u_memory.h"
+#include "util/perf/cpu_trace.h"
 
 void
 st_get_program_binary_driver_sha1(struct gl_context *ctx, uint8_t *sha1)
@@ -145,6 +146,8 @@ st_deserialise_nir_program(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    size_t size = prog->driver_cache_blob_size;
    uint8_t *buffer = (uint8_t *) prog->driver_cache_blob;
+
+   MESA_TRACE_FUNC();
 
    st_set_prog_affected_state_flags(prog);
 

@@ -1,25 +1,7 @@
 /*
  * Copyright 2013 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "si_pipe.h"
@@ -56,10 +38,7 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
    switch (res->b.b.usage) {
    case PIPE_USAGE_STREAM:
       res->flags |= RADEON_FLAG_GTT_WC;
-      if (sscreen->info.smart_access_memory)
-         res->domains = RADEON_DOMAIN_VRAM;
-      else
-         res->domains = RADEON_DOMAIN_GTT;
+      res->domains = RADEON_DOMAIN_GTT;
       break;
    case PIPE_USAGE_STAGING:
       /* Transfers are likely to occur more often with these
@@ -106,6 +85,12 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
    else
       res->flags |= RADEON_FLAG_NO_INTERPROCESS_SHARING;
 
+   /* PIPE_BIND_CUSTOM is used by si_vid_create_buffer which wants
+    * non-suballocated buffers.
+    */
+   if (res->b.b.bind & PIPE_BIND_CUSTOM)
+      res->flags |= RADEON_FLAG_NO_SUBALLOC;
+
    if (res->b.b.bind & PIPE_BIND_PROTECTED ||
        /* Force scanout/depth/stencil buffer allocation to be encrypted */
        (sscreen->debug_flags & DBG(TMZ) &&
@@ -145,20 +130,12 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
       res->flags |= RADEON_FLAG_DISCARDABLE;
    }
 
-   if (res->domains == RADEON_DOMAIN_VRAM &&
-       sscreen->options.mall_noalloc)
-      res->flags |= RADEON_FLAG_MALL_NOALLOC;
-
-   /* Set expected VRAM and GART usage for the buffer. */
-   res->memory_usage_kb = MAX2(1, size / 1024);
-
    if (res->domains & RADEON_DOMAIN_VRAM) {
       /* We don't want to evict buffers from VRAM by mapping them for CPU access,
        * because they might never be moved back again. If a buffer is large enough,
        * upload data by copying from a temporary GTT buffer.
        */
-      if (!sscreen->info.smart_access_memory &&
-          sscreen->info.has_dedicated_vram &&
+      if (sscreen->info.has_dedicated_vram &&
           !res->b.cpu_storage && /* TODO: The CPU storage breaks this. */
           size >= sscreen->options.max_vram_map_size)
          res->b.b.flags |= PIPE_RESOURCE_FLAG_DONT_MAP_DIRECTLY;
@@ -207,8 +184,14 @@ bool si_alloc_resource(struct si_screen *sscreen, struct si_resource *res)
       fprintf(stderr, "\n");
    }
 
-   if (res->b.b.flags & SI_RESOURCE_FLAG_CLEAR)
-      si_screen_clear_buffer(sscreen, &res->b.b, 0, res->bo_size, 0, SI_OP_SYNC_AFTER);
+   if (res->b.b.flags & SI_RESOURCE_FLAG_CLEAR) {
+      struct si_context *ctx = si_get_aux_context(&sscreen->aux_context.general);
+      uint32_t value = 0;
+
+      si_clear_buffer(ctx, &res->b.b, 0, res->bo_size, &value, 4, SI_OP_SYNC_AFTER,
+                      SI_COHERENCY_SHADER, SI_AUTO_SELECT_CLEAR_METHOD);
+      si_put_aux_context_flush(&sscreen->aux_context.general);
+   }
 
    return true;
 }
@@ -292,7 +275,6 @@ void si_replace_buffer_storage(struct pipe_context *ctx, struct pipe_resource *d
    sdst->b.b.bind = ssrc->b.b.bind;
    sdst->flags = ssrc->flags;
 
-   assert(sdst->memory_usage_kb == ssrc->memory_usage_kb);
    assert(sdst->bo_size == ssrc->bo_size);
    assert(sdst->bo_alignment_log2 == ssrc->bo_alignment_log2);
    assert(sdst->domains == ssrc->domains);
@@ -307,7 +289,7 @@ static void si_invalidate_resource(struct pipe_context *ctx, struct pipe_resourc
    struct si_context *sctx = (struct si_context *)ctx;
    struct si_resource *buf = si_resource(resource);
 
-   /* We currently only do anyting here for buffers */
+   /* We currently only do anything here for buffers */
    if (resource->target == PIPE_BUFFER)
       (void)si_invalidate_buffer(sctx, buf);
 }
@@ -630,6 +612,9 @@ static struct pipe_resource *si_buffer_from_user_memory(struct pipe_screen *scre
                                                         const struct pipe_resource *templ,
                                                         void *user_memory)
 {
+   if (templ->target != PIPE_BUFFER)
+      return NULL;
+
    struct si_screen *sscreen = (struct si_screen *)screen;
    struct radeon_winsys *ws = sscreen->ws;
    struct si_resource *buf = si_alloc_buffer_struct(screen, templ, false);
@@ -650,7 +635,6 @@ static struct pipe_resource *si_buffer_from_user_memory(struct pipe_screen *scre
    }
 
    buf->gpu_address = ws->buffer_get_virtual_address(buf->buf);
-   buf->memory_usage_kb = templ->width0 / 1024;
    return &buf->b.b;
 }
 

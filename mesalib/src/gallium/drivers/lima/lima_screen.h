@@ -30,7 +30,7 @@
 #include "util/slab.h"
 #include "util/list.h"
 #include "util/disk_cache.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 #include "pipe/p_screen.h"
 
@@ -63,9 +63,6 @@ struct ra_regs;
 struct lima_screen {
    struct pipe_screen base;
    struct renderonly *ro;
-
-   int refcnt;
-   void *winsys_priv;
 
    int fd;
    int gpu_type;
@@ -104,6 +101,7 @@ lima_screen(struct pipe_screen *pscreen)
 }
 
 struct pipe_screen *
-lima_screen_create(int fd, struct renderonly *ro);
+lima_screen_create(int fd, const struct pipe_screen_config *config,
+                   struct renderonly *ro);
 
 #endif

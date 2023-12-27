@@ -68,7 +68,7 @@ iris_init_perf_query_info(struct pipe_context *pipe)
 
    iris_perf_init_vtbl(perf_cfg);
 
-   intel_perf_init_metrics(perf_cfg, &screen->devinfo, screen->fd,
+   intel_perf_init_metrics(perf_cfg, screen->devinfo, screen->fd,
                            true /* pipeline_statistics */,
                            true /* register snapshots */);
 
@@ -77,8 +77,8 @@ iris_init_perf_query_info(struct pipe_context *pipe)
                          ice,
                          ice,
                          screen->bufmgr,
-                         &screen->devinfo,
-                         ice->batches[IRIS_BATCH_RENDER].ctx_id,
+                         screen->devinfo,
+                         ice->batches[IRIS_BATCH_RENDER].i915.ctx_id,
                          screen->fd);
 
    return perf_cfg->n_queries;
@@ -180,7 +180,8 @@ iris_get_perf_counter_info(struct pipe_context *pipe,
 
    intel_perf_query_result_clear(&results);
 
-   *name = counter->name;
+   *name = INTEL_DEBUG(DEBUG_PERF_SYMBOL_NAMES) ?
+      counter->symbol_name : counter->name;
    *desc = counter->desc;
    *offset = counter->offset;
    *data_size = intel_perf_query_counter_get_size(counter);

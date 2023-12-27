@@ -327,7 +327,7 @@ This list is likely incomplete.
    Register spilling clobbers registers used elsewhere in the shader
 -  `Bug 90547 <https://bugs.freedesktop.org/show_bug.cgi?id=90547>`__ -
    [BDW/BSW/SKL
-   Bisected]Piglit/glean@vertprog1-rsq_test_2_(reciprocal_square_root_of_negative_value)
+   Bisected]Piglit/glean\@vertprog1-rsq_test_2_(reciprocal_square_root_of_negative_value)
    fais
 -  `Bug 90580 <https://bugs.freedesktop.org/show_bug.cgi?id=90580>`__ -
    [HSW bisected] integer multiplication bug

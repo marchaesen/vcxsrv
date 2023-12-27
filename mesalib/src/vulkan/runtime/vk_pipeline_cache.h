@@ -77,7 +77,7 @@ struct vk_pipeline_cache_object_ops {
     *
     * This function is optional.
     */
-   struct vk_pipeline_cache_object *(*deserialize)(struct vk_device *device,
+   struct vk_pipeline_cache_object *(*deserialize)(struct vk_pipeline_cache *cache,
                                                    const void *key_data,
                                                    size_t key_size,
                                                    struct blob_reader *blob);
@@ -86,7 +86,8 @@ struct vk_pipeline_cache_object_ops {
     *
     * Called when vk_pipeline_cache_object.ref_cnt hits 0.
     */
-   void (*destroy)(struct vk_pipeline_cache_object *object);
+   void (*destroy)(struct vk_device *device,
+                   struct vk_pipeline_cache_object *object);
 };
 
 /** Base struct for cached objects
@@ -105,8 +106,8 @@ struct vk_pipeline_cache_object_ops {
  * it never has two objects of different types with the same key.
  */
 struct vk_pipeline_cache_object {
-   struct vk_device *device;
    const struct vk_pipeline_cache_object_ops *ops;
+   struct vk_pipeline_cache *weak_owner;
    uint32_t ref_cnt;
 
    uint32_t data_size;
@@ -121,7 +122,6 @@ vk_pipeline_cache_object_init(struct vk_device *device,
                               const void *key_data, uint32_t key_size)
 {
    memset(object, 0, sizeof(*object));
-   object->device = device;
    object->ops = ops;
    p_atomic_set(&object->ref_cnt, 1);
    object->data_size = 0; /* Unknown */
@@ -143,13 +143,9 @@ vk_pipeline_cache_object_ref(struct vk_pipeline_cache_object *object)
    return object;
 }
 
-static inline void
-vk_pipeline_cache_object_unref(struct vk_pipeline_cache_object *object)
-{
-   assert(object && p_atomic_read(&object->ref_cnt) >= 1);
-   if (p_atomic_dec_zero(&object->ref_cnt))
-      object->ops->destroy(object);
-}
+void
+vk_pipeline_cache_object_unref(struct vk_device *device,
+                               struct vk_pipeline_cache_object *object);
 
 /** A generic implementation of VkPipelineCache */
 struct vk_pipeline_cache {
@@ -157,6 +153,8 @@ struct vk_pipeline_cache {
 
    /* pCreateInfo::flags */
    VkPipelineCacheCreateFlags flags;
+   bool weak_ref;
+   bool skip_disk_cache;
 
    struct vk_pipeline_cache_header header;
 
@@ -178,6 +176,28 @@ struct vk_pipeline_cache_create_info {
 
    /** If true, ignore VK_ENABLE_PIPELINE_CACHE and enable anyway */
    bool force_enable;
+
+   /** If true, the cache operates in weak reference mode.
+    *
+    * The weak reference mode is designed for device-global caches for the
+    * purpose of de-duplicating identical shaders and pipelines.  In the weak
+    * reference mode, an object's reference count is not incremented when it is
+    * added to the cache.  Therefore the object will be destroyed as soon as
+    * there's no external references to it, and the runtime will perform the
+    * necessary bookkeeping to remove the dead reference from this cache's table.
+    *
+    * As the weak reference mode is designed for driver-internal use, it has
+    * several limitations:
+    * - Merging against a weak reference mode cache is not supported.
+    * - Lazy deserialization from vk_raw_data_cache_object_ops is not supported.
+    * - An object can only belong to up to one weak reference mode cache.
+    * - The cache must outlive the object, as the object will try to access its
+    *   owner when it's destroyed.
+    */
+   bool weak_ref;
+
+   /** If true, do not attempt to use the disk cache */
+   bool skip_disk_cache;
 };
 
 struct vk_pipeline_cache *
@@ -241,6 +261,23 @@ struct vk_pipeline_cache_object * MUST_CHECK
 vk_pipeline_cache_add_object(struct vk_pipeline_cache *cache,
                              struct vk_pipeline_cache_object *object);
 
+/** Creates and inserts an object into the pipeline cache
+ *
+ * This function takes serialized data and emplaces the deserialized object
+ * into the pipeline cache.  It is the responsibility of the caller to
+ * specify a deserialize() function that properly initializes the object.
+ *
+ * This function can be used to avoid an extra serialize() step for
+ * disk-cache insertion.  For the intended usage pattern, see
+ * vk_pipeline_cache_add_object().
+ *
+ */
+struct vk_pipeline_cache_object *
+vk_pipeline_cache_create_and_insert_object(struct vk_pipeline_cache *cache,
+                                           const void *key_data, uint32_t key_size,
+                                           const void *data, size_t data_size,
+                                           const struct vk_pipeline_cache_object_ops *ops);
+
 struct nir_shader *
 vk_pipeline_cache_lookup_nir(struct vk_pipeline_cache *cache,
                              const void *key_data, size_t key_size,
@@ -250,6 +287,25 @@ void
 vk_pipeline_cache_add_nir(struct vk_pipeline_cache *cache,
                           const void *key_data, size_t key_size,
                           const struct nir_shader *nir);
+
+/** Specialized type of vk_pipeline_cache_object for raw data objects.
+ *
+ * This cache object implementation, together with vk_raw_data_cache_object_ops,
+ * can be used to cache plain objects as well as already serialized data.
+ */
+struct vk_raw_data_cache_object {
+   struct vk_pipeline_cache_object base;
+
+   const void *data;
+   size_t data_size;
+};
+
+struct vk_raw_data_cache_object *
+vk_raw_data_cache_object_create(struct vk_device *device,
+                                const void *key_data, size_t key_size,
+                                const void *data, size_t data_size);
+
+extern const struct vk_pipeline_cache_object_ops vk_raw_data_cache_object_ops;
 
 #ifdef __cplusplus
 }

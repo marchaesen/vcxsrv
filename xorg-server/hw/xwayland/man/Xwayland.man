@@ -61,6 +61,15 @@ backend first, then fallback to the GBM backend if EGLStream is not supported
 by the Wayland server. Without this option, \fIXwayland\fP tries the GBM
 backend first, and fallback to EGLStream if GBM is not usable.
 .TP 8
+.B \-enable-ei-portal
+Enable support for the XDG portal for input emulation.
+
+A Wayland compositor running nested should not use that command line
+option with Xwayland.
+
+This option has no effect if the compositor doesn't support the relevant
+XDG portal or if Xwayland was not compiled with EI and OEFFIS support.
+.TP 8
 .B \-fullscreen
 Set the Xwayland window fullscreen when running rootful.
 
@@ -70,6 +79,15 @@ This option is not compatible with rootless mode (\fI-rootless\fP).
 Sets the geometry of the \fIXwayland\fP window to \fIWxH\fP when running rootful.
 
 This option is not compatible with rootless mode (\fI-rootless\fP).
+.TP 8
+.B \-glamor " [\fIgl|es|off\fP]"
+Use given rendering API for Glamor acceleration. Possible options are \fIgl\fP and \fIes\fP.
+If \fIXwayland\fP was compiled with Glamor support, this option will instruct \fIXwayland\fP
+to use only requested API for Glamor. If this set to \fIoff\fP, effect is equal to \fI-shm\fP option.
+Without this option and without \fI-shm\fP option, \fIXwayland\fP tries the OpenGL rendering API first,
+and fallback to GL ES if GL version is less than 2.1.
+
+This option is not compatible with \fI-shm\fP option.
 .TP 8
 .B \-host-grab
 Disable host keyboard shorcuts and confine the pointer when running rootful.
@@ -114,6 +132,8 @@ to be an X window manager as well.
 .BI \-shm
 Force the shared memory backend instead of glamor (if available) for passing
 buffers to the Wayland server.
+
+This option is not compatible with \fI-glamor\fP option.
 .TP 8
 .BR \-verbose " [\fIn\fP]"
 Sets the verbosity level for information printed on stderr.  If the

@@ -91,18 +91,11 @@ svga_set_polygon_stipple(struct pipe_context *pipe,
 void
 svga_cleanup_framebuffer(struct svga_context *svga)
 {
-   struct svga_screen *svgascreen = svga_screen(svga->pipe.screen);
    struct pipe_framebuffer_state *curr = &svga->curr.framebuffer;
    struct pipe_framebuffer_state *hw = &svga->state.hw_clear.framebuffer;
-   unsigned i;
 
-   for (i = 0; i < svgascreen->max_color_buffers; i++) {
-      pipe_surface_reference(&curr->cbufs[i], NULL);
-      pipe_surface_reference(&hw->cbufs[i], NULL);
-   }
-
-   pipe_surface_reference(&curr->zsbuf, NULL);
-   pipe_surface_reference(&hw->zsbuf, NULL);
+   util_unreference_framebuffer_state(curr);
+   util_unreference_framebuffer_state(hw);
 }
 
 

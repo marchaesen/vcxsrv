@@ -58,6 +58,8 @@ void dag_remove_edge(struct dag *dag, struct dag_edge *edge);
 void dag_traverse_bottom_up(struct dag *dag, void (*cb)(struct dag_node *node,
                                                         void *data), void *data);
 void dag_prune_head(struct dag *dag, struct dag_node *node);
+void dag_validate(struct dag *dag, void (*cb)(const struct dag_node *node,
+                                              void *data), void *data);
 
 #ifdef __cplusplus
 }

@@ -32,9 +32,8 @@
 #include "vk_format.h"
 
 mali_ptr
-panvk_per_arch(meta_emit_viewport)(struct pan_pool *pool,
-                                   uint16_t minx, uint16_t miny,
-                                   uint16_t maxx, uint16_t maxy)
+panvk_per_arch(meta_emit_viewport)(struct pan_pool *pool, uint16_t minx,
+                                   uint16_t miny, uint16_t maxx, uint16_t maxy)
 {
    struct panfrost_ptr vp = pan_pool_alloc_desc(pool, VIEWPORT);
 
@@ -53,8 +52,8 @@ panvk_per_arch(meta_init)(struct panvk_physical_device *dev)
 {
    panvk_pool_init(&dev->meta.bin_pool, &dev->pdev, NULL, PAN_BO_EXECUTE,
                    16 * 1024, "panvk_meta binary pool", false);
-   panvk_pool_init(&dev->meta.desc_pool, &dev->pdev, NULL, 0,
-                   16 * 1024, "panvk_meta descriptor pool", false);
+   panvk_pool_init(&dev->meta.desc_pool, &dev->pdev, NULL, 0, 16 * 1024,
+                   "panvk_meta descriptor pool", false);
    panvk_per_arch(meta_blit_init)(dev);
    panvk_per_arch(meta_copy_init)(dev);
    panvk_per_arch(meta_clear_init)(dev);

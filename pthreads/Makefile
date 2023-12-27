@@ -108,6 +108,7 @@ all-tests-dll:
 	cd tests && $(MAKE) /E clean VSE$(XDBG) $(TEST_ENV)
 
 all-tests-static:
+	cd tests && $(MAKE) /E clean VC-static$(XDBG)-nolib $(TEST_ENV)
 	$(MAKE) /E realclean VC-static$(XDBG)
 	cd tests && $(MAKE) /E clean VC-static$(XDBG) $(TEST_ENV)
 	$(MAKE) /E realclean VCE-static$(XDBG)

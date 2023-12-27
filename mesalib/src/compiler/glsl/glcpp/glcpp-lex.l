@@ -105,7 +105,7 @@ void glcpp_set_column (int  column_no , yyscan_t yyscanner);
 			 * an implicit call on strlen() for the length  \
 			 * of the string, as this is already found by   \
 			 * flex and stored in yyleng */                 \
-			void *mem_ctx = yyextra->linalloc;		\
+			linear_ctx *mem_ctx = yyextra->linalloc;	\
 			yylval->str = linear_alloc_child(mem_ctx,	\
 							 yyleng + 1);	\
 			memcpy(yylval->str, yytext, yyleng + 1);        \

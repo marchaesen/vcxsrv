@@ -71,7 +71,7 @@ This can be implemented in just a few lines of C code. The file
    {
        const struct _glapi_table * const dispatch = GET_DISPATCH();
 
-       (*dispatch->Vertex3f)(x, y, z);
+       dispatch->Vertex3f(x, y, z);
    }
 
 The problem with this simple implementation is the large amount of
@@ -94,10 +94,10 @@ where each can or cannot be used are listed.
 
 Starting with the 2.4.20 Linux kernel, each thread is allocated an area
 of per-thread, global storage. Variables can be put in this area using
-some extensions to GCC that called `ELF TLS`. By storing the dispatch table
+some extensions to GCC that called ``ELF TLS``. By storing the dispatch table
 pointer in this area, the expensive call to ``pthread_getspecific`` and
 the test of ``_glapi_Dispatch`` can be avoided. As we don't support for
-Linux kernel earlier than 2.4.20, so we can always using `ELF TLS`.
+Linux kernel earlier than 2.4.20, so we can always using ``ELF TLS``.
 
 The dispatch table pointer is stored in a new variable called
 ``_glapi_tls_Dispatch``. A new variable name is used so that a single

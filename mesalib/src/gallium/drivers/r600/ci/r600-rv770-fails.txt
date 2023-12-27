@@ -402,17 +402,6 @@ spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
 spec@!opengl 1.1@linestipple@Line loop,Fail
 
-spec@!opengl 1.1@read-front,Fail
-spec@!opengl 1.1@read-front clear-front-first,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=2,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=4,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=6,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=8,Fail
-spec@!opengl 1.1@read-front samples=2,Fail
-spec@!opengl 1.1@read-front samples=4,Fail
-spec@!opengl 1.1@read-front samples=6,Fail
-spec@!opengl 1.1@read-front samples=8,Fail
-
 spec@!opengl 1.1@teximage-colors gl_sluminance8,Fail
 spec@!opengl 1.1@teximage-colors gl_sluminance8@GL_SLUMINANCE8 texture with GL_ABGR_EXT and GL_BYTE,Fail
 spec@!opengl 1.1@teximage-colors gl_sluminance8@GL_SLUMINANCE8 texture with GL_ABGR_EXT and GL_FLOAT,Fail

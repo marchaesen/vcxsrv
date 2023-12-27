@@ -234,7 +234,7 @@ xlocaledir(
 	     *
 	     * Note: this only protects setuid-root clients.  It doesn't
 	     * protect other setuid or any setgid clients.  If this tradeoff
-	     * isn't acceptable, set DisableXLocaleDirEnv to YES in host.def.
+	     * isn't acceptable, run configure with --disable-xlocaledir .
 	     */
 	    unsigned int oldeuid;
 	    oldeuid = geteuid();
@@ -312,7 +312,7 @@ xlocalelibdir(
 	     *
 	     * Note: this only protects setuid-root clients.  It doesn't
 	     * protect other setuid or any setgid clients.  If this tradeoff
-	     * isn't acceptable, set DisableXLocaleDirEnv to YES in host.def.
+	     * isn't acceptable, run configure with --disable-xlocaledir .
 	     */
 	    unsigned int oldeuid;
 	    oldeuid = geteuid();

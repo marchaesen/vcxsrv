@@ -46,7 +46,7 @@ struct hud_batch_query_context {
    unsigned allocated_query_types;
    unsigned *query_types;
 
-   boolean failed;
+   bool failed;
    struct pipe_query *query[NUM_QUERIES];
    union pipe_query_result *result[NUM_QUERIES];
    unsigned head, pending, results;
@@ -73,11 +73,11 @@ hud_batch_query_update(struct hud_batch_query_context *bq,
                                   bq->num_query_types);
       if (!bq->result[idx]) {
          fprintf(stderr, "gallium_hud: out of memory.\n");
-         bq->failed = TRUE;
+         bq->failed = true;
          return;
       }
 
-      if (!pipe->get_query_result(pipe, query, FALSE, bq->result[idx]))
+      if (!pipe->get_query_result(pipe, query, false, bq->result[idx]))
          break;
 
       ++bq->results;
@@ -108,7 +108,7 @@ hud_batch_query_update(struct hud_batch_query_context *bq,
          fprintf(stderr,
                  "gallium_hud: create_batch_query failed. You may have "
                  "selected too many or incompatible queries.\n");
-         bq->failed = TRUE;
+         bq->failed = true;
          return;
       }
    }
@@ -125,11 +125,11 @@ hud_batch_query_begin(struct hud_batch_query_context *bq,
       fprintf(stderr,
               "gallium_hud: could not begin batch query. You may have "
               "selected too many or incompatible queries.\n");
-      bq->failed = TRUE;
+      bq->failed = true;
    }
 }
 
-static boolean
+static bool
 batch_query_add(struct hud_batch_query_context **pbq,
                 unsigned query_type, unsigned *result_index)
 {
@@ -242,7 +242,7 @@ query_new_value_normal(struct query_info *info, struct pipe_context *pipe)
          union pipe_query_result result;
          uint64_t *res64 = (uint64_t *)&result;
 
-         if (query && pipe->get_query_result(pipe, query, FALSE, &result)) {
+         if (query && pipe->get_query_result(pipe, query, false, &result)) {
             if (info->type == PIPE_DRIVER_QUERY_TYPE_FLOAT) {
                assert(info->result_index == 0);
                info->results_cumulative += (uint64_t) (result.f * 1000.0f);
@@ -419,34 +419,34 @@ fail_gr:
    FREE(gr);
 }
 
-boolean
+bool
 hud_driver_query_install(struct hud_batch_query_context **pbq,
                          struct hud_pane *pane, struct pipe_screen *screen,
                          const char *name)
 {
    struct pipe_driver_query_info query = { 0 };
    unsigned num_queries, i;
-   boolean found = FALSE;
+   bool found = false;
 
    if (!screen->get_driver_query_info)
-      return FALSE;
+      return false;
 
    num_queries = screen->get_driver_query_info(screen, 0, NULL);
 
    for (i = 0; i < num_queries; i++) {
       if (screen->get_driver_query_info(screen, i, &query) &&
           strcmp(query.name, name) == 0) {
-         found = TRUE;
+         found = true;
          break;
       }
    }
 
    if (!found)
-      return FALSE;
+      return false;
 
    hud_pipe_query_install(pbq, pane, query.name, query.query_type, 0,
                           query.max_value.u64, query.type, query.result_type,
                           query.flags);
 
-   return TRUE;
+   return true;
 }

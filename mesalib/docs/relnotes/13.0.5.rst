@@ -137,7 +137,7 @@ Ilia Mirkin (3):
    not min
 -  nvc0: disable linked tsc mode in compute launch descriptor
 
-Jason Ekstrand (11):
+Faith Ekstrand (11):
 
 -  nir/search: Use the correct bit size for integer comparisons
 -  i965/blorp: Use the correct ISL format for combined depth/stencil

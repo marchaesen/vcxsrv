@@ -43,6 +43,21 @@ void genX(update_pma_fix)(struct iris_context *ice,
 
 void genX(invalidate_aux_map_state)(struct iris_batch *batch);
 
+void genX(emit_breakpoint)(struct iris_batch *batch, bool emit_before_draw);
+void genX(emit_3dprimitive_was)(struct iris_batch *batch,
+                                const struct pipe_draw_indirect_info *indirect,
+                                uint32_t primitive_topology,
+                                uint32_t vertex_count);
+
+static inline void
+genX(maybe_emit_breakpoint)(struct iris_batch *batch,
+                            bool emit_before_draw)
+{
+   if (INTEL_DEBUG(DEBUG_DRAW_BKP))
+      genX(emit_breakpoint)(batch, emit_before_draw);
+}
+
+
 /* iris_blorp.c */
 void genX(init_blorp)(struct iris_context *ice);
 

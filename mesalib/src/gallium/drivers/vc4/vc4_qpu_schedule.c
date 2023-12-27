@@ -327,13 +327,15 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
         uint32_t mul_op = QPU_GET_FIELD(inst, QPU_OP_MUL);
         uint32_t waddr_add = QPU_GET_FIELD(inst, QPU_WADDR_ADD);
         uint32_t waddr_mul = QPU_GET_FIELD(inst, QPU_WADDR_MUL);
-        uint32_t raddr_a = QPU_GET_FIELD(inst, QPU_RADDR_A);
+        uint32_t sig = QPU_GET_FIELD(inst, QPU_SIG);
+        uint32_t raddr_a = sig == QPU_SIG_BRANCH ?
+                                QPU_GET_FIELD(inst, QPU_BRANCH_RADDR_A) :
+                                QPU_GET_FIELD(inst, QPU_RADDR_A);
         uint32_t raddr_b = QPU_GET_FIELD(inst, QPU_RADDR_B);
         uint32_t add_a = QPU_GET_FIELD(inst, QPU_ADD_A);
         uint32_t add_b = QPU_GET_FIELD(inst, QPU_ADD_B);
         uint32_t mul_a = QPU_GET_FIELD(inst, QPU_MUL_A);
         uint32_t mul_b = QPU_GET_FIELD(inst, QPU_MUL_B);
-        uint32_t sig = QPU_GET_FIELD(inst, QPU_SIG);
 
         if (sig != QPU_SIG_LOAD_IMM) {
                 process_raddr_deps(state, n, raddr_a, true);
@@ -342,13 +344,15 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
                         process_raddr_deps(state, n, raddr_b, false);
         }
 
-        if (add_op != QPU_A_NOP) {
-                process_mux_deps(state, n, add_a);
-                process_mux_deps(state, n, add_b);
-        }
-        if (mul_op != QPU_M_NOP) {
-                process_mux_deps(state, n, mul_a);
-                process_mux_deps(state, n, mul_b);
+        if (sig != QPU_SIG_LOAD_IMM && sig != QPU_SIG_BRANCH) {
+                if (add_op != QPU_A_NOP) {
+                        process_mux_deps(state, n, add_a);
+                        process_mux_deps(state, n, add_b);
+                }
+                if (mul_op != QPU_M_NOP) {
+                        process_mux_deps(state, n, mul_a);
+                        process_mux_deps(state, n, mul_b);
+                }
         }
 
         process_waddr_deps(state, n, waddr_add, true);

@@ -10,6 +10,8 @@
 #include <cerrno>
 #include <cstring>
 
+#include <sched.h>
+
 namespace pps
 {
 bool check(int res, const char *msg)
@@ -21,6 +23,16 @@ bool check(int res, const char *msg)
    }
 
    return true;
+}
+
+void make_thread_rt()
+{
+   // Use FIFO policy to avoid preemption while collecting counters
+   int sched_policy = SCHED_FIFO;
+   // Do not use max priority to avoid starving migration and watchdog threads
+   int priority_value = sched_get_priority_max(sched_policy) - 1;
+   sched_param priority_param { priority_value };
+   sched_setscheduler(0, sched_policy, &priority_param);
 }
 
 } // namespace pps

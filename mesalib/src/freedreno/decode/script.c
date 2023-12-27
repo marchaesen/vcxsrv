@@ -46,7 +46,7 @@ static lua_State *L;
 #if 0
 #define DBG(fmt, ...)                                                          \
    do {                                                                        \
-      printf(" ** %s:%d ** " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__); \
+      printf(" ** %s:%d ** " fmt "\n", __func__, __LINE__, ##__VA_ARGS__);     \
    } while (0)
 #else
 #define DBG(fmt, ...)                                                          \
@@ -393,10 +393,7 @@ l_rnn_reg_meta_tostring(lua_State *L)
    }
    lua_pushstring(L, decoded);
    free(decoded);
-   if (info) {
-      free(info->name);
-      free(info);
-   }
+   rnn_reginfo_free(info);
    return 1;
 }
 
@@ -519,10 +516,7 @@ l_rnn_regval(lua_State *L)
    }
    lua_pushstring(L, decoded);
    free(decoded);
-   if (info) {
-      free(info->name);
-      free(info);
-   }
+   rnn_reginfo_free(info);
    return 1;
 }
 

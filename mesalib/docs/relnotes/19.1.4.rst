@@ -132,7 +132,7 @@ Ilia Mirkin (4):
 -  nvc0: allow a non-user buffer to be bound at position 0
 -  nv50/ir: handle insn not being there for definition of CVT arg
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  intel/fs: Stop stack allocating large arrays
 -  anv: Disable transform feedback on gen7

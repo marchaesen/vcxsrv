@@ -267,7 +267,7 @@ Bug fixes
 -  `Bug 99451 <https://bugs.freedesktop.org/show_bug.cgi?id=99451>`__ -
    polygon offset use after free
 -  `Bug 99456 <https://bugs.freedesktop.org/show_bug.cgi?id=99456>`__ -
-   Firefox crashing when opening about:support with WebGL2 enabled
+   Firefox crashing when opening \about:support with WebGL2 enabled
 -  `Bug 99631 <https://bugs.freedesktop.org/show_bug.cgi?id=99631>`__ -
    segfault with OSVRTrackerView and openscenegraph git master
 -  `Bug 99633 <https://bugs.freedesktop.org/show_bug.cgi?id=99633>`__ -

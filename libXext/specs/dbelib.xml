@@ -249,7 +249,7 @@ the same area in both the front and back buffers is cleared.
 <para>
 The effect of passing a window to a request that accepts a
 <function>DRAWABLE</function> is
-unchanged by this extension. The window and front buffer are synonomous
+unchanged by this extension. The window and front buffer are synonymous
 with each other. This includes obeying the <function>GetImage</function>
 semantics and the
 subwindow-mode semantics if a core graphics context is involved. Regardless

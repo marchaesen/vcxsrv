@@ -3,7 +3,8 @@ lib_LTLIBRARIES = libfontenc.la
 libfontenc_la_SOURCES = \
          encparse.c \
          fontenc.c \
-	 fontencI.h
+         fontencI.h \
+         reallocarray.h
 
 AM_CFLAGS = \
 	$(FONTENC_CFLAGS) \
@@ -15,7 +16,7 @@ FONTENCDEFS = -DFONT_ENCODINGS_DIRECTORY=\"$(FONTENCDIR)/encodings.dir\"
 AM_CPPFLAGS = -I$(top_srcdir)/include $(FONTENCDEFS)
 
 
-libfontenc_la_LIBADD = @FONTENC_LIBS@
+libfontenc_la_LIBADD = $(LTLIBOBJS) @FONTENC_LIBS@
 
 libfontenc_la_LDFLAGS = -version-number 1:0:0 -no-undefined
 

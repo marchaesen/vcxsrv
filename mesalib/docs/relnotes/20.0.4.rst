@@ -37,7 +37,7 @@ Eric Engestrom (2):
 -  docs/relnotes: add sha256sum for 20.0.3
 -  .pick_status.json: Update to c71c1f44b055c680f073a2608a3bf560b55f8974
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  Revert "spirv: Implement OpCopyObject and OpCopyLogical as blind
    copies"

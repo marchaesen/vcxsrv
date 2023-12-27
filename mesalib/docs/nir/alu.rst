@@ -9,13 +9,13 @@ identical output.  A good rule of thumb is that only things which can be
 constant folded should be ALU operations.  If it can't be constant folded, then
 it should probably be an intrinsic instead.
 
-Each ALU instruction has an opcode, which is a member of the :cpp:enum:`nir_op`
+Each ALU instruction has an opcode, which is a member of the :c:enum:`nir_op`
 enum, that describes what it does as well as how many arguments it takes.
 Associated with each opcode is an metadata structure,
-:cpp:struct:`nir_op_info`, which shows how many arguments the opcode takes,
+:c:struct:`nir_op_info`, which shows how many arguments the opcode takes,
 information about data types, and algebraic properties such as associativity
-and commutivity. The info structure for each opcode may be accessed through
-a global :cpp:var:`nir_op_infos` array that’s indexed by the opcode.
+and commutativity. The info structure for each opcode may be accessed through
+a global :c:var:`nir_op_infos` array that’s indexed by the opcode.
 
 ALU operations are typeless, meaning that they're only defined to convert
 a certain bit-pattern input to another bit-pattern output.  The only concrete
@@ -48,24 +48,22 @@ components required by each source which is fixed by the opcode.
 
 While most instruction types in NIR require vector sizes to perfectly match on
 inputs and outputs, ALU instruction sources have an additional
-:cpp:member:`nir_alu_src::swizzle` field which allows them to act on vectors
+:c:member:`nir_alu_src.swizzle` field which allows them to act on vectors
 which are not the native vector size of the instruction.  This is ideal for
-hardware with a native data type of :c:expr:`vec4` but also means that ALU
+hardware with a native data type of `vec4` but also means that ALU
 instructions are often used (and required) for packing/unpacking vectors for
 use in other instruction types like intrinsics or texture ops.
 
-.. doxygenstruct:: nir_op_info
+.. c:autostruct:: nir_op_info
+   :file: src/compiler/nir/nir.h
    :members:
 
-.. doxygenvariable:: nir_op_infos
+.. c:autovar:: nir_op_infos
 
-.. doxygenstruct:: nir_alu_instr
+.. c:autostruct:: nir_alu_instr
    :members:
 
-.. doxygenstruct:: nir_alu_src
-   :members:
-
-.. doxygenstruct:: nir_alu_dest
+.. c:autostruct:: nir_alu_src
    :members:
 
 NIR ALU Opcode Reference:

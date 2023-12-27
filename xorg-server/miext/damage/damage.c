@@ -142,7 +142,7 @@ damageRegionAppend(DrawablePtr pDrawable, RegionPtr pRegion, Bool clip,
     RegionRec pixClip;
     int draw_x, draw_y;
 
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
     int screen_x = 0, screen_y = 0;
 #endif
 
@@ -150,7 +150,7 @@ damageRegionAppend(DrawablePtr pDrawable, RegionPtr pRegion, Bool clip,
     if (!RegionNotEmpty(pRegion))
         return;
 
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
     /*
      * When drawing to a pixmap which is storing window contents,
      * the region presented is in pixmap relative coordinates which
@@ -201,7 +201,7 @@ damageRegionAppend(DrawablePtr pDrawable, RegionPtr pRegion, Bool clip,
 
         draw_x = pDamage->pDrawable->x;
         draw_y = pDamage->pDrawable->y;
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
         /*
          * Need to move everyone to screen coordinates
          * XXX what about off-screen pixmaps with non-zero x/y?
@@ -274,7 +274,7 @@ damageRegionAppend(DrawablePtr pDrawable, RegionPtr pRegion, Bool clip,
         if (pDamageRegion == pRegion && (draw_x || draw_y))
             RegionTranslate(pDamageRegion, draw_x, draw_y);
     }
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
     if (screen_x || screen_y)
         RegionTranslate(pRegion, -screen_x, -screen_y);
 #endif

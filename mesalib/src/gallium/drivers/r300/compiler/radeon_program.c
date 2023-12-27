@@ -71,98 +71,28 @@ void rc_local_transform(
 	}
 }
 
-struct get_used_temporaries_data {
-	unsigned char * Used;
-	unsigned int UsedLength;
-};
-
-static void get_used_temporaries_cb(
-	void * userdata,
-	struct rc_instruction * inst,
-	rc_register_file file,
-	unsigned int index,
-	unsigned int mask)
-{
-	struct get_used_temporaries_data * d = userdata;
-
-	if (file != RC_FILE_TEMPORARY)
-		return;
-
-	if (index >= d->UsedLength)
-		return;
-
-	d->Used[index] |= mask;
-}
-
-/**
- * This function fills in the parameter 'used' with a writemask that
- * represent which components of each temporary register are used by the
- * program.  This is meant to be combined with rc_find_free_temporary_list as a
- * more efficient version of rc_find_free_temporary.
- * @param used The function does not initialize this parameter.
- */
-void rc_get_used_temporaries(
-	struct radeon_compiler * c,
-	unsigned char * used,
-	unsigned int used_length)
-{
-	struct rc_instruction * inst;
-	struct get_used_temporaries_data d;
-	d.Used = used;
-	d.UsedLength = used_length;
-
-	for(inst = c->Program.Instructions.Next;
-			inst != &c->Program.Instructions; inst = inst->Next) {
-
-		rc_for_all_reads_mask(inst, get_used_temporaries_cb, &d);
-		rc_for_all_writes_mask(inst, get_used_temporaries_cb, &d);
-	}
-}
-
-/* Search a list of used temporaries for a free one
- * \sa rc_get_used_temporaries
- * @note If this functions finds a free temporary, it will mark it as used
- * in the used temporary list (param 'used')
- * @param used list of used temporaries
- * @param used_length number of items in param 'used'
- * @param mask which components must be free in the temporary index that is
- * returned.
- * @return -1 If there are no more free temporaries, otherwise the index of
- * a temporary register where the components specified in param 'mask' are
- * not being used.
- */
-int rc_find_free_temporary_list(
-	struct radeon_compiler * c,
-	unsigned char * used,
-	unsigned int used_length,
-	unsigned int mask)
-{
-	int i;
-	for(i = 0; i < used_length; i++) {
-		if ((~used[i] & mask) == mask) {
-			used[i] |= mask;
-			return i;
-		}
-	}
-	return -1;
-}
-
 unsigned int rc_find_free_temporary(struct radeon_compiler * c)
 {
-	unsigned char used[RC_REGISTER_MAX_INDEX];
-	int free;
+	/* Find the largest used temp index when called for the first time. */
+	if (c->max_temp_index == -1) {
+		for (struct rc_instruction * inst = c->Program.Instructions.Next;
+			inst != &c->Program.Instructions; inst = inst->Next) {
+			const struct rc_opcode_info * opcode =
+				rc_get_opcode_info(inst->U.I.Opcode);
+			if (opcode->HasDstReg &&
+				inst->U.I.DstReg.File == RC_FILE_TEMPORARY &&
+				inst->U.I.WriteALUResult == RC_ALURESULT_NONE &&
+				inst->U.I.DstReg.Index > c->max_temp_index)
+				c->max_temp_index = inst->U.I.DstReg.Index;
+		}
+	}
 
-	memset(used, 0, sizeof(used));
-
-	rc_get_used_temporaries(c, used, RC_REGISTER_MAX_INDEX);
-
-	free = rc_find_free_temporary_list(c, used, RC_REGISTER_MAX_INDEX,
-								RC_MASK_XYZW);
-	if (free < 0) {
+	c->max_temp_index++;
+	if (c->max_temp_index > RC_REGISTER_MAX_INDEX) {
 		rc_error(c, "Ran out of temporary registers\n");
 		return 0;
 	}
-	return free;
+	return c->max_temp_index;
 }
 
 

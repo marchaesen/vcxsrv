@@ -66,7 +66,6 @@ static const uint64_t priority_to_modifier[] = {
    [MODIFIER_PRIORITY_LINEAR] = DRM_FORMAT_MOD_LINEAR,
    [MODIFIER_PRIORITY_X] = I915_FORMAT_MOD_X_TILED,
    [MODIFIER_PRIORITY_Y] = I915_FORMAT_MOD_Y_TILED,
-   [MODIFIER_PRIORITY_Y_CCS] = I915_FORMAT_MOD_Y_TILED_CCS,
 };
 
 static bool
@@ -76,8 +75,6 @@ modifier_is_supported(const struct intel_device_info *devinfo,
 {
    /* XXX: do something real */
    switch (modifier) {
-   case I915_FORMAT_MOD_Y_TILED_CCS:
-      return false;
    case I915_FORMAT_MOD_Y_TILED:
       if (bind & PIPE_BIND_SCANOUT)
          return false;
@@ -105,9 +102,6 @@ select_best_modifier(struct intel_device_info *devinfo,
          continue;
 
       switch (modifiers[i]) {
-      case I915_FORMAT_MOD_Y_TILED_CCS:
-         prio = MAX2(prio, MODIFIER_PRIORITY_Y_CCS);
-         break;
       case I915_FORMAT_MOD_Y_TILED:
          prio = MAX2(prio, MODIFIER_PRIORITY_Y);
          break;
@@ -189,11 +183,8 @@ crocus_resource_configure_main(const struct crocus_screen *screen,
 
       tiling_flags = 1 << res->mod_info->tiling;
    } else {
-      if (templ->bind & PIPE_BIND_RENDER_TARGET && devinfo->ver < 6) {
-         modifier = I915_FORMAT_MOD_X_TILED;
-         res->mod_info = isl_drm_modifier_get_info(modifier);
-         tiling_flags = 1 << res->mod_info->tiling;
-      }
+      if (templ->bind & PIPE_BIND_RENDER_TARGET && devinfo->ver < 6)
+         tiling_flags &= ISL_TILING_LINEAR_BIT | ISL_TILING_X_BIT;
       /* Use linear for staging buffers */
       if (templ->usage == PIPE_USAGE_STAGING ||
           templ->bind & (PIPE_BIND_LINEAR | PIPE_BIND_CURSOR) )
@@ -283,7 +274,6 @@ crocus_query_dmabuf_modifiers(struct pipe_screen *pscreen,
       DRM_FORMAT_MOD_LINEAR,
       I915_FORMAT_MOD_X_TILED,
       I915_FORMAT_MOD_Y_TILED,
-      I915_FORMAT_MOD_Y_TILED_CCS,
    };
 
    int supported_mods = 0;
@@ -428,36 +418,31 @@ create_aux_state_map(struct crocus_resource *res, enum isl_aux_state initial)
  */
 static bool
 crocus_resource_configure_aux(struct crocus_screen *screen,
-                              struct crocus_resource *res, bool imported,
+                              struct crocus_resource *res,
                               uint64_t *aux_size_B,
                               uint32_t *alloc_flags)
 {
    const struct intel_device_info *devinfo = &screen->devinfo;
 
-   /* Try to create the auxiliary surfaces allowed by the modifier or by
-    * the user if no modifier is specified.
-    */
-   assert(!res->mod_info || res->mod_info->aux_usage == ISL_AUX_USAGE_NONE);
+   /* Modifiers with compression are not supported. */
+   assert(!res->mod_info ||
+          !isl_drm_modifier_has_aux(res->mod_info->modifier));
 
    const bool has_mcs = devinfo->ver >= 7 && !res->mod_info &&
       isl_surf_get_mcs_surf(&screen->isl_dev, &res->surf, &res->aux.surf);
 
    const bool has_hiz = devinfo->ver >= 6 && !res->mod_info &&
-      !INTEL_DEBUG(DEBUG_NO_HIZ) &&
       isl_surf_get_hiz_surf(&screen->isl_dev, &res->surf, &res->aux.surf);
 
    const bool has_ccs =
-      ((devinfo->ver >= 7 && !res->mod_info && !INTEL_DEBUG(DEBUG_NO_CCS)) ||
-       (res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE)) &&
+      devinfo->ver >= 7 && !res->mod_info &&
       isl_surf_get_ccs_surf(&screen->isl_dev, &res->surf, NULL,
                             &res->aux.surf, 0);
 
    /* Having more than one type of compression is impossible */
    assert(has_ccs + has_mcs + has_hiz <= 1);
 
-   if (res->mod_info && has_ccs) {
-      res->aux.usage = res->mod_info->aux_usage;
-   } else if (has_mcs) {
+   if (has_mcs) {
       res->aux.usage = ISL_AUX_USAGE_MCS;
    } else if (has_hiz) {
       res->aux.usage = ISL_AUX_USAGE_HIZ;
@@ -473,9 +458,8 @@ crocus_resource_configure_aux(struct crocus_screen *screen,
 
    switch (res->aux.usage) {
    case ISL_AUX_USAGE_NONE:
-      /* Having no aux buffer is only okay if there's no modifier with aux. */
       res->aux.surf.levels = 0;
-      return !res->mod_info || res->mod_info->aux_usage == ISL_AUX_USAGE_NONE;
+      return true;
    case ISL_AUX_USAGE_HIZ:
       initial_state = ISL_AUX_STATE_AUX_INVALID;
       break;
@@ -505,11 +489,7 @@ crocus_resource_configure_aux(struct crocus_screen *screen,
        * For CCS_D, do the same thing.  On Gen9+, this avoids having any
        * undefined bits in the aux buffer.
        */
-      if (imported)
-         initial_state =
-            isl_drm_modifier_get_default_aux_state(res->mod_info->modifier);
-      else
-         initial_state = ISL_AUX_STATE_PASS_THROUGH;
+      initial_state = ISL_AUX_STATE_PASS_THROUGH;
       *alloc_flags |= BO_ALLOC_ZEROED;
       break;
    default:
@@ -522,9 +502,7 @@ crocus_resource_configure_aux(struct crocus_screen *screen,
       return false;
 
    /* Increase the aux offset if the main and aux surfaces will share a BO. */
-   res->aux.offset =
-      !res->mod_info || res->mod_info->aux_usage == res->aux.usage ?
-      ALIGN(res->surf.size_B, res->aux.surf.alignment_B) : 0;
+   res->aux.offset = ALIGN(res->surf.size_B, res->aux.surf.alignment_B);
    uint64_t size = res->aux.surf.size_B;
 
    /* Allocate space in the buffer for storing the clear color. On modern
@@ -595,7 +573,7 @@ crocus_resource_alloc_separate_aux(struct crocus_screen *screen,
 {
    uint32_t alloc_flags;
    uint64_t size;
-   if (!crocus_resource_configure_aux(screen, res, false, &size, &alloc_flags))
+   if (!crocus_resource_configure_aux(screen, res, &size, &alloc_flags))
       return false;
 
    if (size == 0)
@@ -617,31 +595,6 @@ crocus_resource_alloc_separate_aux(struct crocus_screen *screen,
       return false;
 
    return true;
-}
-
-void
-crocus_resource_finish_aux_import(struct pipe_screen *pscreen,
-                                  struct crocus_resource *res)
-{
-   struct crocus_screen *screen = (struct crocus_screen *)pscreen;
-   assert(crocus_resource_unfinished_aux_import(res));
-   assert(!res->mod_info->supports_clear_color);
-
-   struct crocus_resource *aux_res = (void *) res->base.b.next;
-   assert(aux_res->aux.surf.row_pitch_B && aux_res->aux.offset &&
-          aux_res->aux.bo);
-
-   assert(res->bo == aux_res->aux.bo);
-   crocus_bo_reference(aux_res->aux.bo);
-   res->aux.bo = aux_res->aux.bo;
-
-   res->aux.offset = aux_res->aux.offset;
-
-   assert(res->bo->size >= (res->aux.offset + res->aux.surf.size_B));
-   assert(aux_res->aux.surf.row_pitch_B == res->aux.surf.row_pitch_B);
-
-   crocus_resource_destroy(&screen->base, res->base.b.next);
-   res->base.b.next = NULL;
 }
 
 static struct pipe_resource *
@@ -715,7 +668,7 @@ crocus_resource_create_with_modifiers(struct pipe_screen *pscreen,
    uint64_t aux_size = 0;
    uint32_t aux_preferred_alloc_flags;
 
-   if (!crocus_resource_configure_aux(screen, res, false, &aux_size,
+   if (!crocus_resource_configure_aux(screen, res, &aux_size,
                                       &aux_preferred_alloc_flags)) {
       goto fail;
    }
@@ -850,46 +803,24 @@ crocus_resource_from_handle(struct pipe_screen *pscreen,
    res->offset = whandle->offset;
    res->external_format = whandle->format;
 
-   if (whandle->plane < util_format_get_num_planes(whandle->format)) {
-      const uint64_t modifier =
-         whandle->modifier != DRM_FORMAT_MOD_INVALID ?
-         whandle->modifier : tiling_to_modifier(res->bo->tiling_mode);
+   assert(whandle->plane < util_format_get_num_planes(whandle->format));
+   const uint64_t modifier =
+      whandle->modifier != DRM_FORMAT_MOD_INVALID ?
+      whandle->modifier : tiling_to_modifier(res->bo->tiling_mode);
 
-      UNUSED const bool isl_surf_created_successfully =
-         crocus_resource_configure_main(screen, res, templ, modifier,
-                                        whandle->stride);
-      assert(isl_surf_created_successfully);
-      assert(res->bo->tiling_mode ==
-             isl_tiling_to_i915_tiling(res->surf.tiling));
+   UNUSED const bool isl_surf_created_successfully =
+      crocus_resource_configure_main(screen, res, templ, modifier,
+                                     whandle->stride);
+   assert(isl_surf_created_successfully);
+   assert(res->bo->tiling_mode ==
+          isl_tiling_to_i915_tiling(res->surf.tiling));
 
-      // XXX: create_ccs_buf_for_image?
-      if (whandle->modifier == DRM_FORMAT_MOD_INVALID) {
-         if (!crocus_resource_alloc_separate_aux(screen, res))
-            goto fail;
-      } else {
-         if (res->mod_info->aux_usage != ISL_AUX_USAGE_NONE) {
-            uint32_t alloc_flags;
-            uint64_t size;
-            UNUSED bool ok = crocus_resource_configure_aux(screen, res, true, &size,
-                                                           &alloc_flags);
-            assert(ok);
-            /* The gallium dri layer will create a separate plane resource
-             * for the aux image. crocus_resource_finish_aux_import will
-             * merge the separate aux parameters back into a single
-             * crocus_resource.
-             */
-         }
-      }
+   // XXX: create_ccs_buf_for_image?
+   if (whandle->modifier == DRM_FORMAT_MOD_INVALID) {
+      if (!crocus_resource_alloc_separate_aux(screen, res))
+         goto fail;
    } else {
-      /* Save modifier import information to reconstruct later. After
-       * import, this will be available under a second image accessible
-       * from the main image with res->base.next. See
-       * crocus_resource_finish_aux_import.
-       */
-      res->aux.surf.row_pitch_B = whandle->stride;
-      res->aux.offset = whandle->offset;
-      res->aux.bo = res->bo;
-      res->bo = NULL;
+      assert(!isl_drm_modifier_has_aux(whandle->modifier));
    }
 
    return &res->base.b;
@@ -936,13 +867,15 @@ crocus_flush_resource(struct pipe_context *ctx, struct pipe_resource *resource)
 {
    struct crocus_context *ice = (struct crocus_context *)ctx;
    struct crocus_resource *res = (void *) resource;
-   const struct isl_drm_modifier_info *mod = res->mod_info;
+
+   /* Modifiers with compression are not supported. */
+   assert(!res->mod_info ||
+          !isl_drm_modifier_has_aux(res->mod_info->modifier));
 
    crocus_resource_prepare_access(ice, res,
                                   0, INTEL_REMAINING_LEVELS,
                                   0, INTEL_REMAINING_LAYERS,
-                                  mod ? mod->aux_usage : ISL_AUX_USAGE_NONE,
-                                  mod ? mod->supports_clear_color : false);
+                                  ISL_AUX_USAGE_NONE, false);
 }
 
 static void
@@ -950,15 +883,15 @@ crocus_resource_disable_aux_on_first_query(struct pipe_resource *resource,
                                            unsigned usage)
 {
    struct crocus_resource *res = (struct crocus_resource *)resource;
-   bool mod_with_aux =
-      res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE;
+
+   /* Modifiers with compression are not supported. */
+   assert(!res->mod_info ||
+          !isl_drm_modifier_has_aux(res->mod_info->modifier));
 
    /* Disable aux usage if explicit flush not set and this is the first time
-    * we are dealing with this resource and the resource was not created with
-    * a modifier with aux.
+    * we are dealing with this resource.
     */
-   if (!mod_with_aux &&
-       (!(usage & PIPE_HANDLE_USAGE_EXPLICIT_FLUSH) && res->aux.usage != 0) &&
+   if ((!(usage & PIPE_HANDLE_USAGE_EXPLICIT_FLUSH) && res->aux.usage != 0) &&
        p_atomic_read(&resource->reference.count) == 1) {
       crocus_resource_disable_aux(res);
    }
@@ -977,35 +910,31 @@ crocus_resource_get_param(struct pipe_screen *pscreen,
 {
    struct crocus_screen *screen = (struct crocus_screen *)pscreen;
    struct crocus_resource *res = (struct crocus_resource *)resource;
-   bool mod_with_aux =
-      res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE;
-   bool wants_aux = mod_with_aux && plane > 0;
+
+   /* Modifiers with compression are not supported. */
+   assert(!res->mod_info ||
+          !isl_drm_modifier_has_aux(res->mod_info->modifier));
+
    bool result;
    unsigned handle;
 
-   if (crocus_resource_unfinished_aux_import(res))
-      crocus_resource_finish_aux_import(pscreen, res);
-
-   struct crocus_bo *bo = wants_aux ? res->aux.bo : res->bo;
+   struct crocus_bo *bo = res->bo;
 
    crocus_resource_disable_aux_on_first_query(resource, handle_usage);
 
    switch (param) {
-   case PIPE_RESOURCE_PARAM_NPLANES:
-      if (mod_with_aux) {
-         *value = util_format_get_num_planes(res->external_format);
-      } else {
-         unsigned count = 0;
-         for (struct pipe_resource *cur = resource; cur; cur = cur->next)
-            count++;
-         *value = count;
-      }
+   case PIPE_RESOURCE_PARAM_NPLANES: {
+      unsigned count = 0;
+      for (struct pipe_resource *cur = resource; cur; cur = cur->next)
+         count++;
+      *value = count;
       return true;
+      }
    case PIPE_RESOURCE_PARAM_STRIDE:
-      *value = wants_aux ? res->aux.surf.row_pitch_B : res->surf.row_pitch_B;
+      *value = res->surf.row_pitch_B;
       return true;
    case PIPE_RESOURCE_PARAM_OFFSET:
-      *value = wants_aux ? res->aux.offset : 0;
+      *value = 0;
       return true;
    case PIPE_RESOURCE_PARAM_MODIFIER:
       *value = res->mod_info ? res->mod_info->modifier :
@@ -1047,30 +976,24 @@ crocus_resource_get_handle(struct pipe_screen *pscreen,
 {
    struct crocus_screen *screen = (struct crocus_screen *) pscreen;
    struct crocus_resource *res = (struct crocus_resource *)resource;
-   bool mod_with_aux =
-      res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE;
+
+   /* Modifiers with compression are not supported. */
+   assert(!res->mod_info ||
+          !isl_drm_modifier_has_aux(res->mod_info->modifier));
 
    crocus_resource_disable_aux_on_first_query(resource, usage);
 
    struct crocus_bo *bo;
-   if (mod_with_aux && whandle->plane > 0) {
-      assert(res->aux.bo);
-      bo = res->aux.bo;
-      whandle->stride = res->aux.surf.row_pitch_B;
-      whandle->offset = res->aux.offset;
-   } else {
-      /* If this is a buffer, stride should be 0 - no need to special case */
-      whandle->stride = res->surf.row_pitch_B;
-      bo = res->bo;
-   }
+   /* If this is a buffer, stride should be 0 - no need to special case */
+   whandle->stride = res->surf.row_pitch_B;
+   bo = res->bo;
    whandle->format = res->external_format;
    whandle->modifier =
       res->mod_info ? res->mod_info->modifier
                     : tiling_to_modifier(res->bo->tiling_mode);
 
 #ifndef NDEBUG
-   enum isl_aux_usage allowed_usage =
-      res->mod_info ? res->mod_info->aux_usage : ISL_AUX_USAGE_NONE;
+   enum isl_aux_usage allowed_usage = ISL_AUX_USAGE_NONE;
 
    if (res->aux.usage != allowed_usage) {
       enum isl_aux_state aux_state = crocus_resource_get_aux_state(res, 0, 0);
@@ -2029,6 +1952,7 @@ void
 crocus_init_resource_functions(struct pipe_context *ctx)
 {
    ctx->flush_resource = crocus_flush_resource;
+   ctx->clear_buffer = u_default_clear_buffer;
    ctx->invalidate_resource = crocus_invalidate_resource;
    ctx->buffer_map = u_transfer_helper_transfer_map;
    ctx->texture_map = u_transfer_helper_transfer_map;

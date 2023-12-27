@@ -36,13 +36,13 @@ struct lower_state {
    unsigned num_point_coords;
    nir_variable *varying_out[VARYING_SLOT_MAX];
 
-   nir_ssa_def *point_dir_imm[4];
-   nir_ssa_def *point_coord_imm[4];
+   nir_def *point_dir_imm[4];
+   nir_def *point_coord_imm[4];
 
    /* Current point primitive */
-   nir_ssa_def *point_pos;
-   nir_ssa_def *point_size;
-   nir_ssa_def *varying[VARYING_SLOT_MAX];
+   nir_def *point_pos;
+   nir_def *point_size;
+   nir_def *varying[VARYING_SLOT_MAX];
    unsigned varying_write_mask[VARYING_SLOT_MAX];
 
    bool sprite_origin_lower_left;
@@ -68,7 +68,7 @@ find_outputs(nir_shader *shader, struct lower_state *state)
    }
 }
 
-static nir_ssa_def *
+static nir_def *
 get_point_dir(nir_builder *b, struct lower_state *state, unsigned i)
 {
    if (state->point_dir_imm[0] == NULL) {
@@ -81,7 +81,7 @@ get_point_dir(nir_builder *b, struct lower_state *state, unsigned i)
    return state->point_dir_imm[i];
 }
 
-static nir_ssa_def *
+static nir_def *
 get_point_coord(nir_builder *b, struct lower_state *state, unsigned i)
 {
    if (state->point_coord_imm[0] == NULL) {
@@ -106,11 +106,11 @@ get_point_coord(nir_builder *b, struct lower_state *state, unsigned i)
  */
 static void
 get_scaled_point_size(nir_builder *b, struct lower_state *state,
-                      nir_ssa_def **x, nir_ssa_def **y)
+                      nir_def **x, nir_def **y)
 {
    /* State uniform contains: (1/ViewportWidth, 1/ViewportHeight, PointSize, MaxPointSize) */
-   nir_ssa_def *uniform = nir_load_var(b, state->uniform);
-   nir_ssa_def *point_size = state->point_size;
+   nir_def *uniform = nir_load_var(b, state->uniform);
+   nir_def *point_size = state->point_size;
 
    /* clamp point-size to valid range */
    if (point_size && state->point_size_per_vertex) {
@@ -158,7 +158,7 @@ lower_emit_vertex(nir_intrinsic_instr *instr, nir_builder *b, struct lower_state
 {
    unsigned stream_id = nir_intrinsic_stream_id(instr);
 
-   nir_ssa_def *point_width, *point_height;
+   nir_def *point_width, *point_height;
    get_scaled_point_size(b, state, &point_width, &point_height);
 
    nir_instr_remove(&instr->instr);
@@ -173,8 +173,8 @@ lower_emit_vertex(nir_intrinsic_instr *instr, nir_builder *b, struct lower_state
          }
 
          /* pos = scaled_point_size * point_dir + point_pos */
-         nir_ssa_def *point_dir = get_point_dir(b, state, i);
-         nir_ssa_def *pos = nir_vec4(b,
+         nir_def *point_dir = get_point_dir(b, state, i);
+         nir_def *pos = nir_vec4(b,
                                      nir_ffma(b,
                                               point_width,
                                               nir_channel(b, point_dir, 0),
@@ -188,7 +188,7 @@ lower_emit_vertex(nir_intrinsic_instr *instr, nir_builder *b, struct lower_state
          nir_store_var(b, state->pos_out, pos, 0xf);
 
          /* point coord */
-         nir_ssa_def *point_coord = get_point_coord(b, state, i);
+         nir_def *point_coord = get_point_coord(b, state, i);
          for (unsigned j = 0; j < state->num_point_coords; ++j) {
             unsigned num_channels = glsl_get_components(state->point_coord_out[j]->type);
             unsigned mask = (1 << num_channels) - 1;
@@ -241,7 +241,7 @@ d3d12_lower_point_sprite(nir_shader *shader,
    struct lower_state state;
    bool progress = false;
 
-   assert(shader->info.gs.output_primitive == GL_POINTS);
+   assert(shader->info.gs.output_primitive == MESA_PRIM_POINTS);
 
    memset(&state, 0, sizeof(state));
    find_outputs(shader, &state);
@@ -250,15 +250,8 @@ d3d12_lower_point_sprite(nir_shader *shader,
 
    /* Create uniform to retrieve inverse of viewport size and point size:
     * (1/ViewportWidth, 1/ViewportHeight, PointSize, MaxPointSize) */
-   state.uniform = nir_variable_create(shader,
-                                       nir_var_uniform,
-                                       glsl_vec4_type(),
-                                       "d3d12_ViewportSizeRcp");
-   state.uniform->num_state_slots = 1;
-   state.uniform->state_slots = ralloc_array(state.uniform, nir_state_slot, 1);
-   memcpy(state.uniform->state_slots[0].tokens, tokens,
-          sizeof(state.uniform->state_slots[0].tokens));
-   shader->num_uniforms++;
+   state.uniform = nir_state_variable_create(shader, glsl_vec4_type(),
+                                             "d3d12_ViewportSizeRcp", tokens);
 
    /* Create new outputs for point tex coordinates */
    unsigned count = 0;
@@ -292,25 +285,22 @@ d3d12_lower_point_sprite(nir_shader *shader,
                                      next_inputs_read);
    }
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_builder builder;
-         nir_builder_init(&builder, function->impl);
-         nir_foreach_block(block, function->impl) {
-            nir_foreach_instr_safe(instr, block) {
-               if (instr->type == nir_instr_type_intrinsic)
-                  progress |= lower_instr(nir_instr_as_intrinsic(instr),
-                                          &builder,
-                                          &state);
-            }
+   nir_foreach_function_impl(impl, shader) {
+      nir_builder builder = nir_builder_create(impl);
+      nir_foreach_block(block, impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type == nir_instr_type_intrinsic)
+               progress |= lower_instr(nir_instr_as_intrinsic(instr),
+                                       &builder,
+                                       &state);
          }
-
-         nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                               nir_metadata_dominance);
       }
+
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
    }
 
-   shader->info.gs.output_primitive = GL_TRIANGLE_STRIP;
+   shader->info.gs.output_primitive = MESA_PRIM_TRIANGLE_STRIP;
    shader->info.gs.vertices_out = shader->info.gs.vertices_out * 4 /
       util_bitcount(shader->info.gs.active_stream_mask);
    shader->info.gs.active_stream_mask = 1;

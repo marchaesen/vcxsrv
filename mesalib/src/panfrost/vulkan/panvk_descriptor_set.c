@@ -39,32 +39,31 @@
 #include "pan_bo.h"
 
 /* FIXME: make sure those values are correct */
-#define PANVK_MAX_TEXTURES     (1 << 16)
-#define PANVK_MAX_IMAGES       (1 << 8)
-#define PANVK_MAX_SAMPLERS     (1 << 16)
-#define PANVK_MAX_UBOS         255
+#define PANVK_MAX_TEXTURES (1 << 16)
+#define PANVK_MAX_IMAGES   (1 << 8)
+#define PANVK_MAX_SAMPLERS (1 << 16)
+#define PANVK_MAX_UBOS     255
 
 void
-panvk_GetDescriptorSetLayoutSupport(VkDevice _device,
-                                    const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
-                                    VkDescriptorSetLayoutSupport *pSupport)
+panvk_GetDescriptorSetLayoutSupport(
+   VkDevice _device, const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
+   VkDescriptorSetLayoutSupport *pSupport)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
 
    pSupport->supported = false;
 
    VkDescriptorSetLayoutBinding *bindings;
-   VkResult result =
-      vk_create_sorted_bindings(pCreateInfo->pBindings,
-                                pCreateInfo->bindingCount,
-                                &bindings);
+   VkResult result = vk_create_sorted_bindings(
+      pCreateInfo->pBindings, pCreateInfo->bindingCount, &bindings);
    if (result != VK_SUCCESS) {
       vk_error(device, result);
       return;
    }
 
    unsigned sampler_idx = 0, tex_idx = 0, ubo_idx = 0;
-   unsigned dynoffset_idx = 0, img_idx = 0;
+   unsigned img_idx = 0;
+   UNUSED unsigned dynoffset_idx = 0;
 
    for (unsigned i = 0; i < pCreateInfo->bindingCount; i++) {
       const VkDescriptorSetLayoutBinding *binding = &bindings[i];
@@ -129,8 +128,8 @@ panvk_CreatePipelineLayout(VkDevice _device,
    struct panvk_pipeline_layout *layout;
    struct mesa_sha1 ctx;
 
-   layout = vk_pipeline_layout_zalloc(&device->vk, sizeof(*layout),
-                                      pCreateInfo);
+   layout =
+      vk_pipeline_layout_zalloc(&device->vk, sizeof(*layout), pCreateInfo);
    if (layout == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -161,21 +160,26 @@ panvk_CreatePipelineLayout(VkDevice _device,
 
          if (binding_layout->immutable_samplers) {
             for (unsigned s = 0; s < binding_layout->array_size; s++) {
-               struct panvk_sampler *sampler = binding_layout->immutable_samplers[s];
+               struct panvk_sampler *sampler =
+                  binding_layout->immutable_samplers[s];
 
                _mesa_sha1_update(&ctx, &sampler->desc, sizeof(sampler->desc));
             }
          }
-         _mesa_sha1_update(&ctx, &binding_layout->type, sizeof(binding_layout->type));
-         _mesa_sha1_update(&ctx, &binding_layout->array_size, sizeof(binding_layout->array_size));
-         _mesa_sha1_update(&ctx, &binding_layout->shader_stages, sizeof(binding_layout->shader_stages));
+         _mesa_sha1_update(&ctx, &binding_layout->type,
+                           sizeof(binding_layout->type));
+         _mesa_sha1_update(&ctx, &binding_layout->array_size,
+                           sizeof(binding_layout->array_size));
+         _mesa_sha1_update(&ctx, &binding_layout->shader_stages,
+                           sizeof(binding_layout->shader_stages));
       }
    }
 
-   for (unsigned range = 0; range < pCreateInfo->pushConstantRangeCount; range++) {
+   for (unsigned range = 0; range < pCreateInfo->pushConstantRangeCount;
+        range++) {
       layout->push_constants.size =
          MAX2(pCreateInfo->pPushConstantRanges[range].offset +
-              pCreateInfo->pPushConstantRanges[range].size,
+                 pCreateInfo->pPushConstantRanges[range].size,
               layout->push_constants.size);
    }
 
@@ -221,7 +225,7 @@ panvk_CreateDescriptorPool(VkDevice _device,
    for (unsigned i = 0; i < pCreateInfo->poolSizeCount; ++i) {
       unsigned desc_count = pCreateInfo->pPoolSizes[i].descriptorCount;
 
-      switch(pCreateInfo->pPoolSizes[i].type) {
+      switch (pCreateInfo->pPoolSizes[i].type) {
       case VK_DESCRIPTOR_TYPE_SAMPLER:
          pool->max.samplers += desc_count;
          break;
@@ -265,8 +269,7 @@ panvk_CreateDescriptorPool(VkDevice _device,
 }
 
 void
-panvk_DestroyDescriptorPool(VkDevice _device,
-                            VkDescriptorPool _pool,
+panvk_DestroyDescriptorPool(VkDevice _device, VkDescriptorPool _pool,
                             const VkAllocationCallbacks *pAllocator)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
@@ -277,8 +280,7 @@ panvk_DestroyDescriptorPool(VkDevice _device,
 }
 
 VkResult
-panvk_ResetDescriptorPool(VkDevice _device,
-                          VkDescriptorPool _pool,
+panvk_ResetDescriptorPool(VkDevice _device, VkDescriptorPool _pool,
                           VkDescriptorPoolResetFlags flags)
 {
    VK_FROM_HANDLE(panvk_descriptor_pool, pool, _pool);
@@ -304,10 +306,8 @@ panvk_descriptor_set_destroy(struct panvk_device *device,
 }
 
 VkResult
-panvk_FreeDescriptorSets(VkDevice _device,
-                         VkDescriptorPool descriptorPool,
-                         uint32_t count,
-                         const VkDescriptorSet *pDescriptorSets)
+panvk_FreeDescriptorSets(VkDevice _device, VkDescriptorPool descriptorPool,
+                         uint32_t count, const VkDescriptorSet *pDescriptorSets)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
    VK_FROM_HANDLE(panvk_descriptor_pool, pool, descriptorPool);
@@ -322,10 +322,10 @@ panvk_FreeDescriptorSets(VkDevice _device,
 }
 
 VkResult
-panvk_CreateSamplerYcbcrConversion(VkDevice device,
-                                   const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
-                                   const VkAllocationCallbacks *pAllocator,
-                                   VkSamplerYcbcrConversion *pYcbcrConversion)
+panvk_CreateSamplerYcbcrConversion(
+   VkDevice device, const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
+   const VkAllocationCallbacks *pAllocator,
+   VkSamplerYcbcrConversion *pYcbcrConversion)
 {
    panvk_stub();
    return VK_SUCCESS;

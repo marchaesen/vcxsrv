@@ -33,6 +33,18 @@ from The Open Group.
 #include <X11/Xos.h>
 #include <stdio.h>
 
+/* The X11 protocol spec reserves events 64 through 127 for extensions */
+#ifndef LastExtensionEvent
+#define LastExtensionEvent 127
+#endif
+
+/* The X11 protocol spec reserves requests 128 through 255 for extensions */
+#ifndef LastExtensionRequest
+#define FirstExtensionRequest 128
+#define LastExtensionRequest 255
+#endif
+
+
 /*
  * This routine is used to link a extension in so it will be called
  * at appropriate times.
@@ -242,6 +254,12 @@ WireToEventType XESetWireToEvent(
 	WireToEventType proc)	/* routine to call when converting event */
 {
 	register WireToEventType oldproc;
+	if (event_number < 0 ||
+	    event_number > LastExtensionEvent) {
+	    fprintf(stderr, "Xlib: ignoring invalid extension event %d\n",
+		    event_number);
+	    return (WireToEventType)_XUnknownWireEvent;
+	}
 	if (proc == NULL) proc = (WireToEventType)_XUnknownWireEvent;
 	LockDisplay (dpy);
 	oldproc = dpy->event_vec[event_number];
@@ -263,6 +281,12 @@ WireToEventCookieType XESetWireToEventCookie(
     )
 {
 	WireToEventCookieType oldproc;
+	if (extension < FirstExtensionRequest ||
+	    extension > LastExtensionRequest) {
+	    fprintf(stderr, "Xlib: ignoring invalid extension opcode %d\n",
+		    extension);
+	    return (WireToEventCookieType)_XUnknownWireEventCookie;
+	}
 	if (proc == NULL) proc = (WireToEventCookieType)_XUnknownWireEventCookie;
 	LockDisplay (dpy);
 	oldproc = dpy->generic_event_vec[extension & 0x7F];
@@ -284,6 +308,12 @@ CopyEventCookieType XESetCopyEventCookie(
     )
 {
 	CopyEventCookieType oldproc;
+	if (extension < FirstExtensionRequest ||
+	    extension > LastExtensionRequest) {
+	    fprintf(stderr, "Xlib: ignoring invalid extension opcode %d\n",
+		    extension);
+	    return (CopyEventCookieType)_XUnknownCopyEventCookie;
+	}
 	if (proc == NULL) proc = (CopyEventCookieType)_XUnknownCopyEventCookie;
 	LockDisplay (dpy);
 	oldproc = dpy->generic_event_copy_vec[extension & 0x7F];
@@ -305,6 +335,12 @@ EventToWireType XESetEventToWire(
 	EventToWireType proc)	/* routine to call when converting event */
 {
 	register EventToWireType oldproc;
+	if (event_number < 0 ||
+	    event_number > LastExtensionEvent) {
+	    fprintf(stderr, "Xlib: ignoring invalid extension event %d\n",
+		    event_number);
+	    return (EventToWireType)_XUnknownNativeEvent;
+	}
 	if (proc == NULL) proc = (EventToWireType) _XUnknownNativeEvent;
 	LockDisplay (dpy);
 	oldproc = dpy->wire_vec[event_number];
@@ -325,6 +361,12 @@ WireToErrorType XESetWireToError(
 	WireToErrorType proc)	/* routine to call when converting error */
 {
 	register WireToErrorType oldproc = NULL;
+	if (error_number < 0 ||
+	    error_number > LastExtensionError) {
+	   fprintf(stderr, "Xlib: ignoring invalid extension error %d\n",
+		    error_number);
+	   return (WireToErrorType)_XDefaultWireError;
+	}
 	if (proc == NULL) proc = (WireToErrorType)_XDefaultWireError;
 	LockDisplay (dpy);
 	if (!dpy->error_vec) {

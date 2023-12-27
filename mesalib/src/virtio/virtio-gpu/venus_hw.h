@@ -54,6 +54,22 @@ struct virgl_renderer_capset_venus {
     * shifts the responsibilities to the client drivers.
     */
    uint32_t allow_vk_wait_syncs;
+
+   /* This flag indicates that the renderer supports multiple fencing
+    * timelines. The client driver is expected to associate each VkQueue with
+    * one of these timelines at queue creation by binding it with an unused
+    * ring_idx. Queues created without a ring_idx binding are associated to a
+    * shared legacy timeline. The special ring_idx==0 is reserved for CPU
+    * fences that are signaled by the renderer immediately upon consumption of
+    * the associated renderer submission.
+    */
+   uint32_t supports_multiple_timelines;
+
+   /* This flag indicates to the guest that hypervisor does not support memory
+    * pages injections and blob allocations must be done by guest from the
+    * dedicated heap (Host visible memory).
+    */
+   uint32_t use_guest_vram;
 };
 #endif
 

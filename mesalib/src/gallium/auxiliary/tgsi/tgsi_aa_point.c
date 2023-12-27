@@ -197,7 +197,7 @@ aa_prolog(struct tgsi_transform_context *ctx)
     */
    /* KILL_IF tmp0.w;  # if tmp0.w < 0 KILL */
    tgsi_transform_kill_inst(ctx, TGSI_FILE_TEMPORARY, tmp0,
-                            TGSI_SWIZZLE_W, FALSE);
+                            TGSI_SWIZZLE_W, false);
 
    /* If the distance is less than the threshold, the coverage/alpha value
     * will be greater than one.  Clamp to one here.
@@ -283,8 +283,8 @@ tgsi_add_aa_point(const struct tgsi_token *tokens_in,
                   const bool need_texcoord_semantic)
 {
    struct aa_transform_context transform;
-   const uint num_new_tokens = 200; /* should be enough */
-   const uint new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
+   const unsigned num_new_tokens = 200; /* should be enough */
+   const unsigned new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
 
    /* setup transformation context */
    memset(&transform, 0, sizeof(transform));

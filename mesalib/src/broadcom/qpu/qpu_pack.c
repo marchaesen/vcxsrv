@@ -84,6 +84,9 @@
 #define V3D_QPU_MUL_A_SHIFT                 18
 #define V3D_QPU_MUL_A_MASK                  QPU_MASK(20, 18)
 
+#define V3D_QPU_RADDR_C_SHIFT               18
+#define V3D_QPU_RADDR_C_MASK                QPU_MASK(23, 18)
+
 #define V3D_QPU_ADD_B_SHIFT                 15
 #define V3D_QPU_ADD_B_MASK                  QPU_MASK(17, 15)
 
@@ -97,6 +100,9 @@
 
 #define V3D_QPU_BRANCH_BDI_SHIFT            12
 #define V3D_QPU_BRANCH_BDI_MASK             QPU_MASK(13, 12)
+
+#define V3D_QPU_RADDR_D_SHIFT               12
+#define V3D_QPU_RADDR_D_MASK                QPU_MASK(17, 12)
 
 #define V3D_QPU_RADDR_A_SHIFT               6
 #define V3D_QPU_RADDR_A_MASK                QPU_MASK(11, 6)
@@ -112,12 +118,15 @@
 #define LDTMU .ldtmu = true
 #define LDVARY .ldvary = true
 #define LDVPM .ldvpm = true
-#define SMIMM .small_imm = true
 #define LDTLB .ldtlb = true
 #define LDTLBU .ldtlbu = true
 #define UCB .ucb = true
 #define ROT .rotate = true
 #define WRTMUC .wrtmuc = true
+#define SMIMM_A .small_imm_a = true
+#define SMIMM_B .small_imm_b = true
+#define SMIMM_C .small_imm_c = true
+#define SMIMM_D .small_imm_d = true
 
 static const struct v3d_qpu_sig v33_sig_map[] = {
         /*      MISC   R3       R4      R5 */
@@ -135,8 +144,8 @@ static const struct v3d_qpu_sig v33_sig_map[] = {
         [11] = { THRSW, LDVARY,         LDUNIF },
         [12] = {        LDVARY, LDTMU,         },
         [13] = { THRSW, LDVARY, LDTMU,         },
-        [14] = { SMIMM, LDVARY,                },
-        [15] = { SMIMM,                        },
+        [14] = { SMIMM_B, LDVARY,              },
+        [15] = { SMIMM_B,                      },
         [16] = {        LDTLB,                 },
         [17] = {        LDTLBU,                },
         /* 18-21 reserved */
@@ -148,8 +157,8 @@ static const struct v3d_qpu_sig v33_sig_map[] = {
         [27] = { THRSW, LDVPM,          LDUNIF },
         [28] = {        LDVPM, LDTMU,          },
         [29] = { THRSW, LDVPM, LDTMU,          },
-        [30] = { SMIMM, LDVPM,                 },
-        [31] = { SMIMM,                        },
+        [30] = { SMIMM_B, LDVPM,               },
+        [31] = { SMIMM_B,                      },
 };
 
 static const struct v3d_qpu_sig v40_sig_map[] = {
@@ -167,8 +176,8 @@ static const struct v3d_qpu_sig v40_sig_map[] = {
         [10] = {        LDVARY,         LDUNIF },
         [11] = { THRSW, LDVARY,         LDUNIF },
         /* 12-13 reserved */
-        [14] = { SMIMM, LDVARY,                },
-        [15] = { SMIMM,                        },
+        [14] = { SMIMM_B, LDVARY,              },
+        [15] = { SMIMM_B,                      },
         [16] = {        LDTLB,                 },
         [17] = {        LDTLBU,                },
         [18] = {                        WRTMUC },
@@ -178,7 +187,7 @@ static const struct v3d_qpu_sig v40_sig_map[] = {
         [22] = { UCB,                          },
         [23] = { ROT,                          },
         /* 24-30 reserved */
-        [31] = { SMIMM,         LDTMU,         },
+        [31] = { SMIMM_B,       LDTMU,         },
 };
 
 static const struct v3d_qpu_sig v41_sig_map[] = {
@@ -197,8 +206,8 @@ static const struct v3d_qpu_sig v41_sig_map[] = {
         [11] = { THRSW,    LDVARY, LDUNIF },
         [12] = { LDUNIFRF                 },
         [13] = { THRSW,    LDUNIFRF       },
-        [14] = { SMIMM,    LDVARY,        },
-        [15] = { SMIMM,                   },
+        [14] = { SMIMM_B,    LDVARY       },
+        [15] = { SMIMM_B,                 },
         [16] = {           LDTLB,         },
         [17] = {           LDTLBU,        },
         [18] = {                          WRTMUC },
@@ -210,7 +219,41 @@ static const struct v3d_qpu_sig v41_sig_map[] = {
         [24] = {                   LDUNIFA},
         [25] = { LDUNIFARF                },
         /* 26-30 reserved */
-        [31] = { SMIMM,            LDTMU, },
+        [31] = { SMIMM_B,          LDTMU, },
+};
+
+
+static const struct v3d_qpu_sig v71_sig_map[] = {
+        /*      MISC       phys    RF0 */
+        [0]  = {                          },
+        [1]  = { THRSW,                   },
+        [2]  = {                   LDUNIF },
+        [3]  = { THRSW,            LDUNIF },
+        [4]  = {           LDTMU,         },
+        [5]  = { THRSW,    LDTMU,         },
+        [6]  = {           LDTMU,  LDUNIF },
+        [7]  = { THRSW,    LDTMU,  LDUNIF },
+        [8]  = {           LDVARY,        },
+        [9]  = { THRSW,    LDVARY,        },
+        [10] = {           LDVARY, LDUNIF },
+        [11] = { THRSW,    LDVARY, LDUNIF },
+        [12] = { LDUNIFRF                 },
+        [13] = { THRSW,    LDUNIFRF       },
+        [14] = { SMIMM_A,                 },
+        [15] = { SMIMM_B,                 },
+        [16] = {           LDTLB,         },
+        [17] = {           LDTLBU,        },
+        [18] = {                          WRTMUC },
+        [19] = { THRSW,                   WRTMUC },
+        [20] = {           LDVARY,        WRTMUC },
+        [21] = { THRSW,    LDVARY,        WRTMUC },
+        [22] = { UCB,                     },
+        /* 23 reserved */
+        [24] = {                   LDUNIFA},
+        [25] = { LDUNIFARF                },
+        /* 26-29 reserved */
+        [30] = { SMIMM_C,                 },
+        [31] = { SMIMM_D,                 },
 };
 
 bool
@@ -221,7 +264,9 @@ v3d_qpu_sig_unpack(const struct v3d_device_info *devinfo,
         if (packed_sig >= ARRAY_SIZE(v33_sig_map))
                 return false;
 
-        if (devinfo->ver >= 41)
+        if (devinfo->ver >= 71)
+                *sig = v71_sig_map[packed_sig];
+        else if (devinfo->ver >= 41)
                 *sig = v41_sig_map[packed_sig];
         else if (devinfo->ver == 40)
                 *sig = v40_sig_map[packed_sig];
@@ -240,7 +285,9 @@ v3d_qpu_sig_pack(const struct v3d_device_info *devinfo,
 {
         static const struct v3d_qpu_sig *map;
 
-        if (devinfo->ver >= 41)
+        if (devinfo->ver >= 71)
+                map = v71_sig_map;
+        else if (devinfo->ver >= 41)
                 map = v41_sig_map;
         else if (devinfo->ver == 40)
                 map = v40_sig_map;
@@ -443,16 +490,26 @@ v3d_qpu_flags_pack(const struct v3d_device_info *devinfo,
 
 /* Make a mapping of the table of opcodes in the spec.  The opcode is
  * determined by a combination of the opcode field, and in the case of 0 or
- * 1-arg opcodes, the mux_b field as well.
+ * 1-arg opcodes, the mux (version <= 42) or raddr (version >= 71) field as
+ * well.
  */
-#define MUX_MASK(bot, top) (((1 << (top + 1)) - 1) - ((1 << (bot)) - 1))
-#define ANYMUX MUX_MASK(0, 7)
+#define OP_MASK(val) BITFIELD64_BIT(val)
+#define OP_RANGE(bot, top) BITFIELD64_RANGE(bot, top - bot + 1)
+#define ANYMUX OP_RANGE(0, 7)
+#define ANYOPMASK OP_RANGE(0, 63)
 
 struct opcode_desc {
         uint8_t opcode_first;
         uint8_t opcode_last;
-        uint8_t mux_b_mask;
-        uint8_t mux_a_mask;
+
+        union {
+                struct {
+                        uint8_t b_mask;
+                        uint8_t a_mask;
+                } mux;
+                uint64_t raddr_mask;
+        };
+
         uint8_t op;
 
         /* first_ver == 0 if it's the same across all V3D versions.
@@ -465,122 +522,321 @@ struct opcode_desc {
         uint8_t last_ver;
 };
 
-static const struct opcode_desc add_ops[] = {
+static const struct opcode_desc add_ops_v33[] = {
         /* FADD is FADDNF depending on the order of the mux_a/mux_b. */
-        { 0,   47,  ANYMUX, ANYMUX, V3D_QPU_A_FADD },
-        { 0,   47,  ANYMUX, ANYMUX, V3D_QPU_A_FADDNF },
-        { 53,  55,  ANYMUX, ANYMUX, V3D_QPU_A_VFPACK },
-        { 56,  56,  ANYMUX, ANYMUX, V3D_QPU_A_ADD },
-        { 57,  59,  ANYMUX, ANYMUX, V3D_QPU_A_VFPACK },
-        { 60,  60,  ANYMUX, ANYMUX, V3D_QPU_A_SUB },
-        { 61,  63,  ANYMUX, ANYMUX, V3D_QPU_A_VFPACK },
-        { 64,  111, ANYMUX, ANYMUX, V3D_QPU_A_FSUB },
-        { 120, 120, ANYMUX, ANYMUX, V3D_QPU_A_MIN },
-        { 121, 121, ANYMUX, ANYMUX, V3D_QPU_A_MAX },
-        { 122, 122, ANYMUX, ANYMUX, V3D_QPU_A_UMIN },
-        { 123, 123, ANYMUX, ANYMUX, V3D_QPU_A_UMAX },
-        { 124, 124, ANYMUX, ANYMUX, V3D_QPU_A_SHL },
-        { 125, 125, ANYMUX, ANYMUX, V3D_QPU_A_SHR },
-        { 126, 126, ANYMUX, ANYMUX, V3D_QPU_A_ASR },
-        { 127, 127, ANYMUX, ANYMUX, V3D_QPU_A_ROR },
+        { 0,   47,  .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_FADD },
+        { 0,   47,  .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_FADDNF },
+        { 53,  55,  .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VFPACK },
+        { 56,  56,  .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_ADD },
+        { 57,  59,  .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VFPACK },
+        { 60,  60,  .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_SUB },
+        { 61,  63,  .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VFPACK },
+        { 64,  111, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_FSUB },
+        { 120, 120, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_MIN },
+        { 121, 121, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_MAX },
+        { 122, 122, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_UMIN },
+        { 123, 123, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_UMAX },
+        { 124, 124, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_SHL },
+        { 125, 125, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_SHR },
+        { 126, 126, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_ASR },
+        { 127, 127, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_ROR },
         /* FMIN is instead FMAX depending on the order of the mux_a/mux_b. */
-        { 128, 175, ANYMUX, ANYMUX, V3D_QPU_A_FMIN },
-        { 128, 175, ANYMUX, ANYMUX, V3D_QPU_A_FMAX },
-        { 176, 180, ANYMUX, ANYMUX, V3D_QPU_A_VFMIN },
+        { 128, 175, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_FMIN },
+        { 128, 175, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_FMAX },
+        { 176, 180, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VFMIN },
 
-        { 181, 181, ANYMUX, ANYMUX, V3D_QPU_A_AND },
-        { 182, 182, ANYMUX, ANYMUX, V3D_QPU_A_OR },
-        { 183, 183, ANYMUX, ANYMUX, V3D_QPU_A_XOR },
+        { 181, 181, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_AND },
+        { 182, 182, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_OR },
+        { 183, 183, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_XOR },
 
-        { 184, 184, ANYMUX, ANYMUX, V3D_QPU_A_VADD },
-        { 185, 185, ANYMUX, ANYMUX, V3D_QPU_A_VSUB },
-        { 186, 186, 1 << 0, ANYMUX, V3D_QPU_A_NOT },
-        { 186, 186, 1 << 1, ANYMUX, V3D_QPU_A_NEG },
-        { 186, 186, 1 << 2, ANYMUX, V3D_QPU_A_FLAPUSH },
-        { 186, 186, 1 << 3, ANYMUX, V3D_QPU_A_FLBPUSH },
-        { 186, 186, 1 << 4, ANYMUX, V3D_QPU_A_FLPOP },
-        { 186, 186, 1 << 5, ANYMUX, V3D_QPU_A_RECIP },
-        { 186, 186, 1 << 6, ANYMUX, V3D_QPU_A_SETMSF },
-        { 186, 186, 1 << 7, ANYMUX, V3D_QPU_A_SETREVF },
-        { 187, 187, 1 << 0, 1 << 0, V3D_QPU_A_NOP, 0 },
-        { 187, 187, 1 << 0, 1 << 1, V3D_QPU_A_TIDX },
-        { 187, 187, 1 << 0, 1 << 2, V3D_QPU_A_EIDX },
-        { 187, 187, 1 << 0, 1 << 3, V3D_QPU_A_LR },
-        { 187, 187, 1 << 0, 1 << 4, V3D_QPU_A_VFLA },
-        { 187, 187, 1 << 0, 1 << 5, V3D_QPU_A_VFLNA },
-        { 187, 187, 1 << 0, 1 << 6, V3D_QPU_A_VFLB },
-        { 187, 187, 1 << 0, 1 << 7, V3D_QPU_A_VFLNB },
+        { 184, 184, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VADD },
+        { 185, 185, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VSUB },
+        { 186, 186, .mux.b_mask = OP_MASK(0), .mux.a_mask = ANYMUX, V3D_QPU_A_NOT },
+        { 186, 186, .mux.b_mask = OP_MASK(1), .mux.a_mask = ANYMUX, V3D_QPU_A_NEG },
+        { 186, 186, .mux.b_mask = OP_MASK(2), .mux.a_mask = ANYMUX, V3D_QPU_A_FLAPUSH },
+        { 186, 186, .mux.b_mask = OP_MASK(3), .mux.a_mask = ANYMUX, V3D_QPU_A_FLBPUSH },
+        { 186, 186, .mux.b_mask = OP_MASK(4), .mux.a_mask = ANYMUX, V3D_QPU_A_FLPOP },
+        { 186, 186, .mux.b_mask = OP_MASK(5), .mux.a_mask = ANYMUX, V3D_QPU_A_RECIP },
+        { 186, 186, .mux.b_mask = OP_MASK(6), .mux.a_mask = ANYMUX, V3D_QPU_A_SETMSF },
+        { 186, 186, .mux.b_mask = OP_MASK(7), .mux.a_mask = ANYMUX, V3D_QPU_A_SETREVF },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(0), V3D_QPU_A_NOP, 0 },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(1), V3D_QPU_A_TIDX },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(2), V3D_QPU_A_EIDX },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(3), V3D_QPU_A_LR },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(4), V3D_QPU_A_VFLA },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(5), V3D_QPU_A_VFLNA },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(6), V3D_QPU_A_VFLB },
+        { 187, 187, .mux.b_mask = OP_MASK(0), .mux.a_mask = OP_MASK(7), V3D_QPU_A_VFLNB },
 
-        { 187, 187, 1 << 1, MUX_MASK(0, 2), V3D_QPU_A_FXCD },
-        { 187, 187, 1 << 1, 1 << 3, V3D_QPU_A_XCD },
-        { 187, 187, 1 << 1, MUX_MASK(4, 6), V3D_QPU_A_FYCD },
-        { 187, 187, 1 << 1, 1 << 7, V3D_QPU_A_YCD },
+        { 187, 187, .mux.b_mask = OP_MASK(1), .mux.a_mask = OP_RANGE(0, 2), V3D_QPU_A_FXCD },
+        { 187, 187, .mux.b_mask = OP_MASK(1), .mux.a_mask = OP_MASK(3), V3D_QPU_A_XCD },
+        { 187, 187, .mux.b_mask = OP_MASK(1), .mux.a_mask = OP_RANGE(4, 6), V3D_QPU_A_FYCD },
+        { 187, 187, .mux.b_mask = OP_MASK(1), .mux.a_mask = OP_MASK(7), V3D_QPU_A_YCD },
 
-        { 187, 187, 1 << 2, 1 << 0, V3D_QPU_A_MSF },
-        { 187, 187, 1 << 2, 1 << 1, V3D_QPU_A_REVF },
-        { 187, 187, 1 << 2, 1 << 2, V3D_QPU_A_VDWWT, 33 },
-        { 187, 187, 1 << 2, 1 << 2, V3D_QPU_A_IID, 40 },
-        { 187, 187, 1 << 2, 1 << 3, V3D_QPU_A_SAMPID, 40 },
-        { 187, 187, 1 << 2, 1 << 4, V3D_QPU_A_BARRIERID, 40 },
-        { 187, 187, 1 << 2, 1 << 5, V3D_QPU_A_TMUWT },
-        { 187, 187, 1 << 2, 1 << 6, V3D_QPU_A_VPMWT },
-        { 187, 187, 1 << 2, 1 << 7, V3D_QPU_A_FLAFIRST, 41 },
-        { 187, 187, 1 << 3, 1 << 0, V3D_QPU_A_FLNAFIRST, 41 },
-        { 187, 187, 1 << 3, ANYMUX, V3D_QPU_A_VPMSETUP, 33 },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(0), V3D_QPU_A_MSF },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(1), V3D_QPU_A_REVF },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(2), V3D_QPU_A_VDWWT, 33 },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(2), V3D_QPU_A_IID, 40 },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(3), V3D_QPU_A_SAMPID, 40 },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(4), V3D_QPU_A_BARRIERID, 40 },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(5), V3D_QPU_A_TMUWT },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(6), V3D_QPU_A_VPMWT },
+        { 187, 187, .mux.b_mask = OP_MASK(2), .mux.a_mask = OP_MASK(7), V3D_QPU_A_FLAFIRST, 41 },
+        { 187, 187, .mux.b_mask = OP_MASK(3), .mux.a_mask = OP_MASK(0), V3D_QPU_A_FLNAFIRST, 41 },
+        { 187, 187, .mux.b_mask = OP_MASK(3), .mux.a_mask = ANYMUX, V3D_QPU_A_VPMSETUP, 33 },
 
-        { 188, 188, 1 << 0, ANYMUX, V3D_QPU_A_LDVPMV_IN, 40 },
-        { 188, 188, 1 << 0, ANYMUX, V3D_QPU_A_LDVPMV_OUT, 40 },
-        { 188, 188, 1 << 1, ANYMUX, V3D_QPU_A_LDVPMD_IN, 40 },
-        { 188, 188, 1 << 1, ANYMUX, V3D_QPU_A_LDVPMD_OUT, 40 },
-        { 188, 188, 1 << 2, ANYMUX, V3D_QPU_A_LDVPMP, 40 },
-        { 188, 188, 1 << 3, ANYMUX, V3D_QPU_A_RSQRT, 41 },
-        { 188, 188, 1 << 4, ANYMUX, V3D_QPU_A_EXP, 41 },
-        { 188, 188, 1 << 5, ANYMUX, V3D_QPU_A_LOG, 41 },
-        { 188, 188, 1 << 6, ANYMUX, V3D_QPU_A_SIN, 41 },
-        { 188, 188, 1 << 7, ANYMUX, V3D_QPU_A_RSQRT2, 41 },
-        { 189, 189, ANYMUX, ANYMUX, V3D_QPU_A_LDVPMG_IN, 40 },
-        { 189, 189, ANYMUX, ANYMUX, V3D_QPU_A_LDVPMG_OUT, 40 },
+        { 188, 188, .mux.b_mask = OP_MASK(0), .mux.a_mask = ANYMUX, V3D_QPU_A_LDVPMV_IN, 40 },
+        { 188, 188, .mux.b_mask = OP_MASK(0), .mux.a_mask = ANYMUX, V3D_QPU_A_LDVPMV_OUT, 40 },
+        { 188, 188, .mux.b_mask = OP_MASK(1), .mux.a_mask = ANYMUX, V3D_QPU_A_LDVPMD_IN, 40 },
+        { 188, 188, .mux.b_mask = OP_MASK(1), .mux.a_mask = ANYMUX, V3D_QPU_A_LDVPMD_OUT, 40 },
+        { 188, 188, .mux.b_mask = OP_MASK(2), .mux.a_mask = ANYMUX, V3D_QPU_A_LDVPMP, 40 },
+        { 188, 188, .mux.b_mask = OP_MASK(3), .mux.a_mask = ANYMUX, V3D_QPU_A_RSQRT, 41 },
+        { 188, 188, .mux.b_mask = OP_MASK(4), .mux.a_mask = ANYMUX, V3D_QPU_A_EXP, 41 },
+        { 188, 188, .mux.b_mask = OP_MASK(5), .mux.a_mask = ANYMUX, V3D_QPU_A_LOG, 41 },
+        { 188, 188, .mux.b_mask = OP_MASK(6), .mux.a_mask = ANYMUX, V3D_QPU_A_SIN, 41 },
+        { 188, 188, .mux.b_mask = OP_MASK(7), .mux.a_mask = ANYMUX, V3D_QPU_A_RSQRT2, 41 },
+        { 189, 189, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_LDVPMG_IN, 40 },
+        { 189, 189, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_LDVPMG_OUT, 40 },
 
         /* FIXME: MORE COMPLICATED */
-        /* { 190, 191, ANYMUX, ANYMUX, V3D_QPU_A_VFMOVABSNEGNAB }, */
+        /* { 190, 191, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VFMOVABSNEGNAB }, */
 
-        { 192, 239, ANYMUX, ANYMUX, V3D_QPU_A_FCMP },
-        { 240, 244, ANYMUX, ANYMUX, V3D_QPU_A_VFMAX },
+        { 192, 239, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_FCMP },
+        { 240, 244, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_VFMAX },
 
-        { 245, 245, MUX_MASK(0, 2), ANYMUX, V3D_QPU_A_FROUND },
-        { 245, 245, 1 << 3, ANYMUX, V3D_QPU_A_FTOIN },
-        { 245, 245, MUX_MASK(4, 6), ANYMUX, V3D_QPU_A_FTRUNC },
-        { 245, 245, 1 << 7, ANYMUX, V3D_QPU_A_FTOIZ },
-        { 246, 246, MUX_MASK(0, 2), ANYMUX, V3D_QPU_A_FFLOOR },
-        { 246, 246, 1 << 3, ANYMUX, V3D_QPU_A_FTOUZ },
-        { 246, 246, MUX_MASK(4, 6), ANYMUX, V3D_QPU_A_FCEIL },
-        { 246, 246, 1 << 7, ANYMUX, V3D_QPU_A_FTOC },
+        { 245, 245, .mux.b_mask = OP_RANGE(0, 2), .mux.a_mask = ANYMUX, V3D_QPU_A_FROUND },
+        { 245, 245, .mux.b_mask = OP_MASK(3), .mux.a_mask = ANYMUX, V3D_QPU_A_FTOIN },
+        { 245, 245, .mux.b_mask = OP_RANGE(4, 6), .mux.a_mask = ANYMUX, V3D_QPU_A_FTRUNC },
+        { 245, 245, .mux.b_mask = OP_MASK(7), .mux.a_mask = ANYMUX, V3D_QPU_A_FTOIZ },
+        { 246, 246, .mux.b_mask = OP_RANGE(0, 2), .mux.a_mask = ANYMUX, V3D_QPU_A_FFLOOR },
+        { 246, 246, .mux.b_mask = OP_MASK(3), .mux.a_mask = ANYMUX, V3D_QPU_A_FTOUZ },
+        { 246, 246, .mux.b_mask = OP_RANGE(4, 6), .mux.a_mask = ANYMUX, V3D_QPU_A_FCEIL },
+        { 246, 246, .mux.b_mask = OP_MASK(7), .mux.a_mask = ANYMUX, V3D_QPU_A_FTOC },
 
-        { 247, 247, MUX_MASK(0, 2), ANYMUX, V3D_QPU_A_FDX },
-        { 247, 247, MUX_MASK(4, 6), ANYMUX, V3D_QPU_A_FDY },
+        { 247, 247, .mux.b_mask = OP_RANGE(0, 2), .mux.a_mask = ANYMUX, V3D_QPU_A_FDX },
+        { 247, 247, .mux.b_mask = OP_RANGE(4, 6), .mux.a_mask = ANYMUX, V3D_QPU_A_FDY },
 
         /* The stvpms are distinguished by the waddr field. */
-        { 248, 248, ANYMUX, ANYMUX, V3D_QPU_A_STVPMV },
-        { 248, 248, ANYMUX, ANYMUX, V3D_QPU_A_STVPMD },
-        { 248, 248, ANYMUX, ANYMUX, V3D_QPU_A_STVPMP },
+        { 248, 248, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_STVPMV },
+        { 248, 248, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_STVPMD },
+        { 248, 248, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_A_STVPMP },
 
-        { 252, 252, MUX_MASK(0, 2), ANYMUX, V3D_QPU_A_ITOF },
-        { 252, 252, 1 << 3, ANYMUX, V3D_QPU_A_CLZ },
-        { 252, 252, MUX_MASK(4, 6), ANYMUX, V3D_QPU_A_UTOF },
+        { 252, 252, .mux.b_mask = OP_RANGE(0, 2), .mux.a_mask = ANYMUX, V3D_QPU_A_ITOF },
+        { 252, 252, .mux.b_mask = OP_MASK(3), .mux.a_mask = ANYMUX, V3D_QPU_A_CLZ },
+        { 252, 252, .mux.b_mask = OP_RANGE(4, 6), .mux.a_mask = ANYMUX, V3D_QPU_A_UTOF },
 };
 
-static const struct opcode_desc mul_ops[] = {
-        { 1, 1, ANYMUX, ANYMUX, V3D_QPU_M_ADD },
-        { 2, 2, ANYMUX, ANYMUX, V3D_QPU_M_SUB },
-        { 3, 3, ANYMUX, ANYMUX, V3D_QPU_M_UMUL24 },
-        { 4, 8, ANYMUX, ANYMUX, V3D_QPU_M_VFMUL },
-        { 9, 9, ANYMUX, ANYMUX, V3D_QPU_M_SMUL24 },
-        { 10, 10, ANYMUX, ANYMUX, V3D_QPU_M_MULTOP },
-        { 14, 14, ANYMUX, ANYMUX, V3D_QPU_M_FMOV },
-        { 15, 15, MUX_MASK(0, 3), ANYMUX, V3D_QPU_M_FMOV },
-        { 15, 15, 1 << 4, 1 << 0, V3D_QPU_M_NOP, 0 },
-        { 15, 15, 1 << 7, ANYMUX, V3D_QPU_M_MOV },
-        { 16, 63, ANYMUX, ANYMUX, V3D_QPU_M_FMUL },
+static const struct opcode_desc mul_ops_v33[] = {
+        { 1, 1, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_ADD },
+        { 2, 2, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_SUB },
+        { 3, 3, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_UMUL24 },
+        { 4, 8, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_VFMUL },
+        { 9, 9, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_SMUL24 },
+        { 10, 10, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_MULTOP },
+        { 14, 14, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_FMOV, 33, 42 },
+        { 15, 15, .mux.b_mask = OP_RANGE(0, 3), ANYMUX, V3D_QPU_M_FMOV, 33, 42},
+        { 15, 15, .mux.b_mask = OP_MASK(4), .mux.a_mask = OP_MASK(0), V3D_QPU_M_NOP, 33, 42 },
+        { 15, 15, .mux.b_mask = OP_MASK(7), .mux.a_mask = ANYMUX, V3D_QPU_M_MOV, 33, 42 },
+
+        { 16, 63, .mux.b_mask = ANYMUX, .mux.a_mask = ANYMUX, V3D_QPU_M_FMUL },
+};
+
+/* Note that it would have been possible to define all the add/mul opcodes in
+ * just one table, using the first_ver/last_ver. But taking into account that
+ * for v71 there were a lot of changes, it was more tidy this way. Also right
+ * now we are doing a linear search on those tables, so this maintains the
+ * tables smaller.
+ *
+ * Just in case we merge the tables, we define the first_ver as 71 for those
+ * opcodes that changed on v71
+ */
+static const struct opcode_desc add_ops_v71[] = {
+        /* FADD is FADDNF depending on the order of the raddr_a/raddr_b. */
+        { 0,   47,  .raddr_mask = ANYOPMASK, V3D_QPU_A_FADD },
+        { 0,   47,  .raddr_mask = ANYOPMASK, V3D_QPU_A_FADDNF },
+        { 53,  55,  .raddr_mask = ANYOPMASK, V3D_QPU_A_VFPACK },
+        { 56,  56,  .raddr_mask = ANYOPMASK, V3D_QPU_A_ADD },
+        { 57,  59,  .raddr_mask = ANYOPMASK, V3D_QPU_A_VFPACK },
+        { 60,  60,  .raddr_mask = ANYOPMASK, V3D_QPU_A_SUB },
+        { 61,  63,  .raddr_mask = ANYOPMASK, V3D_QPU_A_VFPACK },
+        { 64,  111, .raddr_mask = ANYOPMASK, V3D_QPU_A_FSUB },
+        { 120, 120, .raddr_mask = ANYOPMASK, V3D_QPU_A_MIN },
+        { 121, 121, .raddr_mask = ANYOPMASK, V3D_QPU_A_MAX },
+        { 122, 122, .raddr_mask = ANYOPMASK, V3D_QPU_A_UMIN },
+        { 123, 123, .raddr_mask = ANYOPMASK, V3D_QPU_A_UMAX },
+        { 124, 124, .raddr_mask = ANYOPMASK, V3D_QPU_A_SHL },
+        { 125, 125, .raddr_mask = ANYOPMASK, V3D_QPU_A_SHR },
+        { 126, 126, .raddr_mask = ANYOPMASK, V3D_QPU_A_ASR },
+        { 127, 127, .raddr_mask = ANYOPMASK, V3D_QPU_A_ROR },
+        /* FMIN is instead FMAX depending on the raddr_a/b order. */
+        { 128, 175, .raddr_mask = ANYOPMASK, V3D_QPU_A_FMIN },
+        { 128, 175, .raddr_mask = ANYOPMASK, V3D_QPU_A_FMAX },
+        { 176, 180, .raddr_mask = ANYOPMASK, V3D_QPU_A_VFMIN },
+
+        { 181, 181, .raddr_mask = ANYOPMASK, V3D_QPU_A_AND },
+        { 182, 182, .raddr_mask = ANYOPMASK, V3D_QPU_A_OR },
+        { 183, 183, .raddr_mask = ANYOPMASK, V3D_QPU_A_XOR },
+        { 184, 184, .raddr_mask = ANYOPMASK, V3D_QPU_A_VADD },
+        { 185, 185, .raddr_mask = ANYOPMASK, V3D_QPU_A_VSUB },
+
+        { 186, 186, .raddr_mask = OP_MASK(0), V3D_QPU_A_NOT },
+        { 186, 186, .raddr_mask = OP_MASK(1), V3D_QPU_A_NEG },
+        { 186, 186, .raddr_mask = OP_MASK(2), V3D_QPU_A_FLAPUSH },
+        { 186, 186, .raddr_mask = OP_MASK(3), V3D_QPU_A_FLBPUSH },
+        { 186, 186, .raddr_mask = OP_MASK(4), V3D_QPU_A_FLPOP },
+        { 186, 186, .raddr_mask = OP_MASK(5), V3D_QPU_A_CLZ },
+        { 186, 186, .raddr_mask = OP_MASK(6), V3D_QPU_A_SETMSF },
+        { 186, 186, .raddr_mask = OP_MASK(7), V3D_QPU_A_SETREVF },
+
+        { 187, 187, .raddr_mask = OP_MASK(0), V3D_QPU_A_NOP, 0 },
+        { 187, 187, .raddr_mask = OP_MASK(1), V3D_QPU_A_TIDX },
+        { 187, 187, .raddr_mask = OP_MASK(2), V3D_QPU_A_EIDX },
+        { 187, 187, .raddr_mask = OP_MASK(3), V3D_QPU_A_LR },
+        { 187, 187, .raddr_mask = OP_MASK(4), V3D_QPU_A_VFLA },
+        { 187, 187, .raddr_mask = OP_MASK(5), V3D_QPU_A_VFLNA },
+        { 187, 187, .raddr_mask = OP_MASK(6), V3D_QPU_A_VFLB },
+        { 187, 187, .raddr_mask = OP_MASK(7), V3D_QPU_A_VFLNB },
+        { 187, 187, .raddr_mask = OP_MASK(8), V3D_QPU_A_XCD },
+        { 187, 187, .raddr_mask = OP_MASK(9), V3D_QPU_A_YCD },
+        { 187, 187, .raddr_mask = OP_MASK(10), V3D_QPU_A_MSF },
+        { 187, 187, .raddr_mask = OP_MASK(11), V3D_QPU_A_REVF },
+        { 187, 187, .raddr_mask = OP_MASK(12), V3D_QPU_A_IID },
+        { 187, 187, .raddr_mask = OP_MASK(13), V3D_QPU_A_SAMPID },
+        { 187, 187, .raddr_mask = OP_MASK(14), V3D_QPU_A_BARRIERID },
+        { 187, 187, .raddr_mask = OP_MASK(15), V3D_QPU_A_TMUWT },
+        { 187, 187, .raddr_mask = OP_MASK(16), V3D_QPU_A_VPMWT },
+        { 187, 187, .raddr_mask = OP_MASK(17), V3D_QPU_A_FLAFIRST },
+        { 187, 187, .raddr_mask = OP_MASK(18), V3D_QPU_A_FLNAFIRST },
+
+        { 187, 187, .raddr_mask = OP_RANGE(32, 34), V3D_QPU_A_FXCD },
+        { 187, 187, .raddr_mask = OP_RANGE(36, 38), V3D_QPU_A_FYCD },
+
+        { 188, 188, .raddr_mask = OP_MASK(0), V3D_QPU_A_LDVPMV_IN, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(1), V3D_QPU_A_LDVPMD_IN, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(2), V3D_QPU_A_LDVPMP, 71 },
+
+        { 188, 188, .raddr_mask = OP_MASK(32), V3D_QPU_A_RECIP, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(33), V3D_QPU_A_RSQRT, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(34), V3D_QPU_A_EXP, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(35), V3D_QPU_A_LOG, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(36), V3D_QPU_A_SIN, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(37), V3D_QPU_A_RSQRT2, 71 },
+
+        { 189, 189, .raddr_mask = ANYOPMASK, V3D_QPU_A_LDVPMG_IN, 71 },
+
+        /* The stvpms are distinguished by the waddr field. */
+        { 190, 190, .raddr_mask = ANYOPMASK, V3D_QPU_A_STVPMV, 71},
+        { 190, 190, .raddr_mask = ANYOPMASK, V3D_QPU_A_STVPMD, 71},
+        { 190, 190, .raddr_mask = ANYOPMASK, V3D_QPU_A_STVPMP, 71},
+
+        { 192, 207, .raddr_mask = ANYOPMASK, V3D_QPU_A_FCMP, 71 },
+
+        { 245, 245, .raddr_mask = OP_RANGE(0, 2),   V3D_QPU_A_FROUND, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(4, 6),   V3D_QPU_A_FROUND, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(8, 10),  V3D_QPU_A_FROUND, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(12, 14), V3D_QPU_A_FROUND, 71 },
+
+        { 245, 245, .raddr_mask = OP_MASK(3),  V3D_QPU_A_FTOIN, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(7),  V3D_QPU_A_FTOIN, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(11), V3D_QPU_A_FTOIN, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(15), V3D_QPU_A_FTOIN, 71 },
+
+        { 245, 245, .raddr_mask = OP_RANGE(16, 18), V3D_QPU_A_FTRUNC, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(20, 22), V3D_QPU_A_FTRUNC, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(24, 26), V3D_QPU_A_FTRUNC, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(28, 30), V3D_QPU_A_FTRUNC, 71 },
+
+        { 245, 245, .raddr_mask = OP_MASK(19), V3D_QPU_A_FTOIZ, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(23), V3D_QPU_A_FTOIZ, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(27), V3D_QPU_A_FTOIZ, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(31), V3D_QPU_A_FTOIZ, 71 },
+
+        { 245, 245, .raddr_mask = OP_RANGE(32, 34), V3D_QPU_A_FFLOOR, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(36, 38), V3D_QPU_A_FFLOOR, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(40, 42), V3D_QPU_A_FFLOOR, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(44, 46), V3D_QPU_A_FFLOOR, 71 },
+
+        { 245, 245, .raddr_mask = OP_MASK(35), V3D_QPU_A_FTOUZ, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(39), V3D_QPU_A_FTOUZ, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(43), V3D_QPU_A_FTOUZ, 71 },
+        { 245, 245, .raddr_mask = OP_MASK(47), V3D_QPU_A_FTOUZ, 71 },
+
+        { 245, 245, .raddr_mask = OP_RANGE(48, 50), V3D_QPU_A_FCEIL, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(52, 54), V3D_QPU_A_FCEIL, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(56, 58), V3D_QPU_A_FCEIL, 71 },
+        { 245, 245, .raddr_mask = OP_RANGE(60, 62), V3D_QPU_A_FCEIL, 71 },
+
+        { 245, 245, .raddr_mask = OP_MASK(51), V3D_QPU_A_FTOC },
+        { 245, 245, .raddr_mask = OP_MASK(55), V3D_QPU_A_FTOC },
+        { 245, 245, .raddr_mask = OP_MASK(59), V3D_QPU_A_FTOC },
+        { 245, 245, .raddr_mask = OP_MASK(63), V3D_QPU_A_FTOC },
+
+        { 246, 246, .raddr_mask = OP_RANGE(0, 2),   V3D_QPU_A_FDX, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(4, 6),   V3D_QPU_A_FDX, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(8, 10),  V3D_QPU_A_FDX, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(12, 14), V3D_QPU_A_FDX, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(16, 18), V3D_QPU_A_FDY, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(20, 22), V3D_QPU_A_FDY, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(24, 26), V3D_QPU_A_FDY, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(28, 30), V3D_QPU_A_FDY, 71 },
+
+        { 246, 246, .raddr_mask = OP_RANGE(32, 34), V3D_QPU_A_ITOF, 71 },
+        { 246, 246, .raddr_mask = OP_RANGE(36, 38), V3D_QPU_A_UTOF, 71 },
+
+        { 247, 247, .raddr_mask = ANYOPMASK, V3D_QPU_A_VPACK, 71 },
+        { 248, 248, .raddr_mask = ANYOPMASK, V3D_QPU_A_V8PACK, 71 },
+
+        { 249, 249, .raddr_mask = OP_RANGE(0, 2),   V3D_QPU_A_FMOV, 71 },
+        { 249, 249, .raddr_mask = OP_RANGE(4, 6),   V3D_QPU_A_FMOV, 71 },
+        { 249, 249, .raddr_mask = OP_RANGE(8, 10),  V3D_QPU_A_FMOV, 71 },
+        { 249, 249, .raddr_mask = OP_RANGE(12, 14), V3D_QPU_A_FMOV, 71 },
+        { 249, 249, .raddr_mask = OP_RANGE(16, 18), V3D_QPU_A_FMOV, 71 },
+        { 249, 249, .raddr_mask = OP_RANGE(20, 22), V3D_QPU_A_FMOV, 71 },
+        { 249, 249, .raddr_mask = OP_RANGE(24, 26), V3D_QPU_A_FMOV, 71 },
+
+        { 249, 249, .raddr_mask = OP_MASK(3),  V3D_QPU_A_MOV, 71 },
+        { 249, 249, .raddr_mask = OP_MASK(7),  V3D_QPU_A_MOV, 71 },
+        { 249, 249, .raddr_mask = OP_MASK(11), V3D_QPU_A_MOV, 71 },
+        { 249, 249, .raddr_mask = OP_MASK(15), V3D_QPU_A_MOV, 71 },
+        { 249, 249, .raddr_mask = OP_MASK(19), V3D_QPU_A_MOV, 71 },
+
+        { 250, 250, .raddr_mask = ANYOPMASK, V3D_QPU_A_V10PACK, 71 },
+        { 251, 251, .raddr_mask = ANYOPMASK, V3D_QPU_A_V11FPACK, 71 },
+};
+
+static const struct opcode_desc mul_ops_v71[] = {
+        /* For V3D 7.1, second mask field would be ignored */
+        { 1, 1, .raddr_mask = ANYOPMASK, V3D_QPU_M_ADD, 71 },
+        { 2, 2, .raddr_mask = ANYOPMASK, V3D_QPU_M_SUB, 71 },
+        { 3, 3, .raddr_mask = ANYOPMASK, V3D_QPU_M_UMUL24, 71 },
+        { 3, 3, .raddr_mask = ANYOPMASK, V3D_QPU_M_UMUL24, 71 },
+        { 4, 8, .raddr_mask = ANYOPMASK, V3D_QPU_M_VFMUL, 71 },
+        { 9, 9, .raddr_mask = ANYOPMASK, V3D_QPU_M_SMUL24, 71 },
+        { 10, 10, .raddr_mask = ANYOPMASK, V3D_QPU_M_MULTOP, 71 },
+
+        { 14, 14, .raddr_mask = OP_RANGE(0, 2),   V3D_QPU_M_FMOV, 71 },
+        { 14, 14, .raddr_mask = OP_RANGE(4, 6),   V3D_QPU_M_FMOV, 71 },
+        { 14, 14, .raddr_mask = OP_RANGE(8, 10),  V3D_QPU_M_FMOV, 71 },
+        { 14, 14, .raddr_mask = OP_RANGE(12, 14), V3D_QPU_M_FMOV, 71 },
+        { 14, 14, .raddr_mask = OP_RANGE(16, 18), V3D_QPU_M_FMOV, 71 },
+        { 14, 14, .raddr_mask = OP_RANGE(20, 22), V3D_QPU_M_FMOV, 71 },
+
+        { 14, 14, .raddr_mask = OP_MASK(3),  V3D_QPU_M_MOV, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(7),  V3D_QPU_M_MOV, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(11), V3D_QPU_M_MOV, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(15), V3D_QPU_M_MOV, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(19), V3D_QPU_M_MOV, 71 },
+
+        { 14, 14, .raddr_mask = OP_MASK(32), V3D_QPU_M_FTOUNORM16, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(33), V3D_QPU_M_FTOSNORM16, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(34), V3D_QPU_M_VFTOUNORM8, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(35), V3D_QPU_M_VFTOSNORM8, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(48), V3D_QPU_M_VFTOUNORM10LO, 71 },
+        { 14, 14, .raddr_mask = OP_MASK(49), V3D_QPU_M_VFTOUNORM10HI, 71 },
+
+        { 14, 14, .raddr_mask = OP_MASK(63), V3D_QPU_M_NOP, 71 },
+
+        { 16, 63, .raddr_mask = ANYOPMASK, V3D_QPU_M_FMUL },
 };
 
 /* Returns true if op_desc should be filtered out based on devinfo->ver
@@ -589,17 +845,23 @@ static const struct opcode_desc mul_ops[] = {
  */
 static bool
 opcode_invalid_in_version(const struct v3d_device_info *devinfo,
-                          const struct opcode_desc *op_desc)
+                          const uint8_t first_ver,
+                          const uint8_t last_ver)
 {
-        return (op_desc->first_ver != 0 && devinfo->ver < op_desc->first_ver) ||
-                (op_desc->last_ver != 0  && devinfo->ver > op_desc->last_ver);
+        return (first_ver != 0 && devinfo->ver < first_ver) ||
+                (last_ver != 0  && devinfo->ver > last_ver);
 }
 
+/* Note that we pass as parameters mux_a, mux_b and raddr, even if depending
+ * on the devinfo->ver some would be ignored. We do this way just to avoid
+ * having two really similar lookup_opcode methods
+ */
 static const struct opcode_desc *
 lookup_opcode_from_packed(const struct v3d_device_info *devinfo,
                           const struct opcode_desc *opcodes,
                           size_t num_opcodes, uint32_t opcode,
-                          uint32_t mux_a, uint32_t mux_b)
+                          uint32_t mux_a, uint32_t mux_b,
+                          uint32_t raddr)
 {
         for (int i = 0; i < num_opcodes; i++) {
                 const struct opcode_desc *op_desc = &opcodes[i];
@@ -608,14 +870,19 @@ lookup_opcode_from_packed(const struct v3d_device_info *devinfo,
                     opcode > op_desc->opcode_last)
                         continue;
 
-                if (opcode_invalid_in_version(devinfo, op_desc))
+                if (opcode_invalid_in_version(devinfo, op_desc->first_ver, op_desc->last_ver))
                         continue;
 
-                if (!(op_desc->mux_b_mask & (1 << mux_b)))
-                        continue;
+                if (devinfo->ver < 71) {
+                        if (!(op_desc->mux.b_mask & (1 << mux_b)))
+                                continue;
 
-                if (!(op_desc->mux_a_mask & (1 << mux_a)))
-                        continue;
+                        if (!(op_desc->mux.a_mask & (1 << mux_a)))
+                                continue;
+                } else {
+                        if (!(op_desc->raddr_mask & ((uint64_t) 1 << raddr)))
+                                continue;
+                }
 
                 return op_desc;
         }
@@ -661,6 +928,56 @@ v3d_qpu_float32_unpack_pack(enum v3d_qpu_input_unpack unpacked,
                 return true;
         case V3D_QPU_UNPACK_H:
                 *packed = 3;
+                return true;
+        default:
+                return false;
+        }
+}
+
+static bool
+v3d_qpu_int32_unpack_unpack(uint32_t packed,
+                            enum v3d_qpu_input_unpack *unpacked)
+{
+        switch (packed) {
+        case 0:
+                *unpacked = V3D_QPU_UNPACK_NONE;
+                return true;
+        case 1:
+                *unpacked = V3D_QPU_UNPACK_UL;
+                return true;
+        case 2:
+                *unpacked = V3D_QPU_UNPACK_UH;
+                return true;
+        case 3:
+                *unpacked = V3D_QPU_UNPACK_IL;
+                return true;
+        case 4:
+                *unpacked = V3D_QPU_UNPACK_IH;
+                return true;
+        default:
+                return false;
+        }
+}
+
+static bool
+v3d_qpu_int32_unpack_pack(enum v3d_qpu_input_unpack unpacked,
+                          uint32_t *packed)
+{
+        switch (unpacked) {
+        case V3D_QPU_UNPACK_NONE:
+                *packed = 0;
+                return true;
+        case V3D_QPU_UNPACK_UL:
+                *packed = 1;
+                return true;
+        case V3D_QPU_UNPACK_UH:
+                *packed = 2;
+                return true;
+        case V3D_QPU_UNPACK_IL:
+                *packed = 3;
+                return true;
+        case V3D_QPU_UNPACK_IH:
+                *packed = 4;
                 return true;
         default:
                 return false;
@@ -718,10 +1035,10 @@ v3d_qpu_float16_unpack_pack(enum v3d_qpu_input_unpack unpacked,
 }
 
 static bool
-v3d_qpu_float32_pack_pack(enum v3d_qpu_input_unpack unpacked,
+v3d_qpu_float32_pack_pack(enum v3d_qpu_output_pack pack,
                           uint32_t *packed)
 {
-        switch (unpacked) {
+        switch (pack) {
         case V3D_QPU_PACK_NONE:
                 *packed = 0;
                 return true;
@@ -737,8 +1054,8 @@ v3d_qpu_float32_pack_pack(enum v3d_qpu_input_unpack unpacked,
 }
 
 static bool
-v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
-                   struct v3d_qpu_instr *instr)
+v3d33_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
+                     struct v3d_qpu_instr *instr)
 {
         uint32_t op = QPU_GET_FIELD(packed_inst, V3D_QPU_OP_ADD);
         uint32_t mux_a = QPU_GET_FIELD(packed_inst, V3D_QPU_ADD_A);
@@ -755,8 +1072,9 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                 map_op = (map_op - 253 + 245);
 
         const struct opcode_desc *desc =
-                lookup_opcode_from_packed(devinfo, add_ops, ARRAY_SIZE(add_ops),
-                                          map_op, mux_a, mux_b);
+                lookup_opcode_from_packed(devinfo, add_ops_v33,
+                                          ARRAY_SIZE(add_ops_v33),
+                                          map_op, mux_a, mux_b, 0);
 
         if (!desc)
                 return false;
@@ -812,12 +1130,12 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                         instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
 
                 if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
-                                                   &instr->alu.add.a_unpack)) {
+                                                   &instr->alu.add.a.unpack)) {
                         return false;
                 }
 
                 if (!v3d_qpu_float32_unpack_unpack((op >> 0) & 0x3,
-                                                   &instr->alu.add.b_unpack)) {
+                                                   &instr->alu.add.b.unpack)) {
                         return false;
                 }
                 break;
@@ -831,7 +1149,7 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                 instr->alu.add.output_pack = mux_b & 0x3;
 
                 if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
-                                                   &instr->alu.add.a_unpack)) {
+                                                   &instr->alu.add.a.unpack)) {
                         return false;
                 }
                 break;
@@ -843,7 +1161,7 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                 instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
 
                 if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
-                                                   &instr->alu.add.a_unpack)) {
+                                                   &instr->alu.add.a.unpack)) {
                         return false;
                 }
                 break;
@@ -851,23 +1169,23 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
         case V3D_QPU_A_VFMIN:
         case V3D_QPU_A_VFMAX:
                 if (!v3d_qpu_float16_unpack_unpack(op & 0x7,
-                                                   &instr->alu.add.a_unpack)) {
+                                                   &instr->alu.add.a.unpack)) {
                         return false;
                 }
 
                 instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
-                instr->alu.add.b_unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.add.b.unpack = V3D_QPU_UNPACK_NONE;
                 break;
 
         default:
                 instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
-                instr->alu.add.a_unpack = V3D_QPU_UNPACK_NONE;
-                instr->alu.add.b_unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.add.a.unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.add.b.unpack = V3D_QPU_UNPACK_NONE;
                 break;
         }
 
-        instr->alu.add.a = mux_a;
-        instr->alu.add.b = mux_b;
+        instr->alu.add.a.mux = mux_a;
+        instr->alu.add.b.mux = mux_b;
         instr->alu.add.waddr = QPU_GET_FIELD(packed_inst, V3D_QPU_WADDR_A);
 
         instr->alu.add.magic_write = false;
@@ -892,8 +1210,194 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
 }
 
 static bool
-v3d_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
+v3d71_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
+                     struct v3d_qpu_instr *instr)
+{
+        uint32_t op = QPU_GET_FIELD(packed_inst, V3D_QPU_OP_ADD);
+        uint32_t raddr_a = QPU_GET_FIELD(packed_inst, V3D_QPU_RADDR_A);
+        uint32_t raddr_b = QPU_GET_FIELD(packed_inst, V3D_QPU_RADDR_B);
+        uint32_t waddr = QPU_GET_FIELD(packed_inst, V3D_QPU_WADDR_A);
+        uint32_t map_op = op;
+
+        const struct opcode_desc *desc =
+                lookup_opcode_from_packed(devinfo,
+                                          add_ops_v71,
+                                          ARRAY_SIZE(add_ops_v71),
+                                          map_op, 0, 0,
+                                          raddr_b);
+        if (!desc)
+                return false;
+
+        instr->alu.add.op = desc->op;
+
+        /* FADD/FADDNF and FMIN/FMAX are determined by the order of the
+         * operands.
+         */
+        if (instr->sig.small_imm_a * 256 + ((op >> 2) & 3) * 64 + raddr_a >
+            instr->sig.small_imm_b * 256 + (op & 3) * 64 + raddr_b) {
+                if (instr->alu.add.op == V3D_QPU_A_FMIN)
+                        instr->alu.add.op = V3D_QPU_A_FMAX;
+                if (instr->alu.add.op == V3D_QPU_A_FADD)
+                        instr->alu.add.op = V3D_QPU_A_FADDNF;
+        }
+
+        /* Some QPU ops require a bit more than just basic opcode and mux a/b
+         * comparisons to distinguish them.
+         */
+        switch (instr->alu.add.op) {
+        case V3D_QPU_A_STVPMV:
+        case V3D_QPU_A_STVPMD:
+        case V3D_QPU_A_STVPMP:
+                switch (waddr) {
+                case 0:
+                        instr->alu.add.op = V3D_QPU_A_STVPMV;
+                        break;
+                case 1:
+                        instr->alu.add.op = V3D_QPU_A_STVPMD;
+                        break;
+                case 2:
+                        instr->alu.add.op = V3D_QPU_A_STVPMP;
+                        break;
+                default:
+                        return false;
+                }
+                break;
+        default:
+                break;
+        }
+
+        switch (instr->alu.add.op) {
+        case V3D_QPU_A_FADD:
+        case V3D_QPU_A_FADDNF:
+        case V3D_QPU_A_FSUB:
+        case V3D_QPU_A_FMIN:
+        case V3D_QPU_A_FMAX:
+        case V3D_QPU_A_FCMP:
+        case V3D_QPU_A_VFPACK:
+                if (instr->alu.add.op != V3D_QPU_A_VFPACK &&
+                    instr->alu.add.op != V3D_QPU_A_FCMP) {
+                        instr->alu.add.output_pack = (op >> 4) & 0x3;
+                } else {
+                        instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
+                }
+
+                if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
+                                                   &instr->alu.add.a.unpack)) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float32_unpack_unpack((op >> 0) & 0x3,
+                                                   &instr->alu.add.b.unpack)) {
+                        return false;
+                }
+                break;
+
+        case V3D_QPU_A_FFLOOR:
+        case V3D_QPU_A_FROUND:
+        case V3D_QPU_A_FTRUNC:
+        case V3D_QPU_A_FCEIL:
+        case V3D_QPU_A_FDX:
+        case V3D_QPU_A_FDY:
+                instr->alu.add.output_pack = raddr_b & 0x3;
+
+                if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
+                                                   &instr->alu.add.a.unpack)) {
+                        return false;
+                }
+                break;
+
+        case V3D_QPU_A_FTOIN:
+        case V3D_QPU_A_FTOIZ:
+        case V3D_QPU_A_FTOUZ:
+        case V3D_QPU_A_FTOC:
+                instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
+
+                if (!v3d_qpu_float32_unpack_unpack((raddr_b >> 2) & 0x3,
+                                                   &instr->alu.add.a.unpack)) {
+                        return false;
+                }
+                break;
+
+        case V3D_QPU_A_VFMIN:
+        case V3D_QPU_A_VFMAX:
+                unreachable("pending v71 update");
+                if (!v3d_qpu_float16_unpack_unpack(op & 0x7,
+                                                   &instr->alu.add.a.unpack)) {
+                        return false;
+                }
+
+                instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
+                instr->alu.add.b.unpack = V3D_QPU_UNPACK_NONE;
+                break;
+
+        case V3D_QPU_A_MOV:
+                instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
+
+                if (!v3d_qpu_int32_unpack_unpack((raddr_b >> 2) & 0x7,
+                                                 &instr->alu.add.a.unpack)) {
+                        return false;
+                }
+                break;
+
+        case V3D_QPU_A_FMOV:
+                instr->alu.add.output_pack = raddr_b & 0x3;
+
+                /* Mul alu FMOV has one additional variant */
+                int32_t unpack = (raddr_b >> 2) & 0x7;
+                if (unpack == 7)
+                        return false;
+
+                if (!v3d_qpu_float32_unpack_unpack(unpack,
+                                                   &instr->alu.add.a.unpack)) {
+                        return false;
+                }
+                break;
+
+        default:
+                instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
+                instr->alu.add.a.unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.add.b.unpack = V3D_QPU_UNPACK_NONE;
+                break;
+        }
+
+        instr->alu.add.a.raddr = raddr_a;
+        instr->alu.add.b.raddr = raddr_b;
+        instr->alu.add.waddr = QPU_GET_FIELD(packed_inst, V3D_QPU_WADDR_A);
+
+        instr->alu.add.magic_write = false;
+        if (packed_inst & V3D_QPU_MA) {
+                switch (instr->alu.add.op) {
+                case V3D_QPU_A_LDVPMV_IN:
+                        instr->alu.add.op = V3D_QPU_A_LDVPMV_OUT;
+                        break;
+                case V3D_QPU_A_LDVPMD_IN:
+                        instr->alu.add.op = V3D_QPU_A_LDVPMD_OUT;
+                        break;
+                case V3D_QPU_A_LDVPMG_IN:
+                        instr->alu.add.op = V3D_QPU_A_LDVPMG_OUT;
+                        break;
+                default:
+                        instr->alu.add.magic_write = true;
+                        break;
+                }
+        }
+
+        return true;
+}
+
+static bool
+v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                    struct v3d_qpu_instr *instr)
+{
+        if (devinfo->ver < 71)
+                return v3d33_qpu_add_unpack(devinfo, packed_inst, instr);
+        else
+                return v3d71_qpu_add_unpack(devinfo, packed_inst, instr);
+}
+
+static bool
+v3d33_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
+                     struct v3d_qpu_instr *instr)
 {
         uint32_t op = QPU_GET_FIELD(packed_inst, V3D_QPU_OP_MUL);
         uint32_t mux_a = QPU_GET_FIELD(packed_inst, V3D_QPU_MUL_A);
@@ -901,9 +1405,10 @@ v3d_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
 
         {
                 const struct opcode_desc *desc =
-                        lookup_opcode_from_packed(devinfo, mul_ops,
-                                                  ARRAY_SIZE(mul_ops),
-                                                  op, mux_a, mux_b);
+                        lookup_opcode_from_packed(devinfo,
+                                                  mul_ops_v33,
+                                                  ARRAY_SIZE(mul_ops_v33),
+                                                  op, mux_a, mux_b, 0);
                 if (!desc)
                         return false;
 
@@ -915,12 +1420,12 @@ v3d_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                 instr->alu.mul.output_pack = ((op >> 4) & 0x3) - 1;
 
                 if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
-                                                   &instr->alu.mul.a_unpack)) {
+                                                   &instr->alu.mul.a.unpack)) {
                         return false;
                 }
 
                 if (!v3d_qpu_float32_unpack_unpack((op >> 0) & 0x3,
-                                                   &instr->alu.mul.b_unpack)) {
+                                                   &instr->alu.mul.b.unpack)) {
                         return false;
                 }
 
@@ -931,7 +1436,7 @@ v3d_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                                               ((mux_b >> 2) & 1));
 
                 if (!v3d_qpu_float32_unpack_unpack(mux_b & 0x3,
-                                                   &instr->alu.mul.a_unpack)) {
+                                                   &instr->alu.mul.a.unpack)) {
                         return false;
                 }
 
@@ -941,27 +1446,121 @@ v3d_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
                 instr->alu.mul.output_pack = V3D_QPU_PACK_NONE;
 
                 if (!v3d_qpu_float16_unpack_unpack(((op & 0x7) - 4) & 7,
-                                                   &instr->alu.mul.a_unpack)) {
+                                                   &instr->alu.mul.a.unpack)) {
                         return false;
                 }
 
-                instr->alu.mul.b_unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.mul.b.unpack = V3D_QPU_UNPACK_NONE;
 
                 break;
 
         default:
                 instr->alu.mul.output_pack = V3D_QPU_PACK_NONE;
-                instr->alu.mul.a_unpack = V3D_QPU_UNPACK_NONE;
-                instr->alu.mul.b_unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.mul.a.unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.mul.b.unpack = V3D_QPU_UNPACK_NONE;
                 break;
         }
 
-        instr->alu.mul.a = mux_a;
-        instr->alu.mul.b = mux_b;
+        instr->alu.mul.a.mux = mux_a;
+        instr->alu.mul.b.mux = mux_b;
         instr->alu.mul.waddr = QPU_GET_FIELD(packed_inst, V3D_QPU_WADDR_M);
         instr->alu.mul.magic_write = packed_inst & V3D_QPU_MM;
 
         return true;
+}
+
+static bool
+v3d71_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
+                     struct v3d_qpu_instr *instr)
+{
+        uint32_t op = QPU_GET_FIELD(packed_inst, V3D_QPU_OP_MUL);
+        uint32_t raddr_c = QPU_GET_FIELD(packed_inst, V3D_QPU_RADDR_C);
+        uint32_t raddr_d = QPU_GET_FIELD(packed_inst, V3D_QPU_RADDR_D);
+
+        {
+                const struct opcode_desc *desc =
+                        lookup_opcode_from_packed(devinfo,
+                                                  mul_ops_v71,
+                                                  ARRAY_SIZE(mul_ops_v71),
+                                                  op, 0, 0,
+                                                  raddr_d);
+                if (!desc)
+                        return false;
+
+                instr->alu.mul.op = desc->op;
+        }
+
+        switch (instr->alu.mul.op) {
+        case V3D_QPU_M_FMUL:
+                instr->alu.mul.output_pack = ((op >> 4) & 0x3) - 1;
+
+                if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
+                                                   &instr->alu.mul.a.unpack)) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float32_unpack_unpack((op >> 0) & 0x3,
+                                                   &instr->alu.mul.b.unpack)) {
+                        return false;
+                }
+
+                break;
+
+        case V3D_QPU_M_FMOV:
+                instr->alu.mul.output_pack = raddr_d & 0x3;
+
+                if (!v3d_qpu_float32_unpack_unpack((raddr_d >> 2) & 0x7,
+                                                   &instr->alu.mul.a.unpack)) {
+                        return false;
+                }
+
+                break;
+
+        case V3D_QPU_M_VFMUL:
+                unreachable("pending v71 update");
+                instr->alu.mul.output_pack = V3D_QPU_PACK_NONE;
+
+                if (!v3d_qpu_float16_unpack_unpack(((op & 0x7) - 4) & 7,
+                                                   &instr->alu.mul.a.unpack)) {
+                        return false;
+                }
+
+                instr->alu.mul.b.unpack = V3D_QPU_UNPACK_NONE;
+
+                break;
+
+        case V3D_QPU_M_MOV:
+                instr->alu.mul.output_pack = V3D_QPU_PACK_NONE;
+
+                if (!v3d_qpu_int32_unpack_unpack((raddr_d >> 2) & 0x7,
+                                                 &instr->alu.mul.a.unpack)) {
+                        return false;
+                }
+                break;
+
+        default:
+                instr->alu.mul.output_pack = V3D_QPU_PACK_NONE;
+                instr->alu.mul.a.unpack = V3D_QPU_UNPACK_NONE;
+                instr->alu.mul.b.unpack = V3D_QPU_UNPACK_NONE;
+                break;
+        }
+
+        instr->alu.mul.a.raddr = raddr_c;
+        instr->alu.mul.b.raddr = raddr_d;
+        instr->alu.mul.waddr = QPU_GET_FIELD(packed_inst, V3D_QPU_WADDR_M);
+        instr->alu.mul.magic_write = packed_inst & V3D_QPU_MM;
+
+        return true;
+}
+
+static bool
+v3d_qpu_mul_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
+                   struct v3d_qpu_instr *instr)
+{
+        if (devinfo->ver < 71)
+                return v3d33_qpu_mul_unpack(devinfo, packed_inst, instr);
+        else
+                return v3d71_qpu_mul_unpack(devinfo, packed_inst, instr);
 }
 
 static const struct opcode_desc *
@@ -975,7 +1574,7 @@ lookup_opcode_from_instr(const struct v3d_device_info *devinfo,
                 if (op_desc->op != op)
                         continue;
 
-                if (opcode_invalid_in_version(devinfo, op_desc))
+                if (opcode_invalid_in_version(devinfo, op_desc->first_ver, op_desc->last_ver))
                         continue;
 
                 return op_desc;
@@ -985,15 +1584,16 @@ lookup_opcode_from_instr(const struct v3d_device_info *devinfo,
 }
 
 static bool
-v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
-                 const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
+v3d33_qpu_add_pack(const struct v3d_device_info *devinfo,
+                   const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
 {
         uint32_t waddr = instr->alu.add.waddr;
-        uint32_t mux_a = instr->alu.add.a;
-        uint32_t mux_b = instr->alu.add.b;
+        uint32_t mux_a = instr->alu.add.a.mux;
+        uint32_t mux_b = instr->alu.add.b.mux;
         int nsrc = v3d_qpu_add_op_num_src(instr->alu.add.op);
         const struct opcode_desc *desc =
-                lookup_opcode_from_instr(devinfo, add_ops, ARRAY_SIZE(add_ops),
+                lookup_opcode_from_instr(devinfo, add_ops_v33,
+                                         ARRAY_SIZE(add_ops_v33),
                                          instr->alu.add.op);
 
         if (!desc)
@@ -1005,10 +1605,10 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
          * identify the operation type.
          */
         if (nsrc < 2)
-                mux_b = ffs(desc->mux_b_mask) - 1;
+                mux_b = ffs(desc->mux.b_mask) - 1;
 
         if (nsrc < 1)
-                mux_a = ffs(desc->mux_a_mask) - 1;
+                mux_a = ffs(desc->mux.a_mask) - 1;
 
         bool no_magic_write = false;
 
@@ -1061,12 +1661,12 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
                 }
                 opcode |= output_pack << 4;
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
                                                  &a_unpack)) {
                         return false;
                 }
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.b_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.b.unpack,
                                                  &b_unpack)) {
                         return false;
                 }
@@ -1100,23 +1700,23 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
                 uint32_t a_unpack;
                 uint32_t b_unpack;
 
-                if (instr->alu.add.a_unpack == V3D_QPU_UNPACK_ABS ||
-                    instr->alu.add.b_unpack == V3D_QPU_UNPACK_ABS) {
+                if (instr->alu.add.a.unpack == V3D_QPU_UNPACK_ABS ||
+                    instr->alu.add.b.unpack == V3D_QPU_UNPACK_ABS) {
                         return false;
                 }
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
                                                  &a_unpack)) {
                         return false;
                 }
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.b_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.b.unpack,
                                                  &b_unpack)) {
                         return false;
                 }
 
-                opcode = (opcode & ~(1 << 2)) | (a_unpack << 2);
-                opcode = (opcode & ~(1 << 0)) | (b_unpack << 0);
+                opcode = (opcode & ~(0x3 << 2)) | (a_unpack << 2);
+                opcode = (opcode & ~(0x3 << 0)) | (b_unpack << 0);
 
                 break;
         }
@@ -1135,13 +1735,13 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
                 }
                 mux_b |= packed;
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
                                                  &packed)) {
                         return false;
                 }
                 if (packed == 0)
                         return false;
-                opcode = (opcode & ~(1 << 2)) | packed << 2;
+                opcode = (opcode & ~(0x3 << 2)) | packed << 2;
                 break;
         }
 
@@ -1153,7 +1753,7 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
                         return false;
 
                 uint32_t packed;
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
                                                  &packed)) {
                         return false;
                 }
@@ -1166,11 +1766,11 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
         case V3D_QPU_A_VFMIN:
         case V3D_QPU_A_VFMAX:
                 if (instr->alu.add.output_pack != V3D_QPU_PACK_NONE ||
-                    instr->alu.add.b_unpack != V3D_QPU_UNPACK_NONE) {
+                    instr->alu.add.b.unpack != V3D_QPU_UNPACK_NONE) {
                         return false;
                 }
 
-                if (!v3d_qpu_float16_unpack_pack(instr->alu.add.a_unpack,
+                if (!v3d_qpu_float16_unpack_pack(instr->alu.add.a.unpack,
                                                  &packed)) {
                         return false;
                 }
@@ -1180,8 +1780,8 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
         default:
                 if (instr->alu.add.op != V3D_QPU_A_NOP &&
                     (instr->alu.add.output_pack != V3D_QPU_PACK_NONE ||
-                     instr->alu.add.a_unpack != V3D_QPU_UNPACK_NONE ||
-                     instr->alu.add.b_unpack != V3D_QPU_UNPACK_NONE)) {
+                     instr->alu.add.a.unpack != V3D_QPU_UNPACK_NONE ||
+                     instr->alu.add.b.unpack != V3D_QPU_UNPACK_NONE)) {
                         return false;
                 }
                 break;
@@ -1198,15 +1798,280 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
 }
 
 static bool
-v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
-                 const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
+v3d71_qpu_add_pack(const struct v3d_device_info *devinfo,
+                   const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
 {
-        uint32_t mux_a = instr->alu.mul.a;
-        uint32_t mux_b = instr->alu.mul.b;
+        uint32_t waddr = instr->alu.add.waddr;
+        uint32_t raddr_a = instr->alu.add.a.raddr;
+        uint32_t raddr_b = instr->alu.add.b.raddr;
+
+        int nsrc = v3d_qpu_add_op_num_src(instr->alu.add.op);
+        const struct opcode_desc *desc =
+                lookup_opcode_from_instr(devinfo, add_ops_v71,
+                                         ARRAY_SIZE(add_ops_v71),
+                                         instr->alu.add.op);
+        if (!desc)
+                return false;
+
+        uint32_t opcode = desc->opcode_first;
+
+        /* If an operation doesn't use an arg, its raddr values may be used to
+         * identify the operation type.
+         */
+        if (nsrc < 2)
+                raddr_b = ffsll(desc->raddr_mask) - 1;
+
+        bool no_magic_write = false;
+
+        switch (instr->alu.add.op) {
+        case V3D_QPU_A_STVPMV:
+                waddr = 0;
+                no_magic_write = true;
+                break;
+        case V3D_QPU_A_STVPMD:
+                waddr = 1;
+                no_magic_write = true;
+                break;
+        case V3D_QPU_A_STVPMP:
+                waddr = 2;
+                no_magic_write = true;
+                break;
+
+        case V3D_QPU_A_LDVPMV_IN:
+        case V3D_QPU_A_LDVPMD_IN:
+        case V3D_QPU_A_LDVPMP:
+        case V3D_QPU_A_LDVPMG_IN:
+                assert(!instr->alu.add.magic_write);
+                break;
+
+        case V3D_QPU_A_LDVPMV_OUT:
+        case V3D_QPU_A_LDVPMD_OUT:
+        case V3D_QPU_A_LDVPMG_OUT:
+                assert(!instr->alu.add.magic_write);
+                *packed_instr |= V3D_QPU_MA;
+                break;
+
+        default:
+                break;
+        }
+
+        switch (instr->alu.add.op) {
+        case V3D_QPU_A_FADD:
+        case V3D_QPU_A_FADDNF:
+        case V3D_QPU_A_FSUB:
+        case V3D_QPU_A_FMIN:
+        case V3D_QPU_A_FMAX:
+        case V3D_QPU_A_FCMP: {
+                uint32_t output_pack;
+                uint32_t a_unpack;
+                uint32_t b_unpack;
+
+                if (instr->alu.add.op != V3D_QPU_A_FCMP) {
+                        if (!v3d_qpu_float32_pack_pack(instr->alu.add.output_pack,
+                                                       &output_pack)) {
+                                return false;
+                        }
+                        opcode |= output_pack << 4;
+                }
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
+                                                 &a_unpack)) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.b.unpack,
+                                                 &b_unpack)) {
+                        return false;
+                }
+
+                /* These operations with commutative operands are
+                 * distinguished by the order of the operands come in.
+                 */
+                bool ordering =
+                        instr->sig.small_imm_a * 256 + a_unpack * 64 + raddr_a >
+                        instr->sig.small_imm_b * 256 + b_unpack * 64 + raddr_b;
+                if (((instr->alu.add.op == V3D_QPU_A_FMIN ||
+                      instr->alu.add.op == V3D_QPU_A_FADD) && ordering) ||
+                    ((instr->alu.add.op == V3D_QPU_A_FMAX ||
+                      instr->alu.add.op == V3D_QPU_A_FADDNF) && !ordering)) {
+                        uint32_t temp;
+
+                        temp = a_unpack;
+                        a_unpack = b_unpack;
+                        b_unpack = temp;
+
+                        temp = raddr_a;
+                        raddr_a = raddr_b;
+                        raddr_b = temp;
+
+                        /* If we are swapping raddr_a/b we also need to swap
+                         * small_imm_a/b.
+                         */
+                        if (instr->sig.small_imm_a || instr->sig.small_imm_b) {
+                                assert(instr->sig.small_imm_a !=
+                                       instr->sig.small_imm_b);
+                                struct v3d_qpu_sig new_sig = instr->sig;
+                                new_sig.small_imm_a = !instr->sig.small_imm_a;
+                                new_sig.small_imm_b = !instr->sig.small_imm_b;
+                                uint32_t sig;
+                                if (!v3d_qpu_sig_pack(devinfo, &new_sig, &sig))
+                                    return false;
+                            *packed_instr &= ~V3D_QPU_SIG_MASK;
+                            *packed_instr |= QPU_SET_FIELD(sig, V3D_QPU_SIG);
+                        }
+                }
+
+                opcode |= a_unpack << 2;
+                opcode |= b_unpack << 0;
+
+                break;
+        }
+
+        case V3D_QPU_A_VFPACK: {
+                uint32_t a_unpack;
+                uint32_t b_unpack;
+
+                if (instr->alu.add.a.unpack == V3D_QPU_UNPACK_ABS ||
+                    instr->alu.add.b.unpack == V3D_QPU_UNPACK_ABS) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
+                                                 &a_unpack)) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.b.unpack,
+                                                 &b_unpack)) {
+                        return false;
+                }
+
+                opcode = (opcode & ~(0x3 << 2)) | (a_unpack << 2);
+                opcode = (opcode & ~(0x3 << 0)) | (b_unpack << 0);
+
+                break;
+        }
+
+        case V3D_QPU_A_FFLOOR:
+        case V3D_QPU_A_FROUND:
+        case V3D_QPU_A_FTRUNC:
+        case V3D_QPU_A_FCEIL:
+        case V3D_QPU_A_FDX:
+        case V3D_QPU_A_FDY: {
+                uint32_t packed;
+
+                if (!v3d_qpu_float32_pack_pack(instr->alu.add.output_pack,
+                                               &packed)) {
+                        return false;
+                }
+                raddr_b |= packed;
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                if (packed == 0)
+                        return false;
+                raddr_b = (raddr_b & ~(0x3 << 2)) | packed << 2;
+                break;
+        }
+
+        case V3D_QPU_A_FTOIN:
+        case V3D_QPU_A_FTOIZ:
+        case V3D_QPU_A_FTOUZ:
+        case V3D_QPU_A_FTOC:
+                if (instr->alu.add.output_pack != V3D_QPU_PACK_NONE)
+                        return false;
+
+                uint32_t packed;
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                if (packed == 0)
+                        return false;
+
+                raddr_b |= (raddr_b & ~(0x3 << 2)) | packed << 2;
+
+                break;
+
+        case V3D_QPU_A_VFMIN:
+        case V3D_QPU_A_VFMAX:
+                if (instr->alu.add.output_pack != V3D_QPU_PACK_NONE ||
+                    instr->alu.add.b.unpack != V3D_QPU_UNPACK_NONE) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float16_unpack_pack(instr->alu.add.a.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                opcode |= packed;
+                break;
+
+        case V3D_QPU_A_MOV: {
+                uint32_t packed;
+
+                if (instr->alu.add.output_pack != V3D_QPU_PACK_NONE)
+                        return false;
+
+                if (!v3d_qpu_int32_unpack_pack(instr->alu.add.a.unpack,
+                                               &packed)) {
+                        return false;
+                }
+
+                raddr_b |= packed << 2;
+                break;
+        }
+
+        case V3D_QPU_A_FMOV: {
+                uint32_t packed;
+
+                if (!v3d_qpu_float32_pack_pack(instr->alu.add.output_pack,
+                                               &packed)) {
+                        return false;
+                }
+                raddr_b = packed;
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                raddr_b |= packed << 2;
+                break;
+        }
+
+        default:
+                if (instr->alu.add.op != V3D_QPU_A_NOP &&
+                    (instr->alu.add.output_pack != V3D_QPU_PACK_NONE ||
+                     instr->alu.add.a.unpack != V3D_QPU_UNPACK_NONE ||
+                     instr->alu.add.b.unpack != V3D_QPU_UNPACK_NONE)) {
+                        return false;
+                }
+                break;
+        }
+
+        *packed_instr |= QPU_SET_FIELD(raddr_a, V3D_QPU_RADDR_A);
+        *packed_instr |= QPU_SET_FIELD(raddr_b, V3D_QPU_RADDR_B);
+        *packed_instr |= QPU_SET_FIELD(opcode, V3D_QPU_OP_ADD);
+        *packed_instr |= QPU_SET_FIELD(waddr, V3D_QPU_WADDR_A);
+        if (instr->alu.add.magic_write && !no_magic_write)
+                *packed_instr |= V3D_QPU_MA;
+
+        return true;
+}
+
+static bool
+v3d33_qpu_mul_pack(const struct v3d_device_info *devinfo,
+                   const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
+{
+        uint32_t mux_a = instr->alu.mul.a.mux;
+        uint32_t mux_b = instr->alu.mul.b.mux;
         int nsrc = v3d_qpu_mul_op_num_src(instr->alu.mul.op);
 
         const struct opcode_desc *desc =
-                lookup_opcode_from_instr(devinfo, mul_ops, ARRAY_SIZE(mul_ops),
+                lookup_opcode_from_instr(devinfo, mul_ops_v33,
+                                         ARRAY_SIZE(mul_ops_v33),
                                          instr->alu.mul.op);
 
         if (!desc)
@@ -1218,10 +2083,10 @@ v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
          * that here.  If mux a/b determine packing, it will be set below.
          */
         if (nsrc < 2)
-                mux_b = ffs(desc->mux_b_mask) - 1;
+                mux_b = ffs(desc->mux.b_mask) - 1;
 
         if (nsrc < 1)
-                mux_a = ffs(desc->mux_a_mask) - 1;
+                mux_a = ffs(desc->mux.a_mask) - 1;
 
         switch (instr->alu.mul.op) {
         case V3D_QPU_M_FMUL: {
@@ -1236,13 +2101,13 @@ v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
                  */
                 opcode += packed << 4;
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.a_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.a.unpack,
                                                  &packed)) {
                         return false;
                 }
                 opcode |= packed << 2;
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.b_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.b.unpack,
                                                  &packed)) {
                         return false;
                 }
@@ -1260,7 +2125,7 @@ v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
                 opcode |= (packed >> 1) & 1;
                 mux_b = (packed & 1) << 2;
 
-                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.a_unpack,
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.a.unpack,
                                                  &packed)) {
                         return false;
                 }
@@ -1274,22 +2139,28 @@ v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
                 if (instr->alu.mul.output_pack != V3D_QPU_PACK_NONE)
                         return false;
 
-                if (!v3d_qpu_float16_unpack_pack(instr->alu.mul.a_unpack,
+                if (!v3d_qpu_float16_unpack_pack(instr->alu.mul.a.unpack,
                                                  &packed)) {
                         return false;
                 }
-                if (instr->alu.mul.a_unpack == V3D_QPU_UNPACK_SWAP_16)
+                if (instr->alu.mul.a.unpack == V3D_QPU_UNPACK_SWAP_16)
                         opcode = 8;
                 else
                         opcode |= (packed + 4) & 7;
 
-                if (instr->alu.mul.b_unpack != V3D_QPU_UNPACK_NONE)
+                if (instr->alu.mul.b.unpack != V3D_QPU_UNPACK_NONE)
                         return false;
 
                 break;
         }
 
         default:
+                if (instr->alu.mul.op != V3D_QPU_M_NOP &&
+                    (instr->alu.mul.output_pack != V3D_QPU_PACK_NONE ||
+                     instr->alu.mul.a.unpack != V3D_QPU_UNPACK_NONE ||
+                     instr->alu.mul.b.unpack != V3D_QPU_UNPACK_NONE)) {
+                        return false;
+                }
                 break;
         }
 
@@ -1302,6 +2173,150 @@ v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
                 *packed_instr |= V3D_QPU_MM;
 
         return true;
+}
+
+static bool
+v3d71_qpu_mul_pack(const struct v3d_device_info *devinfo,
+                   const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
+{
+        uint32_t raddr_c = instr->alu.mul.a.raddr;
+        uint32_t raddr_d = instr->alu.mul.b.raddr;
+        int nsrc = v3d_qpu_mul_op_num_src(instr->alu.mul.op);
+
+        const struct opcode_desc *desc =
+                lookup_opcode_from_instr(devinfo, mul_ops_v71,
+                                         ARRAY_SIZE(mul_ops_v71),
+                                         instr->alu.mul.op);
+        if (!desc)
+                return false;
+
+        uint32_t opcode = desc->opcode_first;
+
+        /* Some opcodes have a single valid value for their raddr_d, so set
+         * that here.  If raddr_b determine packing, it will be set below.
+         */
+        if (nsrc < 2)
+                raddr_d = ffsll(desc->raddr_mask) - 1;
+
+        switch (instr->alu.mul.op) {
+        case V3D_QPU_M_FMUL: {
+                uint32_t packed;
+
+                if (!v3d_qpu_float32_pack_pack(instr->alu.mul.output_pack,
+                                               &packed)) {
+                        return false;
+                }
+                /* No need for a +1 because desc->opcode_first has a 1 in this
+                 * field.
+                 */
+                opcode += packed << 4;
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.a.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                opcode |= packed << 2;
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.b.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                opcode |= packed << 0;
+                break;
+        }
+
+        case V3D_QPU_M_FMOV: {
+                uint32_t packed;
+
+                if (!v3d_qpu_float32_pack_pack(instr->alu.mul.output_pack,
+                                               &packed)) {
+                        return false;
+                }
+                raddr_d |= packed;
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.mul.a.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                raddr_d |= packed << 2;
+                break;
+        }
+
+        case V3D_QPU_M_VFMUL: {
+                unreachable("pending v71 update");
+                uint32_t packed;
+
+                if (instr->alu.mul.output_pack != V3D_QPU_PACK_NONE)
+                        return false;
+
+                if (!v3d_qpu_float16_unpack_pack(instr->alu.mul.a.unpack,
+                                                 &packed)) {
+                        return false;
+                }
+                if (instr->alu.mul.a.unpack == V3D_QPU_UNPACK_SWAP_16)
+                        opcode = 8;
+                else
+                        opcode |= (packed + 4) & 7;
+
+                if (instr->alu.mul.b.unpack != V3D_QPU_UNPACK_NONE)
+                        return false;
+
+                break;
+        }
+
+        case V3D_QPU_M_MOV: {
+                uint32_t packed;
+
+                if (instr->alu.mul.output_pack != V3D_QPU_PACK_NONE)
+                        return false;
+
+                if (!v3d_qpu_int32_unpack_pack(instr->alu.mul.a.unpack,
+                                               &packed)) {
+                        return false;
+                }
+
+                raddr_d |= packed << 2;
+                break;
+        }
+
+        default:
+                if (instr->alu.mul.op != V3D_QPU_M_NOP &&
+                    (instr->alu.mul.output_pack != V3D_QPU_PACK_NONE ||
+                     instr->alu.mul.a.unpack != V3D_QPU_UNPACK_NONE ||
+                     instr->alu.mul.b.unpack != V3D_QPU_UNPACK_NONE)) {
+                        return false;
+                }
+                break;
+        }
+
+        *packed_instr |= QPU_SET_FIELD(raddr_c, V3D_QPU_RADDR_C);
+        *packed_instr |= QPU_SET_FIELD(raddr_d, V3D_QPU_RADDR_D);
+        *packed_instr |= QPU_SET_FIELD(opcode, V3D_QPU_OP_MUL);
+        *packed_instr |= QPU_SET_FIELD(instr->alu.mul.waddr, V3D_QPU_WADDR_M);
+        if (instr->alu.mul.magic_write)
+                *packed_instr |= V3D_QPU_MM;
+
+        return true;
+}
+
+static bool
+v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
+                 const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
+{
+        if (devinfo->ver < 71)
+                return v3d33_qpu_add_pack(devinfo, instr, packed_instr);
+        else
+                return v3d71_qpu_add_pack(devinfo, instr, packed_instr);
+}
+
+static bool
+v3d_qpu_mul_pack(const struct v3d_device_info *devinfo,
+                 const struct v3d_qpu_instr *instr, uint64_t *packed_instr)
+{
+        if (devinfo->ver < 71)
+                return v3d33_qpu_mul_pack(devinfo, instr, packed_instr);
+        else
+                return v3d71_qpu_mul_pack(devinfo, instr, packed_instr);
 }
 
 static bool
@@ -1332,8 +2347,14 @@ v3d_qpu_instr_unpack_alu(const struct v3d_device_info *devinfo,
                         return false;
         }
 
-        instr->raddr_a = QPU_GET_FIELD(packed_instr, V3D_QPU_RADDR_A);
-        instr->raddr_b = QPU_GET_FIELD(packed_instr, V3D_QPU_RADDR_B);
+        if (devinfo->ver <= 71) {
+                /*
+                 * For v71 this will be set on add/mul unpack, as raddr are now
+                 * part of v3d_qpu_input
+                 */
+                instr->raddr_a = QPU_GET_FIELD(packed_instr, V3D_QPU_RADDR_A);
+                instr->raddr_b = QPU_GET_FIELD(packed_instr, V3D_QPU_RADDR_B);
+        }
 
         if (!v3d_qpu_add_unpack(devinfo, packed_instr, instr))
                 return false;
@@ -1419,8 +2440,14 @@ v3d_qpu_instr_pack_alu(const struct v3d_device_info *devinfo,
         *packed_instr |= QPU_SET_FIELD(sig, V3D_QPU_SIG);
 
         if (instr->type == V3D_QPU_INSTR_TYPE_ALU) {
-                *packed_instr |= QPU_SET_FIELD(instr->raddr_a, V3D_QPU_RADDR_A);
-                *packed_instr |= QPU_SET_FIELD(instr->raddr_b, V3D_QPU_RADDR_B);
+                if (devinfo->ver < 71) {
+                        /*
+                         * For v71 this will be set on add/mul unpack, as raddr are now
+                         * part of v3d_qpu_input
+                         */
+                        *packed_instr |= QPU_SET_FIELD(instr->raddr_a, V3D_QPU_RADDR_A);
+                        *packed_instr |= QPU_SET_FIELD(instr->raddr_b, V3D_QPU_RADDR_B);
+                }
 
                 if (!v3d_qpu_add_pack(devinfo, instr, packed_instr))
                         return false;

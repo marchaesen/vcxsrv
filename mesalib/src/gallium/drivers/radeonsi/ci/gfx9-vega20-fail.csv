@@ -5,6 +5,8 @@ spec@!opengl 1.1@windowoverlap,Fail
 spec@arb_shader_clock@execution@clock,Fail
 spec@egl_chromium_sync_control@conformance,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
+glx@glx-make-current,Fail
+glx@glx-multi-window-single-context,Fail
 glx@glx-visuals-depth -pixmap,Fail
 glx@glx-visuals-stencil -pixmap,Fail
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
@@ -20,21 +22,10 @@ glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
-spec@!opengl 1.0@gl-1.0-swapbuffers-behavior,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
-spec@!opengl 1.1@read-front,Fail
-spec@!opengl 1.1@read-front clear-front-first,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=2,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=4,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=6,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=8,Fail
-spec@!opengl 1.1@read-front samples=2,Fail
-spec@!opengl 1.1@read-front samples=4,Fail
-spec@!opengl 1.1@read-front samples=6,Fail
-spec@!opengl 1.1@read-front samples=8,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-last,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-first,Fail
@@ -45,7 +36,6 @@ spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-last,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims pv-last,Fail
-spec@arb_bindless_texture@compiler@images@arith-bound-image.frag,Crash
 spec@arb_bindless_texture@compiler@samplers@arith-bound-sampler-texture2d.frag,Crash
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail
@@ -92,15 +82,11 @@ spec@arb_shader_clock@execution@clock2x32,Fail
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
-spec@arb_sparse_buffer@buffer-data,Fail
-spec@arb_sparse_buffer@commit,Fail
 spec@egl_ext_protected_content@conformance,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y210,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y212,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y216,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-1.30@execution@glsl-fs-continue-in-switch-in-do-while,Fail
 spec@glsl-1.30@execution@glsl-vs-continue-in-switch-in-do-while,Fail

@@ -20,7 +20,7 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
@@ -37,31 +37,31 @@
 // Revision 1.1.6.3  1995/10/25  21:01:09  William_Walker
 // 	Make sure we use DIN 2137 and VT510 Spec for Group Semantics
 // 	[1995/10/23  15:49:03  William_Walker]
-// 
+//
 // Revision 1.1.6.2  1995/08/07  17:40:40  William_Walker
 // 	Upgrade XKB to protocol 0.62 (dual submit from decx11)
 // 	[1995/08/06  14:06:32  William_Walker]
-// 
+//
 // Revision 1.1.2.7  1995/08/05  15:25:57  William_Walker
 // 	Sync up with Erik's pool.
 // 	[1995/08/03  20:17:15  William_Walker]
-// 
+//
 // Revision 1.1.2.6  1995/06/27  12:18:25  William_Walker
 // 	Add LK201 and LK450 support as well as TW and DP variants.
 // 	[1995/06/26  20:29:52  William_Walker]
-// 
+//
 // Revision 1.1.2.5  1995/06/08	 17:10:28  William_Walker
 // 	Make RALT default to Mode_switch
 // 	[1995/06/08  17:08:50  William_Walker]
-// 
+//
 // Revision 1.1.2.4  1995/06/05	 19:24:14  William_Walker
 // 	New file.  I love keymaps.
 // 	[1995/06/05  18:17:03  William_Walker]
-// 
+//
 // EndLog
-// 
-// @(#)RCSfile: pc  Revision: /main/4  (DEC) Date: 1996/01/24 12:15:02 
-// 
+//
+// @(#)RCSfile: pc  Revision: /main/4  (DEC) Date: 1996/01/24 12:15:02
+//
 
 // **************************************************************
 // *								*

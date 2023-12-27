@@ -27,14 +27,14 @@ typedef struct {
   CARD32 mc_type;
   CARD32 flags;
 } xvmcSurfaceInfo;
-#define sz_xvmcSurfaceInfo 24;
+#define sz_xvmcSurfaceInfo 24
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
   CARD16 length;
 } xvmcQueryVersionReq;
-#define sz_xvmcQueryVersionReq 4;
+#define sz_xvmcQueryVersionReq 4
 
 typedef struct {
   BYTE type;  /* X_Reply */
@@ -56,7 +56,7 @@ typedef struct {
   CARD16 length;
   CARD32 port;
 } xvmcListSurfaceTypesReq;
-#define sz_xvmcListSurfaceTypesReq 8;
+#define sz_xvmcListSurfaceTypesReq 8
 
 typedef struct {
   BYTE type;  /* X_Reply */
@@ -83,7 +83,7 @@ typedef struct {
   CARD16 height;
   CARD32 flags;
 } xvmcCreateContextReq;
-#define sz_xvmcCreateContextReq 24;
+#define sz_xvmcCreateContextReq 24
 
 typedef struct {
   BYTE type;  /* X_Reply */
@@ -106,7 +106,7 @@ typedef struct {
   CARD16 length;
   CARD32 context_id;
 } xvmcDestroyContextReq;
-#define sz_xvmcDestroyContextReq 8;
+#define sz_xvmcDestroyContextReq 8
 
 typedef struct {
   CARD8 reqType;
@@ -115,7 +115,7 @@ typedef struct {
   CARD32 surface_id;
   CARD32 context_id;
 } xvmcCreateSurfaceReq;
-#define sz_xvmcCreateSurfaceReq 12;
+#define sz_xvmcCreateSurfaceReq 12
 
 typedef struct {
   BYTE type;  /* X_Reply */
@@ -137,7 +137,7 @@ typedef struct {
   CARD16 length;
   CARD32 surface_id;
 } xvmcDestroySurfaceReq;
-#define sz_xvmcDestroySurfaceReq 8;
+#define sz_xvmcDestroySurfaceReq 8
 
 
 typedef struct {
@@ -150,7 +150,7 @@ typedef struct {
   CARD16 width;
   CARD16 height;
 } xvmcCreateSubpictureReq;
-#define sz_xvmcCreateSubpictureReq 20;
+#define sz_xvmcCreateSubpictureReq 20
 
 typedef struct {
   BYTE type;  /* X_Reply */
@@ -174,7 +174,7 @@ typedef struct {
   CARD16 length;
   CARD32 subpicture_id;
 } xvmcDestroySubpictureReq;
-#define sz_xvmcDestroySubpictureReq 8;
+#define sz_xvmcDestroySubpictureReq 8
 
 typedef struct {
   CARD8 reqType;
@@ -183,7 +183,7 @@ typedef struct {
   CARD32 port;
   CARD32 surface_type_id;
 } xvmcListSubpictureTypesReq;
-#define sz_xvmcListSubpictureTypesReq 12;
+#define sz_xvmcListSubpictureTypesReq 12
 
 typedef struct {
   BYTE type;  /* X_Reply */
@@ -207,7 +207,7 @@ typedef struct {
   CARD32 shmKey;
   CARD32 magic;
 } xvmcGetDRInfoReq;
-#define sz_xvmcGetDRInfoReq 16;
+#define sz_xvmcGetDRInfoReq 16
 
 typedef struct {
   BYTE type;  /* X_Reply */

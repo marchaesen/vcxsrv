@@ -1689,24 +1689,6 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 
 	<reg32 offset="0x8800" name="GPMU_INST_RAM_BASE"/>
 	<reg32 offset="0x9800" name="GPMU_DATA_RAM_BASE"/>
-	<reg32 offset="0xa881" name="GPMU_SP_POWER_CNTL"/>
-	<reg32 offset="0xa886" name="GPMU_RBCCU_CLOCK_CNTL"/>
-	<reg32 offset="0xa887" name="GPMU_RBCCU_POWER_CNTL"/>
-	<reg32 offset="0xa88b" name="GPMU_SP_PWR_CLK_STATUS">
-		<bitfield name="PWR_ON" pos="20" type="boolean"/>
-	</reg32>
-	<reg32 offset="0xa88d" name="GPMU_RBCCU_PWR_CLK_STATUS">
-		<bitfield name="PWR_ON" pos="20" type="boolean"/>
-	</reg32>
-	<reg32 offset="0xa891" name="GPMU_PWR_COL_STAGGER_DELAY"/>
-	<reg32 offset="0xa892" name="GPMU_PWR_COL_INTER_FRAME_CTRL"/>
-	<reg32 offset="0xa893" name="GPMU_PWR_COL_INTER_FRAME_HYST"/>
-	<reg32 offset="0xa894" name="GPMU_PWR_COL_BINNING_CTRL"/>
-	<reg32 offset="0xa8c1" name="GPMU_WFI_CONFIG"/>
-	<reg32 offset="0xa8d6" name="GPMU_RBBM_INTR_INFO"/>
-	<reg32 offset="0xa8d8" name="GPMU_CM3_SYSRESET"/>
-	<reg32 offset="0xa8e0" name="GPMU_GENERAL_0"/>
-	<reg32 offset="0xa8e1" name="GPMU_GENERAL_1"/>
 
 <!--
 /* COUNTABLE FOR SP PERFCOUNTER */
@@ -1779,8 +1761,28 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0xa87b" name="GPMU_ALWAYS_ON_COUNTER_RESET"/>
 	<reg32 offset="0xa87c" name="GPMU_POWER_COUNTER_SELECT_0"/>
 	<reg32 offset="0xa87d" name="GPMU_POWER_COUNTER_SELECT_1"/>
+
+	<reg32 offset="0xa880" name="GPMU_GPMU_SP_CLOCK_CONTROL"/>
+	<reg32 offset="0xa881" name="GPMU_SP_POWER_CNTL"/>
+	<reg32 offset="0xa886" name="GPMU_RBCCU_CLOCK_CNTL"/>
+	<reg32 offset="0xa887" name="GPMU_RBCCU_POWER_CNTL"/>
+	<reg32 offset="0xa88b" name="GPMU_SP_PWR_CLK_STATUS">
+		<bitfield name="PWR_ON" pos="20" type="boolean"/>
+	</reg32>
+	<reg32 offset="0xa88d" name="GPMU_RBCCU_PWR_CLK_STATUS">
+		<bitfield name="PWR_ON" pos="20" type="boolean"/>
+	</reg32>
+	<reg32 offset="0xa891" name="GPMU_PWR_COL_STAGGER_DELAY"/>
+	<reg32 offset="0xa892" name="GPMU_PWR_COL_INTER_FRAME_CTRL"/>
+	<reg32 offset="0xa893" name="GPMU_PWR_COL_INTER_FRAME_HYST"/>
+	<reg32 offset="0xa894" name="GPMU_PWR_COL_BINNING_CTRL"/>
 	<reg32 offset="0xa8a3" name="GPMU_CLOCK_THROTTLE_CTRL"/>
 	<reg32 offset="0xa8a8" name="GPMU_THROTTLE_UNMASK_FORCE_CTRL"/>
+	<reg32 offset="0xa8c1" name="GPMU_WFI_CONFIG"/>
+	<reg32 offset="0xa8d6" name="GPMU_RBBM_INTR_INFO"/>
+	<reg32 offset="0xa8d8" name="GPMU_CM3_SYSRESET"/>
+	<reg32 offset="0xa8e0" name="GPMU_GENERAL_0"/>
+	<reg32 offset="0xa8e1" name="GPMU_GENERAL_1"/>
 	<reg32 offset="0xac00" name="GPMU_TEMP_SENSOR_ID"/>
 	<reg32 offset="0xac01" name="GPMU_TEMP_SENSOR_CONFIG"/>
 	<reg32 offset="0xac02" name="GPMU_TEMP_VAL"/>
@@ -2516,10 +2518,31 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 	<reg32 offset="0xe5ab" name="UNKNOWN_E5AB"/>
 	<reg32 offset="0xe5ac" name="SP_VS_OBJ_START_LO"/>
 	<reg32 offset="0xe5ad" name="SP_VS_OBJ_START_HI"/>
+
+	<bitset name="a5xx_sp_xs_pvt_mem_param" inline="yes">
+		<bitfield name="MEMSIZEPERITEM" low="0" high="7" shr="9">
+			<doc>The size of memory that ldp/stp can address.</doc>
+		</bitfield>
+		<bitfield name="HWSTACKOFFSET" low="8" high="23" shr="11" type="uint"/>
+		<bitfield name="HWSTACKSIZEPERTHREAD" low="24" high="31">
+                        <doc>Guessing that this is the same as a3xx/a6xx.</doc>
+		</bitfield>
+	</bitset>
+
+	<bitset name="a5xx_sp_xs_pvt_mem_size" inline="yes">
+		<bitfield name="TOTALPVTMEMSIZE" low="0" high="17" shr="12"/>
+	</bitset>
+
+	<reg32 offset="0xe5ae" name="SP_VS_PVT_MEM_PARAM" type="a5xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xe5af" name="SP_VS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xe5b1" name="SP_VS_PVT_MEM_SIZE" type="a5xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xe5c0" name="SP_FS_CTRL_REG0" type="a5xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xe5c2" name="UNKNOWN_E5C2"/>
 	<reg32 offset="0xe5c3" name="SP_FS_OBJ_START_LO"/>
 	<reg32 offset="0xe5c4" name="SP_FS_OBJ_START_HI"/>
+	<reg32 offset="0xe5c5" name="SP_FS_PVT_MEM_PARAM" type="a5xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xe5c6" name="SP_FS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xe5c8" name="SP_FS_PVT_MEM_SIZE" type="a5xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xe5c9" name="SP_BLEND_CNTL">
 		<!-- per-mrt enable bit -->
 		<bitfield name="ENABLE_BLEND" low="0" high="7"/>
@@ -2556,20 +2579,33 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 	<reg32 offset="0xe5f2" name="UNKNOWN_E5F2"/>
 	<reg32 offset="0xe5f3" name="SP_CS_OBJ_START_LO"/>
 	<reg32 offset="0xe5f4" name="SP_CS_OBJ_START_HI"/>
+	<reg32 offset="0xe5f5" name="SP_CS_PVT_MEM_PARAM" type="a5xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xe5f6" name="SP_CS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xe5f8" name="SP_CS_PVT_MEM_SIZE" type="a5xx_sp_xs_pvt_mem_size"/>
+
 	<!-- e5f9 something compute related.. seems to change when HLSQ_CS_CNTL_1 changes -->
 
 	<reg32 offset="0xe600" name="SP_HS_CTRL_REG0" type="a5xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xe602" name="UNKNOWN_E602"/>
 	<reg32 offset="0xe603" name="SP_HS_OBJ_START_LO"/>
 	<reg32 offset="0xe604" name="SP_HS_OBJ_START_HI"/>
+	<reg32 offset="0xe605" name="SP_HS_PVT_MEM_PARAM" type="a5xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xe606" name="SP_HS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xe608" name="SP_HS_PVT_MEM_SIZE" type="a5xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xe610" name="SP_DS_CTRL_REG0" type="a5xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xe62b" name="UNKNOWN_E62B"/>
 	<reg32 offset="0xe62c" name="SP_DS_OBJ_START_LO"/>
 	<reg32 offset="0xe62d" name="SP_DS_OBJ_START_HI"/>
+	<reg32 offset="0xe62e" name="SP_DS_PVT_MEM_PARAM" type="a5xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xe62f" name="SP_DS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xe631" name="SP_DS_PVT_MEM_SIZE" type="a5xx_sp_xs_pvt_mem_size"/>
 	<reg32 offset="0xe640" name="SP_GS_CTRL_REG0" type="a5xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xe65b" name="UNKNOWN_E65B"/>
 	<reg32 offset="0xe65c" name="SP_GS_OBJ_START_LO"/>
 	<reg32 offset="0xe65d" name="SP_GS_OBJ_START_HI"/>
+	<reg32 offset="0xe65e" name="SP_GS_PVT_MEM_PARAM" type="a5xx_sp_xs_pvt_mem_param"/>
+	<reg64 offset="0xe65f" name="SP_GS_PVT_MEM_ADDR" type="waddress" align="32"/>
+	<reg32 offset="0xe661" name="SP_GS_PVT_MEM_SIZE" type="a5xx_sp_xs_pvt_mem_size"/>
 
 	<reg32 offset="0xe704" name="TPL1_TP_RAS_MSAA_CNTL">
 		<bitfield name="SAMPLES" low="0" high="1" type="a3xx_msaa_samples"/>

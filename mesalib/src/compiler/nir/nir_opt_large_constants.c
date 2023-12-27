@@ -25,10 +25,103 @@
 #include "nir_builder.h"
 #include "nir_deref.h"
 
+#include "util/u_math.h"
+
+static void
+read_const_values(nir_const_value *dst, const void *src,
+                  unsigned num_components, unsigned bit_size)
+{
+   memset(dst, 0, num_components * sizeof(*dst));
+
+   switch (bit_size) {
+   case 1:
+      /* Booleans are special-cased to be 32-bit */
+      assert(((uintptr_t)src & 0x3) == 0);
+      for (unsigned i = 0; i < num_components; i++)
+         dst[i].b = ((int32_t *)src)[i] != 0;
+      break;
+
+   case 8:
+      for (unsigned i = 0; i < num_components; i++)
+         dst[i].u8 = ((int8_t *)src)[i];
+      break;
+
+   case 16:
+      assert(((uintptr_t)src & 0x1) == 0);
+      for (unsigned i = 0; i < num_components; i++)
+         dst[i].u16 = ((int16_t *)src)[i];
+      break;
+
+   case 32:
+      assert(((uintptr_t)src & 0x3) == 0);
+      for (unsigned i = 0; i < num_components; i++)
+         dst[i].u32 = ((int32_t *)src)[i];
+      break;
+
+   case 64:
+      assert(((uintptr_t)src & 0x7) == 0);
+      for (unsigned i = 0; i < num_components; i++)
+         dst[i].u64 = ((int64_t *)src)[i];
+      break;
+
+   default:
+      unreachable("Invalid bit size");
+   }
+}
+
+static void
+write_const_values(void *dst, const nir_const_value *src,
+                   nir_component_mask_t write_mask,
+                   unsigned bit_size)
+{
+   switch (bit_size) {
+   case 1:
+      /* Booleans are special-cased to be 32-bit */
+      assert(((uintptr_t)dst & 0x3) == 0);
+      u_foreach_bit(i, write_mask)
+         ((int32_t *)dst)[i] = -(int)src[i].b;
+      break;
+
+   case 8:
+      u_foreach_bit(i, write_mask)
+         ((int8_t *)dst)[i] = src[i].u8;
+      break;
+
+   case 16:
+      assert(((uintptr_t)dst & 0x1) == 0);
+      u_foreach_bit(i, write_mask)
+         ((int16_t *)dst)[i] = src[i].u16;
+      break;
+
+   case 32:
+      assert(((uintptr_t)dst & 0x3) == 0);
+      u_foreach_bit(i, write_mask)
+         ((int32_t *)dst)[i] = src[i].u32;
+      break;
+
+   case 64:
+      assert(((uintptr_t)dst & 0x7) == 0);
+      u_foreach_bit(i, write_mask)
+         ((int64_t *)dst)[i] = src[i].u64;
+      break;
+
+   default:
+      unreachable("Invalid bit size");
+   }
+}
+
+struct small_constant {
+   uint64_t data;
+   uint32_t bit_size;
+   bool is_float;
+   uint32_t bit_stride;
+};
+
 struct var_info {
    nir_variable *var;
 
    bool is_constant;
+   bool is_small;
    bool found_read;
    bool duplicate;
 
@@ -40,6 +133,8 @@ struct var_info {
    /* If is_constant, hold the collected constant data for this var. */
    uint32_t constant_data_size;
    void *constant_data;
+
+   struct small_constant small_constant;
 };
 
 static int
@@ -64,7 +159,7 @@ var_info_cmp(const void *_a, const void *_b)
    }
 }
 
-static nir_ssa_def *
+static nir_def *
 build_constant_load(nir_builder *b, nir_deref_instr *deref,
                     glsl_type_size_align_func size_align)
 {
@@ -80,8 +175,8 @@ build_constant_load(nir_builder *b, nir_deref_instr *deref,
    UNUSED unsigned deref_size, deref_align;
    size_align(deref->type, &deref_size, &deref_align);
 
-   nir_ssa_def *src = nir_build_deref_offset(b, deref, size_align);
-   nir_ssa_def *load =
+   nir_def *src = nir_build_deref_offset(b, deref, size_align);
+   nir_def *load =
       nir_load_constant(b, num_components, bit_size, src,
                         .base = var->data.location,
                         .range = var_size,
@@ -103,7 +198,7 @@ build_constant_load(nir_builder *b, nir_deref_instr *deref,
 static void
 handle_constant_store(void *mem_ctx, struct var_info *info,
                       nir_deref_instr *deref, nir_const_value *val,
-                      unsigned writemask,
+                      nir_component_mask_t write_mask,
                       glsl_type_size_align_func size_align)
 {
    assert(!nir_deref_instr_has_indirect(deref));
@@ -121,38 +216,122 @@ handle_constant_store(void *mem_ctx, struct var_info *info,
    if (offset >= info->constant_data_size)
       return;
 
-   char *dst = (char *)info->constant_data + offset;
+   write_const_values((char *)info->constant_data + offset, val,
+                      write_mask & nir_component_mask(num_components),
+                      bit_size);
+}
 
-   for (unsigned i = 0; i < num_components; i++) {
-      if (!(writemask & (1 << i)))
-         continue;
+static void
+get_small_constant(struct var_info *info, glsl_type_size_align_func size_align)
+{
+   if (!glsl_type_is_array(info->var->type))
+      return;
 
-      switch (bit_size) {
-      case 1:
-         /* Booleans are special-cased to be 32-bit */
-         ((int32_t *)dst)[i] = -(int)val[i].b;
-         break;
+   const struct glsl_type *elem_type = glsl_get_array_element(info->var->type);
+   if (!glsl_type_is_scalar(elem_type))
+      return;
 
-      case 8:
-         ((uint8_t *)dst)[i] = val[i].u8;
-         break;
+   uint32_t array_len = glsl_get_length(info->var->type);
+   uint32_t bit_size = glsl_get_bit_size(elem_type);
 
-      case 16:
-         ((uint16_t *)dst)[i] = val[i].u16;
-         break;
+   /* If our array is large, don't even bother */
+   if (array_len > 64)
+      return;
 
-      case 32:
-         ((uint32_t *)dst)[i] = val[i].u32;
-         break;
+   /* Skip cases that can be lowered to a bcsel ladder more efficiently. */
+   if (array_len <= 3)
+      return;
 
-      case 64:
-         ((uint64_t *)dst)[i] = val[i].u64;
-         break;
+   uint32_t elem_size, elem_align;
+   size_align(elem_type, &elem_size, &elem_align);
+   uint32_t stride = ALIGN_POT(elem_size, elem_align);
 
-      default:
-         unreachable("Invalid bit size");
+   if (stride != (bit_size == 1 ? 4 : bit_size / 8))
+      return;
+
+   nir_const_value values[64];
+   read_const_values(values, info->constant_data, array_len, bit_size);
+
+   bool is_float = true;
+   if (bit_size < 16) {
+      is_float = false;
+   } else {
+      for (unsigned i = 0; i < array_len; i++) {
+         /* See if it's an easily convertible float.
+          * TODO: Compute greatest common divisor to support non-integer floats.
+          * TODO: Compute min value and add it to the result of
+          *       build_small_constant_load for handling negative floats.
+          */
+         uint64_t u = nir_const_value_as_float(values[i], bit_size);
+         nir_const_value fc = nir_const_value_for_float(u, bit_size);
+         is_float &= !memcmp(&fc, &values[i], bit_size / 8);
       }
    }
+
+   uint32_t used_bits = 0;
+   for (unsigned i = 0; i < array_len; i++) {
+      uint64_t u64_elem = is_float ? nir_const_value_as_float(values[i], bit_size)
+                                   : nir_const_value_as_uint(values[i], bit_size);
+      if (!u64_elem)
+         continue;
+
+      uint32_t elem_bits = util_logbase2_64(u64_elem) + 1;
+      used_bits = MAX2(used_bits, elem_bits);
+   }
+
+   /* Only use power-of-two numbers of bits so we end up with a shift
+    * instead of a multiply on our index.
+    */
+   used_bits = util_next_power_of_two(used_bits);
+
+   if (used_bits * array_len > 64)
+      return;
+
+   info->is_small = true;
+
+   for (unsigned i = 0; i < array_len; i++) {
+      uint64_t u64_elem = is_float ? nir_const_value_as_float(values[i], bit_size)
+                                   : nir_const_value_as_uint(values[i], bit_size);
+
+      info->small_constant.data |= u64_elem << (i * used_bits);
+   }
+
+   /* Limit bit_size >= 32 to avoid unnecessary conversions.  */
+   info->small_constant.bit_size =
+      MAX2(util_next_power_of_two(used_bits * array_len), 32);
+   info->small_constant.is_float = is_float;
+   info->small_constant.bit_stride = used_bits;
+}
+
+static nir_def *
+build_small_constant_load(nir_builder *b, nir_deref_instr *deref,
+                          struct var_info *info, glsl_type_size_align_func size_align)
+{
+   struct small_constant *constant = &info->small_constant;
+
+   nir_def *imm = nir_imm_intN_t(b, constant->data, constant->bit_size);
+
+   assert(deref->deref_type == nir_deref_type_array);
+   nir_def *index = deref->arr.index.ssa;
+
+   nir_def *shift = nir_imul_imm(b, index, constant->bit_stride);
+
+   nir_def *ret = nir_ushr(b, imm, nir_u2u32(b, shift));
+   ret = nir_iand_imm(b, ret, BITFIELD64_MASK(constant->bit_stride));
+
+   const unsigned bit_size = glsl_get_bit_size(deref->type);
+   if (bit_size < 8) {
+      /* Booleans are special-cased to be 32-bit */
+      assert(glsl_type_is_boolean(deref->type));
+      ret = nir_ine_imm(b, ret, 0);
+   } else {
+      if (constant->is_float)
+         ret = nir_u2fN(b, ret, bit_size);
+      else if (bit_size != constant->bit_size)
+         ret = nir_u2uN(b, ret, bit_size);
+   }
+
+   return ret;
 }
 
 /** Lower large constant variables to shader constant data
@@ -184,7 +363,7 @@ nir_opt_large_constants(nir_shader *shader,
 
    struct var_info *var_infos = ralloc_array(NULL, struct var_info, num_locals);
    nir_foreach_function_temp_variable(var, impl) {
-      var_infos[var->index] = (struct var_info) {
+      var_infos[var->index] = (struct var_info){
          .var = var,
          .is_constant = true,
          .found_read = false,
@@ -218,12 +397,12 @@ nir_opt_large_constants(nir_shader *shader,
 
          bool src_is_const = false;
          nir_deref_instr *src_deref = NULL, *dst_deref = NULL;
-         unsigned writemask = 0;
+         nir_component_mask_t write_mask = 0;
          switch (intrin->intrinsic) {
          case nir_intrinsic_store_deref:
             dst_deref = nir_src_as_deref(intrin->src[0]);
             src_is_const = nir_src_is_const(intrin->src[1]);
-            writemask = nir_intrinsic_write_mask(intrin);
+            write_mask = nir_intrinsic_write_mask(intrin);
             break;
 
          case nir_intrinsic_load_deref:
@@ -261,7 +440,7 @@ nir_opt_large_constants(nir_shader *shader,
                info->is_constant = false;
             } else {
                nir_const_value *val = nir_src_as_const_value(intrin->src[1]);
-               handle_constant_store(var_infos, info, dst_deref, val, writemask,
+               handle_constant_store(var_infos, info, dst_deref, val, write_mask,
                                      size_align);
             }
          }
@@ -288,6 +467,8 @@ nir_opt_large_constants(nir_shader *shader,
       }
    }
 
+   bool has_constant = false;
+
    /* Allocate constant data space for each variable that just has constant
     * data.  We sort them by size and content so we can easily find
     * duplicates.
@@ -303,9 +484,11 @@ nir_opt_large_constants(nir_shader *shader,
       if (!info->is_constant)
          continue;
 
+      get_small_constant(info, size_align);
+
       unsigned var_size, var_align;
       size_align(info->var->type, &var_size, &var_align);
-      if (var_size <= threshold || !info->found_read) {
+      if ((var_size <= threshold && !info->is_small) || !info->found_read) {
          /* Don't bother lowering small stuff or data that's never read */
          info->is_constant = false;
          continue;
@@ -318,28 +501,31 @@ nir_opt_large_constants(nir_shader *shader,
          info->var->data.location = ALIGN_POT(shader->constant_data_size, var_align);
          shader->constant_data_size = info->var->data.location + var_size;
       }
+
+      has_constant |= info->is_constant;
    }
 
-   if (shader->constant_data_size == old_constant_data_size) {
+   if (!has_constant) {
       nir_shader_preserve_all_metadata(shader);
       ralloc_free(var_infos);
       return false;
    }
 
-   assert(shader->constant_data_size > old_constant_data_size);
-   shader->constant_data = rerzalloc_size(shader, shader->constant_data,
-                                          old_constant_data_size,
-                                          shader->constant_data_size);
-   for (int i = 0; i < num_locals; i++) {
-      struct var_info *info = &var_infos[i];
-      if (!info->duplicate && info->is_constant) {
-         memcpy((char *)shader->constant_data + info->var->data.location,
-                info->constant_data, info->constant_data_size);
+   if (shader->constant_data_size != old_constant_data_size) {
+      assert(shader->constant_data_size > old_constant_data_size);
+      shader->constant_data = rerzalloc_size(shader, shader->constant_data,
+                                             old_constant_data_size,
+                                             shader->constant_data_size);
+      for (int i = 0; i < num_locals; i++) {
+         struct var_info *info = &var_infos[i];
+         if (!info->duplicate && info->is_constant) {
+            memcpy((char *)shader->constant_data + info->var->data.location,
+                   info->constant_data, info->constant_data_size);
+         }
       }
    }
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -359,11 +545,17 @@ nir_opt_large_constants(nir_shader *shader,
                continue;
 
             struct var_info *info = &var_infos[var->index];
-            if (info->is_constant) {
+            if (info->is_small) {
                b.cursor = nir_after_instr(&intrin->instr);
-               nir_ssa_def *val = build_constant_load(&b, deref, size_align);
-               nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                        val);
+               nir_def *val = build_small_constant_load(&b, deref, info, size_align);
+               nir_def_rewrite_uses(&intrin->def, val);
+               nir_instr_remove(&intrin->instr);
+               nir_deref_instr_remove_if_unused(deref);
+            } else if (info->is_constant) {
+               b.cursor = nir_after_instr(&intrin->instr);
+               nir_def *val = build_constant_load(&b, deref, size_align);
+               nir_def_rewrite_uses(&intrin->def,
+                                    val);
                nir_instr_remove(&intrin->instr);
                nir_deref_instr_remove_if_unused(deref);
             }
@@ -403,6 +595,6 @@ nir_opt_large_constants(nir_shader *shader,
    ralloc_free(var_infos);
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
+                                  nir_metadata_dominance);
    return true;
 }

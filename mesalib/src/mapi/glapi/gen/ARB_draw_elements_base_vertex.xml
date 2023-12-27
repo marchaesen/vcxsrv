@@ -8,7 +8,8 @@
 
 <category name="GL_ARB_draw_elements_base_vertex" number="62">
 
-    <function name="DrawElementsBaseVertex" es2="3.2" marshal="custom" exec="dlist">
+    <function name="DrawElementsBaseVertex" es2="3.2" marshal="custom" exec="dlist"
+              marshal_struct="public">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -35,7 +36,7 @@
         <param name="basevertex" type="const GLint *" count="primcount"/>
     </function>
 
-    <function name="DrawElementsInstancedBaseVertex" es2="3.2" marshal="custom" exec="dlist">
+    <function name="DrawElementsInstancedBaseVertex" es2="2.0" marshal="custom" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>

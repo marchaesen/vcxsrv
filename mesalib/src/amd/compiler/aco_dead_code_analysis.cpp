@@ -80,18 +80,6 @@ process_block(dce_ctx& ctx, Block& block)
 
 } /* end namespace */
 
-bool
-is_dead(const std::vector<uint16_t>& uses, Instruction* instr)
-{
-   if (instr->definitions.empty() || instr->isBranch() ||
-       instr->opcode == aco_opcode::p_init_scratch)
-      return false;
-   if (std::any_of(instr->definitions.begin(), instr->definitions.end(),
-                   [&uses](const Definition& def) { return !def.isTemp() || uses[def.tempId()]; }))
-      return false;
-   return !(get_sync_info(instr).semantics & (semantic_volatile | semantic_acqrel));
-}
-
 std::vector<uint16_t>
 dead_code_analysis(Program* program)
 {
@@ -102,11 +90,6 @@ dead_code_analysis(Program* program)
       unsigned next_block = ctx.current_block--;
       process_block(ctx, program->blocks[next_block]);
    }
-
-   /* add one use to exec to prevent startpgm from being removed */
-   aco_ptr<Instruction>& startpgm = program->blocks[0].instructions[0];
-   assert(startpgm->opcode == aco_opcode::p_startpgm);
-   ctx.uses[startpgm->definitions.back().tempId()]++;
 
    return ctx.uses;
 }

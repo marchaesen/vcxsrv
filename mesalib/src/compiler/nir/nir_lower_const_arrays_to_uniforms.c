@@ -58,7 +58,7 @@ set_const_initialiser(nir_deref_instr **p, nir_constant *top_level_init,
    assert(*p);
 
    nir_constant *ret = top_level_init;
-   for ( ; *p; p++) {
+   for (; *p; p++) {
       if ((*p)->deref_type == nir_deref_type_array) {
          assert(nir_src_is_const((*p)->arr.index));
 
@@ -79,10 +79,9 @@ set_const_initialiser(nir_deref_instr **p, nir_constant *top_level_init,
    /* Now that we have selected the corrent nir_constant we copy the constant
     * values to it.
     */
-   assert(const_src->is_ssa);
    nir_instr *src_instr = const_src->ssa->parent_instr;
    assert(src_instr->type == nir_instr_type_load_const);
-   nir_load_const_instr* load = nir_instr_as_load_const(src_instr);
+   nir_load_const_instr *load = nir_instr_as_load_const(src_instr);
 
    for (unsigned i = 0; i < load->def.num_components; i++) {
       if (!(writemask & (1 << i)))
@@ -248,7 +247,7 @@ nir_lower_const_arrays_to_uniforms(nir_shader *shader,
 
    struct var_info *var_infos = ralloc_array(NULL, struct var_info, num_locals);
    nir_foreach_function_temp_variable(var, impl) {
-      var_infos[var->index] = (struct var_info) {
+      var_infos[var->index] = (struct var_info){
          .var = var,
          .is_constant = true,
          .found_read = false,
@@ -359,8 +358,7 @@ nir_lower_const_arrays_to_uniforms(nir_shader *shader,
    }
 
    /* Finally rewrite its uses */
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
 
@@ -381,7 +379,7 @@ nir_lower_const_arrays_to_uniforms(nir_shader *shader,
 
          b.cursor = nir_before_instr(instr);
 
-         nir_variable *uni = (nir_variable *) entry->data;
+         nir_variable *uni = (nir_variable *)entry->data;
          nir_deref_instr *new_deref_instr = nir_build_deref_var(&b, uni);
 
          nir_deref_path path;
@@ -402,15 +400,15 @@ nir_lower_const_arrays_to_uniforms(nir_shader *shader,
          }
          nir_deref_path_finish(&path);
 
-         nir_ssa_def *new_def = nir_load_deref(&b, new_deref_instr);
+         nir_def *new_def = nir_load_deref(&b, new_deref_instr);
 
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, new_def);
+         nir_def_rewrite_uses(&intrin->def, new_def);
          nir_instr_remove(&intrin->instr);
       }
    }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
+                                  nir_metadata_dominance);
 
    ralloc_free(var_infos);
    _mesa_hash_table_destroy(const_array_vars, NULL);

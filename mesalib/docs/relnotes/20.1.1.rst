@@ -114,7 +114,7 @@ Ilia Mirkin (1):
 
 -  nouveau: allow invalidating coherent/persistent buffer backings
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  intel/vec4: Stomp the return type of RESINFO to UINT32
 -  intel/fs: Fix unused texture coordinate zeroing on Gen4-5

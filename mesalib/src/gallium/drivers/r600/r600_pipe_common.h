@@ -63,7 +63,7 @@ struct u_log_context;
 #define R600_CONTEXT_PRIVATE_FLAG		(1u << 4)
 
 /* special primitive types */
-#define R600_PRIM_RECTANGLE_LIST	PIPE_PRIM_MAX
+#define R600_PRIM_RECTANGLE_LIST	MESA_PRIM_COUNT
 
 #define R600_NOT_QUERY		0xffffffff
 
@@ -113,12 +113,6 @@ enum r600_coherency {
 	R600_COHERENCY_CB_META,
 };
 
-#if UTIL_ARCH_BIG_ENDIAN
-#define R600_BIG_ENDIAN 1
-#else
-#define R600_BIG_ENDIAN 0
-#endif
-
 struct r600_common_context;
 struct r600_perfcounters;
 struct tgsi_shader_info;
@@ -148,7 +142,7 @@ struct r600_resource {
 	 * streamout, DMA, or as a random access target). The rest of
 	 * the buffer is considered invalid and can be mapped unsynchronized.
 	 *
-	 * This allows unsychronized mapping of a buffer range which hasn't
+	 * This allows unsynchronized mapping of a buffer range which hasn't
 	 * been used yet. It's for applications which forget to use
 	 * the unsynchronized map flag and expect the driver to figure it out.
          */
@@ -771,7 +765,7 @@ unsigned r600_translate_colorswap(enum pipe_format format, bool do_endian_swap);
 void evergreen_do_fast_color_clear(struct r600_common_context *rctx,
 				   struct pipe_framebuffer_state *fb,
 				   struct r600_atom *fb_state,
-				   unsigned *buffers, ubyte *dirty_cbufs,
+				   unsigned *buffers, uint8_t *dirty_cbufs,
 				   const union pipe_color_union *color);
 void r600_init_screen_texture_functions(struct r600_common_screen *rscreen);
 void r600_init_context_texture_functions(struct r600_common_context *rctx);

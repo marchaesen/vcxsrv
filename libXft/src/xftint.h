@@ -1,23 +1,24 @@
 /*
+ * Copyright © 2022 Thomas E. Dickey
  * Copyright © 2000 Keith Packard
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
- * the above copyright notice appear in all copies and that both that
- * copyright notice and this permission notice appear in supporting
- * documentation, and that the name of Keith Packard not be used in
- * advertising or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Keith Packard makes no
+ * the above copyright notice appear in all copies and that both that copyright
+ * notice and this permission notice appear in supporting documentation, and
+ * that the name of the above copyright holders not be used in advertising or
+ * publicity pertaining to distribution of the software without specific,
+ * written prior permission.  The above copyright holders make no
  * representations about the suitability of this software for any purpose.  It
  * is provided "as is" without express or implied warranty.
  *
- * KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
- * EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
- * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * THE ABOVE LISTED COPYRIGHT HOLDER(S) DISCLAIM ALL WARRANTIES WITH REGARD TO
+ * THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT HOLDER(S) BE LIABLE
+ * FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 /*
@@ -50,6 +51,7 @@
 #endif
 #endif
 #include <ctype.h>
+#include <assert.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -85,10 +87,21 @@ typedef struct _XftGlyph {
     XGlyphInfo	    metrics;
     void	    *bitmap;
     unsigned long   glyph_memory;
+    Picture         picture;
 } XftGlyph;
 
 /*
- * A hash table translates Unicode values into glyph indicies
+ * If the "trackmemusage" option is set, glyphs are managed via a doubly-linked
+ * list.  To save space, the links are just array indices.
+ */
+typedef struct _XftGlyphUsage {
+    XftGlyph        contents;
+    FT_UInt	    newer;
+    FT_UInt	    older;
+} XftGlyphUsage;
+
+/*
+ * A hash table translates Unicode values into glyph indices
  */
 typedef struct _XftUcsHash {
     FcChar32	    ucs4;
@@ -134,6 +147,7 @@ struct _XftFontInfo {
     FT_F26Dot6		xsize, ysize;	/* pixel size */
     FcBool		antialias;	/* doing antialiasing */
     FcBool		embolden;	/* force emboldening */
+    FcBool		color;		/* contains color glyphs */
     int			rgba;		/* subpixel order */
     int			lcd_filter;	/* lcd filter */
     FT_Matrix		matrix;		/* glyph transformation matrix */
@@ -163,7 +177,7 @@ typedef struct _XftFontInt {
      * This array follows the font in memory
      */
     XftGlyph		**glyphs;
-    int			num_glyphs;	/* size of glyphs/bitmaps arrays */
+    FT_UInt		num_glyphs;	/* size of glyphs/bitmaps arrays */
     /*
      * Hash table to get from Unicode value to glyph ID
      * This array follows the glyphs in memory
@@ -181,6 +195,10 @@ typedef struct _XftFontInt {
      */
     unsigned long	glyph_memory;
     unsigned long	max_glyph_memory;
+    unsigned            sizeof_glyph;	/* sizeof(XftGlyph) or XftGlyphUsage */
+    FT_UInt		newest;		/* index, for tracking usage */
+    FT_UInt		total_inuse;	/* total, for verifying usage */
+    FcBool		track_mem_usage;   /* Use XftGlyphUsage */
     FcBool		use_free_glyphs;   /* Use XRenderFreeGlyphs */
 } XftFontInt;
 
@@ -250,6 +268,7 @@ typedef struct _XftDisplayInfo {
     XRenderPictFormat	    *solidFormat;
     unsigned long	    glyph_memory;
     unsigned long	    max_glyph_memory;
+    FcBool		    track_mem_usage;
     FcBool		    use_free_glyphs;
     int			    num_unref_fonts;
     int			    max_unref_fonts;
@@ -273,6 +292,9 @@ typedef struct _XftDisplayInfo {
 
 extern XftDisplayInfo	*_XftDisplayInfo;
 
+/*
+ * Bits in $XFT_DEBUG, which can be combined.
+ */
 #define XFT_DBG_OPEN	1
 #define XFT_DBG_OPENV	2
 #define XFT_DBG_RENDER	4
@@ -283,47 +305,24 @@ extern XftDisplayInfo	*_XftDisplayInfo;
 #define XFT_DBG_CACHE	128
 #define XFT_DBG_CACHEV	256
 #define XFT_DBG_MEMORY	512
+#define XFT_DBG_USAGE	1024
 
-#define XFT_MEM_DRAW	0
-#define XFT_MEM_FONT	1
-#define XFT_MEM_FILE	2
-#define XFT_MEM_GLYPH	3
-#define XFT_MEM_NUM	4
+/*
+ * Categories for memory allocation.
+ */
+typedef enum {
+    XFT_MEM_DRAW
+    , XFT_MEM_FONT
+    , XFT_MEM_FILE
+    , XFT_MEM_GLYPH
+    , XFT_MEM_NUM
+} XFT_MEM_KIND;
 
-/* xftcompat.c */
-void XftFontSetDestroy (FcFontSet *s);
-FcBool XftMatrixEqual (_Xconst FcMatrix *mat1, _Xconst FcMatrix *mat2);
-void XftMatrixMultiply (FcMatrix *result, FcMatrix *a, FcMatrix *b);
-void XftMatrixRotate (FcMatrix *m, double c, double s);
-void XftMatrixScale (FcMatrix *m, double sx, double sy);
-void XftMatrixShear (FcMatrix *m, double sh, double sv);
-FcPattern *XftPatternCreate (void);
-void XftValueDestroy (FcValue v);
-void XftPatternDestroy (FcPattern *p);
-FcBool XftPatternAdd (FcPattern *p, _Xconst char *object, FcValue value, FcBool append);
-FcBool XftPatternDel (FcPattern *p, _Xconst char *object);
-FcBool XftPatternAddInteger (FcPattern *p, _Xconst char *object, int i);
-FcBool XftPatternAddDouble (FcPattern *p, _Xconst char *object, double i);
-FcBool XftPatternAddMatrix (FcPattern *p, _Xconst char *object, FcMatrix *i);
-FcBool XftPatternAddString (FcPattern *p, _Xconst char *object, char *i);
-FcBool XftPatternAddBool (FcPattern *p, _Xconst char *object, FcBool i);
-FcResult XftPatternGet (FcPattern *p, _Xconst char *object, int id, FcValue *v);
-FcResult XftPatternGetInteger (FcPattern *p, _Xconst char *object, int id, int *i);
-FcResult XftPatternGetDouble (FcPattern *p, _Xconst char *object, int id, double *i);
-FcResult XftPatternGetString (FcPattern *p, _Xconst char *object, int id, char **i);
-FcResult XftPatternGetMatrix (FcPattern *p, _Xconst char *object, int id, FcMatrix **i);
-FcResult XftPatternGetBool (FcPattern *p, _Xconst char *object, int id, FcBool *i);
-FcPattern *XftPatternDuplicate (FcPattern *orig);
-FcPattern *XftPatternVaBuild (FcPattern *orig, va_list va);
-FcPattern *XftPatternBuild (FcPattern *orig, ...);
-FcBool XftNameUnparse (FcPattern *pat, char *dest, int len);
-FcBool XftGlyphExists (Display *dpy, XftFont *font, FcChar32 ucs4);
-FcObjectSet *XftObjectSetCreate (void);
-Bool XftObjectSetAdd (FcObjectSet *os, _Xconst char *object);
-void XftObjectSetDestroy (FcObjectSet *os);
-FcObjectSet *XftObjectSetVaBuild (_Xconst char *first, va_list va);
-FcObjectSet *XftObjectSetBuild (_Xconst char *first, ...);
-FcFontSet *XftListFontSets (FcFontSet **sets, int nsets, FcPattern *p, FcObjectSet *os);
+#define AllocTypedArray(n,type)         malloc ((size_t)(n) * sizeof (type))
+#define AllocUIntArray(n)               AllocTypedArray(n, FT_UInt)
+#define AllocGlyphElt8Array(n)          AllocTypedArray(n, XGlyphElt8)
+#define AllocGlyphSpecArray(n)          AllocTypedArray(n, XftGlyphSpec)
+#define AllocGlyphFontSpecArray(n)      AllocTypedArray(n, XftGlyphFontSpec)
 
 /* xftcore.c */
 void
@@ -415,10 +414,10 @@ void
 XftMemReport (void);
 
 void
-XftMemAlloc (int kind, int size);
+XftMemAlloc (int kind, size_t size);
 
 void
-XftMemFree (int kind, int size);
+XftMemFree (int kind, size_t size);
 
 /* xftlist.c */
 FcFontSet *
@@ -428,8 +427,6 @@ XftListFontsPatternObjects (Display	    *dpy,
 			    FcObjectSet    *os);
 
 /* xftname.c */
-void
-_XftNameInit (void);
 
 /* xftrender.c */
 

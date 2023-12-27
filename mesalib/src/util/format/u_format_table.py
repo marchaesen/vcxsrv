@@ -61,9 +61,9 @@ type_map = {
 
 def bool_map(value):
     if value:
-        return "TRUE"
+        return "true"
     else:
-        return "FALSE"
+        return "false"
 
 
 swizzle_map = {
@@ -90,6 +90,7 @@ def has_access(format):
         'p010',
         'p012',
         'p016',
+        'p030',
         'y210',
         'y212',
         'y216',
@@ -99,8 +100,13 @@ def has_access(format):
         'xyuv',
         'ayuv',
         'r8g8_r8b8_unorm',
+        'r8b8_r8g8_unorm',
         'g8r8_b8r8_unorm',
+        'b8r8_g8r8_unorm',
         'g8r8_g8b8_unorm',
+        'g8b8_g8r8_unorm',
+        'b8g8_r8g8_unorm',
+        'y8_400_unorm',
         'y8_u8_v8_422_unorm',
         'y8_u8v8_422_unorm',
         'y8_u8_v8_444_unorm',
@@ -109,8 +115,12 @@ def has_access(format):
         'y16_u16v16_422_unorm',
         'y16_u16_v16_444_unorm',
         'r8_g8b8_420_unorm',
+        'r8_b8g8_420_unorm',
         'g8_b8r8_420_unorm',
+        'r8_g8_b8_420_unorm',
+        'r8_b8_g8_420_unorm',
         'g8_b8_r8_420_unorm',
+        'r8_g8_b8_unorm',
         'y8_unorm',
     ]
     if format.short_name() in noaccess_formats:
@@ -141,7 +151,16 @@ def write_format_table(formats):
 
     write_format_table_header(sys.stdout2)
 
+    print('#ifdef __cplusplus', file=sys.stdout2)
+    print('extern "C" {', file=sys.stdout2)
+    print('#endif', file=sys.stdout2)
+    print(file=sys.stdout2)
+
     u_format_pack.generate(formats)
+
+    print('#ifdef __cplusplus', file=sys.stdout2)
+    print('} /* extern "C" */', file=sys.stdout2)
+    print('#endif', file=sys.stdout2)
 
     def do_channel_array(channels, swizzles):
         print("   {")

@@ -1,9 +1,14 @@
 #!/bin/bash
+# shellcheck disable=SC1091 # The relative paths in this file only become valid at runtime.
+# shellcheck disable=SC2034
+# shellcheck disable=SC2086 # we want word splitting
+
+. "$SCRIPTS_DIR"/setup-test-env.sh
 
 BM=$CI_PROJECT_DIR/install/bare-metal
 CI_COMMON=$CI_PROJECT_DIR/install/common
 
-if [ -z "$BM_SERIAL" -a -z "$BM_SERIAL_SCRIPT" ]; then
+if [ -z "$BM_SERIAL" ] && [ -z "$BM_SERIAL_SCRIPT" ]; then
   echo "Must set BM_SERIAL OR BM_SERIAL_SCRIPT in your gitlab-runner config.toml [[runners]] environment"
   echo "BM_SERIAL:"
   echo "  This is the serial device to talk to for waiting for fastboot to be ready and logging from the kernel."
@@ -82,44 +87,57 @@ else
   fi
 
   pushd rootfs
-  find -H | \
-    egrep -v "external/(openglcts|vulkancts|amber|glslang|spirv-tools)" |
-    egrep -v "traces-db|apitrace|renderdoc" | \
-    egrep -v $EXCLUDE_FILTER | \
+  find -H . | \
+    grep -E -v "external/(openglcts|vulkancts|amber|glslang|spirv-tools)" |
+    grep -E -v "traces-db|apitrace|renderdoc" | \
+    grep -E -v $EXCLUDE_FILTER | \
     cpio -H newc -o | \
     xz --check=crc32 -T4 - > $CI_PROJECT_DIR/rootfs.cpio.gz
   popd
 fi
 
-# Make the combined kernel image and dtb for passing to fastboot.  For normal
-# Mesa development, we build the kernel and store it in the docker container
-# that this script is running in.
-#
-# However, container builds are expensive, so when you're hacking on the
-# kernel, it's nice to be able to skip the half hour container build and plus
-# moving that container to the runner.  So, if BM_KERNEL+BM_DTB are URLs,
-# fetch them instead of looking in the container.
 if echo "$BM_KERNEL $BM_DTB" | grep -q http; then
-  apt install -y wget
-
-  wget $BM_KERNEL -O kernel
-  wget $BM_DTB -O dtb
+  curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
+      "$BM_KERNEL" -o kernel
+  # FIXME: modules should be supplied too
+  curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
+      "$BM_DTB" -o dtb
 
   cat kernel dtb > Image.gz-dtb
-  rm kernel dtb
+
+elif [ -n "${FORCE_KERNEL_TAG}" ]; then
+  curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
+      "${FDO_HTTP_CACHE_URI:-}${KERNEL_IMAGE_BASE}/${DEBIAN_ARCH}/${BM_KERNEL}" -o kernel
+  curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
+      "${FDO_HTTP_CACHE_URI:-}${KERNEL_IMAGE_BASE}/${DEBIAN_ARCH}/modules.tar.zst" -o modules.tar.zst
+
+  if [ -n "$BM_DTB" ]; then
+    curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
+	"${FDO_HTTP_CACHE_URI:-}${KERNEL_IMAGE_BASE}/${DEBIAN_ARCH}/${BM_DTB}.dtb" -o dtb
+  fi
+
+  cat kernel dtb > Image.gz-dtb || echo "No DTB available, using pure kernel."
+  rm kernel
+  tar --keep-directory-symlink --zstd -xf modules.tar.zst -C "$BM_ROOTFS/"
+  rm modules.tar.zst &
 else
-  cat $BM_KERNEL $BM_DTB > Image.gz-dtb
+  cat /baremetal-files/"$BM_KERNEL" /baremetal-files/"$BM_DTB".dtb > Image.gz-dtb
+  cp /baremetal-files/"$BM_DTB".dtb dtb
 fi
 
-mkdir -p artifacts
-abootimg \
-  --create artifacts/fastboot.img \
-  -k Image.gz-dtb \
-  -r rootfs.cpio.gz \
-  -c cmdline="$BM_CMDLINE"
-rm Image.gz-dtb
-
 export PATH=$BM:$PATH
+
+mkdir -p artifacts
+mkbootimg.py \
+  --kernel Image.gz-dtb \
+  --ramdisk rootfs.cpio.gz \
+  --dtb dtb \
+  --cmdline "$BM_CMDLINE" \
+  $BM_MKBOOT_PARAMS \
+  --header_version 2 \
+  -o artifacts/fastboot.img
+
+rm Image.gz-dtb dtb
 
 # Start background command for talking to serial if we have one.
 if [ -n "$BM_SERIAL_SCRIPT" ]; then

@@ -34,6 +34,9 @@ struct tu_image
    struct tu_bo *bo;
    uint64_t iova;
 
+   /* For fragment density map */
+   void *map;
+
    uint32_t lrz_height;
    uint32_t lrz_pitch;
    uint32_t lrz_offset;
@@ -50,15 +53,17 @@ struct tu_image_view
 
    struct fdl6_view view;
 
+   unsigned char swizzle[4];
+
    /* for d32s8 separate depth */
    uint64_t depth_base_addr;
    uint32_t depth_layer_size;
-   uint32_t depth_PITCH;
+   uint32_t depth_pitch;
 
    /* for d32s8 separate stencil */
    uint64_t stencil_base_addr;
    uint32_t stencil_layer_size;
-   uint32_t stencil_PITCH;
+   uint32_t stencil_pitch;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(tu_image_view, vk.base, VkImageView,
                                VK_OBJECT_TYPE_IMAGE_VIEW);
@@ -85,6 +90,7 @@ enum pipe_format tu_format_for_aspect(enum pipe_format format,
 void
 tu_cs_image_ref(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer);
 
+template <chip CHIP>
 void
 tu_cs_image_ref_2d(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer, bool src);
 
@@ -101,13 +107,29 @@ bool
 tiling_possible(VkFormat format);
 
 bool
-ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, VkImageUsageFlags stencil_usage,
-              const struct fd_dev_info *info, VkSampleCountFlagBits samples,
+ubwc_possible(struct tu_device *device,
+              VkFormat format,
+              VkImageType type,
+              VkImageUsageFlags usage,
+              VkImageUsageFlags stencil_usage,
+              const struct fd_dev_info *info,
+              VkSampleCountFlagBits samples,
               bool use_z24uint_s8uint);
 
 void
 tu_buffer_view_init(struct tu_buffer_view *view,
                     struct tu_device *device,
                     const VkBufferViewCreateInfo *pCreateInfo);
+
+struct tu_frag_area {
+   float width;
+   float height;
+};
+
+void
+tu_fragment_density_map_sample(const struct tu_image_view *fdm,
+                               uint32_t x, uint32_t y,
+                               uint32_t width, uint32_t height,
+                               uint32_t layers, struct tu_frag_area *areas);
 
 #endif /* TU_IMAGE_H */

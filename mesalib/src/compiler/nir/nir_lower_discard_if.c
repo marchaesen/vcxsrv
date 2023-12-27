@@ -21,18 +21,13 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "nir.h"
 #include "compiler/nir/nir_builder.h"
+#include "nir.h"
 
 static bool
-lower_discard_if_instr(nir_builder *b, nir_instr *instr_, void *cb_data)
+lower_discard_if(nir_builder *b, nir_intrinsic_instr *instr, void *cb_data)
 {
    nir_lower_discard_if_options options = *(nir_lower_discard_if_options *)cb_data;
-
-   if (instr_->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *instr = nir_instr_as_intrinsic(instr_);
 
    switch (instr->intrinsic) {
    case nir_intrinsic_discard_if:
@@ -53,7 +48,7 @@ lower_discard_if_instr(nir_builder *b, nir_instr *instr_, void *cb_data)
 
    b->cursor = nir_before_instr(&instr->instr);
 
-   nir_if *if_stmt = nir_push_if(b, nir_ssa_for_src(b, instr->src[0], 1));
+   nir_if *if_stmt = nir_push_if(b, instr->src[0].ssa);
    switch (instr->intrinsic) {
    case nir_intrinsic_discard_if:
       nir_discard(b);
@@ -122,8 +117,8 @@ lower_discard_if_instr(nir_builder *b, nir_instr *instr_, void *cb_data)
 bool
 nir_lower_discard_if(nir_shader *shader, nir_lower_discard_if_options options)
 {
-   return nir_shader_instructions_pass(shader,
-                                       lower_discard_if_instr,
-                                       nir_metadata_none,
-                                       &options);
+   return nir_shader_intrinsics_pass(shader,
+                                     lower_discard_if,
+                                     nir_metadata_none,
+                                     &options);
 }

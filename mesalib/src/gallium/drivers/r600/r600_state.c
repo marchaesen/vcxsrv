@@ -23,12 +23,16 @@
 #include "r600_formats.h"
 #include "r600_shader.h"
 #include "r600d.h"
+#include "r600d_common.h"
 
 #include "pipe/p_shader_tokens.h"
+#include "util/u_endian.h"
 #include "util/u_pack_color.h"
 #include "util/u_memory.h"
 #include "util/u_framebuffer.h"
 #include "util/u_dual_blend.h"
+
+#include <assert.h>
 
 static uint32_t r600_translate_blend_function(int blend_func)
 {
@@ -144,13 +148,13 @@ static uint32_t r600_translate_dbformat(enum pipe_format format)
 static bool r600_is_sampler_format_supported(struct pipe_screen *screen, enum pipe_format format)
 {
 	return r600_translate_texformat(screen, format, NULL, NULL, NULL,
-                                   FALSE) != ~0U;
+                                   false) != ~0U;
 }
 
 static bool r600_is_colorbuffer_format_supported(enum amd_gfx_level chip, enum pipe_format format)
 {
-	return r600_translate_colorformat(chip, format, FALSE) != ~0U &&
-	       r600_translate_colorswap(format, FALSE) != ~0U;
+	return r600_translate_colorformat(chip, format, false) != ~0U &&
+	       r600_translate_colorswap(format, false) != ~0U;
 }
 
 static bool r600_is_zs_format_supported(enum pipe_format format)
@@ -172,6 +176,9 @@ bool r600_is_format_supported(struct pipe_screen *screen,
 		R600_ERR("r600: unsupported texture type %d\n", target);
 		return false;
 	}
+
+	if (util_format_get_num_planes(format) > 1)
+		return false;
 
 	if (MAX2(1, sample_count) != MAX2(1, storage_sample_count))
 		return false;
@@ -674,7 +681,7 @@ r600_create_sampler_view_custom(struct pipe_context *ctx,
 	uint32_t word4 = 0, yuv_format = 0, pitch = 0;
 	unsigned char swizzle[4], array_mode = 0;
 	unsigned width, height, depth, offset_level, last_level;
-	bool do_endian_swap = FALSE;
+	bool do_endian_swap = false;
 
 	if (!view)
 		return NULL;
@@ -695,7 +702,7 @@ r600_create_sampler_view_custom(struct pipe_context *ctx,
 	swizzle[2] = state->swizzle_b;
 	swizzle[3] = state->swizzle_a;
 
-	if (R600_BIG_ENDIAN)
+	if (UTIL_ARCH_BIG_ENDIAN)
 		do_endian_swap = !tmp->db_compatible;
 
 	format = r600_translate_texformat(ctx->screen, state->format,
@@ -821,7 +828,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 	unsigned offset;
 	const struct util_format_description *desc;
 	int i;
-	bool blend_bypass = 0, blend_clamp = 0, do_endian_swap = FALSE;
+	bool blend_bypass = 0, blend_clamp = 0, do_endian_swap = false;
 
 	if (rtex->db_compatible && !r600_can_sample_zs(rtex, false)) {
 		r600_init_flushed_depth_texture(&rctx->b.b, surf->base.texture, NULL);
@@ -854,11 +861,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 
 	desc = util_format_description(surf->base.format);
 
-	for (i = 0; i < 4; i++) {
-		if (desc->channel[i].type != UTIL_FORMAT_TYPE_VOID) {
-			break;
-		}
-	}
+	i = util_format_get_first_non_void_channel(surf->base.format);
 
 	ntype = V_0280A0_NUMBER_UNORM;
 	if (desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB)
@@ -877,7 +880,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 		ntype = V_0280A0_NUMBER_FLOAT;
 	}
 
-	if (R600_BIG_ENDIAN)
+	if (UTIL_ARCH_BIG_ENDIAN)
 		do_endian_swap = !rtex->db_compatible;
 
 	format = r600_translate_colorformat(rctx->b.gfx_level, surf->base.format,
@@ -1579,13 +1582,13 @@ static void r600_emit_db_misc_state(struct r600_context *rctx, struct r600_atom 
 	if (rctx->b.gfx_level >= R700) {
 		switch (a->ps_conservative_z) {
 		default: /* fall through */
-		case TGSI_FS_DEPTH_LAYOUT_ANY:
+		case FRAG_DEPTH_LAYOUT_ANY:
 			db_render_control |= S_028D0C_CONSERVATIVE_Z_EXPORT(V_028D0C_EXPORT_ANY_Z);
 			break;
-		case TGSI_FS_DEPTH_LAYOUT_GREATER:
+		case FRAG_DEPTH_LAYOUT_GREATER:
 			db_render_control |= S_028D0C_CONSERVATIVE_Z_EXPORT(V_028D0C_EXPORT_GREATER_THAN_Z);
 			break;
-		case TGSI_FS_DEPTH_LAYOUT_LESS:
+		case FRAG_DEPTH_LAYOUT_LESS:
 			db_render_control |= S_028D0C_CONSERVATIVE_Z_EXPORT(V_028D0C_EXPORT_LESS_THAN_Z);
 			break;
 		}
@@ -1664,13 +1667,15 @@ static void r600_emit_config_state(struct r600_context *rctx, struct r600_atom *
 static void r600_emit_vertex_buffers(struct r600_context *rctx, struct r600_atom *atom)
 {
 	struct radeon_cmdbuf *cs = &rctx->b.gfx.cs;
-	uint32_t dirty_mask = rctx->vertex_buffer_state.dirty_mask;
+	struct r600_fetch_shader *shader = (struct r600_fetch_shader*)rctx->vertex_fetch_shader.cso;
+	uint32_t dirty_mask = rctx->vertex_buffer_state.dirty_mask & shader->buffer_mask;
 
 	while (dirty_mask) {
 		struct pipe_vertex_buffer *vb;
 		struct r600_resource *rbuffer;
 		unsigned offset;
 		unsigned buffer_index = u_bit_scan(&dirty_mask);
+		unsigned stride = shader->strides[buffer_index];
 
 		vb = &rctx->vertex_buffer_state.vb[buffer_index];
 		rbuffer = (struct r600_resource*)vb->buffer.resource;
@@ -1685,7 +1690,7 @@ static void r600_emit_vertex_buffers(struct r600_context *rctx, struct r600_atom
 		radeon_emit(cs, rbuffer->b.b.width0 - offset - 1); /* RESOURCEi_WORD1 */
 		radeon_emit(cs, /* RESOURCEi_WORD2 */
 				 S_038008_ENDIAN_SWAP(r600_endian_swap(32)) |
-				 S_038008_STRIDE(vb->stride));
+				 S_038008_STRIDE(stride));
 		radeon_emit(cs, 0); /* RESOURCEi_WORD3 */
 		radeon_emit(cs, 0); /* RESOURCEi_WORD4 */
 		radeon_emit(cs, 0); /* RESOURCEi_WORD5 */
@@ -1719,7 +1724,7 @@ static void r600_emit_constant_buffers(struct r600_context *rctx,
 		offset = cb->buffer_offset;
 
 		if (!gs_ring_buffer) {
-			assert(buffer_index < R600_MAX_HW_CONST_BUFFERS);
+			assert(buffer_index < R600_MAX_ALU_CONST_BUFFERS);
 			radeon_set_context_reg(cs, reg_alu_constbuf_size + buffer_index * 4,
 					       DIV_ROUND_UP(cb->buffer_size, 256));
 			radeon_set_context_reg(cs, reg_alu_const_cache + buffer_index * 4, offset >> 8);
@@ -1842,6 +1847,20 @@ static void r600_emit_sampler_states(struct r600_context *rctx,
 		enum pipe_texture_target target = PIPE_BUFFER;
 		if (rview)
 			target = rview->base.texture->target;
+
+                /* If seamless cube map is set, set the CAMP_(X|Y|Z) to
+                 * SQ_TEX_WRAP which seems to trigger properly ignoring the
+                 * texture wrap mode */
+                if (target == PIPE_TEXTURE_CUBE ||
+		    target == PIPE_TEXTURE_CUBE_ARRAY) {
+                   if (rstate->seamless_cube_map){
+                      uint32_t mask = ~(S_03C000_CLAMP_X(7) |
+                                        S_03C000_CLAMP_Y(7) |
+                                        S_03C000_CLAMP_Z(7));
+                      rstate->tex_sampler_words[0] &= mask;
+                   }
+                }
+
 		if (target == PIPE_TEXTURE_1D_ARRAY ||
 		    target == PIPE_TEXTURE_2D_ARRAY) {
 			rstate->tex_sampler_words[0] |= S_03C000_TEX_ARRAY_OVERRIDE(1);
@@ -2461,11 +2480,15 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 
 	r600_store_context_reg_seq(cb, R_028644_SPI_PS_INPUT_CNTL_0, rshader->ninput);
 	for (i = 0; i < rshader->ninput; i++) {
-		if (rshader->input[i].name == TGSI_SEMANTIC_POSITION)
+		const gl_varying_slot varying_slot = rshader->input[i].varying_slot;
+
+		if (varying_slot == VARYING_SLOT_POS)
 			pos_index = i;
-		if (rshader->input[i].name == TGSI_SEMANTIC_FACE && face_index == -1)
-			face_index = i;
-		if (rshader->input[i].name == TGSI_SEMANTIC_SAMPLEID)
+		else if (varying_slot == VARYING_SLOT_FACE) {
+			if (face_index == -1)
+				face_index = i;
+		}
+		else if (rshader->input[i].system_value == SYSTEM_VALUE_SAMPLE_ID)
 			fixed_pt_position_index = i;
 
 		sid = rshader->input[i].spi_sid;
@@ -2473,17 +2496,17 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 		tmp = S_028644_SEMANTIC(sid);
 
 		/* D3D 9 behaviour. GL is undefined */
-		if (rshader->input[i].name == TGSI_SEMANTIC_COLOR && rshader->input[i].sid == 0)
+		if (varying_slot == VARYING_SLOT_COL0)
 			tmp |= S_028644_DEFAULT_VAL(3);
 
-		if (rshader->input[i].name == TGSI_SEMANTIC_POSITION ||
+		if (varying_slot == VARYING_SLOT_POS ||
 			rshader->input[i].interpolate == TGSI_INTERPOLATE_CONSTANT ||
 			(rshader->input[i].interpolate == TGSI_INTERPOLATE_COLOR && flatshade))
 			tmp |= S_028644_FLAT_SHADE(1);
 
-		if (rshader->input[i].name == TGSI_SEMANTIC_PCOORD ||
-		    (rshader->input[i].name == TGSI_SEMANTIC_TEXCOORD &&
-		     sprite_coord_enable & (1 << rshader->input[i].sid))) {
+		if (varying_slot == VARYING_SLOT_PNTC ||
+		    (varying_slot >= VARYING_SLOT_TEX0 && varying_slot <= VARYING_SLOT_TEX7 &&
+		     (sprite_coord_enable & (1 << ((int)varying_slot - (int)VARYING_SLOT_TEX0))))) {
 			tmp |= S_028644_PT_SPRITE_TEX(1);
 		}
 
@@ -2502,13 +2525,25 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 	}
 
 	db_shader_control = 0;
+	exports_ps = 0;
 	for (i = 0; i < rshader->noutput; i++) {
-		if (rshader->output[i].name == TGSI_SEMANTIC_POSITION)
+		switch (rshader->output[i].frag_result) {
+		case FRAG_RESULT_DEPTH:
 			z_export = 1;
-		if (rshader->output[i].name == TGSI_SEMANTIC_STENCIL)
+			exports_ps |= 1;
+			break;
+		case FRAG_RESULT_STENCIL:
 			stencil_export = 1;
-		if (rshader->output[i].name == TGSI_SEMANTIC_SAMPLEMASK && msaa)
-			mask_export = 1;
+			exports_ps |= 1;
+			break;
+		case FRAG_RESULT_SAMPLE_MASK:
+			if (msaa)
+				mask_export = 1;
+			exports_ps |= 1;
+			break;
+		default:
+			break;
+		}
 	}
 	db_shader_control |= S_02880C_Z_EXPORT_ENABLE(z_export);
 	db_shader_control |= S_02880C_STENCIL_REF_EXPORT_ENABLE(stencil_export);
@@ -2516,14 +2551,6 @@ void r600_update_ps_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 	if (rshader->uses_kill)
 		db_shader_control |= S_02880C_KILL_ENABLE(1);
 
-	exports_ps = 0;
-	for (i = 0; i < rshader->noutput; i++) {
-		if (rshader->output[i].name == TGSI_SEMANTIC_POSITION ||
-		    rshader->output[i].name == TGSI_SEMANTIC_STENCIL ||
-		    rshader->output[i].name == TGSI_SEMANTIC_SAMPLEMASK) {
-			exports_ps |= 1;
-		}
-	}
 	num_cout = rshader->nr_ps_color_exports;
 	exports_ps |= S_028854_EXPORT_COLORS(num_cout);
 	if (!exports_ps) {
@@ -2597,14 +2624,16 @@ void r600_update_vs_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 	struct r600_command_buffer *cb = &shader->command_buffer;
 	struct r600_shader *rshader = &shader->shader;
 	unsigned spi_vs_out_id[10] = {};
-	unsigned i, tmp, nparams = 0;
+	unsigned i;
 
 	for (i = 0; i < rshader->noutput; i++) {
-		if (rshader->output[i].spi_sid) {
-			tmp = rshader->output[i].spi_sid << ((nparams & 3) * 8);
-			spi_vs_out_id[nparams / 4] |= tmp;
-			nparams++;
-		}
+		const int param = rshader->output[i].export_param;
+		if (param < 0)
+			continue;
+		unsigned *const param_spi_vs_out_id = &spi_vs_out_id[param / 4];
+		const unsigned param_shift = (param & 3) * 8;
+		assert(!(*param_spi_vs_out_id & (0xFFu << param_shift)));
+		*param_spi_vs_out_id |= (unsigned)rshader->output[i].spi_sid << param_shift;
 	}
 
 	r600_init_command_buffer(cb, 32);
@@ -2614,15 +2643,8 @@ void r600_update_vs_state(struct pipe_context *ctx, struct r600_pipe_shader *sha
 		r600_store_value(cb, spi_vs_out_id[i]);
 	}
 
-	/* Certain attributes (position, psize, etc.) don't count as params.
-	 * VS is required to export at least one param and r600_shader_from_tgsi()
-	 * takes care of adding a dummy export.
-	 */
-	if (nparams < 1)
-		nparams = 1;
-
 	r600_store_context_reg(cb, R_0286C4_SPI_VS_OUT_CONFIG,
-			       S_0286C4_VS_EXPORT_COUNT(nparams - 1));
+			       S_0286C4_VS_EXPORT_COUNT(rshader->highest_export_param));
 	r600_store_context_reg(cb, R_028868_SQ_PGM_RESOURCES_VS,
 			       S_028868_NUM_GPRS(rshader->bc.ngpr) |
 			       S_028868_DX10_CLAMP(1) |
@@ -2775,7 +2797,7 @@ void *r600_create_decompress_blend(struct r600_context *rctx)
 void *r600_create_db_flush_dsa(struct r600_context *rctx)
 {
 	struct pipe_depth_stencil_alpha_state dsa;
-	boolean quirk = false;
+	bool quirk = false;
 
 	if (rctx->b.family == CHIP_RV610 || rctx->b.family == CHIP_RV630 ||
 		rctx->b.family == CHIP_RV620 || rctx->b.family == CHIP_RV635)
@@ -2847,7 +2869,7 @@ static inline unsigned r600_array_mode(unsigned mode)
 	}
 }
 
-static boolean r600_dma_copy_tile(struct r600_context *rctx,
+static bool r600_dma_copy_tile(struct r600_context *rctx,
 				struct pipe_resource *dst,
 				unsigned dst_level,
 				unsigned dst_x,
@@ -2883,7 +2905,7 @@ static boolean r600_dma_copy_tile(struct r600_context *rctx,
 		slice_tile_max = (rsrc->surface.u.legacy.level[src_level].nblk_x * rsrc->surface.u.legacy.level[src_level].nblk_y) / (8*8);
 		slice_tile_max = slice_tile_max ? slice_tile_max - 1 : 0;
 		/* linear height must be the same as the slice tile max height, it's ok even
-		 * if the linear destination/source have smaller heigh as the size of the
+		 * if the linear destination/source have smaller height as the size of the
 		 * dma packet will be using the copy_height which is always smaller or equal
 		 * to the linear height
 		 */
@@ -2902,7 +2924,7 @@ static boolean r600_dma_copy_tile(struct r600_context *rctx,
 		slice_tile_max = (rdst->surface.u.legacy.level[dst_level].nblk_x * rdst->surface.u.legacy.level[dst_level].nblk_y) / (8*8);
 		slice_tile_max = slice_tile_max ? slice_tile_max - 1 : 0;
 		/* linear height must be the same as the slice tile max height, it's ok even
-		 * if the linear destination/source have smaller heigh as the size of the
+		 * if the linear destination/source have smaller height as the size of the
 		 * dma packet will be using the copy_height which is always smaller or equal
 		 * to the linear height
 		 */
@@ -2918,7 +2940,7 @@ static boolean r600_dma_copy_tile(struct r600_context *rctx,
 	}
 	/* check that we are in dw/base alignment constraint */
 	if (addr % 4 || base % 256) {
-		return FALSE;
+		return false;
 	}
 
 	/* It's a r6xx/r7xx limitation, the blit must be on 8 boundary for number
@@ -2947,7 +2969,7 @@ static boolean r600_dma_copy_tile(struct r600_context *rctx,
 		addr += cheight * pitch;
 		y += cheight;
 	}
-	return TRUE;
+	return true;
 }
 
 static void r600_dma_copy(struct pipe_context *ctx,
@@ -3046,9 +3068,9 @@ void r600_init_state_functions(struct r600_context *rctx)
 	unsigned id = 1;
 	unsigned i;
 	/* !!!
-	 *  To avoid GPU lockup registers must be emited in a specific order
+	 *  To avoid GPU lockup registers must be emitted in a specific order
 	 * (no kidding ...). The order below is important and have been
-	 * partialy infered from analyzing fglrx command stream.
+	 * partially inferred from analyzing fglrx command stream.
 	 *
 	 * Don't reorder atom without carefully checking the effect (GPU lockup
 	 * or piglit regression).
@@ -3062,8 +3084,8 @@ void r600_init_state_functions(struct r600_context *rctx)
 	r600_init_atom(rctx, &rctx->constbuf_state[PIPE_SHADER_GEOMETRY].atom, id++, r600_emit_gs_constant_buffers, 0);
 	r600_init_atom(rctx, &rctx->constbuf_state[PIPE_SHADER_FRAGMENT].atom, id++, r600_emit_ps_constant_buffers, 0);
 
-	/* sampler must be emited before TA_CNTL_AUX otherwise DISABLE_CUBE_WRAP change
-	 * does not take effect (TA_CNTL_AUX emited by r600_emit_seamless_cube_map)
+	/* sampler must be emitted before TA_CNTL_AUX otherwise DISABLE_CUBE_WRAP change
+	 * does not take effect (TA_CNTL_AUX emitted by r600_emit_seamless_cube_map)
 	 */
 	r600_init_atom(rctx, &rctx->samplers[PIPE_SHADER_VERTEX].states.atom, id++, r600_emit_vs_sampler_states, 0);
 	r600_init_atom(rctx, &rctx->samplers[PIPE_SHADER_GEOMETRY].states.atom, id++, r600_emit_gs_sampler_states, 0);

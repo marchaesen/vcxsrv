@@ -958,13 +958,13 @@ static void vid_dec_h265_Decode(vid_dec_PrivateType *priv,
    if (nal_unit_type == NAL_UNIT_TYPE_SPS) {
       struct vl_rbsp rbsp;
 
-      vl_rbsp_init(&rbsp, vlc, ~0);
+      vl_rbsp_init(&rbsp, vlc, ~0, /* emulation_bytes */ true);
       seq_parameter_set(priv, &rbsp);
 
    } else if (nal_unit_type == NAL_UNIT_TYPE_PPS) {
       struct vl_rbsp rbsp;
 
-      vl_rbsp_init(&rbsp, vlc, ~0);
+      vl_rbsp_init(&rbsp, vlc, ~0, /* emulation_bytes */ true);
       picture_parameter_set(priv, &rbsp);
 
    } else if (is_slice_picture(nal_unit_type)) {
@@ -986,7 +986,7 @@ static void vid_dec_h265_Decode(vid_dec_PrivateType *priv,
       priv->bytes_left = (vl_vlc_bits_left(vlc) - bits) / 8;
       priv->slice = vlc->data;
 
-      vl_rbsp_init(&rbsp, vlc, 128);
+      vl_rbsp_init(&rbsp, vlc, 128, /* emulation_bytes */ true);
       slice_header(priv, &rbsp, nal_unit_type);
 
       vid_dec_h265_BeginFrame(priv);

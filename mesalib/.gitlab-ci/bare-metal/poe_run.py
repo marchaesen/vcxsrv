@@ -24,23 +24,26 @@
 import argparse
 import os
 import re
-from serial_buffer import SerialBuffer
 import sys
 import threading
 
+from custom_logger import CustomLogger
+from serial_buffer import SerialBuffer
 
 class PoERun:
-    def __init__(self, args, test_timeout):
+    def __init__(self, args, test_timeout, logger):
         self.powerup = args.powerup
         self.powerdown = args.powerdown
         self.ser = SerialBuffer(
             args.dev, "results/serial-output.txt", "")
         self.test_timeout = test_timeout
+        self.logger = logger
 
     def print_error(self, message):
         RED = '\033[0;31m'
         NO_COLOR = '\033[0m'
         print(RED + message + NO_COLOR)
+        self.logger.update_status_fail(message)
 
     def logged_system(self, cmd):
         print("Running '{}'".format(cmd))
@@ -48,9 +51,11 @@ class PoERun:
 
     def run(self):
         if self.logged_system(self.powerup) != 0:
+            self.logger.update_status_fail("powerup failed")
             return 1
 
         boot_detected = False
+        self.logger.create_job_phase("boot")
         for line in self.ser.lines(timeout=5 * 60, phase="bootloader"):
             if re.search("Booting Linux", line):
                 boot_detected = True
@@ -59,10 +64,12 @@ class PoERun:
         if not boot_detected:
             self.print_error(
                 "Something wrong; couldn't detect the boot start up sequence")
-            return 2
+            return 1
 
+        self.logger.create_job_phase("test")
         for line in self.ser.lines(timeout=self.test_timeout, phase="test"):
             if re.search("---. end Kernel panic", line):
+                self.logger.update_status_fail("kernel panic")
                 return 1
 
             # Binning memory problems
@@ -71,24 +78,26 @@ class PoERun:
                 return 1
 
             if re.search("nouveau 57000000.gpu: bus: MMIO read of 00000000 FAULT at 137000", line):
-                self.print_error("nouveau jetson boot bug, retrying.")
-                return 2
+                self.print_error("nouveau jetson boot bug, abandoning run.")
+                return 1
 
             # network fail on tk1
             if re.search("NETDEV WATCHDOG:.* transmit queue 0 timed out", line):
-                self.print_error("nouveau jetson tk1 network fail, retrying.")
-                return 2
+                self.print_error("nouveau jetson tk1 network fail, abandoning run.")
+                return 1
 
             result = re.search("hwci: mesa: (\S*)", line)
             if result:
                 if result.group(1) == "pass":
+                    self.logger.update_dut_job("status", "pass")
                     return 0
                 else:
+                    self.logger.update_status_fail("test fail")
                     return 1
 
         self.print_error(
             "Reached the end of the CPU serial log without finding a result")
-        return 2
+        return 1
 
 
 def main():
@@ -103,10 +112,13 @@ def main():
         '--test-timeout', type=int, help='Test phase timeout (minutes)', required=True)
     args = parser.parse_args()
 
-    poe = PoERun(args, args.test_timeout * 60)
+    logger = CustomLogger("job_detail.json")
+    logger.update_dut_time("start", None)
+    poe = PoERun(args, args.test_timeout * 60, logger)
     retval = poe.run()
 
     poe.logged_system(args.powerdown)
+    logger.update_dut_time("end", None)
 
     sys.exit(retval)
 

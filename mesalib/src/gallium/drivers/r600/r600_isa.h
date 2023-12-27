@@ -27,6 +27,7 @@
 #ifndef R600_ISA_H_
 #define R600_ISA_H_
 
+#include "amd_family.h"
 #include "util/u_debug.h"
 
 #ifdef __cplusplus
@@ -679,7 +680,7 @@ struct r600_isa {
 
 struct r600_context;
 
-int r600_isa_init(struct r600_context *ctx, struct r600_isa *isa);
+int r600_isa_init(enum amd_gfx_level gfx_level, struct r600_isa *isa);
 int r600_isa_destroy(struct r600_isa *isa);
 
 extern const struct alu_op_info r600_alu_op_table[];

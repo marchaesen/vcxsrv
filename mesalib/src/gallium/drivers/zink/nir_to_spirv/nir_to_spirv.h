@@ -26,7 +26,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 #include "compiler/nir/nir.h"
 #include "compiler/shader_enums.h"

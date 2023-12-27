@@ -368,9 +368,11 @@ ir_constant::clone(void *mem_ctx, struct hash_table *ht) const
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_SUBROUTINE:
    case GLSL_TYPE_INTERFACE:
-   case GLSL_TYPE_FUNCTION:
       assert(!"Should not get here.");
       break;
+
+   case GLSL_TYPE_COOPERATIVE_MATRIX:
+      unreachable("unsupported base type cooperative matrix");
    }
 
    return NULL;

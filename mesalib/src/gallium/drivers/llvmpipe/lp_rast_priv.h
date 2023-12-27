@@ -52,7 +52,7 @@ extern int jit_line;
 extern const struct lp_rast_state *jit_state;
 extern const struct lp_rasterizer_task *jit_task;
 
-#define BEGIN_JIT_CALL(state, task)                  \
+#define BEGIN_JIT_CALL(state, task) \
    do { \
       jit_line = __LINE__; \
       jit_state = state; \
@@ -100,8 +100,8 @@ struct lp_rasterizer_task
    /** Non-interpolated passthru state and occlude counter for visible pixels */
    struct lp_jit_thread_data thread_data;
 
-   pipe_semaphore work_ready;
-   pipe_semaphore work_done;
+   util_semaphore work_ready;
+   util_semaphore work_done;
 };
 
 
@@ -112,8 +112,8 @@ struct lp_rasterizer_task
  */
 struct lp_rasterizer
 {
-   boolean exit_flag;
-   boolean no_rast;  /**< For debugging/profiling */
+   bool exit_flag;
+   bool no_rast;  /**< For debugging/profiling */
 
    /** The incoming queue of scenes ready to rasterize */
    struct lp_scene_queue *full_scenes;
@@ -215,16 +215,15 @@ lp_rast_get_depth_block_pointer(struct lp_rasterizer_task *task,
 }
 
 
-
 /**
  * Shade all pixels in a 4x4 block.  The fragment code omits the
  * triangle in/out tests.
  * \param x, y location of 4x4 block in window coords
  */
 static inline void
-lp_rast_shade_quads_all( struct lp_rasterizer_task *task,
-                         const struct lp_rast_shader_inputs *inputs,
-                         unsigned x, unsigned y )
+lp_rast_shade_quads_all(struct lp_rasterizer_task *task,
+                        const struct lp_rast_shader_inputs *inputs,
+                        unsigned x, unsigned y)
 {
    const struct lp_scene *scene = task->scene;
    const struct lp_rast_state *state = task->state;
@@ -243,8 +242,7 @@ lp_rast_shade_quads_all( struct lp_rasterizer_task *task,
          sample_stride[i] = scene->cbufs[i].sample_stride;
          color[i] = lp_rast_get_color_block_pointer(task, i, x, y,
                                                     inputs->layer + inputs->view_index);
-      }
-      else {
+      } else {
          stride[i] = 0;
          sample_stride[i] = 0;
          color[i] = NULL;
@@ -272,20 +270,21 @@ lp_rast_shade_quads_all( struct lp_rasterizer_task *task,
 
       /* run shader on 4x4 block */
       BEGIN_JIT_CALL(state, task);
-      variant->jit_function[RAST_WHOLE]( &state->jit_context,
-                                         x, y,
-                                         inputs->frontfacing,
-                                         GET_A0(inputs),
-                                         GET_DADX(inputs),
-                                         GET_DADY(inputs),
-                                         color,
-                                         depth,
-                                         mask,
-                                         &task->thread_data,
-                                         stride,
-                                         depth_stride,
-                                         sample_stride,
-                                         depth_sample_stride);
+      variant->jit_function[RAST_WHOLE](&state->jit_context,
+                                        &state->jit_resources,
+                                        x, y,
+                                        inputs->frontfacing,
+                                        GET_A0(inputs),
+                                        GET_DADX(inputs),
+                                        GET_DADY(inputs),
+                                        color,
+                                        depth,
+                                        mask,
+                                        &task->thread_data,
+                                        stride,
+                                        depth_stride,
+                                        sample_stride,
+                                        depth_sample_stride);
       END_JIT_CALL();
    }
 }

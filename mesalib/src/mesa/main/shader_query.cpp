@@ -1122,7 +1122,7 @@ program_resource_location(struct gl_program_resource *res, unsigned array_index)
          return -1;
       }
       return var->location +
-	     (array_index * var->type->without_array()->matrix_columns);
+	     (array_index * glsl_without_array(var->type)->matrix_columns);
    }
    case GL_PROGRAM_OUTPUT:
       if (RESOURCE_VAR(res)->location == -1)
@@ -1144,7 +1144,7 @@ program_resource_location(struct gl_program_resource *res, unsigned array_index)
       *     "A valid name cannot be a structure, an array of structures, or any
       *     portion of a single vector or a matrix."
       */
-      if (RESOURCE_UNI(res)->type->without_array()->is_struct())
+      if (glsl_type_is_struct(glsl_without_array(RESOURCE_UNI(res)->type)))
          return -1;
 
       /* From the GL_ARB_uniform_buffer_object spec:
@@ -2013,10 +2013,10 @@ validate_io(struct gl_program *producer, struct gl_program *consumer)
       if (consumer_is_array_stage) {
          if (consumer_interface_type) {
             /* the interface is the array; the underlying types should match */
-            if (consumer_interface_type->is_array() && !consumer_var->patch)
+            if (glsl_type_is_array(consumer_interface_type) && !consumer_var->patch)
                consumer_interface_type = consumer_interface_type->fields.array;
          } else {
-            if (consumer_type->is_array() && !consumer_var->patch)
+            if (glsl_type_is_array(consumer_type) && !consumer_var->patch)
                consumer_type = consumer_type->fields.array;
          }
       }
@@ -2024,10 +2024,10 @@ validate_io(struct gl_program *producer, struct gl_program *consumer)
       if (producer_is_array_stage) {
          if (producer_interface_type) {
             /* the interface is the array; the underlying types should match */
-            if (producer_interface_type->is_array() && !producer_var->patch)
+            if (glsl_type_is_array(producer_interface_type) && !producer_var->patch)
                producer_interface_type = producer_interface_type->fields.array;
          } else {
-            if (producer_type->is_array() && !producer_var->patch)
+            if (glsl_type_is_array(producer_type) && !producer_var->patch)
                producer_type = producer_type->fields.array;
          }
       }

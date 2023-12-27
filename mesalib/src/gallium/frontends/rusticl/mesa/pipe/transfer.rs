@@ -13,6 +13,9 @@ pub struct PipeTransfer {
     is_buffer: bool,
 }
 
+// SAFETY: Transfers are safe to send between threads
+unsafe impl Send for PipeTransfer {}
+
 pub struct GuardedPipeTransfer<'a> {
     inner: PipeTransfer,
     ctx: &'a PipeContext,
@@ -58,8 +61,12 @@ impl PipeTransfer {
         unsafe { (*self.pipe).stride }
     }
 
-    pub fn slice_pitch(&self) -> u32 {
+    pub fn slice_pitch(&self) -> usize {
         unsafe { (*self.pipe).layer_stride }
+    }
+
+    pub fn bx(&self) -> &pipe_box {
+        unsafe { &(*self.pipe).box_ }
     }
 
     pub fn with_ctx(self, ctx: &PipeContext) -> GuardedPipeTransfer {

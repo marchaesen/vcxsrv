@@ -116,7 +116,7 @@ fbCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 
     RegionIntersect(&rgnDst, &pWin->borderClip, prgnSrc);
 
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
     if (pPixmap->screen_x || pPixmap->screen_y)
         RegionTranslate(&rgnDst, -pPixmap->screen_x, -pPixmap->screen_y);
 #endif

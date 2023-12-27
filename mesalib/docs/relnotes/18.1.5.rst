@@ -99,7 +99,7 @@ Jan Vesely (3):
 -  clover: Report error when pipe driver fails to create compute state
 -  clover: Catch errors from executing event action
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  anv: Stop setting 3DSTATE_PS_EXTRA::PixelShaderHasUAV
 -  nir/serialize: Alloc constants off the variable

@@ -1304,10 +1304,10 @@ currently four); if a key has fewer than
 <symbol>XkbNumKbdGroups</symbol>
 groups, the extra key types are reported but ignored.</para></note>
 
-<indexterm significance="preferred" zone="XkbKeyTypeIndex"><primary><function>XkbKeyTypeIndex</function></primary></indexterm>
-<funcsynopsis id="XkbKeyTypeIndex">
+<indexterm significance="preferred" zone="XkbKeyKeyTypeIndex"><primary><function>XkbKeyKeyTypeIndex</function></primary></indexterm>
+<funcsynopsis id="XkbKeyKeyTypeIndex">
   <funcprototype>
-    <funcdef>int <function>XkbKeyTypeIndex</function></funcdef>
+    <funcdef>int <function>XkbKeyKeyTypeIndex</function></funcdef>
 <!-- (
 <parameter>xkb, keycode, group</parameter>
 )                              /* macro*/ -->
@@ -1351,7 +1351,7 @@ groups, the extra key types are reported but ignored.</para></note>
 </variablelist>
 
 <para>
-<function>XkbKeyTypeIndex</function>
+<function>XkbKeyKeyTypeIndex</function>
 computes an index into the
 <structfield>types</structfield>
 vector of the client map in
@@ -1364,10 +1364,10 @@ index.
 </para>
 
 
-<indexterm significance="preferred" zone="XkbKeyType"><primary><function>XkbKeyType</function></primary></indexterm>
-<funcsynopsis id="XkbKeyType">
+<indexterm significance="preferred" zone="XkbKeyKeyType"><primary><function>XkbKeyKeyType</function></primary></indexterm>
+<funcsynopsis id="XkbKeyKeyType">
   <funcprototype>
-    <funcdef>XkbKeyTypePtr <function>XkbKeyType</function></funcdef>
+    <funcdef>XkbKeyTypePtr <function>XkbKeyKeyType</function></funcdef>
 <!-- (
 <parameter>xkb, keycode, group</parameter>
 )                              /* macro */ -->
@@ -1411,7 +1411,7 @@ index.
 </variablelist>
 
 <para>
-<function>XkbKeyType</function>
+<function>XkbKeyKeyType</function>
 returns a pointer to the key type in the
 <structfield>types</structfield>
 vector of the client map in
@@ -1726,8 +1726,6 @@ entry for a key is used to access the beginning of the array.
 <para>
 Xkb provides the following macros for accessing the
 <structfield>width</structfield>
-and
-<structfield>offset</structfield>
 for individual keys, as well as macros for accessing the two-dimensional array
 of symbols bound to the key:
 </para>
@@ -1825,49 +1823,6 @@ computes the maximum width associated with the key corresponding to
 computes the width of the type associated with the group
 <parameter>grp</parameter>
 for the key corresponding to
-<parameter>keycode</parameter>.
-</para>
-
-
-<indexterm significance="preferred" zone="XkbKeySymsOffset"><primary><function>XkbKeySymsOffset</function></primary></indexterm>
-<funcsynopsis id="XkbKeySymsOffset">
-  <funcprototype>
-    <funcdef>int <function>XkbKeySymsOffset</function></funcdef>
-<!-- (
-<parameter>xkb, keycode</parameter>
-)                              /* macro */ -->
-
-    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
-    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
-  </funcprototype>
-</funcsynopsis>
-<variablelist>
-  <varlistentry>
-    <term>
-      <parameter>xkb</parameter>
-    </term>
-    <listitem>
-      <para>
-        Xkb description of interest
-      </para>
-    </listitem>
-  </varlistentry>
-  <varlistentry>
-    <term>
-      <parameter>keycode</parameter>
-    </term>
-    <listitem>
-      <para>
-        keycode of interest
-      </para>
-    </listitem>
-  </varlistentry>
-</variablelist>
-
-<para>
-<function>XkbKeySymsOffset</function>
-returns the offset of the two-dimensional array of keysyms for the key
-corresponding to
 <parameter>keycode</parameter>.
 </para>
 

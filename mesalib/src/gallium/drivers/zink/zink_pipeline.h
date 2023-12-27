@@ -31,13 +31,24 @@
 extern "C" {
 #endif
 
+struct zink_gfx_output_key *
+zink_find_or_create_output(struct zink_context *ctx);
+struct zink_gfx_output_key *
+zink_find_or_create_output_ds3(struct zink_context *ctx);
+struct zink_gfx_input_key *
+zink_find_or_create_input(struct zink_context *ctx, VkPrimitiveTopology vkmode);
+struct zink_gfx_input_key *
+zink_find_or_create_input_dynamic(struct zink_context *ctx, VkPrimitiveTopology vkmode);
 
 VkPipeline
 zink_create_gfx_pipeline(struct zink_screen *screen,
                          struct zink_gfx_program *prog,
+                         struct zink_shader_object *objs,
                          struct zink_gfx_pipeline_state *state,
                          const uint8_t *binding_map,
-                         VkPrimitiveTopology primitive_topology);
+                         VkPrimitiveTopology primitive_topology,
+                         bool optimize,
+                         struct util_dynarray *dgc);
 
 VkPipeline
 zink_create_compute_pipeline(struct zink_screen *screen, struct zink_compute_program *comp, struct zink_compute_pipeline_state *state);
@@ -48,13 +59,13 @@ zink_create_gfx_pipeline_input(struct zink_screen *screen,
                                const uint8_t *binding_map,
                                VkPrimitiveTopology primitive_topology);
 VkPipeline
-zink_create_gfx_pipeline_library(struct zink_screen *screen, struct zink_gfx_program *prog,
-                                 struct zink_rasterizer_hw_state *hw_rast_state, bool line);
+zink_create_gfx_pipeline_library(struct zink_screen *screen, struct zink_gfx_program *prog);
 VkPipeline
 zink_create_gfx_pipeline_output(struct zink_screen *screen, struct zink_gfx_pipeline_state *state);
 VkPipeline
-zink_create_gfx_pipeline_combined(struct zink_screen *screen, struct zink_gfx_program *prog, VkPipeline input, VkPipeline library, VkPipeline output);
-
+zink_create_gfx_pipeline_combined(struct zink_screen *screen, struct zink_gfx_program *prog, VkPipeline input, VkPipeline *library, unsigned libcount, VkPipeline output, bool optimized, bool testonly);
+VkPipeline
+zink_create_gfx_pipeline_separate(struct zink_screen *screen, struct zink_shader_object *objs, VkPipelineLayout layout, gl_shader_stage stage);
 #ifdef __cplusplus
 }
 #endif

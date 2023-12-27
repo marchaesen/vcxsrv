@@ -6,3 +6,4 @@ dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.first.line_strip_with_adjacency
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.per_pipeline.triangle_strip_with_adjacency
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.last.triangle_list_with_adjacency
+

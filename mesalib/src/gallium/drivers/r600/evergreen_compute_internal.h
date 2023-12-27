@@ -81,7 +81,6 @@ struct r600_pipe_compute {
 	struct r600_bytecode bc;
 
 	unsigned local_size;
-	unsigned private_size;
 	unsigned input_size;
 	struct r600_resource *kernel_param;
 

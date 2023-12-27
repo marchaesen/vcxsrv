@@ -1,25 +1,7 @@
 /*
  * Copyright 2012 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "si_build_pm4.h"
@@ -51,8 +33,14 @@ static void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small
       line_width = roundf(line_width);
    line_width = MAX2(line_width, 1);
 
-   info.clip_half_line_width[0] = line_width * 0.5 / fabs(info.scale[0]);
-   info.clip_half_line_width[1] = line_width * 0.5 / fabs(info.scale[1]);
+   float half_line_width = line_width * 0.5;
+   if (info.scale[0] == 0 || info.scale[1] == 0) {
+     info.clip_half_line_width[0] = 0;
+     info.clip_half_line_width[1] = 0;
+   } else {
+     info.clip_half_line_width[0] = half_line_width / fabs(info.scale[0]);
+     info.clip_half_line_width[1] = half_line_width / fabs(info.scale[1]);
+   }
 
    /* If the Y axis is inverted (OpenGL default framebuffer), reverse it.
     * This is because the viewport transformation inverts the clip space
@@ -86,7 +74,7 @@ static void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small
    *out = info;
 }
 
-static void si_emit_cull_state(struct si_context *sctx)
+static void si_emit_cull_state(struct si_context *sctx, unsigned index)
 {
    assert(sctx->screen->use_ngg_culling);
 
@@ -108,10 +96,17 @@ static void si_emit_cull_state(struct si_context *sctx)
    /* This will end up in SGPR6 as (value << 8), shifted by the hw. */
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->small_prim_cull_info_buf,
                              RADEON_USAGE_READ | RADEON_PRIO_CONST_BUFFER);
-   radeon_begin(&sctx->gfx_cs);
-   radeon_set_sh_reg(R_00B230_SPI_SHADER_USER_DATA_GS_0 + GFX9_SGPR_SMALL_PRIM_CULL_INFO * 4,
-                     sctx->small_prim_cull_info_address);
-   radeon_end();
+
+   if (sctx->screen->info.has_set_sh_pairs_packed) {
+      gfx11_push_gfx_sh_reg(R_00B230_SPI_SHADER_USER_DATA_GS_0 +
+                            GFX9_SGPR_SMALL_PRIM_CULL_INFO * 4,
+                            sctx->small_prim_cull_info_address);
+   } else {
+      radeon_begin(&sctx->gfx_cs);
+      radeon_set_sh_reg(R_00B230_SPI_SHADER_USER_DATA_GS_0 + GFX9_SGPR_SMALL_PRIM_CULL_INFO * 4,
+                        sctx->small_prim_cull_info_address);
+      radeon_end();
+   }
 
    /* Better subpixel precision increases the efficiency of small
     * primitive culling. (more precision means a tighter bounding box
@@ -240,49 +235,43 @@ static void si_emit_one_scissor(struct si_context *ctx, struct radeon_cmdbuf *cs
       si_clip_scissor(&final, scissor);
 
    radeon_begin(cs);
-
-   /* Workaround for a hw bug on GFX6 that occurs when PA_SU_HARDWARE_-
-    * SCREEN_OFFSET != 0 and any_scissor.BR_X/Y <= 0.
+   /* Workaround for a hw bug on GFX6 that occurs when PA_SU_HARDWARE_SCREEN_OFFSET != 0 and
+    * any_scissor.BR_X/Y <= 0.
     */
    if (ctx->gfx_level == GFX6 && (final.maxx == 0 || final.maxy == 0)) {
       radeon_emit(S_028250_TL_X(1) | S_028250_TL_Y(1) | S_028250_WINDOW_OFFSET_DISABLE(1));
       radeon_emit(S_028254_BR_X(1) | S_028254_BR_Y(1));
-      radeon_end();
-      return;
-   }
-
-   radeon_emit(S_028250_TL_X(final.minx) | S_028250_TL_Y(final.miny) |
+   } else {
+      radeon_emit(S_028250_TL_X(final.minx) | S_028250_TL_Y(final.miny) |
                   S_028250_WINDOW_OFFSET_DISABLE(1));
-   radeon_emit(S_028254_BR_X(final.maxx) | S_028254_BR_Y(final.maxy));
+      radeon_emit(S_028254_BR_X(final.maxx) | S_028254_BR_Y(final.maxy));
+   }
    radeon_end();
 }
 
-#define MAX_PA_SU_HARDWARE_SCREEN_OFFSET 8176
-
-static void si_emit_guardband(struct si_context *ctx)
+static void si_emit_guardband(struct si_context *sctx, unsigned index)
 {
-   const struct si_state_rasterizer *rs = ctx->queued.named.rasterizer;
+   const struct si_state_rasterizer *rs = sctx->queued.named.rasterizer;
    struct si_signed_scissor vp_as_scissor;
    struct pipe_viewport_state vp;
    float left, top, right, bottom, max_range, guardband_x, guardband_y;
-   float discard_x, discard_y;
 
-   if (ctx->vs_writes_viewport_index) {
+   if (sctx->vs_writes_viewport_index) {
       /* Shaders can draw to any viewport. Make a union of all
        * viewports. */
-      vp_as_scissor = ctx->viewports.as_scissor[0];
+      vp_as_scissor = sctx->viewports.as_scissor[0];
       for (unsigned i = 1; i < SI_MAX_VIEWPORTS; i++) {
-         si_scissor_make_union(&vp_as_scissor, &ctx->viewports.as_scissor[i]);
+         si_scissor_make_union(&vp_as_scissor, &sctx->viewports.as_scissor[i]);
       }
    } else {
-      vp_as_scissor = ctx->viewports.as_scissor[0];
+      vp_as_scissor = sctx->viewports.as_scissor[0];
    }
 
    /* Blits don't set the viewport state. The vertex shader determines
     * the viewport size by scaling the coordinates, so we don't know
     * how large the viewport is. Assume the worst case.
     */
-   if (ctx->vs_disables_clipping_viewport)
+   if (sctx->vs_disables_clipping_viewport)
       vp_as_scissor.quant_mode = SI_QUANT_MODE_16_8_FIXED_POINT_1_256TH;
 
    /* Determine the optimal hardware screen offset to center the viewport
@@ -293,11 +282,12 @@ static void si_emit_guardband(struct si_context *ctx)
 
    /* GFX6-GFX7 need to align the offset to an ubertile consisting of all SEs. */
    const unsigned hw_screen_offset_alignment =
-      ctx->gfx_level >= GFX11 ? 32 :
-      ctx->gfx_level >= GFX8 ? 16 : MAX2(ctx->screen->se_tile_repeat, 16);
+      sctx->gfx_level >= GFX11 ? 32 :
+      sctx->gfx_level >= GFX8 ? 16 : MAX2(sctx->screen->se_tile_repeat, 16);
+   const unsigned max_hw_screen_offset = 8176;
 
    /* Indexed by quantization modes */
-   static int max_viewport_size[] = {65535, 16383, 4095};
+   static int max_viewport_size[] = {65536, 16384, 4096};
 
    /* Ensure that the whole viewport stays representable in
     * absolute coordinates.
@@ -306,8 +296,8 @@ static void si_emit_guardband(struct si_context *ctx)
    assert(vp_as_scissor.maxx <= max_viewport_size[vp_as_scissor.quant_mode] &&
           vp_as_scissor.maxy <= max_viewport_size[vp_as_scissor.quant_mode]);
 
-   hw_screen_offset_x = CLAMP(hw_screen_offset_x, 0, MAX_PA_SU_HARDWARE_SCREEN_OFFSET);
-   hw_screen_offset_y = CLAMP(hw_screen_offset_y, 0, MAX_PA_SU_HARDWARE_SCREEN_OFFSET);
+   hw_screen_offset_x = CLAMP(hw_screen_offset_x, 0, max_hw_screen_offset);
+   hw_screen_offset_y = CLAMP(hw_screen_offset_y, 0, max_hw_screen_offset);
 
    /* Align the screen offset by dropping the low bits. */
    hw_screen_offset_x &= ~(hw_screen_offset_alignment - 1);
@@ -354,49 +344,57 @@ static void si_emit_guardband(struct si_context *ctx)
    guardband_x = MIN2(-left, right);
    guardband_y = MIN2(-top, bottom);
 
-   discard_x = 1.0;
-   discard_y = 1.0;
+   float discard_x = 1.0;
+   float discard_y = 1.0;
+   float distance = sctx->current_clip_discard_distance;
 
-   if (unlikely(util_prim_is_points_or_lines(ctx->current_rast_prim))) {
-      /* When rendering wide points or lines, we need to be more
-       * conservative about when to discard them entirely. */
-      float pixels;
+   /* Add half the point size / line width */
+   discard_x += distance / (2.0 * vp.scale[0]);
+   discard_y += distance / (2.0 * vp.scale[1]);
 
-      if (ctx->current_rast_prim == PIPE_PRIM_POINTS)
-         pixels = rs->max_point_size;
-      else
-         pixels = rs->line_width;
+   /* Discard primitives that would lie entirely outside the viewport area. */
+   discard_x = MIN2(discard_x, guardband_x);
+   discard_y = MIN2(discard_y, guardband_y);
 
-      /* Add half the point size / line width */
-      discard_x += pixels / (2.0 * vp.scale[0]);
-      discard_y += pixels / (2.0 * vp.scale[1]);
-
-      /* Discard primitives that would lie entirely outside the clip
-       * region. */
-      discard_x = MIN2(discard_x, guardband_x);
-      discard_y = MIN2(discard_y, guardband_y);
-   }
+   unsigned pa_su_vtx_cntl = S_028BE4_PIX_CENTER(rs->half_pixel_center) |
+                             S_028BE4_ROUND_MODE(V_028BE4_X_ROUND_TO_EVEN) |
+                             S_028BE4_QUANT_MODE(V_028BE4_X_16_8_FIXED_POINT_1_256TH +
+                                                 vp_as_scissor.quant_mode);
+   unsigned pa_su_hardware_screen_offset = S_028234_HW_SCREEN_OFFSET_X(hw_screen_offset_x >> 4) |
+                                           S_028234_HW_SCREEN_OFFSET_Y(hw_screen_offset_y >> 4);
 
    /* If any of the GB registers is updated, all of them must be updated.
     * R_028BE8_PA_CL_GB_VERT_CLIP_ADJ, R_028BEC_PA_CL_GB_VERT_DISC_ADJ
     * R_028BF0_PA_CL_GB_HORZ_CLIP_ADJ, R_028BF4_PA_CL_GB_HORZ_DISC_ADJ
     */
-   radeon_begin(&ctx->gfx_cs);
-   radeon_opt_set_context_reg4(ctx, R_028BE8_PA_CL_GB_VERT_CLIP_ADJ,
-                               SI_TRACKED_PA_CL_GB_VERT_CLIP_ADJ, fui(guardband_y), fui(discard_y),
-                               fui(guardband_x), fui(discard_x));
-   radeon_opt_set_context_reg(ctx, R_028234_PA_SU_HARDWARE_SCREEN_OFFSET,
-                              SI_TRACKED_PA_SU_HARDWARE_SCREEN_OFFSET,
-                              S_028234_HW_SCREEN_OFFSET_X(hw_screen_offset_x >> 4) |
-                                 S_028234_HW_SCREEN_OFFSET_Y(hw_screen_offset_y >> 4));
-   radeon_opt_set_context_reg(
-      ctx, R_028BE4_PA_SU_VTX_CNTL, SI_TRACKED_PA_SU_VTX_CNTL,
-      S_028BE4_PIX_CENTER(rs->half_pixel_center) | S_028BE4_ROUND_MODE(V_028BE4_X_ROUND_TO_EVEN) |
-         S_028BE4_QUANT_MODE(V_028BE4_X_16_8_FIXED_POINT_1_256TH + vp_as_scissor.quant_mode));
-   radeon_end_update_context_roll(ctx);
+   if (sctx->screen->info.has_set_context_pairs_packed) {
+      radeon_begin(&sctx->gfx_cs);
+      gfx11_begin_packed_context_regs();
+      gfx11_opt_set_context_reg(R_028BE4_PA_SU_VTX_CNTL, SI_TRACKED_PA_SU_VTX_CNTL,
+                                pa_su_vtx_cntl);
+      gfx11_opt_set_context_reg4(R_028BE8_PA_CL_GB_VERT_CLIP_ADJ,
+                                 SI_TRACKED_PA_CL_GB_VERT_CLIP_ADJ,
+                                 fui(guardband_y), fui(discard_y),
+                                 fui(guardband_x), fui(discard_x));
+      gfx11_opt_set_context_reg(R_028234_PA_SU_HARDWARE_SCREEN_OFFSET,
+                                SI_TRACKED_PA_SU_HARDWARE_SCREEN_OFFSET,
+                                pa_su_hardware_screen_offset);
+      gfx11_end_packed_context_regs();
+      radeon_end(); /* don't track context rolls on GFX11 */
+   } else {
+      radeon_begin(&sctx->gfx_cs);
+      radeon_opt_set_context_reg5(sctx, R_028BE4_PA_SU_VTX_CNTL, SI_TRACKED_PA_SU_VTX_CNTL,
+                                  pa_su_vtx_cntl,
+                                  fui(guardband_y), fui(discard_y),
+                                  fui(guardband_x), fui(discard_x));
+      radeon_opt_set_context_reg(sctx, R_028234_PA_SU_HARDWARE_SCREEN_OFFSET,
+                                 SI_TRACKED_PA_SU_HARDWARE_SCREEN_OFFSET,
+                                 pa_su_hardware_screen_offset);
+      radeon_end_update_context_roll(sctx);
+   }
 }
 
-static void si_emit_scissors(struct si_context *ctx)
+static void si_emit_scissors(struct si_context *ctx, unsigned index)
 {
    struct radeon_cmdbuf *cs = &ctx->gfx_cs;
    struct pipe_scissor_state *states = ctx->scissors;
@@ -576,7 +574,7 @@ static void si_emit_depth_ranges(struct si_context *ctx)
    radeon_end();
 }
 
-static void si_emit_viewport_states(struct si_context *ctx)
+static void si_emit_viewport_states(struct si_context *ctx, unsigned index)
 {
    si_emit_viewports(ctx);
    si_emit_depth_ranges(ctx);
@@ -606,6 +604,7 @@ void si_update_vs_viewport_state(struct si_context *ctx)
 
    if (ctx->vs_disables_clipping_viewport != vs_window_space) {
       ctx->vs_disables_clipping_viewport = vs_window_space;
+      si_mark_atom_dirty(ctx, &ctx->atoms.s.guardband);
       si_mark_atom_dirty(ctx, &ctx->atoms.s.scissors);
       si_mark_atom_dirty(ctx, &ctx->atoms.s.viewports);
    }
@@ -627,7 +626,7 @@ void si_update_vs_viewport_state(struct si_context *ctx)
    }
 }
 
-static void si_emit_window_rectangles(struct si_context *sctx)
+static void si_emit_window_rectangles(struct si_context *sctx, unsigned index)
 {
    /* There are four clipping rectangles. Their corner coordinates are inclusive.
     * Every pixel is assigned a number from 0 and 15 by setting bits 0-3 depending
@@ -641,7 +640,7 @@ static void si_emit_window_rectangles(struct si_context *sctx)
    static const unsigned outside[4] = {
       /* outside rectangle 0 */
       V_02820C_OUT | V_02820C_IN_1 | V_02820C_IN_2 | V_02820C_IN_21 | V_02820C_IN_3 |
-         V_02820C_IN_31 | V_02820C_IN_32 | V_02820C_IN_321,
+      V_02820C_IN_31 | V_02820C_IN_32 | V_02820C_IN_321,
       /* outside rectangles 0, 1 */
       V_02820C_OUT | V_02820C_IN_2 | V_02820C_IN_3 | V_02820C_IN_32,
       /* outside rectangles 0, 1, 2 */

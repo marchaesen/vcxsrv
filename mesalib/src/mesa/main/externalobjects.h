@@ -34,7 +34,7 @@
 #ifndef EXTERNALOBJECTS_H
 #define EXTERNALOBJECTS_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "hash.h"
 
 static inline struct gl_memory_object *

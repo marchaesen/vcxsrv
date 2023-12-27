@@ -27,7 +27,7 @@
 #define TEXPARAM_H
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 /**
  * \name Internal functions

@@ -489,17 +489,6 @@ RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor)
         }
     }
 
-    /* 'name' must not match the name of any Monitor on the screen, or
-     * a Value error results.
-     */
-
-    for (m = 0; m < pScrPriv->numMonitors; m++) {
-        if (pScrPriv->monitors[m]->name == monitor->name) {
-            client->errorValue = monitor->name;
-            return BadValue;
-        }
-    }
-
     /* Allocate space for the new pointer. This is done before
      * removing matching monitors as it may fail, and the request
      * needs to not have any side-effects on failure
@@ -518,7 +507,6 @@ RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor)
 
     for (m = 0; m < pScrPriv->numMonitors; m++) {
         RRMonitorPtr    existing = pScrPriv->monitors[m];
-        int             o, eo;
 
 	/* If 'name' matches an existing Monitor on the screen, the
          * existing one will be deleted as if RRDeleteMonitor were called.
@@ -528,27 +516,6 @@ RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor)
             continue;
         }
 
-        /* For each output in 'info.outputs', each one is removed from all
-         * pre-existing Monitors. If removing the output causes the list
-         * of outputs for that Monitor to become empty, then that
-         * Monitor will be deleted as if RRDeleteMonitor were called.
-         */
-
-        for (eo = 0; eo < existing->numOutputs; eo++) {
-            for (o = 0; o < monitor->numOutputs; o++) {
-                if (monitor->outputs[o] == existing->outputs[eo]) {
-                    memmove(existing->outputs + eo, existing->outputs + eo + 1,
-                            (existing->numOutputs - (eo + 1)) * sizeof (RROutput));
-                    --existing->numOutputs;
-                    --eo;
-                    break;
-                }
-            }
-            if (existing->numOutputs == 0) {
-                (void) RRMonitorDelete(client, screen, existing->name);
-                break;
-            }
-        }
         if (monitor->primary)
             existing->primary = FALSE;
     }

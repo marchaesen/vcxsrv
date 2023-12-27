@@ -26,14 +26,14 @@
 using namespace clover;
 
 platform::platform() : adaptor_range(evals(), devs) {
-   int n = pipe_loader_probe(NULL, 0);
+   int n = pipe_loader_probe(NULL, 0, false);
    std::vector<pipe_loader_device *> ldevs(n);
 
    unsigned major = 1, minor = 1;
    debug_get_version_option("CLOVER_PLATFORM_VERSION_OVERRIDE", &major, &minor);
    version = CL_MAKE_VERSION(major, minor, 0);
 
-   pipe_loader_probe(&ldevs.front(), n);
+   pipe_loader_probe(&ldevs.front(), n, false);
 
    for (pipe_loader_device *ldev : ldevs) {
       try {

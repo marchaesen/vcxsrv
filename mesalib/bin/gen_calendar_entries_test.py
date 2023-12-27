@@ -52,7 +52,7 @@ def mock_csv(data: typing.List[gen_calendar_entries.CalendarRowType]) -> typing.
 
 @pytest.fixture(autouse=True, scope='module')
 def disable_git_commits() -> None:
-    """Mock out the commit function so no git commits are made durring testing."""
+    """Mock out the commit function so no git commits are made during testing."""
     with mock.patch('bin.gen_calendar_entries.commit', mock.Mock()):
         yield
 

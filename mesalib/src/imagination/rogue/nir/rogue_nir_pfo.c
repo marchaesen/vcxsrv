@@ -24,7 +24,14 @@
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
 #include "nir/nir_search_helpers.h"
-#include "rogue_nir.h"
+#include "rogue.h"
+#include "util/macros.h"
+
+/**
+ * \file rogue_nir_pfo.c
+ *
+ * \brief Contains the rogue_nir_pfo pass.
+ */
 
 static void insert_pfo(nir_builder *b,
                        nir_intrinsic_instr *store_output,
@@ -34,16 +41,16 @@ static void insert_pfo(nir_builder *b,
    /* TODO: Verify type is vec4. */
 
    /* Pack the output color components into U8888 format. */
-   nir_ssa_def *new_output_src_ssa = nir_pack_unorm_4x8(b, output_src->ssa);
-   nir_src new_output_src = nir_src_for_ssa(new_output_src_ssa);
+   nir_def *new_output_src = nir_pack_unorm_4x8(b, output_src->ssa);
 
    /* Update the store_output intrinsic. */
-   nir_instr_rewrite_src(&store_output->instr, output_src, new_output_src);
+   nir_src_rewrite(output_src, new_output_src);
    nir_intrinsic_set_write_mask(store_output, 1);
    store_output->num_components = 1;
    nir_intrinsic_set_src_type(store_output, nir_type_uint32);
 }
 
+PUBLIC
 void rogue_nir_pfo(nir_shader *shader)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
@@ -53,7 +60,7 @@ void rogue_nir_pfo(nir_shader *shader)
    if (shader->info.stage != MESA_SHADER_FRAGMENT)
       return;
 
-   nir_builder_init(&b, impl);
+   b = nir_builder_create(impl);
 
    nir_foreach_block (block, impl) {
       nir_foreach_instr_safe (instr, block) {

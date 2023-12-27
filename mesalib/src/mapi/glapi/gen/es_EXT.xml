@@ -320,7 +320,7 @@
 
     <function name="PointSizePointerOES" es1="1.0" desktop="false"
               no_error="true" marshal="async"
-              marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_POINT_SIZE, 1, type, stride, pointer);">
+              marshal_call_after="_mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_POINT_SIZE, MESA_PACK_VFORMAT(type, 1, 0, 0, 0), stride, pointer);">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
@@ -856,6 +856,90 @@
     </function>
 </category>
 
+<!-- 124. GL_APPLE_sync -->
+<category name="GL_APPLE_sync" number="124">
+    <type name="int64"   size="8"                  glx_name="CARD64"/>
+    <type name="uint64"  size="8"  unsigned="true" glx_name="CARD64"/>
+    <type name="sync"    size="8"  unsigned="true" glx_name="CARD64"/>
+
+    <enum name="MAX_SERVER_WAIT_TIMEOUT_APPLE" count="1"  value="0x9111">
+        <size name="Get" mode="get"/>
+    </enum>
+    <enum name="OBJECT_TYPE_APPLE"             count="1"  value="0x9112">
+        <size name="GetSyncivAPPLE" mode="get"/>
+    </enum>
+    <enum name="SYNC_CONDITION_APPLE"          count="1"  value="0x9113">
+        <size name="GetSyncivAPPLE" mode="get"/>
+    </enum>
+    <enum name="SYNC_STATUS_APPLE"             count="1"  value="0x9114">
+        <size name="GetSyncivAPPLE" mode="get"/>
+    </enum>
+    <enum name="SYNC_FLAGS_APPLE"              count="1"  value="0x9115">
+        <size name="GetSyncivAPPLE" mode="get"/>
+    </enum>
+
+    <enum name="SYNC_FENCE_APPLE"                         value="0x9116"/>
+    <enum name="SYNC_GPU_COMMANDS_COMPLETE_APPLE"         value="0x9117"/>
+    <enum name="UNSIGNALED_APPLE"                         value="0x9118"/>
+    <enum name="SIGNALED_APPLE"                           value="0x9119"/>
+    <enum name="ALREADY_SIGNALED_APPLE"                   value="0x911A"/>
+    <enum name="TIMEOUT_EXPIRED_APPLE"                    value="0x911B"/>
+    <enum name="CONDITION_SATISFIED_APPLE"                value="0x911C"/>
+    <enum name="WAIT_FAILED_APPLE"                        value="0x911D"/>
+
+    <enum name="SYNC_FLUSH_COMMANDS_BIT_APPLE"            value="0x00000001"/>
+
+    <!-- Not really an enum:
+    <enum name="TIMEOUT_IGNORED_APPLE"            value="0xFFFFFFFFFFFFFFFF"/>
+    -->
+
+    <function name="FenceSyncAPPLE" alias="FenceSync"
+              es1="1.1" es2="2.0" no_error="true">
+        <param name="condition" type="GLenum"/>
+        <param name="flags" type="GLbitfield"/>
+        <return type="GLsync"/>
+    </function>
+
+    <function name="IsSyncAPPLE" alias="IsSync" es1="1.1" es2="2.0">
+        <param name="sync" type="GLsync"/>
+	<return type="GLboolean"/>
+    </function>
+
+    <function name="DeleteSyncAPPLE" alias="DeleteSync"
+              es1="1.1" es2="2.0" no_error="true">
+        <param name="sync" type="GLsync"/>
+    </function>
+
+    <function name="ClientWaitSyncAPPLE" alias="ClientWaitSync"
+              es1="1.1" es2="2.0" no_error="true">
+        <param name="sync" type="GLsync"/>
+        <param name="flags" type="GLbitfield"/>
+	<param name="timeout" type="GLuint64"/>
+        <return type="GLenum"/>
+    </function>
+
+    <function name="WaitSyncAPPLE" alias="WaitSync"
+              es1="1.1" es2="2.0" no_error="true" exec="dlist">
+        <param name="sync" type="GLsync"/>
+        <param name="flags" type="GLbitfield"/>
+	<param name="timeout" type="GLuint64"/>
+    </function>
+
+    <function name="GetInteger64vAPPLE" alias="GetInteger64v"
+              es1="1.1" es2="2.0">
+        <param name="pname" type="GLenum"/>
+        <param name="params" type="GLint64 *" output="true" variable_param="pname"/>
+    </function>
+
+    <function name="GetSyncivAPPLE" alias="GetSynciv" es1="1.1" es2="2.0">
+        <param name="sync" type="GLsync"/>
+        <param name="pname" type="GLenum"/>
+        <param name="bufSize" type="GLsizei"/>
+        <param name="length" type="GLsizei *" output="true"/>
+        <param name="values" type="GLint *" output="true" variable_param="pname"/>
+    </function>
+</category>
+
 <!-- 150. GL_EXT_disjoint_timer_query -->
 <category name="GL_EXT_disjoint_timer_query" number="150">
     <enum name="QUERY_COUNTER_BITS_EXT"     value="0x8864"/>
@@ -1106,7 +1190,7 @@
     </function>
 
     <function name="DrawElementsInstancedBaseVertexEXT" alias="DrawElementsInstancedBaseVertex"
-              es2="3.0">
+              es2="2.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -1248,7 +1332,7 @@
     </function>
 
     <function name="DrawElementsInstancedBaseVertexOES" alias="DrawElementsInstancedBaseVertex"
-              es2="3.0">
+              es2="2.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>

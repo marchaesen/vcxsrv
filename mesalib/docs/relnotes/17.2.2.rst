@@ -89,7 +89,7 @@ Ian Romanick (1):
 
 -  nv20: Fix GL_CLAMP
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  i965/blorp: Set r8stencil_needs_update when writing stencil
 -  vulkan/wsi/wayland: Stop printing out the DRM device

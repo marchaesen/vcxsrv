@@ -26,7 +26,8 @@
 
 #include "broadcom/cle/v3d_packet_helpers.h"
 
-#include "list.h"
+#include "util/list.h"
+#include "util/macros.h"
 
 struct v3dv_bo;
 struct v3dv_job;
@@ -118,6 +119,13 @@ cl_advance(struct v3dv_cl_out **cl, uint32_t n)
 }
 
 static inline void
+cl_advance_and_end(struct v3dv_cl *cl, uint32_t n)
+{
+   cl->next = (struct v3dv_cl_out *)((char *)(cl->next) + n);
+   assert(v3dv_cl_offset(cl) <= cl->size);
+}
+
+static inline void
 cl_aligned_u32(struct v3dv_cl_out **cl, uint32_t n)
 {
    *(uint32_t *)(*cl) = n;
@@ -143,15 +151,9 @@ cl_aligned_reloc(struct v3dv_cl *cl,
 uint32_t v3dv_cl_ensure_space(struct v3dv_cl *cl, uint32_t space, uint32_t alignment);
 void v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space);
 
-/* We redefine ALIGN as a macro as we want to use cl_aligned_packet_length for
- * struct fields
- */
-#define ALIGN(value, alignment)                           \
-        (((value) + (alignment) - 1) & ~((alignment) - 1))
-
 #define cl_packet_header(packet) V3DX(packet ## _header)
 #define cl_packet_length(packet) V3DX(packet ## _length)
-#define cl_aligned_packet_length(packet, alignment) ALIGN(cl_packet_length(packet), alignment)
+#define cl_aligned_packet_length(packet, alignment) ALIGN_POT(cl_packet_length(packet), alignment)
 #define cl_packet_pack(packet)   V3DX(packet ## _pack)
 #define cl_packet_struct(packet) V3DX(packet)
 
@@ -178,8 +180,7 @@ void v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space);
         ({                                                       \
                 struct v3dv_cl_out *cl_out = cl_start(cl);        \
                 cl_packet_pack(packet)(cl, (uint8_t *)cl_out, &name); \
-                cl_advance(&cl_out, cl_packet_length(packet));   \
-                cl_end(cl, cl_out);                              \
+                cl_advance_and_end(cl, cl_packet_length(packet)); \
                 _loop_terminate = NULL;                          \
         }))                                                      \
 
@@ -195,8 +196,7 @@ void v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space);
                 cl_packet_pack(packet)(cl, packed, &name);       \
                 for (int _i = 0; _i < cl_packet_length(packet); _i++) \
                         ((uint8_t *)cl_out)[_i] = packed[_i] | (prepacked)[_i]; \
-                cl_advance(&cl_out, cl_packet_length(packet));   \
-                cl_end(cl, cl_out);                              \
+                cl_advance_and_end(cl, cl_packet_length(packet)); \
                 _loop_terminate = NULL;                          \
         }))                                                      \
 

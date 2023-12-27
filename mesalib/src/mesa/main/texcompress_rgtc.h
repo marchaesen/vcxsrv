@@ -24,7 +24,7 @@
 #ifndef TEXCOMPRESS_RGTC_H
 #define TEXCOMPRESS_RGTC_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "texstore.h"
 
 

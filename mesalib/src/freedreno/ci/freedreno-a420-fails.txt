@@ -291,6 +291,8 @@ spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@ext_packed_float@query-rgba-signed-components,Fail
 
 # Uncategorized piglit failures
+glx@glx-make-current,Fail
+glx@glx-multi-window-single-context,Fail
 glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
@@ -319,7 +321,6 @@ spec@!opengl 1.0@gl-1.0-edgeflag,Crash
 spec@!opengl 1.0@gl-1.0-edgeflag-quads,Crash
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 spec@!opengl 1.0@gl-1.0-scissor-offscreen,Fail
-spec@!opengl 1.0@gl-1.0-spot-light,Fail
 spec@!opengl 1.0@rasterpos,Crash
 spec@!opengl 1.1@polygon-mode,Fail
 spec@!opengl 1.1@polygon-mode-facing,Fail

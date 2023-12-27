@@ -43,6 +43,11 @@
 #define DebugPresent(x)
 #endif
 
+/* XXX this belongs in presentproto */
+#ifndef PresentWindowDestroyed
+#define PresentWindowDestroyed (1 << 0)
+#endif
+
 extern int present_request;
 
 extern DevPrivateKeyRec present_screen_private_key;
@@ -307,7 +312,7 @@ void
 present_free_events(WindowPtr window);
 
 void
-present_send_config_notify(WindowPtr window, int x, int y, int w, int h, int bw, WindowPtr sibling);
+present_send_config_notify(WindowPtr window, int x, int y, int w, int h, int bw, WindowPtr sibling, CARD32 flags);
 
 void
 present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 serial, uint64_t ust, uint64_t msc);

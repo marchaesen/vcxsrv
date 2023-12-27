@@ -31,8 +31,9 @@
 #include "vk_sync.h"
 #include "vk_sync_timeline.h"
 #include "vk_util.h"
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "util/hash_table.h"
+#include "util/perf/cpu_trace.h"
 #include "util/ralloc.h"
 
 static enum vk_device_timeline_mode
@@ -79,48 +80,9 @@ static void
 collect_enabled_features(struct vk_device *device,
                          const VkDeviceCreateInfo *pCreateInfo)
 {
-   if (pCreateInfo->pEnabledFeatures) {
-      if (pCreateInfo->pEnabledFeatures->robustBufferAccess)
-         device->enabled_features.robustBufferAccess = true;
-   }
-
-   vk_foreach_struct_const(ext, pCreateInfo->pNext) {
-      switch (ext->sType) {
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2: {
-         const VkPhysicalDeviceFeatures2 *features = (const void *)ext;
-         if (features->features.robustBufferAccess)
-            device->enabled_features.robustBufferAccess = true;
-         break;
-      }
-
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES: {
-         const VkPhysicalDeviceImageRobustnessFeatures *features = (void *)ext;
-         if (features->robustImageAccess)
-            device->enabled_features.robustImageAccess = true;
-         break;
-      }
-
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
-         const VkPhysicalDeviceRobustness2FeaturesEXT *features = (void *)ext;
-         if (features->robustBufferAccess2)
-            device->enabled_features.robustBufferAccess2 = true;
-         if (features->robustImageAccess2)
-            device->enabled_features.robustImageAccess2 = true;
-         break;
-      }
-
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES: {
-         const VkPhysicalDeviceVulkan13Features *features = (void *)ext;
-         if (features->robustImageAccess)
-            device->enabled_features.robustImageAccess = true;
-         break;
-      }
-
-      default:
-         /* Don't warn */
-         break;
-      }
-   }
+   if (pCreateInfo->pEnabledFeatures)
+      vk_set_physical_device_features_1_0(&device->enabled_features, pCreateInfo->pEnabledFeatures);
+   vk_set_physical_device_features(&device->enabled_features, pCreateInfo->pNext);
 }
 
 VkResult
@@ -139,11 +101,13 @@ vk_device_init(struct vk_device *device,
 
    device->physical = physical_device;
 
-   device->dispatch_table = *dispatch_table;
+   if (dispatch_table) {
+      device->dispatch_table = *dispatch_table;
 
-   /* Add common entrypoints without overwriting driver-provided ones. */
-   vk_device_dispatch_table_from_entrypoints(
-      &device->dispatch_table, &vk_common_device_entrypoints, false);
+      /* Add common entrypoints without overwriting driver-provided ones. */
+      vk_device_dispatch_table_from_entrypoints(
+         &device->dispatch_table, &vk_common_device_entrypoints, false);
+   }
 
    for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
       int idx;
@@ -163,7 +127,7 @@ vk_device_init(struct vk_device *device,
                           "%s not supported",
                           pCreateInfo->ppEnabledExtensionNames[i]);
 
-#ifdef ANDROID
+#ifdef ANDROID_STRICT
       if (!vk_android_allowed_device_extensions.extensions[idx])
          return vk_errorf(physical_device, VK_ERROR_EXTENSION_NOT_PRESENT,
                           "%s not supported",
@@ -200,7 +164,7 @@ vk_device_init(struct vk_device *device,
       break;
 
    case VK_DEVICE_TIMELINE_MODE_ASSISTED:
-      if (env_var_as_boolean("MESA_VK_ENABLE_SUBMIT_THREAD", false)) {
+      if (debug_get_bool_option("MESA_VK_ENABLE_SUBMIT_THREAD", false)) {
          device->submit_mode = VK_QUEUE_SUBMIT_MODE_THREADED;
       } else {
          device->submit_mode = VK_QUEUE_SUBMIT_MODE_THREADED_ON_DEMAND;
@@ -216,14 +180,18 @@ vk_device_init(struct vk_device *device,
    device->swapchain_private = NULL;
 #endif /* ANDROID */
 
+   simple_mtx_init(&device->trace_mtx, mtx_plain);
+
    return VK_SUCCESS;
 }
 
 void
-vk_device_finish(UNUSED struct vk_device *device)
+vk_device_finish(struct vk_device *device)
 {
    /* Drivers should tear down their own queues */
    assert(list_is_empty(&device->queues));
+
+   vk_memory_trace_finish(device);
 
 #ifdef ANDROID
    if (device->swapchain_private) {
@@ -232,6 +200,8 @@ vk_device_finish(UNUSED struct vk_device *device)
       ralloc_free(device->swapchain_private);
    }
 #endif /* ANDROID */
+
+   simple_mtx_destroy(&device->trace_mtx);
 
    vk_object_base_finish(&device->base);
 }
@@ -338,7 +308,7 @@ _vk_device_set_lost(struct vk_device *device,
    vk_logd(VK_LOG_OBJS(device), "Timeline mode is %s.",
            timeline_mode_str(device));
 
-   if (env_var_as_boolean("MESA_VK_ABORT_ON_DEVICE_LOSS", false))
+   if (debug_get_bool_option("MESA_VK_ABORT_ON_DEVICE_LOSS", false))
       abort();
 
    return VK_ERROR_DEVICE_LOST;
@@ -422,41 +392,56 @@ vk_common_GetDeviceQueue2(VkDevice _device,
       *pQueue = VK_NULL_HANDLE;
 }
 
-VKAPI_ATTR void VKAPI_CALL
-vk_common_GetBufferMemoryRequirements(VkDevice _device,
-                                      VkBuffer buffer,
-                                      VkMemoryRequirements *pMemoryRequirements)
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_MapMemory(VkDevice _device,
+                    VkDeviceMemory memory,
+                    VkDeviceSize offset,
+                    VkDeviceSize size,
+                    VkMemoryMapFlags flags,
+                    void **ppData)
 {
    VK_FROM_HANDLE(vk_device, device, _device);
 
-   VkBufferMemoryRequirementsInfo2 info = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,
-      .buffer = buffer,
+   const VkMemoryMapInfoKHR info = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_MAP_INFO_KHR,
+      .flags = flags,
+      .memory = memory,
+      .offset = offset,
+      .size = size,
    };
-   VkMemoryRequirements2 reqs = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
-   };
-   device->dispatch_table.GetBufferMemoryRequirements2(_device, &info, &reqs);
 
-   *pMemoryRequirements = reqs.memoryRequirements;
+   return device->dispatch_table.MapMemory2KHR(_device, &info, ppData);
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_common_BindBufferMemory(VkDevice _device,
-                           VkBuffer buffer,
-                           VkDeviceMemory memory,
-                           VkDeviceSize memoryOffset)
+VKAPI_ATTR void VKAPI_CALL
+vk_common_UnmapMemory(VkDevice _device,
+                      VkDeviceMemory memory)
 {
    VK_FROM_HANDLE(vk_device, device, _device);
+   ASSERTED VkResult result;
 
-   VkBindBufferMemoryInfo bind = {
-      .sType         = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO,
-      .buffer        = buffer,
-      .memory        = memory,
-      .memoryOffset  = memoryOffset,
+   const VkMemoryUnmapInfoKHR info = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_UNMAP_INFO_KHR,
+      .memory = memory,
    };
 
-   return device->dispatch_table.BindBufferMemory2(_device, 1, &bind);
+   result = device->dispatch_table.UnmapMemory2KHR(_device, &info);
+   assert(result == VK_SUCCESS);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_GetDeviceGroupPeerMemoryFeatures(
+   VkDevice device,
+   uint32_t heapIndex,
+   uint32_t localDeviceIndex,
+   uint32_t remoteDeviceIndex,
+   VkPeerMemoryFeatureFlags *pPeerMemoryFeatures)
+{
+   assert(localDeviceIndex == 0 && remoteDeviceIndex == 0);
+   *pPeerMemoryFeatures = VK_PEER_MEMORY_FEATURE_COPY_SRC_BIT |
+                          VK_PEER_MEMORY_FEATURE_COPY_DST_BIT |
+                          VK_PEER_MEMORY_FEATURE_GENERIC_SRC_BIT |
+                          VK_PEER_MEMORY_FEATURE_GENERIC_DST_BIT;
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -538,6 +523,8 @@ vk_common_GetImageSparseMemoryRequirements(VkDevice _device,
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_common_DeviceWaitIdle(VkDevice _device)
 {
+   MESA_TRACE_FUNC();
+
    VK_FROM_HANDLE(vk_device, device, _device);
    const struct vk_device_dispatch_table *disp = &device->dispatch_table;
 
@@ -570,281 +557,6 @@ vk_clock_gettime(clockid_t clock_id)
 }
 
 #endif //!_WIN32
-
-#define CORE_FEATURE(feature) features->feature = core->feature
-
-bool
-vk_get_physical_device_core_1_1_feature_ext(struct VkBaseOutStructure *ext,
-                                            const VkPhysicalDeviceVulkan11Features *core)
-{
-
-   switch (ext->sType) {
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES: {
-      VkPhysicalDevice16BitStorageFeatures *features = (void *)ext;
-      CORE_FEATURE(storageBuffer16BitAccess);
-      CORE_FEATURE(uniformAndStorageBuffer16BitAccess);
-      CORE_FEATURE(storagePushConstant16);
-      CORE_FEATURE(storageInputOutput16);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES: {
-      VkPhysicalDeviceMultiviewFeatures *features = (void *)ext;
-      CORE_FEATURE(multiview);
-      CORE_FEATURE(multiviewGeometryShader);
-      CORE_FEATURE(multiviewTessellationShader);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES: {
-      VkPhysicalDeviceProtectedMemoryFeatures *features = (void *)ext;
-      CORE_FEATURE(protectedMemory);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES: {
-      VkPhysicalDeviceSamplerYcbcrConversionFeatures *features = (void *) ext;
-      CORE_FEATURE(samplerYcbcrConversion);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES: {
-      VkPhysicalDeviceShaderDrawParametersFeatures *features = (void *)ext;
-      CORE_FEATURE(shaderDrawParameters);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES: {
-      VkPhysicalDeviceVariablePointersFeatures *features = (void *)ext;
-      CORE_FEATURE(variablePointersStorageBuffer);
-      CORE_FEATURE(variablePointers);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES:
-      vk_copy_struct_guts(ext, (void *)core, sizeof(*core));
-      return true;
-
-   default:
-      return false;
-   }
-}
-
-bool
-vk_get_physical_device_core_1_2_feature_ext(struct VkBaseOutStructure *ext,
-                                            const VkPhysicalDeviceVulkan12Features *core)
-{
-
-   switch (ext->sType) {
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES: {
-      VkPhysicalDevice8BitStorageFeatures *features = (void *)ext;
-      CORE_FEATURE(storageBuffer8BitAccess);
-      CORE_FEATURE(uniformAndStorageBuffer8BitAccess);
-      CORE_FEATURE(storagePushConstant8);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES: {
-      VkPhysicalDeviceBufferDeviceAddressFeatures *features = (void *)ext;
-      CORE_FEATURE(bufferDeviceAddress);
-      CORE_FEATURE(bufferDeviceAddressCaptureReplay);
-      CORE_FEATURE(bufferDeviceAddressMultiDevice);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES: {
-      VkPhysicalDeviceDescriptorIndexingFeatures *features = (void *)ext;
-      CORE_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
-      CORE_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
-      CORE_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
-      CORE_FEATURE(shaderUniformBufferArrayNonUniformIndexing);
-      CORE_FEATURE(shaderSampledImageArrayNonUniformIndexing);
-      CORE_FEATURE(shaderStorageBufferArrayNonUniformIndexing);
-      CORE_FEATURE(shaderStorageImageArrayNonUniformIndexing);
-      CORE_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
-      CORE_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
-      CORE_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
-      CORE_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
-      CORE_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
-      CORE_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
-      CORE_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
-      CORE_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
-      CORE_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
-      CORE_FEATURE(descriptorBindingUpdateUnusedWhilePending);
-      CORE_FEATURE(descriptorBindingPartiallyBound);
-      CORE_FEATURE(descriptorBindingVariableDescriptorCount);
-      CORE_FEATURE(runtimeDescriptorArray);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES: {
-      VkPhysicalDeviceShaderFloat16Int8Features *features = (void *)ext;
-      CORE_FEATURE(shaderFloat16);
-      CORE_FEATURE(shaderInt8);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES: {
-      VkPhysicalDeviceHostQueryResetFeatures *features = (void *)ext;
-      CORE_FEATURE(hostQueryReset);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES: {
-      VkPhysicalDeviceImagelessFramebufferFeatures *features = (void *)ext;
-      CORE_FEATURE(imagelessFramebuffer);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES: {
-      VkPhysicalDeviceScalarBlockLayoutFeatures *features =(void *)ext;
-      CORE_FEATURE(scalarBlockLayout);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES: {
-      VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures *features = (void *)ext;
-      CORE_FEATURE(separateDepthStencilLayouts);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES: {
-      VkPhysicalDeviceShaderAtomicInt64Features *features = (void *)ext;
-      CORE_FEATURE(shaderBufferInt64Atomics);
-      CORE_FEATURE(shaderSharedInt64Atomics);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES: {
-      VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures *features = (void *)ext;
-      CORE_FEATURE(shaderSubgroupExtendedTypes);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES: {
-      VkPhysicalDeviceTimelineSemaphoreFeatures *features = (void *) ext;
-      CORE_FEATURE(timelineSemaphore);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES: {
-      VkPhysicalDeviceUniformBufferStandardLayoutFeatures *features = (void *)ext;
-      CORE_FEATURE(uniformBufferStandardLayout);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES: {
-      VkPhysicalDeviceVulkanMemoryModelFeatures *features = (void *)ext;
-      CORE_FEATURE(vulkanMemoryModel);
-      CORE_FEATURE(vulkanMemoryModelDeviceScope);
-      CORE_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES:
-      vk_copy_struct_guts(ext, (void *)core, sizeof(*core));
-      return true;
-
-   default:
-      return false;
-   }
-}
-
-bool
-vk_get_physical_device_core_1_3_feature_ext(struct VkBaseOutStructure *ext,
-                                            const VkPhysicalDeviceVulkan13Features *core)
-{
-   switch (ext->sType) {
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES: {
-      VkPhysicalDeviceDynamicRenderingFeatures *features = (void *)ext;
-      CORE_FEATURE(dynamicRendering);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES: {
-      VkPhysicalDeviceImageRobustnessFeatures *features = (void *)ext;
-      CORE_FEATURE(robustImageAccess);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES: {
-      VkPhysicalDeviceInlineUniformBlockFeatures *features = (void *)ext;
-      CORE_FEATURE(inlineUniformBlock);
-      CORE_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES: {
-      VkPhysicalDeviceMaintenance4Features *features = (void *)ext;
-      CORE_FEATURE(maintenance4);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_CREATION_CACHE_CONTROL_FEATURES: {
-      VkPhysicalDevicePipelineCreationCacheControlFeatures *features = (void *)ext;
-      CORE_FEATURE(pipelineCreationCacheControl);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIVATE_DATA_FEATURES: {
-      VkPhysicalDevicePrivateDataFeatures *features = (void *)ext;
-      CORE_FEATURE(privateData);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES: {
-      VkPhysicalDeviceShaderDemoteToHelperInvocationFeatures *features = (void *)ext;
-      CORE_FEATURE(shaderDemoteToHelperInvocation);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_FEATURES: {
-      VkPhysicalDeviceShaderIntegerDotProductFeatures *features = (void *)ext;
-      CORE_FEATURE(shaderIntegerDotProduct);
-      return true;
-   };
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TERMINATE_INVOCATION_FEATURES: {
-      VkPhysicalDeviceShaderTerminateInvocationFeatures *features = (void *)ext;
-      CORE_FEATURE(shaderTerminateInvocation);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_FEATURES: {
-      VkPhysicalDeviceSubgroupSizeControlFeatures *features = (void *)ext;
-      CORE_FEATURE(subgroupSizeControl);
-      CORE_FEATURE(computeFullSubgroups);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES: {
-      VkPhysicalDeviceSynchronization2Features *features = (void *)ext;
-      CORE_FEATURE(synchronization2);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES: {
-      VkPhysicalDeviceTextureCompressionASTCHDRFeatures *features = (void *)ext;
-      CORE_FEATURE(textureCompressionASTC_HDR);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ZERO_INITIALIZE_WORKGROUP_MEMORY_FEATURES: {
-      VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeatures *features = (void *)ext;
-      CORE_FEATURE(shaderZeroInitializeWorkgroupMemory);
-      return true;
-   }
-
-   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES:
-      vk_copy_struct_guts(ext, (void *)core, sizeof(*core));
-      return true;
-
-   default:
-      return false;
-   }
-}
-
-#undef CORE_FEATURE
 
 #define CORE_RENAMED_PROPERTY(ext_property, core_property) \
    memcpy(&properties->ext_property, &core->core_property, sizeof(core->core_property))

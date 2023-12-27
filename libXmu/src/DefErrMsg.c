@@ -35,7 +35,7 @@ in this Software without prior written authorization from The Open Group.
 
 /*
  * XmuPrintDefaultErrorMessage - print a nice error that looks like the usual
- * message.  Returns 1 if the caller should consider exitting else 0.
+ * message.  Returns 1 if the caller should consider exiting else 0.
  */
 int
 XmuPrintDefaultErrorMessage(Display *dpy, XErrorEvent *event, FILE *fp)

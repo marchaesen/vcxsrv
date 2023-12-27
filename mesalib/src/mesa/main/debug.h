@@ -36,7 +36,7 @@
 #ifndef _DEBUG_H
 #define _DEBUG_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 struct gl_texture_image;

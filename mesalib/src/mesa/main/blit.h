@@ -26,7 +26,7 @@
 #ifndef BLIT_H
 #define BLIT_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 extern bool
 _mesa_regions_overlap(int srcX0, int srcY0,

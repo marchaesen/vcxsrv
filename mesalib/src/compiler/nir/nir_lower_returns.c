@@ -71,7 +71,7 @@ predicate_following(nir_cf_node *node, struct lower_returns_state *state)
        */
       nir_cf_list list;
       nir_cf_extract(&list, nir_after_cf_node(&if_stmt->cf_node),
-                            nir_after_cf_list(state->cf_list));
+                     nir_after_cf_list(state->cf_list));
       assert(!exec_list_is_empty(&list.list));
       nir_cf_reinsert(&list, nir_before_cf_list(&if_stmt->else_list));
    }
@@ -82,6 +82,7 @@ predicate_following(nir_cf_node *node, struct lower_returns_state *state)
 static bool
 lower_returns_in_loop(nir_loop *loop, struct lower_returns_state *state)
 {
+   assert(!nir_loop_has_continue_construct(loop));
    nir_loop *parent = state->loop;
    state->loop = loop;
    bool progress = lower_returns_in_cf_list(&loop->body, state);
@@ -131,11 +132,11 @@ lower_returns_in_if(nir_if *if_stmt, struct lower_returns_state *state)
           */
 
          /* nir_cf_extract will not extract phis at the start of the block. In
-          * this case we know that any phis will have to have a single
-          * predecessor, so we can just replace the phi with its single source.
+          * this case we know that any phis will have to have had a single
+          * predecessor, and should've been removed by the opt_remove_phis before
+          * beginning this pass.
           */
-         nir_block *succ_block = nir_after_cf_node(&if_stmt->cf_node).block;
-         nir_opt_remove_phis_block(succ_block);
+         ASSERTED nir_block *succ_block = nir_after_cf_node(&if_stmt->cf_node).block;
          assert(nir_block_first_instr(succ_block) == NULL ||
                 nir_block_first_instr(succ_block)->type != nir_instr_type_phi);
 
@@ -167,7 +168,7 @@ lower_returns_in_block(nir_block *block, struct lower_returns_state *state)
       /* This block is unreachable.  Delete it and everything after it. */
       nir_cf_list list;
       nir_cf_extract(&list, nir_before_cf_node(&block->cf_node),
-                            nir_after_cf_list(state->cf_list));
+                     nir_after_cf_list(state->cf_list));
 
       if (exec_list_is_empty(&list.list)) {
          /* There's nothing here, which also means there's nothing in this
@@ -208,7 +209,7 @@ lower_returns_in_block(nir_block *block, struct lower_returns_state *state)
          nir_local_variable_create(b->impl, glsl_bool_type(), "return");
 
       /* Initialize the variable to 0 */
-      b->cursor = nir_before_cf_list(&b->impl->body);
+      b->cursor = nir_before_impl(b->impl);
       nir_store_var(b, state->return_flag, nir_imm_false(b), 1);
    }
 
@@ -279,13 +280,14 @@ nir_lower_returns_impl(nir_function_impl *impl)
    state.return_flag = NULL;
    state.has_predicated_return = false;
    state.removed_unreachable_code = false;
-   nir_builder_init(&state.builder, impl);
+   state.builder = nir_builder_create(impl);
 
    bool progress = lower_returns_in_cf_list(&impl->body, &state);
    progress = progress || state.removed_unreachable_code;
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_none);
+      nir_rematerialize_derefs_in_use_blocks_impl(impl);
       nir_repair_ssa_impl(impl);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
@@ -297,11 +299,13 @@ nir_lower_returns_impl(nir_function_impl *impl)
 bool
 nir_lower_returns(nir_shader *shader)
 {
-   bool progress = false;
+   /* Before removing jumps and adding undef sources to otherwise single-source phis,
+    * go ahead and simplify those single-source phis.
+    */
+   bool progress = nir_opt_remove_phis(shader);
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress = nir_lower_returns_impl(function->impl) || progress;
+   nir_foreach_function_impl(impl, shader) {
+      progress |= nir_lower_returns_impl(impl) || progress;
    }
 
    return progress;

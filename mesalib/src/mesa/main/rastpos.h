@@ -32,7 +32,7 @@
 #define RASTPOS_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 
 struct _glapi_table;

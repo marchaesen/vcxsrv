@@ -48,9 +48,6 @@ typedef enum {
 	 * dst.x = round(src.x), where dst must be an address register */
 	RC_OPCODE_ARR,
 
-	/** vec4 instruction: dst.c = ceil(src0.c) */
-	RC_OPCODE_CEIL,
-
 	/** vec4 instruction: dst.c = src0.c < 0.0 ? src1.c : src2.c */
 	RC_OPCODE_CMP,
 
@@ -85,9 +82,6 @@ typedef enum {
 
 	/** special instruction, see ARB_vertex_program */
 	RC_OPCODE_EXP,
-
-	/** vec4 instruction: dst.c = floor(src0.c) */
-	RC_OPCODE_FLR,
 
 	/** vec4 instruction: dst.c = src0.c - floor(src0.c) */
 	RC_OPCODE_FRC,
@@ -154,9 +148,6 @@ typedef enum {
 
 	/** vec4 instruction: dst.c = (src0.c != src1.c) ? 1.0 : 0.0 */
 	RC_OPCODE_SNE,
-
-	/** vec4 instruction: dst.c = (src0.c < 0 ?) -1 : ((src0.c > 0) : 1 : 0) */
-	RC_OPCODE_SSG,
 
 	/** vec4 instruction: dst.c = src0.c - src1.c */
 	RC_OPCODE_SUB,

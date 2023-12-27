@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_INSTANCE_H
 #define VN_PROTOCOL_DRIVER_INSTANCE_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /*
@@ -556,7 +556,7 @@ static inline VkResult vn_decode_vkEnumerateInstanceExtensionProperties_reply(st
     return ret;
 }
 
-static inline void vn_submit_vkCreateInstance(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateInstance(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -568,16 +568,16 @@ static inline void vn_submit_vkCreateInstance(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateInstance_reply(pCreateInfo, pAllocator, pInstance) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateInstance(enc, cmd_flags, pCreateInfo, pAllocator, pInstance);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyInstance(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkInstance instance, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyInstance(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkInstance instance, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -589,16 +589,16 @@ static inline void vn_submit_vkDestroyInstance(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyInstance_reply(instance, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyInstance(enc, cmd_flags, instance, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkEnumerateInstanceVersion(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, uint32_t* pApiVersion, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkEnumerateInstanceVersion(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, uint32_t* pApiVersion, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -610,16 +610,16 @@ static inline void vn_submit_vkEnumerateInstanceVersion(struct vn_instance *vn_i
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkEnumerateInstanceVersion_reply(pApiVersion) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkEnumerateInstanceVersion(enc, cmd_flags, pApiVersion);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkEnumerateInstanceLayerProperties(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, uint32_t* pPropertyCount, VkLayerProperties* pProperties, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkEnumerateInstanceLayerProperties(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, uint32_t* pPropertyCount, VkLayerProperties* pProperties, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -631,16 +631,16 @@ static inline void vn_submit_vkEnumerateInstanceLayerProperties(struct vn_instan
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkEnumerateInstanceLayerProperties_reply(pPropertyCount, pProperties) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkEnumerateInstanceLayerProperties(enc, cmd_flags, pPropertyCount, pProperties);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkEnumerateInstanceExtensionProperties(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkEnumerateInstanceExtensionProperties(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -652,120 +652,120 @@ static inline void vn_submit_vkEnumerateInstanceExtensionProperties(struct vn_in
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkEnumerateInstanceExtensionProperties_reply(pLayerName, pPropertyCount, pProperties) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkEnumerateInstanceExtensionProperties(enc, cmd_flags, pLayerName, pPropertyCount, pProperties);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreateInstance(struct vn_instance *vn_instance, const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
+static inline VkResult vn_call_vkCreateInstance(struct vn_ring *vn_ring, const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateInstance(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pCreateInfo, pAllocator, pInstance, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateInstance(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pCreateInfo, pAllocator, pInstance, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateInstance_reply(dec, pCreateInfo, pAllocator, pInstance);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateInstance(struct vn_instance *vn_instance, const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
+static inline void vn_async_vkCreateInstance(struct vn_ring *vn_ring, const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateInstance(vn_instance, 0, pCreateInfo, pAllocator, pInstance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateInstance(vn_ring, 0, pCreateInfo, pAllocator, pInstance, &submit);
 }
 
-static inline void vn_call_vkDestroyInstance(struct vn_instance *vn_instance, VkInstance instance, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyInstance(struct vn_ring *vn_ring, VkInstance instance, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyInstance(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, instance, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyInstance(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, instance, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyInstance_reply(dec, instance, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyInstance(struct vn_instance *vn_instance, VkInstance instance, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyInstance(struct vn_ring *vn_ring, VkInstance instance, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyInstance(vn_instance, 0, instance, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyInstance(vn_ring, 0, instance, pAllocator, &submit);
 }
 
-static inline VkResult vn_call_vkEnumerateInstanceVersion(struct vn_instance *vn_instance, uint32_t* pApiVersion)
+static inline VkResult vn_call_vkEnumerateInstanceVersion(struct vn_ring *vn_ring, uint32_t* pApiVersion)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEnumerateInstanceVersion(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pApiVersion, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEnumerateInstanceVersion(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pApiVersion, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkEnumerateInstanceVersion_reply(dec, pApiVersion);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkEnumerateInstanceVersion(struct vn_instance *vn_instance, uint32_t* pApiVersion)
+static inline void vn_async_vkEnumerateInstanceVersion(struct vn_ring *vn_ring, uint32_t* pApiVersion)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEnumerateInstanceVersion(vn_instance, 0, pApiVersion, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEnumerateInstanceVersion(vn_ring, 0, pApiVersion, &submit);
 }
 
-static inline VkResult vn_call_vkEnumerateInstanceLayerProperties(struct vn_instance *vn_instance, uint32_t* pPropertyCount, VkLayerProperties* pProperties)
+static inline VkResult vn_call_vkEnumerateInstanceLayerProperties(struct vn_ring *vn_ring, uint32_t* pPropertyCount, VkLayerProperties* pProperties)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEnumerateInstanceLayerProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pPropertyCount, pProperties, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEnumerateInstanceLayerProperties(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pPropertyCount, pProperties, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkEnumerateInstanceLayerProperties_reply(dec, pPropertyCount, pProperties);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkEnumerateInstanceLayerProperties(struct vn_instance *vn_instance, uint32_t* pPropertyCount, VkLayerProperties* pProperties)
+static inline void vn_async_vkEnumerateInstanceLayerProperties(struct vn_ring *vn_ring, uint32_t* pPropertyCount, VkLayerProperties* pProperties)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEnumerateInstanceLayerProperties(vn_instance, 0, pPropertyCount, pProperties, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEnumerateInstanceLayerProperties(vn_ring, 0, pPropertyCount, pProperties, &submit);
 }
 
-static inline VkResult vn_call_vkEnumerateInstanceExtensionProperties(struct vn_instance *vn_instance, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties)
+static inline VkResult vn_call_vkEnumerateInstanceExtensionProperties(struct vn_ring *vn_ring, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEnumerateInstanceExtensionProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pLayerName, pPropertyCount, pProperties, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEnumerateInstanceExtensionProperties(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pLayerName, pPropertyCount, pProperties, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkEnumerateInstanceExtensionProperties_reply(dec, pLayerName, pPropertyCount, pProperties);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkEnumerateInstanceExtensionProperties(struct vn_instance *vn_instance, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties)
+static inline void vn_async_vkEnumerateInstanceExtensionProperties(struct vn_ring *vn_ring, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEnumerateInstanceExtensionProperties(vn_instance, 0, pLayerName, pPropertyCount, pProperties, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEnumerateInstanceExtensionProperties(vn_ring, 0, pLayerName, pPropertyCount, pProperties, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_INSTANCE_H */

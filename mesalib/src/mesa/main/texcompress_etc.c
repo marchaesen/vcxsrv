@@ -101,7 +101,7 @@ static const int etc2_modifier_tables_non_opaque[8][4] = {
 /* define etc1_parse_block and etc. */
 #define UINT8_TYPE GLubyte
 #define TAG(x) x
-#include "texcompress_etc_tmp.h"
+#include "util/format/texcompress_etc_tmp.h"
 #undef TAG
 #undef UINT8_TYPE
 

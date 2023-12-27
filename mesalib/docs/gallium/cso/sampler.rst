@@ -80,14 +80,14 @@ compare_mode
     If set to PIPE_TEX_COMPARE_NONE, no comparison calculation is performed.
 compare_func
     The inequality operator used when compare_mode=1.  One of PIPE_FUNC_x.
-normalized_coords
-    If set, the incoming texture coordinates (nominally in the range [0,1])
-    will be scaled by the texture width, height, depth to compute texel
-    addresses.  Otherwise, the texture coords are used as-is (they are not
-    scaled by the texture dimensions).
-    When normalized_coords=0, only a subset of the texture wrap modes are
-    allowed: PIPE_TEX_WRAP_CLAMP, PIPE_TEX_WRAP_CLAMP_TO_EDGE and
-    PIPE_TEX_WRAP_CLAMP_TO_BORDER.
+unnormalized_coords
+    If set, incoming texture coordinates are used as-is to compute
+    texel addresses. When set, only a subset of the texture wrap
+    modes are allowed: PIPE_TEX_WRAP_CLAMP, PIPE_TEX_WRAP_CLAMP_TO_EDGE,
+    and PIPE_TEX_WRAP_CLAMP_TO_BORDER. If unset, the incoming texture
+    coordinates are assumed to be normalized to the range [0, 1],
+    and will be scaled by the texture dimensions to compute texel
+    addresses.
 lod_bias
     Bias factor which is added to the computed level of detail.
     The normal level of detail is computed from the partial derivatives of

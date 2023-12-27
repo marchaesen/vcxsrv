@@ -199,12 +199,17 @@ SOFTWARE.
 
 <bitset name="#multisrc-gpr" extends="#multisrc">
 	<display>
-		{ABSNEG}{SRC_R}{HALF}{SRC}
+		{LAST}{ABSNEG}{SRC_R}{HALF}{SRC}
 	</display>
 	<derived name="HALF" expr="#multisrc-half" type="bool" display="h"/>
 	<field name="SRC" low="0" high="7" type="#reg-gpr"/>
-	<pattern low="8" high="13">000000</pattern>
+	<pattern low="8" high="9">00</pattern>
+	<field name="LAST" pos="10" type="bool" display="(last)"/>
+	<pattern low="11" high="13">000</pattern>
 	<field name="ABSNEG" low="14" high="15" type="#absneg"/>
+	<encode>
+		<map name="LAST">!!(src->flags &amp; IR3_REG_LAST_USE)</map>
+	</encode>
 </bitset>
 
 <bitset name="#multisrc-const" extends="#multisrc">
@@ -345,8 +350,8 @@ SOFTWARE.
 	<value val="2"  display="y"/>
 	<value val="3"  display="xy"/>
 	<value val="4"  display="z"/>
-	<value val="5"  display="zx"/>
-	<value val="6"  display="zy"/>
+	<value val="5"  display="xz"/>
+	<value val="6"  display="yz"/>
 	<value val="7"  display="xyz"/>
 	<value val="8"  display="w"/>
 	<value val="9"  display="xw"/>

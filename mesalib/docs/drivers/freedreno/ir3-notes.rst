@@ -1,7 +1,7 @@
 IR3 NOTES
 =========
 
-Some notes about ir3, the compiler and machine-specific IR for the shader ISA introduced with adreno a3xx.  The same shader ISA is present, with some small differences, in adreno a4xx.
+Some notes about ir3, the compiler and machine-specific IR for the shader ISA introduced with Adreno 3xx.  The same shader ISA is present, with some small differences, in Adreno 4xx.
 
 Compared to the previous generation a2xx ISA (ir2), the a3xx ISA is a "simple" scalar instruction set.  However, the compiler is responsible, in most cases, to schedule the instructions.  The hardware does not try to hide the shader core pipeline stages.  For a common example, a common (cat2) ALU instruction takes four cycles, so a subsequent cat2 instruction which uses the result must have three intervening instructions (or NOPs).  When operating on vec4's, typically the corresponding scalar instructions for operating on the remaining three components could typically fit.  Although that results in a lot of edge cases where things fall over, like:
 
@@ -15,7 +15,7 @@ Here, the second instruction needs the output of the first group of scalar instr
 So the current compiler instead, in the frontend, generates a directed-acyclic-graph of instructions and basic blocks, which go through various additional passes to eventually schedule and do register assignment.
 
 For additional documentation about the hardware, see wiki: `a3xx ISA
-<https://github.com/freedreno/freedreno/wiki/A3xx-shader-instruction-set-architecture>`_.
+<https://github.com/freedreno/freedreno/wiki/A3xx-shader-instruction-set-architecture>`__.
 
 External Structure
 ------------------
@@ -32,7 +32,7 @@ External Structure
     generated.
 
 ``ir3_shader_variant``
-    The actual hw shader generated based on input TGSI and shader key.
+    The actual HW shader generated based on input TGSI and shader key.
 
 ``ir3_compiler``
     Compiler frontend which generates ir3 and runs the various backend
@@ -165,12 +165,12 @@ Meta Instructions
 
 **collect**
     Groups registers which need to be assigned to consecutive scalar
-    registers, for example `sam` (texture fetch) src instructions (see
+    registers, for example ``sam`` (texture fetch) src instructions (see
     `register groups`_) or array element dereference
     (see `relative addressing`_).
 
 **split**
-    The counterpart to **collect**, when an instruction such as `sam`
+    The counterpart to **collect**, when an instruction such as ``sam``
     writes multiple components, splits the result into individual
     scalar components to be consumed by other instructions.
 

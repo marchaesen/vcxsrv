@@ -2,14 +2,13 @@ dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_a
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_and_pos_y_pos_z
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_neg_y_pos_z_and_neg_x_pos_y_neg_z
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_pos_x_and_neg_x_neg_y_pos_z_and_neg_x_pos_y_neg_z
-dEQP-GLES2.functional.draw.random.51
-dEQP-GLES2.functional.texture.size.cube.256x256_rgb888
 
+glx@glx-multi-window-single-context
 shaders@glsl-vs-loop
 shaders@glsl-vs-loop-nested
-spec@arb_framebuffer_srgb@blit renderbuffer srgb single_sampled enabled clear
+spec@ext_framebuffer_blit@fbo-sys-blit
+spec@ext_framebuffer_blit@fbo-sys-sub-blit
 spec@egl_chromium_sync_control@conformance
-spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-readpixels
 
 # CMA allocations that may sometimes succeed
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2
@@ -18,3 +17,18 @@ spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4
 # https://gitlab.freedesktop.org/mesa/mesa/-/issues/7186
 spec@!opengl 1.0@rasterpos
 spec@!opengl 1.0@rasterpos@glsl_vs_uniforms
+
+# Sometimes fail when run along with other tests, never when run by themselves
+spec@!opengl 1.1@copypixels-sync
+spec@!opengl 1.1@copypixels-draw-sync
+spec@!opengl 1.1@draw-copypixels-sync
+spec@!opengl 1.1@draw-sync
+
+# 2022-12-29
+x11-dEQP-EGL.functional.color_clears.multi_context.gles2.rgba8888_pbuffer
+
+# flaky on wayland, was stable on x11
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import
+
+# fails on arm64, passes on armhf
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 s=z24_s8_d=z32f

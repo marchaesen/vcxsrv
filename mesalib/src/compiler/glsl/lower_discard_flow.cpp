@@ -142,7 +142,7 @@ lower_discard_flow(exec_list *ir)
 {
    void *mem_ctx = ir;
 
-   ir_variable *var = new(mem_ctx) ir_variable(glsl_type::bool_type,
+   ir_variable *var = new(mem_ctx) ir_variable(&glsl_type_builtin_bool,
 					       "discarded",
 					       ir_var_temporary);
 

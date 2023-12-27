@@ -80,10 +80,10 @@ lp_setup_alloc_rectangle(struct lp_scene *scene, unsigned nr_inputs)
  * the same code in lp_setup_tri.c
  * \param tx, ty  the tile position in tiles, not pixels
  */
-boolean
+bool
 lp_setup_whole_tile(struct lp_setup_context *setup,
                     const struct lp_rast_shader_inputs *inputs,
-                    int tx, int ty, boolean opaque)
+                    int tx, int ty, bool opaque)
 {
    struct lp_scene *scene = setup->scene;
 
@@ -135,7 +135,7 @@ lp_setup_whole_tile(struct lp_setup_context *setup,
 }
 
 
-boolean
+bool
 lp_setup_is_blit(const struct lp_setup_context *setup,
                  const struct lp_rast_shader_inputs *inputs)
 {
@@ -147,7 +147,7 @@ lp_setup_is_blit(const struct lp_setup_context *setup,
        * Detect blits.
        */
       const struct lp_jit_texture *texture =
-         &setup->fs.current.jit_context.textures[0];
+         &setup->fs.current.jit_resources.textures[0];
 
       /* XXX: dadx vs dady confusion below?
        */
@@ -184,18 +184,18 @@ lp_setup_is_blit(const struct lp_setup_context *setup,
          debug_printf("dtdy = %f\n", dtdy);
          debug_printf("\n");
 #endif
-         return FALSE;
+         return false;
       }
    }
 
-   return FALSE;
+   return false;
 }
 
 
 static inline void
 partial(struct lp_setup_context *setup,
         const struct lp_rast_rectangle *rect,
-        boolean opaque,
+        bool opaque,
         unsigned ix, unsigned iy,
         unsigned mask) // RECT_PLANE_x bits
 {
@@ -232,12 +232,12 @@ partial(struct lp_setup_context *setup,
  * coordinate space), while the other half prefers to work with D3D
  * CCW rectangles.
  */
-static boolean
+static bool
 try_rect_cw(struct lp_setup_context *setup,
             const float (*v0)[4],
             const float (*v1)[4],
             const float (*v2)[4],
-            boolean frontfacing)
+            bool frontfacing)
 {
    const struct lp_fragment_shader_variant *variant =
       setup->fs.current.variant;
@@ -256,10 +256,10 @@ try_rect_cw(struct lp_setup_context *setup,
 
    /* Cull clockwise rects without overflowing.
     */
-   const boolean cw = (x2 < x1) ^ (y0 < y2);
+   const bool cw = (x2 < x1) ^ (y0 < y2);
    if (cw) {
       LP_COUNT(nr_culled_rects);
-      return TRUE;
+      return true;
    }
 
    const float (*pv)[4];
@@ -305,7 +305,7 @@ try_rect_cw(struct lp_setup_context *setup,
    if (!u_rect_test_intersection(&setup->draw_regions[viewport_index], &bbox)) {
       if (0) debug_printf("no intersection\n");
       LP_COUNT(nr_culled_rects);
-      return TRUE;
+      return true;
    }
 
    u_rect_find_intersection(&setup->draw_regions[viewport_index], &bbox);
@@ -313,7 +313,7 @@ try_rect_cw(struct lp_setup_context *setup,
    struct lp_rast_rectangle *rect =
       lp_setup_alloc_rectangle(scene, key->num_inputs);
    if (!rect)
-      return FALSE;
+      return false;
 
 #ifdef DEBUG
    rect->v[0][0] = v0[0][0];
@@ -339,7 +339,7 @@ try_rect_cw(struct lp_setup_context *setup,
                                       &setup->setup.variant->key);
 
    rect->inputs.frontfacing = frontfacing;
-   rect->inputs.disable = FALSE;
+   rect->inputs.disable = false;
    rect->inputs.is_blit = lp_setup_is_blit(setup, &rect->inputs);
    rect->inputs.layer = layer;
    rect->inputs.viewport_index = viewport_index;
@@ -349,10 +349,10 @@ try_rect_cw(struct lp_setup_context *setup,
 }
 
 
-boolean
+bool
 lp_setup_bin_rectangle(struct lp_setup_context *setup,
                        struct lp_rast_rectangle *rect,
-                       boolean opaque)
+                       bool opaque)
 {
    struct lp_scene *scene = setup->scene;
    unsigned left_mask = 0;
@@ -445,11 +445,11 @@ lp_setup_bin_rectangle(struct lp_setup_context *setup,
       /* Disable rasterization of this partially-binned rectangle.
        * We'll flush this scene and re-bin the entire rectangle:
        */
-      rect->inputs.disable = TRUE;
-      return FALSE;
+      rect->inputs.disable = true;
+      return false;
    }
 
-   return TRUE;
+   return true;
 }
 
 
@@ -458,8 +458,14 @@ lp_rect_cw(struct lp_setup_context *setup,
            const float (*v0)[4],
            const float (*v1)[4],
            const float (*v2)[4],
-           boolean frontfacing)
+           bool frontfacing)
 {
+   if (lp_setup_zero_sample_mask(setup)) {
+      if (0) debug_printf("zero sample mask\n");
+      LP_COUNT(nr_culled_rects);
+      return;
+   }
+
    if (!try_rect_cw(setup, v0, v1, v2, frontfacing)) {
       if (!lp_setup_flush_and_restart(setup))
          return;
@@ -472,10 +478,10 @@ lp_rect_cw(struct lp_setup_context *setup,
 
 /**
  * Take the six vertices for two triangles and try to determine if they
- * form a screen-aligned quad/rectangle.  If so, draw the rect directly,
- * else, draw as two regular triangles.
+ * form a screen-aligned quad/rectangle.  If so, draw the rect directly
+ * and return true.  Else, return false.
  */
-static boolean
+static bool
 do_rect_ccw(struct lp_setup_context *setup,
             const float (*v0)[4],
             const float (*v1)[4],
@@ -483,7 +489,7 @@ do_rect_ccw(struct lp_setup_context *setup,
             const float (*v3)[4],
             const float (*v4)[4],
             const float (*v5)[4],
-            boolean front)
+            bool front)
 {
    const float (*rv0)[4], (*rv1)[4], (*rv2)[4], (*rv3)[4];  /* rect verts */
 
@@ -525,7 +531,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv2 = v2;
          rv3 = v0;
       } else {
-         goto emit_triangles;
+         return false;
       }
    } else if (SAME_POS(v0, v5)) {
       if (SAME_POS(v2, v3)) {
@@ -557,7 +563,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv2 = v2;
          rv3 = v0;
       } else {
-         goto emit_triangles;
+         return false;
       }
    } else if (SAME_POS(v0, v4)) {
       if (SAME_POS(v2, v5)) {
@@ -589,7 +595,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv2 = v2;
          rv3 = v0;
       } else {
-         goto emit_triangles;
+         return false;
       }
    } else if (SAME_POS(v2, v3)) {
       if (SAME_POS(v1, v4)) {
@@ -607,7 +613,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv2 = v0;
          rv3 = v1;
       } else {
-         goto emit_triangles;
+         return false;
       }
    } else if (SAME_POS(v2, v5)) {
       if (SAME_POS(v1, v3)) {
@@ -625,7 +631,7 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv2 = v0;
          rv3 = v1;
       } else {
-         goto emit_triangles;
+         return false;
       }
    } else if (SAME_POS(v2, v4)) {
       if (SAME_POS(v1, v5)) {
@@ -643,10 +649,10 @@ do_rect_ccw(struct lp_setup_context *setup,
          rv2 = v0;
          rv3 = v1;
       } else {
-         goto emit_triangles;
+         return false;
       }
    } else {
-      goto emit_triangles;
+      return false;
    }
 
 #define SAME_X(A, B)   (A[0][0] == B[0][0])
@@ -673,15 +679,24 @@ do_rect_ccw(struct lp_setup_context *setup,
 
    if (SAME_X(rv0, rv1) && SAME_X(rv2, rv3) &&
        SAME_Y(rv0, rv3) && SAME_Y(rv1, rv2)) {
+      /* We have a rectangle */
+
+      /* Check that all vertex W components are equal.  When we divide by W in
+       * lp_linear_init_interp() we assume all vertices have the same W value.
+       */
+      const float v0_w = rv0[0][3];
+      if (rv1[0][3] != v0_w ||
+          rv2[0][3] != v0_w ||
+          rv3[0][3] != v0_w) {
+         return false;
+      }
+
       const struct lp_setup_variant_key *key = &setup->setup.variant->key;
       const unsigned n = key->num_inputs;
-      unsigned i, j;
 
-      /* We have a rectangle.  Check that the other attributes are
-       * coplanar.
-       */
-      for (i = 0; i < n; i++) {
-         for (j = 0; j < 4; j++) {
+      /* Check that the other attributes are coplanar */
+      for (unsigned i = 0; i < n; i++) {
+         for (unsigned j = 0; j < 4; j++) {
             if (key->inputs[i].usage_mask & (1<<j)) {
                unsigned k = key->inputs[i].src_index;
                float dxdx1, dxdx2, dxdy1, dxdy2;
@@ -691,7 +706,7 @@ do_rect_ccw(struct lp_setup_context *setup,
                dxdy2 = rv3[k][j] - rv2[k][j];
                if (dxdx1 != dxdx2 ||
                    dxdy1 != dxdy2) {
-                  goto emit_triangles;
+                  return false;
                }
             }
          }
@@ -702,13 +717,12 @@ do_rect_ccw(struct lp_setup_context *setup,
        * function was previously misnamed.
        */
       lp_rect_cw(setup, rv0, rv2, rv1, front);
-      return TRUE;
+      return true;
    } else {
       /* setup->quad(setup, rv0, rv1, rv2, rv3); */
    }
 
-emit_triangles:
-   return FALSE;
+   return false;
 }
 
 
@@ -742,7 +756,7 @@ winding(const float (*v0)[4],
 }
 
 
-static boolean
+static bool
 setup_rect_cw(struct lp_setup_context *setup,
               const float (*v0)[4],
               const float (*v1)[4],
@@ -759,17 +773,17 @@ setup_rect_cw(struct lp_setup_context *setup,
       return do_rect_ccw(setup, v0, v2, v1, v3, v5, v4, !setup->ccw_is_frontface);
    } else if (winding0 == WINDING_CW) {
       setup->triangle(setup, v0, v1, v2);
-      return TRUE;
+      return true;
    } else if (winding1 == WINDING_CW) {
       setup->triangle(setup, v3, v4, v5);
-      return TRUE;
+      return true;
    } else {
-      return TRUE;
+      return true;
    }
 }
 
 
-static boolean
+static bool
 setup_rect_ccw(struct lp_setup_context *setup,
                const float (*v0)[4],
                const float (*v1)[4],
@@ -786,18 +800,18 @@ setup_rect_ccw(struct lp_setup_context *setup,
       return do_rect_ccw(setup, v0, v1, v2, v3, v4, v5, setup->ccw_is_frontface);
    } else if (winding0 == WINDING_CCW) {
       setup->triangle(setup, v0, v1, v2);
-      return TRUE;
+      return true;
    } else if (winding1 == WINDING_CCW) {
-      return FALSE;
+      return false;
       setup->triangle(setup, v3, v4, v5);
-      return TRUE;
+      return true;
    } else {
-      return TRUE;
+      return true;
    }
 }
 
 
-static boolean
+static bool
 setup_rect_noop(struct lp_setup_context *setup,
                 const float (*v0)[4],
                 const float (*v1)[4],
@@ -806,11 +820,15 @@ setup_rect_noop(struct lp_setup_context *setup,
                 const float (*v4)[4],
                 const float (*v5)[4])
 {
-   return TRUE;
+   return true;
 }
 
 
-static boolean
+/*
+ * Return true if the rect is handled here, else return false indicating
+ * the caller should render with triangles instead.
+ */
+static bool
 setup_rect_both(struct lp_setup_context *setup,
                 const float (*v0)[4],
                 const float (*v1)[4],
@@ -829,13 +847,13 @@ setup_rect_both(struct lp_setup_context *setup,
        * CW/CCW rectangles under some circumstances, but we catch them
        * explicitly.
        */
-      return FALSE;
+      return false;
    } else if (winding0 == WINDING_CCW) {
       return do_rect_ccw(setup, v0, v1, v2, v3, v4, v5, setup->ccw_is_frontface);
    } else if (winding0 == WINDING_CW) {
       return do_rect_ccw(setup, v0, v2, v1, v3, v5, v4, !setup->ccw_is_frontface);
    } else {
-      return TRUE;
+      return true;
    }
 }
 

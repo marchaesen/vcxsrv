@@ -1,44 +1,5 @@
-.freedreno-test:
-  extends:
-    - .baremetal-test-arm64
-    - .freedreno-rules
-  variables:
-    VK_DRIVER: freedreno
-    FLAKES_CHANNEL: "#freedreno-ci"
-    PIGLIT_PLATFORM: mixed_glx_egl
-    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 $BM_KERNEL_EXTRA_ARGS root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init $BM_KERNELARGS"
-  script:
-    - ./install/bare-metal/fastboot.sh
-  tags:
-    - google-freedreno-db410c
-
-.baremetal-deqp-test-freedreno-vk:
-  extends:
-    - .baremetal-deqp-test
-  variables:
-    DEQP_VER: vk
-    # Increase the hangcheck timer for our spilling tests which bump up against
-    # the .5s default.
-    FREEDRENO_HANGCHECK_MS: 2000
-
-.freedreno-test-traces:
-  extends:
-    - .piglit-traces-test
-  variables:
-    HWCI_TEST_SCRIPT: "/install/piglit/piglit-traces.sh"
-    HWCI_START_XORG: 1
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-freedreno.yml"
-  artifacts:
-    reports:
-      junit: results/junit.xml
-
-.a306-test:
-  extends:
-    - .freedreno-test
-  variables:
-    BM_KERNEL: /baremetal-files/Image.gz
-    BM_DTB: /baremetal-files/apq8016-sbc.dtb
-    GPU_VERSION: freedreno-a307
+include:
+  - local: 'src/freedreno/ci/gitlab-ci-inc.yml'
 
 a306_gl:
   extends:
@@ -49,23 +10,6 @@ a306_gl:
     FDO_CI_CONCURRENT: 6
   parallel: 5
 
-# New jobs. Leave it as manual for now.
-.a306_piglit:
-  extends:
-    - .piglit-test
-    - .a306-test
-    - .test-manual-mr
-  variables:
-    HWCI_START_XORG: 1
-
-a306_piglit_gl:
-  extends:
-    - .a306_piglit
-  variables:
-    PIGLIT_PROFILES: quick_gl
-    BM_KERNEL_EXTRA_ARGS: "msm.num_hw_submissions=1"
-    FDO_CI_CONCURRENT: 3
-
 a306_piglit_shader:
   extends:
     - .a306_piglit
@@ -75,107 +19,169 @@ a306_piglit_shader:
 
 a306-traces:
   extends:
-    - .freedreno-test-traces
+    - .google-freedreno-test-traces
     - .a306-test
   variables:
     PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a306"
     PIGLIT_RESULTS: "freedreno-a306-replay"
 
-.a530-test:
-  extends:
-    - .freedreno-test
-  variables:
-    BM_KERNEL: /baremetal-files/Image.gz
-    BM_KERNEL_EXTRA_ARGS: maxcpus=2
-    BM_DTB: /baremetal-files/apq8096-db820c.dtb
-    GPU_VERSION: freedreno-a530
-  tags:
-    - google-freedreno-db820c
-
 a530_gl:
   extends:
     - .baremetal-deqp-test
     - .a530-test
-    - .test-manual-mr # Unstable as of kernel 5.19
   variables:
     DEQP_SUITE: freedreno-a530
+    PIGLIT_PLATFORM: gbm
+    FDO_CI_CONCURRENT: 3  # if 4, sometimes "deqp-gles31, not enough memory for the allocation" appears
   parallel: 6
-
-.a530_piglit:
-  extends:
-    - .piglit-test
-    - .a530-test
-  variables:
-    HWCI_START_XORG: 1
-
-# piglit_gl since it takes a bit under 20 minutes and has a lot of flakes, so
-# leave it as manual.  The shader_tests are in the main a530_gl suite.
-a530_piglit_gl:
-  extends:
-    - .a530_piglit
-    - .test-manual-mr
-  variables:
-    PIGLIT_PROFILES: quick_gl
 
 a530-traces:
   extends:
-    - .freedreno-test-traces
+    - .google-freedreno-test-traces
     - .a530-test
   variables:
     PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a530"
     PIGLIT_RESULTS: "freedreno-a530-replay"
 
-.a618-test:
-  extends:
-    - .lava-test:arm64
-  variables:
-    DEVICE_TYPE: sc7180-trogdor-lazor-limozeen
-    DTB: sc7180-trogdor-lazor-limozeen-nots-r5
-    BOOT_METHOD: depthcharge
-    RUNNER_TAG: mesa-ci-x86-64-lava-sc7180-trogdor-lazor-limozeen
-    VK_DRIVER: freedreno
-    KERNEL_IMAGE_TYPE: ""
-    # Increase the hangcheck timer for our spilling tests which bump up against
-    # the .5s default.
-    FREEDRENO_HANGCHECK_MS: 2000
-
 a618_vk:
   extends:
-    - .a618-test
-    - .turnip-rules
-  parallel: 9
+    - .lava-test-deqp:arm64
+    - .lava-sc7180-trogdor-kingoftown:arm64
+    - .collabora-turnip-rules
+  parallel: 12
   variables:
     DEQP_SUITE: freedreno-a618-vk
-    GPU_VERSION: freedreno-a618
+    FLAKES_CHANNEL: "#freedreno-ci"
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
+    DEQP_FRACTION: 2
 
 a618_vk_full:
   extends:
     - a618_vk
-    - .test-manual-mr
+    - .collabora-turnip-manual-rules
   # We use a longer timeout to keep the parallel down so that we don't lock up
   # too many runners for a long time when a dev is trying out at full VK status.
-  timeout: 2h
+  timeout: 4h
   parallel: 3
   variables:
     # ran into OOM with VK-GL-CTS 1.2.8.0 at 6
     FDO_CI_CONCURRENT: 4
     DEQP_SUITE: freedreno-a618-vk-full
-    JOB_TIMEOUT: 120
+    JOB_TIMEOUT: 180
+    TEST_PHASE_TIMEOUT: 180
 
-.a630-test:
+a618_gl:
   extends:
-    - .freedreno-test
+    - .lava-test-deqp:arm64
+    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    - .collabora-freedreno-rules
+  parallel: 4
   variables:
-    FDO_CI_CONCURRENT: 10
-    BM_KERNEL: /baremetal-files/cheza-kernel
-    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init"
-    GPU_VERSION: freedreno-a630
-  tags:
-    - google-freedreno-cheza
-  script:
-    - ./install/bare-metal/cros-servo.sh
+    DEQP_SUITE: freedreno-a618
+    FLAKES_CHANNEL: "#freedreno-ci"
 
+# Run dEQP EGL window system tests separately with the window systems available.
+# X11 takes over the screen, wayland is run headless.
+a618_egl:
+  extends:
+    - .lava-test-deqp:arm64
+    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    - .collabora-freedreno-rules
+  variables:
+    DEQP_VER: egl
+    FLAKES_CHANNEL: "#freedreno-ci"
+    HWCI_START_XORG: 1
+    HWCI_START_WESTON: 1
+    DEQP_SUITE: freedreno-a618-egl
+
+a618_skqp:
+  extends:
+    - .lava-test-deqp:arm64
+    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    - .collabora-freedreno-rules
+    # SKQP tests both the GL and VK drivers.
+    - .collabora-freedreno-turnip-rules
+  variables:
+    FLAKES_CHANNEL: "#freedreno-ci"
+    HWCI_START_XORG: 1
+    DEQP_SUITE: freedreno-a618-skqp
+
+a618_piglit:
+  extends:
+    - .piglit-test
+    - .lava-piglit:arm64
+    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    - .collabora-freedreno-rules
+    # Note that piglit has GL+VK integration testing.
+    - .collabora-freedreno-turnip-rules
+  variables:
+    FLAKES_CHANNEL: "#freedreno-ci"
+    HWCI_START_WESTON: 1
+    PIGLIT_PROFILES: gpu
+
+a618-traces:
+  extends:
+    - .lava-piglit-traces:arm64
+    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    - .collabora-freedreno-rules
+  variables:
+    HWCI_START_WESTON: 1
+    # So we aren't capped by VSync by the X server
+    EGL_PLATFORM: surfaceless
+    FDO_CI_CONCURRENT: 5  # 6 is too much leading to OOM
+    FLAKES_CHANNEL: "#freedreno-ci"
+    PIGLIT_REPLAY_DEVICE_NAME: "${GPU_VERSION}"
+    PIGLIT_RESULTS: "${GPU_VERSION}-replay"
+    # This lets us run several more traces which don't use any features we're
+    # missing.
+    MESA_GLSL_VERSION_OVERRIDE: "460"
+    MESA_GL_VERSION_OVERRIDE: "4.6"
+    PIGLIT_TRACES_FILE: traces-freedreno.yml
+
+a618-traces-performance:
+  extends:
+    - a618-traces
+    - .piglit-performance:arm64
+    - .collabora-freedreno-rules-performance
+  variables:
+    # Always use the same device
+    # a618 tag starts with cbg-1 (not cbg-0) for some reason
+    LAVA_TAGS: "cbg-1"
+  needs:
+    - !reference [a618-traces, needs]
+    - !reference [.piglit-performance:arm64, needs]
+
+a660_gl:
+  extends:
+    - .lava-test-deqp:arm64
+    - .collabora-freedreno-rules
+    - .lava-sm8350-hdk:arm64
+  parallel: 2
+  variables:
+    DEQP_SUITE: freedreno-a660
+
+# disabled due to 1.3.7.0 CTS uprev, we have already -full job running in nightly
+.a660_vk:
+  extends:
+    - .lava-test-deqp:arm64
+    - .collabora-turnip-rules
+    - .lava-sm8350-hdk:arm64
+  parallel: 5
+  variables:
+    DEQP_SUITE: freedreno-a660-vk
+    DEQP_FRACTION: 4
+
+a660_vk_full:
+  extends:
+    - .a660_vk
+    - .collabora-turnip-manual-rules
+  parallel: 3
+  timeout: 3h
+  variables:
+    DEQP_SUITE: freedreno-a660-vk-full
+    JOB_TIMEOUT: 180
+
+# X11 takes over the screen, wayland is run headless.
 a630_gl:
   extends:
     - .baremetal-deqp-test
@@ -183,17 +189,8 @@ a630_gl:
   parallel: 4
   variables:
     DEQP_SUITE: freedreno-a630
-
-# Robustness tests may be disruptive to other tests, so we run EGL's robustness
-# tests separately.
-a630_egl:
-  extends:
-    - .baremetal-deqp-test
-    - .a630-test
-  variables:
-    DEQP_VER: egl
     HWCI_START_XORG: 1
-    HWCI_TEST_SCRIPT: "/install/bare-metal/arm64_a630_egl.sh"
+    HWCI_START_WESTON: 1
 
 a630_gles_asan:
   extends:
@@ -207,43 +204,36 @@ a630_gles_asan:
     FDO_CI_CONCURRENT: 2 # We get OOMkills if we go too wide with asan enabled
     GPU_VERSION: freedreno-a630-asan
 
-a630_skqp:
-  extends:
-    - .skqp-test
-    - .a630-test
-    - .freedreno-turnip-rules
-  variables:
-    # Possible skqp backends: gl, gles, unitTest and vk
-    SKQP_BACKENDS: gl gles vk unitTest  # space separated values
-    VK_DRIVER: freedreno
-
 a630_vk:
   extends:
     - .a630-test
     - .baremetal-deqp-test-freedreno-vk
-    - .turnip-rules
+    - .google-turnip-rules
   variables:
     DEQP_SUITE: freedreno-a630-vk
 
+
 a630_vk_full:
-  # We use a longer timeout (2 hour job, 110 minute deqp) to keep the parallel
-  # down so that we don't lock up too many runners for a long time when a dev is
-  # testing full VK status.
-  timeout: 2h
+  # We use a longer timeout (3 hour job) to keep the parallel down so that we
+  # don't lock up too many runners for a long time when a dev is testing full VK
+  # status.  The full runs are restricted to just 2 runners to keep from
+  # blocking up normal merges, so going more parallel doesn't make any sense.
+  timeout: 4.5h
   extends:
     - a630_vk
-    - .test-manual-mr
+    - .a630-full
+    - .google-turnip-manual-rules
   parallel: 2
   variables:
     DEQP_SUITE: freedreno-a630-vk-full
-    TEST_PHASE_TIMEOUT: 110
+    TEST_PHASE_TIMEOUT: 180
 
 a630_vk_asan:
   extends:
     - .a630-test
     - .baremetal-deqp-test-freedreno-vk
     - .baremetal-arm64-asan-test
-    - .turnip-rules
+    - .google-turnip-rules
   variables:
     DEQP_SUITE: freedreno-a630-vk-asan
     FDO_CI_CONCURRENT: 2 # We get OOMkills if we go too wide with asan enabled
@@ -251,17 +241,17 @@ a630_vk_asan:
 
 a630_piglit:
   extends:
-    - .piglit-test
+    - .baremetal-deqp-test
     - .a630-test
     # Note that piglit has GL+VK integration testing.
-    - .freedreno-turnip-rules
+    - .google-freedreno-turnip-rules
   variables:
-    HWCI_START_XORG: 1
-    PIGLIT_PROFILES: gpu
+    HWCI_START_WESTON: 1
+    DEQP_SUITE: freedreno-a630-piglit
 
 a630-traces:
   extends:
-    - .freedreno-test-traces
+    - .google-freedreno-test-traces
     - .a630-test
   variables:
     PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a630"
@@ -270,31 +260,31 @@ a630-traces:
     # missing.
     MESA_GLSL_VERSION_OVERRIDE: "460"
     MESA_GL_VERSION_OVERRIDE: "4.6"
+    PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=http://10.42.0.1:8888/cache/?uri="
 
 a630-traces-restricted:
   extends:
     - a630-traces
-    - .freedreno-rules-restricted
+    - .google-freedreno-rules-restricted
   variables:
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/restricted-traces-freedreno.yml"
-    PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_host=minio-packet.freedesktop.org --minio_bucket=mesa-tracie-private --role-session-name=${CI_PROJECT_PATH}:${CI_JOB_ID} --jwt-file=${CI_JOB_JWT_FILE}
+    PIGLIT_TRACES_FILE: restricted-traces-freedreno.yml
+    PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=http://10.42.0.1:8888/cache/?uri= --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=mesa-tracie-private --jwt-file=${CI_JOB_JWT_FILE}"
   allow_failure: true
 
 a630-traces-performance:
   extends:
     - a630-traces
-    - .freedreno-rules-performance
+    - .google-freedreno-rules-performance
   variables:
     PIGLIT_REPLAY_SUBCOMMAND: "profile"
-    PIGLIT_REPLAY_EXTRA_ARGS: "--db-path ${CI_PROJECT_DIR}/replayer-db/"
+    PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=http://10.42.0.1:8888/cache/?uri= --db-path ${CI_PROJECT_DIR}/replayer-db/"
     # More than this can hit OOM due to BOs leaked during the replay of the last frame
     PIGLIT_REPLAY_LOOP_TIMES: 150
     # We don't want for more than one workload to be submitted to the GPU at a time
     FDO_CI_CONCURRENT: 1
     # Piglit is very sparse in its status output and downloads of big traces can take a while
-    LAVA_DEVICE_HANGING_TIMEOUT_SEC: 600
+    DEVICE_HANGING_TIMEOUT_SEC: 600
     # So we aren't capped by VSync by the X server
     EGL_PLATFORM: surfaceless
     GIT_STRATEGY: none
     HWCI_FREQ_MAX: "true"
-  allow_failure: true

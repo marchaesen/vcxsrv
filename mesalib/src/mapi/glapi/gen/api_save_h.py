@@ -46,7 +46,7 @@ class PrintCode(gl_XML.gl_print_base):
             #ifndef API_SAVE_H
             #define API_SAVE_H
 
-            #include "GL/gl.h"
+            #include "util/glheader.h"
             """))
 
         for f in api.functionIterateAll():

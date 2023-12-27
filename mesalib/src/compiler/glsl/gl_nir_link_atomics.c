@@ -22,12 +22,12 @@
  */
 
 #include "nir.h"
-#include "GL/gl.h"
 #include "linker_util.h"
 #include "gl_nir_linker.h"
 #include "compiler/glsl/ir_uniform.h" /* for gl_uniform_storage */
 #include "main/consts_exts.h"
 #include "main/shader_types.h"
+#include "util/glheader.h"
 
 /**
  * This file do the common link for GLSL atomic counter uniforms, using NIR,

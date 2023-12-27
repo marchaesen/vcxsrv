@@ -38,10 +38,11 @@ public:
    int push(unsigned type);
    void pop(unsigned type);
    int update_max_depth(unsigned type);
+
 private:
    r600_bytecode& m_bc;
 };
 
-}
+} // namespace r600
 
 #endif // SFN_CALLSTACK_HH

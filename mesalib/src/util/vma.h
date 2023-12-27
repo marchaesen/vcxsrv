@@ -36,11 +36,21 @@ extern "C" {
 struct util_vma_heap {
    struct list_head holes;
 
+   /** Total size of free memory. */
+   uint64_t free_size;
+
    /** If true, util_vma_heap_alloc will prefer high addresses
     *
     * Default is true.
     */
    bool alloc_high;
+
+   /**
+    * If non-zero, util_vma_heap_alloc will avoid allocating regions which
+    * span (1 << nospan_shift) ranges.  For example, to avoid allocations
+    * which straddle 4GB boundaries, use nospan_shift=log2(4GB)
+    */
+   unsigned nospan_shift;
 };
 
 void util_vma_heap_init(struct util_vma_heap *heap,

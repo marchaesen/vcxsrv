@@ -66,7 +66,7 @@ Grazvydas Ignotas (1):
 
 -  radv: fix trace dumping for !use_ib_bos
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  i965/blorp: Take a layer range in intel_hiz_exec
 -  i965: Move the pre-depth-clear flush/stalls to intel_hiz_exec

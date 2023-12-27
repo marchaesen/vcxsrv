@@ -313,7 +313,7 @@ class PrintGlxSizeStubs_c(PrintGlxSizeStubs_common):
     def printRealHeader(self):
         print('')
         print('#include <X11/Xfuncproto.h>')
-        print('#include <GL/gl.h>')
+        print('#include "util/glheader.h"')
         if self.emit_get:
             print('#include "indirect_size_get.h"')
             print('#include "glxserver.h"')
@@ -440,7 +440,7 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
 
     def printRealHeader(self):
         print('')
-        print('#include <GL/gl.h>')
+        print('#include "util/glheader.h"')
         print('#include "glxserver.h"')
         print('#include "glxbyteorder.h"')
         print('#include "indirect_size.h"')

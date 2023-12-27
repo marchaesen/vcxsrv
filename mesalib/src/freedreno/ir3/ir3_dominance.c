@@ -24,7 +24,7 @@
  */
 
 #include "ir3.h"
-#include "ralloc.h"
+#include "util/ralloc.h"
 
 /*
  * Implements the algorithms for computing the dominance tree and the

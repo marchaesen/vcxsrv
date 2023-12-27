@@ -6,7 +6,7 @@ default xkb_geometry "STEPnote" {
 
     shape.cornerRadius= 1;
 
-    shape "NORM" { 
+    shape "NORM" {
 	{ [17,17] },
 	{ [ 2, 1], [ 15, 15 ] }
     };
@@ -46,7 +46,7 @@ default xkb_geometry "STEPnote" {
 	{ [  88.8, 17 ] },
 	{ [  2,  1 ], [ 86.8, 15 ] }
     };
-    shape "WELL" { 
+    shape "WELL" {
 	{ [ 269, 105 ] }
     };
     shape "LED" {
@@ -90,7 +90,7 @@ default xkb_geometry "STEPnote" {
 	    top= 0.5;
 	    key.color= "grey30";
 	    key.shape= "FKEY";
-	    keys { 
+	    keys {
 		{ <ESC>, "ESC" },
 		<FK01>, <FK02>, <FK03>, <FK04>, <FK05>, <FK06>,
 		<FK07>, <FK08>, <FK09>, <FK10>, <FK11>, <FK12>,
@@ -99,42 +99,42 @@ default xkb_geometry "STEPnote" {
 	};
 	row {
 	    top= 16.5;
-	    keys { 
+	    keys {
 		{ <TLDE>, "NARR" },
 		<AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
 		<AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
-		{ <BKSP>, shape="WIDE", color="grey30" }, 
+		{ <BKSP>, shape="WIDE", color="grey30" },
 		{ <HOME>, shape="NARR", color="grey30" }
 	    };
 	};
 	row {
 	    top= 34;
-	    keys { 
+	    keys {
 	    	{  <TAB>, shape="WIDE", color="grey30" },
 		<AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
 		<AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
-		{ <BKSL>, "NARR" }, 
+		{ <BKSL>, "NARR" },
 		{ <PGUP>, shape="NARR", color="grey30" }
 	    };
 	};
 	row {
 	    top= 51.5;
-	    keys { 
+	    keys {
 		{ <CAPS>, shape="CAPS", color="grey30" },
-		<AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		<AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
-		<AC11>, 
-		{ <RTRN>, shape="RTRN", color="grey30" }, 
+		<AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		<AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
+		<AC11>,
+		{ <RTRN>, shape="RTRN", color="grey30" },
 		{ <PGDN>, shape="NARR", color="grey30" }
 	    };
 	};
 	row {
 	    top= 69;
-	    keys { 
+	    keys {
 		{ <LFSH>, shape="LFSH", color="grey30" },
-		<AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		<AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
-		{ <RTSH>, shape="RTSH", color="grey30" }, 
+		<AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		<AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
+		{ <RTSH>, shape="RTSH", color="grey30" },
 		{   <UP>, shape="NARR", color="grey30" },
 		{  <END>, shape="NARR", color="grey30" }
 	    };
@@ -142,8 +142,8 @@ default xkb_geometry "STEPnote" {
 	row {
 	    top= 86.5;
 	    key.color= "grey30";
-	    keys { 
-		{ <FUNC>, "WIDE" }, 
+	    keys {
+		{ <FUNC>, "WIDE" },
 		<LCTL>, <LALT>,
 		{ <SPCE>, shape="SPCE", 18, color="grey20" },
 		<RALT>,  <INS>, <DELE>,

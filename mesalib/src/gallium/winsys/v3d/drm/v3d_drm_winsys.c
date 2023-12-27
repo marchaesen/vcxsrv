@@ -23,22 +23,46 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "util/os_file.h"
+#include "util/u_screen.h"
 
+#include "kmsro/drm/kmsro_drm_public.h"
 #include "v3d_drm_public.h"
 
 #include "v3d/v3d_screen.h"
+#include "drm-uapi/v3d_drm.h"
 
 struct pipe_screen *
 v3d_drm_screen_create(int fd, const struct pipe_screen_config *config)
 {
-   return v3d_screen_create(os_dupfd_cloexec(fd), config, NULL);
+   bool v3d_present = false;
+
+#ifndef USE_V3D_SIMULATOR
+   struct drm_v3d_get_param ident0 = {
+      .param = DRM_V3D_PARAM_V3D_CORE0_IDENT0,
+   };
+
+   int ret = ioctl(fd, DRM_IOCTL_V3D_GET_PARAM, &ident0);
+   v3d_present = (ret != 0);
+#endif
+
+   if (!v3d_present)
+      return u_pipe_screen_lookup_or_create(os_dupfd_cloexec(fd), config,
+                                            NULL, v3d_screen_create);
+
+#ifdef GALLIUM_KMSRO
+   return kmsro_drm_screen_create(fd, config);
+#endif
+
+   return NULL;
 }
 
 struct pipe_screen *
-v3d_drm_screen_create_renderonly(struct renderonly *ro,
+v3d_drm_screen_create_renderonly(int fd, struct renderonly *ro,
                                  const struct pipe_screen_config *config)
 {
-   return v3d_screen_create(ro->gpu_fd, config, ro);
+   return u_pipe_screen_lookup_or_create(fd, config,
+                                         ro, v3d_screen_create);
 }

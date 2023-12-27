@@ -43,8 +43,7 @@ vk_format_get_first_non_void_channel(VkFormat format)
 }
 
 static inline enum pipe_swizzle
-radv_swizzle_conv(VkComponentSwizzle component, const unsigned char chan[4],
-                  VkComponentSwizzle vk_swiz)
+radv_swizzle_conv(VkComponentSwizzle component, const unsigned char chan[4], VkComponentSwizzle vk_swiz)
 {
    if (vk_swiz == VK_COMPONENT_SWIZZLE_IDENTITY)
       vk_swiz = component;
@@ -64,8 +63,7 @@ radv_swizzle_conv(VkComponentSwizzle component, const unsigned char chan[4],
 }
 
 static inline void
-vk_format_compose_swizzles(const VkComponentMapping *mapping, const unsigned char swz[4],
-                           enum pipe_swizzle dst[4])
+vk_format_compose_swizzles(const VkComponentMapping *mapping, const unsigned char swz[4], enum pipe_swizzle dst[4])
 {
    dst[0] = radv_swizzle_conv(VK_COMPONENT_SWIZZLE_R, swz, mapping->r);
    dst[1] = radv_swizzle_conv(VK_COMPONENT_SWIZZLE_G, swz, mapping->g);

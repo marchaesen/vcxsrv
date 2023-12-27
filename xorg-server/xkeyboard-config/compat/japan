@@ -39,7 +39,7 @@ partial xkb_compatibility "kana_lock" {
     };
 
     indicator "Kana" {
-        !allowExplicit;
+	!allowExplicit;
 	groups= All-Group1;
     };
 };

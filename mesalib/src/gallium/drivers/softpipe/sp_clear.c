@@ -65,7 +65,7 @@ softpipe_clear(struct pipe_context *pipe, unsigned buffers,
       return;
 
 #if 0
-   softpipe_update_derived(softpipe, PIPE_PRIM_TRIANGLES); /* not needed?? */
+   softpipe_update_derived(softpipe, MESA_PRIM_TRIANGLES); /* not needed?? */
 #endif
 
    if (buffers & PIPE_CLEAR_COLOR) {
@@ -89,5 +89,5 @@ softpipe_clear(struct pipe_context *pipe, unsigned buffers,
       sp_tile_cache_clear(softpipe->zsbuf_cache, &zero, cv);
    }
 
-   softpipe->dirty_render_cache = TRUE;
+   softpipe->dirty_render_cache = true;
 }

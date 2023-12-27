@@ -117,15 +117,15 @@ XmuAddCloseDisplayHook(Display *dpy, XmuCloseHookProc func, XPointer arg)
     CallbackRec *cb;
 
     /* allocate ahead of time so that we can fail atomically */
-    cb = (CallbackRec *) malloc (sizeof (CallbackRec));
+    cb = malloc (sizeof (CallbackRec));
     if (!cb) return ((XPointer) NULL);
 
     de = _FindDisplayEntry (dpy, NULL);
     if (!de) {
-	if ((de = (DisplayEntry *) malloc (sizeof (DisplayEntry))) == NULL ||
+	if ((de = malloc (sizeof (DisplayEntry))) == NULL ||
 	    !_MakeExtension (dpy, &de->extension)) {
-	    free ((char *) cb);
-	    if (de) free ((char *) de);
+	    free (cb);
+	    free (de);
 	    return ((CloseHook) NULL);
 	}
 	de->dpy = dpy;
@@ -135,7 +135,7 @@ XmuAddCloseDisplayHook(Display *dpy, XmuCloseHookProc func, XPointer arg)
 	elist = de;
     }
 
-    /* add to end of list of callback recordss */
+    /* add to end of list of callback records */
     cb->func = func;
     cb->arg = arg;
     cb->next = NULL;
@@ -182,7 +182,7 @@ XmuRemoveCloseDisplayHook(Display *dpy, CloseHook handle,
 	prev->next = h->next;
     }
     if (de->end == h) de->end = prev;
-    if (de->calling != h) free ((char *) h);
+    if (de->calling != h) free (h);
     return True;
 }
 
@@ -221,7 +221,7 @@ XmuLookupCloseDisplayHook(Display *dpy, CloseHook handle,
 
 /*
  * Find the specified display on the linked list of displays.  Also return
- * the preceeding link so that the display can be unlinked without having
+ * the preceding link so that the display can be unlinked without having
  * back pointers.
  */
 static DisplayEntry *
@@ -261,7 +261,7 @@ _DoCallbacks(Display *dpy, XExtCodes *codes)
 	de->calling = h;		/* let remove know we'll free it */
 	(*(h->func)) (dpy, h->arg);
 	de->calling = NULL;
-	free ((char *) h);
+	free (h);
 	h = nexth;
     }
 
@@ -271,7 +271,7 @@ _DoCallbacks(Display *dpy, XExtCodes *codes)
     } else {
 	prev->next = de->next;
     }
-    free ((char *) de);
+    free (de);
     return 1;
 }
 

@@ -27,11 +27,23 @@ THE SOFTWARE.
    hand, we do use strcasecmp, but only on strings that we've checked
    to be pure ASCII.  Bloody ``Code Set Independence''. */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <string.h>
 #include <strings.h>
 #include <stdio.h>
 
 #include <stdlib.h>
+
+#include <fcntl.h>
+#ifdef O_CLOEXEC
+#define FOPEN_CLOEXEC "e"
+#else
+#define FOPEN_CLOEXEC ""
+#endif
+
 
 #include "zlib.h"
 typedef gzFile FontFilePtr;
@@ -45,6 +57,7 @@ typedef gzFile FontFilePtr;
 
 #include <X11/fonts/fontenc.h>
 #include "fontencI.h"
+#include "reallocarray.h"
 
 #define MAXALIASES 20
 
@@ -453,7 +466,7 @@ setCode(unsigned from, unsigned to, unsigned row_size,
         return 0;
     if (*encsize == 0) {
         *encsize = (index < 256) ? 256 : 0x10000;
-        *enc = malloc((*encsize) * sizeof(unsigned short));
+        *enc = Xmallocarray(*encsize, sizeof(unsigned short));
         if (*enc == NULL) {
             *encsize = 0;
             return 1;
@@ -461,8 +474,8 @@ setCode(unsigned from, unsigned to, unsigned row_size,
     }
     else if (*encsize <= index) {
         *encsize = 0x10000;
-        if ((newenc =
-             realloc(*enc, (*encsize) * sizeof(unsigned short))) == NULL)
+        newenc = Xreallocarray(*enc, *encsize, sizeof(unsigned short));
+        if (newenc == NULL)
             return 1;
         *enc = newenc;
     }
@@ -634,7 +647,7 @@ parseEncodingFile(FontFilePtr f, int headerOnly)
 
             sm->first = first;
             sm->len = last - first + 1;
-            newmap = malloc(sm->len * sizeof(unsigned short));
+            newmap = Xmallocarray(sm->len, sizeof(unsigned short));
             if (newmap == NULL) {
                 free(sm);
                 mapping->client_data = sm = NULL;
@@ -719,7 +732,7 @@ parseEncodingFile(FontFilePtr f, int headerOnly)
         }
         sn->first = first;
         sn->len = last - first + 1;
-        sn->map = malloc(sn->len * sizeof(char *));
+        sn->map = Xmallocarray(sn->len, sizeof(char *));
         if (sn->map == NULL) {
             free(sn);
             mapping->client_data = sn = NULL;
@@ -737,7 +750,7 @@ parseEncodingFile(FontFilePtr f, int headerOnly)
             goto string_mapping;
         if (namsize == 0) {
             namsize = (value1) < 256 ? 256 : 0x10000;
-            nam = malloc(namsize * sizeof(char *));
+            nam = Xmallocarray(namsize, sizeof(char *));
             if (nam == NULL) {
                 namsize = 0;
                 goto error;
@@ -786,7 +799,7 @@ parseEncodingFile(FontFilePtr f, int headerOnly)
 
     encoding->aliases = NULL;
     if (numaliases) {
-        encoding->aliases = malloc((numaliases + 1) * sizeof(char *));
+        encoding->aliases = Xmallocarray(numaliases + 1, sizeof(char *));
         if (encoding->aliases == NULL)
             goto error;
         for (i = 0; i < numaliases; i++)
@@ -884,7 +897,7 @@ FontEncReallyReallyLoad(const char *charset,
     /* As we don't really expect to open encodings that often, we don't
        take the trouble of caching encodings directories. */
 
-    if ((file = fopen(dirname, "r")) == NULL) {
+    if ((file = fopen(dirname, "r" FOPEN_CLOEXEC)) == NULL) {
         return NULL;
     }
 
@@ -986,7 +999,7 @@ FontEncIdentify(const char *fileName)
         for (alias = encoding->aliases; *alias; alias++)
             numaliases++;
 
-    names = malloc((numaliases + 2) * sizeof(char *));
+    names = Xmallocarray(numaliases + 2, sizeof(char *));
     if (names == NULL) {
         free(encoding->aliases);
         free(encoding);

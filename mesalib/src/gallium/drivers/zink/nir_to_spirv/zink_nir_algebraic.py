@@ -25,7 +25,7 @@ import sys
 
 lower_b2b = [
    (('b2b32', 'a'), ('b2i32', 'a')),
-   (('b2b1', 'a'), ('i2b1', 'a')),
+   (('b2b1', 'a'), ('ine', 'a', 0)),
 ]
 
 def main():

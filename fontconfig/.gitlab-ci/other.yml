@@ -1,0 +1,142 @@
+# FIXME: fontconfig should probably get its own image
+# In the meantime, the latest GStreamer image tag can be found here:
+# https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/main/.gitlab-image-tags.yml#L10
+.build meson windows:
+  image: "registry.freedesktop.org/gstreamer/gstreamer/amd64/windows:2022-09-23.0-main"
+  stage: "test"
+  tags:
+    - "docker"
+    - "windows"
+    - "2022"
+  variables:
+    # Make sure any failure in PowerShell scripts is fatal
+    ErrorActionPreference: "Stop"
+    WarningPreference: "Stop"
+    # Uncomment the following key if need to pass custom args, as well with the
+    # $env:MESON_ARGS line in the `script:` blocks
+    # MESON_ARGS: >-
+    #   -Dfoo=enabled
+    #   -Dbar=disabled
+  before_script:
+    # Make sure meson is up to date, so we don't need to rebuild the image with each release
+    - pip3 install -U meson certifi
+  script:
+    # For some reason, options are separated by newline instead of space, so we
+    # have to replace them first.
+    # - $env:MESON_ARGS = $env:MESON_ARGS.replace("`n"," ")
+    # Gitlab executes PowerShell in docker, but VsDevCmd.bat is a batch script.
+    # Environment variables substitutions is done by PowerShell before calling
+    # cmd.exe, that's why we use $env:FOO instead of %FOO%
+    - cmd.exe /C "C:\BuildTools\Common7\Tools\VsDevCmd.bat -host_arch=amd64 -arch=$env:ARCH &&
+      SET CERT_PATH=$(python -m certifi) &&
+      SET SSL_CERT_FILE=$(python -m certifi) &&
+      SET REQUESTS_CA_BUNDLE=$(python -m certifi) &&
+      meson build $env:MESON_ARGS &&
+      ninja -C build &&
+      ninja -C build test"
+  artifacts:
+    name: fontconfig-$CI_COMMIT_SHA-$CI_JOB_ID
+    when: always
+    paths:
+      - build-*/meson-logs/*txt
+      - prefix-*
+
+meson vs2019 amd64:
+  extends: ".build meson windows"
+  variables:
+    ARCH: "amd64"
+
+meson vs2019 x86:
+  extends: ".build meson windows"
+  variables:
+    ARCH: "x86"
+
+meson macos:
+  stage: "test"
+  tags:
+    - gst-macos-11.1
+  artifacts:
+    name: "${CI_JOB_NAME}_${CI_COMMIT_SHA}"
+    expire_in: "5 days"
+    when: "always"
+    paths:
+      - "build/meson-logs/*txt"
+  before_script:
+    - pip3 install --upgrade pip
+    # Make sure meson is up to date
+    - pip3 install -U meson
+    # Need to install certificates for python
+    - pip3 install --upgrade certifi
+    # Anther way t install certificates
+    - open /Applications/Python\ 3.8/Install\ Certificates.command
+    # Get ninja
+    - curl -L -o ninja-mac.zip https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-mac.zip
+    - unzip ninja-mac.zip
+    - sudo cp ninja /usr/local/bin
+  script:
+    - CERT_PATH=$(python3 -m certifi) && export SSL_CERT_FILE=${CERT_PATH} && export REQUESTS_CA_BUNDLE=${CERT_PATH} && meson build
+    - ninja -C build
+    - ninja -C build test
+
+# msys infrastructure is a bit broken, disable for now
+meson msys2:
+  extends: ".build meson windows"
+  when: "manual"
+  allow_failure: true
+  script:
+    # For some reason, options are separated by newline instead of space, so we
+    # have to replace them first.
+    # - $env:MESON_ARGS = $env:MESON_ARGS.replace("`n"," ")
+
+    - $env:PATH += ";C:\msys64\usr\bin;C:\msys64\mingw64/bin;C:\msys64\mingw32/bin"
+    # XXX: Copied from https://gitlab.freedesktop.org/gstreamer/gst-ci/blob/master/gitlab/ci_template.yml#L487
+    # For some reason docker build hangs if this is included in the image, needs more troubleshooting
+    - C:\msys64\usr\bin\bash -c "pacman-key --init && pacman-key --populate msys2 && pacman-key --refresh-keys || true"
+    - C:\msys64\usr\bin\bash -c "pacman -Syuu --noconfirm"
+    - C:\msys64\usr\bin\bash -c "pacman -Sy --noconfirm --needed mingw-w64-x86_64-toolchain ninja"
+    - C:\msys64\usr\bin\bash -c "meson build $env:MESON_ARGS &&
+      ninja -C build &&
+      ninja -C build test"
+
+meson android arm64 fedora:
+  # See https://gitlab.freedesktop.org/gstreamer/gst-ci/container_registry/164 for current images
+  image: "registry.freedesktop.org/gstreamer/gst-ci/amd64/android-fedora:2020-10-22.0-master"
+  stage: "test"
+  artifacts:
+    name: "${CI_JOB_NAME}_${CI_COMMIT_SHA}"
+    expire_in: "5 days"
+    when: "always"
+    paths:
+      - "build/meson-logs/*.txt"
+  before_script:
+    - dnf install -y python3-pip gcc ninja-build gperf
+    - pip3 install --user meson
+  script:
+    - export PATH="$HOME/.local/bin:$PATH"
+    - |
+      cat > android-cross-file.txt <<EOF
+      [constants]
+      ndk_path    = '/android/ndk'
+      toolchain   = ndk_path + '/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android'
+      api         = '28'
+
+      [host_machine]
+      system      = 'android'
+      cpu_family  = 'aarch64'
+      cpu         = 'aarch64'
+      endian      = 'little'
+
+      [properties]
+      sys_root        = ndk_path + '/sysroot'
+      c_args          = ['-Wno-pointer-bool-conversion']
+      c_link_args     = ['-fuse-ld=gold']
+      cpp_link_args   = ['-fuse-ld=gold']
+
+      [binaries]
+      c           = toolchain + api + '-clang'
+      cpp         = toolchain + api + '-clang++'
+      ar          = toolchain + '-ar'
+      strip       = toolchain + '-strip'
+      EOF
+    - meson setup --werror --cross-file android-cross-file.txt build
+    - meson compile --verbose -C build

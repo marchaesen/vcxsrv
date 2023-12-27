@@ -207,7 +207,7 @@ Jan Ziak (2):
 -  egl/x11: avoid using freed memory if dri2 init fails
 -  loader: fix memory leak in loader_dri3_open
 
-Jason Ekstrand (31):
+Faith Ekstrand (31):
 
 -  nir/spirv: Don't multiply the push constant block size by 4
 -  anv: Add a stub for CmdCopyQueryPoolResults on Ivy Bridge

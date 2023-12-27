@@ -29,6 +29,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_buffer_reference : require
 #extension GL_EXT_buffer_reference2 : require
@@ -72,17 +73,17 @@ main(void)
    uint32_t id = DEREF(key_id).id;
 
    uint32_t key;
-   if (id != NULL_NODE_ID) {
-      AABB bounds = calculate_node_bounds(args.bvh, id);
+   if (id != RADV_BVH_INVALID_NODE) {
+      radv_aabb bounds = DEREF(REF(radv_ir_node)OFFSET(args.bvh, ir_id_to_offset(id))).aabb;
       vec3 center = (bounds.min + bounds.max) * 0.5;
 
-      AABB bvh_bounds;
-      bvh_bounds.min.x = load_minmax_float_emulated(VOID_REF(args.bounds));
-      bvh_bounds.min.y = load_minmax_float_emulated(OFFSET(args.bounds, 4));
-      bvh_bounds.min.z = load_minmax_float_emulated(OFFSET(args.bounds, 8));
-      bvh_bounds.max.x = load_minmax_float_emulated(OFFSET(args.bounds, 12));
-      bvh_bounds.max.y = load_minmax_float_emulated(OFFSET(args.bounds, 16));
-      bvh_bounds.max.z = load_minmax_float_emulated(OFFSET(args.bounds, 20));
+      radv_aabb bvh_bounds;
+      bvh_bounds.min.x = from_emulated_float(DEREF(args.header).min_bounds[0]);
+      bvh_bounds.min.y = from_emulated_float(DEREF(args.header).min_bounds[1]);
+      bvh_bounds.min.z = from_emulated_float(DEREF(args.header).min_bounds[2]);
+      bvh_bounds.max.x = from_emulated_float(DEREF(args.header).max_bounds[0]);
+      bvh_bounds.max.y = from_emulated_float(DEREF(args.header).max_bounds[1]);
+      bvh_bounds.max.z = from_emulated_float(DEREF(args.header).max_bounds[2]);
 
       vec3 normalized_center = (center - bvh_bounds.min) / (bvh_bounds.max - bvh_bounds.min);
 

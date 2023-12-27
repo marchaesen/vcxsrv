@@ -24,6 +24,9 @@
 #ifndef D3D12_QUERY_H
 #define D3D12_QUERY_H
 
+#include "d3d12_common.h"
+#include "d3d12_resource.h"
+
 struct d3d12_context;
 
 void
@@ -37,5 +40,44 @@ d3d12_validate_queries(struct d3d12_context *ctx);
 
 void
 d3d12_enable_predication(struct d3d12_context *ctx);
+
+constexpr unsigned MAX_SUBQUERIES = 4;
+
+struct d3d12_query_impl {
+   ID3D12QueryHeap* query_heap;
+   unsigned curr_query, num_queries;
+   size_t query_size;
+
+   D3D12_QUERY_TYPE d3d12qtype;
+
+   pipe_resource* buffer;
+   unsigned buffer_offset;
+
+   bool active;
+};
+
+struct d3d12_query {
+   struct threaded_query base;
+   struct pipe_reference reference;
+   enum pipe_query_type type;
+   unsigned index;
+
+   struct d3d12_query_impl subqueries[MAX_SUBQUERIES];
+
+   struct list_head active_list;
+   struct d3d12_resource* predicate;
+
+   /* 
+   * Used to track if a query's results are ready to be read asynchronously
+   * 
+   * Initialized to 0, it is set to UINT64_MAX when the query is ended but before it is flushed
+   * At flush, it is set to the fence_value associated with the work it was
+   * submitted with
+   */
+   uint64_t fence_value;
+};
+
+void
+d3d12_destroy_query(d3d12_query *query);
 
 #endif

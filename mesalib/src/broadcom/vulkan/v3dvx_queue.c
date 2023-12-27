@@ -29,7 +29,8 @@
 void
 v3dX(job_emit_noop)(struct v3dv_job *job)
 {
-   v3dv_job_start_frame(job, 1, 1, 1, true, true, 1, V3D_INTERNAL_BPP_32, false);
+   v3dv_job_start_frame(job, 1, 1, 1, true, true, 1,
+                        V3D_INTERNAL_BPP_32, 4, false);
    v3dX(job_emit_binning_flush)(job);
 
    struct v3dv_cl *rcl = &job->rcl;
@@ -42,14 +43,29 @@ v3dX(job_emit_noop)(struct v3dv_job *job)
       config.image_height_pixels = 1;
       config.number_of_render_targets = 1;
       config.multisample_mode_4x = false;
+#if V3D_VERSION == 42
       config.maximum_bpp_of_all_render_targets = V3D_INTERNAL_BPP_32;
+#endif
+#if V3D_VERSION >= 71
+      config.log2_tile_width = 3; /* Tile size 64 */
+      config.log2_tile_height = 3; /* Tile size 64 */
+#endif
    }
 
+#if V3D_VERSION == 42
    cl_emit(rcl, TILE_RENDERING_MODE_CFG_COLOR, rt) {
       rt.render_target_0_internal_bpp = V3D_INTERNAL_BPP_32;
       rt.render_target_0_internal_type = V3D_INTERNAL_TYPE_8;
       rt.render_target_0_clamp = V3D_RENDER_TARGET_CLAMP_NONE;
    }
+#endif
+#if V3D_VERSION >= 71
+   cl_emit(rcl, TILE_RENDERING_MODE_CFG_RENDER_TARGET_PART1, rt) {
+      rt.internal_bpp = V3D_INTERNAL_BPP_32;
+      rt.internal_type_and_clamping = V3D_RENDER_TARGET_TYPE_CLAMP_8;
+      rt.stride = 1; /* Unused RT */
+   }
+#endif
 
    cl_emit(rcl, TILE_RENDERING_MODE_CFG_ZS_CLEAR_VALUES, clear) {
       clear.z_clear_value = 1.0f;

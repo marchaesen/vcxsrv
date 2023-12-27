@@ -54,7 +54,7 @@ SOFTWARE.
 ******************************************************************/
 
 /*
- * Copyright (c) 2004, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -114,6 +114,14 @@ SOFTWARE.
 #ifdef __sun
 #include <zone.h>
 #endif
+#endif
+
+#ifdef HAVE_SYS_UCRED_H
+#include <sys/ucred.h>
+#endif
+
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
 #endif
 
 #if defined(SVR4) ||  (defined(SYSV) && defined(__i386__)) || defined(__GNU__)
@@ -1162,20 +1170,27 @@ ComputeLocalClient(ClientPtr client)
 int
 GetLocalClientCreds(ClientPtr client, LocalClientCredRec ** lccp)
 {
-#if defined(HAVE_GETPEEREID) || defined(HAVE_GETPEERUCRED) || defined(SO_PEERCRED)
+#if defined(HAVE_GETPEEREID) || defined(HAVE_GETPEERUCRED) || defined(SO_PEERCRED) || defined(LOCAL_PEERCRED)
     int fd;
     XtransConnInfo ci;
     LocalClientCredRec *lcc;
 
-#ifdef HAVE_GETPEEREID
-    uid_t uid;
-    gid_t gid;
-#elif defined(HAVE_GETPEERUCRED)
+#if defined(HAVE_GETPEERUCRED)
     ucred_t *peercred = NULL;
     const gid_t *gids;
 #elif defined(SO_PEERCRED)
     struct ucred peercred;
     socklen_t so_len = sizeof(peercred);
+#elif defined(LOCAL_PEERCRED) && defined(HAVE_XUCRED_CR_PID)
+    struct xucred peercred;
+    socklen_t so_len = sizeof(peercred);
+#elif defined(HAVE_GETPEEREID)
+    uid_t uid;
+    gid_t gid;
+#if defined(LOCAL_PEERPID)
+    pid_t pid;
+    socklen_t so_len = sizeof(pid);
+#endif
 #endif
 
     if (client == NULL)
@@ -1197,16 +1212,7 @@ GetLocalClientCreds(ClientPtr client, LocalClientCredRec ** lccp)
     lcc = *lccp;
 
     fd = _XSERVTransGetConnectionNumber(ci);
-#ifdef HAVE_GETPEEREID
-    if (getpeereid(fd, &uid, &gid) == -1) {
-        FreeLocalClientCreds(lcc);
-        return -1;
-    }
-    lcc->euid = uid;
-    lcc->egid = gid;
-    lcc->fieldsSet = LCC_UID_SET | LCC_GID_SET;
-    return 0;
-#elif defined(HAVE_GETPEERUCRED)
+#if defined(HAVE_GETPEERUCRED)
     if (getpeerucred(fd, &peercred) < 0) {
         FreeLocalClientCreds(lcc);
         return -1;
@@ -1253,6 +1259,36 @@ GetLocalClientCreds(ClientPtr client, LocalClientCredRec ** lccp)
     lcc->egid = peercred.gid;
     lcc->pid = peercred.pid;
     lcc->fieldsSet = LCC_UID_SET | LCC_GID_SET | LCC_PID_SET;
+    return 0;
+#elif defined(LOCAL_PEERCRED) && defined(HAVE_XUCRED_CR_PID)
+    if (getsockopt(fd, SOL_LOCAL, LOCAL_PEERCRED, &peercred, &so_len) != 0 ||
+        peercred.cr_version != XUCRED_VERSION) {
+        FreeLocalClientCreds(lcc);
+        return -1;
+    }
+    lcc->euid = peercred.cr_uid;
+    lcc->egid = peercred.cr_gid;
+    lcc->pid = peercred.cr_pid;
+    lcc->fieldsSet = LCC_UID_SET | LCC_GID_SET | LCC_PID_SET;
+    return 0;
+#elif defined(HAVE_GETPEEREID)
+    if (getpeereid(fd, &uid, &gid) == -1) {
+        FreeLocalClientCreds(lcc);
+        return -1;
+    }
+    lcc->euid = uid;
+    lcc->egid = gid;
+    lcc->fieldsSet = LCC_UID_SET | LCC_GID_SET;
+
+#if defined(LOCAL_PEERPID)
+    if (getsockopt(fd, SOL_LOCAL, LOCAL_PEERPID, &pid, &so_len) != 0) {
+        ErrorF("getsockopt failed to determine pid of socket %d: %s\n", fd, strerror(errno));
+    } else {
+        lcc->pid = pid;
+        lcc->fieldsSet |= LCC_PID_SET;
+    }
+#endif
+
     return 0;
 #endif
 #else

@@ -27,7 +27,7 @@
 #define IMAGE_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 struct gl_pixelstore_attrib;
@@ -82,7 +82,7 @@ _mesa_image_row_stride( const struct gl_pixelstore_attrib *packing,
                         GLint width, GLenum format, GLenum type );
 
 
-extern GLint
+extern intptr_t
 _mesa_image_image_stride( const struct gl_pixelstore_attrib *packing,
                           GLint width, GLint height,
                           GLenum format, GLenum type );

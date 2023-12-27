@@ -1,27 +1,27 @@
 #!/bin/bash
-if [ ! -d xserver          ]; then git clone https://gitlab.freedesktop.org/xorg/xserver.git               ; fi
-if [ ! -d libxcb           ]; then git clone https://github.com/freedesktop/xcb-libxcb.git                 ; fi
-if [ ! -d libxcb/xcb-proto ]; then git clone https://github.com/freedesktop/xcb-proto.git libxcb/xcb-proto ; fi
-if [ ! -d xkeyboard-config ]; then git clone https://github.com/freedesktop/xkeyboard-config               ; fi
-if [ ! -d libX11           ]; then git clone https://github.com/freedesktop/xorg-libX11.git                ; fi
-if [ ! -d libXdmcp         ]; then git clone https://github.com/freedesktop/xorg-libXdmcp.git              ; fi
-if [ ! -d libXext          ]; then git clone https://github.com/freedesktop/xorg-libXext.git               ; fi
-if [ ! -d libfontenc       ]; then git clone https://github.com/freedesktop/xorg-libxau.git                ; fi
-if [ ! -d libXinerama      ]; then git clone https://github.com/freedesktop/xorg-libXinerama.git           ; fi
-if [ ! -d libXau           ]; then git clone https://github.com/freedesktop/xorg-libXau.git                ; fi
-if [ ! -d xkbcomp          ]; then git clone https://github.com/freedesktop/xkbcomp.git                    ; fi
-if [ ! -d pixman           ]; then git clone https://gitlab.freedesktop.org/pixman/pixman.git              ; fi
-if [ ! -d mkfontscale      ]; then git clone https://github.com/freedesktop/xorg-mkfontscale.git           ; fi
-if [ ! -d xwininfo         ]; then git clone https://github.com/freedesktop/xwininfo.git                   ; fi
-if [ ! -d libXft           ]; then git clone https://github.com/freedesktop/xorg-libXft.git                ; fi
-if [ ! -d libXmu           ]; then git clone https://github.com/freedesktop/xorg-libXmu.git                ; fi
-if [ ! -d libxtrans        ]; then git clone https://github.com/freedesktop/xorg-libxtrans.git             ; fi
-if [ ! -d fontconfig       ]; then git clone https://gitlab.freedesktop.org/fontconfig/fontconfig.git      ; fi
-if [ ! -d mesa             ]; then git clone https://gitlab.freedesktop.org/mesa/mesa.git                  ; fi
-if [ ! -d putty            ]; then git clone git://git.tartarus.org/simon/putty.git                        ; fi
-if [ ! -d pthreads         ]; then git clone git://git.code.sf.net/p/pthreads4w/code pthreads              ; fi
-if [ ! -d EGL-Registry     ]; then git clone https://github.com/KhronosGroup/EGL-Registry.git              ; fi
-if [ ! -d xorgproto        ]; then git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git       ; fi
+if [ ! -d xserver          ]; then git clone https://gitlab.freedesktop.org/xorg/xserver.git                         ; fi
+if [ ! -d libxcb           ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxcb.git                      ; fi
+if [ ! -d libxcb/xcb-proto ]; then git clone https://gitlab.freedesktop.org/xorg/proto/xcbproto.git libxcb/xcb-proto ; fi
+if [ ! -d xkeyboard-config ]; then git clone https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config.git    ; fi
+if [ ! -d libX11           ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libx11.git                      ; fi
+if [ ! -d libXdmcp         ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxdmcp.git                    ; fi
+if [ ! -d libXext          ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxext.git                     ; fi
+if [ ! -d libfontenc       ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libfontenc.git                  ; fi
+if [ ! -d libXinerama      ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxinerama.git                 ; fi
+if [ ! -d libXau           ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxau.git                      ; fi
+if [ ! -d xkbcomp          ]; then git clone https://gitlab.freedesktop.org/xorg/app/xkbcomp.git                     ; fi
+if [ ! -d pixman           ]; then git clone https://gitlab.freedesktop.org/pixman/pixman.git                        ; fi
+if [ ! -d mkfontscale      ]; then git clone https://gitlab.freedesktop.org/xorg/app/mkfontscale.git                 ; fi
+if [ ! -d xwininfo         ]; then git clone https://gitlab.freedesktop.org/xorg/app/xwininfo.git                    ; fi
+if [ ! -d libXft           ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxft.git                      ; fi
+if [ ! -d libXmu           ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxmu.git                      ; fi
+if [ ! -d libxtrans        ]; then git clone https://gitlab.freedesktop.org/xorg/lib/libxtrans.git                   ; fi
+if [ ! -d fontconfig       ]; then git clone https://gitlab.freedesktop.org/fontconfig/fontconfig.git                ; fi
+if [ ! -d mesa             ]; then git clone https://gitlab.freedesktop.org/mesa/mesa.git                            ; fi
+if [ ! -d putty            ]; then git clone git://git.tartarus.org/simon/putty.git                                  ; fi
+if [ ! -d pthreads         ]; then git clone git://git.code.sf.net/p/pthreads4w/code pthreads                        ; fi
+if [ ! -d EGL-Registry     ]; then git clone https://github.com/KhronosGroup/EGL-Registry.git                        ; fi
+if [ ! -d xorgproto        ]; then git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git                 ; fi
 
 if [ -d xserver          ]; then echo Updating xserver          ; pushd xserver         > /dev/null ; git pull; popd > /dev/null ; fi
 if [ -d libxcb           ]; then echo Updating libxcb           ; pushd libxcb          > /dev/null ; git pull; popd > /dev/null ; fi

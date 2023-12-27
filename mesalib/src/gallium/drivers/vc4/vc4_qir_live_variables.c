@@ -330,10 +330,6 @@ qir_calculate_live_intervals(struct vc4_compile *c)
                         }
                         max_reg_pressure = MAX2(max_reg_pressure, reg_pressure);
                 }
-
-                fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d max temps\n",
-                        qir_get_stage_name(c->stage),
-                        c->program_id, c->variant_id,
-                        max_reg_pressure);
+                c->max_reg_pressure = max_reg_pressure;
         }
 }

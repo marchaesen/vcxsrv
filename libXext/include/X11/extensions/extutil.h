@@ -138,10 +138,12 @@ extern XExtDisplayInfo *XextFindDisplay(
 );
 
 #define XextHasExtension(i) ((i) && ((i)->codes))
-#define XextCheckExtension(dpy,i,name,val) \
-  if (!XextHasExtension(i)) { XMissingExtension (dpy, name); return val; }
-#define XextSimpleCheckExtension(dpy,i,name) \
-  if (!XextHasExtension(i)) { XMissingExtension (dpy, name); return; }
+#define XextCheckExtension(dpy,i,name,val) do {                            \
+  if (!XextHasExtension(i)) { XMissingExtension (dpy, name); return val; } \
+} while (0)
+#define XextSimpleCheckExtension(dpy,i,name) do {                       \
+  if (!XextHasExtension(i)) { XMissingExtension (dpy, name); return; }  \
+} while (0)
 
 
 /*

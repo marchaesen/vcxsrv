@@ -30,7 +30,7 @@
 #include "xa_tracker.h"
 #include "xa_priv.h"
 #include "pipe/p_state.h"
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "pipe-loader/pipe_loader.h"
 #include "frontend/drm_driver.h"
 #include "util/u_inlines.h"
@@ -171,7 +171,7 @@ xa_tracker_create(int drm_fd)
     if (!xa)
 	return NULL;
 
-    if (pipe_loader_drm_probe_fd(&xa->dev, drm_fd))
+    if (pipe_loader_drm_probe_fd(&xa->dev, drm_fd, false))
 	xa->screen = pipe_loader_create_screen(xa->dev);
 
     if (!xa->screen)
@@ -555,7 +555,7 @@ xa_surface_handle(struct xa_surface *srf,
     struct winsys_handle whandle;
 
     struct pipe_screen *screen = srf->xa->screen;
-    boolean res;
+    bool res;
 
     memset(&whandle, 0, sizeof(whandle));
     whandle.type = handle_type(type);

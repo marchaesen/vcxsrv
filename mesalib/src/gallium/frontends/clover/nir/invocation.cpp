@@ -32,10 +32,12 @@
 #include "util/functional.hpp"
 
 #include <compiler/glsl_types.h>
+#include <compiler/clc/nir_clc_helpers.h>
 #include <compiler/nir/nir_builder.h>
 #include <compiler/nir/nir_serialize.h>
 #include <compiler/spirv/nir_spirv.h>
 #include <util/u_math.h>
+#include <util/hex.h>
 
 using namespace clover;
 
@@ -72,12 +74,12 @@ static void debug_function(void *private_data,
 static void
 clover_arg_size_align(const glsl_type *type, unsigned *size, unsigned *align)
 {
-   if (type == glsl_type::sampler_type || type->is_image()) {
+   if (glsl_type_is_sampler(type) || glsl_type_is_image(type)) {
       *size = 0;
       *align = 1;
    } else {
-      *size = type->cl_size();
-      *align = type->cl_alignment();
+      *size = glsl_get_cl_size(type);
+      *align = glsl_get_cl_alignment(type);
    }
 }
 
@@ -113,7 +115,7 @@ clover_lower_nir_filter(const nir_instr *instr, const void *)
    return instr->type == nir_instr_type_intrinsic;
 }
 
-static nir_ssa_def *
+static nir_def *
 clover_lower_nir_instr(nir_builder *b, nir_instr *instr, void *_state)
 {
    clover_lower_nir_state *state = reinterpret_cast<clover_lower_nir_state*>(_state);
@@ -135,7 +137,7 @@ clover_lower_nir_instr(nir_builder *b, nir_instr *instr, void *_state)
       return nir_load_var(b, state->printf_buffer);
    }
    case nir_intrinsic_load_base_global_invocation_id: {
-      nir_ssa_def *loads[3];
+      nir_def *loads[3];
 
       /* create variables if we didn't do so alrady */
       if (!state->offset_vars[0]) {
@@ -162,8 +164,8 @@ clover_lower_nir_instr(nir_builder *b, nir_instr *instr, void *_state)
          loads[i] = var ? nir_load_var(b, var) : nir_imm_int(b, 0);
       }
 
-      return nir_u2u(b, nir_vec(b, loads, state->global_dims),
-                     nir_dest_bit_size(intrinsic->dest));
+      return nir_u2uN(b, nir_vec(b, loads, state->global_dims),
+                     intrinsic->def.bit_size);
    }
    case nir_intrinsic_load_constant_base_ptr: {
       return nir_load_var(b, state->constant_var);
@@ -239,7 +241,7 @@ struct disk_cache *clover::nir::create_clc_disk_cache(void)
 
    _mesa_sha1_final(&ctx, sha1);
 
-   disk_cache_format_hex_id(cache_id, sha1, 20 * 2);
+   mesa_bytes_to_hex(cache_id, sha1, 20);
    return disk_cache_create("clover-clc", cache_id, 0);
 }
 
@@ -255,15 +257,16 @@ nir_shader *clover::nir::load_libclc_nir(const device &dev, std::string &r_log)
    auto *compiler_options = dev_get_nir_compiler_options(dev);
 
    return nir_load_libclc_shader(dev.address_bits(), dev.clc_cache,
-				 &spirv_options, compiler_options);
+                                 &spirv_options, compiler_options,
+                                 dev.clc_cache != nullptr);
 }
 
 static bool
 can_remove_var(nir_variable *var, void *data)
 {
-   return !(var->type->is_sampler() ||
-            var->type->is_texture() ||
-            var->type->is_image());
+   return !(glsl_type_is_sampler(var->type) ||
+            glsl_type_is_texture(var->type) ||
+            glsl_type_is_image(var->type));
 }
 
 binary clover::nir::spirv_to_nir(const binary &mod, const device &dev,
@@ -308,7 +311,7 @@ binary clover::nir::spirv_to_nir(const binary &mod, const device &dev,
       // according to the comment on nir_inline_functions
       NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
       NIR_PASS_V(nir, nir_lower_returns);
-      NIR_PASS_V(nir, nir_lower_libclc, spirv_options.clc_shader);
+      NIR_PASS_V(nir, nir_link_shader_functions, spirv_options.clc_shader);
 
       NIR_PASS_V(nir, nir_inline_functions);
       NIR_PASS_V(nir, nir_copy_prop);
@@ -376,7 +379,7 @@ binary clover::nir::spirv_to_nir(const binary &mod, const device &dev,
 
       NIR_PASS_V(nir, nir_opt_deref);
       NIR_PASS_V(nir, nir_lower_readonly_images_to_tex, false);
-      NIR_PASS_V(nir, nir_lower_cl_images);
+      NIR_PASS_V(nir, nir_lower_cl_images, true, true);
       NIR_PASS_V(nir, nir_lower_memcpy);
 
       /* use offsets for kernel inputs (uniform) */

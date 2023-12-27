@@ -20,7 +20,7 @@ These are the primary Mesa 3D / DRI mailing lists:
    - announcements of new Mesa versions are sent to this list. Very low
    traffic.
 
--  `dri-devel <http://lists.freedesktop.org/mailman/listinfo/dri-devel>`__
+-  `dri-devel <https://lists.freedesktop.org/mailman/listinfo/dri-devel>`__
    - for the Linux/BSD Direct Rendering Module (DRM) kernel modules
    supporting Mesa's userspace drivers
 
@@ -39,9 +39,9 @@ Follow the links above for list archives.
 
 The old Mesa lists hosted at SourceForge are no longer in use. The
 archives are still available, however:
-`mesa3d-announce <https://sourceforge.net/mailarchive/forum.php?forum_name=mesa3d-announce>`__,
-`mesa3d-users <https://sourceforge.net/mailarchive/forum.php?forum_name=mesa3d-users>`__,
-`mesa3d-dev <https://sourceforge.net/mailarchive/forum.php?forum_name=mesa3d-dev>`__.
+`mesa3d-announce <https://sourceforge.net/p/mesa3d/mailman/mesa3d-announce/>`__,
+`mesa3d-users <https://sourceforge.net/p/mesa3d/mailman/mesa3d-users/>`__,
+`mesa3d-dev <https://sourceforge.net/p/mesa3d/mailman/mesa3d-dev/>`__.
 
 IRC
 ---
@@ -54,11 +54,9 @@ OpenGL Forums
 
 Here are some other OpenGL-related forums you might find useful:
 
--  `OpenGL discussion
-   forums <https://www.opengl.org/discussion_boards/>`__ at
-   www.opengl.org
+-  `Khronos' OpenGL Community <https://community.khronos.org/c/opengl-general/34>`__
 -  Usenet newsgroups:
 
-   -  comp.graphics.algorithms
-   -  comp.graphics.api.opengl
-   -  comp.os.linux.x
+   -  `comp.graphics.algorithms <news:comp.graphics.algorithms>`__
+   -  `comp.graphics.api.opengl <news:comp.graphics.api.opengl>`__
+   -  `comp.os.linux.x <news:comp.os.linux.x>`__

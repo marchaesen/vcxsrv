@@ -184,7 +184,7 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
                              struct iris_bo *bo,
                              enum iris_domain access)
 {
-   const struct intel_device_info *devinfo = &batch->screen->devinfo;
+   const struct intel_device_info *devinfo = batch->screen->devinfo;
    const struct brw_compiler *compiler = batch->screen->compiler;
 
    const bool access_via_l3 = iris_domain_is_l3_coherent(devinfo, access);
@@ -313,20 +313,33 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
    }
 
    if (bits) {
+      /* Stall-at-scoreboard is not supported by the compute pipeline, use the
+       * documented sequence of two PIPE_CONTROLs with PIPE_CONTROL_FLUSH_ENABLE
+       * set in the second PIPE_CONTROL in order to obtain a similar effect.
+       */
+      const bool compute_stall_sequence = batch->name == IRIS_BATCH_COMPUTE &&
+         (bits & PIPE_CONTROL_STALL_AT_SCOREBOARD) &&
+         !(bits & PIPE_CONTROL_CACHE_FLUSH_BITS);
+
       /* Stall-at-scoreboard is not expected to work in combination with other
        * flush bits.
        */
       if (bits & PIPE_CONTROL_CACHE_FLUSH_BITS)
          bits &= ~PIPE_CONTROL_STALL_AT_SCOREBOARD;
 
+      if (batch->name == IRIS_BATCH_COMPUTE)
+         bits &= ~PIPE_CONTROL_GRAPHICS_BITS;
+
       /* Emit any required flushes and invalidations. */
-      if (bits & all_flush_bits)
+      if ((bits & all_flush_bits) || compute_stall_sequence)
          iris_emit_end_of_pipe_sync(batch, "cache tracker: flush",
                                     bits & all_flush_bits);
 
-      if (bits & ~all_flush_bits)
+      if ((bits & ~all_flush_bits) || compute_stall_sequence)
          iris_emit_pipe_control_flush(batch, "cache tracker: invalidate",
-                                      bits & ~all_flush_bits);
+                                      (bits & ~all_flush_bits) |
+                                      (compute_stall_sequence ?
+                                       PIPE_CONTROL_FLUSH_ENABLE : 0));
    }
 }
 
@@ -396,16 +409,29 @@ iris_memory_barrier(struct pipe_context *ctx, unsigned flags)
               PIPE_CONTROL_CONST_CACHE_INVALIDATE;
    }
 
-   if (flags & (PIPE_BARRIER_TEXTURE | PIPE_BARRIER_FRAMEBUFFER)) {
+   if (flags & PIPE_BARRIER_TEXTURE)
+      bits |= PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE;
+
+   if (flags & PIPE_BARRIER_FRAMEBUFFER) {
+      /* The caller may have issued a render target read and a data cache data
+       * port write in the same draw call. Depending on the hardware, iris
+       * performs render target reads with either the sampler or the render
+       * cache data port. If the next framebuffer access is a render target
+       * read, the previously affected caches must be invalidated.
+       */
       bits |= PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE |
-              PIPE_CONTROL_RENDER_TARGET_FLUSH |
-              PIPE_CONTROL_TILE_CACHE_FLUSH;
+              PIPE_CONTROL_RENDER_TARGET_FLUSH;
    }
 
    iris_foreach_batch(ice, batch) {
+      const unsigned allowed_bits =
+         batch->name == IRIS_BATCH_COMPUTE ? ~PIPE_CONTROL_GRAPHICS_BITS : ~0u;
+
       if (batch->contains_draw) {
          iris_batch_maybe_flush(batch, 24);
-         iris_emit_pipe_control_flush(batch, "API: memory barrier", bits);
+         iris_emit_pipe_control_flush(batch,
+                                      "API: memory barrier",
+                                      bits & allowed_bits);
       }
    }
 }

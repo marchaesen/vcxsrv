@@ -44,8 +44,8 @@
 #include "util/u_draw.h"
 
 
-DEBUG_GET_ONCE_BOOL_OPTION(draw_fse, "DRAW_FSE", FALSE)
-DEBUG_GET_ONCE_BOOL_OPTION(draw_no_fse, "DRAW_NO_FSE", FALSE)
+DEBUG_GET_ONCE_BOOL_OPTION(draw_fse, "DRAW_FSE", false)
+DEBUG_GET_ONCE_BOOL_OPTION(draw_no_fse, "DRAW_NO_FSE", false)
 
 
 /* Overall we split things into:
@@ -54,30 +54,26 @@ DEBUG_GET_ONCE_BOOL_OPTION(draw_no_fse, "DRAW_NO_FSE", FALSE)
  *     - pipeline -- the prim pipeline: clipping, wide lines, etc
  *     - backend  -- the vbuf_render provided by the driver.
  */
-static boolean
+static bool
 draw_pt_arrays(struct draw_context *draw,
-               enum pipe_prim_type prim,
+               enum mesa_prim prim,
                bool index_bias_varies,
                const struct pipe_draw_start_count_bias *draw_info,
                unsigned num_draws)
 {
-   struct draw_pt_front_end *frontend = NULL;
-   struct draw_pt_middle_end *middle = NULL;
-   unsigned opt = PT_SHADE;
-   enum pipe_prim_type out_prim = prim;
+   enum mesa_prim out_prim = prim;
 
    if (draw->gs.geometry_shader)
       out_prim = draw->gs.geometry_shader->output_primitive;
    else if (draw->tes.tess_eval_shader)
       out_prim = get_tes_output_prim(draw->tes.tess_eval_shader);
 
+   unsigned opt = PT_SHADE;
    if (!draw->render) {
       opt |= PT_PIPELINE;
    }
 
-   if (draw_need_pipeline(draw,
-                           draw->rasterizer,
-                           out_prim)) {
+   if (draw_need_pipeline(draw, draw->rasterizer, out_prim)) {
       opt |= PT_PIPELINE;
    }
 
@@ -87,6 +83,7 @@ draw_pt_arrays(struct draw_context *draw,
       opt |= PT_CLIPTEST;
    }
 
+   struct draw_pt_middle_end *middle;
    if (draw->pt.middle.llvm) {
       middle = draw->pt.middle.llvm;
    } else {
@@ -96,8 +93,7 @@ draw_pt_arrays(struct draw_context *draw,
          middle = draw->pt.middle.general;
    }
 
-   frontend = draw->pt.frontend;
-
+   struct draw_pt_front_end *frontend = draw->pt.frontend;
    if (frontend) {
       if (draw->pt.prim != prim || draw->pt.opt != opt) {
          /* In certain conditions switching primitives requires us to flush
@@ -107,9 +103,9 @@ draw_pt_arrays(struct draw_context *draw,
           */
          draw_do_flush(draw, DRAW_FLUSH_STATE_CHANGE);
          frontend = NULL;
-      } else if (draw->pt.eltSize != draw->pt.user.eltSize) {
-         /* Flush draw state if eltSize changed.
-          * This could be improved so only the frontend is flushed since it
+      } else if (draw->pt.eltSize != draw->pt.user.eltSize || draw->pt.viewid != draw->pt.user.viewid) {
+         /* Flush draw state if eltSize or viewid changed.
+          * eltSize changes could be improved so only the frontend is flushed since it
           * converts all indices to ushorts and the fetch part of the middle
           * always prepares both linear and indexed.
           */
@@ -125,6 +121,7 @@ draw_pt_arrays(struct draw_context *draw,
 
       draw->pt.frontend = frontend;
       draw->pt.eltSize = draw->pt.user.eltSize;
+      draw->pt.viewid = draw->pt.user.viewid;
       draw->pt.prim = prim;
       draw->pt.opt = opt;
    }
@@ -132,24 +129,34 @@ draw_pt_arrays(struct draw_context *draw,
    if (draw->pt.rebind_parameters) {
       /* update constants, viewport dims, clip planes, etc */
       middle->bind_parameters(middle);
-      draw->pt.rebind_parameters = FALSE;
+      draw->pt.rebind_parameters = false;
    }
 
    for (unsigned i = 0; i < num_draws; i++) {
-      unsigned count = draw_info[i].count;
       /* Sanitize primitive length:
        */
       unsigned first, incr;
 
-      if (prim == PIPE_PRIM_PATCHES) {
+      if (prim == MESA_PRIM_PATCHES) {
          first = draw->pt.vertices_per_patch;
          incr = draw->pt.vertices_per_patch;
-      } else
+      } else {
          draw_pt_split_prim(prim, &first, &incr);
-      count = draw_pt_trim_count(draw_info[i].count, first, incr);
-      draw->pt.user.eltBias = draw->pt.user.eltSize ?
-                              (index_bias_varies ? draw_info[i].index_bias : draw_info[0].index_bias) :
-                              0;
+      }
+
+      unsigned count = draw_pt_trim_count(draw_info[i].count, first, incr);
+      if (draw->pt.user.eltSize) {
+         if (index_bias_varies) {
+            draw->pt.user.eltBias = draw_info[i].index_bias;
+         } else {
+            draw->pt.user.eltBias = draw_info[0].index_bias;
+         }
+      } else {
+         draw->pt.user.eltBias = 0;
+      }
+
+      draw->start_index = draw_info[i].start;
+
       if (count >= first)
          frontend->run(frontend, draw_info[i].start, count);
 
@@ -157,7 +164,7 @@ draw_pt_arrays(struct draw_context *draw,
          draw->pt.user.drawid++;
    }
 
-   return TRUE;
+   return true;
 }
 
 
@@ -175,12 +182,12 @@ draw_pt_flush(struct draw_context *draw, unsigned flags)
    }
 
    if (flags & DRAW_FLUSH_PARAMETER_CHANGE) {
-      draw->pt.rebind_parameters = TRUE;
+      draw->pt.rebind_parameters = true;
    }
 }
 
 
-boolean
+bool
 draw_pt_init(struct draw_context *draw)
 {
    draw->pt.test_fse = debug_get_option_draw_fse();
@@ -188,28 +195,35 @@ draw_pt_init(struct draw_context *draw)
 
    draw->pt.front.vsplit = draw_pt_vsplit(draw);
    if (!draw->pt.front.vsplit)
-      return FALSE;
+      return false;
 
    draw->pt.middle.fetch_shade_emit = draw_pt_middle_fse(draw);
    if (!draw->pt.middle.fetch_shade_emit)
-      return FALSE;
+      return false;
 
    draw->pt.middle.general = draw_pt_fetch_pipeline_or_emit(draw);
    if (!draw->pt.middle.general)
-      return FALSE;
+      return false;
 
-#ifdef DRAW_LLVM_AVAILABLE
-   if (draw->llvm)
+#if DRAW_LLVM_AVAILABLE
+   if (draw->llvm) {
       draw->pt.middle.llvm = draw_pt_fetch_pipeline_or_emit_llvm(draw);
+      draw->pt.middle.mesh = draw_pt_mesh_pipeline_or_emit(draw);
+   }
 #endif
 
-   return TRUE;
+   return true;
 }
 
 
 void
 draw_pt_destroy(struct draw_context *draw)
 {
+   if (draw->pt.middle.mesh) {
+      draw->pt.middle.mesh->destroy(draw->pt.middle.mesh);
+      draw->pt.middle.mesh = NULL;
+   }
+
    if (draw->pt.middle.llvm) {
       draw->pt.middle.llvm->destroy(draw->pt.middle.llvm);
       draw->pt.middle.llvm = NULL;
@@ -236,14 +250,14 @@ draw_pt_destroy(struct draw_context *draw)
  * Debug- print the first 'count' vertices.
  */
 static void
-draw_print_arrays(struct draw_context *draw, enum pipe_prim_type prim,
-                  int start, uint count, int index_bias)
+draw_print_arrays(struct draw_context *draw, enum mesa_prim prim,
+                  int start, unsigned count, int index_bias)
 {
    debug_printf("Draw arrays(prim = %u, start = %u, count = %u)\n",
                 prim, start, count);
 
    for (unsigned i = 0; i < count; i++) {
-      uint ii = 0;
+      unsigned ii = 0;
 
       if (draw->pt.user.eltSize) {
          /* indexed arrays */
@@ -251,19 +265,19 @@ draw_print_arrays(struct draw_context *draw, enum pipe_prim_type prim,
          switch (draw->pt.user.eltSize) {
          case 1:
             {
-               const ubyte *elem = (const ubyte *) draw->pt.user.elts;
+               const uint8_t *elem = (const uint8_t *) draw->pt.user.elts;
                ii = elem[start + i];
             }
             break;
          case 2:
             {
-               const ushort *elem = (const ushort *) draw->pt.user.elts;
+               const uint16_t *elem = (const uint16_t *) draw->pt.user.elts;
                ii = elem[start + i];
             }
             break;
          case 4:
             {
-               const uint *elem = (const uint *) draw->pt.user.elts;
+               const uint32_t *elem = (const uint32_t *) draw->pt.user.elts;
                ii = elem[start + i];
             }
             break;
@@ -282,15 +296,15 @@ draw_print_arrays(struct draw_context *draw, enum pipe_prim_type prim,
       }
 
       for (unsigned j = 0; j < draw->pt.nr_vertex_elements; j++) {
-         uint buf = draw->pt.vertex_element[j].vertex_buffer_index;
-         ubyte *ptr = (ubyte *) draw->pt.user.vbuffer[buf].map;
+         unsigned buf = draw->pt.vertex_element[j].vertex_buffer_index;
+         uint8_t *ptr = (uint8_t *) draw->pt.user.vbuffer[buf].map;
 
          if (draw->pt.vertex_element[j].instance_divisor) {
             ii = draw->instance_id / draw->pt.vertex_element[j].instance_divisor;
          }
 
          ptr += draw->pt.vertex_buffer[buf].buffer_offset;
-         ptr += draw->pt.vertex_buffer[buf].stride * ii;
+         ptr += draw->pt.vertex_element[j].src_stride * ii;
          ptr += draw->pt.vertex_element[j].src_offset;
 
          debug_printf("  Attr %u: ", j);
@@ -322,14 +336,14 @@ draw_print_arrays(struct draw_context *draw, enum pipe_prim_type prim,
             break;
          case PIPE_FORMAT_B8G8R8A8_UNORM:
             {
-               ubyte *u = (ubyte *) ptr;
+               uint8_t *u = (uint8_t *) ptr;
                debug_printf("BGRA %d %d %d %d  @ %p\n", u[0], u[1], u[2], u[3],
                             (void *) u);
             }
             break;
          case PIPE_FORMAT_A8R8G8B8_UNORM:
             {
-               ubyte *u = (ubyte *) ptr;
+               uint8_t *u = (uint8_t *) ptr;
                debug_printf("ARGB %d %d %d %d  @ %p\n", u[0], u[1], u[2], u[3],
                             (void *) u);
             }
@@ -354,28 +368,26 @@ prim_restart_loop(struct draw_context *draw,
    struct pipe_draw_start_count_bias cur = *draw_info;
    cur.count = 0;
 
-   /* The largest index within a loop using the i variable as the index.
-    * Used for overflow detection */
-   const unsigned MAX_LOOP_IDX = 0xffffffff;
-
    for (unsigned j = 0; j < draw_info->count; j++) {
-      unsigned restart_idx = 0;
-      unsigned i = draw_overflow_uadd(draw_info->start, j, MAX_LOOP_IDX);
-      switch (draw->pt.user.eltSize) {
-      case 1:
-         restart_idx = ((const uint8_t*)elements)[i];
-         break;
-      case 2:
-         restart_idx = ((const uint16_t*)elements)[i];
-         break;
-      case 4:
-         restart_idx = ((const uint32_t*)elements)[i];
-         break;
-      default:
-         assert(0 && "bad eltSize in draw_arrays()");
+      unsigned index = 0;
+      unsigned i = util_clamped_uadd(draw_info->start, j);
+      if (i < elt_max) {
+         switch (draw->pt.user.eltSize) {
+         case 1:
+            index = ((const uint8_t*)elements)[i];
+            break;
+         case 2:
+            index = ((const uint16_t*)elements)[i];
+            break;
+         case 4:
+            index = ((const uint32_t*)elements)[i];
+            break;
+         default:
+            assert(0 && "bad eltSize in draw_arrays()");
+         }
       }
 
-      if (i < elt_max && restart_idx == info->restart_index) {
+      if (index == info->restart_index) {
          if (cur.count > 0) {
             /* draw elts up to prev pos */
             draw_pt_arrays(draw, info->mode, info->index_bias_varies, &cur, 1);
@@ -393,6 +405,7 @@ prim_restart_loop(struct draw_context *draw,
    }
 }
 
+
 /**
  * For drawing prims with primitive restart enabled.
  * Scan for restart indexes and draw the runs of elements/vertices between
@@ -404,20 +417,17 @@ draw_pt_arrays_restart(struct draw_context *draw,
                        const struct pipe_draw_start_count_bias *draw_info,
                        unsigned num_draws)
 {
-   const enum pipe_prim_type prim = info->mode;
-
    assert(info->primitive_restart);
 
    if (draw->pt.user.eltSize) {
       /* indexed prims (draw_elements) */
       for (unsigned i = 0; i < num_draws; i++)
          prim_restart_loop(draw, info, &draw_info[i], draw->pt.user.elts);
-   }
-   else {
+   } else {
       /* Non-indexed prims (draw_arrays).
        * Primitive restart should have been handled in gallium frontends.
        */
-      draw_pt_arrays(draw, prim, info->index_bias_varies, draw_info, num_draws);
+      draw_pt_arrays(draw, info->mode, info->index_bias_varies, draw_info, num_draws);
    }
 }
 
@@ -434,16 +444,17 @@ resolve_draw_info(const struct pipe_draw_info *raw_info,
                   const struct pipe_draw_start_count_bias *raw_draw,
                   struct pipe_draw_info *info,
                   struct pipe_draw_start_count_bias *draw,
-                  struct pipe_vertex_buffer *vertex_buffer)
+                  struct pipe_vertex_buffer *vertex_buffer,
+                  struct pipe_vertex_element *vertex_element)
 {
-   memcpy(info, raw_info, sizeof(struct pipe_draw_info));
-   memcpy(draw, raw_draw, sizeof(struct pipe_draw_start_count_bias));
+   *info = *raw_info;
+   *draw = *raw_draw;
 
    struct draw_so_target *target =
       (struct draw_so_target *)indirect->count_from_stream_output;
    assert(vertex_buffer != NULL);
-   draw->count = vertex_buffer->stride == 0 ? 0 :
-                    target->internal_offset / vertex_buffer->stride;
+   draw->count = vertex_element->src_stride == 0 ? 0 :
+                    target->internal_offset / vertex_element->src_stride;
 
    /* Stream output draw can not be indexed */
    assert(!info->index_size);
@@ -478,8 +489,7 @@ draw_instances(struct draw_context *draw,
 
       if (info->primitive_restart) {
          draw_pt_arrays_restart(draw, info, draws, num_draws);
-      }
-      else {
+      } else {
          draw_pt_arrays(draw, info->mode, info->index_bias_varies,
                         draws, num_draws);
       }
@@ -502,12 +512,11 @@ draw_vbo(struct draw_context *draw,
          unsigned num_draws,
          uint8_t patch_vertices)
 {
-   unsigned index_limit;
    unsigned fpstate = util_fpstate_get();
    struct pipe_draw_info resolved_info;
    struct pipe_draw_start_count_bias resolved_draw;
-   struct pipe_draw_info *use_info = (struct pipe_draw_info *)info;
-   struct pipe_draw_start_count_bias *use_draws = (struct pipe_draw_start_count_bias *)draws;
+   const struct pipe_draw_info *use_info;
+   const struct pipe_draw_start_count_bias *use_draws;
 
    if (info->instance_count == 0)
       return;
@@ -519,10 +528,14 @@ draw_vbo(struct draw_context *draw,
 
    if (indirect && indirect->count_from_stream_output) {
       resolve_draw_info(info, indirect, &draws[0], &resolved_info,
-                        &resolved_draw, &(draw->pt.vertex_buffer[0]));
+                        &resolved_draw, &(draw->pt.vertex_buffer[0]),
+                        &(draw->pt.vertex_element[0]));
       use_info = &resolved_info;
       use_draws = &resolved_draw;
       num_draws = 1;
+   } else {
+      use_info = info;
+      use_draws = draws;
    }
 
    if (info->index_size) {
@@ -551,18 +564,18 @@ draw_vbo(struct draw_context *draw,
    if (0) {
       debug_printf("Elements:\n");
       for (unsigned i = 0; i < draw->pt.nr_vertex_elements; i++) {
-         debug_printf("  %u: src_offset=%u  inst_div=%u   vbuf=%u  format=%s\n",
+         debug_printf("  %u: src_offset=%u src_stride=%u inst_div=%u   vbuf=%u  format=%s\n",
                       i,
                       draw->pt.vertex_element[i].src_offset,
+                      draw->pt.vertex_element[i].src_stride,
                       draw->pt.vertex_element[i].instance_divisor,
                       draw->pt.vertex_element[i].vertex_buffer_index,
                       util_format_name(draw->pt.vertex_element[i].src_format));
       }
       debug_printf("Buffers:\n");
       for (unsigned i = 0; i < draw->pt.nr_vertex_buffers; i++) {
-         debug_printf("  %u: stride=%u offset=%u size=%d ptr=%p\n",
+         debug_printf("  %u: offset=%u size=%d ptr=%p\n",
                       i,
-                      draw->pt.vertex_buffer[i].stride,
                       draw->pt.vertex_buffer[i].buffer_offset,
                       (int) draw->pt.user.vbuffer[i].size,
                       draw->pt.user.vbuffer[i].map);
@@ -578,11 +591,11 @@ draw_vbo(struct draw_context *draw,
                            : use_draws[0].index_bias);
    }
 
-   index_limit = util_draw_max_index(draw->pt.vertex_buffer,
-                                     draw->pt.vertex_element,
-                                     draw->pt.nr_vertex_elements,
-                                     use_info);
-#ifdef DRAW_LLVM_AVAILABLE
+   unsigned index_limit = util_draw_max_index(draw->pt.vertex_buffer,
+                                              draw->pt.vertex_element,
+                                              draw->pt.nr_vertex_elements,
+                                              use_info);
+#if DRAW_LLVM_AVAILABLE
    if (!draw->llvm)
 #endif
    {
@@ -600,7 +613,6 @@ draw_vbo(struct draw_context *draw,
    }
 
    draw->pt.max_index = index_limit - 1;
-   draw->start_index = use_draws[0].start;
 
    /*
     * TODO: We could use draw->pt.max_index to further narrow
@@ -621,4 +633,23 @@ draw_vbo(struct draw_context *draw,
       draw->render->pipeline_statistics(draw->render, &draw->statistics);
    }
    util_fpstate_set(fpstate);
+}
+
+/* to be called after a mesh shader is run */
+void
+draw_mesh(struct draw_context *draw,
+          struct draw_vertex_info *vert_info,
+          struct draw_prim_info *prim_info)
+{
+   struct draw_pt_middle_end *middle = draw->pt.middle.mesh;
+
+   draw->pt.user.eltSize = 0;
+   draw->pt.user.viewid = 0;
+   draw->pt.user.drawid = 0;
+   draw->pt.user.increment_draw_id = false;
+   draw->pt.vertices_per_patch = 0;
+
+   middle->prepare(middle, 0, 0, NULL);
+
+   draw_mesh_middle_end_run(middle, vert_info, prim_info);
 }

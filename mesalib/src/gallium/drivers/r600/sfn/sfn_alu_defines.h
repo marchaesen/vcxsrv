@@ -29,10 +29,15 @@
 
 #include "../r600_isa.h"
 
-#include <map>
 #include <bitset>
+#include <map>
 
 namespace r600 {
+
+// We sacrifice 123 for dummy dests
+static const int g_registers_end = 123;
+static const int g_clause_local_start = 124;
+static const int g_clause_local_end = 128;
 
 /* ALU op2 instructions 17:7 top three bits always zero. */
 enum EAluOp {
@@ -213,42 +218,37 @@ enum EAluOp {
    op1_interp_load_p10 = 125,
    op1_interp_load_p20 = 126,
    // op 3 all left shift 6
-   op3_bfe_uint = 4<< 6,
-   op3_bfe_int = 5<< 6,
-   op3_bfi_int = 6<< 6,
-   op3_fma = 7<< 6,
-   op3_cndne_64 = 9<< 6,
-   op3_fma_64 = 10<< 6,
-   op3_lerp_uint = 11<< 6,
-   op3_bit_align_int = 12<< 6,
-   op3_byte_align_int = 13<< 6,
-   op3_sad_accum_uint = 14<< 6,
-   op3_sad_accum_hi_uint = 15<< 6,
-   op3_muladd_uint24 = 16<< 6,
-   op3_lds_idx_op = 17<< 6,
-   op3_muladd = 20<< 6,
-   op3_muladd_m2 = 21<< 6,
-   op3_muladd_m4 = 22<< 6,
-   op3_muladd_d2 = 23<< 6,
-   op3_muladd_ieee = 24<< 6,
-   op3_cnde = 25<< 6,
-   op3_cndgt = 26<< 6,
-   op3_cndge = 27<< 6,
-   op3_cnde_int = 28<< 6,
-   op3_cndgt_int = 29<< 6,
-   op3_cndge_int = 30<< 6,
-   op3_mul_lit = 31<< 6,
+   op3_bfe_uint = 4 << 6,
+   op3_bfe_int = 5 << 6,
+   op3_bfi_int = 6 << 6,
+   op3_fma = 7 << 6,
+   op3_cndne_64 = 9 << 6,
+   op3_fma_64 = 10 << 6,
+   op3_lerp_uint = 11 << 6,
+   op3_bit_align_int = 12 << 6,
+   op3_byte_align_int = 13 << 6,
+   op3_sad_accum_uint = 14 << 6,
+   op3_sad_accum_hi_uint = 15 << 6,
+   op3_muladd_uint24 = 16 << 6,
+   op3_lds_idx_op = 17 << 6,
+   op3_muladd = 20 << 6,
+   op3_muladd_m2 = 21 << 6,
+   op3_muladd_m4 = 22 << 6,
+   op3_muladd_d2 = 23 << 6,
+   op3_muladd_ieee = 24 << 6,
+   op3_cnde = 25 << 6,
+   op3_cndgt = 26 << 6,
+   op3_cndge = 27 << 6,
+   op3_cnde_int = 28 << 6,
+   op3_cndgt_int = 29 << 6,
+   op3_cndge_int = 30 << 6,
+   op3_mul_lit = 31 << 6,
    op_invalid = 0xffff
 };
 
 enum AluModifiers {
-   alu_src0_neg,
-   alu_src0_abs,
    alu_src0_rel,
-   alu_src1_neg,
-   alu_src1_abs,
    alu_src1_rel,
-   alu_src2_neg,
    alu_src2_rel,
    alu_dst_clamp,
    alu_dst_rel,
@@ -265,6 +265,7 @@ enum AluModifiers {
    alu_lds_address,
    alu_no_schedule_bias,
    alu_64bit_op,
+   alu_flag_none,
    alu_flag_count
 };
 
@@ -291,17 +292,19 @@ enum AluBankSwizzle {
    alu_vec_102 = 3,
    sq_alu_scl_221 = 3,
    alu_vec_201 = 4,
-   sq_alu_scl_unknown  = 4,
+   sq_alu_scl_unknown = 4,
    alu_vec_210 = 5,
    alu_vec_unknown = 6
 };
 
-inline AluBankSwizzle operator ++(AluBankSwizzle& x) {
+inline AluBankSwizzle
+operator++(AluBankSwizzle& x)
+{
    x = static_cast<AluBankSwizzle>(x + 1);
    return x;
 }
 
-using AluOpFlags=std::bitset<alu_flag_count>;
+using AluOpFlags = std::bitset<alu_flag_count>;
 
 struct AluOp {
    static constexpr int x = 1;
@@ -312,28 +315,36 @@ struct AluOp {
    static constexpr int t = 16;
    static constexpr int a = 31;
 
-   AluOp(int ns, int f, uint8_t um_r600, uint8_t um_r700, uint8_t um_eg, const char *n):
-      nsrc(ns), is_float(f), name(n)
+   AluOp(int ns, bool src_mod, bool clamp, bool fp64, uint8_t um_r600,
+         uint8_t um_r700, uint8_t um_eg, const char *n):
+       nsrc(ns),
+       can_srcmod(src_mod),
+       can_clamp(clamp),
+       is_fp64(fp64),
+       name(n)
    {
-      unit_mask[0] = um_r600; 
-      unit_mask[1] = um_r700; 
-      unit_mask[2] = um_eg; 
+      unit_mask[0] = um_r600;
+      unit_mask[1] = um_r700;
+      unit_mask[2] = um_eg;
    }
 
-   bool can_channel(int flags, r600_chip_class unit_type) const {
-      assert(unit_type < 3); 
+   bool can_channel(int flags, r600_chip_class unit_type) const
+   {
+      assert(unit_type < 3);
       return flags & unit_mask[unit_type];
    }
 
-   int nsrc: 4;
-   int is_float:1;
+   int nsrc : 4;
+   int can_srcmod : 1;
+   int can_clamp : 1;
+   int is_fp64 : 1;
    uint8_t unit_mask[3];
    const char *name;
 };
 
 extern const std::map<EAluOp, AluOp> alu_ops;
 
-enum AluInlineConstants  {
+enum AluInlineConstants {
    ALU_SRC_LDS_OQ_A = 219,
    ALU_SRC_LDS_OQ_B = 220,
    ALU_SRC_LDS_OQ_A_POP = 221,
@@ -379,7 +390,7 @@ struct AluInlineConstantDescr {
 
 extern const std::map<AluInlineConstants, AluInlineConstantDescr> alu_src_const;
 
-#define LDSOP2(X) LDS_ ## X = LDS_OP2_LDS_ ## X
+#define LDSOP2(X) LDS_##X = LDS_OP2_LDS_##X
 
 enum ESDOp {
    DS_OP_ADD = 0,
@@ -465,6 +476,7 @@ struct KCacheLine {
    int bank{0};
    int addr{0};
    int len{0};
+   int index_mode{0};
    enum KCacheLockMode {
       free,
       lock_1,
@@ -472,7 +484,6 @@ struct KCacheLine {
    } mode{free};
 };
 
-
-}
+} // namespace r600
 
 #endif // ALU_DEFINES_H

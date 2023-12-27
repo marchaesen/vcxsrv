@@ -74,7 +74,7 @@ calc_dominance(nir_block *block)
 {
    nir_block *new_idom = NULL;
    set_foreach(block->predecessors, entry) {
-      nir_block *pred = (nir_block *) entry->key;
+      nir_block *pred = (nir_block *)entry->key;
 
       if (pred->imm_dom) {
          if (new_idom)
@@ -97,7 +97,7 @@ calc_dom_frontier(nir_block *block)
 {
    if (block->predecessors->entries > 1) {
       set_foreach(block->predecessors, entry) {
-         nir_block *runner = (nir_block *) entry->key;
+         nir_block *runner = (nir_block *)entry->key;
 
          /* Skip unreachable predecessors */
          if (runner->imm_dom == NULL)
@@ -125,7 +125,7 @@ calc_dom_frontier(nir_block *block)
  */
 
 static void
-calc_dom_children(nir_function_impl* impl)
+calc_dom_children(nir_function_impl *impl)
 {
    void *mem_ctx = ralloc_parent(impl);
 
@@ -142,8 +142,7 @@ calc_dom_children(nir_function_impl* impl)
 
    nir_foreach_block_unstructured(block, impl) {
       if (block->imm_dom) {
-         block->imm_dom->dom_children[block->imm_dom->num_dom_children++]
-            = block;
+         block->imm_dom->dom_children[block->imm_dom->num_dom_children++] = block;
       }
    }
 }
@@ -169,7 +168,6 @@ nir_calc_dominance_impl(nir_function_impl *impl)
       return;
 
    nir_metadata_require(impl, nir_metadata_block_index);
-
 
    nir_foreach_block_unstructured(block, impl) {
       init_block(block, impl);
@@ -200,9 +198,8 @@ nir_calc_dominance_impl(nir_function_impl *impl)
 void
 nir_calc_dominance(nir_shader *shader)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         nir_calc_dominance_impl(function->impl);
+   nir_foreach_function_impl(impl, shader) {
+      nir_calc_dominance_impl(impl);
    }
 }
 
@@ -293,9 +290,8 @@ nir_dump_dom_tree_impl(nir_function_impl *impl, FILE *fp)
 void
 nir_dump_dom_tree(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         nir_dump_dom_tree_impl(function->impl, fp);
+   nir_foreach_function_impl(impl, shader) {
+      nir_dump_dom_tree_impl(impl, fp);
    }
 }
 
@@ -305,7 +301,7 @@ nir_dump_dom_frontier_impl(nir_function_impl *impl, FILE *fp)
    nir_foreach_block_unstructured(block, impl) {
       fprintf(fp, "DF(%u) = {", block->index);
       set_foreach(block->dom_frontier, entry) {
-         nir_block *df = (nir_block *) entry->key;
+         nir_block *df = (nir_block *)entry->key;
          fprintf(fp, "%u, ", df->index);
       }
       fprintf(fp, "}\n");
@@ -315,9 +311,8 @@ nir_dump_dom_frontier_impl(nir_function_impl *impl, FILE *fp)
 void
 nir_dump_dom_frontier(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         nir_dump_dom_frontier_impl(function->impl, fp);
+   nir_foreach_function_impl(impl, shader) {
+      nir_dump_dom_frontier_impl(impl, fp);
    }
 }
 
@@ -339,8 +334,7 @@ nir_dump_cfg_impl(nir_function_impl *impl, FILE *fp)
 void
 nir_dump_cfg(nir_shader *shader, FILE *fp)
 {
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         nir_dump_cfg_impl(function->impl, fp);
+   nir_foreach_function_impl(impl, shader) {
+      nir_dump_cfg_impl(impl, fp);
    }
 }

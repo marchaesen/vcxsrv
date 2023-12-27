@@ -25,9 +25,7 @@ opengl32_def = custom_target(
   'opengl32.def',
   input: 'opengl32.def.in',
   output : 'opengl32.def',
-  command : [prog_python, gen_vs_module_defs_py,
-             '--in_file', '@INPUT@', '--out_file', '@OUTPUT@',
-             '--compiler_id', cc.get_argument_syntax(), '--cpu_family', host_machine.cpu_family()]
+  command : gen_vs_module_defs_normal_command,
 )
 
 libopengl32 = shared_library(
@@ -35,7 +33,7 @@ libopengl32 = shared_library(
   ['stw_wgl.c'],
   vs_module_defs : opengl32_def,
   include_directories : [
-    inc_include, inc_wgl, inc_src,
+    inc_include, inc_wgl, inc_src, inc_gallium,
   ],
   link_with : [
     libgallium_wgl, libglapi_bridge, libglapi
@@ -80,6 +78,6 @@ if with_tests
     suite : ['wgl'],
     env : wgl_test_env,
     depends : [libopengl32],
-    protocol : gtest_test_protocol,
+    protocol : 'gtest',
   )
 endif

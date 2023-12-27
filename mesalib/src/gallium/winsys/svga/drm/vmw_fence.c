@@ -27,7 +27,7 @@
 #include "util/u_memory.h"
 #include "util/u_atomic.h"
 #include "util/list.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 #include "pipebuffer/pb_buffer_fenced.h"
 
@@ -61,7 +61,7 @@ struct vmw_fence
    int32_t signalled;
    uint32_t seqno;
    int32_t fence_fd;
-   boolean imported; /* TRUE if imported from another process */
+   bool imported; /* TRUE if imported from another process */
 };
 
 /**
@@ -71,7 +71,7 @@ struct vmw_fence
  * @ops: Pointer to a struct pb_fence_ops.
  *
  */
-static inline boolean
+static inline bool
 vmw_fence_seq_is_signaled(uint32_t seq, uint32_t last, uint32_t cur)
 {
    return (cur - last <= cur - seq);
@@ -125,7 +125,7 @@ void
 vmw_fences_signal(struct pb_fence_ops *fence_ops,
                   uint32_t signaled,
                   uint32_t emitted,
-                  boolean has_emitted)
+                  bool has_emitted)
 {
    struct vmw_fence_ops *ops = NULL;
    struct vmw_fence *fence, *n;
@@ -447,7 +447,7 @@ vmw_fence_ops_fence_finish(struct pb_fence_ops *ops,
 {
    struct vmw_winsys_screen *vws = vmw_fence_ops(ops)->vws;
 
-   return vmw_fence_finish(vws, fence, PIPE_TIMEOUT_INFINITE, flag);
+   return vmw_fence_finish(vws, fence, OS_TIMEOUT_INFINITE, flag);
 }
 
 

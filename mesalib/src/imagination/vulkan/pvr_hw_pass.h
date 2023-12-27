@@ -63,11 +63,6 @@ struct usc_mrt_desc {
     */
    uint32_t intermediate_size;
 
-   /* Number of bytes allocated for each component in the output registers (as
-    * opposed to the pixel format).
-    */
-   uint32_t component_alignment;
-
    /* Mask of the bits from each dword which are read by the PBE. */
    uint32_t valid_mask[PVR_USC_RENDER_TARGET_MAXIMUM_SIZE_IN_DWORDS];
 
@@ -222,7 +217,7 @@ struct pvr_renderpass_hwsetup_render {
    /* Index of the attachment to use for depth/stencil load/store in this
     * render.
     */
-   int32_t ds_attach_idx;
+   uint32_t ds_attach_idx;
 
    /* Operation on the on-chip depth at the start of the render.
     * Either load from 'ds_attach_idx', clear using 'ds_attach_idx' or leave
@@ -292,5 +287,7 @@ VkResult pvr_create_renderpass_hwsetup(
 
 void pvr_destroy_renderpass_hwsetup(const VkAllocationCallbacks *alloc,
                                     struct pvr_renderpass_hwsetup *hw_setup);
+
+uint32_t pvr_get_tile_buffer_size(const struct pvr_device *device);
 
 #endif /* PVR_HW_PASS_H */

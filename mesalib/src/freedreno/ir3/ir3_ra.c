@@ -879,9 +879,13 @@ try_evict_regs(struct ra_ctx *ctx, struct ra_file *file,
       if (evicted)
          continue;
 
-      /* If we couldn't evict this range, we may be able to swap it with a
-       * killed range to acheive the same effect.
+      /* If we couldn't evict this range, but the register we're allocating is
+       * allowed to overlap with a killed range, then we may be able to swap it
+       * with a killed range to acheive the same effect.
        */
+      if (is_early_clobber(reg) || is_source)
+         return false;
+
       foreach_interval (killed, file) {
          if (!killed->is_killed)
             continue;
@@ -1043,7 +1047,7 @@ static physreg_t
 compress_regs_left(struct ra_ctx *ctx, struct ra_file *file,
                    struct ir3_register *reg)
 {
-   unsigned align = reg_elem_size(reg);
+   unsigned reg_align = reg_elem_size(reg);
    DECLARE_ARRAY(struct ra_removed_interval, intervals);
    intervals_count = intervals_sz = 0;
    intervals = NULL;
@@ -1057,7 +1061,7 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file,
    unsigned dst_size = reg->tied ? 0 : reg_size(reg);
    unsigned ec_dst_size = is_early_clobber(reg) ? reg_size(reg) : 0;
    unsigned half_dst_size = 0, ec_half_dst_size = 0;
-   if (align == 1) {
+   if (reg_align == 1) {
       half_dst_size = dst_size;
       ec_half_dst_size = ec_dst_size;
    }
@@ -1065,7 +1069,7 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file,
    unsigned removed_size = 0, removed_half_size = 0;
    unsigned removed_killed_size = 0, removed_killed_half_size = 0;
    unsigned file_size =
-      align == 1 ? MIN2(file->size, RA_HALF_SIZE) : file->size;
+      reg_align == 1 ? MIN2(file->size, RA_HALF_SIZE) : file->size;
    physreg_t start_reg = 0;
 
    foreach_interval_rev_safe (interval, file) {
@@ -1130,7 +1134,7 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file,
        */
       if (candidate_start + removed_size + ec_dst_size +
           MAX2(removed_killed_size, dst_size) <= file->size &&
-          (align != 1 ||
+          (reg_align != 1 ||
            candidate_start + removed_half_size + ec_half_dst_size +
            MAX2(removed_killed_half_size, half_dst_size) <= file_size)) {
          start_reg = candidate_start;
@@ -1318,7 +1322,7 @@ update_affinity(struct ra_file *file, struct ir3_register *reg,
 static physreg_t
 find_best_gap(struct ra_ctx *ctx, struct ra_file *file,
               struct ir3_register *dst, unsigned file_size, unsigned size,
-              unsigned align)
+              unsigned alignment)
 {
    /* This can happen if we create a very large merge set. Just bail out in that
     * case.
@@ -1329,7 +1333,7 @@ find_best_gap(struct ra_ctx *ctx, struct ra_file *file,
    BITSET_WORD *available =
       is_early_clobber(dst) ? file->available_to_evict : file->available;
 
-   unsigned start = ALIGN(file->start, align) % (file_size - size + align);
+   unsigned start = ALIGN(file->start, alignment) % (file_size - size + alignment);
    unsigned candidate = start;
    do {
       bool is_available = true;
@@ -1350,7 +1354,7 @@ find_best_gap(struct ra_ctx *ctx, struct ra_file *file,
          return candidate;
       }
 
-      candidate += align;
+      candidate += alignment;
       if (candidate + size > file_size)
          candidate = 0;
    } while (candidate != start);
@@ -1374,7 +1378,7 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg)
    if (reg->merge_set && reg->merge_set->preferred_reg != (physreg_t)~0) {
       physreg_t preferred_reg =
          reg->merge_set->preferred_reg + reg->merge_set_offset;
-      if (preferred_reg < file_size &&
+      if (preferred_reg + reg_size(reg) <= file_size &&
           preferred_reg % reg_elem_size(reg) == 0 &&
           get_reg_specified(ctx, file, reg, preferred_reg, false))
          return preferred_reg;
@@ -2577,7 +2581,7 @@ ir3_ra(struct ir3_shader_variant *v)
     * because on some gens the register file is not big enough to hold a
     * double-size wave with all 48 registers in use.
     */
-   if (v->real_wavesize == IR3_DOUBLE_ONLY) {
+   if (v->shader_options.real_wavesize == IR3_DOUBLE_ONLY) {
       limit_pressure.full =
          MAX2(limit_pressure.full, ctx->compiler->reg_size_vec4 / 2 * 16);
    }

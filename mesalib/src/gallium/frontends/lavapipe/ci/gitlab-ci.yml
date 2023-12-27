@@ -1,20 +1,11 @@
-.lavapipe-test:
-  stage: software-renderer
-  extends:
-    - .test-vk
-    - .lavapipe-rules
-  variables:
-    GPU_VERSION: lvp
-    VK_DRIVER: lvp
-    DEQP_EXPECTED_RENDERER: llvmpipe
-    LVP_POISON_MEMORY: "1"
+include:
+  - local: 'src/gallium/frontends/lavapipe/ci/gitlab-ci-inc.yml'
 
 lavapipe:
-  tags:
-    - mesa-swrast
   variables:
     DEQP_SUITE: lvp
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
+    DEQP_FRACTION: 18
   stage: software-renderer
   extends:
     - .deqp-test-vk
@@ -29,19 +20,20 @@ lavapipe-vk-asan:
     DEQP_FRACTION: 1000
     # Skip dlclose so that we get good backtraces of the leaks.
     # Don't batch the tests into caselists while we're leaky.
-    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.6:libdlclose-skip.so --tests-per-group 1"
+    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.8:libdlclose-skip.so"
+    DEQP_RUNNER_TESTS_PER_GROUP: 1
   needs:
-    - debian/x86_test-vk
+    - debian/x86_64_test-vk
     - debian-testing-asan
 
 lavapipe-traces:
   variables:
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-lavapipe.yml"
-    PIGLIT_REPLAY_DEVICE_NAME: "lvp"
+    PIGLIT_TRACES_FILE: traces-lavapipe.yml
+    PIGLIT_REPLAY_DEVICE_NAME: "vk-lvp"
     PIGLIT_RESULTS: "${GPU_VERSION}-replay"
   stage: software-renderer
   extends:
     - .piglit-traces-test
     - .lavapipe-test
-    - .test-manual-mr
+    - .lavapipe-manual-rules

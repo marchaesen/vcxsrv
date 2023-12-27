@@ -242,7 +242,7 @@ inactivity in seconds before the third and final level of power savings is
 invoked. Off mode's physical and electrical characteristics are
 implementation defined, but in DPMS compliant hardware, is implemented by
 shutting off both horizontal and vertical sync signals, resulting in
-the power-down of the monitor.  Recovery time is implementation dependant,
+the power-down of the monitor.  Recovery time is implementation dependent,
 but frequently is similar to the power-up time of the monitor.  A value
 of zero disables this mode.
 </para>

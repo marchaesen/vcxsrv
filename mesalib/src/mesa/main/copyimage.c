@@ -20,13 +20,10 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand <jason.ekstrand@intel.com>
  */
 
 #include "context.h"
-#include "glheader.h"
+#include "util/glheader.h"
 #include "errors.h"
 #include "enums.h"
 #include "teximage.h"
@@ -103,6 +100,9 @@ prepare_target_err(struct gl_context *ctx, GLuint name, GLenum target,
       break;
    case GL_TEXTURE_EXTERNAL_OES:
       /* Only exists in ES */
+      if (_mesa_is_gles(ctx))
+         break;
+      FALLTHROUGH;
    case GL_TEXTURE_BUFFER:
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
@@ -239,7 +239,11 @@ prepare_target_err(struct gl_context *ctx, GLuint name, GLenum target,
       if (target == GL_TEXTURE_CUBE_MAP) {
          int i;
 
-         assert(z < MAX_FACES);  /* should have been caught earlier */
+         if (z < 0 || z >= MAX_FACES) {
+            _mesa_error(ctx, GL_INVALID_VALUE,
+                        "glCopyImageSubData(cube face (%sZ = %d)", dbg_prefix, z);
+            return false;
+         }
 
          /* make sure all the cube faces are present */
          for (i = 0; i < depth; i++) {

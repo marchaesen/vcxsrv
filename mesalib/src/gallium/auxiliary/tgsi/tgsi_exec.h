@@ -29,7 +29,7 @@
 #ifndef TGSI_EXEC_H
 #define TGSI_EXEC_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_state.h"
 #include "pipe/p_shader_tokens.h"
 
@@ -73,17 +73,18 @@ extern "C" {
   */
 union tgsi_exec_channel
 {
+   alignas(16)
    float    f[TGSI_QUAD_SIZE];
-   int      i[TGSI_QUAD_SIZE];
-   unsigned u[TGSI_QUAD_SIZE];
-} ALIGN16;
+   int32_t  i[TGSI_QUAD_SIZE];
+   uint32_t u[TGSI_QUAD_SIZE];
+};
 
 /**
   * A vector[RGBA] of channels[4 pixels]
   */
-struct ALIGN16 tgsi_exec_vector
+struct tgsi_exec_vector
 {
-   union tgsi_exec_channel xyzw[TGSI_NUM_CHANNELS];
+   alignas(16) union tgsi_exec_channel xyzw[TGSI_NUM_CHANNELS];
 };
 
 /**
@@ -246,20 +247,25 @@ struct tgsi_sampler
 /** function call/activation record */
 struct tgsi_call_record
 {
-   uint CondStackTop;
-   uint LoopStackTop;
-   uint ContStackTop;
+   unsigned CondStackTop;
+   unsigned LoopStackTop;
+   unsigned ContStackTop;
    int SwitchStackTop;
    int BreakStackTop;
-   uint ReturnAddr;
+   unsigned ReturnAddr;
 };
 
+/* should match draw_buffer_info */
+struct tgsi_exec_consts_info {
+   const void *ptr;
+   unsigned size;
+};
 
 /* Switch-case block state. */
 struct tgsi_switch_record {
-   uint mask;                          /**< execution mask */
+   unsigned mask;                          /**< execution mask */
    union tgsi_exec_channel selector;   /**< a value case statements are compared to */
-   uint defaultMask;                   /**< non-execute mask for default case */
+   unsigned defaultMask;                   /**< non-execute mask for default case */
 };
 
 
@@ -286,10 +292,11 @@ typedef void (* apply_sample_offset_func)(
 /**
  * Run-time virtual machine state for executing TGSI shader.
  */
-struct ALIGN16 tgsi_exec_machine
+struct tgsi_exec_machine
 {
    /* Total = program temporaries + internal temporaries
     */
+   alignas(16)
    struct tgsi_exec_vector       Temps[TGSI_EXEC_NUM_TEMPS];
 
    unsigned                       ImmsReserved;
@@ -340,14 +347,14 @@ struct ALIGN16 tgsi_exec_machine
    unsigned                      LocalMemSize;
 
    /* See GLSL 4.50 specification for definition of helper invocations */
-   uint NonHelperMask;  /**< non-helpers */
+   unsigned NonHelperMask;  /**< non-helpers */
    /* Conditional execution masks */
-   uint CondMask;  /**< For IF/ELSE/ENDIF */
-   uint LoopMask;  /**< For BGNLOOP/ENDLOOP */
-   uint ContMask;  /**< For loop CONT statements */
-   uint FuncMask;  /**< For function calls */
-   uint ExecMask;  /**< = CondMask & LoopMask */
-   uint KillMask;  /**< Mask of channels killed in the current shader execution */
+   unsigned CondMask;  /**< For IF/ELSE/ENDIF */
+   unsigned LoopMask;  /**< For BGNLOOP/ENDLOOP */
+   unsigned ContMask;  /**< For loop CONT statements */
+   unsigned FuncMask;  /**< For function calls */
+   unsigned ExecMask;  /**< = CondMask & LoopMask */
+   unsigned KillMask;  /**< Mask of channels killed in the current shader execution */
 
    /* Current switch-case state. */
    struct tgsi_switch_record Switch;
@@ -356,19 +363,19 @@ struct ALIGN16 tgsi_exec_machine
    enum tgsi_break_type BreakType;
 
    /** Condition mask stack (for nested conditionals) */
-   uint CondStack[TGSI_EXEC_MAX_COND_NESTING];
+   unsigned CondStack[TGSI_EXEC_MAX_COND_NESTING];
    int CondStackTop;
 
    /** Loop mask stack (for nested loops) */
-   uint LoopStack[TGSI_EXEC_MAX_LOOP_NESTING];
+   unsigned LoopStack[TGSI_EXEC_MAX_LOOP_NESTING];
    int LoopStackTop;
 
    /** Loop label stack */
-   uint LoopLabelStack[TGSI_EXEC_MAX_LOOP_NESTING];
+   unsigned LoopLabelStack[TGSI_EXEC_MAX_LOOP_NESTING];
    int LoopLabelStackTop;
 
    /** Loop continue mask stack (see comments in tgsi_exec.c) */
-   uint ContStack[TGSI_EXEC_MAX_LOOP_NESTING];
+   unsigned ContStack[TGSI_EXEC_MAX_LOOP_NESTING];
    int ContStackTop;
 
    /** Switch case stack */
@@ -379,7 +386,7 @@ struct ALIGN16 tgsi_exec_machine
    int BreakStackTop;
 
    /** Function execution mask stack (for executing subroutine code) */
-   uint FuncStack[TGSI_EXEC_MAX_CALL_NESTING];
+   unsigned FuncStack[TGSI_EXEC_MAX_CALL_NESTING];
    int FuncStackTop;
 
    /** Function call stack for saving/restoring the program counter */
@@ -387,15 +394,15 @@ struct ALIGN16 tgsi_exec_machine
    int CallStackTop;
 
    struct tgsi_full_instruction *Instructions;
-   uint NumInstructions;
+   unsigned NumInstructions;
 
    struct tgsi_full_declaration *Declarations;
-   uint NumDeclarations;
+   unsigned NumDeclarations;
 
    struct tgsi_declaration_sampler_view
       SamplerViews[PIPE_MAX_SHADER_SAMPLER_VIEWS];
 
-   boolean UsedGeometryShader;
+   bool UsedGeometryShader;
 
    int pc;
 };
@@ -420,15 +427,10 @@ tgsi_exec_machine_run(
    struct tgsi_exec_machine *mach, int start_pc );
 
 
-void
-tgsi_exec_machine_free_data(struct tgsi_exec_machine *mach);
-
-
 extern void
 tgsi_exec_set_constant_buffers(struct tgsi_exec_machine *mach,
                                unsigned num_bufs,
-                               const void **bufs,
-                               const unsigned *buf_sizes);
+                               const struct tgsi_exec_consts_info *bufs);
 
 
 static inline int
@@ -474,17 +476,12 @@ tgsi_exec_get_shader_param(enum pipe_shader_cap param)
       return PIPE_MAX_SAMPLERS;
    case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
       return PIPE_MAX_SHADER_SAMPLER_VIEWS;
-   case PIPE_SHADER_CAP_PREFERRED_IR:
-      return PIPE_SHADER_IR_TGSI;
    case PIPE_SHADER_CAP_SUPPORTED_IRS:
       return 1 << PIPE_SHADER_IR_TGSI;
    case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
       return 1;
-   case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
-   case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
    case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
       return 1;
-   case PIPE_SHADER_CAP_DROUND_SUPPORTED:
    case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
    case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
       return 0;

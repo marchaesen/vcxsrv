@@ -189,6 +189,7 @@ XOpenDisplay (
 	dpy->xcmisc_opcode	= 0;
 	dpy->xkb_info		= NULL;
 	dpy->exit_handler_data	= NULL;
+	dpy->in_ifevent         = 0;
 
 /*
  * Setup other information in this display structure.
@@ -472,6 +473,10 @@ XOpenDisplay (
 		}
 	    }
 	    sp->root_visual = _XVIDtoVisual(dpy, root_visualID);
+	    if (sp->root_visual == NULL) {
+		OutOfMemory(dpy);
+		return(NULL);
+	    }
 	}
 
 	if(usedbytes != setuplength){

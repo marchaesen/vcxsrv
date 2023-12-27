@@ -26,6 +26,7 @@
 
 #include "hwdef/rogue_hw_defs.h"
 #include "hwdef/rogue_hw_utils.h"
+#include "pvr_csb_enum_helpers.h"
 #include "pvr_device_info.h"
 #include "pvr_job_common.h"
 #include "pvr_private.h"
@@ -34,34 +35,6 @@
 #include "vk_alloc.h"
 #include "vk_format.h"
 #include "vk_object.h"
-
-/* clang-format off */
-static enum PVRX(PBESTATE_SWIZ)
-pvr_get_pbe_hw_swizzle(VkComponentSwizzle comp, enum pipe_swizzle swz)
-/* clang-format on */
-{
-   switch (swz) {
-   case PIPE_SWIZZLE_0:
-      return ROGUE_PBESTATE_SWIZ_ZERO;
-   case PIPE_SWIZZLE_1:
-      return ROGUE_PBESTATE_SWIZ_ONE;
-   case PIPE_SWIZZLE_X:
-      return ROGUE_PBESTATE_SWIZ_SOURCE_CHAN0;
-   case PIPE_SWIZZLE_Y:
-      return ROGUE_PBESTATE_SWIZ_SOURCE_CHAN1;
-   case PIPE_SWIZZLE_Z:
-      return ROGUE_PBESTATE_SWIZ_SOURCE_CHAN2;
-   case PIPE_SWIZZLE_W:
-      return ROGUE_PBESTATE_SWIZ_SOURCE_CHAN3;
-   case PIPE_SWIZZLE_NONE:
-      if (comp == VK_COMPONENT_SWIZZLE_A)
-         return ROGUE_PBESTATE_SWIZ_ONE;
-      else
-         return ROGUE_PBESTATE_SWIZ_ZERO;
-   default:
-      unreachable("Unknown enum pipe_swizzle");
-   };
-}
 
 void pvr_pbe_get_src_format_and_gamma(VkFormat vk_format,
                                       enum pvr_pbe_gamma default_gamma,
@@ -101,61 +74,6 @@ void pvr_pbe_get_src_format_and_gamma(VkFormat vk_format,
       *src_format_out = PVRX(PBESTATE_SOURCE_FORMAT_F16_PER_CHANNEL);
    } else {
       *src_format_out = PVRX(PBESTATE_SOURCE_FORMAT_8_PER_CHANNEL);
-   }
-}
-
-static void pvr_pbe_get_src_pos(const struct pvr_device_info *dev_info,
-                                enum pvr_pbe_source_start_pos source_start,
-                                uint32_t *const src_pos_out,
-                                bool *const src_pos_offset_128_out)
-{
-   *src_pos_offset_128_out = false;
-
-   switch (source_start) {
-   case PVR_PBE_STARTPOS_BIT32:
-      *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT32);
-      break;
-
-   case PVR_PBE_STARTPOS_BIT64:
-      *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT64);
-      break;
-
-   case PVR_PBE_STARTPOS_BIT96:
-      *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT96);
-      break;
-
-   case PVR_PBE_STARTPOS_BIT0:
-   default:
-      if (PVR_HAS_FEATURE(dev_info, eight_output_registers)) {
-         switch (source_start) {
-         case PVR_PBE_STARTPOS_BIT128:
-            *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT0);
-            *src_pos_offset_128_out = true;
-            break;
-
-         case PVR_PBE_STARTPOS_BIT160:
-            *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT32);
-            *src_pos_offset_128_out = true;
-            break;
-
-         case PVR_PBE_STARTPOS_BIT192:
-            *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT64);
-            *src_pos_offset_128_out = true;
-            break;
-
-         case PVR_PBE_STARTPOS_BIT224:
-            *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT96);
-            *src_pos_offset_128_out = true;
-            break;
-
-         default:
-            *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT0);
-            break;
-         }
-      } else {
-         *src_pos_out = PVRX(PBESTATE_SOURCE_POS_START_BIT0);
-      }
-      break;
    }
 }
 
@@ -201,10 +119,13 @@ void pvr_pbe_pack_state(
 
       state.source_format = surface_params->source_format;
 
-      pvr_pbe_get_src_pos(dev_info,
-                          render_params->source_start,
-                          &state.source_pos,
-                          &state.source_pos_offset_128);
+      state.source_pos = pvr_pbestate_source_pos(render_params->source_start);
+      if (PVR_HAS_FEATURE(dev_info, eight_output_registers)) {
+         state.source_pos_offset_128 = render_params->source_start >=
+                                       PVR_PBE_STARTPOS_BIT128;
+      } else {
+         assert(render_params->source_start < PVR_PBE_STARTPOS_BIT128);
+      }
 
       /* MRT index (Use 0 for a single render target)/ */
       state.mrt_index = render_params->mrt_index;
@@ -252,14 +173,106 @@ void pvr_pbe_pack_state(
                        PVRX(PBESTATE_REG_WORD0_LINESTRIDE_UNIT_SIZE);
       reg.minclip_x = render_params->min_x_clip;
 
-      reg.swiz_chan0 = pvr_get_pbe_hw_swizzle(VK_COMPONENT_SWIZZLE_R,
-                                              surface_params->swizzle[0]);
-      reg.swiz_chan1 = pvr_get_pbe_hw_swizzle(VK_COMPONENT_SWIZZLE_G,
-                                              surface_params->swizzle[1]);
-      reg.swiz_chan2 = pvr_get_pbe_hw_swizzle(VK_COMPONENT_SWIZZLE_B,
-                                              surface_params->swizzle[2]);
-      reg.swiz_chan3 = pvr_get_pbe_hw_swizzle(VK_COMPONENT_SWIZZLE_A,
-                                              surface_params->swizzle[3]);
+      /* r, y or depth*/
+      switch (surface_params->swizzle[0]) {
+      case PIPE_SWIZZLE_X:
+         reg.swiz_chan0 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN0;
+         break;
+      case PIPE_SWIZZLE_Y:
+         reg.swiz_chan1 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN0;
+         break;
+      case PIPE_SWIZZLE_Z:
+         reg.swiz_chan2 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN0;
+         break;
+      case PIPE_SWIZZLE_W:
+         reg.swiz_chan3 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN0;
+         break;
+      case PIPE_SWIZZLE_0:
+      case PIPE_SWIZZLE_NONE:
+         reg.swiz_chan0 = ROGUE_PBESTATE_SWIZ_ZERO;
+         break;
+      case PIPE_SWIZZLE_1:
+         reg.swiz_chan0 = ROGUE_PBESTATE_SWIZ_ONE;
+         break;
+      default:
+         unreachable("Unknown enum pipe_swizzle");
+         break;
+      }
+      /* g, u or stencil*/
+      switch (surface_params->swizzle[1]) {
+      case PIPE_SWIZZLE_X:
+         reg.swiz_chan0 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN1;
+         break;
+      case PIPE_SWIZZLE_Y:
+         reg.swiz_chan1 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN1;
+         break;
+      case PIPE_SWIZZLE_Z:
+         reg.swiz_chan2 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN1;
+         break;
+      case PIPE_SWIZZLE_W:
+         reg.swiz_chan3 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN1;
+         break;
+      case PIPE_SWIZZLE_0:
+      case PIPE_SWIZZLE_NONE:
+         reg.swiz_chan1 = ROGUE_PBESTATE_SWIZ_ZERO;
+         break;
+      case PIPE_SWIZZLE_1:
+         reg.swiz_chan1 = ROGUE_PBESTATE_SWIZ_ONE;
+         break;
+      default:
+         unreachable("Unknown enum pipe_swizzle");
+         break;
+      }
+      /* b or v*/
+      switch (surface_params->swizzle[2]) {
+      case PIPE_SWIZZLE_X:
+         reg.swiz_chan0 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN2;
+         break;
+      case PIPE_SWIZZLE_Y:
+         reg.swiz_chan1 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN2;
+         break;
+      case PIPE_SWIZZLE_Z:
+         reg.swiz_chan2 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN2;
+         break;
+      case PIPE_SWIZZLE_W:
+         reg.swiz_chan3 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN2;
+         break;
+      case PIPE_SWIZZLE_0:
+      case PIPE_SWIZZLE_NONE:
+         reg.swiz_chan2 = ROGUE_PBESTATE_SWIZ_ZERO;
+         break;
+      case PIPE_SWIZZLE_1:
+         reg.swiz_chan2 = ROGUE_PBESTATE_SWIZ_ONE;
+         break;
+      default:
+         unreachable("Unknown enum pipe_swizzle");
+         break;
+      }
+      /* a */
+      switch (surface_params->swizzle[3]) {
+      case PIPE_SWIZZLE_X:
+         reg.swiz_chan0 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN3;
+         break;
+      case PIPE_SWIZZLE_Y:
+         reg.swiz_chan1 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN3;
+         break;
+      case PIPE_SWIZZLE_Z:
+         reg.swiz_chan2 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN3;
+         break;
+      case PIPE_SWIZZLE_W:
+         reg.swiz_chan3 = ROGUE_PBESTATE_SWIZ_SOURCE_CHAN3;
+         break;
+      case PIPE_SWIZZLE_0:
+      case PIPE_SWIZZLE_NONE:
+         reg.swiz_chan3 = ROGUE_PBESTATE_SWIZ_ZERO;
+         break;
+      case PIPE_SWIZZLE_1:
+         reg.swiz_chan3 = ROGUE_PBESTATE_SWIZ_ONE;
+         break;
+      default:
+         unreachable("Unknown enum pipe_swizzle");
+         break;
+      }
 
       if (surface_params->mem_layout == PVR_MEMLAYOUT_3DTWIDDLED)
          reg.size_z = util_logbase2_ceil(surface_params->depth);

@@ -1,28 +1,8 @@
 /*
  * Copyright © 2009 Corbin Simpson
  * Copyright © 2015 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AMDGPU_WINSYS_H
@@ -39,9 +19,41 @@ struct amdgpu_cs;
 
 #define NUM_SLAB_ALLOCATORS 3
 
+/* DRM file descriptors, file descriptions and buffer sharing.
+ *
+ * amdgpu_device_initialize first argument is a file descriptor (fd)
+ * representing a specific GPU.
+ * If a fd is duplicated using os_dupfd_cloexec,
+ * the file description will remain the same (os_same_file_description will
+ * return 0).
+ * But if the same device is re-opened, the fd and the file description will
+ * be different.
+ *
+ * amdgpu_screen_winsys's fd tracks the file description which was
+ * given to amdgpu_winsys_create. This is the fd used by the application
+ * using the driver and may be used in other ioctl (eg: drmModeAddFB)
+ *
+ * amdgpu_winsys's fd is the file description used to initialize the
+ * device handle in libdrm_amdgpu.
+ *
+ * The 2 fds can be different, even in systems with a single GPU, eg: if
+ * radv is initialized before radeonsi.
+ *
+ * This fd tracking is useful for buffer sharing because KMS/GEM handles are
+ * specific to a DRM file description, i.e. the same handle value may refer
+ * to different underlying BOs in different DRM file descriptions.
+ * As an example, if an app wants to use drmModeAddFB it'll need a KMS handle
+ * valid for its fd (== amdgpu_screen_winsys::fd).
+ * If both fds are identical, there's nothing to do: bo->u.real.kms_handle
+ * can be used directly (see amdgpu_bo_get_handle).
+ * If they're different, the BO has to be exported from the device fd as
+ * a dma-buf, then imported from the app fd as a KMS handle.
+ */
+
 struct amdgpu_screen_winsys {
    struct radeon_winsys base;
    struct amdgpu_winsys *aws;
+   /* See comment above */
    int fd;
    struct pipe_reference reference;
    struct amdgpu_screen_winsys *next;
@@ -54,8 +66,7 @@ struct amdgpu_screen_winsys {
 
 struct amdgpu_winsys {
    struct pipe_reference reference;
-
-   /* File descriptor which was passed to amdgpu_device_initialize */
+   /* See comment above */
    int fd;
 
    struct pb_cache bo_cache;
@@ -70,7 +81,6 @@ struct amdgpu_winsys {
    simple_mtx_t bo_fence_lock;
 
    int num_cs; /* The number of command streams created. */
-   unsigned num_total_rejected_cs;
    uint32_t surf_index_color;
    uint32_t surf_index_fmask;
    uint32_t next_bo_unique_id;

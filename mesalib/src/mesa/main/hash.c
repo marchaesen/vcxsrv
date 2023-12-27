@@ -35,7 +35,7 @@
  */
 
 #include "errors.h"
-#include "glheader.h"
+#include "util/glheader.h"
 #include "hash.h"
 #include "util/hash_table.h"
 #include "util/u_memory.h"

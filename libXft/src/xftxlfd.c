@@ -81,7 +81,7 @@ XftGetInt(const char *ptr, int *val)
 }
 
 _X_EXPORT FcPattern *
-XftXlfdParse (const char *xlfd_orig, FcBool ignore_scalable, FcBool complete)
+XftXlfdParse (const char *xlfd_orig, FcBool ignore_scalable _X_UNUSED, FcBool complete _X_UNUSED)
 {
     FcPattern	*pat;
     const char	*xlfd = xlfd_orig;
@@ -89,8 +89,6 @@ XftXlfdParse (const char *xlfd_orig, FcBool ignore_scalable, FcBool complete)
     const char	*family;
     const char	*weight_name;
     const char	*slant;
-    const char	*registry;
-    const char	*encoding;
     char	*save;
     int		pixel;
     int		point;
@@ -113,9 +111,9 @@ XftXlfdParse (const char *xlfd_orig, FcBool ignore_scalable, FcBool complete)
     if (!(xlfd = XftGetInt (++xlfd, &resy))) return NULL;
     if (!(xlfd = strchr (/* spacing = */ ++xlfd, '-'))) return NULL;
     if (!(xlfd = strchr (/* average_width = */ ++xlfd, '-'))) return NULL;
-    if (!(xlfd = strchr (registry = ++xlfd, '-'))) return NULL;
+    if (!(xlfd = strchr (/* registry = */ ++xlfd, '-'))) return NULL;
     /* make sure no fields follow this one */
-    if ((xlfd = strchr (encoding = ++xlfd, '-'))) return NULL;
+    if ((/* xlfd = */ strchr (/* encoding = */ ++xlfd, '-'))) return NULL;
 
     if (!pixel)
 	return NULL;
@@ -131,7 +129,7 @@ XftXlfdParse (const char *xlfd_orig, FcBool ignore_scalable, FcBool complete)
 	return NULL;
     }
 
-    if (!FcPatternAddString (pat, XFT_XLFD, (FcChar8 *) xlfd_orig)) goto bail;
+    if (!FcPatternAddString (pat, XFT_XLFD, (const FcChar8 *) xlfd_orig)) goto bail;
 
     XftSplitStr (foundry, save);
     if (save[0] && strcmp (save, "*") != 0)

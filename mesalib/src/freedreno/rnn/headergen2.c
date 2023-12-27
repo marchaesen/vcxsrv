@@ -97,9 +97,9 @@ static void printdef (char *name, char *suf, int type, uint64_t val, char *file)
 	FILE *dst = findfout(file);
 	int len;
 	if (suf)
-		fprintf (dst, "#define %s__%s%n", name, suf, &len);
+		len = fprintf (dst, "#define %s__%s", name, suf);
 	else
-		fprintf (dst, "#define %s%n", name, &len);
+		len = fprintf (dst, "#define %s", name);
 	if (type == 0 && val > 0xffffffffull)
 		seekcol (dst, len, startcol-8);
 	else
@@ -257,7 +257,6 @@ static void printdelem (struct rnndelem *elem, uint64_t offset, const char *str)
 			asprintf(&regname, "REG_%s", elem->fullname);
 		}
 		if (elemsnum) {
-			int len;
 			FILE *dst = findfout(elem->file);
 			int i;
 
@@ -311,7 +310,7 @@ static void printdelem (struct rnndelem *elem, uint64_t offset, const char *str)
 					fprintf(dst, "enum %s ", elems[i]->index->name);
 				else
 					fprintf(dst, "uint32_t ");
-				fprintf (dst, "i%d%n", i, &len);
+				fprintf (dst, "i%d", i);
 			}
 			fprintf (dst, ") { return ");
 			fprintf (dst, "0x%08"PRIx64"", offset + elem->offset);

@@ -34,7 +34,7 @@
 
 
 #include "main/errors.h"
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/mtypes.h"
 #include "main/macros.h"
 #include "main/enums.h"
@@ -42,13 +42,14 @@
 #include "main/ffvertex_prog.h"
 #include "program/program.h"
 #include "program/prog_cache.h"
-#include "program/prog_instruction.h"
-#include "program/prog_parameter.h"
-#include "program/prog_print.h"
 #include "program/prog_statevars.h"
 #include "util/bitscan.h"
 
 #include "state_tracker/st_program.h"
+#include "state_tracker/st_nir.h"
+
+#include "compiler/nir/nir_builder.h"
+#include "compiler/nir/nir_builtin_builder.h"
 
 /** Max of number of lights and texture coord units */
 #define NUM_UNITS MAX2(MAX_TEXTURE_COORD_UNITS, MAX_LIGHTS)
@@ -186,16 +187,16 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
       key->light_global_enabled = 1;
 
       if (ctx->Light.Model.LocalViewer)
-	 key->light_local_viewer = 1;
+          key->light_local_viewer = 1;
 
       if (ctx->Light.Model.TwoSide)
-	 key->light_twoside = 1;
+          key->light_twoside = 1;
 
       if (ctx->Light.Model.ColorControl == GL_SEPARATE_SPECULAR_COLOR)
          key->separate_specular = 1;
 
       if (ctx->Light.ColorMaterialEnabled) {
-	 key->light_color_material_mask = ctx->Light._ColorMaterialBitmask;
+          key->light_color_material_mask = ctx->Light._ColorMaterialBitmask;
       }
 
       mask = ctx->Light._EnabledLights;
@@ -252,595 +253,282 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
          &ctx->Texture.FixedFuncUnit[i];
 
       if (ctx->Point.PointSprite)
-	 if (ctx->Point.CoordReplace & (1u << i))
-	    key->unit[i].coord_replace = 1;
+         if (ctx->Point.CoordReplace & (1u << i))
+            key->unit[i].coord_replace = 1;
 
       if (ctx->Texture._TexMatEnabled & ENABLE_TEXMAT(i))
-	 key->unit[i].texmat_enabled = 1;
+         key->unit[i].texmat_enabled = 1;
 
       if (texUnit->TexGenEnabled) {
-	 key->unit[i].texgen_enabled = 1;
+         key->unit[i].texgen_enabled = 1;
 
-	 key->unit[i].texgen_mode0 =
-	    translate_texgen( texUnit->TexGenEnabled & (1<<0),
-			      texUnit->GenS.Mode );
-	 key->unit[i].texgen_mode1 =
-	    translate_texgen( texUnit->TexGenEnabled & (1<<1),
-			      texUnit->GenT.Mode );
-	 key->unit[i].texgen_mode2 =
-	    translate_texgen( texUnit->TexGenEnabled & (1<<2),
-			      texUnit->GenR.Mode );
-	 key->unit[i].texgen_mode3 =
-	    translate_texgen( texUnit->TexGenEnabled & (1<<3),
-			      texUnit->GenQ.Mode );
+         key->unit[i].texgen_mode0 =
+            translate_texgen( texUnit->TexGenEnabled & (1<<0),
+                              texUnit->GenS.Mode );
+         key->unit[i].texgen_mode1 =
+            translate_texgen( texUnit->TexGenEnabled & (1<<1),
+                              texUnit->GenT.Mode );
+         key->unit[i].texgen_mode2 =
+            translate_texgen( texUnit->TexGenEnabled & (1<<2),
+                              texUnit->GenR.Mode );
+         key->unit[i].texgen_mode3 =
+            translate_texgen( texUnit->TexGenEnabled & (1<<3),
+                              texUnit->GenQ.Mode );
       }
    }
 }
 
-
-
-/* Very useful debugging tool - produces annotated listing of
- * generated program with line/function references for each
- * instruction back into this file:
- */
-#define DISASSEM 0
-
-
-/* Use uregs to represent registers internally, translate to Mesa's
- * expected formats on emit.
- *
- * NOTE: These are passed by value extensively in this file rather
- * than as usual by pointer reference.  If this disturbs you, try
- * remembering they are just 32bits in size.
- *
- * GCC is smart enough to deal with these dword-sized structures in
- * much the same way as if I had defined them as dwords and was using
- * macros to access and set the fields.  This is much nicer and easier
- * to evolve.
- */
-struct ureg {
-   GLuint file:4;
-   GLint idx:9;      /* relative addressing may be negative */
-                     /* sizeof(idx) should == sizeof(prog_src_reg::Index) */
-   GLuint negate:1;
-   GLuint swz:12;
-   GLuint pad:6;
-};
-
-
 struct tnl_program {
    const struct state_key *state;
-   struct gl_program *program;
    struct gl_program_parameter_list *state_params;
-   GLuint max_inst;  /** number of instructions allocated for program */
    GLboolean mvp_with_dp4;
 
-   GLuint temp_in_use;
-   GLuint temp_reserved;
+   nir_builder *b;
 
-   struct ureg eye_position;
-   struct ureg eye_position_z;
-   struct ureg eye_position_normalized;
-   struct ureg transformed_normal;
-   struct ureg identity;
+   nir_def *eye_position;
+   nir_def *eye_position_z;
+   nir_def *eye_position_normalized;
+   nir_def *transformed_normal;
 
    GLuint materials;
    GLuint color_materials;
 };
 
-
-static const struct ureg undef = {
-   PROGRAM_UNDEFINED,
-   0,
-   0,
-   0,
-   0
-};
-
-/* Local shorthand:
- */
-#define X    SWIZZLE_X
-#define Y    SWIZZLE_Y
-#define Z    SWIZZLE_Z
-#define W    SWIZZLE_W
-
-
-/* Construct a ureg:
- */
-static struct ureg make_ureg(GLuint file, GLint idx)
-{
-   struct ureg reg;
-   reg.file = file;
-   reg.idx = idx;
-   reg.negate = 0;
-   reg.swz = SWIZZLE_NOOP;
-   reg.pad = 0;
-   return reg;
-}
-
-
-static struct ureg negate( struct ureg reg )
-{
-   reg.negate ^= 1;
-   return reg;
-}
-
-
-static struct ureg swizzle( struct ureg reg, int x, int y, int z, int w )
-{
-   reg.swz = MAKE_SWIZZLE4(GET_SWZ(reg.swz, x),
-			   GET_SWZ(reg.swz, y),
-			   GET_SWZ(reg.swz, z),
-			   GET_SWZ(reg.swz, w));
-   return reg;
-}
-
-
-static struct ureg swizzle1( struct ureg reg, int x )
-{
-   return swizzle(reg, x, x, x, x);
-}
-
-
-static struct ureg get_temp( struct tnl_program *p )
-{
-   int bit = ffs( ~p->temp_in_use );
-   if (!bit) {
-      _mesa_problem(NULL, "%s: out of temporaries\n", __FILE__);
-      exit(1);
-   }
-
-   if ((GLuint) bit > p->program->arb.NumTemporaries)
-      p->program->arb.NumTemporaries = bit;
-
-   p->temp_in_use |= 1<<(bit-1);
-   return make_ureg(PROGRAM_TEMPORARY, bit-1);
-}
-
-
-static struct ureg reserve_temp( struct tnl_program *p )
-{
-   struct ureg temp = get_temp( p );
-   p->temp_reserved |= 1<<temp.idx;
-   return temp;
-}
-
-
-static void release_temp( struct tnl_program *p, struct ureg reg )
-{
-   if (reg.file == PROGRAM_TEMPORARY) {
-      p->temp_in_use &= ~(1<<reg.idx);
-      p->temp_in_use |= p->temp_reserved; /* can't release reserved temps */
-   }
-}
-
-static void release_temps( struct tnl_program *p )
-{
-   p->temp_in_use = p->temp_reserved;
-}
-
-
-static struct ureg register_param4(struct tnl_program *p,
-				   GLint s0,
-				   GLint s1,
-				   GLint s2,
-				   GLint s3)
+static nir_variable *
+register_state_var(struct tnl_program *p,
+                   gl_state_index16 s0,
+                   gl_state_index16 s1,
+                   gl_state_index16 s2,
+                   gl_state_index16 s3,
+                   const struct glsl_type *type)
 {
    gl_state_index16 tokens[STATE_LENGTH];
-   GLint idx;
    tokens[0] = s0;
    tokens[1] = s1;
    tokens[2] = s2;
    tokens[3] = s3;
-   idx = _mesa_add_state_reference(p->state_params, tokens);
-   return make_ureg(PROGRAM_STATE_VAR, idx);
+   nir_variable *var = nir_find_state_variable(p->b->shader, tokens);
+   if (var)
+      return var;
+
+   var = st_nir_state_variable_create(p->b->shader, type, tokens);
+   var->data.driver_location = _mesa_add_state_reference(p->state_params, tokens);
+
+   return var;
+}
+
+static nir_def *
+load_state_var(struct tnl_program *p,
+               gl_state_index16 s0,
+               gl_state_index16 s1,
+               gl_state_index16 s2,
+               gl_state_index16 s3,
+               const struct glsl_type *type)
+{
+   nir_variable *var = register_state_var(p, s0, s1, s2, s3, type);
+   return nir_load_var(p->b, var);
+}
+
+static nir_def *
+load_state_vec4(struct tnl_program *p,
+                gl_state_index16 s0,
+                gl_state_index16 s1,
+                gl_state_index16 s2,
+                gl_state_index16 s3)
+{
+   return load_state_var(p, s0, s1, s2, s3, glsl_vec4_type());
+}
+
+static void
+load_state_mat4(struct tnl_program *p, nir_def *out[4],
+                gl_state_index state_index, unsigned tex_index)
+{
+   for (int i = 0; i < 4; ++i)
+      out[i] = load_state_vec4(p, state_index, tex_index, i, i);
+}
+
+static nir_def *
+load_input(struct tnl_program *p, gl_vert_attrib attr,
+           const struct glsl_type *type)
+{
+   if (p->state->varying_vp_inputs & VERT_BIT(attr)) {
+      nir_variable *var = nir_get_variable_with_location(p->b->shader, nir_var_shader_in,
+                                                         attr, type);
+      p->b->shader->info.inputs_read |= (uint64_t)VERT_BIT(attr);
+      return nir_load_var(p->b, var);
+   } else
+      return load_state_var(p, STATE_CURRENT_ATTRIB, attr, 0, 0, type);
+}
+
+static nir_def *
+load_input_vec4(struct tnl_program *p, gl_vert_attrib attr)
+{
+   return load_input(p, attr, glsl_vec4_type());
+}
+
+static nir_variable *
+register_output(struct tnl_program *p, gl_varying_slot slot,
+                const struct glsl_type *type)
+{
+   nir_variable *var = nir_get_variable_with_location(p->b->shader, nir_var_shader_out,
+                                                      slot, type);
+   p->b->shader->info.outputs_written |= BITFIELD64_BIT(slot);
+   return var;
+}
+
+static void
+store_output_vec4_masked(struct tnl_program *p, gl_varying_slot slot,
+                         nir_def *value, unsigned mask)
+{
+   assert(mask <= 0xf);
+   nir_variable *var = register_output(p, slot, glsl_vec4_type());
+   nir_store_var(p->b, var, value, mask);
+}
+
+static void
+store_output_vec4(struct tnl_program *p, gl_varying_slot slot,
+                  nir_def *value)
+{
+   store_output_vec4_masked(p, slot, value, 0xf);
+}
+
+static void
+store_output_float(struct tnl_program *p, gl_varying_slot slot,
+                   nir_def *value)
+{
+   nir_variable *var = register_output(p, slot, glsl_float_type());
+   nir_store_var(p->b, var, value, 0x1);
 }
 
 
-#define register_param1(p,s0)          register_param4(p,s0,0,0,0)
-#define register_param2(p,s0,s1)       register_param4(p,s0,s1,0,0)
-#define register_param3(p,s0,s1,s2)    register_param4(p,s0,s1,s2,0)
-
-
-
-/**
- * \param input  one of VERT_ATTRIB_x tokens.
- */
-static struct ureg register_input( struct tnl_program *p, GLuint input )
+static nir_def *
+emit_matrix_transform_vec4(nir_builder *b,
+                           nir_def *mat[4],
+                           nir_def *src)
 {
-   assert(input < VERT_ATTRIB_MAX);
-
-   if (p->state->varying_vp_inputs & VERT_BIT(input)) {
-      p->program->info.inputs_read |= (uint64_t)VERT_BIT(input);
-      return make_ureg(PROGRAM_INPUT, input);
-   }
-   else {
-      return register_param2(p, STATE_CURRENT_ATTRIB, input);
-   }
+   return nir_vec4(b,
+                   nir_fdot4(b, src, mat[0]),
+                   nir_fdot4(b, src, mat[1]),
+                   nir_fdot4(b, src, mat[2]),
+                   nir_fdot4(b, src, mat[3]));
 }
 
-
-/**
- * \param input  one of VARYING_SLOT_x tokens.
- */
-static struct ureg register_output( struct tnl_program *p, GLuint output )
+static nir_def *
+emit_transpose_matrix_transform_vec4(nir_builder *b,
+                                     nir_def *mat[4],
+                                     nir_def *src)
 {
-   p->program->info.outputs_written |= BITFIELD64_BIT(output);
-   return make_ureg(PROGRAM_OUTPUT, output);
+   nir_def *result;
+   result = nir_fmul(b, nir_channel(b, src, 0), mat[0]);
+   result = nir_fmad(b, nir_channel(b, src, 1), mat[1], result);
+   result = nir_fmad(b, nir_channel(b, src, 2), mat[2], result);
+   result = nir_fmad(b, nir_channel(b, src, 3), mat[3], result);
+   return result;
 }
 
-
-static struct ureg register_const4f( struct tnl_program *p,
-			      GLfloat s0,
-			      GLfloat s1,
-			      GLfloat s2,
-			      GLfloat s3)
+static nir_def *
+emit_matrix_transform_vec3(nir_builder *b,
+                           nir_def *mat[3],
+                           nir_def *src)
 {
-   gl_constant_value values[4];
-   GLint idx;
-   GLuint swizzle;
-   values[0].f = s0;
-   values[1].f = s1;
-   values[2].f = s2;
-   values[3].f = s3;
-   idx = _mesa_add_unnamed_constant(p->program->Parameters, values, 4,
-                                    &swizzle );
-   assert(swizzle == SWIZZLE_NOOP);
-   return make_ureg(PROGRAM_CONSTANT, idx);
+   return nir_vec3(b,
+                   nir_fdot3(b, src, mat[0]),
+                   nir_fdot3(b, src, mat[1]),
+                   nir_fdot3(b, src, mat[2]));
 }
 
-#define register_const1f(p, s0)         register_const4f(p, s0, 0, 0, 1)
-#define register_scalar_const(p, s0)    register_const4f(p, s0, s0, s0, s0)
-#define register_const2f(p, s0, s1)     register_const4f(p, s0, s1, 0, 1)
-#define register_const3f(p, s0, s1, s2) register_const4f(p, s0, s1, s2, 1)
-
-static GLboolean is_undef( struct ureg reg )
+static nir_def *
+emit_normalize_vec3(nir_builder *b, nir_def *src)
 {
-   return reg.file == PROGRAM_UNDEFINED;
+   nir_def *tmp = nir_frsq(b, nir_fdot3(b, src, src));
+   return nir_fmul(b, src, tmp);
 }
 
-
-static struct ureg get_identity_param( struct tnl_program *p )
+static void
+emit_passthrough(struct tnl_program *p, gl_vert_attrib attr,
+                 gl_varying_slot varying)
 {
-   if (is_undef(p->identity))
-      p->identity = register_const4f(p, 0,0,0,1);
-
-   return p->identity;
+   nir_def *val = load_input_vec4(p, attr);
+   store_output_vec4(p, varying, val);
 }
 
-static void register_matrix_param5( struct tnl_program *p,
-				    GLint s0, /* modelview, projection, etc */
-				    GLint s1, /* texture matrix number */
-				    GLint s2, /* first row */
-				    GLint s3, /* last row */
-				    struct ureg *matrix )
+static nir_def *
+get_eye_position(struct tnl_program *p)
 {
-   GLint i;
-
-   /* This is a bit sad as the support is there to pull the whole
-    * matrix out in one go:
-    */
-   for (i = 0; i <= s3 - s2; i++)
-      matrix[i] = register_param4(p, s0, s1, i, i);
-}
-
-
-static void emit_arg( struct prog_src_register *src,
-		      struct ureg reg )
-{
-   src->File = reg.file;
-   src->Index = reg.idx;
-   src->Swizzle = reg.swz;
-   src->Negate = reg.negate ? NEGATE_XYZW : NEGATE_NONE;
-   src->RelAddr = 0;
-   /* Check that bitfield sizes aren't exceeded */
-   assert(src->Index == reg.idx);
-}
-
-
-static void emit_dst( struct prog_dst_register *dst,
-		      struct ureg reg, GLuint mask )
-{
-   dst->File = reg.file;
-   dst->Index = reg.idx;
-   /* allow zero as a shorthand for xyzw */
-   dst->WriteMask = mask ? mask : WRITEMASK_XYZW;
-   /* Check that bitfield sizes aren't exceeded */
-   assert(dst->Index == reg.idx);
-}
-
-
-static void debug_insn( struct prog_instruction *inst, const char *fn,
-			GLuint line )
-{
-   if (DISASSEM) {
-      static const char *last_fn;
-
-      if (fn != last_fn) {
-	 last_fn = fn;
-	 printf("%s:\n", fn);
-      }
-
-      printf("%d:\t", line);
-      _mesa_print_instruction(inst);
-   }
-}
-
-
-static void emit_op3fn(struct tnl_program *p,
-                       enum prog_opcode op,
-		       struct ureg dest,
-		       GLuint mask,
-		       struct ureg src0,
-		       struct ureg src1,
-		       struct ureg src2,
-		       const char *fn,
-		       GLuint line)
-{
-   GLuint nr;
-   struct prog_instruction *inst;
-
-   assert(p->program->arb.NumInstructions <= p->max_inst);
-
-   if (p->program->arb.NumInstructions == p->max_inst) {
-      /* need to extend the program's instruction array */
-      struct prog_instruction *newInst;
-
-      /* double the size */
-      p->max_inst *= 2;
-
-      newInst =
-         rzalloc_array(p->program, struct prog_instruction, p->max_inst);
-      if (!newInst) {
-         _mesa_error(NULL, GL_OUT_OF_MEMORY, "vertex program build");
-         return;
-      }
-
-      _mesa_copy_instructions(newInst, p->program->arb.Instructions,
-                              p->program->arb.NumInstructions);
-
-      ralloc_free(p->program->arb.Instructions);
-
-      p->program->arb.Instructions = newInst;
-   }
-
-   nr = p->program->arb.NumInstructions++;
-
-   inst = &p->program->arb.Instructions[nr];
-   inst->Opcode = (enum prog_opcode) op;
-
-   emit_arg( &inst->SrcReg[0], src0 );
-   emit_arg( &inst->SrcReg[1], src1 );
-   emit_arg( &inst->SrcReg[2], src2 );
-
-   emit_dst( &inst->DstReg, dest, mask );
-
-   debug_insn(inst, fn, line);
-}
-
-
-#define emit_op3(p, op, dst, mask, src0, src1, src2) \
-   emit_op3fn(p, op, dst, mask, src0, src1, src2, __func__, __LINE__)
-
-#define emit_op2(p, op, dst, mask, src0, src1) \
-    emit_op3fn(p, op, dst, mask, src0, src1, undef, __func__, __LINE__)
-
-#define emit_op1(p, op, dst, mask, src0) \
-    emit_op3fn(p, op, dst, mask, src0, undef, undef, __func__, __LINE__)
-
-
-static struct ureg make_temp( struct tnl_program *p, struct ureg reg )
-{
-   if (reg.file == PROGRAM_TEMPORARY &&
-       !(p->temp_reserved & (1<<reg.idx)))
-      return reg;
-   else {
-      struct ureg temp = get_temp(p);
-      emit_op1(p, OPCODE_MOV, temp, 0, reg);
-      return temp;
-   }
-}
-
-
-/* Currently no tracking performed of input/output/register size or
- * active elements.  Could be used to reduce these operations, as
- * could the matrix type.
- */
-static void emit_matrix_transform_vec4( struct tnl_program *p,
-					struct ureg dest,
-					const struct ureg *mat,
-					struct ureg src)
-{
-   emit_op2(p, OPCODE_DP4, dest, WRITEMASK_X, src, mat[0]);
-   emit_op2(p, OPCODE_DP4, dest, WRITEMASK_Y, src, mat[1]);
-   emit_op2(p, OPCODE_DP4, dest, WRITEMASK_Z, src, mat[2]);
-   emit_op2(p, OPCODE_DP4, dest, WRITEMASK_W, src, mat[3]);
-}
-
-
-/* This version is much easier to implement if writemasks are not
- * supported natively on the target or (like SSE), the target doesn't
- * have a clean/obvious dotproduct implementation.
- */
-static void emit_transpose_matrix_transform_vec4( struct tnl_program *p,
-						  struct ureg dest,
-						  const struct ureg *mat,
-						  struct ureg src)
-{
-   struct ureg tmp;
-
-   if (dest.file != PROGRAM_TEMPORARY)
-      tmp = get_temp(p);
-   else
-      tmp = dest;
-
-   emit_op2(p, OPCODE_MUL, tmp, 0, swizzle1(src,X), mat[0]);
-   emit_op3(p, OPCODE_MAD, tmp, 0, swizzle1(src,Y), mat[1], tmp);
-   emit_op3(p, OPCODE_MAD, tmp, 0, swizzle1(src,Z), mat[2], tmp);
-   emit_op3(p, OPCODE_MAD, dest, 0, swizzle1(src,W), mat[3], tmp);
-
-   if (dest.file != PROGRAM_TEMPORARY)
-      release_temp(p, tmp);
-}
-
-
-static void emit_matrix_transform_vec3( struct tnl_program *p,
-					struct ureg dest,
-					const struct ureg *mat,
-					struct ureg src)
-{
-   emit_op2(p, OPCODE_DP3, dest, WRITEMASK_X, src, mat[0]);
-   emit_op2(p, OPCODE_DP3, dest, WRITEMASK_Y, src, mat[1]);
-   emit_op2(p, OPCODE_DP3, dest, WRITEMASK_Z, src, mat[2]);
-}
-
-
-static void emit_normalize_vec3( struct tnl_program *p,
-				 struct ureg dest,
-				 struct ureg src )
-{
-   struct ureg tmp = get_temp(p);
-   emit_op2(p, OPCODE_DP3, tmp, WRITEMASK_X, src, src);
-   emit_op1(p, OPCODE_RSQ, tmp, WRITEMASK_X, tmp);
-   emit_op2(p, OPCODE_MUL, dest, 0, src, swizzle1(tmp, X));
-   release_temp(p, tmp);
-}
-
-
-static void emit_passthrough( struct tnl_program *p,
-			      GLuint input,
-			      GLuint output )
-{
-   struct ureg out = register_output(p, output);
-   emit_op1(p, OPCODE_MOV, out, 0, register_input(p, input));
-}
-
-
-static struct ureg get_eye_position( struct tnl_program *p )
-{
-   if (is_undef(p->eye_position)) {
-      struct ureg pos = register_input( p, VERT_ATTRIB_POS );
-      struct ureg modelview[4];
-
-      p->eye_position = reserve_temp(p);
-
+   if (!p->eye_position) {
+      nir_def *pos =
+         load_input_vec4(p, VERT_ATTRIB_POS);
       if (p->mvp_with_dp4) {
-	 register_matrix_param5( p, STATE_MODELVIEW_MATRIX, 0, 0, 3,
-                                 modelview );
-
-	 emit_matrix_transform_vec4(p, p->eye_position, modelview, pos);
-      }
-      else {
-	 register_matrix_param5( p, STATE_MODELVIEW_MATRIX_TRANSPOSE, 0, 0, 3,
-				 modelview );
-
-	 emit_transpose_matrix_transform_vec4(p, p->eye_position, modelview, pos);
+         nir_def *modelview[4];
+         load_state_mat4(p, modelview, STATE_MODELVIEW_MATRIX, 0);
+         p->eye_position =
+            emit_matrix_transform_vec4(p->b, modelview, pos);
+      } else {
+         nir_def *modelview[4];
+         load_state_mat4(p, modelview,
+                         STATE_MODELVIEW_MATRIX_TRANSPOSE, 0);
+         p->eye_position =
+            emit_transpose_matrix_transform_vec4(p->b, modelview, pos);
       }
    }
 
    return p->eye_position;
 }
 
-
-static struct ureg get_eye_position_z( struct tnl_program *p )
+static nir_def *
+get_eye_position_z(struct tnl_program *p)
 {
-   if (!is_undef(p->eye_position))
-      return swizzle1(p->eye_position, Z);
-
-   if (is_undef(p->eye_position_z)) {
-      struct ureg pos = register_input( p, VERT_ATTRIB_POS );
-      struct ureg modelview[4];
-
-      p->eye_position_z = reserve_temp(p);
-
-      register_matrix_param5( p, STATE_MODELVIEW_MATRIX, 0, 0, 3,
-                              modelview );
-
-      emit_op2(p, OPCODE_DP4, p->eye_position_z, 0, pos, modelview[2]);
-   }
-
-   return p->eye_position_z;
+   return nir_channel(p->b, get_eye_position(p), 2);
 }
 
-
-static struct ureg get_eye_position_normalized( struct tnl_program *p )
+static nir_def *
+get_eye_position_normalized(struct tnl_program *p)
 {
-   if (is_undef(p->eye_position_normalized)) {
-      struct ureg eye = get_eye_position(p);
-      p->eye_position_normalized = reserve_temp(p);
-      emit_normalize_vec3(p, p->eye_position_normalized, eye);
+   if (!p->eye_position_normalized) {
+      nir_def *eye = get_eye_position(p);
+      p->eye_position_normalized = emit_normalize_vec3(p->b, eye);
    }
 
    return p->eye_position_normalized;
 }
 
-
-static struct ureg get_transformed_normal( struct tnl_program *p )
+static nir_def *
+get_transformed_normal(struct tnl_program *p)
 {
-   if (is_undef(p->transformed_normal) &&
+   if (!p->transformed_normal &&
        !p->state->need_eye_coords &&
        !p->state->normalize &&
-       !(p->state->need_eye_coords == p->state->rescale_normals))
-   {
-      p->transformed_normal = register_input(p, VERT_ATTRIB_NORMAL );
-   }
-   else if (is_undef(p->transformed_normal))
-   {
-      struct ureg normal = register_input(p, VERT_ATTRIB_NORMAL );
-      struct ureg mvinv[3];
-      struct ureg transformed_normal = reserve_temp(p);
+       !(p->state->need_eye_coords == p->state->rescale_normals)) {
+      p->transformed_normal =
+         load_input(p, VERT_ATTRIB_NORMAL,
+                    glsl_vector_type(GLSL_TYPE_FLOAT, 3));
+   } else if (!p->transformed_normal) {
+      nir_def *normal =
+         load_input(p, VERT_ATTRIB_NORMAL,
+                    glsl_vector_type(GLSL_TYPE_FLOAT, 3));
 
       if (p->state->need_eye_coords) {
-         register_matrix_param5( p, STATE_MODELVIEW_MATRIX_INVTRANS, 0, 0, 2,
-                                 mvinv );
-
-         /* Transform to eye space:
-          */
-         emit_matrix_transform_vec3( p, transformed_normal, mvinv, normal );
-         normal = transformed_normal;
+         nir_def *mvinv[4];
+         load_state_mat4(p, mvinv, STATE_MODELVIEW_MATRIX_INVTRANS, 0);
+         normal = emit_matrix_transform_vec3(p->b, mvinv, normal);
       }
 
       /* Normalize/Rescale:
        */
-      if (p->state->normalize) {
-	 emit_normalize_vec3( p, transformed_normal, normal );
-         normal = transformed_normal;
-      }
+      if (p->state->normalize)
+         normal = emit_normalize_vec3(p->b, normal);
       else if (p->state->need_eye_coords == p->state->rescale_normals) {
-         /* This is already adjusted for eye/non-eye rendering:
-          */
-	 struct ureg rescale = register_param1(p, STATE_NORMAL_SCALE);
-
-	 emit_op2( p, OPCODE_MUL, transformed_normal, 0, normal, rescale );
-         normal = transformed_normal;
+         nir_def *scale =
+            load_state_var(p, STATE_NORMAL_SCALE, 0, 0, 0,
+                           glsl_float_type());
+         normal = nir_fmul(p->b, normal, scale);
       }
 
-      assert(normal.file == PROGRAM_TEMPORARY);
       p->transformed_normal = normal;
    }
 
    return p->transformed_normal;
 }
-
-
-static void build_hpos( struct tnl_program *p )
-{
-   struct ureg pos = register_input( p, VERT_ATTRIB_POS );
-   struct ureg hpos = register_output( p, VARYING_SLOT_POS );
-   struct ureg mvp[4];
-
-   if (p->mvp_with_dp4) {
-      register_matrix_param5( p, STATE_MVP_MATRIX, 0, 0, 3,
-			      mvp );
-      emit_matrix_transform_vec4( p, hpos, mvp, pos );
-   }
-   else {
-      register_matrix_param5( p, STATE_MVP_MATRIX_TRANSPOSE, 0, 0, 3,
-			      mvp );
-      emit_transpose_matrix_transform_vec4( p, hpos, mvp, pos );
-   }
-}
-
 
 static GLuint material_attrib( GLuint side, GLuint property )
 {
@@ -871,7 +559,7 @@ static void set_material_flags( struct tnl_program *p )
 
    if (p->state->varying_vp_inputs & VERT_BIT_COLOR0) {
       p->materials =
-	 p->color_materials = p->state->light_color_material_mask;
+         p->color_materials = p->state->light_color_material_mask;
    }
 
    p->materials |= ((p->state->varying_vp_inputs & VERT_BIT_MAT_ALL)
@@ -879,26 +567,27 @@ static void set_material_flags( struct tnl_program *p )
 }
 
 
-static struct ureg get_material( struct tnl_program *p, GLuint side,
-				 GLuint property )
+static nir_def *
+get_material(struct tnl_program *p, GLuint side,
+             GLuint property)
 {
    GLuint attrib = material_attrib(side, property);
 
    if (p->color_materials & (1<<attrib))
-      return register_input(p, VERT_ATTRIB_COLOR0);
+      return load_input_vec4(p, VERT_ATTRIB_COLOR0);
    else if (p->materials & (1<<attrib)) {
       /* Put material values in the GENERIC slots -- they are not used
        * for anything in fixed function mode.
        */
-      return register_input( p, VERT_ATTRIB_MAT(attrib) );
+      return load_input_vec4(p, VERT_ATTRIB_MAT(attrib));
+   } else {
+      return load_state_vec4(p, STATE_MATERIAL, attrib, 0, 0);
    }
-   else
-      return register_param2(p, STATE_MATERIAL, attrib);
 }
 
 #define SCENE_COLOR_BITS(side) (( MAT_BIT_FRONT_EMISSION | \
-				   MAT_BIT_FRONT_AMBIENT | \
-				   MAT_BIT_FRONT_DIFFUSE) << (side))
+                                  MAT_BIT_FRONT_AMBIENT | \
+                                  MAT_BIT_FRONT_DIFFUSE) << (side))
 
 
 /**
@@ -912,125 +601,150 @@ static struct ureg get_material( struct tnl_program *p, GLuint side,
  * lift it out of the main loop.  That way the programs created here
  * would be independent of the vertex_buffer details.
  */
-static struct ureg get_scenecolor( struct tnl_program *p, GLuint side )
+static nir_def *
+get_scenecolor(struct tnl_program *p, GLuint side)
 {
    if (p->materials & SCENE_COLOR_BITS(side)) {
-      struct ureg lm_ambient = register_param1(p, STATE_LIGHTMODEL_AMBIENT);
-      struct ureg material_emission = get_material(p, side, STATE_EMISSION);
-      struct ureg material_ambient = get_material(p, side, STATE_AMBIENT);
-      struct ureg material_diffuse = get_material(p, side, STATE_DIFFUSE);
-      struct ureg tmp = make_temp(p, material_diffuse);
-      emit_op3(p, OPCODE_MAD, tmp, WRITEMASK_XYZ, lm_ambient,
-	       material_ambient, material_emission);
-      return tmp;
+      nir_def *lm_ambient =
+         load_state_vec4(p, STATE_LIGHTMODEL_AMBIENT, 0, 0, 0);
+      nir_def *material_emission =
+         get_material(p, side, STATE_EMISSION);
+      nir_def *material_ambient =
+         get_material(p, side, STATE_AMBIENT);
+      nir_def *material_diffuse =
+         get_material(p, side, STATE_DIFFUSE);
+
+      // rgb: material_emission + material_ambient * lm_ambient
+      // alpha: material_diffuse.a
+      return nir_vector_insert_imm(p->b, nir_fmad(p->b,
+                                                  lm_ambient,
+                                                  material_ambient,
+                                                  material_emission),
+                                   nir_channel(p->b,
+                                               material_diffuse,
+                                               3),
+                                   3);
    }
    else
-      return register_param2( p, STATE_LIGHTMODEL_SCENECOLOR, side );
+      return load_state_vec4(p, STATE_LIGHTMODEL_SCENECOLOR, side, 0, 0);
 }
 
-
-static struct ureg get_lightprod( struct tnl_program *p, GLuint light,
-				  GLuint side, GLuint property, bool *is_state_light )
+static nir_def *
+get_lightprod(struct tnl_program *p, GLuint light,
+              GLuint side, GLuint property, bool *is_state_light)
 {
    GLuint attrib = material_attrib(side, property);
    if (p->materials & (1<<attrib)) {
-      struct ureg light_value =
-	 register_param3(p, STATE_LIGHT, light, property);
-    *is_state_light = true;
-    return light_value;
-   }
-   else {
+      *is_state_light = true;
+      return load_state_vec4(p, STATE_LIGHT, light, property, 0);
+   } else {
       *is_state_light = false;
-      return register_param3(p, STATE_LIGHTPROD, light, attrib);
+      return load_state_vec4(p, STATE_LIGHTPROD, light, attrib, 0);
    }
 }
 
 
-static struct ureg calculate_light_attenuation( struct tnl_program *p,
-						GLuint i,
-						struct ureg VPpli,
-						struct ureg dist )
+static nir_def *
+calculate_light_attenuation(struct tnl_program *p,
+                            GLuint i,
+                            nir_def *VPpli,
+                            nir_def *dist)
 {
-   struct ureg attenuation = undef;
-   struct ureg att = undef;
+   nir_def *attenuation = NULL;
+   nir_def *att = NULL;
 
    /* Calculate spot attenuation:
     */
    if (!p->state->unit[i].light_spotcutoff_is_180) {
-      struct ureg spot_dir_norm = register_param2(p, STATE_LIGHT_SPOT_DIR_NORMALIZED, i);
-      struct ureg spot = get_temp(p);
-      struct ureg slt = get_temp(p);
+       nir_def *spot_dir_norm =
+         load_state_vec4(p, STATE_LIGHT_SPOT_DIR_NORMALIZED, i, 0, 0);
+      attenuation =
+         load_state_vec4(p, STATE_LIGHT, i, STATE_ATTENUATION, 0);
 
-      attenuation = register_param3(p, STATE_LIGHT, i, STATE_ATTENUATION);
-      att = get_temp(p);
-
-      emit_op2(p, OPCODE_DP3, spot, 0, negate(VPpli), spot_dir_norm);
-      emit_op2(p, OPCODE_SLT, slt, 0, swizzle1(spot_dir_norm,W), spot);
-      emit_op1(p, OPCODE_ABS, spot, 0, spot);
-      emit_op2(p, OPCODE_POW, spot, 0, spot, swizzle1(attenuation, W));
-      emit_op2(p, OPCODE_MUL, att, 0, slt, spot);
-
-      release_temp(p, spot);
-      release_temp(p, slt);
+      nir_def *spot = nir_fdot3(p->b, nir_fneg(p->b, VPpli),
+                                    spot_dir_norm);
+      nir_def *cmp = nir_flt(p->b, nir_channel(p->b, spot_dir_norm, 3),
+                                 spot);
+      spot = nir_fpow(p->b, spot, nir_channel(p->b, attenuation, 3));
+      att = nir_bcsel(p->b, cmp, spot, nir_imm_zero(p->b, 1, 32));
    }
 
    /* Calculate distance attenuation(See formula (2.4) at glspec 2.1 page 62):
     *
     * Skip the calucation when _dist_ is undefined(light_eyepos3_is_zero)
     */
-   if (p->state->unit[i].light_attenuated && !is_undef(dist)) {
-      if (is_undef(att))
-         att = get_temp(p);
-
-      if (is_undef(attenuation))
-         attenuation = register_param3(p, STATE_LIGHT, i, STATE_ATTENUATION);
-
-      /* 1/d,d,d,1/d */
-      emit_op1(p, OPCODE_RCP, dist, WRITEMASK_YZ, dist);
-      /* 1,d,d*d,1/d */
-      emit_op2(p, OPCODE_MUL, dist, WRITEMASK_XZ, dist, swizzle1(dist,Y));
-      /* 1/dist-atten */
-      emit_op2(p, OPCODE_DP3, dist, 0, attenuation, dist);
-
-      if (!p->state->unit[i].light_spotcutoff_is_180) {
-	 /* dist-atten */
-	 emit_op1(p, OPCODE_RCP, dist, 0, dist);
-	 /* spot-atten * dist-atten */
-	 emit_op2(p, OPCODE_MUL, att, 0, dist, att);
+   if (p->state->unit[i].light_attenuated && dist) {
+      if (!attenuation) {
+         attenuation = load_state_vec4(p, STATE_LIGHT, i,
+                                       STATE_ATTENUATION, 0);
       }
-      else {
-	 /* dist-atten */
-	 emit_op1(p, OPCODE_RCP, att, 0, dist);
-      }
+
+      /* dist is the reciprocal of ||VP|| used in the distance
+       * attenuation formula. So need to get the reciprocal of dist first
+       * before applying to the formula.
+       */
+      dist = nir_frcp(p->b, dist);
+
+      /* 1, d, d*d */
+      nir_def *tmp = nir_vec3(p->b,
+         nir_imm_float(p->b, 1.0f),
+         dist,
+         nir_fmul(p->b, dist, dist)
+      );
+      tmp = nir_frcp(p->b, nir_fdot3(p->b, tmp, attenuation));
+
+      if (!p->state->unit[i].light_spotcutoff_is_180)
+         return nir_fmul(p->b, tmp, att);
+      return tmp;
    }
 
    return att;
 }
 
+static nir_def *
+emit_lit(nir_builder *b,
+         nir_def *src)
+{
+   nir_def *zero = nir_imm_zero(b, 1, 32);
+   nir_def *one = nir_imm_float(b, 1.0f);
+   nir_def *src_x = nir_channel(b, src, 0);
+   nir_def *src_y = nir_channel(b, src, 1);
+   nir_def *src_w = nir_channel(b, src, 3);
+
+   nir_def *wclamp = nir_fmax(b, nir_fmin(b, src_w,
+                                              nir_imm_float(b, 128.0f)),
+                                  nir_imm_float(b, -128.0f));
+   nir_def *pow = nir_fpow(b, nir_fmax(b, src_y, zero), wclamp);
+
+   return nir_vec4(b,
+                   one,
+                   nir_fmax(b, src_x, zero),
+                   nir_bcsel(b,
+                             nir_fge(b, zero, src_x),
+                             zero,
+                             pow),
+                   one);
+}
 
 /**
  * Compute:
  *   lit.y = MAX(0, dots.x)
  *   lit.z = SLT(0, dots.x)
  */
-static void emit_degenerate_lit( struct tnl_program *p,
-                                 struct ureg lit,
-                                 struct ureg dots )
+static nir_def *
+emit_degenerate_lit(nir_builder *b,
+                    nir_def *dots)
 {
-   struct ureg id = get_identity_param(p);  /* id = {0,0,0,1} */
+   nir_def *id = nir_imm_vec4(b, 0.0f, 0.0f, 0.0f, 1.0f);
 
    /* Note that lit.x & lit.w will not be examined.  Note also that
     * dots.xyzw == dots.xxxx.
     */
 
-   /* MAX lit, id, dots;
-    */
-   emit_op2(p, OPCODE_MAX, lit, WRITEMASK_XYZW, id, dots);
-
-   /* result[2] = (in > 0 ? 1 : 0)
-    * SLT lit.z, id.z, dots;   # lit.z = (0 < dots.z) ? 1 : 0
-    */
-   emit_op2(p, OPCODE_SLT, lit, WRITEMASK_Z, swizzle1(id,Z), dots);
+   nir_def *zero = nir_imm_zero(b, 1, 32);
+   nir_def *dots_x = nir_channel(b, dots, 0);
+   nir_def *tmp = nir_fmax(b, id, dots);
+   return nir_vector_insert_imm(b, tmp, nir_slt(b, zero, dots_x), 2);
 }
 
 
@@ -1042,12 +756,12 @@ static void build_lighting( struct tnl_program *p )
 {
    const GLboolean twoside = p->state->light_twoside;
    const GLboolean separate = p->state->separate_specular;
-   GLuint nr_lights = 0, count = 0;
-   struct ureg normal = get_transformed_normal(p);
-   struct ureg lit = get_temp(p);
-   struct ureg dots = get_temp(p);
-   struct ureg _col0 = undef, _col1 = undef;
-   struct ureg _bfc0 = undef, _bfc1 = undef;
+   GLuint nr_lights = 0;
+   nir_def *lit = NULL;
+   nir_def *dots = nir_imm_zero(p->b, 4, 32);
+   nir_def *normal = get_transformed_normal(p);
+   nir_def *_col0 = NULL, *_col1 = NULL;
+   nir_def *_bfc0 = NULL, *_bfc1 = NULL;
    GLuint i;
 
    /*
@@ -1060,22 +774,20 @@ static void build_lighting( struct tnl_program *p )
 
    for (i = 0; i < MAX_LIGHTS; i++)
       if (p->state->unit[i].light_enabled)
-	 nr_lights++;
+         nr_lights++;
 
    set_material_flags(p);
 
    {
       if (!p->state->material_shininess_is_zero) {
-         struct ureg shininess = get_material(p, 0, STATE_SHININESS);
-         emit_op1(p, OPCODE_MOV, dots, WRITEMASK_W, swizzle1(shininess,X));
-         release_temp(p, shininess);
+         nir_def *shininess = get_material(p, 0, STATE_SHININESS);
+         nir_def *tmp = nir_channel(p->b, shininess, 0);
+         dots = nir_vector_insert_imm(p->b, dots, tmp, 3);
       }
 
-      _col0 = make_temp(p, get_scenecolor(p, 0));
+      _col0 = get_scenecolor(p, 0);
       if (separate)
-	 _col1 = make_temp(p, get_identity_param(p));
-      else
-	 _col1 = _col0;
+         _col1 = nir_imm_vec4(p->b, 0.0f, 0.0f, 0.0f, 1.0f);
    }
 
    if (twoside) {
@@ -1083,51 +795,38 @@ static void build_lighting( struct tnl_program *p )
          /* Note that we negate the back-face specular exponent here.
           * The negation will be un-done later in the back-face code below.
           */
-         struct ureg shininess = get_material(p, 1, STATE_SHININESS);
-         emit_op1(p, OPCODE_MOV, dots, WRITEMASK_Z,
-                  negate(swizzle1(shininess,X)));
-         release_temp(p, shininess);
+         nir_def *shininess = get_material(p, 1, STATE_SHININESS);
+         nir_def *tmp = nir_channel(p->b, shininess, 0);
+         tmp = nir_fneg(p->b, tmp);
+         dots = nir_vector_insert_imm(p->b, dots, tmp, 2);
       }
 
-      _bfc0 = make_temp(p, get_scenecolor(p, 1));
+      _bfc0 = get_scenecolor(p, 1);
       if (separate)
-	 _bfc1 = make_temp(p, get_identity_param(p));
-      else
-	 _bfc1 = _bfc0;
+         _bfc1 = nir_imm_vec4(p->b, 0.0f, 0.0f, 0.0f, 1.0f);
    }
 
    /* If no lights, still need to emit the scenecolor.
     */
-   {
-      struct ureg res0 = register_output( p, VARYING_SLOT_COL0 );
-      emit_op1(p, OPCODE_MOV, res0, 0, _col0);
-   }
+   store_output_vec4(p, VARYING_SLOT_COL0, _col0);
 
-   if (separate) {
-      struct ureg res1 = register_output( p, VARYING_SLOT_COL1 );
-      emit_op1(p, OPCODE_MOV, res1, 0, _col1);
-   }
+   if (separate)
+      store_output_vec4(p, VARYING_SLOT_COL1, _col1);
 
-   if (twoside) {
-      struct ureg res0 = register_output( p, VARYING_SLOT_BFC0 );
-      emit_op1(p, OPCODE_MOV, res0, 0, _bfc0);
-   }
+   if (twoside)
+      store_output_vec4(p, VARYING_SLOT_BFC0, _bfc0);
 
-   if (twoside && separate) {
-      struct ureg res1 = register_output( p, VARYING_SLOT_BFC1 );
-      emit_op1(p, OPCODE_MOV, res1, 0, _bfc1);
-   }
+   if (twoside && separate)
+      store_output_vec4(p, VARYING_SLOT_BFC1, _bfc1);
 
-   if (nr_lights == 0) {
-      release_temps(p);
+   if (nr_lights == 0)
       return;
-   }
 
    /* Declare light products first to place them sequentially next to each
     * other for optimal constant uploads.
     */
-   struct ureg lightprod_front[MAX_LIGHTS][3];
-   struct ureg lightprod_back[MAX_LIGHTS][3];
+   nir_def *lightprod_front[MAX_LIGHTS][3];
+   nir_def *lightprod_back[MAX_LIGHTS][3];
    bool lightprod_front_is_state_light[MAX_LIGHTS][3];
    bool lightprod_back_is_state_light[MAX_LIGHTS][3];
 
@@ -1159,9 +858,12 @@ static void build_lighting( struct tnl_program *p )
    for (i = 0; i < MAX_LIGHTS; i++) {
       if (p->state->unit[i].light_enabled) {
          if (p->state->unit[i].light_eyepos3_is_zero)
-            register_param2(p, STATE_LIGHT_POSITION_NORMALIZED, i);
+            register_state_var(p, STATE_LIGHT_POSITION_NORMALIZED,
+                               i, 0, 0,
+                               glsl_vector_type(GLSL_TYPE_FLOAT, 3));
          else
-            register_param2(p, STATE_LIGHT_POSITION, i);
+            register_state_var(p, STATE_LIGHT_POSITION, i, 0, 0,
+                               glsl_vec4_type());
       }
    }
    for (i = 0; i < MAX_LIGHTS; i++) {
@@ -1169,287 +871,226 @@ static void build_lighting( struct tnl_program *p )
           (!p->state->unit[i].light_spotcutoff_is_180 ||
            (p->state->unit[i].light_attenuated &&
             !p->state->unit[i].light_eyepos3_is_zero)))
-         register_param3(p, STATE_LIGHT, i, STATE_ATTENUATION);
+         register_state_var(p, STATE_LIGHT, i, STATE_ATTENUATION, 0,
+                            glsl_vec4_type());
    }
 
    for (i = 0; i < MAX_LIGHTS; i++) {
       if (p->state->unit[i].light_enabled) {
-	 struct ureg half = undef;
-	 struct ureg att = undef, VPpli = undef;
-	 struct ureg dist = undef;
+         nir_def *half = NULL;
+         nir_def *att = NULL, *VPpli = NULL;
+         nir_def *dist = NULL;
 
-	 count++;
          if (p->state->unit[i].light_eyepos3_is_zero) {
-             VPpli = register_param2(p, STATE_LIGHT_POSITION_NORMALIZED, i);
+            VPpli = load_state_var(p, STATE_LIGHT_POSITION_NORMALIZED,
+                                   i, 0, 0,
+                                   glsl_vector_type(GLSL_TYPE_FLOAT, 3));
          } else {
-            struct ureg Ppli = register_param2(p, STATE_LIGHT_POSITION, i);
-            struct ureg V = get_eye_position(p);
+            nir_def *Ppli =
+               load_state_vec4(p, STATE_LIGHT_POSITION, i, 0, 0);
 
-            VPpli = get_temp(p);
-            dist = get_temp(p);
-
-            /* Calculate VPpli vector
-             */
-            emit_op2(p, OPCODE_SUB, VPpli, 0, Ppli, V);
+            nir_def *V = get_eye_position(p);
+            VPpli = nir_fsub(p->b, Ppli, V);
 
             /* Normalize VPpli.  The dist value also used in
              * attenuation below.
              */
-            emit_op2(p, OPCODE_DP3, dist, 0, VPpli, VPpli);
-            emit_op1(p, OPCODE_RSQ, dist, 0, dist);
-            emit_op2(p, OPCODE_MUL, VPpli, 0, VPpli, dist);
+            dist = nir_frsq(p->b, nir_fdot3(p->b, VPpli, VPpli));
+            VPpli = nir_fmul(p->b, VPpli, dist);
          }
 
          /* Calculate attenuation:
           */
          att = calculate_light_attenuation(p, i, VPpli, dist);
-         release_temp(p, dist);
 
-	 /* Calculate viewer direction, or use infinite viewer:
-	  */
+         /* Calculate viewer direction, or use infinite viewer:
+          */
          if (!p->state->material_shininess_is_zero) {
             if (p->state->light_local_viewer) {
-               struct ureg eye_hat = get_eye_position_normalized(p);
-               half = get_temp(p);
-               emit_op2(p, OPCODE_SUB, half, 0, VPpli, eye_hat);
-               emit_normalize_vec3(p, half, half);
+               nir_def *eye_hat = get_eye_position_normalized(p);
+               half = emit_normalize_vec3(p->b,
+                                          nir_fsub(p->b, VPpli, eye_hat));
             } else if (p->state->unit[i].light_eyepos3_is_zero) {
-               half = register_param2(p, STATE_LIGHT_HALF_VECTOR, i);
+               half =
+                  load_state_var(p, STATE_LIGHT_HALF_VECTOR,
+                                 i, 0, 0,
+                                 glsl_vector_type(GLSL_TYPE_FLOAT, 3));
             } else {
-               struct ureg z_dir = swizzle(get_identity_param(p),X,Y,W,Z);
-               half = get_temp(p);
-               emit_op2(p, OPCODE_ADD, half, 0, VPpli, z_dir);
-               emit_normalize_vec3(p, half, half);
+               nir_def *tmp =
+                  nir_fadd(p->b,
+                           VPpli,
+                           nir_imm_vec3(p->b, 0.0f, 0.0f, 1.0f));
+               half = emit_normalize_vec3(p->b, tmp);
             }
-	 }
+         }
 
-	 /* Calculate dot products:
-	  */
+         /* Calculate dot products:
+          */
+         nir_def *dot = nir_fdot3(p->b, normal, VPpli);
          if (p->state->material_shininess_is_zero) {
-            emit_op2(p, OPCODE_DP3, dots, 0, normal, VPpli);
+            dots = nir_replicate(p->b, dot, 4);
+         } else {
+            dots = nir_vector_insert_imm(p->b, dots, dot, 0);
+            dot = nir_fdot3(p->b, normal, half);
+            dots = nir_vector_insert_imm(p->b, dots, dot, 1);
          }
-         else {
-            emit_op2(p, OPCODE_DP3, dots, WRITEMASK_X, normal, VPpli);
-            emit_op2(p, OPCODE_DP3, dots, WRITEMASK_Y, normal, half);
-         }
 
-	 /* Front face lighting:
-	  */
-	 {
-      /* Transform STATE_LIGHT into STATE_LIGHTPROD if needed. This isn't done in
-       * get_lightprod to avoid using too many temps.
-       */
-      for (int j = 0; j < 3; j++) {
-         if (lightprod_front_is_state_light[i][j]) {
-            struct ureg material_value = get_material(p, 0, STATE_AMBIENT + j);
-            struct ureg tmp = get_temp(p);
-            emit_op2(p, OPCODE_MUL, tmp, 0, lightprod_front[i][j], material_value);
-            lightprod_front[i][j] = tmp;
-         }
-      }
+         /* Front face lighting:
+          */
+         {
+            /* Transform STATE_LIGHT into STATE_LIGHTPROD if needed. This isn't done in
+            * get_lightprod to avoid using too many temps.
+            */
+            for (int j = 0; j < 3; j++) {
+               if (lightprod_front_is_state_light[i][j]) {
+                  nir_def *material =
+                     get_material(p, 0, STATE_AMBIENT + j);
+                  lightprod_front[i][j] =
+                     nir_fmul(p->b, lightprod_front[i][j], material);
+               }
+            }
 
-	    struct ureg ambient = lightprod_front[i][0];
-	    struct ureg diffuse = lightprod_front[i][1];
-	    struct ureg specular = lightprod_front[i][2];
-	    struct ureg res0, res1;
-	    GLuint mask0, mask1;
+            nir_def *ambient = lightprod_front[i][0];
+            nir_def *diffuse = lightprod_front[i][1];
+            nir_def *specular = lightprod_front[i][2];
 
-	    if (count == nr_lights) {
-	       if (separate) {
-		  mask0 = WRITEMASK_XYZ;
-		  mask1 = WRITEMASK_XYZ;
-		  res0 = register_output( p, VARYING_SLOT_COL0 );
-		  res1 = register_output( p, VARYING_SLOT_COL1 );
-	       }
-	       else {
-		  mask0 = 0;
-		  mask1 = WRITEMASK_XYZ;
-		  res0 = _col0;
-		  res1 = register_output( p, VARYING_SLOT_COL0 );
-	       }
-	    }
-            else {
-	       mask0 = 0;
-	       mask1 = 0;
-	       res0 = _col0;
-	       res1 = _col1;
-	    }
-
-	    if (!is_undef(att)) {
+            if (att) {
                /* light is attenuated by distance */
-               emit_op1(p, OPCODE_LIT, lit, 0, dots);
-               emit_op2(p, OPCODE_MUL, lit, 0, lit, att);
-               emit_op3(p, OPCODE_MAD, _col0, 0, swizzle1(lit,X), ambient, _col0);
-            }
-            else if (!p->state->material_shininess_is_zero) {
+               lit = emit_lit(p->b, dots);
+               lit = nir_fmul(p->b, lit, att);
+               _col0 = nir_fmad(p->b, nir_channel(p->b, lit, 0), ambient, _col0);
+            } else if (!p->state->material_shininess_is_zero) {
                /* there's a non-zero specular term */
-               emit_op1(p, OPCODE_LIT, lit, 0, dots);
-               emit_op2(p, OPCODE_ADD, _col0, 0, ambient, _col0);
-            }
-            else {
+               lit = emit_lit(p->b, dots);
+               _col0 = nir_fadd(p->b, ambient, _col0);
+            } else {
                /* no attenutation, no specular */
-               emit_degenerate_lit(p, lit, dots);
-               emit_op2(p, OPCODE_ADD, _col0, 0, ambient, _col0);
+               lit = emit_degenerate_lit(p->b, dots);
+               _col0 = nir_fadd(p->b, ambient, _col0);
             }
 
-	    emit_op3(p, OPCODE_MAD, res0, mask0, swizzle1(lit,Y), diffuse, _col0);
-	    emit_op3(p, OPCODE_MAD, res1, mask1, swizzle1(lit,Z), specular, _col1);
-
-	    release_temp(p, ambient);
-	    release_temp(p, diffuse);
-	    release_temp(p, specular);
-	 }
-
-	 /* Back face lighting:
-	  */
-	 if (twoside) {
-      /* Transform STATE_LIGHT into STATE_LIGHTPROD if needed. This isn't done in
-       * get_lightprod to avoid using too many temps.
-       */
-      for (int j = 0; j < 3; j++) {
-         if (lightprod_back_is_state_light[i][j]) {
-            struct ureg material_value = get_material(p, 1, STATE_AMBIENT + j);
-            struct ureg tmp = get_temp(p);
-            emit_op2(p, OPCODE_MUL, tmp, 1, lightprod_back[i][j], material_value);
-            lightprod_back[i][j] = tmp;
+            _col0 = nir_fmad(p->b, nir_channel(p->b, lit, 1),
+                             diffuse, _col0);
+            if (separate)
+               _col1 = nir_fmad(p->b, nir_channel(p->b, lit, 2),
+                                specular, _col1);
+            else
+               _col0 = nir_fmad(p->b, nir_channel(p->b, lit, 2),
+                                specular, _col0);
          }
-      }
+         /* Back face lighting:
+          */
+         nir_def *old_dots = dots;
+         if (twoside) {
+            /* Transform STATE_LIGHT into STATE_LIGHTPROD if needed. This isn't done in
+            * get_lightprod to avoid using too many temps.
+            */
+            for (int j = 0; j < 3; j++) {
+               if (lightprod_back_is_state_light[i][j]) {
+                  nir_def *material =
+                     get_material(p, 1, STATE_AMBIENT + j);
+                  lightprod_back[i][j] =
+                     nir_fmul(p->b, lightprod_back[i][j], material);
+               }
+            }
 
-	    struct ureg ambient = lightprod_back[i][0];
-	    struct ureg diffuse = lightprod_back[i][1];
-	    struct ureg specular = lightprod_back[i][2];
-	    struct ureg res0, res1;
-	    GLuint mask0, mask1;
-
-	    if (count == nr_lights) {
-	       if (separate) {
-		  mask0 = WRITEMASK_XYZ;
-		  mask1 = WRITEMASK_XYZ;
-		  res0 = register_output( p, VARYING_SLOT_BFC0 );
-		  res1 = register_output( p, VARYING_SLOT_BFC1 );
-	       }
-	       else {
-		  mask0 = 0;
-		  mask1 = WRITEMASK_XYZ;
-		  res0 = _bfc0;
-		  res1 = register_output( p, VARYING_SLOT_BFC0 );
-	       }
-	    }
-            else {
-	       res0 = _bfc0;
-	       res1 = _bfc1;
-	       mask0 = 0;
-	       mask1 = 0;
-	    }
+            nir_def *ambient = lightprod_back[i][0];
+            nir_def *diffuse = lightprod_back[i][1];
+            nir_def *specular = lightprod_back[i][2];
 
             /* For the back face we need to negate the X and Y component
              * dot products.  dots.Z has the negated back-face specular
              * exponent.  We swizzle that into the W position.  This
              * negation makes the back-face specular term positive again.
              */
-            dots = negate(swizzle(dots,X,Y,W,Z));
+            unsigned swiz_xywz[] = {0, 1, 3, 2};
+            nir_def *dots =
+               nir_fneg(p->b, nir_swizzle(p->b, old_dots, swiz_xywz, 4));
 
-	    if (!is_undef(att)) {
-               emit_op1(p, OPCODE_LIT, lit, 0, dots);
-	       emit_op2(p, OPCODE_MUL, lit, 0, lit, att);
-               emit_op3(p, OPCODE_MAD, _bfc0, 0, swizzle1(lit,X), ambient, _bfc0);
+            if (att) {
+               /* light is attenuated by distance */
+               lit = emit_lit(p->b, dots);
+               lit = nir_fmul(p->b, lit, att);
+               _bfc0 = nir_fmad(p->b, nir_channel(p->b, lit, 0), ambient, _bfc0);
+            } else if (!p->state->material_shininess_is_zero) {
+               /* there's a non-zero specular term */
+               lit = emit_lit(p->b, dots);
+               _bfc0 = nir_fadd(p->b, ambient, _bfc0);
+            } else {
+               /* no attenutation, no specular */
+               lit = emit_degenerate_lit(p->b, dots);
+               _bfc0 = nir_fadd(p->b, ambient, _bfc0);
             }
-            else if (!p->state->material_shininess_is_zero) {
-               emit_op1(p, OPCODE_LIT, lit, 0, dots);
-               emit_op2(p, OPCODE_ADD, _bfc0, 0, ambient, _bfc0); /**/
-            }
-            else {
-               emit_degenerate_lit(p, lit, dots);
-               emit_op2(p, OPCODE_ADD, _bfc0, 0, ambient, _bfc0);
-            }
 
-	    emit_op3(p, OPCODE_MAD, res0, mask0, swizzle1(lit,Y), diffuse, _bfc0);
-	    emit_op3(p, OPCODE_MAD, res1, mask1, swizzle1(lit,Z), specular, _bfc1);
-            /* restore dots to its original state for subsequent lights
-             * by negating and swizzling again.
-             */
-            dots = negate(swizzle(dots,X,Y,W,Z));
-
-	    release_temp(p, ambient);
-	    release_temp(p, diffuse);
-	    release_temp(p, specular);
-	 }
-
-	 release_temp(p, half);
-	 release_temp(p, VPpli);
-	 release_temp(p, att);
+            _bfc0 = nir_fmad(p->b, nir_channel(p->b, lit, 1),
+                             diffuse, _bfc0);
+            if (separate)
+               _bfc1 = nir_fmad(p->b, nir_channel(p->b, lit, 2),
+                                specular, _bfc1);
+            else
+               _bfc0 = nir_fmad(p->b, nir_channel(p->b, lit, 2),
+                                specular, _bfc0);
+         }
       }
    }
 
-   release_temps( p );
+   store_output_vec4_masked(p, VARYING_SLOT_COL0, _col0, 0x7);
+   if (separate)
+      store_output_vec4_masked(p, VARYING_SLOT_COL1, _col1, 0x7);
+
+   if (twoside) {
+      store_output_vec4_masked(p, VARYING_SLOT_BFC0, _bfc0, 0x7);
+      if (separate)
+         store_output_vec4_masked(p, VARYING_SLOT_BFC1, _bfc1, 0x7);
+   }
 }
 
 
 static void build_fog( struct tnl_program *p )
 {
-   struct ureg fog = register_output(p, VARYING_SLOT_FOGC);
-   struct ureg input;
-
+   nir_def *fog;
    switch (p->state->fog_distance_mode) {
-   case FDM_EYE_RADIAL: { /* Z = sqrt(Xe*Xe + Ye*Ye + Ze*Ze) */
-      struct ureg tmp = get_temp(p);
-      input = get_eye_position(p);
-      emit_op2(p, OPCODE_DP3, tmp, WRITEMASK_X, input, input);
-      emit_op1(p, OPCODE_RSQ, tmp, WRITEMASK_X, tmp);
-      emit_op1(p, OPCODE_RCP, fog, WRITEMASK_X, tmp);
+   case FDM_EYE_RADIAL:
+      /* Z = sqrt(Xe*Xe + Ye*Ye + Ze*Ze) */
+      fog = nir_fast_length(p->b,
+                            nir_trim_vector(p->b, get_eye_position(p), 3));
       break;
-   }
    case FDM_EYE_PLANE: /* Z = Ze */
-      input = get_eye_position_z(p);
-      emit_op1(p, OPCODE_MOV, fog, WRITEMASK_X, input);
+      fog = get_eye_position_z(p);
       break;
    case FDM_EYE_PLANE_ABS: /* Z = abs(Ze) */
-      input = get_eye_position_z(p);
-      emit_op1(p, OPCODE_ABS, fog, WRITEMASK_X, input);
+      fog = nir_fabs(p->b, get_eye_position_z(p));
       break;
    case FDM_FROM_ARRAY:
-      input = swizzle1(register_input(p, VERT_ATTRIB_FOG), X);
-      emit_op1(p, OPCODE_ABS, fog, WRITEMASK_X, input);
+      fog = load_input(p, VERT_ATTRIB_FOG, glsl_float_type());
       break;
    default:
-      assert(!"Bad fog mode in build_fog()");
-      break;
+      unreachable("Bad fog mode in build_fog()");
    }
 
-   emit_op1(p, OPCODE_MOV, fog, WRITEMASK_YZW, get_identity_param(p));
+   store_output_float(p, VARYING_SLOT_FOGC, fog);
 }
 
 
-static void build_reflect_texgen( struct tnl_program *p,
-				  struct ureg dest,
-				  GLuint writemask )
+static nir_def *
+build_reflect_texgen(struct tnl_program *p)
 {
-   struct ureg normal = get_transformed_normal(p);
-   struct ureg eye_hat = get_eye_position_normalized(p);
-   struct ureg tmp = get_temp(p);
-
+   nir_def *normal = get_transformed_normal(p);
+   nir_def *eye_hat = get_eye_position_normalized(p);
    /* n.u */
-   emit_op2(p, OPCODE_DP3, tmp, 0, normal, eye_hat);
+   nir_def *tmp = nir_fdot3(p->b, normal, eye_hat);
    /* 2n.u */
-   emit_op2(p, OPCODE_ADD, tmp, 0, tmp, tmp);
+   tmp = nir_fadd(p->b, tmp, tmp);
    /* (-2n.u)n + u */
-   emit_op3(p, OPCODE_MAD, dest, writemask, negate(tmp), normal, eye_hat);
-
-   release_temp(p, tmp);
+   return nir_fmad(p->b, nir_fneg(p->b, tmp), normal, eye_hat);
 }
 
 
-static void build_sphere_texgen( struct tnl_program *p,
-				 struct ureg dest,
-				 GLuint writemask )
+static nir_def *
+build_sphere_texgen(struct tnl_program *p)
 {
-   struct ureg normal = get_transformed_normal(p);
-   struct ureg eye_hat = get_eye_position_normalized(p);
-   struct ureg tmp = get_temp(p);
-   struct ureg half = register_scalar_const(p, .5);
-   struct ureg r = get_temp(p);
-   struct ureg inv_m = get_temp(p);
-   struct ureg id = get_identity_param(p);
+   nir_def *normal = get_transformed_normal(p);
+   nir_def *eye_hat = get_eye_position_normalized(p);
 
    /* Could share the above calculations, but it would be
     * a fairly odd state for someone to set (both sphere and
@@ -1460,27 +1101,22 @@ static void build_sphere_texgen( struct tnl_program *p,
     */
 
    /* n.u */
-   emit_op2(p, OPCODE_DP3, tmp, 0, normal, eye_hat);
+   nir_def *tmp = nir_fdot3(p->b, normal, eye_hat);
    /* 2n.u */
-   emit_op2(p, OPCODE_ADD, tmp, 0, tmp, tmp);
+   tmp = nir_fadd(p->b, tmp, tmp);
    /* (-2n.u)n + u */
-   emit_op3(p, OPCODE_MAD, r, 0, negate(tmp), normal, eye_hat);
+   nir_def *r = nir_fmad(p->b, nir_fneg(p->b, tmp), normal, eye_hat);
    /* r + 0,0,1 */
-   emit_op2(p, OPCODE_ADD, tmp, 0, r, swizzle(id,X,Y,W,Z));
+   tmp = nir_fadd(p->b, r, nir_imm_vec4(p->b, 0.0f, 0.0f, 1.0f, 0.0f));
    /* rx^2 + ry^2 + (rz+1)^2 */
-   emit_op2(p, OPCODE_DP3, tmp, 0, tmp, tmp);
+   tmp = nir_fdot3(p->b, tmp, tmp);
    /* 2/m */
-   emit_op1(p, OPCODE_RSQ, tmp, 0, tmp);
+   tmp = nir_frsq(p->b, tmp);
    /* 1/m */
-   emit_op2(p, OPCODE_MUL, inv_m, 0, tmp, half);
+   nir_def *inv_m = nir_fmul_imm(p->b, tmp, 0.5f);
    /* r/m + 1/2 */
-   emit_op3(p, OPCODE_MAD, dest, writemask, r, inv_m, half);
-
-   release_temp(p, tmp);
-   release_temp(p, r);
-   release_temp(p, inv_m);
+   return nir_fmad(p->b, r, inv_m, nir_imm_float(p->b, 0.5f));
 }
-
 
 static void build_texture_transform( struct tnl_program *p )
 {
@@ -1489,112 +1125,105 @@ static void build_texture_transform( struct tnl_program *p )
    for (i = 0; i < MAX_TEXTURE_COORD_UNITS; i++) {
 
       if (!(p->state->fragprog_inputs_read & VARYING_BIT_TEX(i)))
-	 continue;
+         continue;
 
       if (p->state->unit[i].coord_replace)
-  	 continue;
+         continue;
 
-      if (p->state->unit[i].texgen_enabled ||
-	  p->state->unit[i].texmat_enabled) {
+      nir_def *texcoord;
+      if (p->state->unit[i].texgen_enabled) {
+         GLuint copy_mask = 0;
+         GLuint sphere_mask = 0;
+         GLuint reflect_mask = 0;
+         GLuint normal_mask = 0;
+         GLuint modes[4];
+         nir_def *comps[4];
 
-	 GLuint texmat_enabled = p->state->unit[i].texmat_enabled;
-	 struct ureg out = register_output(p, VARYING_SLOT_TEX0 + i);
-	 struct ureg out_texgen = undef;
+         modes[0] = p->state->unit[i].texgen_mode0;
+         modes[1] = p->state->unit[i].texgen_mode1;
+         modes[2] = p->state->unit[i].texgen_mode2;
+         modes[3] = p->state->unit[i].texgen_mode3;
 
-	 if (p->state->unit[i].texgen_enabled) {
-	    GLuint copy_mask = 0;
-	    GLuint sphere_mask = 0;
-	    GLuint reflect_mask = 0;
-	    GLuint normal_mask = 0;
-	    GLuint modes[4];
+         for (j = 0; j < 4; j++) {
+            switch (modes[j]) {
+            case TXG_OBJ_LINEAR: {
+               nir_def *obj = load_input_vec4(p, VERT_ATTRIB_POS);
+               nir_def *plane =
+                  load_state_vec4(p, STATE_TEXGEN, i,
+                                  STATE_TEXGEN_OBJECT_S + j, 0);
+               comps[j] = nir_fdot4(p->b, obj, plane);
+               break;
+            }
+            case TXG_EYE_LINEAR: {
+               nir_def *eye = get_eye_position(p);
+               nir_def *plane =
+                  load_state_vec4(p, STATE_TEXGEN, i,
+                                  STATE_TEXGEN_EYE_S + j, 0);
+               comps[j] = nir_fdot4(p->b, eye, plane);
+               break;
+            }
+            case TXG_SPHERE_MAP:
+               sphere_mask |= 1u << j;
+               break;
+            case TXG_REFLECTION_MAP:
+               reflect_mask |= 1u << j;
+               break;
+            case TXG_NORMAL_MAP:
+               normal_mask |= 1u << j;
+               break;
+            case TXG_NONE:
+               copy_mask |= 1u << j;
+            }
+         }
 
-	    if (texmat_enabled)
-	       out_texgen = get_temp(p);
-	    else
-	       out_texgen = out;
+         if (sphere_mask) {
+            nir_def *sphere = build_sphere_texgen(p);
+            for (j = 0; j < 4; j++)
+               if (sphere_mask & (1 << j))
+                  comps[j] = nir_channel(p->b, sphere, j);
+         }
 
-	    modes[0] = p->state->unit[i].texgen_mode0;
-	    modes[1] = p->state->unit[i].texgen_mode1;
-	    modes[2] = p->state->unit[i].texgen_mode2;
-	    modes[3] = p->state->unit[i].texgen_mode3;
+         if (reflect_mask) {
+            nir_def *reflect = build_reflect_texgen(p);
+            for (j = 0; j < 4; j++)
+               if (reflect_mask & (1 << j))
+                  comps[j] = nir_channel(p->b, reflect, j);
+         }
 
-	    for (j = 0; j < 4; j++) {
-	       switch (modes[j]) {
-	       case TXG_OBJ_LINEAR: {
-		  struct ureg obj = register_input(p, VERT_ATTRIB_POS);
-		  struct ureg plane =
-		     register_param3(p, STATE_TEXGEN, i,
-				     STATE_TEXGEN_OBJECT_S + j);
+         if (normal_mask) {
+            nir_def *normal = get_transformed_normal(p);
+            for (j = 0; j < 4; j++)
+               if (normal_mask & (1 << j))
+                  comps[j] = nir_channel(p->b, normal, j);
+         }
 
-		  emit_op2(p, OPCODE_DP4, out_texgen, WRITEMASK_X << j,
-			   obj, plane );
-		  break;
-	       }
-	       case TXG_EYE_LINEAR: {
-		  struct ureg eye = get_eye_position(p);
-		  struct ureg plane =
-		     register_param3(p, STATE_TEXGEN, i,
-				     STATE_TEXGEN_EYE_S + j);
+         if (copy_mask) {
+            nir_def *in = load_input_vec4(p, VERT_ATTRIB_TEX0 + i);
+            for (j = 0; j < 4; j++)
+               if (copy_mask & (1 << j))
+                  comps[j] = nir_channel(p->b, in, j);
+         }
 
-		  emit_op2(p, OPCODE_DP4, out_texgen, WRITEMASK_X << j,
-			   eye, plane );
-		  break;
-	       }
-	       case TXG_SPHERE_MAP:
-		  sphere_mask |= WRITEMASK_X << j;
-		  break;
-	       case TXG_REFLECTION_MAP:
-		  reflect_mask |= WRITEMASK_X << j;
-		  break;
-	       case TXG_NORMAL_MAP:
-		  normal_mask |= WRITEMASK_X << j;
-		  break;
-	       case TXG_NONE:
-		  copy_mask |= WRITEMASK_X << j;
-	       }
-	    }
+         texcoord = nir_vec(p->b, comps, 4);
+      } else
+         texcoord = load_input_vec4(p, VERT_ATTRIB_TEX0 + i);
 
-	    if (sphere_mask) {
-	       build_sphere_texgen(p, out_texgen, sphere_mask);
-	    }
-
-	    if (reflect_mask) {
-	       build_reflect_texgen(p, out_texgen, reflect_mask);
-	    }
-
-	    if (normal_mask) {
-	       struct ureg normal = get_transformed_normal(p);
-	       emit_op1(p, OPCODE_MOV, out_texgen, normal_mask, normal );
-	    }
-
-	    if (copy_mask) {
-	       struct ureg in = register_input(p, VERT_ATTRIB_TEX0+i);
-	       emit_op1(p, OPCODE_MOV, out_texgen, copy_mask, in );
-	    }
-	 }
-
-	 if (texmat_enabled) {
-	    struct ureg texmat[4];
-	    struct ureg in = (!is_undef(out_texgen) ?
-			      out_texgen :
-			      register_input(p, VERT_ATTRIB_TEX0+i));
-	    if (p->mvp_with_dp4) {
-	       register_matrix_param5( p, STATE_TEXTURE_MATRIX, i, 0, 3,
-				       texmat );
-	       emit_matrix_transform_vec4( p, out, texmat, in );
-	    }
-	    else {
-	       register_matrix_param5( p, STATE_TEXTURE_MATRIX_TRANSPOSE, i, 0, 3,
-				       texmat );
-	       emit_transpose_matrix_transform_vec4( p, out, texmat, in );
-	    }
-	 }
-
-	 release_temps(p);
+      if (p->state->unit[i].texmat_enabled) {
+         nir_def *texmat[4];
+         if (p->mvp_with_dp4) {
+            load_state_mat4(p, texmat, STATE_TEXTURE_MATRIX, i);
+            texcoord =
+               emit_matrix_transform_vec4(p->b, texmat, texcoord);
+         } else {
+            load_state_mat4(p, texmat,
+                            STATE_TEXTURE_MATRIX_TRANSPOSE, i);
+            texcoord =
+               emit_transpose_matrix_transform_vec4(p->b, texmat,
+                                                      texcoord);
+         }
       }
-      else {
-	 emit_passthrough(p, VERT_ATTRIB_TEX0+i, VARYING_SLOT_TEX0+i);
-      }
+
+      store_output_vec4(p, VARYING_SLOT_TEX0 + i, texcoord);
    }
 }
 
@@ -1604,36 +1233,36 @@ static void build_texture_transform( struct tnl_program *p )
  */
 static void build_atten_pointsize( struct tnl_program *p )
 {
-   struct ureg eye = get_eye_position_z(p);
-   struct ureg state_size = register_param1(p, STATE_POINT_SIZE_CLAMPED);
-   struct ureg state_attenuation = register_param1(p, STATE_POINT_ATTENUATION);
-   struct ureg out = register_output(p, VARYING_SLOT_PSIZ);
-   struct ureg ut = get_temp(p);
+   nir_def *eye = get_eye_position_z(p);
+   nir_def *in_size =
+      load_state_vec4(p, STATE_POINT_SIZE_CLAMPED, 0, 0, 0);
+   nir_def *att =
+      load_state_vec4(p, STATE_POINT_ATTENUATION, 0, 0, 0);
 
    /* dist = |eyez| */
-   emit_op1(p, OPCODE_ABS, ut, WRITEMASK_Y, swizzle1(eye, Z));
+   nir_def *dist = nir_fabs(p->b, eye);
+
    /* p1 + dist * (p2 + dist * p3); */
-   emit_op3(p, OPCODE_MAD, ut, WRITEMASK_X, swizzle1(ut, Y),
-		swizzle1(state_attenuation, Z), swizzle1(state_attenuation, Y));
-   emit_op3(p, OPCODE_MAD, ut, WRITEMASK_X, swizzle1(ut, Y),
-		ut, swizzle1(state_attenuation, X));
+   nir_def *factor = nir_fmad(p->b, dist, nir_channel(p->b, att, 2),
+                                              nir_channel(p->b, att, 1));
+   factor = nir_fmad(p->b, dist, factor, nir_channel(p->b, att, 0));
 
    /* 1 / sqrt(factor) */
-   emit_op1(p, OPCODE_RSQ, ut, WRITEMASK_X, ut );
+   factor = nir_frsq(p->b, factor);
 
-#if 0
-   /* out = pointSize / sqrt(factor) */
-   emit_op2(p, OPCODE_MUL, out, WRITEMASK_X, ut, state_size);
-#else
+   /* pointSize / sqrt(factor) */
+   nir_def *size = nir_fmul(p->b, factor,
+                                nir_channel(p->b, in_size, 0));
+
+#if 1
    /* this is a good place to clamp the point size since there's likely
     * no hardware registers to clamp point size at rasterization time.
     */
-   emit_op2(p, OPCODE_MUL, ut, WRITEMASK_X, ut, state_size);
-   emit_op2(p, OPCODE_MAX, ut, WRITEMASK_X, ut, swizzle1(state_size, Y));
-   emit_op2(p, OPCODE_MIN, out, WRITEMASK_X, ut, swizzle1(state_size, Z));
+   size = nir_fclamp(p->b, size, nir_channel(p->b, in_size, 1),
+                                 nir_channel(p->b, in_size, 2));
 #endif
 
-   release_temp(p, ut);
+   store_output_float(p, VARYING_SLOT_PSIZ, size);
 }
 
 
@@ -1642,29 +1271,28 @@ static void build_atten_pointsize( struct tnl_program *p )
  */
 static void build_array_pointsize( struct tnl_program *p )
 {
-   struct ureg in = register_input(p, VERT_ATTRIB_POINT_SIZE);
-   struct ureg out = register_output(p, VARYING_SLOT_PSIZ);
-   emit_op1(p, OPCODE_MOV, out, WRITEMASK_X, in);
+   nir_def *val = load_input(p, VERT_ATTRIB_POINT_SIZE,
+                                 glsl_float_type());
+   store_output_float(p, VARYING_SLOT_PSIZ, val);
 }
 
 
 static void build_tnl_program( struct tnl_program *p )
 {
-   /* Emit the program, starting with the modelview, projection transforms:
-    */
-   build_hpos(p);
+   /* Emit the program (except for the MVP transform, which is a separate pass) */
 
    /* Lighting calculations:
     */
-   if (p->state->fragprog_inputs_read & (VARYING_BIT_COL0|VARYING_BIT_COL1)) {
+   if (p->state->fragprog_inputs_read &
+       (VARYING_BIT_COL0 | VARYING_BIT_COL1)) {
       if (p->state->light_global_enabled)
-	 build_lighting(p);
+         build_lighting(p);
       else {
-	 if (p->state->fragprog_inputs_read & VARYING_BIT_COL0)
-	    emit_passthrough(p, VERT_ATTRIB_COLOR0, VARYING_SLOT_COL0);
+         if (p->state->fragprog_inputs_read & VARYING_BIT_COL0)
+            emit_passthrough(p, VERT_ATTRIB_COLOR0, VARYING_SLOT_COL0);
 
-	 if (p->state->fragprog_inputs_read & VARYING_BIT_COL1)
-	    emit_passthrough(p, VERT_ATTRIB_COLOR1, VARYING_SLOT_COL1);
+         if (p->state->fragprog_inputs_read & VARYING_BIT_COL1)
+            emit_passthrough(p, VERT_ATTRIB_COLOR1, VARYING_SLOT_COL1);
       }
    }
 
@@ -1680,64 +1308,47 @@ static void build_tnl_program( struct tnl_program *p )
       build_array_pointsize(p);
 
    if (p->state->varying_vp_inputs & VERT_BIT_SELECT_RESULT_OFFSET)
-      emit_passthrough(p, VERT_ATTRIB_SELECT_RESULT_OFFSET, VARYING_SLOT_VAR0);
-
-   /* Finish up:
-    */
-   emit_op1(p, OPCODE_END, undef, 0, undef);
-
-   /* Disassemble:
-    */
-   if (DISASSEM) {
-      printf ("\n");
-   }
+      emit_passthrough(p, VERT_ATTRIB_SELECT_RESULT_OFFSET,
+                       VARYING_SLOT_VAR0);
 }
 
 
-static void
+static nir_shader *
 create_new_program( const struct state_key *key,
                     struct gl_program *program,
                     GLboolean mvp_with_dp4,
-                    GLuint max_temps)
+                    const nir_shader_compiler_options *options)
 {
    struct tnl_program p;
 
    memset(&p, 0, sizeof(p));
    p.state = key;
-   p.program = program;
-   p.eye_position = undef;
-   p.eye_position_z = undef;
-   p.eye_position_normalized = undef;
-   p.transformed_normal = undef;
-   p.identity = undef;
-   p.temp_in_use = 0;
    p.mvp_with_dp4 = mvp_with_dp4;
 
-   if (max_temps >= sizeof(int) * 8)
-      p.temp_reserved = 0;
-   else
-      p.temp_reserved = ~((1<<max_temps)-1);
-
-   /* Start by allocating 32 instructions.
-    * If we need more, we'll grow the instruction array as needed.
-    */
-   p.max_inst = 32;
-   p.program->arb.Instructions =
-      rzalloc_array(program, struct prog_instruction, p.max_inst);
-   p.program->String = NULL;
-   p.program->arb.NumInstructions =
-   p.program->arb.NumTemporaries =
-   p.program->arb.NumParameters =
-   p.program->arb.NumAttributes = p.program->arb.NumAddressRegs = 0;
-   p.program->Parameters = _mesa_new_parameter_list();
-   p.program->info.inputs_read = 0;
-   p.program->info.outputs_written = 0;
+   program->Parameters = _mesa_new_parameter_list();
    p.state_params = _mesa_new_parameter_list();
+
+   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX,
+                                                  options,
+                                                  "ff-vs");
+
+   nir_shader *s = b.shader;
+
+   s->info.separate_shader = true;
+
+   p.b = &b;
 
    build_tnl_program( &p );
 
-   _mesa_add_separate_state_parameters(p.program, p.state_params);
+   nir_validate_shader(b.shader, "after generating ff-vertex shader");
+
+   /* Emit the MVP position transformation */
+   NIR_PASS_V(b.shader, st_nir_lower_position_invariant, mvp_with_dp4, p.state_params);
+
+   _mesa_add_separate_state_parameters(program, p.state_params);
    _mesa_free_parameter_list(p.state_params);
+
+   return s;
 }
 
 
@@ -1768,13 +1379,20 @@ _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
       if (0)
          printf("Build new TNL program\n");
 
-      prog = ctx->Driver.NewProgram(ctx, MESA_SHADER_VERTEX, 0, true);
+      prog = ctx->Driver.NewProgram(ctx, MESA_SHADER_VERTEX, 0, false);
       if (!prog)
          return NULL;
 
-      create_new_program( &key, prog,
-                          ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].OptimizeForAOS,
-                          ctx->Const.Program[MESA_SHADER_VERTEX].MaxTemps );
+      const struct nir_shader_compiler_options *options =
+         st_get_nir_compiler_options(ctx->st, MESA_SHADER_VERTEX);
+
+      nir_shader *s =
+         create_new_program( &key, prog,
+                             ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].OptimizeForAOS,
+                             options);
+
+      prog->state.type = PIPE_SHADER_IR_NIR;
+      prog->nir = s;
 
       st_program_string_notify(ctx, GL_VERTEX_PROGRAM_ARB, prog);
 

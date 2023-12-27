@@ -270,7 +270,7 @@ FormatTranslate(DXGI_FORMAT Format, BOOL depth)
 
    default:
       DebugPrintf("%s: unsupported format %s\n",
-                  __FUNCTION__, FormatToName(Format));
+                  __func__, FormatToName(Format));
       return PIPE_FORMAT_NONE;
    }
 }

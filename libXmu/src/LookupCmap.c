@@ -37,6 +37,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xutil.h>
 #include <X11/Xmu/StdCmap.h>
 #include <stdlib.h>
+#include "Xmuint.h"
 
 /*
  * Prototypes
@@ -242,8 +243,7 @@ lookup(Display *dpy, int screen, VisualID visualid, Atom property,
 	if (cnew) {
 	    XStandardColormap	*m, *maps;
 
-	    s = (XStandardColormap *) malloc((unsigned) ((count+1) * sizeof
-					      (XStandardColormap)));
+	    s = Xmumallocarray((count+1), sizeof(XStandardColormap));
 
 	    for (i = 0, m = s, maps = stdcmaps; i < count; i++, m++, maps++) {
 		m->colormap   = maps->colormap;
@@ -269,7 +269,7 @@ lookup(Display *dpy, int screen, VisualID visualid, Atom property,
 	    m->killid     = cnew->killid;
 
 	    XSetRGBColormaps(dpy, win, s, ++count, property);
-	    free((char *) s);
+	    free(s);
 	}
 	XFree((char *) stdcmaps);
 	return 0;

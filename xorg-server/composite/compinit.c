@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -59,6 +59,7 @@ compCloseScreen(ScreenPtr pScreen)
     Bool ret;
 
     free(cs->alternateVisuals);
+    free(cs->implicitRedirectExceptions);
 
     pScreen->CloseScreen = cs->CloseScreen;
     pScreen->InstallColormap = cs->InstallColormap;

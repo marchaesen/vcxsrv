@@ -83,12 +83,26 @@ mem_dup(const void *src, size_t size)
    return dup;
 }
 
+/* TODO: this could be different on non-x86 architectures. */
+#define CACHE_LINE_SIZE 64
 
 /**
- * Offset of a field in a struct, in bytes.
+ * Declare a variable on its own cache line.
+ *
+ * This helps eliminate "False sharing" to make atomic operations
+ * on pipe_reference::count faster and/or access to adjacent fields faster.
+ *
+ * https://en.wikipedia.org/wiki/False_sharing
+ *
+ * CALLOC_STRUCT_CL or MALLOC_STRUCT_CL and FREE_CL should be used to allocate
+ * structures that contain this.
+ *
+ * NOTE: Don't use c11 alignas because it causes the whole structure to be
+ *       aligned, but we only want to align the field.
  */
-#define Offset(TYPE, MEMBER) ((uintptr_t)&(((TYPE *)NULL)->MEMBER))
-
+#define EXCLUSIVE_CACHELINE(decl) \
+   union { char __cl_space[CACHE_LINE_SIZE]; \
+           decl; }
 
 /* Allocate a structure aligned to a cache line. (used to make atomic ops faster) */
 #define MALLOC_STRUCT_CL(T) (struct T *)align_malloc(sizeof(struct T), CACHE_LINE_SIZE)

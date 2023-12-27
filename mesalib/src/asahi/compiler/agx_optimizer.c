@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2021 Alyssa Rosenzweig <alyssa@rosenzweig.io>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright 2021 Alyssa Rosenzweig
+ * SPDX-License-Identifier: MIT
  */
 
 #include "agx_compiler.h"
@@ -72,8 +54,8 @@
 static bool
 agx_is_fmov(agx_instr *def)
 {
-   return (def->op == AGX_OPCODE_FADD)
-      && agx_is_equiv(def->src[1], agx_negzero());
+   return (def->op == AGX_OPCODE_FADD) &&
+          agx_is_equiv(def->src[1], agx_negzero());
 }
 
 /* Compose floating-point modifiers with floating-point sources */
@@ -94,46 +76,113 @@ agx_compose_float_src(agx_index to, agx_index from)
 static void
 agx_optimizer_fmov(agx_instr **defs, agx_instr *ins)
 {
-   agx_foreach_src(ins, s) {
+   agx_foreach_ssa_src(ins, s) {
       agx_index src = ins->src[s];
-      if (src.type != AGX_INDEX_NORMAL) continue;
-      
       agx_instr *def = defs[src.value];
-      if (def == NULL) continue; /* happens for phis in loops */
-      if (!agx_is_fmov(def)) continue;
-      if (def->saturate) continue;
+
+      if (def == NULL)
+         continue; /* happens for phis in loops */
+      if (!agx_is_fmov(def))
+         continue;
+      if (def->saturate)
+         continue;
+      if (ins->op == AGX_OPCODE_FCMPSEL && s >= 2)
+         continue;
+
+      /* We can fold f2f32 into 32-bit instructions, but we can't fold f2f16
+       * into 16-bit instructions, since the latter would implicitly promote to
+       * a 32-bit instruction which is not exact.
+       */
+      assert(def->src[0].size == AGX_SIZE_32 ||
+             def->src[0].size == AGX_SIZE_16);
+      assert(src.size == AGX_SIZE_32 || src.size == AGX_SIZE_16);
+
+      if (src.size == AGX_SIZE_16 && def->src[0].size == AGX_SIZE_32)
+         continue;
 
       ins->src[s] = agx_compose_float_src(src, def->src[0]);
    }
 }
 
+static bool
+image_write_source_can_be_immediate(agx_instr *I, unsigned s)
+{
+   assert(I->op == AGX_OPCODE_IMAGE_WRITE);
+
+   /* LOD can always be immediate. Actually, it's just zero so far, we don't
+    * support nonzero LOD for images yet.
+    */
+   if (s == 2)
+      return true;
+
+   /* If the "bindless" source (source 3) is an immediate, it means we don't
+    * have a bindless image, instead we have a texture state index. We're
+    * allowed to have immediate texture state registers (source 4). However,
+    * we're not allowed to have immediate bindless offsets (also source 4).
+    */
+   bool is_texture_state = (I->src[3].type == AGX_INDEX_IMMEDIATE);
+   if (s == 4 && is_texture_state)
+      return true;
+
+   /* Otherwise, must be from a register */
+   return false;
+}
+
 static void
-agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I,
-      unsigned srcs, bool is_float)
+agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I, unsigned srcs,
+                         bool is_float)
 {
    for (unsigned s = 0; s < srcs; ++s) {
       agx_index src = I->src[s];
-      if (src.type != AGX_INDEX_NORMAL) continue;
+      if (src.type != AGX_INDEX_NORMAL)
+         continue;
+      if (src.neg)
+         continue;
 
       agx_instr *def = defs[src.value];
-      if (def->op != AGX_OPCODE_MOV_IMM) continue;
+      if (def->op != AGX_OPCODE_MOV_IMM)
+         continue;
 
       uint8_t value = def->imm;
+      uint16_t value_u16 = def->imm;
+
       bool float_src = is_float;
 
-      /* cmpselsrc takes integer immediates only */
-      if (s >= 2 && I->op == AGX_OPCODE_FCMPSEL) float_src = false;
+      /* fcmpsel takes first 2 as floats specially */
+      if (s < 2 && I->op == AGX_OPCODE_FCMPSEL)
+         float_src = true;
+      if (I->op == AGX_OPCODE_ST_TILE && s == 0)
+         continue;
+      if (I->op == AGX_OPCODE_ZS_EMIT && s != 0)
+         continue;
+      if ((I->op == AGX_OPCODE_DEVICE_STORE ||
+           I->op == AGX_OPCODE_LOCAL_STORE || I->op == AGX_OPCODE_ATOMIC ||
+           I->op == AGX_OPCODE_LOCAL_ATOMIC) &&
+          s != 2)
+         continue;
+      if ((I->op == AGX_OPCODE_LOCAL_LOAD || I->op == AGX_OPCODE_DEVICE_LOAD) &&
+          s != 1)
+         continue;
+      if (I->op == AGX_OPCODE_SPLIT)
+         continue;
+
+      if (I->op == AGX_OPCODE_IMAGE_WRITE &&
+          !image_write_source_can_be_immediate(I, s))
+         continue;
 
       if (float_src) {
          bool fp16 = (def->dest[0].size == AGX_SIZE_16);
          assert(fp16 || (def->dest[0].size == AGX_SIZE_32));
 
          float f = fp16 ? _mesa_half_to_float(def->imm) : uif(def->imm);
-         if (!agx_minifloat_exact(f)) continue;
+         if (!agx_minifloat_exact(f))
+            continue;
 
          I->src[s] = agx_immediate_f(f);
       } else if (value == def->imm) {
          I->src[s] = agx_immediate(value);
+      } else if (value_u16 == def->imm && agx_allows_16bit_immediate(I)) {
+         I->src[s] = agx_abs(agx_immediate(value_u16));
       }
    }
 }
@@ -141,8 +190,20 @@ agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I,
 static bool
 agx_optimizer_fmov_rev(agx_instr *I, agx_instr *use)
 {
-   if (!agx_is_fmov(use)) return false;
-   if (use->src[0].neg || use->src[0].abs) return false;
+   if (!agx_is_fmov(use))
+      return false;
+   if (use->src[0].neg || use->src[0].abs)
+      return false;
+
+   /* We can fold f2f16 into 32-bit instructions, but we can't fold f2f32 into
+    * 16-bit instructions, since the latter would implicitly promote to a 32-bit
+    * instruction which is not exact.
+    */
+   assert(use->dest[0].size == AGX_SIZE_32 || use->dest[0].size == AGX_SIZE_16);
+   assert(I->dest[0].size == AGX_SIZE_32 || I->dest[0].size == AGX_SIZE_16);
+
+   if (I->dest[0].size == AGX_SIZE_16 && use->dest[0].size == AGX_SIZE_32)
+      return false;
 
    /* saturate(saturate(x)) = saturate(x) */
    I->saturate |= use->saturate;
@@ -153,24 +214,113 @@ agx_optimizer_fmov_rev(agx_instr *I, agx_instr *use)
 static void
 agx_optimizer_copyprop(agx_instr **defs, agx_instr *I)
 {
-   agx_foreach_src(I, s) {
+   agx_foreach_ssa_src(I, s) {
       agx_index src = I->src[s];
-      if (src.type != AGX_INDEX_NORMAL) continue;
-
       agx_instr *def = defs[src.value];
-      if (def == NULL) continue; /* happens for phis in loops */
-      if (def->op != AGX_OPCODE_MOV) continue;
+
+      if (def == NULL)
+         continue; /* happens for phis in loops */
+      if (def->op != AGX_OPCODE_MOV)
+         continue;
 
       /* At the moment, not all instructions support size conversions. Notably
        * RA pseudo instructions don't handle size conversions. This should be
        * refined in the future.
        */
-      if (def->src[0].size != src.size) continue;
+      if (def->src[0].size != src.size)
+         continue;
 
       /* Immediate inlining happens elsewhere */
-      if (def->src[0].type == AGX_INDEX_IMMEDIATE) continue;
+      if (def->src[0].type == AGX_INDEX_IMMEDIATE)
+         continue;
 
-      I->src[s] = agx_replace_index(src, def->src[0]);
+      /* ALU instructions cannot take 64-bit */
+      if (def->src[0].size == AGX_SIZE_64 &&
+          !(I->op == AGX_OPCODE_DEVICE_LOAD && s == 0) &&
+          !(I->op == AGX_OPCODE_DEVICE_STORE && s == 1) &&
+          !(I->op == AGX_OPCODE_ATOMIC && s == 1))
+         continue;
+
+      agx_replace_src(I, s, def->src[0]);
+   }
+}
+
+/*
+ * Fuse conditions into if. Specifically, acts on if_icmp and fuses:
+ *
+ *    if_icmp(cmp(x, y, *), 0, ne) -> if_cmp(x, y, *)
+ */
+static void
+agx_optimizer_if_cmp(agx_instr **defs, agx_instr *I)
+{
+   /* Check for unfused if */
+   if (!agx_is_equiv(I->src[1], agx_zero()) || I->icond != AGX_ICOND_UEQ ||
+       !I->invert_cond || I->src[0].type != AGX_INDEX_NORMAL)
+      return;
+
+   /* Check for condition */
+   agx_instr *def = defs[I->src[0].value];
+   if (def->op != AGX_OPCODE_ICMP && def->op != AGX_OPCODE_FCMP)
+      return;
+
+   /* Fuse */
+   I->src[0] = def->src[0];
+   I->src[1] = def->src[1];
+   I->invert_cond = def->invert_cond;
+
+   if (def->op == AGX_OPCODE_ICMP) {
+      I->op = AGX_OPCODE_IF_ICMP;
+      I->icond = def->icond;
+   } else {
+      I->op = AGX_OPCODE_IF_FCMP;
+      I->fcond = def->fcond;
+   }
+}
+
+/*
+ * Fuse conditions into select. Specifically, acts on icmpsel and fuses:
+ *
+ *    icmpsel(cmp(x, y, *), 0, z, w, eq) -> cmpsel(x, y, w, z, *)
+ *
+ * Care must be taken to invert the condition by swapping cmpsel arguments.
+ */
+static void
+agx_optimizer_cmpsel(agx_instr **defs, agx_instr *I)
+{
+   /* Check for unfused select */
+   if (!agx_is_equiv(I->src[1], agx_zero()) || I->icond != AGX_ICOND_UEQ ||
+       I->src[0].type != AGX_INDEX_NORMAL)
+      return;
+
+   /* Check for condition */
+   agx_instr *def = defs[I->src[0].value];
+   if (def->op != AGX_OPCODE_ICMP && def->op != AGX_OPCODE_FCMP)
+      return;
+
+   /* Fuse */
+   I->src[0] = def->src[0];
+   I->src[1] = def->src[1];
+
+   /* In the unfused select, the condition is inverted due to the form:
+    *
+    *    (cond == 0) ? x : y
+    *
+    * So we need to swap the arguments when fusing to become cond ? y : x. If
+    * the condition was supposed to be inverted, we don't swap since it's
+    * already inverted. cmpsel does not have an invert_cond bit to use.
+    */
+   if (!def->invert_cond) {
+      agx_index temp = I->src[2];
+      I->src[2] = I->src[3];
+      I->src[3] = temp;
+   }
+
+   if (def->op == AGX_OPCODE_ICMP) {
+      I->op = AGX_OPCODE_ICMPSEL;
+      I->icond = def->icond;
+   } else {
+      I->op = AGX_OPCODE_FCMPSEL;
+      I->fcond = def->fcond;
    }
 }
 
@@ -182,23 +332,29 @@ agx_optimizer_forward(agx_context *ctx)
    agx_foreach_instr_global(ctx, I) {
       struct agx_opcode_info info = agx_opcodes_info[I->op];
 
-      agx_foreach_dest(I, d) {
-         if (I->dest[d].type == AGX_INDEX_NORMAL)
-            defs[I->dest[d].value] = I;
+      agx_foreach_ssa_dest(I, d) {
+         defs[I->dest[d].value] = I;
       }
 
       /* Optimize moves */
       agx_optimizer_copyprop(defs, I);
 
       /* Propagate fmov down */
-      if (info.is_float)
+      if (info.is_float || I->op == AGX_OPCODE_FCMPSEL)
          agx_optimizer_fmov(defs, I);
 
       /* Inline immediates if we can. TODO: systematic */
-      if (I->op != AGX_OPCODE_ST_VARY && I->op != AGX_OPCODE_ST_TILE &&
-          I->op != AGX_OPCODE_P_COMBINE && I->op != AGX_OPCODE_TEXTURE_SAMPLE &&
-          I->op != AGX_OPCODE_TEXTURE_LOAD)
+      if (I->op != AGX_OPCODE_ST_VARY && I->op != AGX_OPCODE_COLLECT &&
+          I->op != AGX_OPCODE_TEXTURE_SAMPLE &&
+          I->op != AGX_OPCODE_IMAGE_LOAD && I->op != AGX_OPCODE_TEXTURE_LOAD &&
+          I->op != AGX_OPCODE_UNIFORM_STORE &&
+          I->op != AGX_OPCODE_BLOCK_IMAGE_STORE)
          agx_optimizer_inline_imm(defs, I, info.nr_srcs, info.is_float);
+
+      if (I->op == AGX_OPCODE_IF_ICMP)
+         agx_optimizer_if_cmp(defs, I);
+      else if (I->op == AGX_OPCODE_ICMPSEL)
+         agx_optimizer_cmpsel(defs, I);
    }
 
    free(defs);
@@ -213,7 +369,7 @@ agx_optimizer_backward(agx_context *ctx)
    agx_foreach_instr_global_rev(ctx, I) {
       struct agx_opcode_info info = agx_opcodes_info[I->op];
 
-      for (unsigned s = 0; s < info.nr_srcs; ++s) {
+      agx_foreach_ssa_src(I, s) {
          if (I->src[s].type == AGX_INDEX_NORMAL) {
             unsigned v = I->src[s].value;
 

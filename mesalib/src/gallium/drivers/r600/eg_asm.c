@@ -20,9 +20,9 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "r600_pipe.h"
+#include "r600_asm.h"
 #include "r600_opcodes.h"
-#include "r600_shader.h"
+#include "r600_shader_common.h"
 
 #include "util/u_memory.h"
 #include "eg_sq.h"
@@ -173,55 +173,6 @@ void eg_bytecode_export_read(struct r600_bytecode *bc,
 	output->comp_mask = G_SQ_CF_ALLOC_EXPORT_WORD1_BUF_COMP_MASK(word1);
 }
 #endif
-
-int egcm_load_index_reg(struct r600_bytecode *bc, unsigned id, bool inside_alu_clause)
-{
-	struct r600_bytecode_alu alu;
-	int r;
-	unsigned type;
-
-	assert(id < 2);
-	assert(bc->gfx_level >= EVERGREEN);
-
-	if (bc->index_loaded[id])
-		return 0;
-
-	memset(&alu, 0, sizeof(alu));
-	alu.op = ALU_OP1_MOVA_INT;
-	alu.src[0].sel = bc->index_reg[id];
-	alu.src[0].chan = bc->index_reg_chan[id];
-	if (bc->gfx_level == CAYMAN)
-		alu.dst.sel = id == 0 ? CM_V_SQ_MOVA_DST_CF_IDX0 : CM_V_SQ_MOVA_DST_CF_IDX1;
-
-	alu.last = 1;
-	r = r600_bytecode_add_alu(bc, &alu);
-	if (r)
-		return r;
-
-	bc->ar_loaded = 0; /* clobbered */
-
-	if (bc->gfx_level == EVERGREEN) {
-		memset(&alu, 0, sizeof(alu));
-		alu.op = id == 0 ? ALU_OP0_SET_CF_IDX0 : ALU_OP0_SET_CF_IDX1;
-		alu.last = 1;
-		r = r600_bytecode_add_alu(bc, &alu);
-		if (r)
-			return r;
-	}
-
-	/* Must split ALU group as index only applies to following group */
-	if (inside_alu_clause) {
-		type = bc->cf_last->op;
-		if ((r = r600_bytecode_add_cf(bc))) {
-			return r;
-		}
-		bc->cf_last->op = type;
-	}
-
-	bc->index_loaded[id] = 1;
-
-	return 0;
-}
 
 int eg_bytecode_gds_build(struct r600_bytecode *bc, struct r600_bytecode_gds *gds, unsigned id)
 {

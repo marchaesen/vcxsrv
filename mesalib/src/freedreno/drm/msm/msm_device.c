@@ -38,6 +38,9 @@ msm_device_destroy(struct fd_device *dev)
 static const struct fd_device_funcs funcs = {
    .bo_new = msm_bo_new,
    .bo_from_handle = msm_bo_from_handle,
+   .handle_from_dmabuf = fd_handle_from_dmabuf_drm,
+   .bo_from_dmabuf = fd_bo_from_dmabuf_drm,
+   .bo_close_handle = fd_bo_close_handle_drm,
    .pipe_new = msm_pipe_new,
    .destroy = msm_device_destroy,
 };
@@ -59,15 +62,6 @@ msm_device_new(int fd, drmVersionPtr version)
    dev = &msm_dev->base;
    dev->funcs = &funcs;
    dev->version = version->version_minor;
-
-   /* async submit_queue currently only used for msm_submit_sp: */
-   if (version->version_minor >= FD_VERSION_SOFTPIN) {
-      /* Note the name is intentionally short to avoid the queue
-       * thread's comm truncating the interesting part of the
-       * process name.
-       */
-      util_queue_init(&dev->submit_queue, "sq", 8, 1, 0, NULL);
-   }
 
    if (version->version_minor >= FD_VERSION_CACHED_COHERENT) {
       struct drm_msm_gem_new new_req = {

@@ -1,0 +1,140 @@
+.default_tag: &default_tag "2023-12-05.1"
+
+distributions:
+  - name: fedora
+    tag: *default_tag
+    base_type: fedora
+    qemu_based: false
+    versions:
+      - "rawhide"
+      - "39"
+      - "38"
+    builds:
+      - name: "autotools shared expat"
+        variables:
+          FC_BUILDSYS: autotools
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: expat
+      - name: "autotools shared libxml2"
+        variables:
+          FC_BUILDSYS: autotools
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: libxml2
+          FC_BUILD_DISTCHECK: 1
+      - name: "meson shared expat"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: expat
+      - name: "autotools static expat"
+        build_only: "rawhide"
+        variables:
+          FC_BUILDSYS: autotools
+          FC_BUILD_TYPE: static
+          FC_XML_BACKEND: expat
+      - name: "autotools static libxml2"
+        build_only: "rawhide"
+        variables:
+          FC_BUILDSYS: autotools
+          FC_BUILD_TYPE: static
+          FC_XML_BACKEND: libxml2
+      - name: "meson static expat"
+        build_only: "rawhide"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: static
+          FC_XML_BACKEND: expat
+      - name: "mingw autotools static libxml2"
+        build_only: "rawhide"
+        variables:
+          FC_BUILDSYS: autotools
+          FC_BUILD_TYPE: static
+          FC_XML_BACKEND: libxml2
+          FC_BUILD_PLATFORM: mingw
+          FC_BUILD_ARCH: x86_64-mingw32
+      - name: "mingw meson static expat"
+        build_only: "rawhide"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: static
+          FC_XML_BACKEND: expat
+          FC_BUILD_PLATFORM: mingw
+          FC_BUILD_ARCH: linux-mingw-w64-64bit
+          FC_BUILD_NO_INSTALL: 1
+  - name: freebsd
+    tag: *default_tag
+    base_type: freebsd
+    qemu_based: true
+    versions:
+      - "14.0"
+      - "13.2"
+    builds:
+      - name: "autotools shared expat"
+        variables:
+          FC_BUILDSYS: autotools
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: expat
+          MAKE: gmake
+          FC_BUILD_NO_CHECK: 1  # FIXME: There is GNU-specific parameter issue in touch command.
+      - name: "autotools shared libxml2"
+        variables:
+          FC_BUILDSYS: autotools
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: libxml2
+          MAKE: gmake
+          FC_BUILD_NO_CHECK: 1
+      - name: "meson shared expat"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: expat
+          FC_BUILD_NO_CHECK: 1
+
+packages:
+  fedora:
+    needed:
+      [
+        "@buildsys-build",
+        "autoconf",
+        "automake",
+        "libtool",
+        "gettext",
+        "gettext-devel",
+        "gperf",
+        "expat-devel",
+        "libxml2-devel",
+        "freetype-devel",
+        "json-c-devel",
+        "git",
+        "docbook-utils",
+        "docbook-utils-pdf",
+        "bubblewrap",
+        "ninja-build",
+        "wget",
+        "python3-pip",
+        "mingw64-gettext",
+        "mingw64-freetype",
+        "mingw64-libxml2",
+        "wine",
+      ]
+  freebsd:
+    needed:
+      [
+        "gcc",
+        "autoconf",
+        "automake",
+        "libtool",
+        "gettext",
+        "gperf",
+        "expat",
+        "libxml2",
+        "freetype2",
+        "json-c",
+        "git",
+        "ninja",
+        "wget",
+        "python3",
+        "py39-pip",
+        "pkgconf",
+        "gmake",
+      ]

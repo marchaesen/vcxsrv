@@ -8,8 +8,8 @@
    *
    * THE INFORMATION IN THIS SOFTWARE IS SUBJECT TO CHANGE WITHOUT NOTICE AND
    * SHOULD NOT BE CONSTRUED AS A COMMITMENT BY DIGITAL EQUIPMENT CORPORATION.
-   * DIGITAL MAKES NO REPRESENTATIONS ABOUT THE SUITABILITY OF THIS SOFTWARE 
-   * FOR ANY PURPOSE.  IT IS SUPPLIED "AS IS" WITHOUT EXPRESS OR IMPLIED 
+   * DIGITAL MAKES NO REPRESENTATIONS ABOUT THE SUITABILITY OF THIS SOFTWARE
+   * FOR ANY PURPOSE.  IT IS SUPPLIED "AS IS" WITHOUT EXPRESS OR IMPLIED
    * WARRANTY.
    *
    * IF THE SOFTWARE IS MODIFIED IN A MANNER CREATING DERIVATIVE COPYRIGHT
@@ -21,7 +21,7 @@
    * that the above copyright notice appear in all copies and that both that
    * copyright notice and this permission notice appear in supporting
    * documentation, and that the name of Digital Equipment Corporation not be
-   * used in advertising or publicity pertaining to distribution of the 
+   * used in advertising or publicity pertaining to distribution of the
    * software without specific, written prior permission.
    \*/
 
@@ -30,73 +30,41 @@
 #include	<stdlib.h>
 #include	<stdarg.h>
 
-/***====================================================================***/
-
-Opaque
-uAlloc(unsigned size)
-{
-    return ((Opaque) malloc(size));
-}
 
 /***====================================================================***/
 
-Opaque
-uCalloc(unsigned n, unsigned size)
-{
-    return ((Opaque) calloc(n, size));
-}
-
-/***====================================================================***/
-
-Opaque
-uRealloc(Opaque old, unsigned newSize)
-{
-    if (old == NULL)
-        return ((Opaque) malloc(newSize));
-    else
-        return ((Opaque) realloc((char *) old, newSize));
-}
-
-/***====================================================================***/
-
-Opaque
-uRecalloc(Opaque old, unsigned nOld, unsigned nNew, unsigned itemSize)
+#ifndef HAVE_RECALLOCARRAY
+void *
+uRecalloc(void *old, size_t nOld, size_t nNew, size_t itemSize)
 {
     char *rtrn;
 
     if (old == NULL)
-        rtrn = (char *) calloc(nNew, itemSize);
+        rtrn = calloc(nNew, itemSize);
     else
     {
-        rtrn = (char *) realloc((char *) old, nNew * itemSize);
+        rtrn = reallocarray(old, nNew, itemSize);
         if ((rtrn) && (nNew > nOld))
         {
             bzero(&rtrn[nOld * itemSize], (nNew - nOld) * itemSize);
         }
     }
-    return (Opaque) rtrn;
+    return (void *) rtrn;
 }
+#endif
+
 
 /***====================================================================***/
-
-void
-uFree(Opaque ptr)
-{
-    if (ptr != (Opaque) NULL)
-        free((char *) ptr);
-    return;
-}
-
-/***====================================================================***/
-/***			PRINT FUNCTIONS					***/
+/***			DEBUG FUNCTIONS					***/
 /***====================================================================***/
 
-FILE *uDebugFile = NULL;
+#ifdef DEBUG
+static FILE *uDebugFile = NULL;
 int uDebugIndentLevel = 0;
-int uDebugIndentSize = 4;
+static const int uDebugIndentSize = 4;
 
 Boolean
-uSetDebugFile(char *name)
+uSetDebugFile(const char *name)
 {
     if ((uDebugFile != NULL) && (uDebugFile != stderr))
     {
@@ -116,12 +84,11 @@ uSetDebugFile(char *name)
 }
 
 void
-uDebug(char *s, ...)
+uDebug(const char *s, ...)
 {
-    int i;
     va_list args;
 
-    for (i = (uDebugIndentLevel * uDebugIndentSize); i > 0; i--)
+    for (int i = (uDebugIndentLevel * uDebugIndentSize); i > 0; i--)
     {
         putc(' ', uDebugFile);
     }
@@ -130,28 +97,18 @@ uDebug(char *s, ...)
     va_end(args);
     fflush(uDebugFile);
 }
-
-void
-uDebugNOI(char *s, ...)
-{
-    va_list args;
-
-    va_start(args, s);
-    vfprintf(uDebugFile, s, args);
-    va_end(args);
-    fflush(uDebugFile);
-}
+#endif
 
 /***====================================================================***/
 
 static FILE *errorFile = NULL;
 static int outCount = 0;
-static char *preMsg = NULL;
-static char *postMsg = NULL;
-static char *prefix = NULL;
+static const char *preMsg = NULL;
+static const char *postMsg = NULL;
+static const char *prefix = NULL;
 
 Boolean
-uSetErrorFile(char *name)
+uSetErrorFile(const char *name)
 {
     if ((errorFile != NULL) && (errorFile != stderr))
     {
@@ -277,7 +234,7 @@ uInternalError(const char *s, ...)
 }
 
 void
-uSetPreErrorMessage(char *msg)
+uSetPreErrorMessage(const char *msg)
 {
     outCount = 0;
     preMsg = msg;
@@ -285,14 +242,14 @@ uSetPreErrorMessage(char *msg)
 }
 
 void
-uSetPostErrorMessage(char *msg)
+uSetPostErrorMessage(const char *msg)
 {
     postMsg = msg;
     return;
 }
 
 void
-uSetErrorPrefix(char *pre)
+uSetErrorPrefix(const char *pre)
 {
     prefix = pre;
     return;
@@ -316,7 +273,7 @@ uStringDup(const char *str)
 
     if (str == NULL)
         return NULL;
-    rtrn = (char *) uAlloc(strlen(str) + 1);
+    rtrn = malloc(strlen(str) + 1);
     strcpy(rtrn, str);
     return rtrn;
 }
@@ -328,7 +285,7 @@ uStrCaseCmp(const char *str1, const char *str2)
 {
     char buf1[512], buf2[512];
     char c, *s;
-    register int n;
+    int n;
 
     for (n = 0, s = buf1; (c = *str1++); n++)
     {
@@ -352,7 +309,7 @@ uStrCaseCmp(const char *str1, const char *str2)
 }
 
 int
-uStrCasePrefix(const char *my_prefix, char *str)
+uStrCasePrefix(const char *my_prefix, const char *str)
 {
     char c1;
     char c2;

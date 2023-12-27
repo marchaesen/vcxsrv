@@ -49,8 +49,6 @@ header = """/* GLXEXT is the define used in the xserver when the GLX extension i
 #include <stdio.h>
 #include <string.h>
 
-#include "main/glheader.h"
-
 #include "glapi.h"
 #include "glapitable.h"
 

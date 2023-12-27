@@ -49,24 +49,24 @@ default xkb_geometry "us" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN", -13 }, <DELE>
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <LCTL>, "CTRL" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <BKSL>, 34 }
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH" }
 	    };
 	};
@@ -176,22 +176,22 @@ xkb_geometry "de" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN", -13 }, <DELE>
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <LCTL>, "CTRL" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <BKSL>, 34 }
 	    };
 	};
 	row {
 	    top= 58;
-	    keys { { <LFSH>, "LFSH" }, <LSGT>, 
+	    keys { { <LFSH>, "LFSH" }, <LSGT>,
 		    <AB01>, <AB02>, <AB03>, <AB04>,
 		    <AB05>, <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH" }

@@ -979,11 +979,6 @@ msgstr ""
 msgid "Latin qwerty"
 msgstr ""
 
-#: rules/base.xml.in.h:220
-#, fuzzy
-msgid "Latin with guillemots"
-msgstr "Na:"
-
 #: rules/base.xml.in.h:221
 msgid "Latvia"
 msgstr "Lativiya"
@@ -1775,10 +1770,6 @@ msgstr "Urufunguzo"
 
 #: rules/base.xml.in.h:401
 msgid "With Malayalam digits"
-msgstr ""
-
-#: rules/base.xml.in.h:402
-msgid "With guillemots"
 msgstr ""
 
 #: rules/base.xml.in.h:403

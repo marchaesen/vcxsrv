@@ -80,7 +80,7 @@ Ian Romanick (9):
 - nir: Produce correct results for atan with NaN
 - nir: Add missing dependency on nir_opcodes.py
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - anv: Call vk_command_buffer_finish if create fails
 

@@ -287,7 +287,7 @@ according to nstereo_return.  The storage returned in mono_info_return
 and stereo_info_return may be released by
 .ZN XFree .
 If no errors are
-encounted, non-zero will be returned.
+encountered, non-zero will be returned.
 .PP
 .ZN XmbufCreateStereoWindow
 creates a stereo window in the same way that

@@ -38,6 +38,7 @@ struct virgl_transfer;
 struct virgl_sampler_view;
 struct virgl_video_codec;
 struct virgl_video_buffer;
+struct virgl_vertex_elements_state;
 
 struct virgl_surface {
    struct pipe_surface base;
@@ -160,13 +161,6 @@ int virgl_encoder_set_vertex_buffers(struct virgl_context *ctx,
                                     unsigned num_buffers,
                                     const struct pipe_vertex_buffer *buffers);
 
-
-int virgl_encoder_inline_write(struct virgl_context *ctx,
-                              struct virgl_resource *res,
-                              unsigned level, unsigned usage,
-                              const struct pipe_box *box,
-                              const void *data, unsigned stride,
-                              unsigned layer_stride);
 int virgl_encode_sampler_state(struct virgl_context *ctx,
                               uint32_t handle,
                               const struct pipe_sampler_state *state);
@@ -256,10 +250,10 @@ int virgl_encoder_begin_query(struct virgl_context *ctx,
 int virgl_encoder_end_query(struct virgl_context *ctx,
                            uint32_t handle);
 int virgl_encoder_get_query_result(struct virgl_context *ctx,
-                                  uint32_t handle, boolean wait);
+                                  uint32_t handle, bool wait);
 
 int virgl_encoder_render_condition(struct virgl_context *ctx,
-                                  uint32_t handle, boolean condition,
+                                  uint32_t handle, bool condition,
                                   enum pipe_render_cond_flag mode);
 
 int virgl_encoder_set_sub_ctx(struct virgl_context *ctx, uint32_t sub_ctx_id);
@@ -299,7 +293,7 @@ int virgl_encode_host_debug_flagstring(struct virgl_context *ctx,
 
 int virgl_encode_get_query_result_qbo(struct virgl_context *ctx,
                                       uint32_t handle,
-                                      struct virgl_resource *res, boolean wait,
+                                      struct virgl_resource *res, bool wait,
                                       uint32_t result_type,
                                       uint32_t offset,
                                       uint32_t index);
@@ -340,9 +334,22 @@ void virgl_encode_decode_bitstream(struct virgl_context *ctx,
                                    struct virgl_video_buffer *buf,
                                    void *desc, uint32_t desc_size);
 
+void virgl_encode_encode_bitstream(struct virgl_context *ctx,
+                                   struct virgl_video_codec *cdc,
+                                   struct virgl_video_buffer *buf,
+                                   struct virgl_resource *tgt);
+
 void virgl_encode_end_frame(struct virgl_context *ctx,
                             struct virgl_video_codec *cdc,
                             struct virgl_video_buffer *buf);
+
+int virgl_encode_clear_surface(struct virgl_context *ctx,
+                               struct pipe_surface *surf,
+                               unsigned buffers,
+                               const union pipe_color_union *color,
+                               unsigned dstx, unsigned dsty,
+                               unsigned width, unsigned height,
+                               bool render_condition_enabled);
 
 enum virgl_formats pipe_to_virgl_format(enum pipe_format format);
 enum pipe_format virgl_to_pipe_format(enum virgl_formats format);

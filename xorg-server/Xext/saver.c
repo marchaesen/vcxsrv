@@ -1051,7 +1051,7 @@ ScreenSaverSetAttributes(ClientPtr client)
         pVlist++;
     }
     if (pPriv->attr)
-        FreeScreenAttr(pPriv->attr);
+        FreeResource(pPriv->attr->resource, AttrType);
     pPriv->attr = pAttr;
     pAttr->resource = FakeClientID(client->index);
     if (!AddResource(pAttr->resource, AttrType, (void *) pAttr))

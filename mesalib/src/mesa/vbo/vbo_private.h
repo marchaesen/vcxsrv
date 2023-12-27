@@ -37,6 +37,7 @@
 #include "vbo/vbo_save.h"
 #include "main/varray.h"
 #include "main/macros.h"
+#include "state_tracker/st_atom.h"
 
 
 struct _glapi_table;
@@ -234,7 +235,7 @@ _vbo_get_vao_enabled_from_vbo(gl_vertex_processing_mode vertex_processing_mode,
       return (((GLbitfield)enabled) & VERT_BIT_FF_ALL)
          | (((GLbitfield)(enabled >> VBO_MATERIAL_SHIFT)) & VERT_BIT_MAT_ALL);
    } else {
-      return ((GLbitfield)enabled) & VERT_BIT_ALL;
+      return enabled;
    }
 }
 
@@ -257,8 +258,8 @@ _vbo_set_attrib_format(struct gl_context *ctx,
                              GL_FALSE, integer, doubles, offset);
 
    if (vao->Enabled & VERT_BIT(attr)) {
-      vao->NewVertexBuffers = true;
-      vao->NewVertexElements = true;
+      ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+      ctx->Array.NewVertexElements = true;
    }
 
    vao->VertexAttrib[attr].Ptr = ADD_POINTERS(buffer_offset, offset);

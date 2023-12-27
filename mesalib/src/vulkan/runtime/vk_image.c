@@ -23,8 +23,6 @@
 
 #include "vk_image.h"
 
-#include <vulkan/vulkan_android.h>
-
 #ifndef _WIN32
 #include <drm-uapi/drm_fourcc.h>
 #endif
@@ -33,25 +31,17 @@
 #include "vk_common_entrypoints.h"
 #include "vk_device.h"
 #include "vk_format.h"
+#include "vk_format_info.h"
+#include "vk_log.h"
+#include "vk_physical_device.h"
 #include "vk_render_pass.h"
 #include "vk_util.h"
 #include "vulkan/wsi/wsi_common.h"
 
-static VkExtent3D
-sanitize_image_extent(const VkImageType imageType,
-                      const VkExtent3D imageExtent)
-{
-   switch (imageType) {
-   case VK_IMAGE_TYPE_1D:
-      return (VkExtent3D) { imageExtent.width, 1, 1 };
-   case VK_IMAGE_TYPE_2D:
-      return (VkExtent3D) { imageExtent.width, imageExtent.height, 1 };
-   case VK_IMAGE_TYPE_3D:
-      return imageExtent;
-   default:
-      unreachable("invalid image type");
-   }
-}
+#ifdef ANDROID
+#include "vk_android.h"
+#include <vulkan/vulkan_android.h>
+#endif
 
 void
 vk_image_init(struct vk_device *device,
@@ -76,8 +66,7 @@ vk_image_init(struct vk_device *device,
    image->create_flags = pCreateInfo->flags;
    image->image_type = pCreateInfo->imageType;
    vk_image_set_format(image, pCreateInfo->format);
-   image->extent = sanitize_image_extent(pCreateInfo->imageType,
-                                         pCreateInfo->extent);
+   image->extent = vk_image_sanitize_extent(image, pCreateInfo->extent);
    image->mip_levels = pCreateInfo->mipLevels;
    image->array_layers = pCreateInfo->arrayLayers;
    image->samples = pCreateInfo->samples;
@@ -117,10 +106,10 @@ vk_image_init(struct vk_device *device,
       assert(image->format == VK_FORMAT_UNDEFINED);
       assert(image->external_handle_types &
              VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID);
-      image->android_external_format = ext_format->externalFormat;
-   } else {
-      image->android_external_format = 0;
+      vk_image_set_format(image, (VkFormat)ext_format->externalFormat);
    }
+
+   image->ahb_format = vk_image_format_to_ahb_format(image->format);
 #endif
 }
 
@@ -173,6 +162,28 @@ vk_common_GetImageDrmFormatModifierPropertiesEXT(UNUSED VkDevice device,
 }
 #endif
 
+VKAPI_ATTR void VKAPI_CALL
+vk_common_GetImageSubresourceLayout(VkDevice _device, VkImage _image,
+                                    const VkImageSubresource *pSubresource,
+                                    VkSubresourceLayout *pLayout)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+
+   const VkImageSubresource2KHR subresource = {
+      .sType = VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2_KHR,
+      .imageSubresource = *pSubresource,
+   };
+
+   VkSubresourceLayout2KHR layout = {
+      .sType = VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_KHR
+   };
+
+   device->dispatch_table.GetImageSubresourceLayout2KHR(_device, _image,
+                                                        &subresource, &layout);
+
+   *pLayout = layout.subresourceLayout;
+}
+
 void
 vk_image_set_format(struct vk_image *image, VkFormat format)
 {
@@ -184,8 +195,6 @@ VkImageUsageFlags
 vk_image_usage(const struct vk_image *image,
                VkImageAspectFlags aspect_mask)
 {
-   assert(!(aspect_mask & ~image->aspects));
-
    /* From the Vulkan 1.2.131 spec:
     *
     *    "If the image was has a depth-stencil format and was created with
@@ -316,6 +325,36 @@ vk_image_buffer_copy_layout(const struct vk_image *image,
    };
 }
 
+struct vk_image_buffer_layout
+vk_memory_to_image_copy_layout(const struct vk_image *image,
+                               const VkMemoryToImageCopyEXT* region)
+{
+   const VkBufferImageCopy2 bic = {
+      .bufferOffset = 0,
+      .bufferRowLength = region->memoryRowLength,
+      .bufferImageHeight = region->memoryImageHeight,
+      .imageSubresource = region->imageSubresource,
+      .imageOffset = region->imageOffset,
+      .imageExtent = region->imageExtent,
+   };
+   return vk_image_buffer_copy_layout(image, &bic);
+}
+
+struct vk_image_buffer_layout
+vk_image_to_memory_copy_layout(const struct vk_image *image,
+                               const VkImageToMemoryCopyEXT* region)
+{
+   const VkBufferImageCopy2 bic = {
+      .bufferOffset = 0,
+      .bufferRowLength = region->memoryRowLength,
+      .bufferImageHeight = region->memoryImageHeight,
+      .imageSubresource = region->imageSubresource,
+      .imageOffset = region->imageOffset,
+      .imageExtent = region->imageExtent,
+   };
+   return vk_image_buffer_copy_layout(image, &bic);
+}
+
 static VkComponentSwizzle
 remap_swizzle(VkComponentSwizzle swizzle, VkComponentSwizzle component)
 {
@@ -336,7 +375,10 @@ vk_image_view_init(struct vk_device *device,
    image_view->create_flags = pCreateInfo->flags;
    image_view->image = image;
    image_view->view_type = pCreateInfo->viewType;
+
    image_view->format = pCreateInfo->format;
+   if (image_view->format == VK_FORMAT_UNDEFINED)
+      image_view->format = image->format;
 
    if (!driver_internal) {
       switch (image_view->view_type) {
@@ -368,22 +410,13 @@ vk_image_view_init(struct vk_device *device,
    const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
 
    if (driver_internal) {
-      /* For driver internal images, all we require is that the block sizes
-       * match.  Otherwise, we trust the driver to use a format it knows what
-       * to do with.  Combined depth/stencil images might not match if the
-       * driver only cares about one of the two aspects.
-       */
-      if (image->aspects == VK_IMAGE_ASPECT_COLOR_BIT ||
-          image->aspects == VK_IMAGE_ASPECT_DEPTH_BIT ||
-          image->aspects == VK_IMAGE_ASPECT_STENCIL_BIT) {
-         assert(vk_format_get_blocksize(image->format) ==
-                vk_format_get_blocksize(image_view->format));
-      }
       image_view->aspects = range->aspectMask;
-      image_view->view_format = pCreateInfo->format;
+      image_view->view_format = image_view->format;
    } else {
       image_view->aspects =
          vk_image_expand_aspect_mask(image, range->aspectMask);
+
+      assert(!(image_view->aspects & ~image->aspects));
 
       /* From the Vulkan 1.2.184 spec:
        *
@@ -404,7 +437,7 @@ vk_image_view_init(struct vk_device *device,
        */
       if ((image->aspects & VK_IMAGE_ASPECT_PLANE_1_BIT) &&
           (range->aspectMask == VK_IMAGE_ASPECT_COLOR_BIT))
-         assert(pCreateInfo->format == image->format);
+         assert(image_view->format == image->format);
 
       /* From the Vulkan 1.2.184 spec:
        *
@@ -412,10 +445,10 @@ vk_image_view_init(struct vk_device *device,
        */
       if (image_view->aspects & (VK_IMAGE_ASPECT_DEPTH_BIT |
                                  VK_IMAGE_ASPECT_STENCIL_BIT))
-         assert(pCreateInfo->format == image->format);
+         assert(image_view->format == image->format);
 
       if (!(image->create_flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT))
-         assert(pCreateInfo->format == image->format);
+         assert(image_view->format == image->format);
 
       /* Restrict the format to only the planes chosen.
        *
@@ -438,11 +471,11 @@ vk_image_view_init(struct vk_device *device,
        *    enable sampler Y′CBCR conversion."
        */
       if (image_view->aspects == VK_IMAGE_ASPECT_STENCIL_BIT) {
-         image_view->view_format = vk_format_stencil_only(pCreateInfo->format);
+         image_view->view_format = vk_format_stencil_only(image_view->format);
       } else if (image_view->aspects == VK_IMAGE_ASPECT_DEPTH_BIT) {
-         image_view->view_format = vk_format_depth_only(pCreateInfo->format);
+         image_view->view_format = vk_format_depth_only(image_view->format);
       } else {
-         image_view->view_format = pCreateInfo->format;
+         image_view->view_format = image_view->format;
       }
    }
 
@@ -478,6 +511,14 @@ vk_image_view_init(struct vk_device *device,
    image_view->extent =
       vk_image_mip_level_extent(image, image_view->base_mip_level);
 
+   /* By default storage uses the same as the image properties, but it can be
+    * overriden with VkImageViewSlicedCreateInfoEXT.
+    */
+   image_view->storage.z_slice_offset = 0;
+   image_view->storage.z_slice_count = image_view->extent.depth;
+
+   const VkImageViewSlicedCreateInfoEXT *sliced_info =
+      vk_find_struct_const(pCreateInfo, IMAGE_VIEW_SLICED_CREATE_INFO_EXT);
    assert(image_view->base_mip_level + image_view->level_count
           <= image->mip_levels);
    switch (image->image_type) {
@@ -489,6 +530,21 @@ vk_image_view_init(struct vk_device *device,
              <= image->array_layers);
       break;
    case VK_IMAGE_TYPE_3D:
+      if (sliced_info && image_view->view_type == VK_IMAGE_VIEW_TYPE_3D) {
+         unsigned total = image_view->extent.depth;
+         image_view->storage.z_slice_offset = sliced_info->sliceOffset;
+         assert(image_view->storage.z_slice_offset < total);
+         if (sliced_info->sliceCount == VK_REMAINING_3D_SLICES_EXT) {
+            image_view->storage.z_slice_count = total - image_view->storage.z_slice_offset;
+         } else {
+            image_view->storage.z_slice_count = sliced_info->sliceCount;
+         }
+      } else if (image_view->view_type != VK_IMAGE_VIEW_TYPE_3D) {
+         image_view->storage.z_slice_offset = image_view->base_array_layer;
+         image_view->storage.z_slice_count = image_view->layer_count;
+      }
+      assert(image_view->storage.z_slice_offset + image_view->storage.z_slice_count
+             <= image->extent.depth);
       assert(image_view->base_array_layer + image_view->layer_count
              <= image_view->extent.depth);
       break;
@@ -577,14 +633,12 @@ vk_image_layout_is_read_only(VkImageLayout layout,
       return aspect == VK_IMAGE_ASPECT_STENCIL_BIT;
 
    case VK_IMAGE_LAYOUT_MAX_ENUM:
-#ifdef VK_ENABLE_BETA_EXTENSIONS
    case VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR:
    case VK_IMAGE_LAYOUT_VIDEO_DECODE_SRC_KHR:
    case VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR:
    case VK_IMAGE_LAYOUT_VIDEO_ENCODE_DST_KHR:
    case VK_IMAGE_LAYOUT_VIDEO_ENCODE_SRC_KHR:
    case VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR:
-#endif
       unreachable("Invalid image layout.");
    }
 
@@ -602,6 +656,143 @@ vk_image_layout_is_depth_only(VkImageLayout layout)
    default:
       return false;
    }
+}
+
+static VkResult
+vk_image_create_get_format_list_uncompressed(struct vk_device *device,
+                                             const VkImageCreateInfo *pCreateInfo,
+                                             const VkAllocationCallbacks *pAllocator,
+                                             VkFormat **formats,
+                                             uint32_t *format_count)
+{
+   const struct vk_format_class_info *class =
+      vk_format_get_class_info(pCreateInfo->format);
+
+   *formats = NULL;
+   *format_count = 0;
+
+   if (class->format_count < 2)
+      return VK_SUCCESS;
+
+   *formats = vk_alloc2(&device->alloc, pAllocator,
+                        sizeof(VkFormat) * class->format_count,
+                        alignof(VkFormat), VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+   if (*formats == NULL)
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   memcpy(*formats, class->formats, sizeof(VkFormat) * class->format_count);
+   *format_count = class->format_count;
+
+   return VK_SUCCESS;
+}
+
+static VkResult
+vk_image_create_get_format_list_compressed(struct vk_device *device,
+                                           const VkImageCreateInfo *pCreateInfo,
+                                           const VkAllocationCallbacks *pAllocator,
+                                           VkFormat **formats,
+                                           uint32_t *format_count)
+{
+   if ((pCreateInfo->flags & VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT) == 0) {
+      return vk_image_create_get_format_list_uncompressed(device,
+                                                          pCreateInfo,
+                                                          pAllocator,
+                                                          formats,
+                                                          format_count);
+   }
+
+   const struct vk_format_class_info *class =
+      vk_format_get_class_info(pCreateInfo->format);
+   const struct vk_format_class_info *uncompr_class = NULL;
+
+   switch (vk_format_get_blocksizebits(pCreateInfo->format)) {
+   case 64:
+      uncompr_class = vk_format_class_get_info(MESA_VK_FORMAT_CLASS_64_BIT);
+      break;
+   case 128:
+      uncompr_class = vk_format_class_get_info(MESA_VK_FORMAT_CLASS_128_BIT);
+      break;
+   }
+
+   if (!uncompr_class)
+      return vk_error(device, VK_ERROR_FORMAT_NOT_SUPPORTED);
+
+   uint32_t fmt_count = class->format_count + uncompr_class->format_count;
+
+   *formats = vk_alloc2(&device->alloc, pAllocator,
+                        sizeof(VkFormat) * fmt_count,
+                        alignof(VkFormat), VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+   if (*formats == NULL)
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   memcpy(*formats, class->formats, sizeof(VkFormat) * class->format_count);
+   memcpy(*formats + class->format_count, uncompr_class->formats,
+          sizeof(VkFormat) * uncompr_class->format_count);
+   *format_count = class->format_count + uncompr_class->format_count;
+
+   return VK_SUCCESS;
+}
+
+/* Get a list of compatible formats when VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT
+ * or VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT is set. This list is
+ * either retrieved from a VkImageFormatListCreateInfo passed to the creation
+ * chain, or forged from the default compatible list specified in the
+ * "formats-compatibility-classes" section of the spec.
+ *
+ * The value returned in *formats must be freed with
+ * vk_free2(&device->alloc, pAllocator), and should not live past the
+ * vkCreateImage() call (allocated in the COMMAND scope).
+ */
+VkResult
+vk_image_create_get_format_list(struct vk_device *device,
+                                const VkImageCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkFormat **formats,
+                                uint32_t *format_count)
+{
+   *formats = NULL;
+   *format_count = 0;
+
+   if (!(pCreateInfo->flags &
+         (VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
+          VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT))) {
+      return VK_SUCCESS;
+   }
+
+   /* "Each depth/stencil format is only compatible with itself." */
+   if (vk_format_is_depth_or_stencil(pCreateInfo->format))
+      return VK_SUCCESS;
+
+   const VkImageFormatListCreateInfo *format_list = (const VkImageFormatListCreateInfo *)
+      vk_find_struct_const(pCreateInfo->pNext, IMAGE_FORMAT_LIST_CREATE_INFO);
+
+   if (format_list) {
+      if (!format_list->viewFormatCount)
+         return VK_SUCCESS;
+
+      *formats = vk_alloc2(&device->alloc, pAllocator,
+                           sizeof(VkFormat) * format_list->viewFormatCount,
+                           alignof(VkFormat), VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+      if (*formats == NULL)
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+      memcpy(*formats, format_list->pViewFormats, sizeof(VkFormat) * format_list->viewFormatCount);
+      *format_count = format_list->viewFormatCount;
+      return VK_SUCCESS;
+   }
+
+   if (vk_format_is_compressed(pCreateInfo->format))
+      return vk_image_create_get_format_list_compressed(device,
+                                                        pCreateInfo,
+                                                        pAllocator,
+                                                        formats,
+                                                        format_count);
+
+   return vk_image_create_get_format_list_uncompressed(device,
+                                                       pCreateInfo,
+                                                       pAllocator,
+                                                       formats,
+                                                       format_count);
 }
 
 /* From the Vulkan Specification 1.2.166 - VkAttachmentReference2:
@@ -821,15 +1012,19 @@ vk_image_layout_to_usage_flags(VkImageLayout layout,
                 VK_IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT;
       }
 
-   case VK_IMAGE_LAYOUT_MAX_ENUM:
-#ifdef VK_ENABLE_BETA_EXTENSIONS
    case VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR:
+      return VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR;
    case VK_IMAGE_LAYOUT_VIDEO_DECODE_SRC_KHR:
+      return VK_IMAGE_USAGE_VIDEO_DECODE_SRC_BIT_KHR;
    case VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR:
+      return VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR;
    case VK_IMAGE_LAYOUT_VIDEO_ENCODE_DST_KHR:
+      return VK_IMAGE_USAGE_VIDEO_ENCODE_DST_BIT_KHR;
    case VK_IMAGE_LAYOUT_VIDEO_ENCODE_SRC_KHR:
+      return VK_IMAGE_USAGE_VIDEO_ENCODE_SRC_BIT_KHR;
    case VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR:
-#endif
+      return VK_IMAGE_USAGE_VIDEO_ENCODE_DPB_BIT_KHR;
+   case VK_IMAGE_LAYOUT_MAX_ENUM:
       unreachable("Invalid image layout.");
    }
 

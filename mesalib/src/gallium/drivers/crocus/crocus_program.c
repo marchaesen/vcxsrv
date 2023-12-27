@@ -37,7 +37,7 @@
 #include "pipe/p_screen.h"
 #include "util/u_atomic.h"
 #include "util/u_upload_mgr.h"
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "util/u_prim.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
@@ -47,10 +47,10 @@
 #include "intel/compiler/brw_prim.h"
 #include "crocus_context.h"
 #include "nir/tgsi_to_nir.h"
+#include "program/prog_instruction.h"
 
 #define KEY_INIT_NO_ID()                              \
-   .base.tex.swizzles[0 ... BRW_MAX_SAMPLERS - 1] = 0x688,   \
-   .base.tex.compressed_multisample_layout_mask = ~0
+   .base.tex.swizzles[0 ... BRW_MAX_SAMPLERS - 1] = 0x688
 #define KEY_INIT()                                                        \
    .base.program_string_id = ish->program_id,                             \
    .base.limit_trig_input_range = screen->driconf.limit_trig_input_range, \
@@ -161,7 +161,6 @@ crocus_populate_sampler_prog_key_data(struct crocus_context *ice,
 
       struct crocus_sampler_view *texture = ice->state.shaders[stage].textures[s];
       key->swizzles[s] = SWIZZLE_NOOP;
-      key->scale_factors[s] = 0.0f;
 
       if (!texture)
          continue;
@@ -244,22 +243,22 @@ get_new_program_id(struct crocus_screen *screen)
    return p_atomic_inc_return(&screen->program_id);
 }
 
-static nir_ssa_def *
+static nir_def *
 get_aoa_deref_offset(nir_builder *b,
                      nir_deref_instr *deref,
                      unsigned elem_size)
 {
    unsigned array_size = elem_size;
-   nir_ssa_def *offset = nir_imm_int(b, 0);
+   nir_def *offset = nir_imm_int(b, 0);
 
    while (deref->deref_type != nir_deref_type_var) {
       assert(deref->deref_type == nir_deref_type_array);
 
       /* This level's element size is the previous level's array size */
-      nir_ssa_def *index = nir_ssa_for_src(b, deref->arr.index, 1);
+      nir_def *index = deref->arr.index.ssa;
       assert(deref->arr.index.ssa);
       offset = nir_iadd(b, offset,
-                        nir_imul(b, index, nir_imm_int(b, array_size)));
+                        nir_imul_imm(b, index, array_size));
 
       deref = nir_deref_instr_parent(deref);
       assert(glsl_type_is_array(deref->type));
@@ -281,8 +280,7 @@ crocus_lower_storage_image_derefs(nir_shader *nir)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -293,16 +291,8 @@ crocus_lower_storage_image_derefs(nir_shader *nir)
          switch (intrin->intrinsic) {
          case nir_intrinsic_image_deref_load:
          case nir_intrinsic_image_deref_store:
-         case nir_intrinsic_image_deref_atomic_add:
-         case nir_intrinsic_image_deref_atomic_imin:
-         case nir_intrinsic_image_deref_atomic_umin:
-         case nir_intrinsic_image_deref_atomic_imax:
-         case nir_intrinsic_image_deref_atomic_umax:
-         case nir_intrinsic_image_deref_atomic_and:
-         case nir_intrinsic_image_deref_atomic_or:
-         case nir_intrinsic_image_deref_atomic_xor:
-         case nir_intrinsic_image_deref_atomic_exchange:
-         case nir_intrinsic_image_deref_atomic_comp_swap:
+         case nir_intrinsic_image_deref_atomic:
+         case nir_intrinsic_image_deref_atomic_swap:
          case nir_intrinsic_image_deref_size:
          case nir_intrinsic_image_deref_samples:
          case nir_intrinsic_image_deref_load_raw_intel:
@@ -311,9 +301,9 @@ crocus_lower_storage_image_derefs(nir_shader *nir)
             nir_variable *var = nir_deref_instr_get_variable(deref);
 
             b.cursor = nir_before_instr(&intrin->instr);
-            nir_ssa_def *index =
-               nir_iadd(&b, nir_imm_int(&b, var->data.driver_location),
-                        get_aoa_deref_offset(&b, deref, 1));
+            nir_def *index =
+               nir_iadd_imm(&b, get_aoa_deref_offset(&b, deref, 1),
+                            var->data.driver_location);
             nir_rewrite_image_intrinsic(intrin, index, false);
             break;
          }
@@ -350,15 +340,11 @@ crocus_fix_edge_flags(nir_shader *nir)
    nir->info.inputs_read &= ~VERT_BIT_EDGEFLAG;
    nir_fixup_deref_modes(nir);
 
-   nir_foreach_function(f, nir) {
-      if (f->impl) {
-         nir_metadata_preserve(f->impl, nir_metadata_block_index |
-                               nir_metadata_dominance |
-                               nir_metadata_live_ssa_defs |
-                               nir_metadata_loop_analysis);
-      } else {
-         nir_metadata_preserve(f->impl, nir_metadata_all);
-      }
+   nir_foreach_function_impl(impl, nir) {
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                            nir_metadata_dominance |
+                            nir_metadata_live_defs |
+                            nir_metadata_loop_analysis);
    }
 
    return true;
@@ -438,7 +424,7 @@ setup_vec4_image_sysval(uint32_t *sysvals, uint32_t idx,
  * ideal situation (though the backend can reduce this).
  */
 static void
-crocus_setup_uniforms(const struct brw_compiler *compiler,
+crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
                       void *mem_ctx,
                       nir_shader *nir,
                       struct brw_stage_prog_data *prog_data,
@@ -446,8 +432,6 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
                       unsigned *out_num_system_values,
                       unsigned *out_num_cbufs)
 {
-   UNUSED const struct intel_device_info *devinfo = compiler->devinfo;
-
    const unsigned CROCUS_MAX_SYSTEM_VALUES =
       PIPE_MAX_SHADER_IMAGES * BRW_IMAGE_PARAM_SIZE;
    enum brw_param_builtin *system_values =
@@ -455,6 +439,8 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
    unsigned num_system_values = 0;
 
    unsigned patch_vert_idx = -1;
+   unsigned tess_outer_default_idx = -1;
+   unsigned tess_inner_default_idx = -1;
    unsigned ucp_idx[CROCUS_MAX_CLIP_PLANES];
    unsigned img_idx[PIPE_MAX_SHADER_IMAGES];
    unsigned variable_group_size_idx = -1;
@@ -463,12 +449,10 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
 
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_at(nir_before_impl(impl));
 
-   b.cursor = nir_before_block(nir_start_block(impl));
-   nir_ssa_def *temp_ubo_name = nir_ssa_undef(&b, 1, 32);
-   nir_ssa_def *temp_const_ubo_name = NULL;
+   nir_def *temp_ubo_name = nir_undef(&b, 1, 32);
+   nir_def *temp_const_ubo_name = NULL;
 
    /* Turn system value intrinsics into uniforms */
    nir_foreach_block(block, impl) {
@@ -477,16 +461,23 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
             continue;
 
          nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-         nir_ssa_def *offset;
+         nir_def *offset;
 
          switch (intrin->intrinsic) {
+         case nir_intrinsic_load_base_workgroup_id: {
+            /* GL doesn't have a concept of base workgroup */
+            b.cursor = nir_instr_remove(&intrin->instr);
+            nir_def_rewrite_uses(&intrin->def,
+                                     nir_imm_zero(&b, 3, 32));
+            continue;
+         }
          case nir_intrinsic_load_constant: {
             /* This one is special because it reads from the shader constant
              * data and not cbuf0 which gallium uploads for us.
              */
             b.cursor = nir_before_instr(instr);
-            nir_ssa_def *offset =
-               nir_iadd_imm(&b, nir_ssa_for_src(&b, intrin->src[0], 1),
+            nir_def *offset =
+               nir_iadd_imm(&b, intrin->src[0].ssa,
                             nir_intrinsic_base(intrin));
 
             if (temp_const_ubo_name == NULL)
@@ -500,14 +491,13 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
             nir_intrinsic_set_align(load_ubo, 4, 0);
             nir_intrinsic_set_range_base(load_ubo, 0);
             nir_intrinsic_set_range(load_ubo, ~0);
-            nir_ssa_dest_init(&load_ubo->instr, &load_ubo->dest,
-                              intrin->dest.ssa.num_components,
-                              intrin->dest.ssa.bit_size,
-                              NULL);
+            nir_def_init(&load_ubo->instr, &load_ubo->def,
+                         intrin->def.num_components,
+                         intrin->def.bit_size);
             nir_builder_instr_insert(&b, &load_ubo->instr);
 
-            nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                     &load_ubo->dest.ssa);
+            nir_def_rewrite_uses(&intrin->def,
+                                     &load_ubo->def);
             nir_instr_remove(&intrin->instr);
             continue;
          }
@@ -537,6 +527,36 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
 
             b.cursor = nir_before_instr(instr);
             offset = nir_imm_int(&b, patch_vert_idx * sizeof(uint32_t));
+            break;
+         case nir_intrinsic_load_tess_level_outer_default:
+            if (tess_outer_default_idx == -1) {
+               tess_outer_default_idx = num_system_values;
+               num_system_values += 4;
+            }
+
+            for (int i = 0; i < 4; i++) {
+               system_values[tess_outer_default_idx + i] =
+                  BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X + i;
+            }
+
+            b.cursor = nir_before_instr(instr);
+            offset =
+               nir_imm_int(&b, tess_outer_default_idx * sizeof(uint32_t));
+            break;
+         case nir_intrinsic_load_tess_level_inner_default:
+            if (tess_inner_default_idx == -1) {
+               tess_inner_default_idx = num_system_values;
+               num_system_values += 2;
+            }
+
+            for (int i = 0; i < 2; i++) {
+               system_values[tess_inner_default_idx + i] =
+                  BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_X + i;
+            }
+
+            b.cursor = nir_before_instr(instr);
+            offset =
+               nir_imm_int(&b, tess_inner_default_idx * sizeof(uint32_t));
             break;
          case nir_intrinsic_image_deref_load_param_intel: {
             assert(devinfo->ver < 9);
@@ -575,10 +595,10 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
             }
 
             b.cursor = nir_before_instr(instr);
-            offset = nir_iadd(&b,
-                              get_aoa_deref_offset(&b, deref, BRW_IMAGE_PARAM_SIZE * 4),
-                              nir_imm_int(&b, img_idx[var->data.binding] * 4 +
-                                          nir_intrinsic_base(intrin) * 16));
+            offset = nir_iadd_imm(&b,
+                                  get_aoa_deref_offset(&b, deref, BRW_IMAGE_PARAM_SIZE * 4),
+                                  img_idx[var->data.binding] * 4 +
+                                  nir_intrinsic_base(intrin) * 16);
             break;
          }
          case nir_intrinsic_load_workgroup_size: {
@@ -611,10 +631,10 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
          nir_intrinsic_set_align(load, 4, 0);
          nir_intrinsic_set_range_base(load, 0);
          nir_intrinsic_set_range(load, ~0);
-         nir_ssa_dest_init(&load->instr, &load->dest, comps, 32, NULL);
+         nir_def_init(&load->instr, &load->def, comps, 32);
          nir_builder_instr_insert(&b, &load->instr);
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                  &load->dest.ssa);
+         nir_def_rewrite_uses(&intrin->def,
+                                  &load->def);
          nir_instr_remove(instr);
       }
    }
@@ -649,12 +669,9 @@ crocus_setup_uniforms(const struct brw_compiler *compiler,
 
             b.cursor = nir_before_instr(instr);
 
-            assert(load->src[0].is_ssa);
-
             if (load->src[0].ssa == temp_ubo_name) {
-               nir_ssa_def *imm = nir_imm_int(&b, sysval_cbuf_index);
-               nir_instr_rewrite_src(instr, &load->src[0],
-                                     nir_src_for_ssa(imm));
+               nir_def *imm = nir_imm_int(&b, sysval_cbuf_index);
+               nir_src_rewrite(&load->src[0], imm);
             }
          }
       }
@@ -756,7 +773,7 @@ rewrite_src_with_bti(nir_builder *b, struct crocus_binding_table *bt,
    assert(bt->sizes[group] > 0);
 
    b->cursor = nir_before_instr(instr);
-   nir_ssa_def *bti;
+   nir_def *bti;
    if (nir_src_is_const(*src)) {
       uint32_t index = nir_src_as_uint(*src);
       bti = nir_imm_intN_t(b, crocus_group_index_to_bti(bt, group, index),
@@ -768,7 +785,7 @@ rewrite_src_with_bti(nir_builder *b, struct crocus_binding_table *bt,
       assert(bt->used_mask[group] == BITFIELD64_MASK(bt->sizes[group]));
       bti = nir_iadd_imm(b, src->ssa, bt->offsets[group]);
    }
-   nir_instr_rewrite_src(instr, src, nir_src_for_ssa(bti));
+   nir_src_rewrite(src, bti);
 }
 
 static void
@@ -792,7 +809,7 @@ skip_compacting_binding_tables(void)
 {
    static int skip = -1;
    if (skip < 0)
-      skip = env_var_as_boolean("INTEL_DISABLE_COMPACT_BINDING_TABLE", false);
+      skip = debug_get_bool_option("INTEL_DISABLE_COMPACT_BINDING_TABLE", false);
    return skip;
 }
 
@@ -890,16 +907,8 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
          case nir_intrinsic_image_size:
          case nir_intrinsic_image_load:
          case nir_intrinsic_image_store:
-         case nir_intrinsic_image_atomic_add:
-         case nir_intrinsic_image_atomic_imin:
-         case nir_intrinsic_image_atomic_umin:
-         case nir_intrinsic_image_atomic_imax:
-         case nir_intrinsic_image_atomic_umax:
-         case nir_intrinsic_image_atomic_and:
-         case nir_intrinsic_image_atomic_or:
-         case nir_intrinsic_image_atomic_xor:
-         case nir_intrinsic_image_atomic_exchange:
-         case nir_intrinsic_image_atomic_comp_swap:
+         case nir_intrinsic_image_atomic:
+         case nir_intrinsic_image_atomic_swap:
          case nir_intrinsic_image_load_raw_intel:
          case nir_intrinsic_image_store_raw_intel:
             mark_used_with_src(bt, &intrin->src[0], CROCUS_SURFACE_GROUP_IMAGE);
@@ -914,19 +923,8 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
             break;
 
          case nir_intrinsic_get_ssbo_size:
-         case nir_intrinsic_ssbo_atomic_add:
-         case nir_intrinsic_ssbo_atomic_imin:
-         case nir_intrinsic_ssbo_atomic_umin:
-         case nir_intrinsic_ssbo_atomic_imax:
-         case nir_intrinsic_ssbo_atomic_umax:
-         case nir_intrinsic_ssbo_atomic_and:
-         case nir_intrinsic_ssbo_atomic_or:
-         case nir_intrinsic_ssbo_atomic_xor:
-         case nir_intrinsic_ssbo_atomic_exchange:
-         case nir_intrinsic_ssbo_atomic_comp_swap:
-         case nir_intrinsic_ssbo_atomic_fmin:
-         case nir_intrinsic_ssbo_atomic_fmax:
-         case nir_intrinsic_ssbo_atomic_fcomp_swap:
+         case nir_intrinsic_ssbo_atomic:
+         case nir_intrinsic_ssbo_atomic_swap:
          case nir_intrinsic_load_ssbo:
             mark_used_with_src(bt, &intrin->src[0], CROCUS_SURFACE_GROUP_SSBO);
             break;
@@ -964,8 +962,7 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
     * to change those, as we haven't set any of the *_start entries in brw
     * binding_table.
     */
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_foreach_block (block, impl) {
       nir_foreach_instr (instr, block) {
@@ -986,13 +983,13 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
                enum gfx6_gather_sampler_wa wa = key->gfx6_gather_wa[tex->texture_index];
                int width = (wa & WA_8BIT) ? 8 : 16;
 
-               nir_ssa_def *val = nir_fmul_imm(&b, &tex->dest.ssa, (1 << width) - 1);
+               nir_def *val = nir_fmul_imm(&b, &tex->def, (1 << width) - 1);
                val = nir_f2u32(&b, val);
                if (wa & WA_SIGN) {
-                  val = nir_ishl(&b, val, nir_imm_int(&b, 32 - width));
-                  val = nir_ishr(&b, val, nir_imm_int(&b, 32 - width));
+                  val = nir_ishl_imm(&b, val, 32 - width);
+                  val = nir_ishr_imm(&b, val, 32 - width);
                }
-               nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, val, val->parent_instr);
+               nir_def_rewrite_uses_after(&tex->def, val, val->parent_instr);
             }
 
             tex->texture_index =
@@ -1009,16 +1006,8 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
          case nir_intrinsic_image_size:
          case nir_intrinsic_image_load:
          case nir_intrinsic_image_store:
-         case nir_intrinsic_image_atomic_add:
-         case nir_intrinsic_image_atomic_imin:
-         case nir_intrinsic_image_atomic_umin:
-         case nir_intrinsic_image_atomic_imax:
-         case nir_intrinsic_image_atomic_umax:
-         case nir_intrinsic_image_atomic_and:
-         case nir_intrinsic_image_atomic_or:
-         case nir_intrinsic_image_atomic_xor:
-         case nir_intrinsic_image_atomic_exchange:
-         case nir_intrinsic_image_atomic_comp_swap:
+         case nir_intrinsic_image_atomic:
+         case nir_intrinsic_image_atomic_swap:
          case nir_intrinsic_image_load_raw_intel:
          case nir_intrinsic_image_store_raw_intel:
             rewrite_src_with_bti(&b, bt, instr, &intrin->src[0],
@@ -1043,19 +1032,8 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
             break;
 
          case nir_intrinsic_get_ssbo_size:
-         case nir_intrinsic_ssbo_atomic_add:
-         case nir_intrinsic_ssbo_atomic_imin:
-         case nir_intrinsic_ssbo_atomic_umin:
-         case nir_intrinsic_ssbo_atomic_imax:
-         case nir_intrinsic_ssbo_atomic_umax:
-         case nir_intrinsic_ssbo_atomic_and:
-         case nir_intrinsic_ssbo_atomic_or:
-         case nir_intrinsic_ssbo_atomic_xor:
-         case nir_intrinsic_ssbo_atomic_exchange:
-         case nir_intrinsic_ssbo_atomic_comp_swap:
-         case nir_intrinsic_ssbo_atomic_fmin:
-         case nir_intrinsic_ssbo_atomic_fmax:
-         case nir_intrinsic_ssbo_atomic_fcomp_swap:
+         case nir_intrinsic_ssbo_atomic:
+         case nir_intrinsic_ssbo_atomic_swap:
          case nir_intrinsic_load_ssbo:
             rewrite_src_with_bti(&b, bt, instr, &intrin->src[0],
                                  CROCUS_SURFACE_GROUP_SSBO);
@@ -1162,10 +1140,8 @@ crocus_lower_default_edgeflags(struct nir_shader *nir)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_at(nir_after_impl(impl));
 
-   b.cursor = nir_after_cf_list(&b.impl->body);
    nir_variable *var = nir_variable_create(nir, nir_var_shader_out,
                                            glsl_float_type(),
                                            "edgeflag");
@@ -1197,12 +1173,14 @@ crocus_compile_vs(struct crocus_context *ice,
 
    if (key->nr_userclip_plane_consts) {
       nir_function_impl *impl = nir_shader_get_entrypoint(nir);
-      nir_lower_clip_vs(nir, (1 << key->nr_userclip_plane_consts) - 1, true,
-                        false, NULL);
-      nir_lower_io_to_temporaries(nir, impl, true, false);
-      nir_lower_global_vars_to_local(nir);
-      nir_lower_vars_to_ssa(nir);
-      nir_shader_gather_info(nir, impl);
+      /* Check if variables were found. */
+      if (nir_lower_clip_vs(nir, (1 << key->nr_userclip_plane_consts) - 1,
+                            true, false, NULL)) {
+         nir_lower_io_to_temporaries(nir, impl, true, false);
+         nir_lower_global_vars_to_local(nir);
+         nir_lower_vars_to_ssa(nir);
+         nir_shader_gather_info(nir, impl);
+      }
    }
 
    if (key->clamp_pointsize)
@@ -1210,7 +1188,7 @@ crocus_compile_vs(struct crocus_context *ice,
 
    prog_data->use_alt_mode = nir->info.use_legacy_math_rules;
 
-   crocus_setup_uniforms(compiler, mem_ctx, nir, prog_data, &system_values,
+   crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
                          &num_system_values, &num_cbufs);
 
    crocus_lower_swizzles(nir, &key->base.tex);
@@ -1224,7 +1202,7 @@ crocus_compile_vs(struct crocus_context *ice,
                               num_system_values, num_cbufs, &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, NULL, prog_data->ubo_ranges);
+      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
    uint64_t outputs_written =
       crocus_vs_outputs_written(ice, key, nir->info.outputs_written);
@@ -1241,16 +1219,19 @@ crocus_compile_vs(struct crocus_context *ice,
    crocus_sanitize_tex_key(&key_no_ucp.base.tex);
 
    struct brw_compile_vs_params params = {
-      .nir = nir,
+      .base = {
+         .mem_ctx = mem_ctx,
+         .nir = nir,
+         .log_data = &ice->dbg,
+      },
       .key = &key_no_ucp,
       .prog_data = vs_prog_data,
       .edgeflag_is_last = devinfo->ver < 6,
-      .log_data = &ice->dbg,
    };
    const unsigned *program =
-      brw_compile_vs(compiler, mem_ctx, &params);
+      brw_compile_vs(compiler, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile vertex shader: %s\n", params.error_str);
+      dbg_printf("Failed to compile vertex shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -1403,8 +1384,6 @@ crocus_compile_tcs(struct crocus_context *ice,
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
-   const struct nir_shader_compiler_options *options =
-      compiler->nir_options[MESA_SHADER_TESS_CTRL];
    void *mem_ctx = ralloc_context(NULL);
    struct brw_tcs_prog_data *tcs_prog_data =
       rzalloc(mem_ctx, struct brw_tcs_prog_data);
@@ -1421,65 +1400,35 @@ crocus_compile_tcs(struct crocus_context *ice,
 
    if (ish) {
       nir = nir_shader_clone(mem_ctx, ish->nir);
-
-      crocus_setup_uniforms(compiler, mem_ctx, nir, prog_data, &system_values,
-                            &num_system_values, &num_cbufs);
-
-      crocus_lower_swizzles(nir, &key->base.tex);
-      crocus_setup_binding_table(devinfo, nir, &bt, /* num_render_targets */ 0,
-                                 num_system_values, num_cbufs, &key->base.tex);
-      if (can_push_ubo(devinfo))
-         brw_nir_analyze_ubo_ranges(compiler, nir, NULL, prog_data->ubo_ranges);
    } else {
-      nir = brw_nir_create_passthrough_tcs(mem_ctx, compiler, options, key);
-
-      /* Reserve space for passing the default tess levels as constants. */
-      num_cbufs = 1;
-      num_system_values = 8;
-      system_values =
-         rzalloc_array(mem_ctx, enum brw_param_builtin, num_system_values);
-      prog_data->param = rzalloc_array(mem_ctx, uint32_t, num_system_values);
-      prog_data->nr_params = num_system_values;
-
-      if (key->_tes_primitive_mode == TESS_PRIMITIVE_QUADS) {
-         for (int i = 0; i < 4; i++)
-            system_values[7 - i] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X + i;
-
-         system_values[3] = BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_X;
-         system_values[2] = BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_Y;
-      } else if (key->_tes_primitive_mode == TESS_PRIMITIVE_TRIANGLES) {
-         for (int i = 0; i < 3; i++)
-            system_values[7 - i] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X + i;
-
-         system_values[4] = BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_X;
-      } else {
-         assert(key->_tes_primitive_mode == TESS_PRIMITIVE_ISOLINES);
-         system_values[7] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_Y;
-         system_values[6] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X;
-      }
-
-      /* Manually setup the TCS binding table. */
-      memset(&bt, 0, sizeof(bt));
-      bt.sizes[CROCUS_SURFACE_GROUP_UBO] = 1;
-      bt.used_mask[CROCUS_SURFACE_GROUP_UBO] = 1;
-      bt.size_bytes = 4;
-
-      prog_data->ubo_ranges[0].length = 1;
+      nir = brw_nir_create_passthrough_tcs(mem_ctx, compiler, key);
    }
+
+   crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
+                         &num_system_values, &num_cbufs);
+
+   crocus_lower_swizzles(nir, &key->base.tex);
+   crocus_setup_binding_table(devinfo, nir, &bt, /* num_render_targets */ 0,
+                              num_system_values, num_cbufs, &key->base.tex);
+   if (can_push_ubo(devinfo))
+      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
    struct brw_tcs_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
    struct brw_compile_tcs_params params = {
-      .nir = nir,
+      .base = {
+         .mem_ctx = mem_ctx,
+         .nir = nir,
+         .log_data = &ice->dbg,
+      },
       .key = &key_clean,
       .prog_data = tcs_prog_data,
-      .log_data = &ice->dbg,
    };
 
-   const unsigned *program = brw_compile_tcs(compiler, mem_ctx, &params);
+   const unsigned *program = brw_compile_tcs(compiler, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile control shader: %s\n", params.error_str);
+      dbg_printf("Failed to compile control shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -1594,7 +1543,7 @@ crocus_compile_tes(struct crocus_context *ice,
    if (key->clamp_pointsize)
       nir_lower_point_size(nir, 1.0, 255.0);
 
-   crocus_setup_uniforms(compiler, mem_ctx, nir, prog_data, &system_values,
+   crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
                          &num_system_values, &num_cbufs);
    crocus_lower_swizzles(nir, &key->base.tex);
    struct crocus_binding_table bt;
@@ -1602,7 +1551,7 @@ crocus_compile_tes(struct crocus_context *ice,
                               num_system_values, num_cbufs, &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, NULL, prog_data->ubo_ranges);
+      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
    struct brw_vue_map input_vue_map;
    brw_compute_tess_vue_map(&input_vue_map, key->inputs_read,
@@ -1612,16 +1561,19 @@ crocus_compile_tes(struct crocus_context *ice,
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
    struct brw_compile_tes_params params = {
-      .nir = nir,
+      .base = {
+         .mem_ctx = mem_ctx,
+         .nir = nir,
+         .log_data = &ice->dbg,
+      },
       .key = &key_clean,
       .prog_data = tes_prog_data,
       .input_vue_map = &input_vue_map,
-      .log_data = &ice->dbg,
    };
 
-   const unsigned *program = brw_compile_tes(compiler, mem_ctx, &params);
+   const unsigned *program = brw_compile_tes(compiler, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile evaluation shader: %s\n", params.error_str);
+      dbg_printf("Failed to compile evaluation shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -1734,7 +1686,7 @@ crocus_compile_gs(struct crocus_context *ice,
    if (key->clamp_pointsize)
       nir_lower_point_size(nir, 1.0, 255.0);
 
-   crocus_setup_uniforms(compiler, mem_ctx, nir, prog_data, &system_values,
+   crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
                          &num_system_values, &num_cbufs);
    crocus_lower_swizzles(nir, &key->base.tex);
    struct crocus_binding_table bt;
@@ -1742,7 +1694,7 @@ crocus_compile_gs(struct crocus_context *ice,
                               num_system_values, num_cbufs, &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, NULL, prog_data->ubo_ranges);
+      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
    brw_compute_vue_map(devinfo,
                        &vue_prog_data->vue_map, nir->info.outputs_written,
@@ -1754,15 +1706,18 @@ crocus_compile_gs(struct crocus_context *ice,
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
    struct brw_compile_gs_params params = {
-      .nir = nir,
+      .base = {
+         .mem_ctx = mem_ctx,
+         .nir = nir,
+         .log_data = &ice->dbg,
+      },
       .key = &key_clean,
       .prog_data = gs_prog_data,
-      .log_data = &ice->dbg,
    };
 
-   const unsigned *program = brw_compile_gs(compiler, mem_ctx, &params);
+   const unsigned *program = brw_compile_gs(compiler, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile geometry shader: %s\n", params.error_str);
+      dbg_printf("Failed to compile geometry shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -1860,7 +1815,7 @@ crocus_compile_fs(struct crocus_context *ice,
 
    prog_data->use_alt_mode = nir->info.use_legacy_math_rules;
 
-   crocus_setup_uniforms(compiler, mem_ctx, nir, prog_data, &system_values,
+   crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
                          &num_system_values, &num_cbufs);
 
    /* Lower output variables to load_output intrinsics before setting up
@@ -1881,25 +1836,28 @@ crocus_compile_fs(struct crocus_context *ice,
                               &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, NULL, prog_data->ubo_ranges);
+      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
    struct brw_wm_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
    struct brw_compile_fs_params params = {
-      .nir = nir,
+      .base = {
+         .mem_ctx = mem_ctx,
+         .nir = nir,
+         .log_data = &ice->dbg,
+      },
       .key = &key_clean,
       .prog_data = fs_prog_data,
 
       .allow_spilling = true,
+      .max_polygons = 1,
       .vue_map = vue_map,
-
-      .log_data = &ice->dbg,
    };
    const unsigned *program =
-      brw_compile_fs(compiler, mem_ctx, &params);
+      brw_compile_fs(compiler, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile fragment shader: %s\n", params.error_str);
+      dbg_printf("Failed to compile fragment shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -2125,7 +2083,7 @@ crocus_update_compiled_clip(struct crocus_context *ice)
    else
       key.clip_mode = BRW_CLIP_MODE_NORMAL;
 
-   if (key.primitive == PIPE_PRIM_TRIANGLES) {
+   if (key.primitive == MESA_PRIM_TRIANGLES) {
       if (rs_state->cull_face == PIPE_FACE_FRONT_AND_BACK)
          key.clip_mode = BRW_CLIP_MODE_REJECT_ALL;
       else {
@@ -2260,17 +2218,17 @@ crocus_update_compiled_sf(struct crocus_context *ice)
    key.attrs = ice->shaders.last_vue_map->slots_valid;
 
    switch (ice->state.reduced_prim_mode) {
-   case PIPE_PRIM_TRIANGLES:
+   case MESA_PRIM_TRIANGLES:
    default:
       if (key.attrs & BITFIELD64_BIT(VARYING_SLOT_EDGE))
          key.primitive = BRW_SF_PRIM_UNFILLED_TRIS;
       else
          key.primitive = BRW_SF_PRIM_TRIANGLES;
       break;
-   case PIPE_PRIM_LINES:
+   case MESA_PRIM_LINES:
       key.primitive = BRW_SF_PRIM_LINES;
       break;
-   case PIPE_PRIM_POINTS:
+   case MESA_PRIM_POINTS:
       key.primitive = BRW_SF_PRIM_POINTS;
       break;
    }
@@ -2557,7 +2515,7 @@ crocus_compile_cs(struct crocus_context *ice,
 
    NIR_PASS_V(nir, brw_nir_lower_cs_intrinsics);
 
-   crocus_setup_uniforms(compiler, mem_ctx, nir, prog_data, &system_values,
+   crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
                          &num_system_values, &num_cbufs);
    crocus_lower_swizzles(nir, &key->base.tex);
    struct crocus_binding_table bt;
@@ -2565,16 +2523,19 @@ crocus_compile_cs(struct crocus_context *ice,
                               num_system_values, num_cbufs, &key->base.tex);
 
    struct brw_compile_cs_params params = {
-      .nir = nir,
+      .base = {
+         .mem_ctx = mem_ctx,
+         .nir = nir,
+         .log_data = &ice->dbg,
+      },
       .key = key,
       .prog_data = cs_prog_data,
-      .log_data = &ice->dbg,
    };
 
    const unsigned *program =
-      brw_compile_cs(compiler, mem_ctx, &params);
+      brw_compile_cs(compiler, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile compute shader: %s\n", params.error_str);
+      dbg_printf("Failed to compile compute shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -2710,9 +2671,17 @@ crocus_create_uncompiled_shader(struct pipe_context *ctx,
    else
      ish->needs_edge_flag = false;
 
-   brw_preprocess_nir(screen->compiler, nir, NULL);
+   struct brw_nir_compiler_opts opts = {};
+   brw_preprocess_nir(screen->compiler, nir, &opts);
 
-   NIR_PASS_V(nir, brw_nir_lower_storage_image, devinfo);
+   NIR_PASS_V(nir, brw_nir_lower_storage_image,
+              &(struct brw_nir_lower_storage_image_opts) {
+                 .devinfo = devinfo,
+                 .lower_loads = true,
+                 .lower_stores = true,
+                 .lower_atomics = true,
+                 .lower_get_size = true,
+              });
    NIR_PASS_V(nir, crocus_lower_storage_image_derefs);
 
    nir_sweep(nir);

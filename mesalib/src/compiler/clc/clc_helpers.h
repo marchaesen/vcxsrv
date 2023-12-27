@@ -73,6 +73,11 @@ clc_link_spirv_binaries(const struct clc_linker_args *args,
                         const struct clc_logger *logger,
                         struct clc_binary *out_spirv);
 
+bool
+clc_validate_spirv(const struct clc_binary *spirv,
+                   const struct clc_logger *logger,
+                   const struct clc_validator_options *options);
+
 int
 clc_spirv_specialize(const struct clc_binary *in_spirv,
                      const struct clc_parsed_spirv *parsed_data,

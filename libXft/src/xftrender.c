@@ -21,9 +21,51 @@
  */
 
 #include "xftint.h"
+#include <stdint.h>
 
 #define NUM_LOCAL	1024
 #define NUM_ELT_LOCAL	128
+
+/*
+ * Dispatch glyph drawing to the correct XRenderCompositeString function
+ */
+static void
+_XftCompositeString (Display           *dpy,
+                     int               op,
+                     Picture           src,
+                     Picture           dst,
+                     XRenderPictFormat *format,
+                     GlyphSet          glyphset,
+                     int               srcx,
+                     int               srcy,
+                     int               dstx,
+                     int               dsty,
+                     int               charwidth,
+                     unsigned int      *chars,
+                     int               nchars)
+{
+    if (nchars == 0)
+        return;
+
+    switch (charwidth) {
+    case 1:
+    default:
+	XRenderCompositeString8 (dpy, op,
+				 src, dst, format, glyphset,
+				 srcx, srcy, dstx, dsty, (char*)chars, nchars);
+	break;
+    case 2:
+	XRenderCompositeString16(dpy, op,
+				 src, dst, format, glyphset,
+				 srcx, srcy, dstx, dsty, (unsigned short*)chars, nchars);
+	break;
+    case 4:
+	XRenderCompositeString32(dpy, op,
+				 src, dst, format, glyphset,
+				 srcx, srcy, dstx, dsty, (unsigned int*)chars, nchars);
+	break;
+    }
+}
 
 /*
  * Use the Render extension to draw the glyphs
@@ -43,18 +85,22 @@ XftGlyphRender (Display		*dpy,
 		int		nglyphs)
 {
     XftFontInt	    *font = (XftFontInt *) pub;
-    int		    i;
+    int		    i, j;
     FT_UInt	    missing[XFT_NMISSING];
     int		    nmissing;
     FT_UInt	    g, max;
-    int		    size, width;
+    int		    width;
+    int		    dstx, dsty;
     Glyph	    wire;
+    XftGlyph*       glyph;
     char	    *char8;
     unsigned short  *char16;
     unsigned int    *char32;
     unsigned int    char_local[NUM_LOCAL];
     unsigned int    *chars;
     FcBool	    glyphs_loaded;
+    size_t          size;
+    size_t          needed;
 
     if (!font->format)
 	return;
@@ -94,49 +140,100 @@ XftGlyphRender (Display		*dpy,
 	size = sizeof (unsigned int);
     }
     chars = char_local;
-    if (nglyphs * size > sizeof (char_local))
+    if ((size_t)nglyphs > SIZE_MAX / size)
+	goto bail1;
+    needed = (size_t)nglyphs * size;
+    if (needed > sizeof (char_local))
     {
-	chars = malloc (nglyphs * size);
+	chars = malloc (needed);
 	if (!chars)
 	    goto bail1;
     }
+    dstx = x;
+    dsty = y;
     char8 = (char *) chars;
     char16 = (unsigned short *) chars;
     char32 = (unsigned int *) chars;
-    for (i = 0; i < nglyphs; i++)
+    for (i = 0, j = 0; i < nglyphs; i++)
     {
 	wire = (Glyph) glyphs[i];
-	if (wire >= font->num_glyphs || !font->glyphs[wire])
+	if (wire >= (Glyph) font->num_glyphs || !font->glyphs[wire])
 	    wire = 0;
-	switch (width) {
-	case 1: char8[i] = (char) wire; break;
-	case 2: char16[i] = (unsigned short) wire; break;
-	case 4: char32[i] = (unsigned long) wire; break;
+        glyph = font->glyphs[wire];
+	if (glyph == NULL)
+	    continue;
+	if (glyph->picture)
+	{
+	    _XftCompositeString(dpy, op, src, dst, font->format, font->glyphset, srcx, srcy, x, y, width, chars, j);
+	    XRenderComposite(dpy, PictOpOver, glyph->picture, None, dst, 0, 0, 0, 0, dstx - glyph->metrics.x, dsty - glyph->metrics.y, glyph->metrics.width, glyph->metrics.height);
+	    dstx += glyph->metrics.xOff;
+	    dsty += glyph->metrics.yOff;
+	    x = dstx;
+	    y = dsty;
+	    j = 0;
+	}
+	else
+	{
+	    switch (width) {
+	    case 1: char8[j] = (char) wire; break;
+	    case 2: char16[j] = (unsigned short) wire; break;
+	    case 4: char32[j] = (unsigned int) wire; break;
+	    }
+	    dstx += glyph->metrics.xOff;
+	    dsty += glyph->metrics.yOff;
+	    ++j;
 	}
     }
-    switch (width) {
-    case 1:
-    default:
-	XRenderCompositeString8 (dpy, op,
-				 src, dst, font->format, font->glyphset,
-				 srcx, srcy, x, y, char8, nglyphs);
-	break;
-    case 2:
-	XRenderCompositeString16(dpy, op,
-				 src, dst, font->format, font->glyphset,
-				 srcx, srcy, x, y, char16, nglyphs);
-	break;
-    case 4:
-	XRenderCompositeString32(dpy, op,
-				 src, dst, font->format, font->glyphset,
-				 srcx, srcy, x, y, char32, nglyphs);
-	break;
-    }
+    _XftCompositeString(dpy, op, src, dst, font->format, font->glyphset,
+                        srcx, srcy, x, y, width, chars, j);
     if (chars != char_local)
 	free (chars);
 bail1:
     if (glyphs_loaded)
 	_XftFontManageMemory (dpy, pub);
+}
+
+/*
+ * Dispatch glyph drawing to the correct XRenderCompositeText function
+ */
+static void
+_XftCompositeText (Display           *dpy,
+                   int               op,
+                   Picture           src,
+                   Picture           dst,
+                   XRenderPictFormat *format,
+                   int               srcx,
+                   int               srcy,
+                   int               dstx,
+                   int               dsty,
+                   int               eltwidth,
+                   XGlyphElt8        *elts,
+                   int               nelt)
+{
+    if (nelt == 0)
+        return;
+
+    switch (eltwidth) {
+    case 1:
+    default:
+	XRenderCompositeText8 (dpy, op,
+			       src, dst, format,
+			       srcx, srcy, dstx, dsty,
+	                       (XGlyphElt8*)elts, nelt);
+	break;
+    case 2:
+	XRenderCompositeText16(dpy, op,
+			       src, dst, format,
+			       srcx, srcy, dstx, dsty,
+	                       (XGlyphElt16*)elts, nelt);
+	break;
+    case 4:
+	XRenderCompositeText32(dpy, op,
+			       src, dst, format,
+			       srcx, srcy, dstx, dsty,
+	                       (XGlyphElt32*)elts, nelt);
+	break;
+    }
 }
 
 _X_EXPORT void
@@ -217,7 +314,7 @@ XftGlyphSpecRender (Display		    *dpy,
     chars = char_local;
     if (nglyphs * size > NUM_LOCAL)
     {
-	chars = malloc (nglyphs * size);
+	chars = malloc ((size_t)(nglyphs * size));
 	if (!chars)
 	    goto bail1;
     }
@@ -232,7 +329,7 @@ XftGlyphSpecRender (Display		    *dpy,
     for (i = 0; i < nglyphs; i++)
     {
 	g = glyphs[i].glyph;
-	/* Substitute default for non-existant glyphs */
+	/* Substitute default for non-existent glyphs */
 	if (g >= font->num_glyphs || !font->glyphs[g])
 	    g = 0;
 	if (font->glyphs[g])
@@ -246,14 +343,15 @@ XftGlyphSpecRender (Display		    *dpy,
     while (++i < nglyphs)
     {
 	g = glyphs[i].glyph;
-	/* Substitute default for non-existant glyphs */
+	/* Substitute default for non-existent glyphs */
 	if (g >= font->num_glyphs || !font->glyphs[g])
 	    g = 0;
 	/*
 	 * check to see if the glyph is placed where it would
-	 * fall using the normal spacing
+	 * fall using the normal spacing and if it would render
+	 * as a XRender glyph
 	 */
-	if ((glyph = font->glyphs[g]))
+	if ((glyph = font->glyphs[g]) && !glyph->picture)
 	{
 	    if (x != glyphs[i].x || y != glyphs[i].y)
 	    {
@@ -269,13 +367,13 @@ XftGlyphSpecRender (Display		    *dpy,
     elts = elts_local;
     if (nelt > NUM_ELT_LOCAL)
     {
-	elts = malloc (nelt * sizeof (XGlyphElt8));
+	elts = AllocGlyphElt8Array (nelt);
 	if (!elts)
 	    goto bail2;
     }
 
     /*
-     * Generate the list of glyph elts
+     * Generate the list of glyph elts or render color glyphs
      */
     nelt = 0;
     x = y = 0;
@@ -284,11 +382,21 @@ XftGlyphSpecRender (Display		    *dpy,
     for (i = 0; i < nglyphs; i++)
     {
 	g = glyphs[i].glyph;
-	/* Substitute default for non-existant glyphs */
+	/* Substitute default for non-existent glyphs */
 	if (g >= font->num_glyphs || !font->glyphs[g])
 	    g = 0;
 	if ((glyph = font->glyphs[g]))
 	{
+	    if (glyph->picture)
+	    {
+                XRenderComposite(dpy, PictOpOver, glyph->picture, None,
+                                 dst, 0, 0, 0, 0,
+                                 glyphs[i].x - glyph->metrics.x,
+                                 glyphs[i].y - glyph->metrics.y,
+                                 glyph->metrics.width,
+                                 glyph->metrics.height);
+                continue;
+	    }
 	    if (!i || x != glyphs[i].x || y != glyphs[i].y)
 	    {
 		if (n)
@@ -320,23 +428,9 @@ XftGlyphSpecRender (Display		    *dpy,
 	elts[nelt].nchars = n;
 	nelt++;
     }
-    switch (width) {
-    case 1:
-	XRenderCompositeText8 (dpy, op, src, dst, font->format,
-			       srcx, srcy, glyphs[0].x, glyphs[0].y,
-			       elts, nelt);
-	break;
-    case 2:
-	XRenderCompositeText16 (dpy, op, src, dst, font->format,
-				srcx, srcy, glyphs[0].x, glyphs[0].y,
-				(XGlyphElt16 *) elts, nelt);
-	break;
-    case 4:
-	XRenderCompositeText32 (dpy, op, src, dst, font->format,
-				srcx, srcy, glyphs[0].x, glyphs[0].y,
-				(XGlyphElt32 *) elts, nelt);
-	break;
-    }
+    _XftCompositeText(dpy, op, src, dst, font->format,
+		      srcx, srcy, glyphs[0].x, glyphs[0].y,
+		      width, elts, nelt);
 
     if (elts != elts_local)
 	free (elts);
@@ -362,11 +456,14 @@ XftCharSpecRender (Display		*dpy,
     XftGlyphSpec    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (XftGlyphSpec));
+	glyphs = AllocGlyphSpecArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -489,7 +586,7 @@ XftGlyphFontSpecRender (Display			    *dpy,
     chars = char_local;
     if (nglyphs * size > NUM_LOCAL)
     {
-	chars = malloc (nglyphs * size);
+	chars = malloc ((size_t)(nglyphs * size));
 	if (!chars)
 	    goto bail1;
     }
@@ -507,7 +604,7 @@ XftGlyphFontSpecRender (Display			    *dpy,
 	XftFont	    *pub = glyphs[i].font;
 	XftFontInt  *font = (XftFontInt *) pub;
 	g = glyphs[i].glyph;
-	/* Substitute default for non-existant glyphs */
+	/* Substitute default for non-existent glyphs */
 	if (g >= font->num_glyphs || !font->glyphs[g])
 	    g = 0;
 	if (font->glyphs[g])
@@ -528,14 +625,14 @@ XftGlyphFontSpecRender (Display			    *dpy,
 	XftFont	    *pub = glyphs[i].font;
 	XftFontInt  *font = (XftFontInt *) pub;
 	g = glyphs[i].glyph;
-	/* Substitute default for non-existant glyphs */
+	/* Substitute default for non-existent glyphs */
 	if (g >= font->num_glyphs || !font->glyphs[g])
 	    g = 0;
 	/*
 	 * check to see if the glyph is placed where it would
 	 * fall using the normal spacing
 	 */
-	if ((glyph = font->glyphs[g]))
+	if ((glyph = font->glyphs[g]) && !glyph->picture)
 	{
 	    if (pub != prevPublic || x != glyphs[i].x || y != glyphs[i].y)
 	    {
@@ -554,13 +651,13 @@ XftGlyphFontSpecRender (Display			    *dpy,
     elts = elts_local;
     if (nelt > NUM_ELT_LOCAL)
     {
-	elts = malloc (nelt * sizeof (XGlyphElt8));
+	elts = AllocGlyphElt8Array (nelt);
 	if (!elts)
 	    goto bail2;
     }
 
     /*
-     * Generate the list of glyph elts
+     * Generate the list of glyph elts and render color glyphs
      */
     nelt = 0;
     x = y = 0;
@@ -573,11 +670,21 @@ XftGlyphFontSpecRender (Display			    *dpy,
 	XftFontInt  *font = (XftFontInt *) pub;
 
 	g = glyphs[i].glyph;
-	/* Substitute default for non-existant glyphs */
+	/* Substitute default for non-existent glyphs */
 	if (g >= font->num_glyphs || !font->glyphs[g])
 	    g = 0;
 	if ((glyph = font->glyphs[g]))
 	{
+	    if (glyph->picture)
+	    {
+                XRenderComposite(dpy, PictOpOver, glyph->picture, None,
+                                 dst, 0, 0, 0, 0,
+                                 glyphs[i].x - glyph->metrics.x,
+                                 glyphs[i].y - glyph->metrics.y,
+                                 glyph->metrics.width,
+                                 glyph->metrics.height);
+                continue;
+	    }
 	    if (!i || pub != prevPublic || x != glyphs[i].x || y != glyphs[i].y)
 	    {
 		if (n)
@@ -610,23 +717,9 @@ XftGlyphFontSpecRender (Display			    *dpy,
 	elts[nelt].nchars = n;
 	nelt++;
     }
-    switch (width) {
-    case 1:
-	XRenderCompositeText8 (dpy, op, src, dst, format,
-			       srcx, srcy, glyphs[0].x, glyphs[0].y,
-			       elts, nelt);
-	break;
-    case 2:
-	XRenderCompositeText16 (dpy, op, src, dst, format,
-				srcx, srcy, glyphs[0].x, glyphs[0].y,
-				(XGlyphElt16 *) elts, nelt);
-	break;
-    case 4:
-	XRenderCompositeText32 (dpy, op, src, dst, format,
-				srcx, srcy, glyphs[0].x, glyphs[0].y,
-				(XGlyphElt32 *) elts, nelt);
-	break;
-    }
+    _XftCompositeText(dpy, op, src, dst, format,
+		      srcx, srcy, glyphs[0].x, glyphs[0].y,
+		      width, elts, nelt);
 
     if (elts != elts_local)
 	free (elts);
@@ -652,11 +745,14 @@ XftCharFontSpecRender (Display			*dpy,
     XftGlyphFontSpec	*glyphs, glyphs_local[NUM_LOCAL];
     int			i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (XftGlyphFontSpec));
+	glyphs = AllocGlyphFontSpecArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -689,11 +785,14 @@ XftTextRender8 (Display		*dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -721,11 +820,14 @@ XftTextRender16 (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -753,17 +855,20 @@ XftTextRender16BE (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
     for (i = 0; i < len; i++)
 	glyphs[i] = XftCharIndex (dpy, pub,
-				  (string[i*2]<<8) | string[i*2+1]);
+				  (FcChar32)((string[i*2]<<8) | string[i*2+1]));
     XftGlyphRender (dpy, op, src, pub, dst,
 		     srcx, srcy, x, y, glyphs, len);
     if (glyphs != glyphs_local)
@@ -786,17 +891,20 @@ XftTextRender16LE (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
     for (i = 0; i < len; i++)
 	glyphs[i] = XftCharIndex (dpy, pub,
-				  string[i*2] | (string[i*2+1]<<8));
+				  (FcChar32)(string[i*2] | (string[i*2+1]<<8)));
     XftGlyphRender (dpy, op, src, pub, dst,
 		     srcx, srcy, x, y, glyphs, len);
     if (glyphs != glyphs_local)
@@ -819,11 +927,14 @@ XftTextRender32 (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
@@ -851,20 +962,23 @@ XftTextRender32BE (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
     for (i = 0; i < len; i++)
 	glyphs[i] = XftCharIndex (dpy, pub,
-				  (string[i*4] << 24) |
-				  (string[i*4+1] << 16) |
-				  (string[i*4+2] << 8) |
-				  (string[i*4+3]));
+				  (FcChar32)((string[i*4] << 24) |
+					     (string[i*4+1] << 16) |
+					     (string[i*4+2] << 8) |
+					     (string[i*4+3])));
     XftGlyphRender (dpy, op, src, pub, dst,
 		     srcx, srcy, x, y, glyphs, len);
     if (glyphs != glyphs_local)
@@ -887,20 +1001,23 @@ XftTextRender32LE (Display	    *dpy,
     FT_UInt	    *glyphs, glyphs_local[NUM_LOCAL];
     int		    i;
 
+    if (len <= 0)
+	return;
+
     if (len <= NUM_LOCAL)
 	glyphs = glyphs_local;
     else
     {
-	glyphs = malloc (len * sizeof (FT_UInt));
+	glyphs = AllocUIntArray (len);
 	if (!glyphs)
 	    return;
     }
     for (i = 0; i < len; i++)
 	glyphs[i] = XftCharIndex (dpy, pub,
-				  (string[i*4]) |
-				  (string[i*4+1] << 8) |
-				  (string[i*4+2] << 16) |
-				  (string[i*4+3] << 24));
+				  (FcChar32)((string[i*4]) |
+					     (string[i*4+1] << 8) |
+					     (string[i*4+2] << 16) |
+					     (string[i*4+3] << 24)));
     XftGlyphRender (dpy, op, src, pub, dst,
 		     srcx, srcy, x, y, glyphs, len);
     if (glyphs != glyphs_local)
@@ -926,6 +1043,9 @@ XftTextRenderUtf8 (Display	    *dpy,
     int		    l;
     int		    size;
 
+    if (len <= 0)
+	return;
+
     i = 0;
     glyphs = glyphs_local;
     size = NUM_LOCAL;
@@ -933,14 +1053,14 @@ XftTextRenderUtf8 (Display	    *dpy,
     {
 	if (i == size)
 	{
-	    glyphs_new = malloc (size * 2 * sizeof (FT_UInt));
+	    glyphs_new = AllocUIntArray (size * 2);
 	    if (!glyphs_new)
 	    {
 		if (glyphs != glyphs_local)
 		    free (glyphs);
 		return;
 	    }
-	    memcpy (glyphs_new, glyphs, size * sizeof (FT_UInt));
+	    memcpy (glyphs_new, glyphs, (size_t)size * sizeof (FT_UInt));
 	    size *= 2;
 	    if (glyphs != glyphs_local)
 		free (glyphs);
@@ -958,7 +1078,7 @@ XftTextRenderUtf8 (Display	    *dpy,
 
 _X_EXPORT void
 XftTextRenderUtf16 (Display	    *dpy,
-		    int		    op,
+		    int		    op _X_UNUSED,
 		    Picture	    src,
 		    XftFont	    *pub,
 		    Picture	    dst,
@@ -976,6 +1096,9 @@ XftTextRenderUtf16 (Display	    *dpy,
     int		    l;
     int		    size;
 
+    if (len <= 0)
+	return;
+
     i = 0;
     glyphs = glyphs_local;
     size = NUM_LOCAL;
@@ -983,14 +1106,14 @@ XftTextRenderUtf16 (Display	    *dpy,
     {
 	if (i == size)
 	{
-	    glyphs_new = malloc (size * 2 * sizeof (FT_UInt));
+	    glyphs_new = AllocUIntArray (size * 2);
 	    if (!glyphs_new)
 	    {
 		if (glyphs != glyphs_local)
 		    free (glyphs);
 		return;
 	    }
-	    memcpy (glyphs_new, glyphs, size * sizeof (FT_UInt));
+	    memcpy (glyphs_new, glyphs, (size_t)size * sizeof (FT_UInt));
 	    size *= 2;
 	    if (glyphs != glyphs_local)
 		free (glyphs);

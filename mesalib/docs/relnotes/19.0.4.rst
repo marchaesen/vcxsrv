@@ -132,7 +132,7 @@ Ian Romanick (2):
 -  glsl: Silence may unused parameter warnings in glsl/ir.h
 -  mesa: Add missing display list support for GL_FOG_COORDINATE_SOURCE
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv/descriptor_set: Destroy sets before pool finalization
 

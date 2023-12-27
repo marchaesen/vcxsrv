@@ -350,7 +350,7 @@ struct vc4_vs_key {
         bool per_vertex_point_size;
 };
 
-/** A basic block of QIR intructions. */
+/** A basic block of QIR instructions. */
 struct qblock {
         struct list_head link;
 
@@ -389,7 +389,7 @@ struct vc4_compile {
         struct exec_list *cf_node_list;
 
         /**
-         * Mapping from nir_register * or nir_ssa_def * to array of struct
+         * Mapping from nir_register * or nir_def * to array of struct
          * qreg for the values.
          */
         struct hash_table *def_ht;
@@ -464,6 +464,7 @@ struct vc4_compile {
         struct qreg undef;
         enum qstage stage;
         uint32_t num_temps;
+        uint32_t max_reg_pressure;
 
         struct list_head blocks;
         int next_block_index;
@@ -573,8 +574,8 @@ bool qir_opt_small_immediates(struct vc4_compile *c);
 bool qir_opt_vpm(struct vc4_compile *c);
 void vc4_nir_lower_blend(nir_shader *s, struct vc4_compile *c);
 void vc4_nir_lower_io(nir_shader *s, struct vc4_compile *c);
-nir_ssa_def *vc4_nir_get_swizzled_channel(struct nir_builder *b,
-                                          nir_ssa_def **srcs, int swiz);
+nir_def *vc4_nir_get_swizzled_channel(struct nir_builder *b,
+                                          nir_def **srcs, int swiz);
 void vc4_nir_lower_txf_ms(nir_shader *s, struct vc4_compile *c);
 void qir_lower_uniforms(struct vc4_compile *c);
 

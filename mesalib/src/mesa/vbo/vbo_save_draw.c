@@ -28,7 +28,7 @@
 
 #include <stdbool.h>
 #include "main/arrayobj.h"
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/bufferobj.h"
 #include "main/context.h"
 #include "main/enable.h"
@@ -38,6 +38,7 @@
 #include "main/state.h"
 #include "main/varray.h"
 #include "util/bitscan.h"
+#include "state_tracker/st_draw.h"
 
 #include "vbo_private.h"
 
@@ -54,8 +55,8 @@ copy_vao(struct gl_context *ctx, const struct gl_vertex_array_object *vao,
       const struct gl_array_attributes *attrib = &vao->VertexAttrib[i];
       unsigned current_index = shift + i;
       struct gl_array_attributes *currval = &vbo->current[current_index];
-      const GLubyte size = attrib->Format.Size;
-      const GLenum16 type = attrib->Format.Type;
+      const GLubyte size = attrib->Format.User.Size;
+      const GLenum16 type = attrib->Format.User.Type;
       fi_type tmp[8];
       int dmul_shift = 0;
 
@@ -78,13 +79,20 @@ copy_vao(struct gl_context *ctx, const struct gl_vertex_array_object *vao,
              current_index == VBO_ATTRIB_MAT_BACK_SHININESS)
             ctx->NewState |= _NEW_FF_VERT_PROGRAM;
 
+         if (current_index == VBO_ATTRIB_EDGEFLAG)
+            _mesa_update_edgeflag_state_vao(ctx);
+
          ctx->NewState |= state;
          ctx->PopAttribState |= pop_state;
       }
 
-      if (type != currval->Format.Type ||
-          (size >> dmul_shift) != currval->Format.Size)
+      if (type != currval->Format.User.Type ||
+          (size >> dmul_shift) != currval->Format.User.Size) {
          vbo_set_vertex_format(&currval->Format, size >> dmul_shift, type);
+         /* The format changed. We need to update gallium vertex elements. */
+         if (state == _NEW_CURRENT_ATTRIB)
+            ctx->NewState |= state;
+      }
 
       *data += size;
    }
@@ -105,7 +113,7 @@ playback_copy_to_current(struct gl_context *ctx,
    bool color0_changed = false;
 
    /* Copy conventional attribs and generics except pos */
-   copy_vao(ctx, node->cold->VAO[VP_MODE_SHADER], ~VERT_BIT_POS & VERT_BIT_ALL,
+   copy_vao(ctx, node->cold->VAO[VP_MODE_SHADER], ~VERT_BIT_POS,
             _NEW_CURRENT_ATTRIB, GL_CURRENT_BIT, 0, &data, &color0_changed);
    /* Copy materials */
    copy_vao(ctx, node->cold->VAO[VP_MODE_FF], VERT_BIT_MAT_ALL,
@@ -125,20 +133,6 @@ playback_copy_to_current(struct gl_context *ctx,
       else
          ctx->Driver.CurrentExecPrimitive = prim->mode;
    }
-}
-
-
-
-/**
- * Set the appropriate VAO to draw.
- */
-static void
-bind_vertex_list(struct gl_context *ctx,
-                 const struct vbo_save_vertex_list *node)
-{
-   const gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
-
-   _mesa_set_draw_vao(ctx, node->cold->VAO[mode], _vbo_get_vao_filter(mode));
 }
 
 
@@ -214,7 +208,6 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
     * which attribs have stride = 0 and whether edge flags are enabled.
     */
    const GLbitfield enabled = node->enabled_attribs[mode];
-   ctx->Array._DrawVAOEnabledAttribs = enabled;
    _mesa_set_varying_vp_inputs(ctx, enabled);
 
    if (ctx->NewState)
@@ -284,19 +277,23 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
       info.take_vertex_state_ownership = true;
    }
 
+   /* Set edge flags. */
+   _mesa_update_edgeflag_state_explicit(ctx, enabled & VERT_BIT_EDGEFLAG);
+
    /* Fast path using a pre-built gallium vertex buffer state. */
    if (node->modes || node->num_draws > 1) {
       ctx->Driver.DrawGalliumVertexState(ctx, state, info,
                                          node->start_counts,
                                          node->modes,
-                                         node->num_draws,
-                                         enabled & VERT_ATTRIB_EDGEFLAG);
+                                         node->num_draws);
    } else if (node->num_draws) {
       ctx->Driver.DrawGalliumVertexState(ctx, state, info,
                                          &node->start_count,
-                                         NULL, 1,
-                                         enabled & VERT_ATTRIB_EDGEFLAG);
+                                         NULL, 1);
    }
+
+   /* Restore edge flag state and ctx->VertexProgram._VaryingInputs. */
+   _mesa_update_edgeflag_state_vao(ctx);
 
    if (copy_to_current)
       playback_copy_to_current(ctx, node);
@@ -328,7 +325,16 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data, bool copy_to_c
    if (vbo_save_playback_vertex_list_gallium(ctx, node, copy_to_current) == DONE)
       return;
 
-   bind_vertex_list(ctx, node);
+   /* Save the Draw VAO before we override it. */
+   const gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
+   GLbitfield vao_filter = _vbo_get_vao_filter(mode);
+   struct gl_vertex_array_object *old_vao;
+   GLbitfield old_vp_input_filter;
+
+   _mesa_save_and_set_draw_vao(ctx, node->cold->VAO[mode], vao_filter,
+                               &old_vao, &old_vp_input_filter);
+   _mesa_set_varying_vp_inputs(ctx, vao_filter &
+                               ctx->Array._DrawVAO->_EnabledWithMapMode);
 
    /* Need that at least one time. */
    if (ctx->NewState)
@@ -336,6 +342,7 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data, bool copy_to_c
 
    /* Return precomputed GL errors such as invalid shaders. */
    if (!ctx->ValidPrimMask) {
+      _mesa_restore_draw_vao(ctx, old_vao, old_vp_input_filter);
       _mesa_error(ctx, ctx->DrawGLError, "glCallList");
       return;
    }
@@ -343,19 +350,22 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data, bool copy_to_c
    assert(ctx->NewState == 0);
 
    struct pipe_draw_info *info = (struct pipe_draw_info *) &node->cold->info;
-   void *gl_bo = info->index.gl_bo;
+
+   st_prepare_draw(ctx, ST_PIPELINE_RENDER_STATE_MASK);
+
    if (node->modes) {
       ctx->Driver.DrawGalliumMultiMode(ctx, info,
                                        node->start_counts,
                                        node->modes,
                                        node->num_draws);
    } else if (node->num_draws == 1) {
-      ctx->Driver.DrawGallium(ctx, info, 0, &node->start_count, 1);
+      ctx->Driver.DrawGallium(ctx, info, 0, NULL, &node->start_count, 1);
    } else if (node->num_draws) {
-      ctx->Driver.DrawGallium(ctx, info, 0, node->start_counts,
+      ctx->Driver.DrawGallium(ctx, info, 0, NULL, node->start_counts,
                               node->num_draws);
    }
-   info->index.gl_bo = gl_bo;
+
+   _mesa_restore_draw_vao(ctx, old_vao, old_vp_input_filter);
 
    if (copy_to_current)
       playback_copy_to_current(ctx, node);

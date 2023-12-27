@@ -31,7 +31,7 @@
 #ifndef CLIP_H
 #define CLIP_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 

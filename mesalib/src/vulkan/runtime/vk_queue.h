@@ -129,11 +129,11 @@ struct vk_queue {
     * call. This means that there can be no more than one such label at a
     * time.
     *
-    * \c labels contains all active labels at this point in order of submission
-    * \c region_begin denotes whether the most recent label opens a new region
-    * If \t labels is empty \t region_begin must be true.
+    * ``labels`` contains all active labels at this point in order of
+    * submission ``region_begin`` denotes whether the most recent label opens
+    * a new region If ``labels`` is empty ``region_begin`` must be true.
     *
-    * Anytime we modify labels, we first check for \c region_begin. If it's
+    * Anytime we modify labels, we first check for ``region_begin``. If it's
     * false, it means that the most recent label was submitted by
     * `*InsertDebugUtilsLabel` and we need to remove it before doing anything
     * else.
@@ -145,6 +145,24 @@ struct vk_queue {
     */
    struct util_dynarray labels;
    bool region_begin;
+
+#ifdef ANDROID
+   /** SYNC_FD signal semaphore for vkQueueSignalReleaseImageANDROID
+    *
+    * VK_ANDROID_native_buffer enforces explicit fencing on the present api
+    * boundary. To avoid assuming all waitSemaphores exportable to sync file
+    * and to capture pending cmds in the queue, we do a simple submission and
+    * signal a SYNC_FD handle type external sempahore for native fence export.
+    *
+    * This plays the same role as wsi_swapchain::dma_buf_semaphore for WSI.
+    * The VK_ANDROID_native_buffer spec hides the swapchain object from the
+    * icd, so we have to cache the semaphore in common vk_queue.
+    *
+    * This also makes it easier to add additional cmds to prepare the wsi
+    * image for implementations requiring such (e.g. for layout transition).
+    */
+   VkSemaphore anb_semaphore;
+#endif
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_queue, base, VkQueue, VK_OBJECT_TYPE_QUEUE)

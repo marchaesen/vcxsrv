@@ -24,7 +24,7 @@
 #ifndef FORMATQUERY_H
 #define FORMATQUERY_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 size_t
 _mesa_query_samples_for_format(struct gl_context *ctx, GLenum target,

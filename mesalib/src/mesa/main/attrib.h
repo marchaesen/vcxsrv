@@ -26,7 +26,7 @@
 #define ATTRIB_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct _glapi_table;
 struct gl_context;

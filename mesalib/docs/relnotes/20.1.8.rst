@@ -74,7 +74,7 @@ Icecream95 (1):
 
 - pan/mdg: Fix spilling of non-32-bit types
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 - intel/fs: Don't copy-propagate stride=0 sources into ddx/ddy
 - spirv: Run repair_ssa if there are discard instructions

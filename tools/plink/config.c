@@ -569,8 +569,7 @@ static void kexlist_handler(dlgcontrol *ctrl, dlgparam *dlg,
             { "Diffie-Hellman group exchange",      KEX_DHGEX },
             { "RSA-based key exchange",             KEX_RSA },
             { "ECDH key exchange",                  KEX_ECDH },
-            { "NTRU Prime / Curve25519 hybrid kex"
-              " (quantum-resistant)",               KEX_NTRU_HYBRID },
+            { "NTRU Prime / Curve25519 hybrid kex", KEX_NTRU_HYBRID },
             { "-- warn below here --",              KEX_WARN }
         };
 
@@ -2249,9 +2248,9 @@ void setup_config_box(struct controlbox *b, bool midsession,
                       HELPCTX(appearance_cursor),
                       conf_radiobutton_handler,
                       I(CONF_cursor_type),
-                      "Block", 'l', I(0),
-                      "Underline", 'u', I(1),
-                      "Vertical line", 'v', I(2));
+                      "Block", 'l', I(CURSOR_BLOCK),
+                      "Underline", 'u', I(CURSOR_UNDERLINE),
+                      "Vertical line", 'v', I(CURSOR_VERTICAL_LINE));
     ctrl_checkbox(s, "Cursor blinks", 'b',
                   HELPCTX(appearance_cursor),
                   conf_checkbox_handler, I(CONF_blink_cur));
@@ -2421,9 +2420,9 @@ void setup_config_box(struct controlbox *b, bool midsession,
     ctrl_radiobuttons(s, "Indicate bolded text by changing:", 'b', 3,
                       HELPCTX(colours_bold),
                       conf_radiobutton_handler, I(CONF_bold_style),
-                      "The font", I(1),
-                      "The colour", I(2),
-                      "Both", I(3));
+                      "The font", I(BOLD_STYLE_FONT),
+                      "The colour", I(BOLD_STYLE_COLOUR),
+                      "Both", I(BOLD_STYLE_FONT | BOLD_STYLE_COLOUR));
 
     str = dupprintf("Adjust the precise colours %s displays", appname);
     s = ctrl_getset(b, "Window/Colours", "adjust", str);
@@ -2918,7 +2917,8 @@ void setup_config_box(struct controlbox *b, bool midsession,
                          FILTER_KEY_FILES, false, "Select private key file",
                          HELPCTX(ssh_auth_privkey),
                          conf_filesel_handler, I(CONF_keyfile));
-            ctrl_filesel(s, "Certificate to use with the private key:", 'e',
+            ctrl_filesel(s, "Certificate to use with the private key "
+                         "(optional):", 'e',
                          NULL, false, "Select certificate file",
                          HELPCTX(ssh_auth_cert),
                          conf_filesel_handler, I(CONF_detached_cert));
@@ -3174,6 +3174,10 @@ void setup_config_box(struct controlbox *b, bool midsession,
 
             s = ctrl_getset(b, "Connection/SSH/More bugs", "main",
                             "Detection of known bugs in SSH servers");
+            ctrl_droplist(s, "Old RSA/SHA2 cert algorithm naming", 'l', 20,
+                          HELPCTX(ssh_bugs_rsa_sha2_cert_userauth),
+                          sshbug_handler,
+                          I(CONF_sshbug_rsa_sha2_cert_userauth));
             ctrl_droplist(s, "Requires padding on SSH-2 RSA signatures", 'p', 20,
                           HELPCTX(ssh_bugs_rsapad2),
                           sshbug_handler, I(CONF_sshbug_rsapad2));

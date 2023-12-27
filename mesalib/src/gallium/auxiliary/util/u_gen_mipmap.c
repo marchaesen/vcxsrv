@@ -55,32 +55,34 @@
  * \param filter  the minification filter used to generate mipmap levels with
  *                one of PIPE_TEX_FILTER_LINEAR, PIPE_TEX_FILTER_NEAREST
  */
-boolean
+bool
 util_gen_mipmap(struct pipe_context *pipe, struct pipe_resource *pt,
-                enum pipe_format format, uint base_level, uint last_level,
-                uint first_layer, uint last_layer, uint filter)
+                enum pipe_format format,
+                unsigned base_level, unsigned last_level,
+                unsigned first_layer, unsigned last_layer,
+                unsigned filter)
 {
    struct pipe_screen *screen = pipe->screen;
    struct pipe_blit_info blit;
-   uint dstLevel;
-   boolean is_zs = util_format_is_depth_or_stencil(format);
-   boolean has_depth =
+   unsigned dstLevel;
+   bool is_zs = util_format_is_depth_or_stencil(format);
+   bool has_depth =
       util_format_has_depth(util_format_description(format));
 
    /* nothing to do for stencil-only formats */
    if (is_zs && !has_depth)
-      return TRUE;
+      return true;
 
    /* nothing to do for integer formats */
    if (!is_zs && util_format_is_pure_integer(format))
-      return TRUE;
+      return true;
 
    if (!screen->is_format_supported(screen, format, pt->target,
                                     pt->nr_samples, pt->nr_storage_samples,
                                     PIPE_BIND_SAMPLER_VIEW |
                                     (is_zs ? PIPE_BIND_DEPTH_STENCIL :
                                      PIPE_BIND_RENDER_TARGET))) {
-      return FALSE;
+      return false;
    }
 
    /* The texture object should have room for the levels which we're
@@ -124,5 +126,5 @@ util_gen_mipmap(struct pipe_context *pipe, struct pipe_resource *pt,
 
       pipe->blit(pipe, &blit);
    }
-   return TRUE;
+   return true;
 }

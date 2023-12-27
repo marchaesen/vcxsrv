@@ -24,6 +24,11 @@
 #include "d3d12_video_encoder_bitstream_builder_h264.h"
 
 #include <cmath>
+#include "util/u_video.h"
+
+d3d12_video_bitstream_builder_h264::d3d12_video_bitstream_builder_h264(bool insert_aud_nalu)
+   : m_insert_aud_nalu(insert_aud_nalu)
+{ }
 
 inline H264_SPEC_PROFILES
 Convert12ToSpecH264Profiles(D3D12_VIDEO_ENCODER_PROFILE_H264 profile12)
@@ -49,7 +54,8 @@ Convert12ToSpecH264Profiles(D3D12_VIDEO_ENCODER_PROFILE_H264 profile12)
 }
 
 void
-d3d12_video_bitstream_builder_h264::build_sps(const D3D12_VIDEO_ENCODER_PROFILE_H264 &               profile,
+d3d12_video_bitstream_builder_h264::build_sps(const struct pipe_h264_enc_seq_param &                 seqData,
+                                              const enum pipe_video_profile &                        profile,
                                               const D3D12_VIDEO_ENCODER_LEVELS_H264 &                level,
                                               const DXGI_FORMAT &                                    inputFmt,
                                               const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &   codecConfig,
@@ -62,20 +68,11 @@ d3d12_video_bitstream_builder_h264::build_sps(const D3D12_VIDEO_ENCODER_PROFILE_
                                               std::vector<uint8_t>::iterator              placingPositionStart,
                                               size_t &                                    writtenBytes)
 {
-   H264_SPEC_PROFILES profile_idc          = Convert12ToSpecH264Profiles(profile);
-   uint32_t           constraint_set3_flag = 0;
+   H264_SPEC_PROFILES profile_idc          = (H264_SPEC_PROFILES) u_get_h264_profile_idc(profile);
    uint32_t           level_idc            = 0;
    d3d12_video_encoder_convert_from_d3d12_level_h264(
       level,
-      level_idc,
-      constraint_set3_flag /*Always 0 except if level is 11 or 1b in which case 0 means 11, 1 means 1b*/);
-
-   // constraint_set3_flag is for Main profile only and levels 11 or 1b: levels 11 if off, level 1b if on. Always 0 for
-   // HIGH/HIGH10 profiles
-   if ((profile == D3D12_VIDEO_ENCODER_PROFILE_H264_HIGH) || (profile == D3D12_VIDEO_ENCODER_PROFILE_H264_HIGH_10)) {
-      // Force 0 for high profiles
-      constraint_set3_flag = 0;
-   }
+      level_idc);
 
    assert((inputFmt == DXGI_FORMAT_NV12) || (inputFmt == DXGI_FORMAT_P010));
 
@@ -105,7 +102,7 @@ d3d12_video_bitstream_builder_h264::build_sps(const D3D12_VIDEO_ENCODER_PROFILE_
    }
 
    H264_SPS spsStructure = { static_cast<uint32_t>(profile_idc),
-                             constraint_set3_flag,
+                             seqData.enc_constraint_set_flags,
                              level_idc,
                              seq_parameter_set_id,
                              bit_depth_luma_minus8,
@@ -127,7 +124,44 @@ d3d12_video_bitstream_builder_h264::build_sps(const D3D12_VIDEO_ENCODER_PROFILE_
                              frame_cropping_codec_config.top,
                              frame_cropping_codec_config.bottom };
 
-   // Print built PPS structure
+   // Copy VUI params from seqData
+   spsStructure.vui_parameters_present_flag = seqData.vui_parameters_present_flag;
+   spsStructure.vui.aspect_ratio_info_present_flag = seqData.vui_flags.aspect_ratio_info_present_flag;
+   spsStructure.vui.timing_info_present_flag = seqData.vui_flags.timing_info_present_flag;
+   spsStructure.vui.video_signal_type_present_flag = seqData.vui_flags.video_signal_type_present_flag;
+   spsStructure.vui.colour_description_present_flag = seqData.vui_flags.colour_description_present_flag;
+   spsStructure.vui.chroma_loc_info_present_flag = seqData.vui_flags.chroma_loc_info_present_flag;
+   spsStructure.vui.overscan_info_present_flag = seqData.vui_flags.overscan_info_present_flag;
+   spsStructure.vui.overscan_appropriate_flag = seqData.vui_flags.overscan_appropriate_flag;
+   spsStructure.vui.fixed_frame_rate_flag = seqData.vui_flags.fixed_frame_rate_flag;
+   spsStructure.vui.nal_hrd_parameters_present_flag = seqData.vui_flags.nal_hrd_parameters_present_flag;
+   spsStructure.vui.vcl_hrd_parameters_present_flag = seqData.vui_flags.vcl_hrd_parameters_present_flag;
+   spsStructure.vui.low_delay_hrd_flag = seqData.vui_flags.low_delay_hrd_flag;
+   spsStructure.vui.pic_struct_present_flag = seqData.vui_flags.pic_struct_present_flag;
+   spsStructure.vui.bitstream_restriction_flag = seqData.vui_flags.bitstream_restriction_flag;
+   spsStructure.vui.motion_vectors_over_pic_boundaries_flag = seqData.vui_flags.motion_vectors_over_pic_boundaries_flag;
+   spsStructure.vui.aspect_ratio_idc = seqData.aspect_ratio_idc;
+   spsStructure.vui.sar_width = seqData.sar_width;
+   spsStructure.vui.sar_height = seqData.sar_height;
+   spsStructure.vui.video_format = seqData.video_format;
+   spsStructure.vui.video_full_range_flag = seqData.video_full_range_flag;
+   spsStructure.vui.colour_primaries = seqData.colour_primaries;
+   spsStructure.vui.transfer_characteristics = seqData.transfer_characteristics;
+   spsStructure.vui.matrix_coefficients = seqData.matrix_coefficients;
+   spsStructure.vui.chroma_sample_loc_type_top_field = seqData.chroma_sample_loc_type_top_field;
+   spsStructure.vui.chroma_sample_loc_type_bottom_field = seqData.chroma_sample_loc_type_bottom_field;
+   spsStructure.vui.time_scale = seqData.time_scale;
+   spsStructure.vui.num_units_in_tick = seqData.num_units_in_tick;
+   memset(&spsStructure.vui.nal_hrd_parameters, 0, sizeof(H264_HRD_PARAMS));
+   memset(&spsStructure.vui.vcl_hrd_parameters, 0, sizeof(H264_HRD_PARAMS));
+   spsStructure.vui.max_bytes_per_pic_denom = seqData.max_bytes_per_pic_denom;
+   spsStructure.vui.max_bits_per_mb_denom = seqData.max_bits_per_mb_denom;
+   spsStructure.vui.log2_max_mv_length_vertical = seqData.log2_max_mv_length_vertical;
+   spsStructure.vui.log2_max_mv_length_horizontal = seqData.log2_max_mv_length_horizontal;
+   spsStructure.vui.num_reorder_frames = seqData.max_num_reorder_frames;
+   spsStructure.vui.max_dec_frame_buffering = seqData.max_dec_frame_buffering;
+
+   // Print built SPS structure
    debug_printf(
       "[D3D12 d3d12_video_bitstream_builder_h264] H264_SPS Structure generated before writing to bitstream:\n");
    print_sps(spsStructure);
@@ -153,7 +187,15 @@ d3d12_video_bitstream_builder_h264::write_end_of_sequence_nalu(std::vector<uint8
 }
 
 void
-d3d12_video_bitstream_builder_h264::build_pps(const D3D12_VIDEO_ENCODER_PROFILE_H264 &                   profile,
+d3d12_video_bitstream_builder_h264::write_aud(std::vector<uint8_t> &         headerBitstream,
+                                              std::vector<uint8_t>::iterator placingPositionStart,
+                                              size_t &                       writtenBytes)
+{
+   m_h264Encoder.write_access_unit_delimiter_nalu(headerBitstream, placingPositionStart, writtenBytes);
+}
+
+void
+d3d12_video_bitstream_builder_h264::build_pps(const enum pipe_video_profile &                            profile,
                                               const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &       codecConfig,
                                               const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_H264 &pictureControl,
                                               uint32_t                       pic_parameter_set_id,
@@ -163,7 +205,7 @@ d3d12_video_bitstream_builder_h264::build_pps(const D3D12_VIDEO_ENCODER_PROFILE_
                                               size_t &                       writtenBytes)
 {
    BOOL bIsHighProfile =
-      ((profile == D3D12_VIDEO_ENCODER_PROFILE_H264_HIGH) || (profile == D3D12_VIDEO_ENCODER_PROFILE_H264_HIGH_10));
+      ((profile == PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH) || (profile == PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH10));
 
    H264_PPS ppsStructure = {
       pic_parameter_set_id,
@@ -221,6 +263,24 @@ d3d12_video_bitstream_builder_h264::print_pps(const H264_PPS &pps)
       "[D3D12 d3d12_video_bitstream_builder_h264] H264_PPS values end\n--------------------------------------\n");
 }
 
+static void
+print_hrd(const H264_HRD_PARAMS *pHrd)
+{
+   debug_printf("cpb_cnt_minus1: %d\n", pHrd->cpb_cnt_minus1);
+   debug_printf("bit_rate_scale: %d\n", pHrd->bit_rate_scale);
+   debug_printf("cpb_size_scale: %d\n", pHrd->cpb_size_scale);
+   for (uint32_t i = 0; i <= pHrd->cpb_cnt_minus1; i++)
+   {
+      debug_printf("bit_rate_value_minus1[%d]: %d\n", i, pHrd->bit_rate_value_minus1[i]);
+      debug_printf("cpb_size_value_minus1[%d]: %d\n", i, pHrd->cpb_size_value_minus1[i]);
+      debug_printf("cbr_flag[%d]: %d\n", i, pHrd->cbr_flag[i]);
+   }
+   debug_printf("initial_cpb_removal_delay_length_minus1: %d\n", pHrd->initial_cpb_removal_delay_length_minus1);
+   debug_printf("cpb_removal_delay_length_minus1: %d\n", pHrd->cpb_removal_delay_length_minus1);
+   debug_printf("dpb_output_delay_length_minus1: %d\n", pHrd->dpb_output_delay_length_minus1);
+   debug_printf("time_offset_length: %d\n", pHrd->time_offset_length);
+}
+
 void
 d3d12_video_bitstream_builder_h264::print_sps(const H264_SPS &sps)
 {
@@ -229,14 +289,18 @@ d3d12_video_bitstream_builder_h264::print_sps(const H264_SPS &sps)
    // d3d12_video_encoder_bitstream_builder_h264.h
 
    static_assert(sizeof(H264_SPS) ==
-                 (sizeof(uint32_t) *
-                  19), "Update the number of uint32_t in struct in assert and add case below if structure changes");
+                (sizeof(uint32_t) * 20 + sizeof(H264_VUI_PARAMS)), "Update the print function if structure changes");
+
+   static_assert(sizeof(H264_VUI_PARAMS) ==
+                 (sizeof(uint32_t) * 32 + 2*sizeof(H264_HRD_PARAMS)), "Update the print function if structure changes");
+
+   static_assert(sizeof(H264_HRD_PARAMS) ==
+                 (sizeof(uint32_t) * 7 + 3*32*sizeof(uint32_t)), "Update the print function if structure changes");
 
    // Declared fields from definition in d3d12_video_encoder_bitstream_builder_h264.h
-
    debug_printf("[D3D12 d3d12_video_bitstream_builder_h264] H264_SPS values below:\n");
    debug_printf("profile_idc: %d\n", sps.profile_idc);
-   debug_printf("constraint_set3_flag: %d\n", sps.constraint_set3_flag);
+   debug_printf("constraint_set_flags: %x\n", sps.constraint_set_flags);
    debug_printf("level_idc: %d\n", sps.level_idc);
    debug_printf("seq_parameter_set_id: %d\n", sps.seq_parameter_set_id);
    debug_printf("bit_depth_luma_minus8: %d\n", sps.bit_depth_luma_minus8);
@@ -254,6 +318,44 @@ d3d12_video_bitstream_builder_h264::print_sps(const H264_SPS &sps)
    debug_printf("frame_cropping_rect_right_offset: %d\n", sps.frame_cropping_rect_right_offset);
    debug_printf("frame_cropping_rect_top_offset: %d\n", sps.frame_cropping_rect_top_offset);
    debug_printf("frame_cropping_rect_bottom_offset: %d\n", sps.frame_cropping_rect_bottom_offset);
+   debug_printf("VUI.vui_parameters_present_flag: %d\n", sps.vui_parameters_present_flag);
+   debug_printf("VUI.aspect_ratio_info_present_flag: %d\n", sps.vui.aspect_ratio_info_present_flag);
+   debug_printf("VUI.aspect_ratio_idc: %d\n", sps.vui.aspect_ratio_idc);
+   debug_printf("VUI.sar_width: %d\n", sps.vui.sar_width);
+   debug_printf("VUI.sar_height: %d\n", sps.vui.sar_height);
+   debug_printf("VUI.overscan_info_present_flag: %d\n", sps.vui.overscan_info_present_flag);
+   debug_printf("VUI.overscan_appropriate_flag: %d\n", sps.vui.overscan_appropriate_flag);
+   debug_printf("VUI.video_signal_type_present_flag: %d\n", sps.vui.video_signal_type_present_flag);
+   debug_printf("VUI.video_format: %d\n", sps.vui.video_format);
+   debug_printf("VUI.video_full_range_flag: %d\n", sps.vui.video_full_range_flag);
+   debug_printf("VUI.colour_description_present_flag: %d\n", sps.vui.colour_description_present_flag);
+   debug_printf("VUI.colour_primaries: %d\n", sps.vui.colour_primaries);
+   debug_printf("VUI.transfer_characteristics: %d\n", sps.vui.transfer_characteristics);
+   debug_printf("VUI.matrix_coefficients: %d\n", sps.vui.matrix_coefficients);
+   debug_printf("VUI.chroma_loc_info_present_flag: %d\n", sps.vui.chroma_loc_info_present_flag);
+   debug_printf("VUI.chroma_sample_loc_type_top_field: %d\n", sps.vui.chroma_sample_loc_type_top_field);
+   debug_printf("VUI.chroma_sample_loc_type_bottom_field: %d\n", sps.vui.chroma_sample_loc_type_bottom_field);
+   debug_printf("VUI.timing_info_present_flag: %d\n", sps.vui.timing_info_present_flag);
+   debug_printf("VUI.time_scale: %d\n", sps.vui.time_scale);
+   debug_printf("VUI.num_units_in_tick: %d\n", sps.vui.num_units_in_tick);
+   debug_printf("VUI.fixed_frame_rate_flag: %d\n", sps.vui.fixed_frame_rate_flag);
+   debug_printf("VUI.nal_hrd_parameters_present_flag: %d\n", sps.vui.nal_hrd_parameters_present_flag);
+   debug_printf("VUI.sps.vui.nal_hrd_parameters\n");
+   print_hrd(&sps.vui.nal_hrd_parameters);
+   debug_printf("VUI.vcl_hrd_parameters_present_flag: %d\n", sps.vui.vcl_hrd_parameters_present_flag);
+   debug_printf("VUI.sps.vui.vcl_hrd_parameters\n");
+   print_hrd(&sps.vui.vcl_hrd_parameters);
+   debug_printf("VUI.low_delay_hrd_flag: %d\n", sps.vui.low_delay_hrd_flag);
+   debug_printf("VUI.pic_struct_present_flag: %d\n", sps.vui.pic_struct_present_flag);
+   debug_printf("VUI.bitstream_restriction_flag: %d\n", sps.vui.bitstream_restriction_flag);
+   debug_printf("VUI.motion_vectors_over_pic_boundaries_flag: %d\n", sps.vui.motion_vectors_over_pic_boundaries_flag);
+   debug_printf("VUI.max_bytes_per_pic_denom: %d\n", sps.vui.max_bytes_per_pic_denom);
+   debug_printf("VUI.max_bits_per_mb_denom: %d\n", sps.vui.max_bits_per_mb_denom);
+   debug_printf("VUI.log2_max_mv_length_vertical: %d\n", sps.vui.log2_max_mv_length_vertical);
+   debug_printf("VUI.log2_max_mv_length_horizontal: %d\n", sps.vui.log2_max_mv_length_horizontal);
+   debug_printf("VUI.num_reorder_frames: %d\n", sps.vui.num_reorder_frames);
+   debug_printf("VUI.max_dec_frame_buffering: %d\n", sps.vui.max_dec_frame_buffering);
+
    debug_printf(
       "[D3D12 d3d12_video_bitstream_builder_h264] H264_SPS values end\n--------------------------------------\n");
 }

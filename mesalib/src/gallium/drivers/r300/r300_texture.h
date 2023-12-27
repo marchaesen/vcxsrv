@@ -23,8 +23,8 @@
 #ifndef R300_TEXTURE_H
 #define R300_TEXTURE_H
 
-#include "pipe/p_compiler.h"
-#include "pipe/p_format.h"
+#include "util/compiler.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_screen.h"
 
 struct pipe_screen;
@@ -38,20 +38,20 @@ struct r300_screen;
 
 unsigned r300_get_swizzle_combined(const unsigned char *swizzle_format,
                                    const unsigned char *swizzle_view,
-                                   boolean dxtc_swizzle);
+                                   bool dxtc_swizzle);
 
 uint32_t r300_translate_texformat(enum pipe_format format,
                                   const unsigned char *swizzle_view,
-                                  boolean is_r500,
-                                  boolean dxtc_swizzle);
+                                  bool is_r500,
+                                  bool dxtc_swizzle);
 
 uint32_t r500_tx_format_msb_bit(enum pipe_format format);
 
-boolean r300_is_colorbuffer_format_supported(enum pipe_format format);
+bool r300_is_colorbuffer_format_supported(enum pipe_format format);
 
-boolean r300_is_zs_format_supported(enum pipe_format format);
+bool r300_is_zs_format_supported(enum pipe_format format);
 
-boolean r300_is_sampler_format_supported(enum pipe_format format);
+bool r300_is_sampler_format_supported(enum pipe_format format);
 
 void r300_texture_setup_format_state(struct r300_screen *screen,
                                      struct r300_resource *tex,

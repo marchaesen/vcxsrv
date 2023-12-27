@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2021 Alyssa Rosenzweig <alyssa@rosenzweig.io>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright 2021 Alyssa Rosenzweig
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef __AGX_MINIFLOAT_H_
@@ -39,15 +21,17 @@ agx_minifloat_decode(uint8_t imm)
    unsigned mantissa = (imm & 0xF);
 
    if (exp)
-      return ldexpf(sign * (float) (mantissa | 0x10), exp - 7);
+      return ldexpf(sign * (float)(mantissa | 0x10), exp - 7);
    else
-      return ldexpf(sign * ((float) mantissa), -6);
+      return ldexpf(sign * ((float)mantissa), -6);
 }
 
 /* Encodes a float. Results are only valid if the float can be represented
- * exactly, if not the result of this function is UNDEFINED. signbit() is used
- * to ensure -0.0 is handled correctly. */
-
+ * exactly, if not the result of this function is UNDEFINED. However, it is
+ * guaranteed that this function will not crash on out-of-spec inputs, so it is
+ * safe to call on any input. signbit() is used to ensure -0.0 is handled
+ * correctly.
+ */
 static inline uint8_t
 agx_minifloat_encode(float f)
 {
@@ -63,13 +47,9 @@ agx_minifloat_encode(float f)
       exp -= 5; /* 2^5 = 32 */
       exp = CLAMP(exp + 7, 0, 7);
 
-      assert(mantissa >= 0x10 && mantissa < 0x20);
-      assert(exp >= 1);
-
       return sign | (exp << 4) | (mantissa & 0xF);
    } else {
       unsigned mantissa = (f * 64.0f);
-      assert(mantissa < 0x10);
 
       return sign | mantissa;
    }

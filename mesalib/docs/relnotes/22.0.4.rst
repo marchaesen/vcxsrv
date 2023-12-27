@@ -87,7 +87,7 @@ Icecream95 (6):
 - pan/mdg: Return the instruction from mir_insert_instruction_*_scheduled
 - pan/mdg: Fix multiple spilt writes in the same bundle
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 - vulkan/wsi: Set the right stage flags for semaphore waits
 - gallium/u_threaded_context: Use PIPE_MAX_SHADER_SAMPLER_VIEWS for sampler_buffers

@@ -35,38 +35,49 @@
 
 
 #include <assert.h>
+#include <limits.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "util/detect.h"
 #include "util/macros.h"
 
-
 /**
- * Either define MESA_BIG_ENDIAN or MESA_LITTLE_ENDIAN, and CPU_TO_LE32.
+ * Define CPU_TO_LE32
  * Do not use these unless absolutely necessary!
  * Try to use a runtime test instead.
  * For now, only used by some DRI hardware drivers for color/texel packing.
  */
-#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
+#if UTIL_ARCH_BIG_ENDIAN
 #if defined(__linux__)
 #include <byteswap.h>
-#define CPU_TO_LE32( x )	bswap_32( x )
+#define CPU_TO_LE32( x ) bswap_32( x )
 #elif defined(__APPLE__)
 #include <CoreFoundation/CFByteOrder.h>
-#define CPU_TO_LE32( x )	CFSwapInt32HostToLittle( x )
+#define CPU_TO_LE32( x ) CFSwapInt32HostToLittle( x )
 #elif defined(__OpenBSD__)
 #include <sys/types.h>
-#define CPU_TO_LE32( x )	htole32( x )
+#define CPU_TO_LE32( x ) htole32( x )
 #else /*__linux__ */
 #include <sys/endian.h>
-#define CPU_TO_LE32( x )	bswap32( x )
+#define CPU_TO_LE32( x ) bswap32( x )
 #endif /*__linux__*/
-#define MESA_BIG_ENDIAN 1
 #else
-#define CPU_TO_LE32( x )	( x )
-#define MESA_LITTLE_ENDIAN 1
+#define CPU_TO_LE32( x ) ( x )
 #endif
-#define LE32_TO_CPU( x )	CPU_TO_LE32( x )
+#define LE32_TO_CPU( x ) CPU_TO_LE32( x )
 
 
+/* Macro for stack alignment. */
+#if defined(__GNUC__) && DETECT_ARCH_X86
+#define UTIL_ALIGN_STACK __attribute__((force_align_arg_pointer))
+#else
+#define UTIL_ALIGN_STACK
+#endif
 
 #define IEEE_ONE 0x3f800000
 
@@ -82,7 +93,8 @@
 #  define HAS_CLANG_FALLTHROUGH 0
 #endif
 
-#if __cplusplus >= 201703L || __STDC_VERSION__ > 201710L
+#if (defined(__cplusplus) && (__cplusplus >= 201703L)) || \
+    (defined(__STDC_VERSION__) && (__STDC_VERSION__ > 201710L))
 /* Standard C++17/C23 attribute */
 #define FALLTHROUGH [[fallthrough]]
 #elif HAS_CLANG_FALLTHROUGH
@@ -93,6 +105,20 @@
 #define FALLTHROUGH __attribute__((fallthrough))
 #else
 #define FALLTHROUGH do { } while(0)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if !defined(__HAIKU__) && !defined(__USE_MISC)
+#if !DETECT_OS_ANDROID
+typedef unsigned int       uint;
+#endif
+#endif
+
+#if defined(__cplusplus)
+}
 #endif
 
 #endif /* COMPILER_H */

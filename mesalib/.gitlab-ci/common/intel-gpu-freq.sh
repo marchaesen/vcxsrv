@@ -1,4 +1,14 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# shellcheck disable=SC2013
+# shellcheck disable=SC2015
+# shellcheck disable=SC2034
+# shellcheck disable=SC2046
+# shellcheck disable=SC2059
+# shellcheck disable=SC2086 # we want word splitting
+# shellcheck disable=SC2154
+# shellcheck disable=SC2155
+# shellcheck disable=SC2162
+# shellcheck disable=SC2229
 #
 # This is an utility script to manage Intel GPU frequencies.
 # It can be used for debugging performance problems or trying to obtain a stable
@@ -193,7 +203,7 @@ compute_freq_set() {
         val=${FREQ_RPn}
         ;;
     *%)
-        val=$((${1%?} * ${FREQ_RP0} / 100))
+        val=$((${1%?} * FREQ_RP0 / 100))
         # Adjust freq to comply with 50 MHz increments
         val=$((val / 50 * 50))
         ;;
@@ -242,12 +252,12 @@ set_freq_max() {
 
     [ -z "${DRY_RUN}" ] || return 0
 
-    printf "%s" ${SET_MAX_FREQ} | tee $(print_freq_sysfs_path max) \
-        $(print_freq_sysfs_path boost) > /dev/null
-    [ $? -eq 0 ] || {
+    if ! printf "%s" ${SET_MAX_FREQ} | tee $(print_freq_sysfs_path max) \
+        $(print_freq_sysfs_path boost) > /dev/null;
+    then
         log ERROR "Failed to set GPU max frequency"
         return 1
-    }
+    fi
 }
 
 #
@@ -272,11 +282,11 @@ set_freq_min() {
 
     [ -z "${DRY_RUN}" ] || return 0
 
-    printf "%s" ${SET_MIN_FREQ} > $(print_freq_sysfs_path min)
-    [ $? -eq 0 ] || {
+    if ! printf "%s" ${SET_MIN_FREQ} > $(print_freq_sysfs_path min);
+    then
         log ERROR "Failed to set GPU min frequency"
         return 1
-    }
+    fi
 }
 
 #
@@ -495,7 +505,7 @@ compute_cpu_freq_set() {
         val=${CPU_FREQ_cpuinfo_min}
         ;;
     *%)
-        val=$((${1%?} * ${CPU_FREQ_cpuinfo_max} / 100))
+        val=$((${1%?} * CPU_FREQ_cpuinfo_max / 100))
         ;;
     *[!0-9]*)
         log ERROR "Cannot set CPU freq to invalid value: %s" "$1"
@@ -538,11 +548,11 @@ set_cpu_freq_max() {
     local pstate_info=$(printf "${CPU_PSTATE_SYSFS_PATTERN}" max_perf_pct)
     [ -e "${pstate_info}" ] && {
         log INFO "Setting intel_pstate max perf to %s" "${target_freq}%"
-        printf "%s" "${target_freq}" > "${pstate_info}"
-        [ $? -eq 0 ] || {
+        if ! printf "%s" "${target_freq}" > "${pstate_info}";
+	then
             log ERROR "Failed to set intel_pstate max perf"
             res=1
-        }
+	fi
     }
 
     local cpu_index
@@ -555,11 +565,11 @@ set_cpu_freq_max() {
         log INFO "Setting CPU%s max scaling freq to %s Hz" ${cpu_index} "${target_freq}"
         [ -n "${DRY_RUN}" ] && continue
 
-        printf "%s" ${target_freq} > $(print_cpu_freq_sysfs_path scaling_max ${cpu_index})
-        [ $? -eq 0 ] || {
+        if ! printf "%s" ${target_freq} > $(print_cpu_freq_sysfs_path scaling_max ${cpu_index});
+	then
             res=1
             log ERROR "Failed to set CPU%s max scaling frequency" ${cpu_index}
-        }
+	fi
     done
 
     return ${res}

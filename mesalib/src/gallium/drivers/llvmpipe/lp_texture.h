@@ -114,6 +114,7 @@ struct llvmpipe_transfer
    struct pipe_transfer base;
 };
 
+
 struct llvmpipe_memory_object
 {
    struct pipe_memory_object b;
@@ -143,6 +144,7 @@ llvmpipe_transfer(struct pipe_transfer *pt)
    return (struct llvmpipe_transfer *) pt;
 }
 
+
 static inline struct llvmpipe_memory_object *
 llvmpipe_memory_object(struct pipe_memory_object *pt)
 {
@@ -154,12 +156,12 @@ void llvmpipe_init_screen_resource_funcs(struct pipe_screen *screen);
 void llvmpipe_init_context_resource_funcs(struct pipe_context *pipe);
 
 
-static inline boolean
+static inline bool
 llvmpipe_resource_is_texture(const struct pipe_resource *resource)
 {
    switch (resource->target) {
    case PIPE_BUFFER:
-      return FALSE;
+      return false;
    case PIPE_TEXTURE_1D:
    case PIPE_TEXTURE_1D_ARRAY:
    case PIPE_TEXTURE_2D:
@@ -168,32 +170,32 @@ llvmpipe_resource_is_texture(const struct pipe_resource *resource)
    case PIPE_TEXTURE_3D:
    case PIPE_TEXTURE_CUBE:
    case PIPE_TEXTURE_CUBE_ARRAY:
-      return TRUE;
+      return true;
    default:
       assert(0);
-      return FALSE;
+      return false;
    }
 }
 
 
-static inline boolean
+static inline bool
 llvmpipe_resource_is_1d(const struct pipe_resource *resource)
 {
    switch (resource->target) {
    case PIPE_BUFFER:
    case PIPE_TEXTURE_1D:
    case PIPE_TEXTURE_1D_ARRAY:
-      return TRUE;
+      return true;
    case PIPE_TEXTURE_2D:
    case PIPE_TEXTURE_2D_ARRAY:
    case PIPE_TEXTURE_RECT:
    case PIPE_TEXTURE_3D:
    case PIPE_TEXTURE_CUBE:
    case PIPE_TEXTURE_CUBE_ARRAY:
-      return FALSE;
+      return false;
    default:
       assert(0);
-      return FALSE;
+      return false;
    }
 }
 
@@ -217,12 +219,14 @@ llvmpipe_resource_stride(struct pipe_resource *resource,
    return lpr->row_stride[level];
 }
 
+
 static inline unsigned
 llvmpipe_sample_stride(struct pipe_resource *resource)
 {
    struct llvmpipe_resource *lpr = llvmpipe_resource(resource);
    return lpr->sample_stride;
 }
+
 
 void *
 llvmpipe_resource_map(struct pipe_resource *resource,
@@ -244,7 +248,7 @@ unsigned
 llvmpipe_resource_size(const struct pipe_resource *resource);
 
 
-ubyte *
+uint8_t *
 llvmpipe_get_texture_image_address(struct llvmpipe_resource *lpr,
                                    unsigned face_slice, unsigned level);
 
@@ -257,20 +261,23 @@ llvmpipe_print_resources(void);
 #define LP_REFERENCED_FOR_READ  (1 << 0)
 #define LP_REFERENCED_FOR_WRITE (1 << 1)
 
+
 unsigned int
-llvmpipe_is_resource_referenced( struct pipe_context *pipe,
-                                 struct pipe_resource *presource,
-                                 unsigned level);
+llvmpipe_is_resource_referenced(struct pipe_context *pipe,
+                                struct pipe_resource *presource,
+                                unsigned level);
 
 unsigned
 llvmpipe_get_format_alignment(enum pipe_format format);
 
+
 void *
-llvmpipe_transfer_map_ms( struct pipe_context *pipe,
-			  struct pipe_resource *resource,
-			  unsigned level,
-			  unsigned usage,
-			  unsigned sample,
-			  const struct pipe_box *box,
-			  struct pipe_transfer **transfer );
+llvmpipe_transfer_map_ms(struct pipe_context *pipe,
+                         struct pipe_resource *resource,
+                         unsigned level,
+                         unsigned usage,
+                         unsigned sample,
+                         const struct pipe_box *box,
+                         struct pipe_transfer **transfer);
+
 #endif /* LP_TEXTURE_H */

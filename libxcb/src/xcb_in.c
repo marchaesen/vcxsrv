@@ -32,7 +32,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
 
@@ -40,6 +39,7 @@
 #include <poll.h>
 #endif
 #ifndef _WIN32
+#include <unistd.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #endif
@@ -239,9 +239,15 @@ static int read_packet(xcb_connection_t *c)
         if(pend && pend->workaround == WORKAROUND_GLX_GET_FB_CONFIGS_BUG)
         {
             uint32_t *p = (uint32_t *) c->in.queue;
-            genrep.length = p[2] * p[3] * 2;
+            uint64_t new_length = ((uint64_t)p[2]) * ((uint64_t)p[3]);
+            if(new_length >= (UINT32_MAX / UINT32_C(16)))
+            {
+                _xcb_conn_shutdown(c, XCB_CONN_CLOSED_MEM_INSUFFICIENT);
+                return 0;
+            }
+            genrep.length = (uint32_t)(new_length * UINT64_C(2));
         }
-        length += genrep.length * 4;
+        length += genrep.length * UINT64_C(4);
 
         /* XXX a bit of a hack -- we "know" that all FD replys place
          * the number of fds in the pad0 byte */
@@ -251,7 +257,7 @@ static int read_packet(xcb_connection_t *c)
 
     /* XGE events may have sizes > 32 */
     if ((genrep.response_type & 0x7f) == XCB_XGE_EVENT)
-        eventlength = genrep.length * 4;
+        eventlength = genrep.length * UINT64_C(4);
 
     bufsize = length + eventlength + nfd * sizeof(int)  +
         (genrep.response_type == XCB_REPLY ? 0 : sizeof(uint32_t));
@@ -365,7 +371,7 @@ static void free_reply_list(struct reply_list *head)
     }
 }
 
-static int read_block(const int fd, void *buf, const ssize_t len)
+static int read_block(const int fd, void *buf, const intptr_t len)
 {
     int done = 0;
     while(done < len)
@@ -661,6 +667,8 @@ int xcb_poll_for_reply(xcb_connection_t *c, unsigned int request, void **reply, 
     assert(reply != 0);
     pthread_mutex_lock(&c->iolock);
     ret = poll_for_reply(c, widen(c, request), reply, error);
+    if(!ret && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
+        ret = poll_for_reply(c, widen(c, request), reply, error);
     pthread_mutex_unlock(&c->iolock);
     return ret;
 }
@@ -678,6 +686,8 @@ int xcb_poll_for_reply64(xcb_connection_t *c, uint64_t request, void **reply, xc
     assert(reply != 0);
     pthread_mutex_lock(&c->iolock);
     ret = poll_for_reply(c, request, reply, error);
+    if(!ret && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
+        ret = poll_for_reply(c, request, reply, error);
     pthread_mutex_unlock(&c->iolock);
     return ret;
 }
@@ -732,11 +742,16 @@ xcb_generic_error_t *xcb_request_check(xcb_connection_t *c, xcb_void_cookie_t co
         return 0;
     pthread_mutex_lock(&c->iolock);
     request = widen(c, cookie.sequence);
-    if(XCB_SEQUENCE_COMPARE(request, >=, c->in.request_expected)
-       && XCB_SEQUENCE_COMPARE(request, >, c->in.request_completed))
+    if (XCB_SEQUENCE_COMPARE(request, >, c->in.request_completed))
     {
-        _xcb_out_send_sync(c);
-        _xcb_out_flush_to(c, c->out.request);
+        if(XCB_SEQUENCE_COMPARE(request, >=, c->in.request_expected))
+        {
+            _xcb_out_send_sync(c);
+        }
+        if (XCB_SEQUENCE_COMPARE(request, >=, c->out.request_expected_written))
+        {
+            _xcb_out_flush_to(c, c->out.request);
+        }
     }
     reply = wait_for_reply(c, request, &ret);
     assert(!reply);
@@ -768,6 +783,8 @@ xcb_generic_event_t *xcb_poll_for_special_event(xcb_connection_t *c,
         return 0;
     pthread_mutex_lock(&c->iolock);
     event = get_special_event(c, se);
+    if(!event && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
+        event = get_special_event(c, se);
     pthread_mutex_unlock(&c->iolock);
     return event;
 }
@@ -952,8 +969,20 @@ void _xcb_in_replies_done(xcb_connection_t *c)
         pend = container_of(c->in.pending_replies_tail, struct pending_reply, next);
         if(pend->workaround == WORKAROUND_EXTERNAL_SOCKET_OWNER)
         {
-            pend->last_request = c->out.request;
-            pend->workaround = WORKAROUND_NONE;
+            if (XCB_SEQUENCE_COMPARE(pend->first_request, <=, c->out.request)) {
+                pend->last_request = c->out.request;
+                pend->workaround = WORKAROUND_NONE;
+            } else {
+                /* The socket was taken, but no requests were actually sent
+                 * so just discard the pending_reply that was created.
+                 */
+                struct pending_reply **prev_next = &c->in.pending_replies;
+                while (*prev_next != pend)
+                    prev_next = &(*prev_next)->next;
+                *prev_next = NULL;
+                c->in.pending_replies_tail = prev_next;
+                free(pend);
+            }
         }
     }
 }
@@ -1007,6 +1036,7 @@ int _xcb_in_read(xcb_connection_t *c)
             }
         }
 #endif
+        c->in.total_read += n;
         c->in.queue_len += n;
     }
     while(read_packet(c))
@@ -1033,7 +1063,7 @@ int _xcb_in_read(xcb_connection_t *c)
     }
 #endif
 #ifndef _WIN32
-    if((n > 0) || (n < 0 && errno == EAGAIN))
+    if((n > 0) || (n < 0 && (errno == EAGAIN || errno == EINTR)))
 #else
     if((n > 0) || (n < 0 && WSAGetLastError() == WSAEWOULDBLOCK))
 #endif /* !_WIN32 */

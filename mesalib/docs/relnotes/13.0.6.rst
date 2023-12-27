@@ -37,7 +37,7 @@ Bug fixes
 -  `Bug 99401 <https://bugs.freedesktop.org/show_bug.cgi?id=99401>`__ -
    [g33] regression: piglit.spec.!opengl 1_0.gl-1_0-beginend-coverage
 -  `Bug 99456 <https://bugs.freedesktop.org/show_bug.cgi?id=99456>`__ -
-   Firefox crashing when opening about:support with WebGL2 enabled
+   Firefox crashing when opening \about:support with WebGL2 enabled
 -  `Bug 99677 <https://bugs.freedesktop.org/show_bug.cgi?id=99677>`__ -
    heap-use-after-free in glsl
 -  `Bug 99715 <https://bugs.freedesktop.org/show_bug.cgi?id=99715>`__ -
@@ -157,7 +157,7 @@ Jacob Lifshay (1):
 
 -  vulkan/wsi: Improve the DRI3 error message
 
-Jason Ekstrand (11):
+Faith Ekstrand (11):
 
 -  i965: Use a better guardband calculation.
 -  intel/blorp: Swizzle clear colors on the CPU

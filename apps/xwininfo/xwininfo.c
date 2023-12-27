@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -285,25 +285,25 @@ usage (void)
     fprintf (stderr,
 	     "usage:  %s [-options ...]\n\n"
 	     "where options include:\n"
-	     "    -help                print this message\n"
-	     "    -version             print version message\n"
-	     "    -display host:dpy    X server to contact\n"
-	     "    -root                use the root window\n"
-	     "    -id windowid         use the window with the specified id\n"
-	     "    -name windowname     use the window with the specified name\n"
-	     "    -int                 print window id in decimal\n"
-	     "    -children            print parent and child identifiers\n"
-	     "    -tree                print children identifiers recursively\n"
-	     "    -stats               print window geometry [DEFAULT]\n"
-	     "    -bits                print window pixel information\n"
-	     "    -events              print events selected for on window\n"
-	     "    -size                print size hints\n"
-	     "    -wm                  print window manager hints\n"
-	     "    -shape               print shape extents\n"
-	     "    -frame               don't ignore window manager frames\n"
-	     "    -english             print sizes in english units\n"
-	     "    -metric              print sizes in metric units\n"
-	     "    -all                 -tree, -stats, -bits, -events, -wm, -size, -shape\n"
+	     "    -help                 print this message\n"
+	     "    -version              print version message\n"
+	     "    -d[isplay] <host:dpy> X server to contact\n"
+	     "    -root                 use the root window\n"
+	     "    -id <wdid>            use the window with the specified id\n"
+	     "    -name <wdname>        use the window with the specified name\n"
+	     "    -int                  print window id in decimal\n"
+	     "    -children             print parent and child identifiers\n"
+	     "    -tree                 print children identifiers recursively\n"
+	     "    -stats                print window geometry [DEFAULT]\n"
+	     "    -bits                 print window pixel information\n"
+	     "    -events               print events selected for on window\n"
+	     "    -size                 print size hints\n"
+	     "    -wm                   print window manager hints\n"
+	     "    -shape                print shape extents\n"
+	     "    -frame                don't ignore window manager frames\n"
+	     "    -english              print sizes in english units\n"
+	     "    -metric               print sizes in metric units\n"
+	     "    -all                  -tree, -stats, -bits, -events, -wm, -size, -shape\n"
 	     "\n",
 	     program_name);
     exit (1);
@@ -343,11 +343,10 @@ scale_init (xcb_screen_t *scale_screen)
 static char *
 nscale (int n, int np, int nmm, char *nbuf, size_t nbufsize)
 {
-    int s;
     snprintf (nbuf, nbufsize, "%d", n);
 
     if (metric||english) {
-	s = strlcat (nbuf, " (", nbufsize);
+	int s = strlcat (nbuf, " (", nbufsize);
 
 	if (metric) {
 	    snprintf (nbuf+s, nbufsize-s, "%.2f mm%s",
@@ -356,13 +355,13 @@ nscale (int n, int np, int nmm, char *nbuf, size_t nbufsize)
 	if (english) {
 	    double inch_frac;
 	    Bool printed_anything = False;
-	    int mi, yar, ft, inr;
+	    int inr;
 
 	    inch_frac = ((double) n)*(nmm/25.4)/np;
 	    inr = (int)inch_frac;
 	    inch_frac -= (double)inr;
 	    if (inr >= MILE) {
-		mi = inr/MILE;
+		int mi = inr/MILE;
 		inr %= MILE;
 		s = strlen (nbuf);
 		snprintf (nbuf+s, nbufsize-s, "%d %s(?!?)",
@@ -370,7 +369,7 @@ nscale (int n, int np, int nmm, char *nbuf, size_t nbufsize)
 		printed_anything = True;
 	    }
 	    if (inr >= YARD) {
-		yar = inr/YARD;
+		int yar = inr/YARD;
 		inr %= YARD;
 		if (printed_anything)
 		    strlcat (nbuf, ", ", nbufsize);
@@ -380,7 +379,7 @@ nscale (int n, int np, int nmm, char *nbuf, size_t nbufsize)
 		printed_anything = True;
 	    }
 	    if (inr >= FOOT) {
-		ft = inr/FOOT;
+		int ft = inr/FOOT;
 		inr  %= FOOT;
 		if (printed_anything)
 		    strlcat (nbuf, ", ", nbufsize);
@@ -440,7 +439,6 @@ window_id_str (xcb_window_t id)
 int
 main (int argc, char **argv)
 {
-    register int i;
     int tree = 0, stats = 0, bits = 0, events = 0, wm = 0, size = 0, shape = 0;
     int frame = 0, children = 0;
     int use_root = 0;
@@ -461,7 +459,7 @@ main (int argc, char **argv)
     memset (w, 0, sizeof(struct wininfo));
 
     /* Handle our command line arguments */
-    for (i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
 	if (!strcmp (argv[i], "-help"))
 	    usage ();
 	if (!strcmp (argv[i], "-display") || !strcmp (argv[i], "-d")) {
@@ -716,7 +714,7 @@ wm_size_hints_reply (xcb_connection_t *wshr_dpy, xcb_get_property_cookie_t cooki
 		     wm_size_hints_t *hints_return, xcb_generic_error_t **wshr_err)
 {
     xcb_get_property_reply_t *prop = xcb_get_property_reply (wshr_dpy, cookie, wshr_err);
-    int length;
+    size_t length;
 
     if (!prop || (prop->type != XCB_ATOM_WM_SIZE_HINTS) ||
 	(prop->format != 32)) {
@@ -726,7 +724,7 @@ wm_size_hints_reply (xcb_connection_t *wshr_dpy, xcb_get_property_cookie_t cooki
 
     memset (hints_return, 0, sizeof(wm_size_hints_t));
 
-    length = xcb_get_property_value_length(prop);
+    length = (size_t) xcb_get_property_value_length(prop);
     if (length > sizeof(wm_size_hints_t))
 	length = sizeof(wm_size_hints_t);
     memcpy (hints_return, xcb_get_property_value (prop), length);
@@ -745,9 +743,9 @@ wm_size_hints_reply (xcb_connection_t *wshr_dpy, xcb_get_property_cookie_t cooki
 static xcb_size_hints_t *
 fetch_normal_hints (struct wininfo *w, xcb_size_hints_t *hints_return)
 {
-    xcb_size_hints_t hints;
-
     if (!w->normal_hints) {
+	xcb_size_hints_t hints;
+
 	if (xcb_icccm_get_wm_normal_hints_reply (dpy, w->normal_hints_cookie,
 						 &hints, NULL)) {
 	    w->normal_hints = malloc (sizeof(xcb_size_hints_t));
@@ -764,7 +762,6 @@ fetch_normal_hints (struct wininfo *w, xcb_size_hints_t *hints_return)
 /*
  * Lookup: lookup a code in a table.
  */
-static char _lookup_buffer[100];
 
 static const char *
 LookupL (long code, const binding *table)
@@ -780,6 +777,8 @@ LookupL (long code, const binding *table)
     }
 
     if (name == NULL) {
+	static char _lookup_buffer[100];
+
 	snprintf (_lookup_buffer, sizeof(_lookup_buffer),
 		  "unknown (code = %ld. = 0x%lx)", code, code);
 	name = _lookup_buffer;
@@ -1224,7 +1223,7 @@ static const binding _event_mask_names[] = {
 static void
 Display_Event_Mask (long mask)
 {
-    long bit, bit_mask;
+    unsigned long bit, bit_mask;
 
     for (bit=0, bit_mask=1; bit < sizeof(long)*8; bit++, bit_mask <<= 1)
 	if (mask & bit_mask)
@@ -1280,7 +1279,6 @@ Display_Tree_Info (struct wininfo *w, int recurse)
 static void
 display_tree_info_1 (struct wininfo *w, int recurse, int level)
 {
-    int i, j;
     unsigned int num_children;
     xcb_query_tree_reply_t *tree;
 
@@ -1311,7 +1309,7 @@ display_tree_info_1 (struct wininfo *w, int recurse, int level)
 
     if (level == 0  ||  num_children > 0) {
 	printf ("     ");
-	for (j = 0; j < level; j++) printf ("   ");
+	for (int j = 0; j < level; j++) printf ("   ");
 	printf ("%d child%s%s\n", num_children, num_children == 1 ? "" : "ren",
 		num_children ? ":" : ".");
     }
@@ -1324,7 +1322,7 @@ display_tree_info_1 (struct wininfo *w, int recurse, int level)
 	if (children == NULL)
 	    Fatal_Error ("Failed to allocate memory in display_tree_info");
 
-	for (i = (int)num_children - 1; i >= 0; i--) {
+	for (int i = (int)num_children - 1; i >= 0; i--) {
 	    struct wininfo *cw = &children[i];
 
 	    cw->window = child_list[i];
@@ -1339,7 +1337,7 @@ display_tree_info_1 (struct wininfo *w, int recurse, int level)
 	}
 	xcb_flush (dpy);
 
-	for (i = (int)num_children - 1; i >= 0; i--) {
+	for (int i = (int)num_children - 1; i >= 0; i--) {
 	    struct wininfo *cw = &children[i];
 	    Bool got_wm_class = False;
 	    char *instance_name = NULL, *class_name = NULL;
@@ -1352,7 +1350,7 @@ display_tree_info_1 (struct wininfo *w, int recurse, int level)
 	    xcb_get_geometry_reply_t *geometry;
 
 	    printf ("     ");
-	    for (j = 0; j < level; j++) printf ("   ");
+	    for (int j = 0; j < level; j++) printf ("   ");
 	    Display_Window_Id (cw, False);
 	    printf (": (");
 
@@ -1620,7 +1618,7 @@ wm_hints_reply (xcb_connection_t *whr_dpy, xcb_get_property_cookie_t cookie,
 		wm_hints_t *hints_return, xcb_generic_error_t **whr_err)
 {
     xcb_get_property_reply_t *prop = xcb_get_property_reply (whr_dpy, cookie, whr_err);
-    int length;
+    size_t length;
 
     if (!prop || (prop->type != XCB_ATOM_WM_HINTS) || (prop->format != 32)) {
 	free (prop);
@@ -1629,7 +1627,7 @@ wm_hints_reply (xcb_connection_t *whr_dpy, xcb_get_property_cookie_t cookie,
 
     memset (hints_return, 0, sizeof(wm_hints_t));
 
-    length = xcb_get_property_value_length(prop);
+    length = (size_t) xcb_get_property_value_length(prop);
     if (length > sizeof(wm_hints_t))
 	length = sizeof(wm_hints_t);
     memcpy (hints_return, xcb_get_property_value (prop), length);
@@ -1660,8 +1658,6 @@ Display_WM_Info (struct wininfo *w)
 {
     xcb_icccm_wm_hints_t wmhints;
     long flags;
-    xcb_get_property_reply_t *prop;
-    int i;
 
     printf ("\n");
     if (!xcb_icccm_get_wm_hints_reply(dpy, w->hints_cookie, &wmhints, &err))
@@ -1698,6 +1694,8 @@ Display_WM_Info (struct wininfo *w)
 		Lookup (wmhints.initial_state, _state_hints));
 
     if (atom_net_wm_desktop) {
+	xcb_get_property_reply_t *prop;
+
 	prop = xcb_get_property_reply (dpy, w->wm_desktop_cookie, NULL);
 	if (prop && (prop->type != XCB_NONE)) {
 	    uint32_t *desktop = xcb_get_property_value (prop);
@@ -1711,6 +1709,8 @@ Display_WM_Info (struct wininfo *w)
     }
 
     if (atom_net_wm_window_type) {
+	xcb_get_property_reply_t *prop;
+
 	prop = xcb_get_property_reply (dpy, w->wm_window_type_cookie,
 				       NULL);
 	if (prop && (prop->type != XCB_NONE) && (prop->value_len > 0)) {
@@ -1719,7 +1719,7 @@ Display_WM_Info (struct wininfo *w)
 
 	    if (atom_count > 0) {
 		printf ("      Window type:\n");
-		for (i = 0; i < atom_count; i++)
+		for (int i = 0; i < atom_count; i++)
 		    Display_Atom_Name (atoms[i], "_NET_WM_WINDOW_TYPE_");
 	    }
 	}
@@ -1727,6 +1727,8 @@ Display_WM_Info (struct wininfo *w)
     }
 
     if (atom_net_wm_state) {
+	xcb_get_property_reply_t *prop;
+
 	prop = xcb_get_property_reply (dpy, w->wm_state_cookie, NULL);
 	if (prop && (prop->type != XCB_NONE) && (prop->value_len > 0)) {
 	    xcb_atom_t *atoms = xcb_get_property_value (prop);
@@ -1734,7 +1736,7 @@ Display_WM_Info (struct wininfo *w)
 
 	    if (atom_count > 0) {
 		printf ("      Window state:\n");
-		for (i = 0; i < atom_count; i++)
+		for (int i = 0; i < atom_count; i++)
 		    Display_Atom_Name (atoms[i], "_NET_WM_STATE_");
 	    }
 	}
@@ -1742,6 +1744,8 @@ Display_WM_Info (struct wininfo *w)
     }
 
     if (atom_net_wm_pid) {
+	xcb_get_property_reply_t *prop;
+
 	printf ("      Process id: ");
 	prop = xcb_get_property_reply (dpy, w->wm_pid_cookie, NULL);
 	if (prop && (prop->type == XCB_ATOM_CARDINAL)) {
@@ -1763,6 +1767,8 @@ Display_WM_Info (struct wininfo *w)
     }
 
     if (atom_net_frame_extents) {
+	xcb_get_property_reply_t *prop;
+
 	prop = xcb_get_property_reply (dpy, w->frame_extents_cookie, NULL);
 	if (prop && (prop->type == XCB_ATOM_CARDINAL)
 	    && (prop->value_len == 4)) {
@@ -1836,12 +1842,10 @@ static int
 is_valid_utf8 (const char *string, size_t len)
 {
     unsigned long codepoint;
-    int rem, i;
-    unsigned char c;
+    int rem = 0;
 
-    rem = 0;
-    for (i = 0; i < len; i++) {
-	c = (unsigned char) string[i];
+    for (size_t i = 0; i < len; i++) {
+	unsigned char c = (unsigned char) string[i];
 
 	/* Order of type check:
 	 *   - Single byte code point
@@ -1910,16 +1914,15 @@ print_utf8 (const char *prefix, const char *u8str, size_t length, const char *su
 
     if (iconv_from_utf8 != (iconv_t) -1) {
 	Bool done = True;
-	ICONV_CONST char *inp = u8str;
+	ICONV_CONST char *inp = (ICONV_CONST char *) u8str;
 	char convbuf[BUFSIZ];
-	int convres;
 
 	printf ("%s", prefix);
 	do {
 	    char *outp = convbuf;
 	    size_t outlen = sizeof(convbuf);
 
-	    convres = iconv (iconv_from_utf8, &inp, &inlen, &outp, &outlen);
+	    int convres = iconv (iconv_from_utf8, &inp, &inlen, &outp, &outlen);
 
 	    if ((convres == -1) && (errno == E2BIG)) {
 		done = False;
@@ -1952,7 +1955,7 @@ static char *
 get_friendly_name (const char *string, const char *prefix)
 {
     const char *name_start = string;
-    char *lowered_name, *n;
+    char *lowered_name;
     Bool first = True;
     size_t prefix_len = strlen (prefix);
 
@@ -1964,7 +1967,7 @@ get_friendly_name (const char *string, const char *prefix)
     if (lowered_name == NULL)
 	Fatal_Error ("Failed to allocate memory in get_friendly_name");
 
-    for (n = lowered_name ; *n != 0 ; n++) {
+    for (char *n = lowered_name ; *n != 0 ; n++) {
 	if (*n == '_') {
 	    *n = ' ';
 	    first = True;

@@ -36,13 +36,6 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 
-#ifdef SYSVNET
-#include <interlan/il_types.h>
-#define __TYPES__		/* prevent #include <sys/types.h> in Xlib.h */
-#include <interlan/netdb.h>
-#include <interlan/socket.h>
-#endif /* SYSVNET */
-
 #include <X11/IntrinsicP.h>
 #include <X11/Xatom.h>
 #include <X11/ShellP.h>
@@ -51,10 +44,8 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include <stdio.h>
 
-#ifndef SYSVNET
 #ifdef WIN32
 #include <X11/Xwinsock.h>
-#define XOS_USE_MTSAFE_NETDBAPI
 #else
 #ifndef Lynx
 #include <sys/socket.h>
@@ -64,9 +55,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #define XOS_USE_XT_LOCKING
 #endif
-#define X_INCLUDE_NETDB_H
 #include <X11/Xos_r.h>
-#endif
 
 #include <X11/Xos.h>
 #include <stdlib.h>
@@ -76,23 +65,14 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xfuncs.h>
 
 #ifndef OS_NAME
-#ifndef X_OS_FILE
-#ifdef SYSV			/* keep separate until makedepend fixed */
-#define USE_UNAME
-#endif
-#ifdef SVR4
-#define USE_UNAME
-#endif
-#ifdef ultrix
-#define USE_UNAME
-#endif
-#ifdef CSRG_BASED
-#define USE_UNAME
-#endif
-#endif /*X_OS_FILE*/
-#ifdef USE_UNAME
-#include <sys/utsname.h>
-#endif
+# ifndef X_OS_FILE
+#  ifdef HAVE_UNAME
+#   define USE_UNAME
+#  endif
+# endif /*X_OS_FILE*/
+# ifdef USE_UNAME
+#  include <sys/utsname.h>
+# endif
 #endif
 
 /*
@@ -156,14 +136,10 @@ get_os_name(void)
 	}
 #endif
 
-#ifdef sun
-	return XtNewString("SunOS");
-#else
-# if !defined(SYSV) && (defined(CSRG_BASED) || defined(unix))
+#if !defined(SYSV) && (defined(CSRG_BASED) || defined(unix))
 	return XtNewString("BSD");
-# else
+#else
 	return NULL;
-# endif
 #endif
 
 #endif /*OS_NAME*/
@@ -203,7 +179,7 @@ XmuConvertStandardSelection(Widget w, Time time, Atom *selection, Atom *target,
 	    *(long*)*value = time;
 	else {
 	    long temp = time;
-	    (void) memmove((char*)*value, ((char*)&temp)+sizeof(long)-4, 4);
+	    memcpy((char*)*value, ((char*)&temp)+sizeof(long)-4, 4);
 	}
 	*type = XA_INTEGER;
 	*length = 1;
@@ -219,29 +195,6 @@ XmuConvertStandardSelection(Widget w, Time time, Atom *selection, Atom *target,
 	*format = 8;
 	return True;
     }
-#if defined(TCPCONN)
-    if (*target == XA_IP_ADDRESS(d)) {
-	char hostname[1024];
-#ifdef XTHREADS_NEEDS_BYNAMEPARAMS
-	_Xgethostbynameparams hparams;
-#endif
-	struct hostent *hostp;
-
-	hostname[0] = '\0';
-	(void) XmuGetHostname (hostname, sizeof hostname);
-
-	if ((hostp = _XGethostbyname (hostname,hparams)) == NULL)
-	    return False;
-
-	if (hostp->h_addrtype != AF_INET) return False;
-	*length = hostp->h_length;
-	*value = XtMalloc(*length);
-	(void) memmove (*value, hostp->h_addr, *length);
-	*type = XA_NET_ADDRESS(d);
-	*format = 8;
-	return True;
-    }
-#endif
     if (*target == XA_USER(d)) {
 	char *name = (char*)getenv("USER");
 	if (name == NULL) return False;
@@ -253,7 +206,7 @@ XmuConvertStandardSelection(Widget w, Time time, Atom *selection, Atom *target,
     }
     if (*target == XA_CLASS(d)) {
 	Widget parent = XtParent(w);
-	char *class;
+	String class;
 	int len;
 	while (parent != NULL && !isApplicationShell(w)) {
 	    w = parent;
@@ -308,15 +261,14 @@ XmuConvertStandardSelection(Widget w, Time time, Atom *selection, Atom *target,
     }
     if (*target == XA_TARGETS(d)) {
 #if defined(unix)
-#  define NUM_TARGETS 8
-#else
 #  define NUM_TARGETS 7
+#else
+#  define NUM_TARGETS 6
 #endif
 	Atom* std_targets = (Atom*)XtMalloc(NUM_TARGETS*sizeof(Atom));
 	int i = 0;
 	std_targets[i++] = XA_TIMESTAMP(d);
 	std_targets[i++] = XA_HOSTNAME(d);
-	std_targets[i++] = XA_IP_ADDRESS(d);
 	std_targets[i++] = XA_USER(d);
 	std_targets[i++] = XA_CLASS(d);
 	std_targets[i++] = XA_NAME(d);

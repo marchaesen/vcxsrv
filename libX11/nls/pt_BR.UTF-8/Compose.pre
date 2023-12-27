@@ -8,10 +8,6 @@ XCOMM   by Benno Schulenberg <bensberg@justemail.net>
 XCOMM Use the sequences from en_US.UTF-8 as the basis:
 include "X11_LOCALEDATADIR/en_US.UTF-8/Compose"
 
-XCOMM This one should probably be deleted, because in
-XCOMM en_US.UTF8 this is lowercase schwa, not uppercase:
-<Multi_key> <e> <e> 			: "Ə" U018f
-
 XCOMM Two nice additions -- maybe add to en_US.UTF8?
 <Multi_key> <quotedbl> <backslash> 	: "〝" U301d	# REVERSED DOUBLE PRIME QUOTATION MARK
 <Multi_key> <quotedbl> <slash>  	: "〞" U301e	# DOUBLE PRIME QUOTATION MARK

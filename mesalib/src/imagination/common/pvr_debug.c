@@ -28,15 +28,23 @@
 
 uint32_t PVR_DEBUG = 0;
 
+/* clang-format off */
 static const struct debug_named_value debug_control[] = {
-   /* Define debug values here in the same order as in "pvr_debug.h". Example:
-   { "some_option", PVR_DEBUG_SOME_OPTION,
-     "This is a description for some option" },
-    */
+   { "cs", PVR_DEBUG_DUMP_CONTROL_STREAM,
+     "Dump the contents of the control stream buffer on every job submit." },
+   { "bo_track", PVR_DEBUG_TRACK_BOS,
+     "Track all buffer objects with at least one reference." },
+   { "vk_desc", PVR_DEBUG_VK_DUMP_DESCRIPTOR_SET_LAYOUT,
+     "Dump descriptor set and pipeline layouts." },
+   { "info", PVR_DEBUG_INFO,
+     "Display information about the driver and device." },
    DEBUG_NAMED_VALUE_END
 };
+/* clang-format on */
 
 DEBUG_GET_ONCE_FLAGS_OPTION(pvr_debug, "PVR_DEBUG", debug_control, 0)
+
+#define PVR_DEBUG_SET(x) PVR_DEBUG |= (PVR_DEBUG_##x)
 
 void pvr_process_debug_variable(void)
 {
@@ -45,4 +53,7 @@ void pvr_process_debug_variable(void)
    /* Perform any automatic selections. For example, if one debug option
     * implies another it should be set here.
     */
+
+   if (PVR_IS_DEBUG_SET(DUMP_CONTROL_STREAM))
+      PVR_DEBUG_SET(TRACK_BOS);
 }

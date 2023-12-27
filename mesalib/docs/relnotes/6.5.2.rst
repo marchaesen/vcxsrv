@@ -43,7 +43,7 @@ New features
 -  New ``minstall`` script to replace normal install program
 -  Faster fragment program execution in software
 -  Added (or fixed) support for
-   `GLX_SGI_make_current_read <https://www.khronos.org/registry/OpenGL/extensions/SGI/GLX_SGI_make_current_read.txt>`__
+   `GLX_SGI_make_current_read <https://registry.khronos.org/OpenGL/extensions/SGI/GLX_SGI_make_current_read.txt>`__
    to the following drivers:
 
    -  radeon

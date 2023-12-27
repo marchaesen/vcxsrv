@@ -26,13 +26,15 @@ vdpau_link_args = []
 vdpau_link_depends = []
 vdpau_drivers = []
 
+vdpau_sym = configure_file(input : 'vdpau.sym.in', output : 'vdpau.sym', configuration : sym_config)
+
 if with_ld_version_script
-  vdpau_link_args += ['-Wl,--version-script', join_paths(meson.current_source_dir(), 'vdpau.sym')]
-  vdpau_link_depends += files('vdpau.sym')
+  vdpau_link_args += ['-Wl,--version-script', join_paths(meson.current_build_dir(), 'vdpau.sym')]
+  vdpau_link_depends += vdpau_sym
 endif
 if with_ld_dynamic_list
-  vdpau_link_args += ['-Wl,--dynamic-list', join_paths(meson.current_source_dir(), '../dri-vdpau.dyn')]
-  vdpau_link_depends += files('../dri-vdpau.dyn')
+  vdpau_link_args += ['-Wl,--dynamic-list', join_paths(meson.current_source_dir(), '../dri.dyn')]
+  vdpau_link_depends += files('../dri.dyn')
 endif
 
 link_with_libvdpau_gallium = [
@@ -40,7 +42,7 @@ link_with_libvdpau_gallium = [
   libpipe_loader_static, libws_null, libwsw, libswdri, libswkmsdri,
 ]
 
-if with_glx == 'xlib' or with_glx == 'gallium-xlib'
+if with_glx == 'xlib'
   link_with_libvdpau_gallium += [libws_xlib]
 endif
 
@@ -56,7 +58,7 @@ libvdpau_gallium = shared_library(
   link_with : link_with_libvdpau_gallium,
   dependencies : [
     idep_mesautil,
-    driver_r300, driver_r600, driver_radeonsi, driver_nouveau, driver_d3d12, driver_virgl,
+    driver_r600, driver_radeonsi, driver_nouveau, driver_d3d12, driver_virgl,
   ],
   link_depends : vdpau_link_depends,
   soversion : '@0@.@1@.0'.format(VDPAU_MAJOR, VDPAU_MINOR),
@@ -65,8 +67,7 @@ libvdpau_gallium = shared_library(
   install_dir : vdpau_drivers_path,
   name_suffix : 'so',
 )
-foreach d : [[with_gallium_r300, 'r300'],
-             [with_gallium_r600, 'r600'],
+foreach d : [[with_gallium_r600, 'r600'],
              [with_gallium_radeonsi, 'radeonsi'],
              [with_gallium_nouveau, 'nouveau'],
              [with_gallium_virgl, 'virtio_gpu'],
@@ -77,8 +78,9 @@ foreach d : [[with_gallium_r300, 'r300'],
 endforeach
 
 meson.add_install_script(
-  install_megadrivers_py.path(),
+  install_megadrivers_py.full_path(),
   libvdpau_gallium.full_path(),
   vdpau_drivers_path,
   vdpau_drivers,
+  install_tag : 'runtime',
 )

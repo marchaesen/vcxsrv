@@ -393,8 +393,8 @@ softpipe_set_constant_buffer(struct pipe_context *pipe,
       draw_set_mapped_constant_buffer(softpipe->draw, shader, index, data, size);
    }
 
-   softpipe->mapped_constants[shader][index] = data;
-   softpipe->const_buffer_size[shader][index] = size;
+   softpipe->mapped_constants[shader][index].ptr = data;
+   softpipe->mapped_constants[shader][index].size = size;
 
    softpipe->dirty |= SP_NEW_CONSTANTS;
 

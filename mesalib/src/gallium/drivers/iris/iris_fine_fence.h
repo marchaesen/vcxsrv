@@ -59,13 +59,6 @@ struct iris_fine_fence {
     */
    struct iris_syncobj *syncobj;
 
-#define IRIS_FENCE_BOTTOM_OF_PIPE 0x0 /**< Written by bottom-of-pipe flush */
-#define IRIS_FENCE_TOP_OF_PIPE    0x1 /**< Written by top-of-pipe flush */
-#define IRIS_FENCE_END            0x2 /**< Written at the end of a batch */
-
-   /** Information about the type of flush involved (see IRIS_FENCE_*) */
-   uint32_t flags;
-
    /**
     * Sequence number expected to be written by the flush we inserted
     * when creating this fence.  The iris_fine_fence is 'signaled' when *@map
@@ -76,7 +69,7 @@ struct iris_fine_fence {
 
 void iris_fine_fence_init(struct iris_batch *batch);
 
-struct iris_fine_fence *iris_fine_fence_new(struct iris_batch *batch, unsigned flags);
+struct iris_fine_fence *iris_fine_fence_new(struct iris_batch *batch);
 
 void iris_fine_fence_destroy(struct iris_screen *screen, struct iris_fine_fence *sq);
 

@@ -2,24 +2,7 @@
 ************************************************************************************************************************
 *
 *  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a
-* copy of this software and associated documentation files (the "Software"),
-* to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense,
-* and/or sell copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
-* OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-* OTHER DEALINGS IN THE SOFTWARE
+*  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
 
@@ -3738,7 +3721,6 @@ const ADDR_SW_PATINFO GFX10_SW_VAR_Z_X_8xaa_RBPLUS_PATINFO[] =
     {   3,   27,  344,  365,  124, } , // 64 pipes (32 PKRs) 16 bpe @ SW_VAR_Z_X 8xaa @ RbPlus
 };
 
-// Nibble 2D arrays contain arrays of sections of the index equation. An index equation depends on the swizzle mode, pipe#, and bpe#
 const UINT_64 GFX10_SW_PATTERN_NIBBLE01[][8] =
 {
     {X0,            X1,            X2,            X3,            Y0,            Y1,            Y2,            Y3,            }, // 0
@@ -4295,8 +4277,6 @@ const UINT_64 GFX10_SW_PATTERN_NIBBLE2[][4] =
     {Y4^X9^Y9,      X4^Y4,         Y2^Y5^X8,      Z2^X5^Y8,      }, // 507
     {Z3^Y4^X9^Y9,   X4^Y4,         Y1^Y5^X8,      Z2^X5^Y8,      }, // 508
     {Z3^Y4^X9^Y9,   Y1^X4^Y4,      X1^Y5^X8,      Z2^X5^Y8,      }, // 509
-    {Y3^X5^Y5,      Z0^X4^Y4,      Y2,            X3,            }, // 510
-    {Y3^X5^Y5,      X2^X4^Y4,      Y2,            X3,            }, // 511
 };
 
 const UINT_64 GFX10_SW_PATTERN_NIBBLE3[][4] =

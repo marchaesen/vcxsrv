@@ -492,7 +492,7 @@ dzn_meta_blits_get_fs(struct dzn_device *device,
             .is_linear_filtering = 0,
             .skip_boundary_conditions = 1,
          };
-         dxil_lower_sample_to_txf_for_integer_tex(nir, &wrap_state, NULL, 0);
+         dxil_lower_sample_to_txf_for_integer_tex(nir, 1, &wrap_state, NULL, 0);
       }
 
       D3D12_SHADER_BYTECODE bc;
@@ -603,16 +603,18 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
       },
    };
 
+   uint32_t samples = key->resolve_mode == dzn_blit_resolve_none ?
+      key->samples : 1;
    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {
-      .SampleMask = key->resolve ? 1 : (1ULL << key->samples) - 1,
+      .SampleMask = (1ULL << samples) - 1,
       .RasterizerState = {
          .FillMode = D3D12_FILL_MODE_SOLID,
          .CullMode = D3D12_CULL_MODE_NONE,
-         .DepthClipEnable = TRUE,
+         .DepthClipEnable = true,
       },
       .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
       .SampleDesc = {
-         .Count = key->resolve ? 1 : key->samples,
+         .Count = samples,
          .Quality = 0,
       },
       .Flags = D3D12_PIPELINE_STATE_FLAG_NONE,
@@ -624,7 +626,7 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
       .out_type = key->out_type,
       .sampler_dim = key->sampler_dim,
       .src_is_array = key->src_is_array,
-      .resolve = key->resolve,
+      .resolve_mode = key->resolve_mode,
       .padding = 0,
    };
 
@@ -667,12 +669,12 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
    } else {
       desc.DSVFormat = key->out_format;
       if (key->loc == FRAG_RESULT_DEPTH) {
-         desc.DepthStencilState.DepthEnable = TRUE;
+         desc.DepthStencilState.DepthEnable = true;
          desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
          desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
       } else {
          assert(key->loc == FRAG_RESULT_STENCIL);
-         desc.DepthStencilState.StencilEnable = TRUE;
+         desc.DepthStencilState.StencilEnable = true;
          desc.DepthStencilState.StencilWriteMask = 0xff;
          desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_REPLACE;
          desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;

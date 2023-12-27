@@ -180,7 +180,7 @@ hard_event::wait() const {
       queue()->flush();
 
    if (!_fence ||
-       !screen->fence_finish(screen, NULL, _fence, PIPE_TIMEOUT_INFINITE))
+       !screen->fence_finish(screen, NULL, _fence, OS_TIMEOUT_INFINITE))
       throw error(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
 }
 

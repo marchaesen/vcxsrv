@@ -29,21 +29,20 @@
 
 #include "sfn_valuefactory.h"
 
-#include <map>
 #include <cassert>
+#include <map>
 
 namespace r600 {
 
 class Shader;
 
-class LiveRangeEvaluator  {
+class LiveRangeEvaluator {
 public:
-
    LiveRangeEvaluator();
 
-   LiveRangeMap run(Shader &sh);
+   LiveRangeMap run(Shader& sh);
 };
 
-}
+} // namespace r600
 
 #endif // LIFERANGEEVALUATOR_H

@@ -23,6 +23,7 @@
 
 #include "util/set.h"
 #include "util/dag.h"
+#include <stdio.h>
 
 static void
 append_edge(struct dag_node *parent, struct dag_node *child, uintptr_t data)
@@ -128,13 +129,12 @@ dag_init_node(struct dag *dag, struct dag_node *node)
 
 struct dag_traverse_bottom_up_state {
    struct set *seen;
+   void (*cb)(struct dag_node *node, void *data);
    void *data;
 };
 
 static void
 dag_traverse_bottom_up_node(struct dag_node *node,
-                            void (*cb)(struct dag_node *node,
-                                       void *data),
                             struct dag_traverse_bottom_up_state *state)
 {
    if (_mesa_set_search(state->seen, node))
@@ -170,7 +170,7 @@ dag_traverse_bottom_up_node(struct dag_node *node,
       }
 
       /* Process the node */
-      cb(node, state->data);
+      state->cb(node, state->data);
       _mesa_set_add(state->seen, node);
 
       /* Find the next unprocessed node in the stack */
@@ -197,10 +197,11 @@ dag_traverse_bottom_up(struct dag *dag, void (*cb)(struct dag_node *node,
    struct dag_traverse_bottom_up_state state = {
       .seen = _mesa_pointer_set_create(NULL),
       .data = data,
+      .cb = cb,
    };
 
    list_for_each_entry(struct dag_node, node, &dag->heads, link) {
-      dag_traverse_bottom_up_node(node, cb, &state);
+      dag_traverse_bottom_up_node(node, &state);
    }
 
    ralloc_free(state.seen);
@@ -219,3 +220,68 @@ dag_create(void *mem_ctx)
    return dag;
 }
 
+struct dag_validate_state {
+   struct util_dynarray stack;
+   struct set *stack_set;
+   struct set *seen;
+   void (*cb)(const struct dag_node *node, void *data);
+   void *data;
+};
+
+static void
+dag_validate_node(struct dag_node *node,
+                  struct dag_validate_state *state)
+{
+   if (_mesa_set_search(state->stack_set, node)) {
+      fprintf(stderr, "DAG validation failed at:\n");
+      fprintf(stderr, "  %p: ", node);
+      state->cb(node, state->data);
+      fprintf(stderr, "\n");
+      fprintf(stderr, "Nodes in stack:\n");
+      util_dynarray_foreach(&state->stack, struct dag_node *, nodep) {
+         struct dag_node *node = *nodep;
+         fprintf(stderr, "  %p: ", node);
+         state->cb(node, state->data);
+         fprintf(stderr, "\n");
+      }
+      abort();
+   }
+
+   if (_mesa_set_search(state->seen, node))
+      return;
+
+   _mesa_set_add(state->stack_set, node);
+   _mesa_set_add(state->seen, node);
+   util_dynarray_append(&state->stack, struct dag_node *, node);
+
+   util_dynarray_foreach(&node->edges, struct dag_edge, edge) {
+      dag_validate_node(edge->child, state);
+   }
+
+   (void)util_dynarray_pop(&state->stack, struct dag_node *);
+   _mesa_set_remove_key(state->stack_set, node);
+}
+
+void
+dag_validate(struct dag *dag, void (*cb)(const struct dag_node *node,
+                                         void *data),
+             void *data)
+{
+   void *mem_ctx = ralloc_context(NULL);
+   struct dag_validate_state state = {
+      .stack_set = _mesa_pointer_set_create(mem_ctx),
+      .seen = _mesa_pointer_set_create(mem_ctx),
+      .cb = cb,
+      .data = data,
+   };
+
+   util_dynarray_init(&state.stack, mem_ctx);
+
+   list_validate(&dag->heads);
+
+   list_for_each_entry(struct dag_node, node, &dag->heads, link) {
+      dag_validate_node(node, &state);
+   }
+
+   ralloc_free(mem_ctx);
+}

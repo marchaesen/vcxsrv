@@ -18,45 +18,45 @@ LLVM Softpipe
 A version of :ref:`softpipe` that uses the Low-Level Virtual Machine to
 dynamically generate optimized rasterizing pipelines.
 
-nVidia nv30
+NVIDIA NV30
 ^^^^^^^^^^^
 
-Driver for the nVidia nv30 and nv40 families of GPUs.
+Driver for the NVIDIA NV30 and NV40 families of GPUs.
 
-nVidia nv50
+NVIDIA NV50
 ^^^^^^^^^^^
 
-Driver for the nVidia nv50 family of GPUs.
+Driver for the NVIDIA NV50 family of GPUs.
 
-nVidia nvc0
+NVIDIA NVC0
 ^^^^^^^^^^^
 
-Driver for the nVidia nvc0 / fermi family of GPUs.
+Driver for the NVIDIA NVC0 / Fermi family of GPUs.
 
 VMware SVGA
 ^^^^^^^^^^^
 
 Driver for VMware virtualized guest operating system graphics processing.
 
-ATI r300
+ATI R300
 ^^^^^^^^
 
-Driver for the ATI/AMD r300, r400, and r500 families of GPUs.
+Driver for the ATI/AMD R300, R400, and R500 families of GPUs.
 
-ATI/AMD r600
+ATI/AMD R600
 ^^^^^^^^^^^^
 
-Driver for the ATI/AMD r600, r700, Evergreen and Northern Islands families of GPUs.
+Driver for the ATI/AMD R600, R700, Evergreen and Northern Islands families of GPUs.
 
-AMD radeonsi
+AMD RadeonSI
 ^^^^^^^^^^^^
 
 Driver for the AMD Southern Islands family of GPUs.
 
-freedreno
+Freedreno
 ^^^^^^^^^
 
-Driver for Qualcomm Adreno a2xx, a3xx, and a4xx series of GPUs.
+Driver for Qualcomm Adreno 2xx, 3xx, and 4xx series of GPUs.
 
 .. _softpipe:
 
@@ -72,11 +72,6 @@ Trace
 
 Wrapper driver. Trace dumps an XML record of the calls made to the
 :ref:`Context` and :ref:`Screen` objects that it wraps.
-
-Rbug
-^^^^
-
-Wrapper driver. :ref:`rbug` driver used with stand alone rbug-gui.
 
 Gallium frontends
 -----------------
@@ -123,11 +118,6 @@ Xorg DDX
 
 Tracker for Xorg X11 servers. Provides device-dependent
 modesetting and acceleration as a DDX driver.
-
-XvMC
-^^^^
-
-Tracker for X-Video Motion Compensation.
 
 Auxiliary
 ---------

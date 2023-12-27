@@ -1,5 +1,7 @@
 SUBDIRS = man src specs
 
+ACLOCAL_AMFLAGS = -I m4
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = xext.pc
 
@@ -20,3 +22,5 @@ if LINT
 lint:
 	(cd src && $(MAKE) $(MFLAGS) lint)
 endif LINT
+
+EXTRA_DIST = README.md

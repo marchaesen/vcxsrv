@@ -40,24 +40,6 @@ struct lima_dump {
    int id;
 };
 
-bool lima_get_absolute_timeout(uint64_t *timeout)
-{
-   struct timespec current;
-   uint64_t current_ns;
-
-   if (*timeout == PIPE_TIMEOUT_INFINITE)
-      return true;
-
-   if (clock_gettime(CLOCK_MONOTONIC, &current))
-      return false;
-
-   current_ns = ((uint64_t)current.tv_sec) * 1000000000ull;
-   current_ns += current.tv_nsec;
-   *timeout += current_ns;
-
-   return true;
-}
-
 static void
 lima_dump_blob(FILE *fp, void *data, int size, bool is_float)
 {

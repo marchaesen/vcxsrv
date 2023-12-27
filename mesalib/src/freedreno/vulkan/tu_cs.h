@@ -10,7 +10,7 @@
 
 #include "freedreno_pm4.h"
 
-#include "tu_drm.h"
+#include "tu_knl.h"
 
 /* For breadcrumbs we may open a network socket based on the envvar,
  * it's not something that should be enabled by default.
@@ -62,11 +62,20 @@ struct tu_cs_entry
 struct tu_cs_memory {
    uint32_t *map;
    uint64_t iova;
+   bool writeable;
 };
 
 struct tu_draw_state {
-   uint64_t iova : 48;
-   uint32_t size : 16;
+   uint64_t iova;
+   uint16_t size;
+   bool writeable;
+};
+
+struct tu_bo_array {
+   struct tu_bo **bos;
+   uint32_t bo_count;
+   uint32_t bo_capacity;
+   uint32_t *start;
 };
 
 #define TU_COND_EXEC_STACK_SIZE 4
@@ -81,18 +90,20 @@ struct tu_cs
 
    struct tu_device *device;
    enum tu_cs_mode mode;
+   bool writeable;
    uint32_t next_bo_size;
 
    struct tu_cs_entry *entries;
    uint32_t entry_count;
    uint32_t entry_capacity;
 
-   struct tu_bo **bos;
-   uint32_t bo_count;
-   uint32_t bo_capacity;
+   struct tu_bo_array read_only, read_write;
 
    /* Optional BO that this CS is sub-allocated from for TU_CS_MODE_SUB_STREAM */
    struct tu_bo *refcount_bo;
+
+   /* iova that this CS starts with in TU_CS_MODE_EXTERNAL */
+   uint64_t external_iova;
 
    /* state for cond_exec_start/cond_exec_end */
    uint32_t cond_stack_depth;
@@ -116,7 +127,8 @@ tu_cs_init(struct tu_cs *cs,
 
 void
 tu_cs_init_external(struct tu_cs *cs, struct tu_device *device,
-                    uint32_t *start, uint32_t *end);
+                    uint32_t *start, uint32_t *end, uint64_t iova,
+                    bool writeable);
 
 void
 tu_cs_init_suballoc(struct tu_cs *cs, struct tu_device *device,
@@ -130,6 +142,9 @@ tu_cs_begin(struct tu_cs *cs);
 
 void
 tu_cs_end(struct tu_cs *cs);
+
+void
+tu_cs_set_writeable(struct tu_cs *cs, bool writeable);
 
 VkResult
 tu_cs_begin_sub_stream(struct tu_cs *cs, uint32_t size, struct tu_cs *sub_cs);
@@ -150,11 +165,15 @@ tu_cs_end_draw_state(struct tu_cs *cs, struct tu_cs *sub_cs)
    return (struct tu_draw_state) {
       .iova = entry.bo->iova + entry.offset,
       .size = entry.size / sizeof(uint32_t),
+      .writeable = sub_cs->writeable,
    };
 }
 
 VkResult
 tu_cs_reserve_space(struct tu_cs *cs, uint32_t reserved_size);
+
+uint64_t
+tu_cs_get_cur_iova(const struct tu_cs *cs);
 
 static inline struct tu_draw_state
 tu_cs_draw_state(struct tu_cs *sub_cs, struct tu_cs *cs, uint32_t size)
@@ -163,13 +182,15 @@ tu_cs_draw_state(struct tu_cs *sub_cs, struct tu_cs *cs, uint32_t size)
 
    /* TODO: clean this up */
    tu_cs_alloc(sub_cs, size, 1, &memory);
-   tu_cs_init_external(cs, sub_cs->device, memory.map, memory.map + size);
+   tu_cs_init_external(cs, sub_cs->device, memory.map, memory.map + size,
+                       memory.iova, memory.writeable);
    tu_cs_begin(cs);
    tu_cs_reserve_space(cs, size);
 
    return (struct tu_draw_state) {
       .iova = memory.iova,
       .size = size,
+      .writeable = sub_cs->writeable,
    };
 }
 
@@ -375,6 +396,43 @@ tu_cs_emit_call(struct tu_cs *cs, const struct tu_cs *target)
       tu_cs_emit_ib(cs, target->entries + i);
 }
 
+/**
+ * Emit a CP_NOP with a string tail into the command stream.
+ */
+void
+tu_cs_emit_debug_string(struct tu_cs *cs, const char *string, int len);
+
+void
+tu_cs_emit_debug_magic_strv(struct tu_cs *cs,
+                            uint32_t magic,
+                            const char *fmt,
+                            va_list args);
+
+__attribute__((format(printf, 2, 3))) void
+tu_cs_emit_debug_msg(struct tu_cs *cs, const char *fmt, ...);
+
+/**
+ * Emit a single message into the CS that denote the calling function and any
+ * optional printf-style parameters when utrace markers are enabled.
+ */
+#define TU_CS_DEBUG_MSG(CS, FORMAT_STRING, ...)                              \
+   do {                                                                      \
+      if (unlikely(u_trace_markers_enabled(&(CS)->device->trace_context)))   \
+         tu_cs_emit_debug_msg(CS, "%s(" FORMAT_STRING ")", __func__,         \
+                              ## __VA_ARGS__);                               \
+   } while (0)
+
+typedef struct tu_cs *tu_debug_scope;
+
+__attribute__((format(printf, 3, 4))) void
+tu_cs_trace_start(struct u_trace_context *utctx,
+                  void *cs,
+                  const char *fmt,
+                  ...);
+
+__attribute__((format(printf, 3, 4))) void
+tu_cs_trace_end(struct u_trace_context *utctx, void *cs, const char *fmt, ...);
+
 /* Helpers for bracketing a large sequence of commands of unknown size inside
  * a CP_COND_REG_EXEC packet.
  */
@@ -384,6 +442,11 @@ tu_cond_exec_start(struct tu_cs *cs, uint32_t cond_flags)
    assert(cs->mode == TU_CS_MODE_GROW);
    assert(cs->cond_stack_depth < TU_COND_EXEC_STACK_SIZE);
 
+   ASSERTED enum compare_mode mode =
+      (enum compare_mode)((cond_flags & CP_COND_REG_EXEC_0_MODE__MASK) >>
+                          CP_COND_REG_EXEC_0_MODE__SHIFT);
+   assert(mode == PRED_TEST || mode == RENDER_MODE || mode == THREAD_MODE);
+
    tu_cs_emit_pkt7(cs, CP_COND_REG_EXEC, 2);
    tu_cs_emit(cs, cond_flags);
 
@@ -391,7 +454,7 @@ tu_cond_exec_start(struct tu_cs *cs, uint32_t cond_flags)
    cs->cond_dwords[cs->cond_stack_depth] = cs->cur;
 
    /* Emit dummy DWORD field here */
-   tu_cs_emit(cs, CP_COND_REG_EXEC_1_DWORDS(0));
+   tu_cs_emit(cs, RENDER_MODE_CP_COND_REG_EXEC_1_DWORDS(0));
 
    cs->cond_stack_depth++;
 }
@@ -408,8 +471,13 @@ tu_cond_exec_end(struct tu_cs *cs)
 
    cs->cond_flags[cs->cond_stack_depth] = 0;
    /* Subtract one here to account for the DWORD field itself. */
-   *cs->cond_dwords[cs->cond_stack_depth] =
-      cs->cur - cs->cond_dwords[cs->cond_stack_depth] - 1;
+   uint32_t cond_len = cs->cur - cs->cond_dwords[cs->cond_stack_depth] - 1;
+   if (cond_len) {
+      *cs->cond_dwords[cs->cond_stack_depth] = cond_len;
+   } else {
+      /* rewind the CS to drop the empty cond reg packet. */
+      cs->cur = cs->cur - 3;
+   }
 }
 
 /* Temporary struct for tracking a register state to be written, used by
@@ -418,17 +486,19 @@ tu_cond_exec_end(struct tu_cs *cs)
 struct tu_reg_value {
    uint32_t reg;
    uint64_t value;
-   bool is_address;
    struct tu_bo *bo;
+   bool is_address;
    bool bo_write;
    uint32_t bo_offset;
    uint32_t bo_shift;
+   uint32_t bo_low;
 };
 
 #define fd_reg_pair tu_reg_value
 #define __bo_type struct tu_bo *
 
 #include "a6xx-pack.xml.h"
+#include "adreno-pm4-pack.xml.h"
 
 #define __assert_eq(a, b)                                               \
    do {                                                                 \
@@ -445,6 +515,7 @@ struct tu_reg_value {
          if (regs[i].bo) {                                      \
             uint64_t v = regs[i].bo->iova + regs[i].bo_offset;  \
             v >>= regs[i].bo_shift;                             \
+            v <<= regs[i].bo_low;                               \
             v |= regs[i].value;                                 \
                                                                 \
             *p++ = v;                                           \

@@ -74,8 +74,8 @@ default xkb_geometry "omnikey101" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>,
 		   { <RTRN>, "RTRN", -14, color="grey20" }
 	    };
@@ -83,16 +83,16 @@ default xkb_geometry "omnikey101" {
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }, <BKSL>
 	    };
 	};

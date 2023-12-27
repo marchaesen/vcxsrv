@@ -32,7 +32,7 @@
  *   Brian Paul
  */
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_context.h"
 #include "util/u_inlines.h"
 #include "util/format/u_format.h"
@@ -138,6 +138,7 @@ alloc_shm(struct xlib_displaytarget *buf, unsigned size)
       return NULL;
    }
 
+   shmctl(shminfo->shmid, IPC_RMID, 0);
    shminfo->readOnly = False;
    return shminfo->shmaddr;
 }

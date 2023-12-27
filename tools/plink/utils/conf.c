@@ -11,22 +11,6 @@
 #include "putty.h"
 
 /*
- * Enumeration of types used in keys and values.
- */
-typedef enum {
-    TYPE_NONE, TYPE_BOOL, TYPE_INT, TYPE_STR, TYPE_FILENAME, TYPE_FONT
-} Type;
-
-/*
- * Arrays which allow us to look up the subkey and value types for a
- * given primary key id.
- */
-#define CONF_SUBKEYTYPE_DEF(valtype, keytype, keyword) TYPE_ ## keytype,
-static int subkeytypes[] = { CONFIG_OPTIONS(CONF_SUBKEYTYPE_DEF) };
-#define CONF_VALUETYPE_DEF(valtype, keytype, keyword) TYPE_ ## valtype,
-static int valuetypes[] = { CONFIG_OPTIONS(CONF_VALUETYPE_DEF) };
-
-/*
  * Configuration keys are primarily integers (big enum of all the
  * different configurable options); some keys have string-designated
  * subkeys, such as the list of environment variables (subkeys
@@ -87,14 +71,14 @@ static int conf_cmp(void *av, void *bv)
         return -1;
     else if (a->primary > b->primary)
         return +1;
-    switch (subkeytypes[a->primary]) {
-      case TYPE_INT:
+    switch (conf_key_info[a->primary].subkey_type) {
+      case CONF_TYPE_INT:
         if (a->secondary.i < b->secondary.i)
             return -1;
         else if (a->secondary.i > b->secondary.i)
             return +1;
         return 0;
-      case TYPE_STR:
+      case CONF_TYPE_STR:
         return strcmp(a->secondary.s, b->secondary.s);
       default:
         return 0;
@@ -110,14 +94,14 @@ static int conf_cmp_constkey(void *av, void *bv)
         return -1;
     else if (a->primary > b->primary)
         return +1;
-    switch (subkeytypes[a->primary]) {
-      case TYPE_INT:
+    switch (conf_key_info[a->primary].subkey_type) {
+      case CONF_TYPE_INT:
         if (a->secondary.i < b->secondary.i)
             return -1;
         else if (a->secondary.i > b->secondary.i)
             return +1;
         return 0;
-      case TYPE_STR:
+      case CONF_TYPE_STR:
         return strcmp(a->secondary.s, b->secondary.s);
       default:
         return 0;
@@ -131,7 +115,7 @@ static int conf_cmp_constkey(void *av, void *bv)
  */
 static void free_key(struct key *key)
 {
-    if (subkeytypes[key->primary] == TYPE_STR)
+    if (conf_key_info[key->primary].subkey_type == CONF_TYPE_STR)
         sfree(key->secondary.s);
 }
 
@@ -142,11 +126,11 @@ static void free_key(struct key *key)
 static void copy_key(struct key *to, struct key *from)
 {
     to->primary = from->primary;
-    switch (subkeytypes[to->primary]) {
-      case TYPE_INT:
+    switch (conf_key_info[to->primary].subkey_type) {
+      case CONF_TYPE_INT:
         to->secondary.i = from->secondary.i;
         break;
-      case TYPE_STR:
+      case CONF_TYPE_STR:
         to->secondary.s = dupstr(from->secondary.s);
         break;
     }
@@ -159,11 +143,11 @@ static void copy_key(struct key *to, struct key *from)
  */
 static void free_value(struct value *val, int type)
 {
-    if (type == TYPE_STR)
+    if (type == CONF_TYPE_STR)
         sfree(val->u.stringval);
-    else if (type == TYPE_FILENAME)
+    else if (type == CONF_TYPE_FILENAME)
         filename_free(val->u.fileval);
-    else if (type == TYPE_FONT)
+    else if (type == CONF_TYPE_FONT)
         fontspec_free(val->u.fontval);
 }
 
@@ -174,19 +158,19 @@ static void free_value(struct value *val, int type)
 static void copy_value(struct value *to, struct value *from, int type)
 {
     switch (type) {
-      case TYPE_BOOL:
+      case CONF_TYPE_BOOL:
         to->u.boolval = from->u.boolval;
         break;
-      case TYPE_INT:
+      case CONF_TYPE_INT:
         to->u.intval = from->u.intval;
         break;
-      case TYPE_STR:
+      case CONF_TYPE_STR:
         to->u.stringval = dupstr(from->u.stringval);
         break;
-      case TYPE_FILENAME:
+      case CONF_TYPE_FILENAME:
         to->u.fileval = filename_copy(from->u.fileval);
         break;
-      case TYPE_FONT:
+      case CONF_TYPE_FONT:
         to->u.fontval = fontspec_copy(from->u.fontval);
         break;
     }
@@ -198,7 +182,7 @@ static void copy_value(struct value *to, struct value *from, int type)
 static void free_entry(struct conf_entry *entry)
 {
     free_key(&entry->key);
-    free_value(&entry->value, valuetypes[entry->key.primary]);
+    free_value(&entry->value, conf_key_info[entry->key.primary].value_type);
     sfree(entry);
 }
 
@@ -211,7 +195,7 @@ Conf *conf_new(void)
     return conf;
 }
 
-static void conf_clear(Conf *conf)
+void conf_clear(Conf *conf)
 {
     struct conf_entry *entry;
 
@@ -248,7 +232,7 @@ void conf_copy_into(Conf *newconf, Conf *oldconf)
         entry2 = snew(struct conf_entry);
         copy_key(&entry2->key, &entry->key);
         copy_value(&entry2->value, &entry->value,
-                   valuetypes[entry->key.primary]);
+                   conf_key_info[entry->key.primary].value_type);
         add234(newconf->tree, entry2);
     }
 }
@@ -267,8 +251,8 @@ bool conf_get_bool(Conf *conf, int primary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_BOOL);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_BOOL);
     key.primary = primary;
     entry = find234(conf->tree, &key, NULL);
     assert(entry);
@@ -280,8 +264,8 @@ int conf_get_int(Conf *conf, int primary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_INT);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_INT);
     key.primary = primary;
     entry = find234(conf->tree, &key, NULL);
     assert(entry);
@@ -293,8 +277,8 @@ int conf_get_int_int(Conf *conf, int primary, int secondary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_INT);
-    assert(valuetypes[primary] == TYPE_INT);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_INT);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_INT);
     key.primary = primary;
     key.secondary.i = secondary;
     entry = find234(conf->tree, &key, NULL);
@@ -307,8 +291,8 @@ char *conf_get_str(Conf *conf, int primary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_STR);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_STR);
     key.primary = primary;
     entry = find234(conf->tree, &key, NULL);
     assert(entry);
@@ -320,8 +304,8 @@ char *conf_get_str_str_opt(Conf *conf, int primary, const char *secondary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_STR);
-    assert(valuetypes[primary] == TYPE_STR);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_STR);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_STR);
     key.primary = primary;
     key.secondary.s = (char *)secondary;
     entry = find234(conf->tree, &key, NULL);
@@ -341,8 +325,8 @@ char *conf_get_str_strs(Conf *conf, int primary,
     struct constkey key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_STR);
-    assert(valuetypes[primary] == TYPE_STR);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_STR);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_STR);
     key.primary = primary;
     if (subkeyin) {
         key.secondary.s = subkeyin;
@@ -363,8 +347,8 @@ char *conf_get_str_nthstrkey(Conf *conf, int primary, int n)
     struct conf_entry *entry;
     int index;
 
-    assert(subkeytypes[primary] == TYPE_STR);
-    assert(valuetypes[primary] == TYPE_STR);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_STR);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_STR);
     key.primary = primary;
     key.secondary.s = "";
     entry = findrelpos234(conf->tree, &key, conf_cmp_constkey,
@@ -382,8 +366,8 @@ Filename *conf_get_filename(Conf *conf, int primary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_FILENAME);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_FILENAME);
     key.primary = primary;
     entry = find234(conf->tree, &key, NULL);
     assert(entry);
@@ -395,8 +379,8 @@ FontSpec *conf_get_fontspec(Conf *conf, int primary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_FONT);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_FONT);
     key.primary = primary;
     entry = find234(conf->tree, &key, NULL);
     assert(entry);
@@ -407,8 +391,8 @@ void conf_set_bool(Conf *conf, int primary, bool value)
 {
     struct conf_entry *entry = snew(struct conf_entry);
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_BOOL);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_BOOL);
     entry->key.primary = primary;
     entry->value.u.boolval = value;
     conf_insert(conf, entry);
@@ -418,8 +402,8 @@ void conf_set_int(Conf *conf, int primary, int value)
 {
     struct conf_entry *entry = snew(struct conf_entry);
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_INT);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_INT);
     entry->key.primary = primary;
     entry->value.u.intval = value;
     conf_insert(conf, entry);
@@ -430,8 +414,8 @@ void conf_set_int_int(Conf *conf, int primary,
 {
     struct conf_entry *entry = snew(struct conf_entry);
 
-    assert(subkeytypes[primary] == TYPE_INT);
-    assert(valuetypes[primary] == TYPE_INT);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_INT);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_INT);
     entry->key.primary = primary;
     entry->key.secondary.i = secondary;
     entry->value.u.intval = value;
@@ -442,8 +426,8 @@ void conf_set_str(Conf *conf, int primary, const char *value)
 {
     struct conf_entry *entry = snew(struct conf_entry);
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_STR);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_STR);
     entry->key.primary = primary;
     entry->value.u.stringval = dupstr(value);
     conf_insert(conf, entry);
@@ -454,8 +438,8 @@ void conf_set_str_str(Conf *conf, int primary, const char *secondary,
 {
     struct conf_entry *entry = snew(struct conf_entry);
 
-    assert(subkeytypes[primary] == TYPE_STR);
-    assert(valuetypes[primary] == TYPE_STR);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_STR);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_STR);
     entry->key.primary = primary;
     entry->key.secondary.s = dupstr(secondary);
     entry->value.u.stringval = dupstr(value);
@@ -467,8 +451,8 @@ void conf_del_str_str(Conf *conf, int primary, const char *secondary)
     struct key key;
     struct conf_entry *entry;
 
-    assert(subkeytypes[primary] == TYPE_STR);
-    assert(valuetypes[primary] == TYPE_STR);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_STR);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_STR);
     key.primary = primary;
     key.secondary.s = (char *)secondary;
     entry = find234(conf->tree, &key, NULL);
@@ -482,8 +466,8 @@ void conf_set_filename(Conf *conf, int primary, const Filename *value)
 {
     struct conf_entry *entry = snew(struct conf_entry);
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_FILENAME);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_FILENAME);
     entry->key.primary = primary;
     entry->value.u.fileval = filename_copy(value);
     conf_insert(conf, entry);
@@ -493,8 +477,8 @@ void conf_set_fontspec(Conf *conf, int primary, const FontSpec *value)
 {
     struct conf_entry *entry = snew(struct conf_entry);
 
-    assert(subkeytypes[primary] == TYPE_NONE);
-    assert(valuetypes[primary] == TYPE_FONT);
+    assert(conf_key_info[primary].subkey_type == CONF_TYPE_NONE);
+    assert(conf_key_info[primary].value_type == CONF_TYPE_FONT);
     entry->key.primary = primary;
     entry->value.u.fontval = fontspec_copy(value);
     conf_insert(conf, entry);
@@ -508,28 +492,28 @@ void conf_serialise(BinarySink *bs, Conf *conf)
     for (i = 0; (entry = index234(conf->tree, i)) != NULL; i++) {
         put_uint32(bs, entry->key.primary);
 
-        switch (subkeytypes[entry->key.primary]) {
-          case TYPE_INT:
+        switch (conf_key_info[entry->key.primary].subkey_type) {
+          case CONF_TYPE_INT:
             put_uint32(bs, entry->key.secondary.i);
             break;
-          case TYPE_STR:
+          case CONF_TYPE_STR:
             put_asciz(bs, entry->key.secondary.s);
             break;
         }
-        switch (valuetypes[entry->key.primary]) {
-          case TYPE_BOOL:
+        switch (conf_key_info[entry->key.primary].value_type) {
+          case CONF_TYPE_BOOL:
             put_bool(bs, entry->value.u.boolval);
             break;
-          case TYPE_INT:
+          case CONF_TYPE_INT:
             put_uint32(bs, entry->value.u.intval);
             break;
-          case TYPE_STR:
+          case CONF_TYPE_STR:
             put_asciz(bs, entry->value.u.stringval);
             break;
-          case TYPE_FILENAME:
+          case CONF_TYPE_FILENAME:
             filename_serialise(bs, entry->value.u.fileval);
             break;
-          case TYPE_FONT:
+          case CONF_TYPE_FONT:
             fontspec_serialise(bs, entry->value.u.fontval);
             break;
         }
@@ -556,29 +540,29 @@ bool conf_deserialise(Conf *conf, BinarySource *src)
         entry = snew(struct conf_entry);
         entry->key.primary = primary;
 
-        switch (subkeytypes[entry->key.primary]) {
-          case TYPE_INT:
+        switch (conf_key_info[entry->key.primary].subkey_type) {
+          case CONF_TYPE_INT:
             entry->key.secondary.i = toint(get_uint32(src));
             break;
-          case TYPE_STR:
+          case CONF_TYPE_STR:
             entry->key.secondary.s = dupstr(get_asciz(src));
             break;
         }
 
-        switch (valuetypes[entry->key.primary]) {
-          case TYPE_BOOL:
+        switch (conf_key_info[entry->key.primary].value_type) {
+          case CONF_TYPE_BOOL:
             entry->value.u.boolval = get_bool(src);
             break;
-          case TYPE_INT:
+          case CONF_TYPE_INT:
             entry->value.u.intval = toint(get_uint32(src));
             break;
-          case TYPE_STR:
+          case CONF_TYPE_STR:
             entry->value.u.stringval = dupstr(get_asciz(src));
             break;
-          case TYPE_FILENAME:
+          case CONF_TYPE_FILENAME:
             entry->value.u.fileval = filename_deserialise(src);
             break;
-          case TYPE_FONT:
+          case CONF_TYPE_FONT:
             entry->value.u.fontval = fontspec_deserialise(src);
             break;
         }

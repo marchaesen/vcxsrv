@@ -52,4 +52,3 @@ spec@nv_primitive_restart@primitive-restart-draw-mode-quads
 shaders@glsl-uniform-interstage-limits@subdivide 5- statechanges
 spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic@glScissor
 spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic@glViewport
-glx@glx-copy-sub-buffer samples=2

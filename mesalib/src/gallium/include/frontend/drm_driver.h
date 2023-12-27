@@ -2,7 +2,7 @@
 #ifndef _DRM_DRIVER_H_
 #define _DRM_DRIVER_H_
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #include "winsys_handle.h"
 

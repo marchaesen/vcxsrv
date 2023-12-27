@@ -55,6 +55,8 @@ if with_platform_windows
   static_glapi_args += ['-D_GDI32_', '-DKHRONOS_DLL_EXPORTS', '-D_GLAPI_DLL_EXPORTS']
 endif
 static_glapi_files += files(
+  '../u_current.c',
+  '../u_current.h',
   'glapi_dispatch.c',
   'glapi_entrypoint.c',
   'glapi_getproc.c',
@@ -63,7 +65,6 @@ static_glapi_files += files(
   'glapi.h',
   'glapi_priv.h',
 )
-static_glapi_files += files_mapi_util
 static_glapi_files += [
   glapitable_h, glapi_mapi_tmp_h, glprocs_h, glapitemp_h,
 ]
@@ -81,7 +82,7 @@ libglapi_bridge = static_library(
   bridge_glapi_files,
   include_directories : [inc_mesa, inc_include, inc_src, inc_mapi],
   c_args : [c_msvc_compat_args, bridge_glapi_args],
-  dependencies : [dep_thread, dep_selinux, idep_mesautilc11],
+  dependencies : [dep_thread, dep_selinux, idep_mesautil],
   build_by_default : false,
 )
 
@@ -93,7 +94,7 @@ else
     static_glapi_files,
     include_directories : [inc_mesa, inc_include, inc_src, inc_mapi],
     c_args : [c_msvc_compat_args, static_glapi_args],
-    dependencies : [dep_thread, dep_selinux, idep_mesautilc11],
+    dependencies : [dep_thread, dep_selinux, idep_mesautil],
     build_by_default : false,
   )
 endif
@@ -111,6 +112,6 @@ if with_any_opengl and not with_shared_glapi and with_tests and not with_platfor
       dependencies : [idep_gtest, dep_thread],
     ),
     suite : ['mapi'],
-    protocol : gtest_test_protocol,
+    protocol : 'gtest',
   )
 endif

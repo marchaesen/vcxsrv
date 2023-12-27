@@ -21,7 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-#include "stw_image.h"
 #include <pipe/p_state.h>
 #include <util/u_inlines.h>
 #include <frontend/api.h>
@@ -30,6 +29,8 @@
 #include <main/texobj.h>
 #include <state_tracker/st_context.h>
 #include <state_tracker/st_texture.h>
+
+#include "stw_image.h"
 
 struct stw_image *
 stw_create_image_from_texture(struct stw_context *ctx, GLenum gl_target, GLuint texture,

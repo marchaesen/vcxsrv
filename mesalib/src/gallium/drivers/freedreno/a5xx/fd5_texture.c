@@ -102,7 +102,7 @@ fd5_sampler_state_create(struct pipe_context *pctx,
 
    so->texsamp1 =
       COND(!cso->seamless_cube_map, A5XX_TEX_SAMP_1_CUBEMAPSEAMLESSFILTOFF) |
-      COND(!cso->normalized_coords, A5XX_TEX_SAMP_1_UNNORM_COORDS);
+      COND(cso->unnormalized_coords, A5XX_TEX_SAMP_1_UNNORM_COORDS);
 
    so->texsamp0 |= A5XX_TEX_SAMP_0_LOD_BIAS(cso->lod_bias);
 

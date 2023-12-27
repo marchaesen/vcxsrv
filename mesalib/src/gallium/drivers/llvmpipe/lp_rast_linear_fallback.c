@@ -109,6 +109,7 @@ shade_quads(struct lp_rasterizer_task *task,
    BEGIN_JIT_CALL(state, task);
    const unsigned fn_index = mask == 0xffff ? RAST_WHOLE : RAST_EDGE_TEST;
    variant->jit_function[fn_index](&state->jit_context,
+                                   &state->jit_resources,
                                    x, y,
                                    inputs->frontfacing,
                                    GET_A0(inputs),
@@ -172,18 +173,15 @@ lp_rast_linear_rect_fallback(struct lp_rasterizer_task *task,
    const unsigned iy0 = box->y0 / STAMP_SIZE;
    const unsigned iy1 = box->y1 / STAMP_SIZE;
 
-   /* Various special cases.
-    */
+   /* Various special cases */
    if (ix0 == ix1 && iy0 == iy1) {
-      /* Rectangle is contained within a single 4x4-pixel stamp:
-       */
+      /* Rectangle is contained within a single 4x4-pixel stamp */
       partial(task, inputs, ix0, iy0,
               (left_mask & right_mask &
                top_mask & bottom_mask));
    }
    else if (ix0 == ix1) {
-      /* Left and right edges fall on the same 4-pixel-wide column:
-       */
+      /* Left and right edges fall on the same 4-pixel-wide column */
       unsigned mask = left_mask & right_mask;
       partial(task, inputs, ix0, iy0, mask & top_mask);
       for (unsigned i = iy0 + 1; i < iy1; i++)
@@ -191,15 +189,13 @@ lp_rast_linear_rect_fallback(struct lp_rasterizer_task *task,
       partial(task, inputs, ix0, iy1, mask & bottom_mask);
    }
    else if (iy0 == iy1) {
-      /* Top and bottom edges fall on the same 4-pixel-wide row:
-       */
+      /* Top and bottom edges fall on the same 4-pixel-wide row */
       unsigned mask = top_mask & bottom_mask;
       partial(task, inputs, ix0, iy0, mask & left_mask);
       for (unsigned i = ix0 + 1; i < ix1; i++)
          partial(task, inputs, i, iy0, mask);
       partial(task, inputs, ix1, iy0, mask & right_mask);
-   }
-   else {
+   } else {
       /* Each pair of edges falls in a separate 4-pixel-wide
        * row/column.
        */
@@ -220,8 +216,7 @@ lp_rast_linear_rect_fallback(struct lp_rasterizer_task *task,
       for (unsigned i = iy0 + 1; i < iy1; i++)
          partial(task, inputs, ix1, i, right_mask);
 
-      /* Full interior blocks
-       */
+      /* Full interior blocks */
       for (unsigned j = iy0 + 1; j < iy1; j++) {
          for (unsigned i = ix0 + 1; i < ix1; i++) {
             shade_quads(task, inputs, i * STAMP_SIZE, j * STAMP_SIZE, 0xffff);

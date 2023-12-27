@@ -31,6 +31,8 @@
 
 #include "freedreno_util.h"
 
+BEGINC;
+
 struct fd_resource;
 struct fd_batch;
 struct fd_context;
@@ -40,7 +42,7 @@ struct hash_table;
 
 struct fd_batch_cache {
    struct hash_table *ht;
-   unsigned cnt;
+   seqno_t cnt;
 
    /* set of active batches.. there is an upper limit on the number of
     * in-flight batches, for two reasons:
@@ -80,5 +82,7 @@ struct fd_batch *fd_bc_alloc_batch(struct fd_context *ctx,
 struct fd_batch *
 fd_batch_from_fb(struct fd_context *ctx,
                  const struct pipe_framebuffer_state *pfb) assert_dt;
+
+ENDC;
 
 #endif /* FREEDRENO_BATCH_CACHE_H_ */

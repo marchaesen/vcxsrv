@@ -31,7 +31,7 @@
   *   Brian Paul
   */
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/macros.h"
 #include "main/context.h"
 #include "st_context.h"
@@ -44,6 +44,7 @@
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
 #include "util/u_gen_mipmap.h"
+#include "util/perf/cpu_trace.h"
 
 
 void
@@ -51,6 +52,8 @@ st_flush(struct st_context *st,
          struct pipe_fence_handle **fence,
          unsigned flags)
 {
+   MESA_TRACE_FUNC();
+
    /* We want to call this function periodically.
     * Typically, it has nothing to do so it shouldn't be expensive.
     */
@@ -69,11 +72,13 @@ st_finish(struct st_context *st)
 {
    struct pipe_fence_handle *fence = NULL;
 
+   MESA_TRACE_FUNC();
+
    st_flush(st, &fence, PIPE_FLUSH_ASYNC | PIPE_FLUSH_HINT_FINISH);
 
    if (fence) {
       st->screen->fence_finish(st->screen, NULL, fence,
-                               PIPE_TIMEOUT_INFINITE);
+                               OS_TIMEOUT_INFINITE);
       st->screen->fence_reference(st->screen, &fence, NULL);
    }
 

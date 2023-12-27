@@ -32,16 +32,15 @@
 #include <errno.h>
 
 #include "c99_alloca.h"
-#include "os/os_process.h"
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
 #include "util/u_string.h"
 
-#include "pipe/p_config.h"
-#if defined(PIPE_OS_UNIX)
+#include "util/detect.h"
+#if DETECT_OS_UNIX
 #include <unistd.h>
 #include <sys/stat.h>
-#elif defined(PIPE_OS_WINDOWS)
+#elif DETECT_OS_WINDOWS
 #include <direct.h>
 #include <process.h>
 #define mkdir(dir, mode) _mkdir(dir)

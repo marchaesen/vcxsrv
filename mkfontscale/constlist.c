@@ -29,13 +29,13 @@ appendConstList(ConstListPtr first, ConstListPtr second)
 {
     ConstListPtr current;
 
-    if(second == NULL)
+    if (second == NULL)
         return first;
 
-    if(first == NULL)
+    if (first == NULL)
         return second;
 
-    for(current = first; current->next; current = current->next)
+    for (current = first; current->next; current = current->next)
         ;
 
     current->next = second;
@@ -45,23 +45,23 @@ appendConstList(ConstListPtr first, ConstListPtr second)
 ConstListPtr
 makeConstList(const char **a, int n, ConstListPtr old, int begin)
 {
-    ConstListPtr first, current, next;
+    ConstListPtr first, current;
     int i;
 
-    if(n == 0)
+    if (n == 0)
         return old;
 
     first = malloc(sizeof(ConstListRec));
-    if(!first)
+    if (!first)
         return NULL;
 
     first->value = a[0];
     first->next = NULL;
 
     current = first;
-    for(i = 1; i < n; i++) {
-        next = malloc(sizeof(ConstListRec));
-        if(!next) {
+    for (i = 1; i < n; i++) {
+        ConstListPtr next = malloc(sizeof(ConstListRec));
+        if (!next) {
             destroyConstList(first);
             return NULL;
         }
@@ -71,10 +71,11 @@ makeConstList(const char **a, int n, ConstListPtr old, int begin)
         current->next = next;
         current = next;
     }
-    if(begin) {
+    if (begin) {
         current->next = old;
         return first;
-    } else {
+    }
+    else {
         return appendConstList(old, first);
     }
 }
@@ -82,11 +83,10 @@ makeConstList(const char **a, int n, ConstListPtr old, int begin)
 void
 destroyConstList(ConstListPtr old)
 {
-    ConstListPtr next;
-    if(!old)
+    if (!old)
         return;
-    while(old) {
-        next = old->next;
+    while (old) {
+        ConstListPtr next = old->next;
         free(old);
         old = next;
     }

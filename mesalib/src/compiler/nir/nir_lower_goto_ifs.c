@@ -44,7 +44,7 @@ struct path_fork {
    bool is_var;
    union {
       nir_variable *path_var;
-      nir_ssa_def *path_ssa;
+      nir_def *path_ssa;
    };
    struct path paths[2];
 };
@@ -158,7 +158,7 @@ set_path_vars(nir_builder *b, struct path_fork *fork, nir_block *target)
  * in this case the condition is inverted
  */
 static void
-set_path_vars_cond(nir_builder *b, struct path_fork *fork, nir_src condition,
+set_path_vars_cond(nir_builder *b, struct path_fork *fork, nir_def *condition,
                    nir_block *then_block, nir_block *else_block)
 {
    int i;
@@ -174,19 +174,17 @@ set_path_vars_cond(nir_builder *b, struct path_fork *fork, nir_src condition,
                }
                fork = fork->paths[i].fork;
                break;
-            }
-            else {
-               assert(condition.is_ssa);
-               nir_ssa_def *ssa_def = condition.ssa;
-               assert(ssa_def->bit_size == 1);
-               assert(ssa_def->num_components == 1);
+            } else {
+               assert(condition->bit_size == 1);
+               assert(condition->num_components == 1);
+               nir_def *fork_cond = condition;
                if (!i)
-                  ssa_def = nir_inot(b, ssa_def);
+                  fork_cond = nir_inot(b, fork_cond);
                if (fork->is_var) {
-                  nir_store_var(b, fork->path_var, ssa_def, 1);
+                  nir_store_var(b, fork->path_var, fork_cond, 1);
                } else {
                   assert(fork->path_ssa == NULL);
-                  fork->path_ssa = ssa_def;
+                  fork->path_ssa = fork_cond;
                }
                set_path_vars(b, fork->paths[i].fork, then_block);
                set_path_vars(b, fork->paths[!i].fork, else_block);
@@ -207,17 +205,14 @@ route_to(nir_builder *b, struct routes *routing, nir_block *target)
 {
    if (_mesa_set_search(routing->regular.reachable, target)) {
       set_path_vars(b, routing->regular.fork, target);
-   }
-   else if (_mesa_set_search(routing->brk.reachable, target)) {
+   } else if (_mesa_set_search(routing->brk.reachable, target)) {
       set_path_vars(b, routing->brk.fork, target);
       nir_jump(b, nir_jump_break);
-   }
-   else if (_mesa_set_search(routing->cont.reachable, target)) {
+   } else if (_mesa_set_search(routing->cont.reachable, target)) {
       set_path_vars(b, routing->cont.fork, target);
       nir_jump(b, nir_jump_continue);
-   }
-   else {
-      assert(!target->successors[0]);   /* target is endblock */
+   } else {
+      assert(!target->successors[0]); /* target is endblock */
       nir_jump(b, nir_jump_return);
    }
 }
@@ -234,7 +229,7 @@ route_to(nir_builder *b, struct routes *routing, nir_block *target)
  *     C
  */
 static void
-route_to_cond(nir_builder *b, struct routes *routing, nir_src condition,
+route_to_cond(nir_builder *b, struct routes *routing, nir_def *condition,
               nir_block *then_block, nir_block *else_block)
 {
    if (_mesa_set_search(routing->regular.reachable, then_block)) {
@@ -260,7 +255,7 @@ route_to_cond(nir_builder *b, struct routes *routing, nir_src condition,
    }
 
    /* then and else blocks are in different routes */
-   nir_push_if_src(b, condition);
+   nir_push_if(b, condition);
    route_to(b, routing, then_block);
    nir_push_else(b, NULL);
    route_to(b, routing, else_block);
@@ -358,14 +353,13 @@ loop_routing_start(struct routes *routing, nir_builder *b,
  * Gets a forks condition as ssa def if the condition is inside a helper var,
  * the variable will be read into an ssa def
  */
-static nir_ssa_def *
+static nir_def *
 fork_condition(nir_builder *b, struct path_fork *fork)
 {
-   nir_ssa_def *ret;
+   nir_def *ret;
    if (fork->is_var) {
       ret = nir_load_var(b, fork->path_var);
-   }
-   else
+   } else
       ret = fork->path_ssa;
    return ret;
 }
@@ -383,21 +377,19 @@ loop_routing_end(struct routes *routing, nir_builder *b)
    assert(routing->cont.reachable == routing->regular.reachable);
    nir_pop_loop(b, NULL);
    if (routing->brk.fork && routing->brk.fork->paths[1].reachable ==
-       routing_backup->cont.reachable) {
+                               routing_backup->cont.reachable) {
       assert(!(routing->brk.fork->is_var &&
                strcmp(routing->brk.fork->path_var->name, "path_continue")));
-      nir_push_if_src(b, nir_src_for_ssa(
-                         fork_condition(b, routing->brk.fork)));
+      nir_push_if(b, fork_condition(b, routing->brk.fork));
       nir_jump(b, nir_jump_continue);
       nir_pop_if(b, NULL);
       routing->brk = routing->brk.fork->paths[0];
    }
    if (routing->brk.fork && routing->brk.fork->paths[1].reachable ==
-       routing_backup->brk.reachable) {
+                               routing_backup->brk.reachable) {
       assert(!(routing->brk.fork->is_var &&
                strcmp(routing->brk.fork->path_var->name, "path_break")));
-      nir_push_if_src(b, nir_src_for_ssa(
-                         fork_condition(b, routing->brk.fork)));
+      nir_push_if(b, fork_condition(b, routing->brk.fork));
       nir_jump(b, nir_jump_break);
       nir_pop_if(b, NULL);
       routing->brk = routing->brk.fork->paths[0];
@@ -437,7 +429,6 @@ inside_outside(nir_block *block, struct set *loop_heads, struct set *outside,
          _mesa_set_add(remaining, block->dom_children[i]);
    }
 
-
    if (NIR_LOWER_GOTO_IFS_DEBUG) {
       printf("inside_outside(%u):\n", block->index);
       printf("    loop_heads = ");
@@ -455,7 +446,7 @@ inside_outside(nir_block *block, struct set *loop_heads, struct set *outside,
    while (remaining->entries && progress) {
       progress = false;
       set_foreach(remaining, child_entry) {
-         nir_block *dom_child = (nir_block *) child_entry->key;
+         nir_block *dom_child = (nir_block *)child_entry->key;
          bool can_jump_back = false;
          set_foreach(dom_child->dom_frontier, entry) {
             if (entry->key == dom_child)
@@ -486,7 +477,7 @@ inside_outside(nir_block *block, struct set *loop_heads, struct set *outside,
 
    /* Recurse for each remaining */
    set_foreach(remaining, entry) {
-      inside_outside((nir_block *) entry->key, loop_heads, outside, reach,
+      inside_outside((nir_block *)entry->key, loop_heads, outside, reach,
                      brk_reachable, mem_ctx);
    }
 
@@ -584,7 +575,8 @@ handle_irreducible(struct set *remaining, struct strct_lvl *curr_level,
                    struct set *brk_reachable, void *mem_ctx)
 {
    nir_block *candidate = (nir_block *)
-      _mesa_set_next_entry(remaining, NULL)->key;
+                             _mesa_set_next_entry(remaining, NULL)
+                                ->key;
    struct set *old_candidates = _mesa_pointer_set_create(mem_ctx);
    while (candidate) {
       _mesa_set_add(old_candidates, candidate);
@@ -595,7 +587,7 @@ handle_irreducible(struct set *remaining, struct strct_lvl *curr_level,
 
       candidate = NULL;
       set_foreach(remaining, entry) {
-         nir_block *remaining_block = (nir_block *) entry->key;
+         nir_block *remaining_block = (nir_block *)entry->key;
          if (!_mesa_set_search(curr_level->blocks, remaining_block) &&
              _mesa_set_intersects(remaining_block->dom_frontier,
                                   curr_level->blocks)) {
@@ -615,7 +607,7 @@ handle_irreducible(struct set *remaining, struct strct_lvl *curr_level,
    curr_level->reach = _mesa_pointer_set_create(curr_level);
    set_foreach(curr_level->blocks, entry) {
       _mesa_set_remove_key(remaining, entry->key);
-      inside_outside((nir_block *) entry->key, loop_heads, remaining,
+      inside_outside((nir_block *)entry->key, loop_heads, remaining,
                      curr_level->reach, brk_reachable, mem_ctx);
    }
    _mesa_set_destroy(loop_heads, NULL);
@@ -677,9 +669,9 @@ organize_levels(struct list_head *levels, struct set *remaining,
    while (remaining->entries) {
       _mesa_set_clear(remaining_frontier, NULL);
       set_foreach(remaining, entry) {
-         nir_block *remain_block = (nir_block *) entry->key;
+         nir_block *remain_block = (nir_block *)entry->key;
          set_foreach(remain_block->dom_frontier, frontier_entry) {
-            nir_block *frontier = (nir_block *) frontier_entry->key;
+            nir_block *frontier = (nir_block *)frontier_entry->key;
             if (frontier != remain_block) {
                _mesa_set_add(remaining_frontier, frontier);
             }
@@ -689,7 +681,7 @@ organize_levels(struct list_head *levels, struct set *remaining,
       struct strct_lvl *curr_level = rzalloc(mem_ctx, struct strct_lvl);
       curr_level->blocks = _mesa_pointer_set_create(curr_level);
       set_foreach(remaining, entry) {
-         nir_block *candidate = (nir_block *) entry->key;
+         nir_block *candidate = (nir_block *)entry->key;
          if (!_mesa_set_search(remaining_frontier, candidate)) {
             _mesa_set_add(curr_level->blocks, candidate);
             _mesa_set_remove_key(remaining, candidate);
@@ -724,7 +716,7 @@ organize_levels(struct list_head *levels, struct set *remaining,
       }
 
       set_foreach(curr_level->blocks, blocks_entry) {
-         nir_block *level_block = (nir_block *) blocks_entry->key;
+         nir_block *level_block = (nir_block *)blocks_entry->key;
          if (prev_frontier == NULL) {
             prev_frontier =
                _mesa_set_clone(level_block->dom_frontier, curr_level);
@@ -808,7 +800,7 @@ select_blocks(struct routes *routing, nir_builder *b,
    } else {
       assert(!(in_path.fork->is_var &&
                strcmp(in_path.fork->path_var->name, "path_select")));
-      nir_push_if_src(b, nir_src_for_ssa(fork_condition(b, in_path.fork)));
+      nir_push_if(b, fork_condition(b, in_path.fork));
       select_blocks(routing, b, in_path.fork->paths[1], mem_ctx);
       nir_push_else(b, NULL);
       select_blocks(routing, b, in_path.fork->paths[0], mem_ctx);
@@ -828,9 +820,8 @@ plant_levels(struct list_head *levels, struct routes *routing,
       if (level->skip_start) {
          assert(routing->regular.fork);
          assert(!(routing->regular.fork->is_var && strcmp(
-             routing->regular.fork->path_var->name, "path_conditional")));
-         nir_push_if_src(b, nir_src_for_ssa(
-                            fork_condition(b, routing->regular.fork)));
+                                                      routing->regular.fork->path_var->name, "path_conditional")));
+         nir_push_if(b, fork_condition(b, routing->regular.fork));
          routing->regular = routing->regular.fork->paths[1];
       }
       struct path in_path = routing->regular;
@@ -908,7 +899,7 @@ nir_structurize(struct routes *routing, nir_builder *b, nir_block *block,
 
    /* Find path to the successor blocks */
    if (jump_instr->type == nir_jump_goto_if) {
-      route_to_cond(b, routing, jump_instr->condition,
+      route_to_cond(b, routing, jump_instr->condition.ssa,
                     jump_instr->target, jump_instr->else_target);
    } else {
       route_to(b, routing, block->successors[0]);
@@ -938,15 +929,13 @@ nir_lower_goto_ifs_impl(nir_function_impl *impl)
       nir_lower_phis_to_regs_block(block);
 
    nir_cf_list cf_list;
-   nir_cf_extract(&cf_list, nir_before_cf_list(&impl->body),
-                            nir_after_cf_list(&impl->body));
+   nir_cf_extract(&cf_list, nir_before_impl(impl),
+                  nir_after_impl(impl));
 
    /* From this point on, it's structured */
    impl->structured = true;
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
-   b.cursor = nir_before_block(nir_start_block(impl));
+   nir_builder b = nir_builder_at(nir_before_impl(impl));
 
    void *mem_ctx = ralloc_context(b.shader);
 
@@ -959,7 +948,7 @@ nir_lower_goto_ifs_impl(nir_function_impl *impl)
    nir_block *start_block = nir_cf_node_as_block(start_node);
 
    struct routes *routing = rzalloc(mem_ctx, struct routes);
-   *routing = (struct routes) {
+   *routing = (struct routes){
       .regular.reachable = end_set,
       .brk.reachable = empty_set,
       .cont.reachable = empty_set,
@@ -977,7 +966,7 @@ nir_lower_goto_ifs_impl(nir_function_impl *impl)
    nir_metadata_preserve(impl, nir_metadata_none);
 
    nir_repair_ssa_impl(impl);
-   nir_lower_regs_to_ssa_impl(impl);
+   nir_lower_reg_intrinsics_to_ssa_impl(impl);
 
    return true;
 }
@@ -987,8 +976,8 @@ nir_lower_goto_ifs(nir_shader *shader)
 {
    bool progress = true;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl && nir_lower_goto_ifs_impl(function->impl))
+   nir_foreach_function_impl(impl, shader) {
+      if (nir_lower_goto_ifs_impl(impl))
          progress = true;
    }
 

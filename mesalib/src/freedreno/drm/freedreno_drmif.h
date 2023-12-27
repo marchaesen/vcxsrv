@@ -32,6 +32,7 @@
 #include "util/bitset.h"
 #include "util/list.h"
 #include "util/u_debug.h"
+#include "util/u_queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,6 +84,10 @@ fd_fence_after(uint32_t a, uint32_t b)
 }
 
 /**
+ * Encapsulates submit out-fence(s), which consist of a 'timestamp' (per-
+ * pipe (submitqueue) sequence number) and optionally, if requested, an
+ * out-fence-fd
+ *
  * Per submit, there are actually two fences:
  *  1) The userspace maintained fence, which is used to optimistically
  *     avoid kernel ioctls to query if specific rendering is completed
@@ -94,24 +99,57 @@ fd_fence_after(uint32_t a, uint32_t b)
  * fd_pipe_wait().  So this struct encapsulates the two.
  */
 struct fd_fence {
+   /**
+    * Note refcnt is *not* atomic, but protected by fence_lock, since the
+    * fence_lock is held in fd_bo_add_fence(), which is the hotpath.
+    */
+   int32_t refcnt;
+
+   struct fd_pipe *pipe;
+
+   /**
+    * The ready fence is signaled once the submit is actually flushed down
+    * to the kernel, and fence/fence_fd are populated.  You must wait for
+    * this fence to be signaled before reading fence/fence_fd.
+    */
+   struct util_queue_fence ready;
+
    uint32_t kfence;     /* kernel fence */
    uint32_t ufence;     /* userspace fence */
+
+   /**
+    * Optional dma_fence fd, returned by submit if use_fence_fd is true
+    */
+   int fence_fd;
+   bool use_fence_fd;
 };
 
-/* bo flags: */
+struct fd_fence *fd_fence_new(struct fd_pipe *pipe, bool use_fence_fd);
+struct fd_fence *fd_fence_ref(struct fd_fence *f);
+struct fd_fence *fd_fence_ref_locked(struct fd_fence *f);
+void fd_fence_del(struct fd_fence *f);
+void fd_fence_del_locked(struct fd_fence *f);
+void fd_fence_flush(struct fd_fence *f);
+int fd_fence_wait(struct fd_fence *f);
+
+/*
+ * bo flags:
+ */
+
+#define FD_BO_CACHED_COHERENT     BITSET_BIT(0) /* Default caching is WRITECOMBINE */
 #define FD_BO_GPUREADONLY         BITSET_BIT(1)
-#define FD_BO_SCANOUT             BITSET_BIT(2)
-/* Default caching is WRITECOMBINE: */
-#define FD_BO_CACHED_COHERENT     BITSET_BIT(3)
-/* Hint that the bo will not be mmap'd: */
-#define FD_BO_NOMAP               BITSET_BIT(4)
+#define FD_BO_NOMAP               BITSET_BIT(2) /* Hint that the bo will not be mmap'd */
+
 /* Hint that the bo will be exported/shared: */
-#define FD_BO_SHARED              BITSET_BIT(5)
+#define FD_BO_SHARED              BITSET_BIT(4)
+#define FD_BO_SCANOUT             BITSET_BIT(5)
 
-/* backend private bo flags: */
-#define _FD_BO_VIRTIO_SHM         BITSET_BIT(6)
+/* internal bo flags: */
+#define _FD_BO_NOSYNC             BITSET_BIT(7) /* Avoid userspace fencing on control buffers */
 
-/* bo access flags: (keep aligned to MSM_PREP_x) */
+/*
+ * bo access flags: (keep aligned to MSM_PREP_x)
+ */
 #define FD_BO_PREP_READ   BITSET_BIT(0)
 #define FD_BO_PREP_WRITE  BITSET_BIT(1)
 #define FD_BO_PREP_NOSYNC BITSET_BIT(2)
@@ -170,15 +208,6 @@ int fd_pipe_wait_timeout(struct fd_pipe *pipe, const struct fd_fence *fence,
 /* buffer-object functions:
  */
 
-struct fd_bo_fence {
-   /* For non-shared buffers, track the last pipe the buffer was active
-    * on, and the per-pipe fence value that indicates when the buffer is
-    * idle:
-    */
-   uint32_t fence;
-   struct fd_pipe *pipe;
-};
-
 struct fd_bo {
    struct fd_device *dev;
    uint32_t size;
@@ -197,34 +226,22 @@ struct fd_bo {
       RING_CACHE = 2,
    } bo_reuse : 2;
 
-   /* Buffers that are shared (imported or exported) may be used in
-    * other processes, so we need to fallback to kernel to determine
-    * busyness.
-    */
-   bool shared : 1;
-
-   /* We need to be able to disable userspace fence synchronization for
-    * special internal buffers, namely the pipe->control buffer, to avoid
-    * a circular reference loop.
-    */
-   bool nosync : 1;
-
    /* Most recent index in submit's bo table, used to optimize the common
     * case where a bo is used many times in the same submit.
     */
    uint32_t idx;
 
-   struct list_head list; /* bucket-list entry */
+   struct list_head node; /* bucket-list entry */
    time_t free_time;      /* time when added to bucket-list */
 
    unsigned short nr_fences, max_fences;
-   struct fd_bo_fence *fences;
+   struct fd_fence **fences;
 
    /* In the common case, there is no more than one fence attached.
     * This provides storage for the fences table until it grows to
     * be larger than a single element.
     */
-   struct fd_bo_fence _inline_fence;
+   struct fd_fence *_inline_fence;
 };
 
 struct fd_bo *_fd_bo_new(struct fd_device *dev, uint32_t size, uint32_t flags);
@@ -280,16 +297,20 @@ fd_bo_get_iova(struct fd_bo *bo)
 
 struct fd_bo *fd_bo_ref(struct fd_bo *bo);
 void fd_bo_del(struct fd_bo *bo);
+void fd_bo_del_array(struct fd_bo **bos, int count);
+void fd_bo_del_list_nocache(struct list_head *list);
 int fd_bo_get_name(struct fd_bo *bo, uint32_t *name);
 uint32_t fd_bo_handle(struct fd_bo *bo);
+int fd_bo_dmabuf_drm(struct fd_bo *bo);
 int fd_bo_dmabuf(struct fd_bo *bo);
 uint32_t fd_bo_size(struct fd_bo *bo);
 void *fd_bo_map(struct fd_bo *bo);
 void fd_bo_upload(struct fd_bo *bo, void *src, unsigned off, unsigned len);
 bool fd_bo_prefer_upload(struct fd_bo *bo, unsigned len);
 int fd_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op);
-void fd_bo_cpu_fini(struct fd_bo *bo);
 bool fd_bo_is_cached(struct fd_bo *bo);
+void fd_bo_set_metadata(struct fd_bo *bo, void *metadata, uint32_t metadata_size);
+int fd_bo_get_metadata(struct fd_bo *bo, void *metadata, uint32_t metadata_size);
 
 #ifdef __cplusplus
 } /* end of extern "C" */

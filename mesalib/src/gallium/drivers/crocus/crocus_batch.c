@@ -249,10 +249,8 @@ crocus_init_batch(struct crocus_context *ice,
    if (INTEL_DEBUG(DEBUG_BATCH)) {
 
       batch->state_sizes = _mesa_hash_table_u64_create(NULL);
-      const unsigned decode_flags =
-         INTEL_BATCH_DECODE_FULL |
-         (INTEL_DEBUG(DEBUG_COLOR) ? INTEL_BATCH_DECODE_IN_COLOR : 0) |
-         INTEL_BATCH_DECODE_OFFSETS | INTEL_BATCH_DECODE_FLOATS;
+      const unsigned decode_flags = INTEL_BATCH_DECODE_DEFAULT_FLAGS |
+         (INTEL_DEBUG(DEBUG_COLOR) ? INTEL_BATCH_DECODE_IN_COLOR : 0);
 
       intel_batch_decode_ctx_init(&batch->decoder, &screen->compiler->isa,
                                   &screen->devinfo, stderr,

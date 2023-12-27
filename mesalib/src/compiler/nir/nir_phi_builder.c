@@ -43,7 +43,7 @@ struct nir_phi_builder {
    nir_block **W;
 };
 
-#define NEEDS_PHI ((nir_ssa_def *)(intptr_t)-1)
+#define NEEDS_PHI ((nir_def *)(intptr_t)-1)
 
 struct nir_phi_builder_value {
    struct exec_node node;
@@ -85,7 +85,7 @@ struct nir_phi_builder_value {
  * _mesa_hash_pointer drops the two least significant bits, but that's where
  * most of our data likely is.  Shift by 2 and add 1 to make everything happy.
  */
-#define INDEX_TO_KEY(x) ((void *)(uintptr_t) ((x << 2) + 1))
+#define INDEX_TO_KEY(x) ((void *)(uintptr_t)((x << 2) + 1))
 
 struct nir_phi_builder *
 nir_phi_builder_create(nir_function_impl *impl)
@@ -141,7 +141,7 @@ nir_phi_builder_add_value(struct nir_phi_builder *pb, unsigned num_components,
    while (w_start != w_end) {
       nir_block *cur = pb->W[w_start++];
       set_foreach(cur->dom_frontier, dom_entry) {
-         nir_block *next = (nir_block *) dom_entry->key;
+         nir_block *next = (nir_block *)dom_entry->key;
 
          /* If there's more than one return statement, then the end block
           * can be a join point for some definitions. However, there are
@@ -173,12 +173,16 @@ nir_phi_builder_add_value(struct nir_phi_builder *pb, unsigned num_components,
 
 void
 nir_phi_builder_value_set_block_def(struct nir_phi_builder_value *val,
-                                    nir_block *block, nir_ssa_def *def)
+                                    nir_block *block, nir_def *def)
 {
+   if (def != NEEDS_PHI) {
+      assert(def->bit_size == val->bit_size);
+      assert(def->num_components == val->num_components);
+   }
    _mesa_hash_table_insert(&val->ht, INDEX_TO_KEY(block->index), def);
 }
 
-nir_ssa_def *
+nir_def *
 nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
                                     nir_block *block)
 {
@@ -199,17 +203,17 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
    /* Exactly one of (he != NULL) and (dom == NULL) must be true. */
    assert((he != NULL) != (dom == NULL));
 
-   nir_ssa_def *def;
+   nir_def *def;
    if (dom == NULL) {
       /* No dominator means either that we crawled to the top without ever
        * finding a definition or that this block is unreachable.  In either
        * case, the value is undefined so we need an SSA undef.
        */
-      nir_ssa_undef_instr *undef =
-         nir_ssa_undef_instr_create(val->builder->shader,
-                                    val->num_components,
-                                    val->bit_size);
-      nir_instr_insert(nir_before_cf_list(&val->builder->impl->body),
+      nir_undef_instr *undef =
+         nir_undef_instr_create(val->builder->shader,
+                                val->num_components,
+                                val->bit_size);
+      nir_instr_insert(nir_before_impl(val->builder->impl),
                        &undef->instr);
       def = &undef->def;
    } else if (he->data == NEEDS_PHI) {
@@ -232,18 +236,18 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
        * be used.
        */
       nir_phi_instr *phi = nir_phi_instr_create(val->builder->shader);
-      nir_ssa_dest_init(&phi->instr, &phi->dest, val->num_components,
-                        val->bit_size, NULL);
+      nir_def_init(&phi->instr, &phi->def, val->num_components,
+                   val->bit_size);
       phi->instr.block = dom;
       exec_list_push_tail(&val->phis, &phi->instr.node);
-      def = &phi->dest.ssa;
+      def = &phi->def;
       he->data = def;
    } else {
       /* In this case, we have an actual SSA def.  It's either the result of a
        * phi node created by the case above or one passed to us through
        * nir_phi_builder_value_set_block_def().
        */
-      def = (struct nir_ssa_def *) he->data;
+      def = (struct nir_def *)he->data;
    }
 
    /* Walk the chain and stash the def in all of the applicable blocks.  We do
@@ -288,7 +292,7 @@ nir_phi_builder_finish(struct nir_phi_builder *pb)
 
          for (unsigned i = 0; i < phi->instr.block->predecessors->entries; i++) {
             nir_phi_instr_add_src(phi, preds[i],
-                                  nir_src_for_ssa(nir_phi_builder_value_get_block_def(val, preds[i])));
+                                  nir_phi_builder_value_get_block_def(val, preds[i]));
          }
 
          ralloc_free(preds);

@@ -324,78 +324,8 @@ typedef __GLXextFuncPtr (* PFNGLXGETPROCADDRESSPROC) (const GLubyte *procName);
 
 
 #ifndef GLX_GLXEXT_LEGACY
-
 #include <GL/glxext.h>
-
 #endif /* GLX_GLXEXT_LEGACY */
-
-
-/**
- ** The following aren't in glxext.h yet.
- **/
-
-
-/*
- * ???. GLX_NV_vertex_array_range
- */
-#ifndef GLX_NV_vertex_array_range
-#define GLX_NV_vertex_array_range
-
-extern void *glXAllocateMemoryNV(GLsizei size, GLfloat readfreq, GLfloat writefreq, GLfloat priority);
-extern void glXFreeMemoryNV(GLvoid *pointer);
-typedef void * ( * PFNGLXALLOCATEMEMORYNVPROC) (GLsizei size, GLfloat readfreq, GLfloat writefreq, GLfloat priority);
-typedef void ( * PFNGLXFREEMEMORYNVPROC) (GLvoid *pointer);
-
-#endif /* GLX_NV_vertex_array_range */
-
-
-/*
- * ARB ?. GLX_ARB_render_texture
- * XXX This was never finalized!
- */
-#ifndef GLX_ARB_render_texture
-#define GLX_ARB_render_texture 1
-
-extern Bool glXBindTexImageARB(Display *dpy, GLXPbuffer pbuffer, int buffer);
-extern Bool glXReleaseTexImageARB(Display *dpy, GLXPbuffer pbuffer, int buffer);
-extern Bool glXDrawableAttribARB(Display *dpy, GLXDrawable draw, const int *attribList);
-
-#endif /* GLX_ARB_render_texture */
-
-
-/*
- * #?. GLX_MESA_swap_frame_usage
- */
-#ifndef GLX_MESA_swap_frame_usage
-#define GLX_MESA_swap_frame_usage 1
-
-extern int glXGetFrameUsageMESA(Display *dpy, GLXDrawable drawable, float *usage);
-extern int glXBeginFrameTrackingMESA(Display *dpy, GLXDrawable drawable);
-extern int glXEndFrameTrackingMESA(Display *dpy, GLXDrawable drawable);
-extern int glXQueryFrameTrackingMESA(Display *dpy, GLXDrawable drawable, int64_t *swapCount, int64_t *missedFrames, float *lastMissedUsage);
-
-typedef int (*PFNGLXGETFRAMEUSAGEMESAPROC) (Display *dpy, GLXDrawable drawable, float *usage);
-typedef int (*PFNGLXBEGINFRAMETRACKINGMESAPROC)(Display *dpy, GLXDrawable drawable);
-typedef int (*PFNGLXENDFRAMETRACKINGMESAPROC)(Display *dpy, GLXDrawable drawable);
-typedef int (*PFNGLXQUERYFRAMETRACKINGMESAPROC)(Display *dpy, GLXDrawable drawable, int64_t *swapCount, int64_t *missedFrames, float *lastMissedUsage);
-
-#endif /* GLX_MESA_swap_frame_usage */
-
-
-
-/*
- * #?. GLX_MESA_swap_control
- */
-#ifndef GLX_MESA_swap_control
-#define GLX_MESA_swap_control 1
-
-extern int glXSwapIntervalMESA(unsigned int interval);
-extern int glXGetSwapIntervalMESA(void);
-
-typedef int (*PFNGLXSWAPINTERVALMESAPROC)(unsigned int interval);
-typedef int (*PFNGLXGETSWAPINTERVALMESAPROC)(void);
-
-#endif /* GLX_MESA_swap_control */
 
 
 /*** Should these go here, or in another header? */

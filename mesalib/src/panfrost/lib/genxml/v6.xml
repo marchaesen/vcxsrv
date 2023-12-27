@@ -581,7 +581,7 @@
     <field name="Secondary Shader" size="1" start="0:18" type="bool"/>
     <field name="Primitive restart" size="2" start="0:19" type="Primitive Restart"/>
     <field name="Job Task Split" size="6" start="0:26" type="uint"/>
-    <field name="Base vertex offset" size="32" start="1:0" type="uint"/>
+    <field name="Base vertex offset" size="32" start="1:0" type="int"/>
     <field name="Primitive Restart Index" size="32" start="2:0" type="uint"/>
     <field name="Index count" size="32" start="3:0" type="uint" modifier="minus(1)"/>
     <field name="Indices" size="64" start="4:0" type="address"/>
@@ -644,10 +644,10 @@
     <!--- Set for 0.5, clear for 0.0 -->
     <field name="Magnify cutoff" size="1" start="0:29" type="bool" default="false"/>
     <field name="Mipmap Mode" size="2" start="0:30" type="Mipmap Mode" default="Nearest"/>
-    <field name="Minimum LOD" size="13" start="1:0" type="uint" default="0"/>
+    <field name="Minimum LOD" size="13" start="1:0" type="ulod" default="0"/>
     <field name="Compare Function" size="3" start="1:13" type="Func" default="Never"/>
-    <field name="Maximum LOD" size="13" start="1:16" type="uint" default="0"/>
-    <field name="LOD bias" size="16" start="2:0" type="int" default="0"/>
+    <field name="Maximum LOD" size="13" start="1:16" type="ulod" default="0"/>
+    <field name="LOD bias" size="16" start="2:0" type="slod" default="0"/>
     <field name="Maximum anisotropy" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
     <field name="LOD algorithm" size="2" start="2:24" type="LOD Algorithm" default="Isotropic"/>
     <field name="Border Color R" size="32" start="4:0" type="uint/float" default="0.0"/>
@@ -668,9 +668,9 @@
     <field name="Texel ordering" size="4" start="2:12" type="Texture Layout"/>
     <field name="Levels" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
     <field name="Minimum level" size="5" start="2:24" type="uint"/>
-    <field name="Minimum LOD" size="13" start="3:0" type="uint" default="0"/>
+    <field name="Minimum LOD" size="13" start="3:0" type="ulod" default="0"/>
     <field name="Sample count" size="3" start="3:13" type="uint" default="1" modifier="log2"/>
-    <field name="Maximum LOD" size="13" start="3:16" type="uint" default="0"/>
+    <field name="Maximum LOD" size="13" start="3:16" type="ulod" default="0"/>
     <field name="Surfaces" size="64" start="4:0" type="address"/>
     <field name="Array size" size="16" start="6:0" type="uint" modifier="minus(1)" default="1"/>
     <field name="Depth" size="16" start="7:0" type="uint" modifier="minus(1)" default="1"/>
@@ -792,8 +792,6 @@
     <field name="Stencil front" size="32" start="10:0" type="Stencil"/>
     <field name="Stencil back" size="32" start="11:0" type="Stencil"/>
     <field name="Preload" size="32" start="12:0" type="Preload"/>
-    <field name="Alpha reference" size="32" start="12:0" type="float"/>
-    <field name="Thread Balancing" size="16" start="13:0" type="uint"/>
     <field name="Secondary preload" size="32" start="13:0" type="Preload"/>
     <field name="Secondary shader" size="64" start="14:0" type="address"/>
   </struct>
@@ -940,12 +938,6 @@
     <value name="D16" value="0"/>
     <value name="D24" value="1"/>
     <value name="D32" value="2"/>
-  </enum>
-
-  <enum name="FBD Tag">
-    <value name="IS_MFBD" value="1"/>
-    <value name="HAS_ZS_RT" value="2"/>
-    <value name="MASK" value="63"/>
   </enum>
 
   <enum name="Pre Post Frame Shader Mode">
@@ -1150,6 +1142,13 @@
     <section name="Parameters" offset="0" type="Framebuffer Parameters"/>
     <section name="Padding" offset="64" type="Framebuffer Padding"/>
   </aggregate>
+
+  <struct name="Framebuffer pointer">
+    <field name="Type" start="0" size="1" type="bool" default="true"/>
+    <field name="ZS CRC Extension present" start="1" size="1" type="bool"/>
+    <field name="Render target count" start="2" size="4" type="uint" modifier="minus(1)"/>
+    <field name="Pointer" start="6" size="58" type="address" modifier="shr(6)"/>
+  </struct>
 
   <struct name="Job Header" align="64">
     <field name="Exception Status" size="32" start="0:0" type="uint"/>

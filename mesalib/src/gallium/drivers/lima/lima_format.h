@@ -26,7 +26,7 @@
 
 #include <stdbool.h>
 
-#include <pipe/p_format.h>
+#include <util/format/u_formats.h>
 
 bool lima_format_texel_supported(enum pipe_format f);
 bool lima_format_pixel_supported(enum pipe_format f);

@@ -36,6 +36,12 @@ gfx_levels = {
         'asic_reg/gc/gc_9_2_1_sh_mask.h',
         'vega10_enum.h',
     ],
+    'gfx940': [
+        [0x00002000, 0x0000A000, 0, 0, 0], # IP_BASE GC_BASE
+        'asic_reg/gc/gc_9_4_3_offset.h',
+        'asic_reg/gc/gc_9_4_3_sh_mask.h',
+        'vega10_enum.h',
+    ],
     'gfx10': [
         [0x00001260, 0x0000A000, 0x02402C00, 0, 0], # IP_BASE GC_BASE
         'asic_reg/gc/gc_10_1_0_offset.h',
@@ -54,6 +60,12 @@ gfx_levels = {
         'asic_reg/gc/gc_11_0_0_sh_mask.h',
         'soc21_enum.h',
     ],
+    'gfx115': [
+        [0x00001260, 0x0000A000, 0x0001C000, 0x02402C00, 0, 0], # IP_BASE GC_BASE
+        'asic_reg/gc/gc_11_5_0_offset.h',
+        'asic_reg/gc/gc_11_5_0_sh_mask.h',
+        'soc21_enum.h',
+    ],
 }
 
 # match: #define mmSDMA0_DEC_START                              0x0000
@@ -69,28 +81,45 @@ re_shift = re.compile(r'^#define (?P<name>\w+)__(?P<field>\w+)__SHIFT\s+(?P<valu
 re_mask = re.compile(r'^#define (?P<name>\w+)__(?P<field>\w+)_MASK\s+(?P<value>[0-9a-fA-Fx]+)L?\n')
 
 def register_filter(gfx_level, name, offset, already_added):
+    group = offset // 0x1000
+    is_cdna = gfx_level in ['gfx940']
+
+    # Shader and uconfig registers
+    umd_ranges = [0xB, 0x30]
+
+    # Gfx context, other uconfig, and perf counter registers
+    if not is_cdna:
+        umd_ranges += [0x28, 0x31, 0x34, 0x35, 0x36, 0x37]
+
+    # Add all registers in the 0x8000 range for gfx6
+    if gfx_level == 'gfx6':
+        umd_ranges += [0x8]
+
     # Only accept writeable registers and debug registers
-    return ((offset // 0x1000 in [0xB, 0x28, 0x30, 0x31, 0x34, 0x35, 0x36, 0x37] or
+    return ((group in umd_ranges or
              # Add SQ_WAVE registers for trap handlers
              name.startswith('SQ_WAVE_') or
              # Add registers in the 0x8000 range used by all generations
-             (offset // 0x1000 == 0x8 and
+             (group == 0x8 and
               (name.startswith('SQ_IMG_') or
                name.startswith('SQ_BUF_') or
                name.startswith('SQ_THREAD') or
                name.startswith('GRBM_STATUS') or
                name.startswith('CP_CP'))) or
-             # Add all registers in the 0x8000 range for gfx6
-             (gfx_level == 'gfx6' and offset // 0x1000 == 0x8) or
+             name.startswith('GCVM_L2_PROTECTION_FAULT_STATUS') or
              # Add registers in the 0x9000 range
-             (offset // 0x1000 == 0x9 and
+             (group == 0x9 and
               (name in ['TA_CS_BC_BASE_ADDR', 'GB_ADDR_CONFIG', 'SPI_CONFIG_CNTL'] or
                (name.startswith('GB') and 'TILE_MODE' in name)))) and
             # Remove SQ compiler definitions
             offset // 4 not in (0x23B0, 0x23B1, 0x237F) and
             # Remove conflicts (multiple definitions for the same offset)
             not already_added and
-            'PREF_PRI_ACCUM' not in name)
+            'PREF_PRI_ACCUM' not in name and
+            # only define SPI and COMPUTE registers in the 0xB000 range.
+            (group != 0xB or name.startswith('SPI') or name.startswith('COMPUTE')) and
+            # only define CP_COHER uconfig registers on CDNA
+            (not is_cdna or group != 0x30 or name.startswith('CP_COHER')))
 
 # Mapping from field names to enum types
 enum_map = {
@@ -399,11 +428,11 @@ IMG_DATA_FORMAT_STENCIL = {
 
 VRSCombinerModeSC = {
  "entries": [
-  {"name": "VRS_COMB_MODE_PASSTHRU", "value": 0},
-  {"name": "VRS_COMB_MODE_OVERRIDE", "value": 1},
-  {"name": "VRS_COMB_MODE_MIN", "value": 2},
-  {"name": "VRS_COMB_MODE_MAX", "value": 3},
-  {"name": "VRS_COMB_MODE_SATURATE", "value": 4},
+  {"name": "SC_VRS_COMB_MODE_PASSTHRU", "value": 0},
+  {"name": "SC_VRS_COMB_MODE_OVERRIDE", "value": 1},
+  {"name": "SC_VRS_COMB_MODE_MIN", "value": 2},
+  {"name": "SC_VRS_COMB_MODE_MAX", "value": 3},
+  {"name": "SC_VRS_COMB_MODE_SATURATE", "value": 4},
  ]
 }
 
@@ -554,12 +583,43 @@ missing_enums_gfx81plus = {
   "SX_BLEND_OPT_EPSILON__MRT0_EPSILON": {
     "entries": [
       {"name": "EXACT", "value": 0},
-      {"name": "11BIT_FORMAT", "value": 1},
-      {"name": "10BIT_FORMAT", "value": 3},
-      {"name": "8BIT_FORMAT", "value": 6},
-      {"name": "6BIT_FORMAT", "value": 11},
-      {"name": "5BIT_FORMAT", "value": 13},
-      {"name": "4BIT_FORMAT", "value": 15}
+      # This determines whether epsilon is 0.5 or 0.75 in the unnormalized format
+      # that is used to determine whether a channel is equal to 0 for blending.
+      # 0.5 is exactly between 0 and the next representable value. 0.75 can be
+      # used for less precise blending.
+      {"name": "10BIT_FORMAT_0_5", "value": 2},  # (1.0 * 2^−11) * 1024 = 0.5
+      {"name": "10BIT_FORMAT_0_75", "value": 3}, # (1.5 * 2^−11) * 1024 = 0.75
+      {"name": "8BIT_FORMAT_0_5", "value": 6},   # (1.0 * 2^−9) * 256 = 0.5
+      {"name": "8BIT_FORMAT_0_75", "value": 7},  # (1.5 * 2^−9) * 256 = 0.75
+      {"name": "6BIT_FORMAT_0_5", "value": 10},  # (1.0 * 2^-7) * 64 = 0.5
+      {"name": "6BIT_FORMAT_0_75", "value": 11}, # (1.5 * 2^-7) * 64 = 0.75
+      {"name": "5BIT_FORMAT_0_5", "value": 12},  # (1.0 * 2^-6) * 32 = 0.5
+      {"name": "5BIT_FORMAT_0_75", "value": 13}, # (1.5 * 2^-6) * 32 = 0.75
+      {"name": "4BIT_FORMAT_0_5", "value": 14},  # (1.0 * 2^-5) * 16 = 0.5
+      {"name": "4BIT_FORMAT_0_75", "value": 15}, # (1.5 * 2^-5) * 16 = 0.75
+    ]
+  },
+}
+
+missing_enums_gfx9 = {
+  **missing_enums_gfx81plus,
+  "DB_DFSM_CONTROL__PUNCHOUT_MODE": DB_DFSM_CONTROL__PUNCHOUT_MODE,
+  "IMG_DATA_FORMAT_STENCIL": IMG_DATA_FORMAT_STENCIL,
+  "SQ_IMG_RSRC_WORD4__BC_SWIZZLE": SQ_IMG_RSRC_WORD4__BC_SWIZZLE,
+  "BinSizeExtend": {
+    "entries": [
+      {"name": "BIN_SIZE_32_PIXELS", "value": 0},
+      {"name": "BIN_SIZE_64_PIXELS", "value": 1},
+      {"name": "BIN_SIZE_128_PIXELS", "value": 2},
+      {"name": "BIN_SIZE_256_PIXELS", "value": 3},
+      {"name": "BIN_SIZE_512_PIXELS", "value": 4}
+    ]
+  },
+  "ScUncertaintyRegionMode": {
+    "entries": [
+      {"name": "SC_HALF_LSB", "value": 0},
+      {"name": "SC_LSB_ONE_SIDED", "value": 1},
+      {"name": "SC_LSB_TWO_SIDED", "value": 2}
     ]
   },
 }
@@ -624,10 +684,10 @@ enums_missing = {
     **missing_enums_gfx81plus,
   },
   'gfx9': {
-    **missing_enums_gfx81plus,
-    "DB_DFSM_CONTROL__PUNCHOUT_MODE": DB_DFSM_CONTROL__PUNCHOUT_MODE,
-    "IMG_DATA_FORMAT_STENCIL": IMG_DATA_FORMAT_STENCIL,
-    "SQ_IMG_RSRC_WORD4__BC_SWIZZLE": SQ_IMG_RSRC_WORD4__BC_SWIZZLE,
+    **missing_enums_gfx9,
+  },
+  'gfx940': {
+    **missing_enums_gfx9,
   },
   'gfx10': {
     **missing_enums_gfx81plus,
@@ -643,6 +703,9 @@ enums_missing = {
     "VRSCombinerModeSC": VRSCombinerModeSC,
   },
   'gfx11': {
+    **missing_enums_gfx11plus,
+  },
+  'gfx115': {
     **missing_enums_gfx11plus,
   },
 }
@@ -682,6 +745,34 @@ fields_missing = {
     "DB_RESERVED_REG_2": [["RESOURCE_LEVEL", 28, 31, None, True]],
     "VGT_DRAW_PAYLOAD_CNTL": [["EN_VRS_RATE", 6, 6]],
     "VGT_SHADER_STAGES_EN": [["PRIMGEN_PASSTHRU_NO_MSG", 26, 26]],
+  },
+  'gfx11': {
+    "VGT_DRAW_PAYLOAD_CNTL": [["EN_VRS_RATE", 6, 6]],
+    # Only GFX1103_R2:
+    "CB_COLOR0_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
+    "CB_COLOR1_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
+    "CB_COLOR2_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
+    "CB_COLOR3_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
+    "CB_COLOR4_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
+    "CB_COLOR5_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
+    "CB_COLOR6_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
+    "CB_COLOR7_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
+                               ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
+                               ["MAX_COMP_FRAGS", 27, 29]],
   },
 }
 

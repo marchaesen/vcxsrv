@@ -174,10 +174,10 @@ struct PACKED bcolor_entry {
 
    uint16_t
       srgb[4]; /* appears to duplicate fp16[], but clamped, used for srgb */
-   uint8_t __pad1[24];
+   uint8_t __pad1[56];
 };
 
-#define FD5_BORDER_COLOR_SIZE 0x60
+#define FD5_BORDER_COLOR_SIZE 0x80
 #define FD5_BORDER_COLOR_UPLOAD_SIZE                                           \
    (2 * PIPE_MAX_SAMPLERS * FD5_BORDER_COLOR_SIZE)
 
@@ -198,19 +198,7 @@ setup_border_colors(struct fd_texture_stateobj *tex,
 
       bc = &sampler->border_color;
 
-      /*
-       * XXX HACK ALERT XXX
-       *
-       * The border colors need to be swizzled in a particular
-       * format-dependent order. Even though samplers don't know about
-       * formats, we can assume that with a GL state tracker, there's a
-       * 1:1 correspondence between sampler and texture. Take advantage
-       * of that knowledge.
-       */
-      if ((i >= tex->num_textures) || !tex->textures[i])
-         continue;
-
-      enum pipe_format format = tex->textures[i]->format;
+      enum pipe_format format = sampler->border_color_format;
       const struct util_format_description *desc =
          util_format_description(format);
 
@@ -322,8 +310,10 @@ emit_border_color(struct fd_context *ctx, struct fd_ringbuffer *ring) assert_dt
 
    STATIC_ASSERT(sizeof(struct bcolor_entry) == FD5_BORDER_COLOR_SIZE);
 
+   const unsigned int alignment =
+      util_next_power_of_two(FD5_BORDER_COLOR_UPLOAD_SIZE);
    u_upload_alloc(fd5_ctx->border_color_uploader, 0,
-                  FD5_BORDER_COLOR_UPLOAD_SIZE, FD5_BORDER_COLOR_UPLOAD_SIZE,
+                  FD5_BORDER_COLOR_UPLOAD_SIZE, alignment,
                   &off, &fd5_ctx->border_color_buf, &ptr);
 
    entries = ptr;
@@ -429,6 +419,9 @@ emit_ssbos(struct fd_context *ctx, struct fd_ringbuffer *ring,
 {
    unsigned count = util_last_bit(so->enabled_mask);
 
+   if (count == 0)
+      return;
+
    OUT_PKT7(ring, CP_LOAD_STATE4, 3 + 2 * count);
    OUT_RING(ring, CP_LOAD_STATE4_0_DST_OFF(0) |
                      CP_LOAD_STATE4_0_STATE_SRC(SS4_DIRECT) |
@@ -493,7 +486,7 @@ fd5_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd5_emit *emit)
          OUT_PKT4(ring, REG_A5XX_VFD_FETCH(j), 4);
          OUT_RELOC(ring, rsc->bo, off, 0, 0);
          OUT_RING(ring, size);       /* VFD_FETCH[j].SIZE */
-         OUT_RING(ring, vb->stride); /* VFD_FETCH[j].STRIDE */
+         OUT_RING(ring, elem->src_stride); /* VFD_FETCH[j].STRIDE */
 
          OUT_PKT4(ring, REG_A5XX_VFD_DECODE(j), 2);
          OUT_RING(
@@ -619,15 +612,15 @@ fd5_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
       OUT_PKT4(ring, REG_A5XX_GRAS_SC_SCREEN_SCISSOR_TL_0, 2);
       OUT_RING(ring, A5XX_GRAS_SC_SCREEN_SCISSOR_TL_0_X(scissor->minx) |
                         A5XX_GRAS_SC_SCREEN_SCISSOR_TL_0_Y(scissor->miny));
-      OUT_RING(ring, A5XX_GRAS_SC_SCREEN_SCISSOR_TL_0_X(scissor->maxx - 1) |
-                        A5XX_GRAS_SC_SCREEN_SCISSOR_TL_0_Y(scissor->maxy - 1));
+      OUT_RING(ring, A5XX_GRAS_SC_SCREEN_SCISSOR_TL_0_X(scissor->maxx) |
+                        A5XX_GRAS_SC_SCREEN_SCISSOR_TL_0_Y(scissor->maxy));
 
       OUT_PKT4(ring, REG_A5XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0, 2);
       OUT_RING(ring, A5XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0_X(scissor->minx) |
                         A5XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0_Y(scissor->miny));
       OUT_RING(ring,
-               A5XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0_X(scissor->maxx - 1) |
-                  A5XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0_Y(scissor->maxy - 1));
+               A5XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0_X(scissor->maxx) |
+                  A5XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0_Y(scissor->maxy));
 
       ctx->batch->max_scissor.minx =
          MIN2(ctx->batch->max_scissor.minx, scissor->minx);
@@ -640,17 +633,20 @@ fd5_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
    }
 
    if (dirty & FD_DIRTY_VIEWPORT) {
+      struct pipe_viewport_state *vp = & ctx->viewport[0];
+
       fd_wfi(ctx->batch, ring);
+
       OUT_PKT4(ring, REG_A5XX_GRAS_CL_VPORT_XOFFSET_0, 6);
-      OUT_RING(ring, A5XX_GRAS_CL_VPORT_XOFFSET_0(ctx->viewport.translate[0]));
-      OUT_RING(ring, A5XX_GRAS_CL_VPORT_XSCALE_0(ctx->viewport.scale[0]));
-      OUT_RING(ring, A5XX_GRAS_CL_VPORT_YOFFSET_0(ctx->viewport.translate[1]));
-      OUT_RING(ring, A5XX_GRAS_CL_VPORT_YSCALE_0(ctx->viewport.scale[1]));
-      OUT_RING(ring, A5XX_GRAS_CL_VPORT_ZOFFSET_0(ctx->viewport.translate[2]));
-      OUT_RING(ring, A5XX_GRAS_CL_VPORT_ZSCALE_0(ctx->viewport.scale[2]));
+      OUT_RING(ring, A5XX_GRAS_CL_VPORT_XOFFSET_0(vp->translate[0]));
+      OUT_RING(ring, A5XX_GRAS_CL_VPORT_XSCALE_0(vp->scale[0]));
+      OUT_RING(ring, A5XX_GRAS_CL_VPORT_YOFFSET_0(vp->translate[1]));
+      OUT_RING(ring, A5XX_GRAS_CL_VPORT_YSCALE_0(vp->scale[1]));
+      OUT_RING(ring, A5XX_GRAS_CL_VPORT_ZOFFSET_0(vp->translate[2]));
+      OUT_RING(ring, A5XX_GRAS_CL_VPORT_ZSCALE_0(vp->scale[2]));
    }
 
-   if (dirty & (FD_DIRTY_PROG | FD_DIRTY_RASTERIZER_CLIP_PLANE_ENABLE))
+   if (dirty & FD_DIRTY_PROG)
       fd5_program_emit(ctx, ring, emit);
 
    if (dirty & FD_DIRTY_RASTERIZER) {

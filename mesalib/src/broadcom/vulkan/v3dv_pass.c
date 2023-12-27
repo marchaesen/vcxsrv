@@ -234,13 +234,15 @@ v3dv_CreateRenderPass2(VkDevice _device,
             .layout = desc->pDepthStencilAttachment->layout,
          };
 
-         /* GFXH-1461: if depth is cleared but stencil is loaded (or viceversa),
+         /* GFXH-1461: if depth is cleared but stencil is loaded (or vice versa),
           * the clear might get lost. If a subpass has this then we can't emit
-          * the clear using the TLB and we have to do it as a draw call.
+          * the clear using the TLB and we have to do it as a draw call. This
+          * issue is fixed since V3D 4.3.18.
           *
           * FIXME: separate stencil.
           */
-         if (subpass->ds_attachment.attachment != VK_ATTACHMENT_UNUSED) {
+         if (device->devinfo.ver == 42 &&
+             subpass->ds_attachment.attachment != VK_ATTACHMENT_UNUSED) {
             struct v3dv_render_pass_attachment *att =
                &pass->attachments[subpass->ds_attachment.attachment];
             if (att->desc.format == VK_FORMAT_D24_UNORM_S8_UINT) {
@@ -320,11 +322,12 @@ subpass_get_granularity(struct v3dv_device *device,
    /* Granularity is defined by the tile size */
    assert(subpass_idx < pass->subpass_count);
    struct v3dv_subpass *subpass = &pass->subpasses[subpass_idx];
-   const uint32_t color_attachment_count = subpass->color_count;
+   const uint32_t color_count = subpass->color_count;
 
    bool msaa = false;
-   uint32_t max_bpp = 0;
-   for (uint32_t i = 0; i < color_attachment_count; i++) {
+   uint32_t max_internal_bpp = 0;
+   uint32_t total_color_bpp = 0;
+   for (uint32_t i = 0; i < color_count; i++) {
       uint32_t attachment_idx = subpass->color_attachments[i].attachment;
       if (attachment_idx == VK_ATTACHMENT_UNUSED)
          continue;
@@ -332,10 +335,13 @@ subpass_get_granularity(struct v3dv_device *device,
          &pass->attachments[attachment_idx].desc;
       const struct v3dv_format *format = v3dv_X(device, get_format)(desc->format);
       uint32_t internal_type, internal_bpp;
+      /* We don't support rendering to YCbCr images */
+      assert(format->plane_count == 1);
       v3dv_X(device, get_internal_type_bpp_for_output_format)
-         (format->rt_type, &internal_type, &internal_bpp);
+         (format->planes[0].rt_type, &internal_type, &internal_bpp);
 
-      max_bpp = MAX2(max_bpp, internal_bpp);
+      max_internal_bpp = MAX2(max_internal_bpp, internal_bpp);
+      total_color_bpp += 4 * v3d_internal_bpp_words(internal_bpp);
 
       if (desc->samples > VK_SAMPLE_COUNT_1_BIT)
          msaa = true;
@@ -345,7 +351,8 @@ subpass_get_granularity(struct v3dv_device *device,
     * heuristics so we choose a conservative granularity here, with it disabled.
     */
    uint32_t width, height;
-   v3d_choose_tile_size(color_attachment_count, max_bpp, msaa,
+   v3d_choose_tile_size(&device->devinfo, color_count,
+                        max_internal_bpp, total_color_bpp, msaa,
                         false /* double-buffer */, &width, &height);
    *granularity = (VkExtent2D) {
       .width = width,

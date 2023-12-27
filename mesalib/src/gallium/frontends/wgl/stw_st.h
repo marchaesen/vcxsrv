@@ -32,30 +32,28 @@
 
 #include "frontend/api.h"
 
+struct st_context;
 struct stw_framebuffer;
 
 bool
 stw_own_mutex(const CRITICAL_SECTION *cs);
 
-struct st_api *
-stw_st_create_api(void);
-
-struct st_framebuffer_iface *
-stw_st_create_framebuffer(struct stw_framebuffer *fb, struct st_manager *smapi);
+struct pipe_frontend_drawable *
+stw_st_create_framebuffer(struct stw_framebuffer *fb, struct pipe_frontend_screen *fscreen);
 
 void
-stw_st_destroy_framebuffer_locked(struct st_framebuffer_iface *stfb);
+stw_st_destroy_framebuffer_locked(struct pipe_frontend_drawable *drawable);
 
 void
-stw_st_flush(struct st_context_iface *st, struct st_framebuffer_iface *stfb,
+stw_st_flush(struct st_context *st, struct pipe_frontend_drawable *drawable,
              unsigned flags);
 
 bool
-stw_st_swap_framebuffer_locked(HDC hdc, struct st_context_iface *stctx,
-                               struct st_framebuffer_iface *stfb);
+stw_st_swap_framebuffer_locked(HDC hdc, struct st_context *st,
+                               struct pipe_frontend_drawable *drawable);
 
 struct pipe_resource *
-stw_get_framebuffer_resource(struct st_framebuffer_iface *stfb,
+stw_get_framebuffer_resource(struct pipe_frontend_drawable *drawable,
                              enum st_attachment_type att);
 
 #endif /* STW_ST_H */

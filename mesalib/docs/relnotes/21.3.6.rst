@@ -88,7 +88,7 @@ Georg Lehmann (4):
 - vulkan/wsi/wayland: Add modifiers for RGB formats.
 - vulkan/wsi/wayland: Fix add_drm_format_modifier aplha/opaqueness.
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - anv/pass: Don't set first_subpass_layout for stencil-only attachments
 - vulkan/wsi: Set MUTABLE_FORMAT_BIT in the prime path

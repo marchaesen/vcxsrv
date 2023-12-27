@@ -19,10 +19,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
- *
  */
 
 #include "nir.h"
@@ -50,7 +46,7 @@
  * considered to *not* dominate the instruction that defines it.
  */
 static bool
-ssa_def_dominates_instr(nir_ssa_def *def, nir_instr *instr)
+ssa_def_dominates_instr(nir_def *def, nir_instr *instr)
 {
    if (instr->index <= def->parent_instr->index) {
       return false;
@@ -62,7 +58,7 @@ ssa_def_dominates_instr(nir_ssa_def *def, nir_instr *instr)
 }
 
 static bool
-move_vec_src_uses_to_dest_block(nir_block *block)
+move_vec_src_uses_to_dest_block(nir_block *block, bool skip_const_srcs)
 {
    bool progress = false;
 
@@ -81,25 +77,25 @@ move_vec_src_uses_to_dest_block(nir_block *block)
          continue; /* The loop */
       }
 
-      /* Can't handle non-SSA vec operations */
-      if (!vec->dest.dest.is_ssa)
-         continue;
-
-      /* Can't handle saturation */
-      if (vec->dest.saturate)
-         continue;
+      /* If the vec is used only in single store output than by reusing it
+       * we lose the ability to write it to the output directly.
+       */
+      if (list_is_singular(&vec->def.uses)) {
+         nir_src *src = list_first_entry(&vec->def.uses, nir_src, use_link);
+         nir_instr *use_instr = nir_src_parent_instr(src);
+         if (use_instr->type == nir_instr_type_intrinsic) {
+            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(use_instr);
+            if (intr->intrinsic == nir_intrinsic_store_output)
+               return false;
+         }
+      }
 
       /* First, mark all of the sources we are going to consider for rewriting
        * to the destination
        */
       int srcs_remaining = 0;
       for (unsigned i = 0; i < nir_op_infos[vec->op].num_inputs; i++) {
-         /* We can't rewrite a source if it's not in SSA form */
-         if (!vec->src[i].src.is_ssa)
-            continue;
-
-         /* We can't rewrite a source if it has modifiers */
-         if (vec->src[i].abs || vec->src[i].negate)
+         if (skip_const_srcs && nir_src_is_const(vec->src[i].src))
             continue;
 
          srcs_remaining |= 1 << i;
@@ -125,20 +121,18 @@ move_vec_src_uses_to_dest_block(nir_block *block)
          }
 
          nir_foreach_use_safe(use, vec->src[i].src.ssa) {
-            if (use->parent_instr == &vec->instr)
+            if (nir_src_parent_instr(use) == &vec->instr)
                continue;
 
             /* We need to dominate the use if we are going to rewrite it */
-            if (!ssa_def_dominates_instr(&vec->dest.dest.ssa, use->parent_instr))
+            if (!ssa_def_dominates_instr(&vec->def, nir_src_parent_instr(use)))
                continue;
 
             /* For now, we'll just rewrite ALU instructions */
-            if (use->parent_instr->type != nir_instr_type_alu)
+            if (nir_src_parent_instr(use)->type != nir_instr_type_alu)
                continue;
 
-            assert(use->is_ssa);
-
-            nir_alu_instr *use_alu = nir_instr_as_alu(use->parent_instr);
+            nir_alu_instr *use_alu = nir_instr_as_alu(nir_src_parent_instr(use));
 
             /* Figure out which source we're actually looking at */
             nir_alu_src *use_alu_src = exec_node_data(nir_alu_src, use, src);
@@ -163,8 +157,7 @@ move_vec_src_uses_to_dest_block(nir_block *block)
              * reswizzled to actually use the destination of the vecN operation.
              * Go ahead and rewrite it as needed.
              */
-            nir_instr_rewrite_src(use->parent_instr, use,
-                                  nir_src_for_ssa(&vec->dest.dest.ssa));
+            nir_src_rewrite(use, &vec->def);
             for (unsigned j = 0; j < 4; j++) {
                if (!nir_alu_instr_channel_used(use_alu, src_idx, j))
                   continue;
@@ -180,7 +173,8 @@ move_vec_src_uses_to_dest_block(nir_block *block)
 }
 
 static bool
-nir_move_vec_src_uses_to_dest_impl(nir_shader *shader, nir_function_impl *impl)
+nir_move_vec_src_uses_to_dest_impl(nir_shader *shader, nir_function_impl *impl,
+                                   bool skip_const_srcs)
 {
    bool progress = false;
 
@@ -189,24 +183,22 @@ nir_move_vec_src_uses_to_dest_impl(nir_shader *shader, nir_function_impl *impl)
    nir_index_instrs(impl);
 
    nir_foreach_block(block, impl) {
-      progress |= move_vec_src_uses_to_dest_block(block);
+      progress |= move_vec_src_uses_to_dest_block(block, skip_const_srcs);
    }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
+                                  nir_metadata_dominance);
 
    return progress;
 }
 
 bool
-nir_move_vec_src_uses_to_dest(nir_shader *shader)
+nir_move_vec_src_uses_to_dest(nir_shader *shader, bool skip_const_srcs)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= nir_move_vec_src_uses_to_dest_impl(shader,
-                                                        function->impl);
+   nir_foreach_function_impl(impl, shader) {
+      progress |= nir_move_vec_src_uses_to_dest_impl(shader, impl, skip_const_srcs);
    }
 
    return progress;

@@ -2,24 +2,7 @@
 #
 # Copyright 2021 Advanced Micro Devices, Inc.
 #
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# on the rights to use, copy, modify, merge, publish, distribute, sub
-# license, and/or sell copies of the Software, and to permit persons to whom
-# the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice (including the next
-# paragraph) shall be included in all copies or substantial portions of the
-# Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
-# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-# USE OR OTHER DEALINGS IN THE SOFTWARE.
+# SPDX-License-Identifier: MIT
 #
 
 import os
@@ -70,6 +53,7 @@ path_above_mesa = os.path.realpath(os.path.join(os.path.dirname(__file__), *['..
 
 parser.add_argument("--piglit-path", type=str, help="Path to piglit source folder.")
 parser.add_argument("--glcts-path", type=str, help="Path to GLCTS source folder.")
+parser.add_argument("--escts-path", type=str, help="Path to GLES CTS source folder.")
 parser.add_argument("--deqp-path", type=str, help="Path to dEQP source folder.")
 parser.add_argument(
     "--parent-path",
@@ -97,6 +81,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--no-glcts", dest="glcts", help="Disable GLCTS tests", action="store_false"
+)
+parser.add_argument(
+    "--no-escts", dest="escts", help="Disable GLES CTS tests", action="store_false"
 )
 parser.add_argument(
     "--no-deqp", dest="deqp", help="Disable dEQP tests", action="store_false"
@@ -130,6 +117,7 @@ parser.add_argument(
 )
 parser.set_defaults(piglit=True)
 parser.set_defaults(glcts=True)
+parser.set_defaults(escts=True)
 parser.set_defaults(deqp=True)
 parser.set_defaults(deqp_egl=True)
 parser.set_defaults(deqp_gles2=True)
@@ -173,6 +161,7 @@ parser.add_argument(
 args = parser.parse_args(sys.argv[1:])
 piglit_path = args.piglit_path
 glcts_path = args.glcts_path
+escts_path = args.escts_path
 deqp_path = args.deqp_path
 
 if args.parent_path:
@@ -181,9 +170,10 @@ if args.parent_path:
         sys.exit(0)
     piglit_path = os.path.join(args.parent_path, "piglit")
     glcts_path = os.path.join(args.parent_path, "glcts")
+    escts_path = os.path.join(args.parent_path, "escts")
     deqp_path = os.path.join(args.parent_path, "deqp")
 else:
-    if not args.piglit_path or not args.glcts_path or not args.deqp_path:
+    if not args.piglit_path or not args.glcts_path or not args.escts_path or not args.deqp_path:
         parser.print_help()
         sys.exit(0)
 
@@ -253,8 +243,6 @@ while os.path.exists(output_folder):
     count += 1
 
 os.makedirs(output_folder, exist_ok=True)
-new_baseline_folder = os.path.join(output_folder, "new_baseline")
-os.mkdir(new_baseline_folder)
 
 logfile = open(os.path.join(output_folder, "{}-run-tests.log".format(gpu_name)), "w")
 
@@ -363,23 +351,32 @@ def select_baseline(basepath, gfx_level, gpu_name):
     return exact
 
 
+success = True
 filters_args = parse_test_filters(args.include_tests)
 baseline = select_baseline(base, gfx_level, gpu_name)
-flakes = os.path.join(
-    base, "{}-{}-flakes.csv".format(gfx_level_to_str(gfx_level), gpu_name)
-)
+flakes = [
+    f
+    for f in (
+        os.path.join(base, g)
+        for g in [
+            "radeonsi-flakes.csv",
+            "{}-{}-flakes.csv".format(gfx_level_to_str(gfx_level), gpu_name),
+        ]
+    )
+    if os.path.exists(f)
+]
+flakes_args = []
+for f in flakes:
+    flakes_args += ["--flakes", f]
 
 if os.path.exists(baseline):
     print_yellow("Baseline: {}".format(baseline))
-if os.path.exists(flakes):
-    print_yellow("[flakes {}]".format(flakes))
+if flakes_args:
+    print_yellow("Flakes: {}".format(flakes_args))
 
 # piglit test
 if args.piglit:
     out = os.path.join(output_folder, "piglit")
-    new_baseline = os.path.join(
-        new_baseline_folder, "{}-piglit-quick-fail.csv".format(gpu_name)
-    )
     print_yellow("Running piglit tests", args.verbose > 0)
     cmd = [
         "piglit-runner",
@@ -397,19 +394,17 @@ if args.piglit:
         str(args.jobs),
         "--skips",
         skips,
-    ] + filters_args
+        "--skips",
+        os.path.join(path_above_mesa, "mesa", ".gitlab-ci", "gbm-skips.txt")
+    ] + filters_args + flakes_args
 
     if os.path.exists(baseline):
         cmd += ["--baseline", baseline]
 
-    if os.path.exists(flakes):
-        cmd += ["--flakes", flakes]
-
     run_cmd(cmd, args.verbose)
-    failures_path = os.path.join(out, "failures.csv")
-    if os.path.exists(failures_path):
-        shutil.copy(failures_path, new_baseline)
-        verify_results(new_baseline)
+
+    if not verify_results(os.path.join(out, "failures.csv")):
+        success = False
 
 deqp_args = "-- --deqp-surface-width=256 --deqp-surface-height=256 --deqp-gl-config-name=rgba8888d24s8ms0 --deqp-visibility=hidden".split(
     " "
@@ -418,9 +413,6 @@ deqp_args = "-- --deqp-surface-width=256 --deqp-surface-height=256 --deqp-gl-con
 # glcts test
 if args.glcts:
     out = os.path.join(output_folder, "glcts")
-    new_baseline = os.path.join(
-        new_baseline_folder, "{}-glcts-fail.csv".format(gpu_name)
-    )
     print_yellow("Running  GLCTS tests", args.verbose > 0)
     os.mkdir(os.path.join(output_folder, "glcts"))
 
@@ -430,13 +422,17 @@ if args.glcts:
         "--tests-per-group",
         "100",
         "--deqp",
-        "{}/external/openglcts/modules/glcts".format(glcts_path),
+        "{}/build/external/openglcts/modules/glcts".format(glcts_path),
         "--caselist",
-        "{}/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass/4.6.1.x/gl46-master.txt".format(
+        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass/4.6.1.x/gl46-master.txt".format(
             glcts_path
         ),
         "--caselist",
-        "{}/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass_single/4.6.1.x/gl46-khr-single.txt".format(
+        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass_single/4.6.1.x/gl46-khr-single.txt".format(
+            glcts_path
+        ),
+        "--caselist",
+        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass/4.6.1.x/gl46-gtf-master.txt".format(
             glcts_path
         ),
         "--output",
@@ -446,18 +442,65 @@ if args.glcts:
         "--jobs",
         str(args.jobs),
         "--timeout",
-        "1000",
-    ] + filters_args
+        "1000"
+    ] + filters_args + flakes_args
 
     if os.path.exists(baseline):
         cmd += ["--baseline", baseline]
     cmd += deqp_args
+
     run_cmd(cmd, args.verbose)
 
-    failures_path = os.path.join(out, "failures.csv")
-    if os.path.exists(failures_path):
-        shutil.copy(os.path.join(out, "failures.csv"), new_baseline)
-        verify_results(new_baseline)
+    if not verify_results(os.path.join(out, "failures.csv")):
+        success = False
+
+# escts test
+if args.escts:
+    out = os.path.join(output_folder, "escts")
+    print_yellow("Running  ESCTS tests", args.verbose > 0)
+    os.mkdir(out)
+
+    cmd = [
+        "deqp-runner",
+        "run",
+        "--tests-per-group",
+        "100",
+        "--deqp",
+        "{}/build/external/openglcts/modules/glcts".format(escts_path),
+        "--caselist",
+        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles2-khr-master.txt".format(
+            escts_path
+        ),
+        "--caselist",
+        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles3-khr-master.txt".format(
+            escts_path
+        ),
+        "--caselist",
+        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles31-khr-master.txt".format(
+            escts_path
+        ),
+        "--caselist",
+        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles32-khr-master.txt".format(
+            escts_path
+        ),
+        "--output",
+        out,
+        "--skips",
+        skips,
+        "--jobs",
+        str(args.jobs),
+        "--timeout",
+        "1000"
+    ] + filters_args + flakes_args
+
+    if os.path.exists(baseline):
+        cmd += ["--baseline", baseline]
+    cmd += deqp_args
+
+    run_cmd(cmd, args.verbose)
+
+    if not verify_results(os.path.join(out, "failures.csv")):
+        success = False
 
 if args.deqp:
     print_yellow("Running   dEQP tests", args.verbose > 0)
@@ -467,9 +510,6 @@ if args.deqp:
     suite_filename = os.path.join(output_folder, "deqp-suite.toml")
     suite = open(suite_filename, "w")
     os.mkdir(out)
-    new_baseline = os.path.join(
-        new_baseline_folder, "{}-deqp-fail.csv".format(gpu_name)
-    )
 
     deqp_tests = {
         "egl": args.deqp_egl,
@@ -485,12 +525,12 @@ if args.deqp:
         suite.write("[[deqp]]\n")
         suite.write(
             'deqp = "{}"\n'.format(
-                "{}/modules/{subtest}/deqp-{subtest}".format(deqp_path, subtest=k)
+                "{}/build/modules/{subtest}/deqp-{subtest}".format(deqp_path, subtest=k)
             )
         )
         suite.write(
             'caselists = ["{}"]\n'.format(
-                "{}/android/cts/master/{}-master.txt".format(deqp_path, k)
+                "{}/android/cts/main/{}-master.txt".format(deqp_path, k)
             )
         )
         if os.path.exists(baseline):
@@ -513,10 +553,11 @@ if args.deqp:
         os.path.join(output_folder, "deqp"),
         "--suite",
         suite_filename,
-    ] + filters_args
+    ] + filters_args + flakes_args
+
     run_cmd(cmd, args.verbose)
 
-    failures_path = os.path.join(out, "failures.csv")
-    if os.path.exists(failures_path):
-        shutil.copy(failures_path, new_baseline)
-        verify_results(new_baseline)
+    if not verify_results(os.path.join(out, "failures.csv")):
+        success = False
+
+sys.exit(0 if success else 1)

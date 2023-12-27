@@ -100,9 +100,9 @@ struct ruvd_decoder {
 };
 
 /* flush IB to the hardware */
-static int flush(struct ruvd_decoder *dec, unsigned flags)
-{
-	return dec->ws->cs_flush(&dec->cs, flags, NULL);
+static int flush(struct ruvd_decoder *dec, unsigned flags,
+				 struct pipe_fence_handle **fence) {
+	return dec->ws->cs_flush(&dec->cs, flags, fence);
 }
 
 /* add a new set register command to the IB */
@@ -295,7 +295,7 @@ static unsigned calc_dpb_size(struct ruvd_decoder *dec)
 				dpb_size += align(width_in_mb * height_in_mb * 32, alignment);
 			}
 		} else {
-			// the firmware seems to allways assume a minimum of ref frames
+			// the firmware seems to always assume a minimum of ref frames
 			max_references = MAX2(NUM_H264_REFS, max_references);
 			// reference picture buffer
 			dpb_size = image_size * max_references;
@@ -310,7 +310,7 @@ static unsigned calc_dpb_size(struct ruvd_decoder *dec)
 	}
 
 	case PIPE_VIDEO_FORMAT_VC1:
-		// the firmware seems to allways assume a minimum of ref frames
+		// the firmware seems to always assume a minimum of ref frames
 		max_references = MAX2(NUM_VC1_REFS, max_references);
 
 		// reference picture buffer
@@ -807,7 +807,7 @@ static void ruvd_destroy(struct pipe_video_codec *decoder)
 	dec->msg->stream_handle = dec->stream_handle;
 	send_msg_buf(dec);
 
-	flush(dec, 0);
+	flush(dec, 0, NULL);
 
 	dec->ws->cs_destroy(&dec->cs);
 
@@ -1017,7 +1017,7 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder,
 			 FB_BUFFER_OFFSET + dec->fb_size, RADEON_USAGE_READ, RADEON_DOMAIN_GTT);
 	set_reg(dec, dec->reg.cntl, 1);
 
-	flush(dec, PIPE_FLUSH_ASYNC);
+	flush(dec, PIPE_FLUSH_ASYNC, picture->fence);
 	next_buffer(dec);
 }
 
@@ -1026,6 +1026,14 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder,
  */
 static void ruvd_flush(struct pipe_video_codec *decoder)
 {
+}
+
+static int ruvd_get_decoder_fence(struct pipe_video_codec *decoder,
+                                  struct pipe_fence_handle *fence,
+                                  uint64_t timeout) {
+
+  struct ruvd_decoder *dec = (struct ruvd_decoder *)decoder;
+  return dec->ws->fence_wait(dec->ws, fence, timeout);
 }
 
 /**
@@ -1044,7 +1052,7 @@ struct pipe_video_codec *ruvd_create_decoder(struct pipe_context *context,
 	struct ruvd_decoder *dec;
 	int r, i;
 
-	ws->query_info(ws, &info, false, false);
+	ws->query_info(ws, &info);
 
 	switch(u_reduce_video_profile(templ->profile)) {
 	case PIPE_VIDEO_FORMAT_MPEG12:
@@ -1084,6 +1092,7 @@ struct pipe_video_codec *ruvd_create_decoder(struct pipe_context *context,
 	dec->base.decode_bitstream = ruvd_decode_bitstream;
 	dec->base.end_frame = ruvd_end_frame;
 	dec->base.flush = ruvd_flush;
+	dec->base.get_decoder_fence = ruvd_get_decoder_fence;
 
 	dec->stream_type = profile2stream_type(dec, info.family);
 	dec->set_dtb = set_dtb;
@@ -1091,7 +1100,7 @@ struct pipe_video_codec *ruvd_create_decoder(struct pipe_context *context,
 	dec->screen = context->screen;
 	dec->ws = ws;
 
-	if (!ws->cs_create(&dec->cs, rctx->ctx, AMD_IP_UVD, NULL, NULL, false)) {
+	if (!ws->cs_create(&dec->cs, rctx->ctx, AMD_IP_UVD, NULL, NULL)) {
 		RVID_ERR("Can't get command submission context.\n");
 		goto error;
 	}
@@ -1142,7 +1151,7 @@ struct pipe_video_codec *ruvd_create_decoder(struct pipe_context *context,
 	dec->msg->body.create.height_in_samples = dec->base.height;
 	dec->msg->body.create.dpb_size = dpb_size;
 	send_msg_buf(dec);
-	r = flush(dec, 0);
+	r = flush(dec, 0, NULL);
 	if (r)
 		goto error;
 

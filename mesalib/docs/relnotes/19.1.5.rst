@@ -66,7 +66,7 @@ Greg V (2):
 -  anv: remove unused Linux-specific include
 -  intel/perf: use MAJOR_IN_SYSMACROS/MAJOR_IN_MKDEV
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv: Emit a dummy MEDIA_VFE_STATE before switching from GPGPU to 3D
 

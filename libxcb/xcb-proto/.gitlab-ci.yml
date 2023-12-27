@@ -1,0 +1,129 @@
+# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0 filetype=yaml:
+#
+# This CI uses the freedesktop.org ci-templates.
+# Please see the ci-templates documentation for details:
+# https://freedesktop.pages.freedesktop.org/ci-templates/
+
+.templates_sha: &template_sha c5626190ec14b475271288dda7a7dae8dbe0cd76 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+
+
+include:
+  # Arch container builder template
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/arch.yml'
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/ci-fairy.yml'
+  - template: Security/SAST.gitlab-ci.yml
+
+
+stages:
+  - prep             # prep work like rebuilding the container images if there is a change
+  - build            # for actually building and testing things in a container
+  - test
+  - deploy
+
+
+variables:
+  FDO_UPSTREAM_REPO: 'xorg/proto/xcbproto'
+  # The tag should be updated each time the list of packages is updated.
+  # Changing a tag forces the associated image to be rebuilt.
+  # Note: the tag has no meaning, we use a date format purely for readability
+  FDO_DISTRIBUTION_TAG:  '2022-07-23.0'
+  # Packages needed to build xcbproto
+  XCBPROTO_PACKAGES:  'git gcc pkgconf autoconf automake make libxml2 python'
+  # Additional packages needed to build libxcb
+  LIBXCB_PACKAGES:  'libtool xorg-util-macros doxygen graphviz check libxslt libxau libxdmcp'
+  FDO_DISTRIBUTION_PACKAGES: $XCBPROTO_PACKAGES $LIBXCB_PACKAGES
+
+#
+# Verify that commit messages are as expected
+#
+check-commits:
+  extends:
+    - .fdo.ci-fairy
+  stage: prep
+  script:
+    - ci-fairy check-commits --junit-xml=results.xml
+  except:
+    - master@xorg/proto/xcbproto
+  variables:
+    GIT_DEPTH: 100
+  artifacts:
+    reports:
+      junit: results.xml
+  allow_failure: true
+
+#
+# Verify that the merge request has the allow-collaboration checkbox ticked
+#
+check-merge-request:
+  extends:
+    - .fdo.ci-fairy
+  stage: deploy
+  script:
+    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
+  artifacts:
+    when: on_failure
+    reports:
+      junit: results.xml
+  allow_failure: true
+
+
+#
+# Build a container with the given tag and the packages pre-installed.
+# This only happens if/when the tag changes, otherwise the existing image is
+# re-used.
+#
+container-prep:
+  extends:
+    - .fdo.container-build@arch
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+
+
+#
+# The default build, runs on the image built above.
+#
+build:
+  stage: build
+  extends:
+    - .fdo.distribution-image@arch
+  script:
+    - export INSTDIR="$PWD/_inst"
+    - mkdir _builddir
+    - pushd _builddir > /dev/null
+    - ../autogen.sh --disable-silent-rules --prefix="$INSTDIR"
+    - make
+    - make check
+    - make install
+    - make distcheck
+    - popd > /dev/null
+  variables:
+  artifacts:
+    paths:
+      - _inst
+
+#
+# Build libxcb with the new xcbproto, runs on the image built above.
+#
+build-libxcb:
+  stage: test
+  extends:
+    - .fdo.distribution-image@arch
+  script:
+    - export INSTDIR="$PWD/_inst"
+    - export PKG_CONFIG_PATH=$(find $INSTDIR/ -name '*.pc' -printf "%h:")
+    - git clone --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxcb
+    - pushd libxcb > /dev/null
+    - mkdir _builddir
+    - pushd _builddir > /dev/null
+    - ../autogen.sh --disable-silent-rules --enable-devel-docs --with-doxygen
+    - make
+    - make check
+    - make install
+    - make distcheck
+    - popd > /dev/null
+    - popd > /dev/null

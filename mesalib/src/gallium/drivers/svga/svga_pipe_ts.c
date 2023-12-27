@@ -26,7 +26,6 @@
 #include "nir/nir_to_tgsi.h"
 #include "pipe/p_context.h"
 #include "util/u_memory.h"
-#include "tgsi/tgsi_parse.h"
 
 #include "svga_context.h"
 #include "svga_shader.h"
@@ -91,6 +90,10 @@ svga_bind_tcs_state(struct pipe_context *pipe, void *shader)
 
    svga->curr.tcs = tcs;
    svga->dirty |= SVGA_NEW_TCS;
+
+   /* Check if the shader uses samplers */
+   svga_set_curr_shader_use_samplers_flag(svga, PIPE_SHADER_TESS_CTRL,
+                                          svga_shader_use_samplers(&tcs->base));
 }
 
 
@@ -171,6 +174,10 @@ svga_bind_tes_state(struct pipe_context *pipe, void *shader)
 
    svga->curr.tes = tes;
    svga->dirty |= SVGA_NEW_TES;
+
+   /* Check if the shader uses samplers */
+   svga_set_curr_shader_use_samplers_flag(svga, PIPE_SHADER_TESS_EVAL,
+                                          svga_shader_use_samplers(&tes->base));
 }
 
 

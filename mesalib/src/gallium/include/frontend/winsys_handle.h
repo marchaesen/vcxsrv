@@ -3,7 +3,7 @@
 #define _WINSYS_HANDLE_H_
 
 #ifdef _WIN32
-#include <windows.h>
+typedef void *HANDLE;
 #endif
 
 #ifdef __cplusplus

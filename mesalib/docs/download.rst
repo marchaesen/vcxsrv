@@ -5,7 +5,7 @@ Downloading
 -----------
 
 You can download the released versions of Mesa via
-`HTTPS <https://mesa.freedesktop.org/archive/>`__ or
+`HTTPS <https://archive.mesa3d.org/>`__ or
 `FTP <ftp://ftp.freedesktop.org/pub/mesa/>`__.
 
 Our release tarballs are GPG-signed, and the public keys are available
@@ -48,13 +48,13 @@ Demos, GLUT, and GLU
 --------------------
 
 A package of SGI's GLU library is available
-`here <ftp://ftp.freedesktop.org/pub/mesa/glu/>`__
+`here <https://archive.mesa3d.org/glu/>`__
 
 A package of Mark Kilgard's GLUT library is available
-`here <ftp://ftp.freedesktop.org/pub/mesa/glut/>`__
+`here <https://archive.mesa3d.org/glut/>`__
 
 The Mesa demos collection is available
-`here <ftp://ftp.freedesktop.org/pub/mesa/demos/>`__
+`here <https://archive.mesa3d.org/demos/>`__
 
 In the past, GLUT, GLU and the Mesa demos were released in conjunction
 with Mesa releases. But since GLUT, GLU and the demos change

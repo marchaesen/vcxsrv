@@ -114,7 +114,7 @@ Ilia Mirkin (4):
 -  st/mesa: don't pass compare mode for stencil-sampled textures
 -  nvc0: disable linked tsc mode in compute launch descriptor
 
-Jason Ekstrand (10):
+Faith Ekstrand (10):
 
 -  i965/sampler_state: Clamp min/max LOD to 14 on gen7+
 -  i965/sampler_state: Pass texObj into update_sampler_state

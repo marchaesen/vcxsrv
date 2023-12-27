@@ -22,8 +22,8 @@ default xkb_geometry "macintosh" {
     shape "TLDE" { { [ 23,18] }, { [2,1], [ 21,17] } };
     shape "BKSP" { { [ 33,18] }, { [2,1], [ 31,17] } };
     shape "TAB"  { { [ 33,18] }, { [2,1], [ 31,17] } };
-    shape "RTRN" { 
-        { [0,0],[23,0],[23,37],[4,37],[4,18],[0,18] }, 
+    shape "RTRN" {
+        { [0,0],[23,0],[23,37],[4,37],[4,18],[0,18] },
         { [2,1],[21,1],[21,36],[6,36],[6,17],[2,17] } };
     shape "CAPS" { { [ 37,18] }, { [2,1], [ 35,17] } };
     shape "LCTL" { { [ 28,18] }, { [2,1], [ 26,17] } };
@@ -38,7 +38,7 @@ default xkb_geometry "macintosh" {
     shape "KP0"  { { [ 37,18] }, { [2,1], [ 35,17] } };
     shape "KPEN" { { [ 18,37] }, { [2,1], [ 16,36] } };
     // Macintosh keyboards have a special sysctl key at the top right
-    shape "AAPL" { 
+    shape "AAPL" {
         { [ 0,0], [ 18,0], [ 18,18], [ 0,18] },
         { [ 1,1], [ 17,1], [ 17,17], [ 1,17] },
         { [ 8,5], [ 8,12], [  2,9] } };
@@ -74,7 +74,7 @@ default xkb_geometry "macintosh" {
         top = 48;
 	row {
 	    top= 1;
-            keys { <ESC>, 
+            keys { <ESC>,
                    { <FK01>, 20 }, <FK02>, <FK03>, <FK04>,
                    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
                    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
@@ -120,7 +120,7 @@ default xkb_geometry "macintosh" {
 	    top= 77;
 	    keys { { <LCTL>, "LCTL" }, { <LALT>, "LALT" },
                    { <LWIN>, "LMTA" },
-                   { <SPCE>, "SPCE" }, 
+                   { <SPCE>, "SPCE" },
                    { <RWIN>, "RMTA" },
 	           { <RALT>, "RALT" }, { <RCTL>, "RCTL" }
 	    };
@@ -199,7 +199,7 @@ xkb_geometry "applepro" {
     shape "RTSH" { { [ 47, 18] }, { [2, 1], [ 45, 15] } };
 
     shape "RTRN" {
-        { [0,0],[27,0],[27,37],[4,37],[4,18],[0,18] }, 
+        { [0,0],[27,0],[27,37],[4,37],[4,18],[0,18] },
         { [2,1],[25,1],[25,34],[6,34],[6,15],[2,15] } };
 
     shape "CAPS" { { [ 32, 18] }, { [2, 1], [ 26, 15] } };
@@ -210,7 +210,7 @@ xkb_geometry "applepro" {
     shape "LMTA" { { [ 28, 20] }, { [2, 1], [ 26, 17] } };
     shape "RMTA" { { [ 28, 20] }, { [2, 1], [ 26, 17] } };
     shape "SPCE" { { [121, 20] }, { [3, 1], [118, 17] } };
-    shape "BOTM" { { [ 18, 20] }, { [2, 1], [ 16, 17] } }; 
+    shape "BOTM" { { [ 18, 20] }, { [2, 1], [ 16, 17] } };
 
     shape "KP0"  { { [ 37, 20] }, { [2, 1], [ 35, 17] } };
     shape "KPEN" { { [ 18, 39] }, { [2, 1], [ 16, 36] } };
@@ -225,7 +225,7 @@ xkb_geometry "applepro" {
         top = 26;
        row {
            top= 1;
-            keys { <ESC>, 
+            keys { <ESC>,
                    { <FK01>, 14 }, <FK02>, <FK03>, <FK04>,
                    { <FK05>, 14 }, <FK06>, <FK07>, <FK08>,
                    { <FK09>, 14 }, <FK10>, <FK11>, <FK12>,
@@ -270,7 +270,7 @@ xkb_geometry "applepro" {
            top= 77;
            keys { { <LCTL>, "LCTL" }, { <LALT>, "LALT" },
                        { <LWIN>, "LMTA" },
-                       { <SPCE>, "SPCE" }, 
+                       { <SPCE>, "SPCE" },
                        { <RWIN>, "RMTA" },
                        { <RALT>, "RALT" }, { <RCTL>, "RCTL" }
            };
@@ -390,35 +390,35 @@ xkb_geometry "macbook78" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK"},
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
-		   <AD11>, <AD12>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
+		   <AD11>, <AD12>,
                    { <BKSL>, "BKSL" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
-		   <AC11>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
+		   <AC11>,
                    { <RTRN>, "RTRN" }
 	    };
         };
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH"},
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		   { <RTSH>, "RTSH" }
 	    };
 	};
 	row {
 	    top= 77;
-	    keys { {<FN>, "DEGR"}, 
-                   <LCTL>, <LALT>, 
+	    keys { {<FN>, "DEGR"},
+                   <LCTL>, <LALT>,
                    {<LMTA>, "APPL"},
-                   {<SPCE>, "SPCE" }, 
+                   {<SPCE>, "SPCE" },
                    {<RMTA>, "APPL"},
                    <KPEN>
 	    };
@@ -461,8 +461,8 @@ xkb_geometry "macbook79" {
     shape "BKSP" { { [ 25,18] }, cornerRadius=1, { [2,2], [ 25,16] } };
     shape "TABK" { { [ 24,18] }, cornerRadius=1, { [0,2], [ 22,16] } };
     shape "RTRN" { { [ 0,0], [17,0], [17,37], [5,37], [5, 18], [0,18], [0,0] },
-                   cornerRadius=1, 
-	           { [ 2,2], [15,2], [15,35], [7,35], [7, 16], [2,16] } 
+                   cornerRadius=1,
+	           { [ 2,2], [15,2], [15,35], [7,35], [7, 16], [2,16] }
                  };
     shape "CAPS" { { [ 29,18] }, cornerRadius=1, { [0,2], [ 27,16] } };
     shape "LFSH" { { [ 21,18] }, cornerRadius=1, { [0,2], [ 19,16] } };
@@ -511,33 +511,33 @@ xkb_geometry "macbook79" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK"},
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <BKSL>
 	    };
         };
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH"},
-		   <LSGT>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		   <LSGT>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		   { <RTSH>, "RTSH" }
 	    };
 	};
 	row {
 	    top= 77;
-	    keys { {<FN>, "DEGR"}, 
-                   <LCTL>, <LALT>, 
+	    keys { {<FN>, "DEGR"},
+                   <LCTL>, <LALT>,
                    {<LWIN>, "APPL"},
-                   {<SPCE>, "SPCE" }, 
+                   {<SPCE>, "SPCE" },
                    {<RALT>, "APPL"},
                    <KPEN>
 	    };
@@ -652,7 +652,7 @@ xkb_geometry "applealu_ansi" {
         corner= 1,
         { [  15.5,  18 ] }
     };
-    shape "LED" { 
+    shape "LED" {
         corner= 0.5,
         { [   1.5,   1.5 ] }
     };
@@ -734,7 +734,7 @@ xkb_geometry "applealu_ansi" {
             top=  55.5;
             left= 0;
             keys {
-                { <LFSH>, "LFSH",   0 }, 
+                { <LFSH>, "LFSH",   0 },
                 { <AB01>, "NORM",   3.5 }, { <AB02>, "NORM",   3.5 },
                 { <AB03>, "NORM",   3.5 }, { <AB04>, "NORM",   3.5 },
                 { <AB05>, "NORM",   3.5 }, { <AB06>, "NORM",   3.5 },
@@ -942,7 +942,7 @@ xkb_geometry "applealu_iso" {
         corner= 1,
         { [  15.5,  18 ] }
     };
-    shape "LED" { 
+    shape "LED" {
         corner= 0.5,
         { [   1.5,   1.5 ] }
     };
@@ -1239,7 +1239,7 @@ xkb_geometry "applealu_jis" {
         corner= 1,
         { [  15.5,  36.5 ] }
     };
-    shape "LED" { 
+    shape "LED" {
         corner= 0.5,
         { [   1.5,   1.5 ] }
     };
@@ -1321,7 +1321,7 @@ xkb_geometry "applealu_jis" {
             top=  55.5;
             left= 0;
             keys {
-                { <LFSH>, "LFSH",   0 }, 
+                { <LFSH>, "LFSH",   0 },
                 { <AB01>, "NORM",   3.5 }, { <AB02>, "NORM",   3.5 },
                 { <AB03>, "NORM",   3.5 }, { <AB04>, "NORM",   3.5 },
                 { <AB05>, "NORM",   3.5 }, { <AB06>, "NORM",   3.5 },

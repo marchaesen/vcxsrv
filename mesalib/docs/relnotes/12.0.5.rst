@@ -61,7 +61,7 @@ Haixia Shi (1):
 
 -  mesa: change state query return value for RGB565
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  i965/fs/generator: Don't use the address immediate for MOV_INDIRECT
 -  anv/cmd_buffer: Take a command buffer instead of a batch in two

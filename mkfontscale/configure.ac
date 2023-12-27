@@ -48,6 +48,9 @@ if test "x$with_bzip2" = xyes; then
 	AC_DEFINE(X_BZIP2_FONT_COMPRESSION,1,[Support bzip2 for bitmap fonts])
 fi
 
+# Checks for typedefs, structures, and compiler characteristics.
+AC_SYS_LARGEFILE
+
 # Checks for system functions / libraries
 AC_CHECK_FUNCS([vasprintf])
 

@@ -30,22 +30,22 @@
 #include "nir_deref.h"
 #include "util/u_math.h"
 
+#include <algorithm>
+#include <array>
 #include <set>
 #include <vector>
-#include <array>
-#include <algorithm>
 
 namespace r600 {
 
+using std::array;
 using std::multiset;
 using std::vector;
-using std::array;
 
-struct nir_intrinsic_instr_less  {
-   bool operator () (const nir_intrinsic_instr *lhs, const nir_intrinsic_instr *rhs) const
+struct nir_intrinsic_instr_less {
+   bool operator()(const nir_intrinsic_instr *lhs, const nir_intrinsic_instr *rhs) const
    {
-      nir_variable *vlhs = nir_deref_instr_get_variable(nir_src_as_deref(lhs->src[0]));
-      nir_variable *vrhs = nir_deref_instr_get_variable(nir_src_as_deref(rhs->src[0]));
+      nir_variable *vlhs = nir_intrinsic_get_var(lhs, 0);
+      nir_variable *vrhs = nir_intrinsic_get_var(rhs, 0);
 
       auto ltype = glsl_get_base_type(vlhs->type);
       auto rtype = glsl_get_base_type(vrhs->type);
@@ -67,28 +67,34 @@ protected:
    void create_new_io_vars(nir_shader *shader);
    void create_new_io_var(nir_shader *shader, unsigned location, unsigned comps);
 
-   nir_deref_instr *clone_deref_array(nir_builder *b, nir_deref_instr *dst_tail,
+   nir_deref_instr *clone_deref_array(nir_builder *b,
+                                      nir_deref_instr *dst_tail,
                                       const nir_deref_instr *src_head);
 
    bool vectorize_block(nir_builder *b, nir_block *block);
    bool instr_can_rewrite(nir_instr *instr);
-   bool vec_instr_set_remove(nir_builder *b,nir_instr *instr);
+   bool vec_instr_set_remove(nir_builder *b, nir_instr *instr);
 
-   using InstrSet  = multiset<nir_intrinsic_instr *, nir_intrinsic_instr_less>;
+   using InstrSet = multiset<nir_intrinsic_instr *, nir_intrinsic_instr_less>;
    using InstrSubSet = std::pair<InstrSet::iterator, InstrSet::iterator>;
 
-   bool vec_instr_stack_pop(nir_builder *b, InstrSubSet& ir_set,
-                            nir_intrinsic_instr *instr);
+   bool
+   vec_instr_stack_pop(nir_builder *b, InstrSubSet& ir_set, nir_intrinsic_instr *instr);
 
    array<array<nir_variable *, 4>, 16> m_vars;
    InstrSet m_block_io;
    int m_next_index;
+
 private:
-   virtual nir_variable_mode get_io_mode(nir_shader *shader) const  = 0;
-   virtual bool instr_can_rewrite_type(nir_intrinsic_instr *intr) const  = 0;
+   virtual nir_variable_mode get_io_mode(nir_shader *shader) const = 0;
+   virtual bool instr_can_rewrite_type(nir_intrinsic_instr *intr) const = 0;
    virtual bool var_can_rewrite_slot(nir_variable *var) const = 0;
-   virtual void create_new_io(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
-                              nir_ssa_def **srcs, unsigned first_comp, unsigned num_comps) = 0;
+   virtual void create_new_io(nir_builder *b,
+                              nir_intrinsic_instr *intr,
+                              nir_variable *var,
+                              nir_def **srcs,
+                              unsigned first_comp,
+                              unsigned num_comps) = 0;
 
    int m_base_slot;
 };
@@ -98,43 +104,49 @@ public:
    NirLowerFSOutToVector();
 
 private:
-   nir_variable_mode get_io_mode(nir_shader *shader) const  override;
+   nir_variable_mode get_io_mode(nir_shader *shader) const override;
    bool var_can_rewrite_slot(nir_variable *var) const override;
-   void create_new_io(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
-                         nir_ssa_def **srcs, unsigned first_comp, unsigned num_comps) override;
-   bool instr_can_rewrite_type(nir_intrinsic_instr *intr) const  override;
+   void create_new_io(nir_builder *b,
+                      nir_intrinsic_instr *intr,
+                      nir_variable *var,
+                      nir_def **srcs,
+                      unsigned first_comp,
+                      unsigned num_comps) override;
+   bool instr_can_rewrite_type(nir_intrinsic_instr *intr) const override;
 
-   nir_ssa_def *create_combined_vector(nir_builder *b, nir_ssa_def **srcs,
-                                       int first_comp, int num_comp);
+   nir_def *create_combined_vector(nir_builder *b,
+                                       nir_def **srcs,
+                                       int first_comp,
+                                       int num_comp);
 };
 
-bool r600_lower_fs_out_to_vector(nir_shader *shader)
+bool
+r600_lower_fs_out_to_vector(nir_shader *shader)
 {
    NirLowerFSOutToVector processor;
 
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= processor.run(function->impl);
+   nir_foreach_function_impl(impl, shader) {
+      progress |= processor.run(impl);
    }
    return progress;
 }
 
 NirLowerIOToVector::NirLowerIOToVector(int base_slot):
-   m_next_index(0),
-   m_base_slot(base_slot)
+    m_next_index(0),
+    m_base_slot(base_slot)
 {
-   for(auto& a : m_vars)
-      for(auto& aa : a)
+   for (auto& a : m_vars)
+      for (auto& aa : a)
          aa = nullptr;
 }
 
-bool NirLowerIOToVector::run(nir_function_impl *impl)
+bool
+NirLowerIOToVector::run(nir_function_impl *impl)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_metadata_require(impl, nir_metadata_dominance);
    create_new_io_vars(impl->function->shader);
@@ -148,12 +160,14 @@ bool NirLowerIOToVector::run(nir_function_impl *impl)
    return progress;
 }
 
-void NirLowerIOToVector::create_new_io_vars(nir_shader *shader)
+void
+NirLowerIOToVector::create_new_io_vars(nir_shader *shader)
 {
    nir_variable_mode mode = get_io_mode(shader);
 
    bool can_rewrite_vars = false;
-   nir_foreach_variable_with_modes(var, shader, mode) {
+   nir_foreach_variable_with_modes(var, shader, mode)
+   {
       if (var_can_rewrite(var)) {
          can_rewrite_vars = true;
          unsigned loc = var->data.location - m_base_slot;
@@ -187,7 +201,6 @@ void NirLowerIOToVector::create_new_io_vars(nir_shader *shader)
 
             for (unsigned n = 0; n < glsl_get_components(m_vars[i][k]->type); ++n)
                comps |= 1 << (m_vars[i][k]->data.location_frac + n);
-
          }
       }
       if (comps)
@@ -196,15 +209,15 @@ void NirLowerIOToVector::create_new_io_vars(nir_shader *shader)
 }
 
 bool
-NirLowerIOToVector::var_can_merge(const nir_variable *lhs,
-                                     const nir_variable *rhs)
+NirLowerIOToVector::var_can_merge(const nir_variable *lhs, const nir_variable *rhs)
 {
    return (glsl_get_base_type(lhs->type) == glsl_get_base_type(rhs->type));
 }
 
 void
 NirLowerIOToVector::create_new_io_var(nir_shader *shader,
-                                    unsigned location, unsigned comps)
+                                      unsigned location,
+                                      unsigned comps)
 {
    unsigned num_comps = util_bitcount(comps);
    assert(num_comps > 1);
@@ -228,7 +241,8 @@ NirLowerIOToVector::create_new_io_var(nir_shader *shader,
    }
 }
 
-bool NirLowerIOToVector::var_can_rewrite(nir_variable *var) const
+bool
+NirLowerIOToVector::var_can_rewrite(nir_variable *var) const
 {
    /* Skip complex types we don't split in the first place */
    if (!glsl_type_is_vector_or_scalar(glsl_without_array(var->type)))
@@ -245,7 +259,8 @@ NirLowerIOToVector::vectorize_block(nir_builder *b, nir_block *block)
 {
    bool progress = false;
 
-   nir_foreach_instr_safe(instr, block) {
+   nir_foreach_instr_safe(instr, block)
+   {
       if (instr_can_rewrite(instr)) {
          instr->index = m_next_index++;
          nir_intrinsic_instr *ir = nir_instr_as_intrinsic(instr);
@@ -258,7 +273,8 @@ NirLowerIOToVector::vectorize_block(nir_builder *b, nir_block *block)
       progress |= vectorize_block(b, child);
    }
 
-   nir_foreach_instr_reverse_safe(instr, block) {
+   nir_foreach_instr_reverse_safe(instr, block)
+   {
       progress |= vec_instr_set_remove(b, instr);
    }
    m_block_io.clear();
@@ -266,7 +282,8 @@ NirLowerIOToVector::vectorize_block(nir_builder *b, nir_block *block)
    return progress;
 }
 
-bool NirLowerIOToVector::instr_can_rewrite(nir_instr *instr)
+bool
+NirLowerIOToVector::instr_can_rewrite(nir_instr *instr)
 {
    if (instr->type != nir_instr_type_intrinsic)
       return false;
@@ -279,7 +296,8 @@ bool NirLowerIOToVector::instr_can_rewrite(nir_instr *instr)
    return instr_can_rewrite_type(intr);
 }
 
-bool NirLowerIOToVector::vec_instr_set_remove(nir_builder *b,nir_instr *instr)
+bool
+NirLowerIOToVector::vec_instr_set_remove(nir_builder *b, nir_instr *instr)
 {
    if (!instr_can_rewrite(instr))
       return false;
@@ -293,8 +311,9 @@ bool NirLowerIOToVector::vec_instr_set_remove(nir_builder *b,nir_instr *instr)
 }
 
 nir_deref_instr *
-NirLowerIOToVector::clone_deref_array(nir_builder *b, nir_deref_instr *dst_tail,
-                                    const nir_deref_instr *src_head)
+NirLowerIOToVector::clone_deref_array(nir_builder *b,
+                                      nir_deref_instr *dst_tail,
+                                      const nir_deref_instr *src_head)
 {
    const nir_deref_instr *parent = nir_deref_instr_parent(src_head);
 
@@ -305,36 +324,37 @@ NirLowerIOToVector::clone_deref_array(nir_builder *b, nir_deref_instr *dst_tail,
 
    dst_tail = clone_deref_array(b, dst_tail, parent);
 
-   return nir_build_deref_array(b, dst_tail,
-                                nir_ssa_for_src(b, src_head->arr.index, 1));
+   return nir_build_deref_array(b, dst_tail, src_head->arr.index.ssa);
 }
 
 NirLowerFSOutToVector::NirLowerFSOutToVector():
-  NirLowerIOToVector(FRAG_RESULT_COLOR)
+    NirLowerIOToVector(FRAG_RESULT_COLOR)
 {
-
 }
 
-bool NirLowerFSOutToVector::var_can_rewrite_slot(nir_variable *var) const
+bool
+NirLowerFSOutToVector::var_can_rewrite_slot(nir_variable *var) const
 {
    return ((var->data.mode == nir_var_shader_out) &&
            ((var->data.location == FRAG_RESULT_COLOR) ||
-              ((var->data.location >= FRAG_RESULT_DATA0) &&
-               (var->data.location <= FRAG_RESULT_DATA7))));
+            ((var->data.location >= FRAG_RESULT_DATA0) &&
+             (var->data.location <= FRAG_RESULT_DATA7))));
 }
 
-bool NirLowerIOToVector::vec_instr_stack_pop(nir_builder *b, InstrSubSet &ir_set,
-                                           nir_intrinsic_instr *instr)
+bool
+NirLowerIOToVector::vec_instr_stack_pop(nir_builder *b,
+                                        InstrSubSet& ir_set,
+                                        nir_intrinsic_instr *instr)
 {
-   vector< nir_intrinsic_instr *> ir_sorted_set(ir_set.first, ir_set.second);
-   std::sort(ir_sorted_set.begin(), ir_sorted_set.end(),
+   vector<nir_intrinsic_instr *> ir_sorted_set(ir_set.first, ir_set.second);
+   std::sort(ir_sorted_set.begin(),
+             ir_sorted_set.end(),
              [](const nir_intrinsic_instr *lhs, const nir_intrinsic_instr *rhs) {
-                  return lhs->instr.index > rhs->instr.index;
-             }
-   );
+                return lhs->instr.index > rhs->instr.index;
+             });
 
    nir_intrinsic_instr *intr = *ir_sorted_set.begin();
-   nir_variable *var = nir_deref_instr_get_variable(nir_src_as_deref(intr->src[0]));
+   nir_variable *var = nir_intrinsic_get_var(intr, 0);
 
    unsigned loc = var->data.location - m_base_slot;
 
@@ -352,11 +372,10 @@ bool NirLowerIOToVector::vec_instr_stack_pop(nir_builder *b, InstrSubSet &ir_set
    }
 
    b->cursor = nir_after_instr(&intr->instr);
-   nir_ssa_undef_instr *instr_undef =
-      nir_ssa_undef_instr_create(b->shader, 1, 32);
+   nir_undef_instr *instr_undef = nir_undef_instr_create(b->shader, 1, 32);
    nir_builder_instr_insert(b, &instr_undef->instr);
 
-   nir_ssa_def *srcs[4];
+   nir_def *srcs[4];
    for (int i = 0; i < 4; i++) {
       srcs[i] = &instr_undef->def;
    }
@@ -364,8 +383,7 @@ bool NirLowerIOToVector::vec_instr_stack_pop(nir_builder *b, InstrSubSet &ir_set
 
    for (auto k = ir_sorted_set.begin() + 1; k != ir_sorted_set.end(); ++k) {
       nir_intrinsic_instr *intr2 = *k;
-      nir_variable *var2 =
-         nir_deref_instr_get_variable(nir_src_as_deref(intr2->src[0]));
+      nir_variable *var2 = nir_intrinsic_get_var(intr2, 0);
       unsigned loc2 = var->data.location - m_base_slot;
 
       if (m_vars[loc][var->data.location_frac] !=
@@ -373,34 +391,36 @@ bool NirLowerIOToVector::vec_instr_stack_pop(nir_builder *b, InstrSubSet &ir_set
          continue;
       }
 
-     assert(glsl_get_vector_elements(glsl_without_array(var2->type)) < 4);
+      assert(glsl_get_vector_elements(glsl_without_array(var2->type)) < 4);
 
       if (srcs[var2->data.location_frac] == &instr_undef->def) {
-         assert(intr2->src[1].is_ssa);
          assert(intr2->src[1].ssa);
          srcs[var2->data.location_frac] = intr2->src[1].ssa;
       }
       nir_instr_remove(&intr2->instr);
    }
 
-   create_new_io(b, intr, new_var, srcs, new_var->data.location_frac,
-                 num_comps);
+   create_new_io(b, intr, new_var, srcs, new_var->data.location_frac, num_comps);
    return true;
 }
 
-nir_variable_mode NirLowerFSOutToVector::get_io_mode(nir_shader *shader) const
+nir_variable_mode
+NirLowerFSOutToVector::get_io_mode(nir_shader *shader) const
 {
    return nir_var_shader_out;
 }
 
 void
-NirLowerFSOutToVector::create_new_io(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
-                                        nir_ssa_def **srcs, unsigned first_comp, unsigned num_comps)
+NirLowerFSOutToVector::create_new_io(nir_builder *b,
+                                     nir_intrinsic_instr *intr,
+                                     nir_variable *var,
+                                     nir_def **srcs,
+                                     unsigned first_comp,
+                                     unsigned num_comps)
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_intrinsic_instr *new_intr =
-      nir_intrinsic_instr_create(b->shader, intr->intrinsic);
+   nir_intrinsic_instr *new_intr = nir_intrinsic_instr_create(b->shader, intr->intrinsic);
    new_intr->num_components = num_comps;
 
    nir_intrinsic_set_write_mask(new_intr, (1 << num_comps) - 1);
@@ -408,8 +428,9 @@ NirLowerFSOutToVector::create_new_io(nir_builder *b, nir_intrinsic_instr *intr, 
    nir_deref_instr *deref = nir_build_deref_var(b, var);
    deref = clone_deref_array(b, deref, nir_src_as_deref(intr->src[0]));
 
-   new_intr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
-   new_intr->src[1] = nir_src_for_ssa(create_combined_vector(b, srcs, first_comp, num_comps));
+   new_intr->src[0] = nir_src_for_ssa(&deref->def);
+   new_intr->src[1] =
+      nir_src_for_ssa(create_combined_vector(b, srcs, first_comp, num_comps));
 
    nir_builder_instr_insert(b, &new_intr->instr);
 
@@ -417,7 +438,8 @@ NirLowerFSOutToVector::create_new_io(nir_builder *b, nir_intrinsic_instr *intr, 
    nir_instr_remove(&intr->instr);
 }
 
-bool NirLowerFSOutToVector::instr_can_rewrite_type(nir_intrinsic_instr *intr) const
+bool
+NirLowerFSOutToVector::instr_can_rewrite_type(nir_intrinsic_instr *intr) const
 {
    if (intr->intrinsic != nir_intrinsic_store_deref)
       return false;
@@ -429,36 +451,44 @@ bool NirLowerFSOutToVector::instr_can_rewrite_type(nir_intrinsic_instr *intr) co
    return var_can_rewrite(nir_deref_instr_get_variable(deref));
 }
 
-nir_ssa_def *NirLowerFSOutToVector::create_combined_vector(nir_builder *b, nir_ssa_def **srcs,
-                                                           int first_comp, int num_comp)
+nir_def *
+NirLowerFSOutToVector::create_combined_vector(nir_builder *b,
+                                              nir_def **srcs,
+                                              int first_comp,
+                                              int num_comp)
 {
    nir_op op;
    switch (num_comp) {
-   case 2: op = nir_op_vec2; break;
-   case 3: op = nir_op_vec3; break;
-   case 4: op = nir_op_vec4; break;
+   case 2:
+      op = nir_op_vec2;
+      break;
+   case 3:
+      op = nir_op_vec3;
+      break;
+   case 4:
+      op = nir_op_vec4;
+      break;
    default:
       unreachable("combined vector must have 2 to 4 components");
    }
-   nir_alu_instr * instr = nir_alu_instr_create(b->shader, op);
+   nir_alu_instr *instr = nir_alu_instr_create(b->shader, op);
    instr->exact = b->exact;
 
    int i = 0;
    unsigned k = 0;
    while (i < num_comp) {
-      nir_ssa_def *s = srcs[first_comp + k];
-      for(uint8_t kk = 0; kk < s->num_components && i < num_comp; ++kk) {
-         instr->src[i].src  = nir_src_for_ssa(s);
+      nir_def *s = srcs[first_comp + k];
+      for (uint8_t kk = 0; kk < s->num_components && i < num_comp; ++kk) {
+         instr->src[i].src = nir_src_for_ssa(s);
          instr->src[i].swizzle[0] = kk;
          ++i;
       }
       k += s->num_components;
    }
 
-   nir_ssa_dest_init(&instr->instr, &instr->dest.dest, num_comp, 32, NULL);
-   instr->dest.write_mask = (1 << num_comp) - 1;
+   nir_def_init(&instr->instr, &instr->def, num_comp, 32);
    nir_builder_instr_insert(b, &instr->instr);
-   return &instr->dest.dest.ssa;
+   return &instr->def;
 }
 
-}
+} // namespace r600

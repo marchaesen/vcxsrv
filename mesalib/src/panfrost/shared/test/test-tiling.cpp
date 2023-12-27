@@ -45,13 +45,14 @@ u_order(unsigned x, unsigned y)
    unsigned y2 = (y & 4) ? 1 : 0;
    unsigned y3 = (y & 8) ? 1 : 0;
 
-   return (xy0 << 0) | (y0 << 1) | (xy1 << 2) | (y1 << 3) |
-          (xy2 << 4) | (y2 << 5) | (xy3 << 6) | (y3 << 7);
+   return (xy0 << 0) | (y0 << 1) | (xy1 << 2) | (y1 << 3) | (xy2 << 4) |
+          (y2 << 5) | (xy3 << 6) | (y3 << 7);
 }
 
 /* x/y are in blocks */
 static unsigned
-tiled_offset(unsigned x, unsigned y, unsigned stride, unsigned tilesize, unsigned blocksize)
+tiled_offset(unsigned x, unsigned y, unsigned stride, unsigned tilesize,
+             unsigned blocksize)
 {
    unsigned tile_x = x / tilesize;
    unsigned tile_y = y / tilesize;
@@ -75,15 +76,13 @@ linear_offset(unsigned x, unsigned y, unsigned stride, unsigned blocksize)
 }
 
 static void
-ref_access_tiled(void *dst, const void *src,
-                 unsigned region_x, unsigned region_y,
-                 unsigned w, unsigned h,
-                 uint32_t dst_stride,
-                 uint32_t src_stride,
-                 enum pipe_format format,
+ref_access_tiled(void *dst, const void *src, unsigned region_x,
+                 unsigned region_y, unsigned w, unsigned h, uint32_t dst_stride,
+                 uint32_t src_stride, enum pipe_format format,
                  bool dst_is_tiled)
 {
-   const struct util_format_description *desc = util_format_description(format);;
+   const struct util_format_description *desc = util_format_description(format);
+   ;
 
    unsigned tilesize = (desc->block.width > 1) ? 4 : 16;
    unsigned blocksize = (desc->block.bits / 8);
@@ -94,8 +93,10 @@ ref_access_tiled(void *dst, const void *src,
    unsigned region_x_block = region_x / desc->block.width;
    unsigned region_y_block = region_y / desc->block.height;
 
-   for (unsigned linear_y_block = 0; linear_y_block < h_block; ++linear_y_block) {
-      for (unsigned linear_x_block = 0; linear_x_block < w_block; ++linear_x_block) {
+   for (unsigned linear_y_block = 0; linear_y_block < h_block;
+        ++linear_y_block) {
+      for (unsigned linear_x_block = 0; linear_x_block < w_block;
+           ++linear_x_block) {
 
          unsigned tiled_x_block = region_x_block + linear_x_block;
          unsigned tiled_y_block = region_y_block + linear_y_block;
@@ -103,15 +104,18 @@ ref_access_tiled(void *dst, const void *src,
          unsigned dst_offset, src_offset;
 
          if (dst_is_tiled) {
-            dst_offset = tiled_offset(tiled_x_block, tiled_y_block, dst_stride, tilesize, blocksize);
-            src_offset = linear_offset(linear_x_block, linear_y_block, src_stride, blocksize);
+            dst_offset = tiled_offset(tiled_x_block, tiled_y_block, dst_stride,
+                                      tilesize, blocksize);
+            src_offset = linear_offset(linear_x_block, linear_y_block,
+                                       src_stride, blocksize);
          } else {
-            dst_offset = linear_offset(linear_x_block, linear_y_block, dst_stride, blocksize);
-            src_offset = tiled_offset(tiled_x_block, tiled_y_block, src_stride, tilesize, blocksize);
+            dst_offset = linear_offset(linear_x_block, linear_y_block,
+                                       dst_stride, blocksize);
+            src_offset = tiled_offset(tiled_x_block, tiled_y_block, src_stride,
+                                      tilesize, blocksize);
          }
 
-         memcpy((uint8_t *) dst + dst_offset,
-                (const uint8_t *) src + src_offset,
+         memcpy((uint8_t *)dst + dst_offset, (const uint8_t *)src + src_offset,
                 desc->block.bits / 8);
       }
    }
@@ -123,14 +127,13 @@ ref_access_tiled(void *dst, const void *src,
  * production.
  */
 static void
-test(unsigned width, unsigned height, unsigned rx, unsigned ry,
-     unsigned rw, unsigned rh, unsigned linear_stride,
-     enum pipe_format format, bool store)
+test(unsigned width, unsigned height, unsigned rx, unsigned ry, unsigned rw,
+     unsigned rh, unsigned linear_stride, enum pipe_format format, bool store)
 {
    unsigned bpp = util_format_get_blocksize(format);
    unsigned tile_height = util_format_is_compressed(format) ? 4 : 16;
 
-   unsigned tiled_width  = ALIGN_POT(width, 16);
+   unsigned tiled_width = ALIGN_POT(width, 16);
    unsigned tiled_height = ALIGN_POT(height, 16);
    unsigned tiled_stride = tiled_width * tile_height * bpp;
 
@@ -139,26 +142,27 @@ test(unsigned width, unsigned height, unsigned rx, unsigned ry,
 
    void *tiled = calloc(bpp, tiled_width * tiled_height);
    void *linear = calloc(bpp, rw * linear_stride);
-   void *ref = calloc(bpp, store ? (tiled_width * tiled_height) : (rw * linear_stride));
+   void *ref =
+      calloc(bpp, store ? (tiled_width * tiled_height) : (rw * linear_stride));
 
    if (store) {
       for (unsigned i = 0; i < bpp * rw * linear_stride; ++i) {
-         ((uint8_t *) linear)[i] = (i & 0xFF);
+         ((uint8_t *)linear)[i] = (i & 0xFF);
       }
 
-      panfrost_store_tiled_image(tiled, linear, rx, ry, rw, rh,
-                                 dst_stride, src_stride, format);
+      panfrost_store_tiled_image(tiled, linear, rx, ry, rw, rh, dst_stride,
+                                 src_stride, format);
    } else {
       for (unsigned i = 0; i < bpp * tiled_width * tiled_height; ++i) {
-         ((uint8_t *) tiled)[i] = (i & 0xFF);
+         ((uint8_t *)tiled)[i] = (i & 0xFF);
       }
 
-      panfrost_load_tiled_image(linear, tiled, rx, ry, rw, rh,
-                                dst_stride, src_stride, format);
+      panfrost_load_tiled_image(linear, tiled, rx, ry, rw, rh, dst_stride,
+                                src_stride, format);
    }
 
-   ref_access_tiled(ref, store ? linear : tiled, rx, ry, rw, rh,
-                    dst_stride, src_stride, format, store);
+   ref_access_tiled(ref, store ? linear : tiled, rx, ry, rw, rh, dst_stride,
+                    src_stride, format, store);
 
    if (store)
       EXPECT_EQ(memcmp(ref, tiled, bpp * tiled_width * tiled_height), 0);
@@ -273,7 +277,7 @@ TEST(UInterleavedTiling, ASTC)
 TEST(UInterleavedTiling, PartialASTC)
 {
    /* Block alignment assumed */
-   test_ldst(40, 40, 4, 4, 16,  8, 512, PIPE_FORMAT_ASTC_4x4);
-   test_ldst(50, 40, 5, 4, 10,  8, 512, PIPE_FORMAT_ASTC_5x4);
+   test_ldst(40, 40, 4, 4, 16, 8, 512, PIPE_FORMAT_ASTC_4x4);
+   test_ldst(50, 40, 5, 4, 10, 8, 512, PIPE_FORMAT_ASTC_5x4);
    test_ldst(50, 50, 5, 5, 10, 10, 512, PIPE_FORMAT_ASTC_5x5);
 }

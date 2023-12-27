@@ -162,7 +162,7 @@ Jan Vesely (1):
 
 -  clover: Fix build after clang r348827
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  nir/constant_folding: Fix source bit size logic
 -  intel/blorp: Be more conservative about copying clear colors

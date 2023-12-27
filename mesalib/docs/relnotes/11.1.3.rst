@@ -171,7 +171,7 @@ Ilia Mirkin (21):
 -  nvc0: disable primitive restart and index bias during blits
 -  nv50/ir: we can't load local memory directly into an output
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  nir/lower_vec_to_movs: Better report channels handled by insert_mov
 

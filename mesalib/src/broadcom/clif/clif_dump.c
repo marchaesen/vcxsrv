@@ -106,12 +106,16 @@ static bool
 clif_dump_packet(struct clif_dump *clif, uint32_t offset, const uint8_t *cl,
                  uint32_t *size, bool reloc_mode)
 {
-        if (clif->devinfo->ver >= 42)
+
+        switch (clif->devinfo->ver) {
+        case 42:
                 return v3d42_clif_dump_packet(clif, offset, cl, size, reloc_mode);
-        else if (clif->devinfo->ver >= 41)
-                return v3d41_clif_dump_packet(clif, offset, cl, size, reloc_mode);
-        else
-                return v3d33_clif_dump_packet(clif, offset, cl, size, reloc_mode);
+        case 71:
+                return v3d71_clif_dump_packet(clif, offset, cl, size, reloc_mode);
+        default:
+                break;
+        };
+        unreachable("Unknown HW version");
 }
 
 static uint32_t

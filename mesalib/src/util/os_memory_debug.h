@@ -81,13 +81,13 @@ debug_memory_check(void);
 #ifndef DEBUG_MEMORY_IMPLEMENTATION
 
 #define os_malloc( _size ) \
-   debug_malloc( __FILE__, __LINE__, __FUNCTION__, _size )
+   debug_malloc( __FILE__, __LINE__, __func__, _size )
 #define os_calloc( _count, _size ) \
-   debug_calloc(__FILE__, __LINE__, __FUNCTION__, _count, _size )
+   debug_calloc(__FILE__, __LINE__, __func__, _count, _size )
 #define os_free( _ptr ) \
-   debug_free( __FILE__, __LINE__, __FUNCTION__,  _ptr )
+   debug_free( __FILE__, __LINE__, __func__,  _ptr )
 #define os_realloc( _ptr, _old_size, _new_size ) \
-   debug_realloc( __FILE__, __LINE__, __FUNCTION__,  _ptr, _old_size, _new_size )
+   debug_realloc( __FILE__, __LINE__, __func__,  _ptr, _old_size, _new_size )
 
 /* TODO: wrap os_malloc_aligned() and os_free_aligned() too */
 #include "os_memory_aligned.h"

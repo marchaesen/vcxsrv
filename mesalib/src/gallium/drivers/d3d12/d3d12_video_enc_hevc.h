@@ -28,7 +28,7 @@
 
 bool
 d3d12_video_encoder_update_current_encoder_config_state_hevc(struct d3d12_video_encoder *pD3D12Enc,
-                                                             struct pipe_video_buffer *  srcTexture,
+                                                             D3D12_VIDEO_SAMPLE srcTextureDesc,
                                                              struct pipe_picture_desc *  picture);
 void
 d3d12_video_encoder_update_current_rate_control_hevc(struct d3d12_video_encoder *pD3D12Enc,
@@ -57,7 +57,8 @@ d3d12_video_encoder_update_current_frame_pic_params_info_hevc(struct d3d12_video
 D3D12_VIDEO_ENCODER_FRAME_TYPE_HEVC
 d3d12_video_encoder_convert_frame_type_hevc(enum pipe_h2645_enc_picture_type picType);
 uint32_t
-d3d12_video_encoder_build_codec_headers_hevc(struct d3d12_video_encoder *pD3D12Enc);
+d3d12_video_encoder_build_codec_headers_hevc(struct d3d12_video_encoder *pD3D12Enc,
+                                             std::vector<uint64_t> &pWrittenCodecUnitsSizes);
 bool
 d3d12_video_encoder_isequal_slice_config_hevc(
    D3D12_VIDEO_ENCODER_FRAME_SUBREGION_LAYOUT_MODE                   targetMode,

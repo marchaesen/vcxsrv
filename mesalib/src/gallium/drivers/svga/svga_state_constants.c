@@ -461,7 +461,7 @@ emit_const_range(struct svga_context *svga,
           */
          if (SVGA_DEBUG & DEBUG_CONSTS)
             debug_printf("%s %s %d: %f %f %f %f\n",
-                         __FUNCTION__,
+                         __func__,
                          shader == PIPE_SHADER_VERTEX ? "VERT" : "FRAG",
                          offset + i,
                          values[i][0],
@@ -480,7 +480,7 @@ emit_const_range(struct svga_context *svga,
 
             if (SVGA_DEBUG & DEBUG_CONSTS)
                debug_printf("%s %s %d: %f %f %f %f\n",
-                            __FUNCTION__,
+                            __func__,
                             shader == PIPE_SHADER_VERTEX ? "VERT" : "FRAG",
                             offset + j,
                             values[j][0],
@@ -639,15 +639,18 @@ svga_destroy_rawbuf_srv(struct svga_context *svga)
 /**
  * A helper function to emit constant buffer as srv raw buffer.
  */
-static enum pipe_error
-emit_rawbuf(struct svga_context *svga,
-            unsigned slot,
-            enum pipe_shader_type shader,
-            unsigned buffer_offset,
-            unsigned buffer_size,
-            void *buffer)
+enum pipe_error
+svga_emit_rawbuf(struct svga_context *svga,
+                 unsigned slot,
+                 enum pipe_shader_type shader,
+                 unsigned buffer_offset,
+                 unsigned buffer_size,
+                 void *buffer)
 {
    enum pipe_error ret = PIPE_OK;
+
+   assert(slot < SVGA_MAX_RAW_BUFS);
+
    struct svga_raw_buffer *rawbuf = &svga->state.hw_draw.rawbufs[shader][slot];
    struct svga_winsys_surface *buf_handle = NULL;
    unsigned srvid = SVGA3D_INVALID_ID;
@@ -1020,7 +1023,7 @@ emit_constbuf_vgpu10(struct svga_context *svga, enum pipe_shader_type shader)
        * need to be bound as a shader resource raw buffer.
        */
       if (svga->state.raw_constbufs[shader] & (1 << index)) {
-         ret = emit_rawbuf(svga, index, shader, offset, size, buffer);
+         ret = svga_emit_rawbuf(svga, index, shader, offset, size, buffer);
          if (ret != PIPE_OK) {
             return ret;
          }
@@ -1039,7 +1042,7 @@ emit_constbuf_vgpu10(struct svga_context *svga, enum pipe_shader_type shader)
       }
       else {
          if (svga->state.hw_draw.enabled_rawbufs[shader] & (1 << index)) {
-            ret = emit_rawbuf(svga, index, shader, offset, size, NULL);
+            ret = svga_emit_rawbuf(svga, index, shader, offset, size, NULL);
             if (ret != PIPE_OK) {
                return ret;
             }
@@ -1454,7 +1457,7 @@ update_rawbuf_mask(struct svga_context *svga, enum pipe_shader_type shader)
       struct svga_buffer *sbuf =
          svga_buffer(svga->curr.constbufs[shader][index].buffer);
 
-      if (sbuf && sbuf->uav) {
+      if (sbuf && svga_has_raw_buffer_view(sbuf)) {
          svga->state.raw_constbufs[shader] |= (1 << index);
       } else {
          svga->state.raw_constbufs[shader] &= ~(1 << index);
@@ -1483,6 +1486,7 @@ update_rawbuf(struct svga_context *svga, uint64 dirty)
    for (enum pipe_shader_type shader = PIPE_SHADER_VERTEX;
         shader < PIPE_SHADER_COMPUTE; shader++) {
       unsigned rawbuf_mask = svga->state.raw_constbufs[shader];
+      unsigned rawbuf_sbuf_mask = svga->state.raw_shaderbufs[shader];
 
       update_rawbuf_mask(svga, shader);
 
@@ -1490,7 +1494,8 @@ update_rawbuf(struct svga_context *svga, uint64 dirty)
        * send SVGA_NEW_XX_RAW_BUFFER to trigger a new shader
        * variant that will use srv for ubo access.
        */
-      if (svga->state.raw_constbufs[shader] != rawbuf_mask)
+      if ((svga->state.raw_constbufs[shader] != rawbuf_mask) ||
+          (svga->state.raw_shaderbufs[shader] != rawbuf_sbuf_mask))
          svga->dirty |= rawbuf_dirtybit[shader];
    }
 

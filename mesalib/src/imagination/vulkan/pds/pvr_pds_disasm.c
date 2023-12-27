@@ -54,7 +54,6 @@ static void error_reg_range(uint32_t raw,
    char param[32];
 
    error.type = PVR_PDS_ERR_PARAM_RANGE;
-   error.instruction = error.instruction;
    error.parameter = parameter;
    error.raw = raw;
 

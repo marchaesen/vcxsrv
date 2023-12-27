@@ -38,7 +38,7 @@
  * policies, either expressed or implied, of the copyright holders.
  */
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #include "postprocess/postprocess.h"
 #include "postprocess/pp_mlaa.h"
@@ -229,7 +229,7 @@ pp_jimenezmlaa_init_run(struct pp_queue_t *ppq, unsigned int n,
 
    if (!tmp_text) {
       pp_debug("Failed to allocate shader space\n");
-      return FALSE;
+      return false;
    }
 
    pp_debug("mlaa: using %u max search steps\n", val);
@@ -279,7 +279,7 @@ pp_jimenezmlaa_init_run(struct pp_queue_t *ppq, unsigned int n,
 
    FREE(tmp_text);
 
-   return TRUE;
+   return true;
 
  fail:
    
@@ -291,7 +291,7 @@ pp_jimenezmlaa_init_run(struct pp_queue_t *ppq, unsigned int n,
     */
    pp_jimenezmlaa_free(ppq, n);
 
-   return FALSE;
+   return false;
 }
 
 /** Short wrapper to init the depth version. */

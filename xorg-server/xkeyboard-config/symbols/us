@@ -1,3 +1,5 @@
+// Keyboard layouts for the United States of America.
+
 default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
@@ -104,7 +106,7 @@ xkb_symbols "intl" {
     key <AD01> { [	   q,          Q,    adiaeresis,       Adiaeresis ] };
     key <AD02> { [	   w,          W,         aring,            Aring ] };
     key <AD03> { [	   e,          E,        eacute,           Eacute ] };
-    key <AD04> { [	   r,          R,    registered,       registered ] };
+    key <AD04> { [	   r,          R,    registered,        trademark ] };
     key <AD05> { [	   t,          T,         thorn,            THORN ] };
     key <AD06> { [	   y,          Y,    udiaeresis,       Udiaeresis ] };
     key <AD07> { [	   u,          U,        uacute,           Uacute ] };
@@ -117,22 +119,22 @@ xkb_symbols "intl" {
     key <AC01> { [	   a,          A,        aacute,           Aacute ] };
     key <AC02> { [	   s,          S,        ssharp,          section ] };
     key <AC03> { [	   d,          D,           eth,              ETH ] };
-    key <AC04> { [	   f,          F,             f,                F ] };
+    key <AC04> { [	   f,          F,    ediaeresis,       Ediaeresis ] };
     key <AC05> { [	   g,          G,             g,                G ] };
     key <AC06> { [	   h,          H,             h,                H ] };
-    key <AC07> { [	   j,          J,             j,                J ] };
+    key <AC07> { [	   j,          J,    idiaeresis,       Idiaeresis ] };
     key <AC08> { [	   k,          K,            oe,               OE ] };
     key <AC09> { [	   l,          L,        oslash,           Oslash ] };
     key <AC10> { [ semicolon,      colon,     paragraph,           degree ] };
     key <AC11> { [dead_acute, dead_diaeresis, apostrophe,        quotedbl ] };
 
     key <AB01> { [	   z,          Z,            ae,               AE ] };
-    key <AB02> { [	   x,          X,             x,                X ] };
+    key <AB02> { [	   x,          X, periodcentered,     dead_stroke ] };
     key <AB03> { [	   c,          C,     copyright,             cent ] };
     key <AB04> { [	   v,          V,             v,                V ] };
     key <AB05> { [	   b,          B,             b,                B ] };
     key <AB06> { [	   n,          N,        ntilde,           Ntilde ] };
-    key <AB07> { [	   m,          M,            mu,               mu ] };
+    key <AB07> { [	   m,          M,            mu,        plusminus ] };
     key <AB08> { [     comma,       less,      ccedilla,         Ccedilla ] };
     key <AB09> { [    period,    greater, dead_abovedot,       dead_caron ] };
     key <AB10> { [     slash,   question,  questiondown,        dead_hook ] };
@@ -189,9 +191,10 @@ xkb_symbols "alt-intl" {
   key <AC10> { [  semicolon, colon,	     dead_ogonek,   dead_diaeresis  ] };
   key <AC11> { [ dead_acute, dead_diaeresis, apostrophe,    quotedbl	    ] };
 
+  key <AB02> { [	  x, X,              periodcentered, dead_stroke    ] };
   key <AB08> { [      comma, less,	     dead_cedilla,  dead_caron	    ] };
   key <AB09> { [     period, greater,	     dead_abovedot, dead_circumflex ] };
-  key <AB10> { [      slash, question,	     dead_hook,	    dead_hook	    ] };
+  key <AB10> { [      slash, question,	     dead_hook,     dead_hook	    ] };
 
   key <LSGT> { [ backslash,   bar,            backslash,      bar ] };
 
@@ -262,7 +265,6 @@ xkb_symbols "dvorak" {
 partial alphanumeric_keys
 xkb_symbols "dvorak-intl" {
 
-    include "us(dvorak)"
     name[Group1]= "English (Dvorak, intl., with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
@@ -285,13 +287,13 @@ xkb_symbols "dvorak-intl" {
     key <AD03> { [    period,    greater, dead_abovedot,       dead_caron ] };
     key <AD04> { [	   p,          P,    odiaeresis,       Odiaeresis ] };
     key <AD05> { [	   y,          Y,    udiaeresis,       Udiaeresis ] };
-    // key <AD06> { [	   f,	F		]	};
-    // key <AD07> { [	   g,	G		]	};
+    key <AD06> { [	   f,          F,    ediaeresis,       Ediaeresis ] };
+    key <AD07> { [	   g,          G,             g,                G ] };
     key <AD08> { [	   c,          C,     copyright,             cent ] };
-    key <AD09> { [	   r,          R,    registered,       registered ] };
+    key <AD09> { [	   r,          R,    registered,        trademark ] };
     key <AD10> { [	   l,          L,        oslash,           Oslash ] };
     key <AD11> { [     slash,   question,  questiondown,        dead_hook ] };
-    // key <AD12> { [     equal,       plus,      multiply,         division ] };
+    key <AD12> { [     equal,       plus,      multiply,         division ] };
 
     key <AC01> { [	   a,          A,        aacute,           Aacute ] };
     key <AC02> { [	   o,          O,        oacute,           Oacute ] };
@@ -299,24 +301,25 @@ xkb_symbols "dvorak-intl" {
     key <AC04> { [	   u,          U,        uacute,           Uacute ] };
     key <AC05> { [	   i,          I,        iacute,           Iacute ] };
     key <AC06> { [	   d,          D,           eth,              ETH ] };
-    // key <AC07> { [	   h,	H		]	};
+    key <AC07> { [	   h,          H,             h,                H ] };
     key <AC08> { [	   t,          T,         thorn,            THORN ] };
     key <AC09> { [	   n,          N,        ntilde,           Ntilde ] };
     key <AC10> { [	   s,          S,        ssharp,          section ] };
-    // key <AC11> { [     minus, underscore,           yen,    dead_belowdot ] };
+    key <AC11> { [     minus, underscore,           yen,    dead_belowdot ] };
 
     key <AB01> { [ semicolon,      colon,     paragraph,           degree ] };
     key <AB02> { [	   q,          Q,    adiaeresis,       Adiaeresis ] };
-    // key <AB03> { [	   j,	J		]	};
+    key <AB03> { [	   j,          J,    idiaeresis,       Idiaeresis ] };
     key <AB04> { [	   k,          K,            oe,               OE ] };
-    // key <AB05> { [	   x,	X		]	};
-    // key <AB06> { [	   b,	B		]	};
-    key <AB07> { [	   m,          M,            mu,               mu ] };
+    key <AB05> { [	   x,          X, periodcentered,     dead_stroke ] };
+    key <AB06> { [	   b,          B,             b,                B ] };
+    key <AB07> { [	   m,          M,            mu,        plusminus ] };
     key <AB08> { [	   w,          W,         aring,            Aring ] };
-    // key <AB09> { [	   v,	V		]	};
+    key <AB09> { [	   v,          V,             v,                V ] };
     key <AB10> { [	   z,          Z,            ae,               AE ] };
-
     key <BKSL> { [ backslash,        bar,       notsign,        brokenbar ] };
+
+    key <LSGT> { [ backslash,   bar,            backslash,      bar ] };
 
     include "level3(ralt_switch)"
 };
@@ -362,7 +365,7 @@ xkb_symbols "dvorak-alt-intl" {
     key <AB02> { [         q,       Q,  odiaeresis,      dead_ogonek ] };
     key <AB03> { [         j,       J,      egrave, dead_doubleacute ] };
     key <AB04> { [         k,       K,      ugrave ] };
-    key <AB05> { [         x,       X,  idiaeresis ] };
+    key <AB05> { [         x,       X,  idiaeresis,      dead_stroke ] };
 
     include "level3(ralt_switch)"
 };
@@ -672,57 +675,53 @@ xkb_symbols "dvorak-mac" {
     include "level3(ralt_switch)"
 };
 
-// phonetic layout for Russian letters on an US keyboard
-// by Ivan Popov <pin@konvalo.org> 2005-07-17
-
-// level3 modifier is a shortcut to the "us" meaning of the keys where
-// we place cyrillic letters, handy for accessing the corresponding
-// punctuation marks.
-// It is important to have access to punctuation marks, and the rest of
-// alphabetical keys are added for being consequent so that the users
-// can expect the level3 modifier to give what the key label shows.
-
+// A phonetic layout for typing Russian on a US keyboard.
+// Originally by Ivan Popov <pin@konvalo.org>, 2005.
+// (The punctuation symbols that are displaced by Cyrillic letters
+// have been put on levels 3 and 4, reachable with AltGr.)
 partial alphanumeric_keys
 xkb_symbols "rus" {
 
     include "us(basic)"
+
     name[Group1]= "Russian (US, phonetic)";
 
-key.type[group1]="FOUR_LEVEL_ALPHABETIC";
+    key <TLDE>	{[ Cyrillic_io,       Cyrillic_IO,        grave,  asciitilde ]};
+    key <AE12>	{[ Cyrillic_hardsign, Cyrillic_HARDSIGN,  equal,  plus       ]};
 
-    key	<LatA> {	[ Cyrillic_a, Cyrillic_A ]	};
-    key	<LatB> {	[ Cyrillic_be, Cyrillic_BE ]	};
-    key	<LatW> {	[ Cyrillic_ve, Cyrillic_VE ]	};
-    key	<LatG> {	[ Cyrillic_ghe, Cyrillic_GHE ]	};
-    key	<LatD> {	[ Cyrillic_de, Cyrillic_DE ]	};
-    key	<LatE> {	[ Cyrillic_ie, Cyrillic_IE ]	};
-    key	<TLDE> {	[ Cyrillic_io, Cyrillic_IO, grave, asciitilde ] };
-    key	<LatV> {	[ Cyrillic_zhe, Cyrillic_ZHE ]	};
-    key	<LatZ> {	[ Cyrillic_ze, Cyrillic_ZE ]	};
-    key	<LatI> {	[ Cyrillic_i, Cyrillic_I ]	};
-    key	<LatJ> {	[ Cyrillic_shorti, Cyrillic_SHORTI ]	};
-    key	<LatK> {	[ Cyrillic_ka, Cyrillic_KA ]	};
-    key	<LatL> {	[ Cyrillic_el, Cyrillic_EL ]	};
-    key	<LatM> {	[ Cyrillic_em, Cyrillic_EM ]	};
-    key	<LatN> {	[ Cyrillic_en, Cyrillic_EN ]	};
-    key	<LatO> {	[ Cyrillic_o, Cyrillic_O ]	};
-    key	<LatP> {	[ Cyrillic_pe, Cyrillic_PE ]	};
-    key	<LatR> {	[ Cyrillic_er, Cyrillic_ER ]	};
-    key	<LatS> {	[ Cyrillic_es, Cyrillic_ES ]	};
-    key	<LatT> {	[ Cyrillic_te, Cyrillic_TE ]	};
-    key	<LatU> {	[ Cyrillic_u, Cyrillic_U ]	};
-    key	<LatF> {	[ Cyrillic_ef, Cyrillic_EF ]	};
-    key	<LatH> {	[ Cyrillic_ha, Cyrillic_HA ]	};
-    key	<LatC> {	[ Cyrillic_tse, Cyrillic_TSE ]	};
-    key <AC10> {        [ Cyrillic_che, Cyrillic_CHE, semicolon, colon ] };
-    key	<AD11> {	[ Cyrillic_sha, Cyrillic_SHA, bracketleft, braceleft] };
-    key	<AD12> {	[ Cyrillic_shcha, Cyrillic_SHCHA, bracketright, braceright ]	};
-    key <AE12> {        [ Cyrillic_hardsign, Cyrillic_HARDSIGN, equal, plus ] };
-    key	<LatY> {	[ Cyrillic_yeru, Cyrillic_YERU ]	};
-    key	<LatX> {	[ Cyrillic_softsign, Cyrillic_SOFTSIGN ]	};
-    key	<BKSL> {	[ Cyrillic_e, Cyrillic_E, backslash, bar ]	};
-    key <AC11> {        [ Cyrillic_yu, Cyrillic_YU, apostrophe, quotedbl ] };
-    key	<LatQ> {	[ Cyrillic_ya, Cyrillic_YA ]	};
+    key <LatQ>	{[ Cyrillic_ya,       Cyrillic_YA     ]};
+    key <LatW>	{[ Cyrillic_ve,       Cyrillic_VE     ]};
+    key <AD03>	{[ Cyrillic_ie,       Cyrillic_IE     ]};
+    key <AD04>	{[ Cyrillic_er,       Cyrillic_ER     ]};
+    key <AD05>	{[ Cyrillic_te,       Cyrillic_TE     ]};
+    key <LatY>	{[ Cyrillic_yeru,     Cyrillic_YERU   ]};
+    key <AD07>	{[ Cyrillic_u,        Cyrillic_U      ]};
+    key <AD08>	{[ Cyrillic_i,        Cyrillic_I      ]};
+    key <AD09>	{[ Cyrillic_o,        Cyrillic_O      ]};
+    key <AD10>	{[ Cyrillic_pe,       Cyrillic_PE     ]};
+    key <AD11>	{[ Cyrillic_sha,      Cyrillic_SHA,       bracketleft,  braceleft  ]};
+    key <AD12>	{[ Cyrillic_shcha,    Cyrillic_SHCHA,     bracketright, braceright ]};
+
+    key <LatA>	{[ Cyrillic_a,        Cyrillic_A      ]};
+    key <AC02>	{[ Cyrillic_es,       Cyrillic_ES     ]};
+    key <AC03>	{[ Cyrillic_de,       Cyrillic_DE     ]};
+    key <AC04>	{[ Cyrillic_ef,       Cyrillic_EF     ]};
+    key <AC05>	{[ Cyrillic_ghe,      Cyrillic_GHE    ]};
+    key <AC06>	{[ Cyrillic_ha,       Cyrillic_HA     ]};
+    key <AC07>	{[ Cyrillic_shorti,   Cyrillic_SHORTI ]};
+    key <AC08>	{[ Cyrillic_ka,       Cyrillic_KA     ]};
+    key <AC09>	{[ Cyrillic_el,       Cyrillic_EL     ]};
+    key <AC10>	{[ Cyrillic_che,      Cyrillic_CHE,       semicolon,  colon    ]};
+    key <AC11>	{[ Cyrillic_yu,       Cyrillic_YU,        apostrophe, quotedbl ]};
+    key <BKSL>	{[ Cyrillic_e,        Cyrillic_E,         backslash,  bar      ]};
+
+    key <LatZ>	{[ Cyrillic_ze,       Cyrillic_ZE     ]};
+    key <AB02>	{[ Cyrillic_softsign, Cyrillic_SOFTSIGN ]};
+    key <AB03>	{[ Cyrillic_tse,      Cyrillic_TSE    ]};
+    key <AB04>	{[ Cyrillic_zhe,      Cyrillic_ZHE    ]};
+    key <AB05>	{[ Cyrillic_be,       Cyrillic_BE     ]};
+    key <AB06>	{[ Cyrillic_en,       Cyrillic_EN     ]};
+    key <AB07>	{[ Cyrillic_em,       Cyrillic_EM     ]};
 
     include "level3(ralt_switch)"
 };
@@ -753,7 +752,7 @@ xkb_symbols "mac" {
     key <AD01> { [	   q,          Q,            oe,               OE ] };
     key <AD02> { [	   w,          W,         U2211,doublelowquotemark] };
     key <AD03> { [	   e,          E,    dead_acute,            acute ] };
-    key <AD04> { [	   r,          R,    registered,            U2030 ] };
+    key <AD04> { [	   r,          R,    registered,         permille ] };
     key <AD05> { [	   t,          T,        dagger,       dead_caron ] };
     key <AD06> { [	   y,          Y,           yen,       onequarter ] };
     key <AD07> { [	   u,        U,  dead_diaeresis,        diaeresis ] };
@@ -857,70 +856,66 @@ xkb_symbols "colemak" {
     include "level3(ralt_switch)"
 };
 
-
 // Colemak-DH (ANSI) symbols for xkb on X.Org Server 7.x
 // 2014-10-25 by SteveP, https://colemakmods.github.io/mod-dh/
 
 xkb_symbols "colemak_dh" {
 
+    include "us(colemak)"
+
     name[Group1]= "English (Colemak-DH)";
 
-    key <TLDE> { [        grave,   asciitilde,      dead_tilde,       asciitilde ] };
-    key <AE01> { [            1,       exclam,      exclamdown,      onesuperior ] };
-    key <AE02> { [            2,           at,       masculine,      twosuperior ] };
-    key <AE03> { [            3,   numbersign,     ordfeminine,    threesuperior ] };
-    key <AE04> { [            4,       dollar,            cent,         sterling ] };
-    key <AE05> { [            5,      percent,        EuroSign,              yen ] };
-    key <AE06> { [            6,  asciicircum,         hstroke,          Hstroke ] };
-    key <AE07> { [            7,    ampersand,             eth,              ETH ] };
-    key <AE08> { [            8,     asterisk,           thorn,            THORN ] };
-    key <AE09> { [            9,    parenleft,  leftsinglequotemark,  leftdoublequotemark ] };
-    key <AE10> { [            0,   parenright, rightsinglequotemark,  rightdoublequotemark ] };
-    key <AE11> { [        minus,   underscore,          endash,           emdash ] };
-    key <AE12> { [        equal,         plus,        multiply,         division ] };
-
-    key <AD01> { [            q,            Q,      adiaeresis,       Adiaeresis ] };
-    key <AD02> { [            w,            W,           aring,            Aring ] };
-    key <AD03> { [            f,            F,          atilde,           Atilde ] };
-    key <AD04> { [            p,            P,          oslash,           Oslash ] };
     key <AD05> { [            b,            B,      dead_breve,       asciitilde ] };
-    key <AD06> { [            j,            J,         dstroke,          Dstroke ] };
-    key <AD07> { [            l,            L,         lstroke,          Lstroke ] };
-    key <AD08> { [            u,            U,          uacute,           Uacute ] };
-    key <AD09> { [            y,            Y,      udiaeresis,       Udiaeresis ] };
-    key <AD10> { [    semicolon,        colon,      odiaeresis,       Odiaeresis ] };
-    key <AD11> { [  bracketleft,    braceleft,   guillemotleft,        0x1002039 ] };
-    key <AD12> { [ bracketright,   braceright,  guillemotright,        0x100203a ] };
-    key <BKSL> { [    backslash,          bar,      asciitilde,       asciitilde ] };
 
-    key <AC01> { [            a,            A,          aacute,           Aacute ] };
-    key <AC02> { [            r,            R,      dead_grave,       asciitilde ] };
-    key <AC03> { [            s,            S,          ssharp,        0x1001e9e ] };
-    key <AC04> { [            t,            T,      dead_acute, dead_doubleacute ] };
     key <AC05> { [            g,            G,     dead_ogonek,       asciitilde ] };
     key <AC06> { [            m,            M,     dead_macron,       asciitilde ] };
-    key <AC07> { [            n,            N,          ntilde,           Ntilde ] };
-    key <AC08> { [            e,            E,          eacute,           Eacute ] };
-    key <AC09> { [            i,            I,          iacute,           Iacute ] };
-    key <AC10> { [            o,            O,          oacute,           Oacute ] };
-    key <AC11> { [   apostrophe,     quotedbl,          otilde,           Otilde ] };
 
     key <LSGT> { [            z,            Z,              ae,               AE ] };
     key <AB01> { [            x,            X, dead_circumflex,       asciitilde ] };
     key <AB02> { [            c,            C,        ccedilla,         Ccedilla ] };
     key <AB03> { [            d,            D,  dead_diaeresis,       asciitilde ] };
-    key <AB04> { [            v,            V,              oe,               OE ] };
     key <AB05> { [            z,            Z,              ae,               AE ] }; //Z appears here too because <LSGT> key is not present on ANSI keyboards
-    key <AB06> { [            k,            K,  dead_abovering,       asciitilde ] };
     key <AB07> { [            h,            H,      dead_caron,       asciitilde ] };
-    key <AB08> { [        comma,         less,    dead_cedilla,       asciitilde ] };
-    key <AB09> { [       period,      greater,   dead_abovedot,       asciitilde ] };
-    key <AB10> { [        slash,     question,    questiondown,       asciitilde ] };
-
-    key <SPCE> { [        space,        space,           space,     nobreakspace ] };
-
-    include "level3(ralt_switch)"
 };
+
+// Colemak-DH (Wide) symbols for xkb on X.Org Server 7.x
+// https://colemakmods.github.io/mod-dh/
+
+xkb_symbols "colemak_dh_wide" {
+
+    include "us(colemak_dh)"
+    name[Group1]= "English (Colemak-DH Wide)";
+
+    key <AE07> { [        equal,         plus,             multiply,             division ] };
+    key <AE08> { [            7,    ampersand,                  eth,                  ETH ] };
+    key <AE09> { [            8,     asterisk,                thorn,                THORN ] };
+    key <AE10> { [            9,    parenleft,  leftsinglequotemark,  leftdoublequotemark ] };
+    key <AE11> { [            0,   parenright, rightsinglequotemark, rightdoublequotemark ] };
+    key <AE12> { [        minus,   underscore,               endash,               emdash ] };
+
+    key <AD06> { [  bracketleft,    braceleft,        guillemotleft,            0x1002039 ] };
+    key <AD07> { [            j,            J,              dstroke,              Dstroke ] };
+    key <AD08> { [            l,            L,              lstroke,              Lstroke ] };
+    key <AD09> { [            u,            U,               uacute,               Uacute ] };
+    key <AD10> { [            y,            Y,           udiaeresis,           Udiaeresis ] };
+    key <AD11> { [    semicolon,        colon,           odiaeresis,           Odiaeresis ] };
+    key <AD12> { [   apostrophe,     quotedbl,               otilde,               Otilde ] };
+
+    key <AC06> { [ bracketright,   braceright,       guillemotright,            0x100203a ] };
+    key <AC07> { [            m,            M,          dead_macron,           asciitilde ] };
+    key <AC08> { [            n,            N,               ntilde,               Ntilde ] };
+    key <AC09> { [            e,            E,               eacute,               Eacute ] };
+    key <AC10> { [            i,            I,               iacute,               Iacute ] };
+    key <AC11> { [            o,            O,               oacute,               Oacute ] };
+
+    key <AB06> { [        slash,     question,         questiondown,           asciitilde ] };
+    key <AB07> { [            k,            K,       dead_abovering,           asciitilde ] };
+    key <AB08> { [            h,            H,           dead_caron,           asciitilde ] };
+    key <AB09> { [        comma,         less,         dead_cedilla,           asciitilde ] };
+    key <AB10> { [       period,      greater,        dead_abovedot,           asciitilde ] };
+    key <AB11> { [        slash,     question,         questiondown,           asciitilde ] };
+};
+
 
 // Colemak-DH (ISO) symbols for xkb on X.Org Server 7.x
 // https://colemakmods.github.io/mod-dh/
@@ -930,10 +925,41 @@ xkb_symbols "colemak_dh_iso" {
     include "us(colemak_dh)"
     name[Group1]= "English (Colemak-DH ISO)";
 
-    key <AB05> { [ backslash, bar, asciitilde, brokenbar] };
+    key <BKSL> { [ numbersign, asciitilde,  backslash,       bar ] };
 
-    include "level3(ralt_switch)"
+    key <AB05> { [  backslash,        bar, asciitilde, brokenbar ] };
 };
+
+// Colemak-DH (Wide ISO) symbols for xkb on X.Org Server 7.x
+// https://colemakmods.github.io/mod-dh/
+
+xkb_symbols "colemak_dh_wide_iso" {
+
+    include "us(colemak_dh_wide)"
+    name[Group1]= "English (Colemak-DH Wide ISO)";
+
+    key <AD12> { [ numbersign, asciitilde,    backslash,        bar ] };
+    key <BKSL> { [ apostrophe,   quotedbl,       otilde,     Otilde ] };
+
+    key <AB05> { [  backslash,        bar,   asciitilde,  brokenbar ] };
+    key <AB06> { [      slash,   question, questiondown, asciitilde ] };
+};
+
+// Colemak-DH (ortholinear) symbols for xkb on X.Org Server 7.x
+// https://colemakmods.github.io/mod-dh/
+
+xkb_symbols "colemak_dh_ortho" {
+
+    include "us(colemak_dh)"
+    name[Group1]= "English (Colemak-DH Ortholinear)";
+
+    key <AB01> { [            z,            Z,              ae,               AE ] };
+    key <AB02> { [            x,            X, dead_circumflex,       asciitilde ] };
+    key <AB03> { [            c,            C,        ccedilla,         Ccedilla ] };
+    key <AB04> { [            d,            D,  dead_diaeresis,       asciitilde ] };
+    key <AB05> { [            v,            V,              oe,               OE ] };
+};
+
 
 // I do NOT like dead-keys - the International keyboard as defined by Microsoft
 // does not fit my needs. Why use two keystrokes for all simple characters (eg '
@@ -970,9 +996,10 @@ xkb_symbols "altgr-intl" {
 
    key <AE01> { [        1, exclam,      onesuperior,  exclamdown      ] };
    key <AD04> { [        r, R,           ediaeresis,   Ediaeresis      ] };
-   key <AC07> { [        j, J,           idiaeresis,   Idiaeresis      ] };
+   key <AC04> { [        f, F,           f,            F               ] };
    key <AB02> { [        x, X,           oe,           OE              ] };
-   key <AB04> { [        v, V,           registered,   registered      ] };
+   key <AB04> { [        v, V,           registered,   trademark       ] };
+   key <AB05> { [        b, B,         periodcentered, dead_stroke     ] };
 
 // onequarter etc (not in iso8859-15) moved to get three unshifted deadkeys:
 
@@ -1397,9 +1424,9 @@ xkb_symbols "hbs" {
   key <AE06> { [ 6, dead_caron, asciicircum, asciicircum ] };
   key <AE08> { [ 8, asterisk, multiply, division ] };
   key <AE11> { [ minus, underscore, endash, emdash ] };
-  key <AC09> { [ l, L, U1C9, U1C8 ] };
-  key <AB06> { [ n, N, U1CC, U1CB ] };
-  key <AB01> { [ z, Z, U1C6, U1C5 ] };
+  key <AC09> { [ l, L, U01C9, U01C8 ] }; // ǉ ǈ
+  key <AB06> { [ n, N, U01CC, U01CB ] }; // ǌ ǋ
+  key <AB01> { [ z, Z, U01C6, U01C5 ] }; // ǆ ǅ
   key <AD03> { [ e, E, EuroSign, cent ] };
   key <AC03> { [ d, D, dstroke, Dstroke ] };
   key <AC11> { [ dead_acute, quotedbl, apostrophe, apostrophe ] };
@@ -1449,9 +1476,7 @@ xkb_symbols "workman" {
     key <AB06> {  [   k,  K   ] };
     key <AB07> {  [   l,  L   ] };
 
-    key <CAPS> { [    BackSpace,       Escape,       BackSpace,        BackSpace ] };
-
-    include "level3(ralt_switch)"
+    key <CAPS> {  [   BackSpace,  Escape  ] };
 };
 
 partial alphanumeric_keys
@@ -1462,11 +1487,11 @@ xkb_symbols "workman-intl" {
 
     key <AD01> { [     q,          Q,    adiaeresis,       Adiaeresis ] };
     key <AD02> { [     d,          D,           eth,              ETH ] };
-    key <AD03> { [     r,          R,    registered,       registered ] };
+    key <AD03> { [     r,          R,    registered,        trademark ] };
     key <AD04> { [     w,          W,         aring,            Aring ] };
     key <AD05> { [     b,          B,             b,                B ] };
-    key <AD06> { [     j,          J,             j,                J ] };
-    key <AD07> { [     f,          F,             f,                F ] };
+    key <AD06> { [     j,          J,    idiaeresis,       Idiaeresis ] };
+    key <AD07> { [     f,          F,    ediaeresis,       Ediaeresis ] };
     key <AD08> { [     u,          U,        uacute,           Uacute ] };
     key <AD09> { [     p,          P,    odiaeresis,       Odiaeresis ] };
     key <AD10> { [ semicolon,  colon,     paragraph,           degree ] };
@@ -1483,8 +1508,8 @@ xkb_symbols "workman-intl" {
     key <AC10> { [     i,          I,        iacute,           Iacute ] };
 
     key <AB01> { [     z,          Z,            ae,               AE ] };
-    key <AB02> { [     x,          X,             x,                X ] };
-    key <AB03> { [     m,          M,            mu,               mu ] };
+    key <AB02> { [     x,          X, periodcentered,     dead_stroke ] };
+    key <AB03> { [     m,          M,            mu,        plusminus ] };
     key <AB04> { [     c,          C,     copyright,             cent ] };
     key <AB05> { [     v,          V,             v,                V ] };
     key <AB06> { [     k,          K,            oe,               OE ] };
@@ -1648,7 +1673,7 @@ xkb_symbols "carpalx-intl" {
 
     key <AD01> { [	   q,          Q,        degree,        paragraph ] };
     key <AD02> { [	   g,          G,         U011F,            U011E ] };
-    key <AD03> { [	   m,          M,            mu,               mu ] };
+    key <AD03> { [	   m,          M,            mu,        plusminus ] };
     key <AD04> { [	   l,          L,     copyright,             cent ] };
     key <AD05> { [	   w,          W,             w,                W ] };
     key <AD06> { [	   y,          Y,    idiaeresis,       Idiaeresis ] };
@@ -1663,7 +1688,7 @@ xkb_symbols "carpalx-intl" {
     key <AC02> { [	   s,          S,        ssharp,          section ] };
     key <AC03> { [	   t,          T,         thorn,            THORN ] };
     key <AC04> { [	   n,          N,        ntilde,           Ntilde ] };
-    key <AC05> { [	   r,          R,    registered,       registered ] };
+    key <AC05> { [	   r,          R,    registered,        trademark ] };
     key <AC06> { [	   i,          I,        iacute,           Iacute ] };
     key <AC07> { [	   a,          A,        aacute,           Aacute ] };
     key <AC08> { [	   e,          E,        eacute,           Eacute ] };
@@ -1671,7 +1696,7 @@ xkb_symbols "carpalx-intl" {
     key <AC10> { [	   h,          H,        uacute,           Uacute ] };
     key <AC11> { [dead_acute, dead_diaeresis, apostrophe,        quotedbl ] };
 
-    key <AB01> { [	   z,          Z,             z,                Z ] };
+    key <AB01> { [	   z,          Z, periodcentered,     dead_stroke ] };
     key <AB02> { [	   x,          X,         U015F,            U015E ] };
     key <AB03> { [	   c,          C,      ccedilla,         Ccedilla ] };
     key <AB04> { [	   v,          V,            ae,               AE ] };
@@ -1782,7 +1807,7 @@ xkb_symbols "symbolic" {
  key <AE02> { [ 2,     at,          twosuperior,   therefore      ] }; // 2 @ ² ∴
  key <AE03> { [ 3,     numbersign,  threesuperior, sterling       ] }; // 3 # ³ £
  key <AE04> { [ 4,     dollar,      foursuperior,  EuroSign       ] }; // 4 $ ⁴ €
- key <AE05> { [ 5,     percent,     fivesuperior,  U2030          ] }; // 5 % ⁵ ‰
+ key <AE05> { [ 5,     percent,     fivesuperior,  permille       ] }; // 5 % ⁵ ‰
  key <AE06> { [ 6,     asciicircum, sixsuperior,   squareroot     ] }; // 6 ^ ⁶ √
  key <AE07> { [ 7,     ampersand,   sevensuperior, section        ] }; // 7 & ⁷ §
  key <AE08> { [ 8,     asterisk,    eightsuperior, infinity       ] }; // 8 * ⁸ ∞
@@ -1840,7 +1865,7 @@ partial alphanumeric_keys
 xkb_symbols "cz_sk_de" {
 
     include "us"
-    name[Group1]="Czech Slovak and German (US)";
+    name[Group1]="Czech, Slovak and German (US)";
 
     key <TLDE>  { [grave,   asciitilde, uring,      Uring       ] };
     key <AE01>	{ [    1,	exclam,	uacute,	    Uacute	] };
@@ -1961,7 +1986,7 @@ xkb_symbols "scn" {
     include "us(intl)"
     name[Group1]="Sicilian (US keyboard)";
 
-    key <AD03> { [      e,       E, U0259,       U018F ] };
+    key <AD03> { [      e,       E, schwa,       SCHWA ] };
     key <AC03> { [      d,       D, U1E0D,       U1E0C ] };
     key <AC04> { [      f,       F, U0111,       U0110 ] };
     key <AC06> { [      h,       H, U1E25,       U1E24 ] };
@@ -2080,7 +2105,7 @@ xkb_symbols "crd" {
   key <AD02> { [         w,           W, U02B7, U02B7 ] };
   key <AE07> { [         7,   ampersand, U0294        ] };
   key <AD01> { [         q,           Q, U221A        ] };
-  key <AB04> { [         v,           V, U0259        ] };
+  key <AB04> { [         v,           V, schwa        ] };
   key <BKSL> { [ backslash,         bar, U026B        ] };
   key <AD03> { [         e,           E, U025B        ] };
   key <AD08> { [         i,           I, U026A        ] };
@@ -2180,7 +2205,7 @@ xkb_symbols "3l-cros" {
     };
 };
 
-// A 3l variant for emacs users, which maps control to caps lock and (re)maps 
+// A 3l variant for emacs users, which maps control to caps lock and (re)maps
 // tab back to tab.
 partial modifier_keys
 xkb_symbols "3l-emacs" {
@@ -2270,7 +2295,7 @@ xkb_symbols "drix" {
 	key <AC08> {[ k,           K,              singlelowquotemark,   doublelowquotemark    ]}; // k K ‚ „
 	key <AC09> {[ l,           L,              sterling,             Greek_lambda          ]}; // l L £ λ
 	key <AC10> {[ m,           M,              mu,                   M                     ]}; // m M µ M
-	key <AC11> {[ numbersign,  percent,        asciitilde,           0x1002030             ]}; // # % ~ ‰
+	key <AC11> {[ numbersign,  percent,        asciitilde,           permille              ]}; // # % ~ ‰
 
 	// Fourth row
 	key <LSGT> {[ less,        greater,        lessthanequal,        greaterthanequal      ]}; // < > ≤ ≥

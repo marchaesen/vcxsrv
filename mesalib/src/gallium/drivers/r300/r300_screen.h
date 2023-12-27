@@ -29,7 +29,7 @@
 #include "pipe/p_screen.h"
 #include "util/disk_cache.h"
 #include "util/slab.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include <stdio.h>
 
 struct r300_screen {
@@ -103,12 +103,11 @@ radeon_winsys(struct pipe_screen *screen) {
 #define DBG_NO_ZMASK    (1 << 21)
 #define DBG_NO_HIZ      (1 << 22)
 #define DBG_NO_CMASK    (1 << 23)
-#define DBG_USE_TGSI    (1 << 24)
 #define DBG_NO_TCL      (1 << 25)
 /*@}*/
-static inline boolean SCREEN_DBG_ON(struct r300_screen * screen, unsigned flags)
+static inline bool SCREEN_DBG_ON(struct r300_screen * screen, unsigned flags)
 {
-    return (screen->debug & flags) ? TRUE : FALSE;
+    return (screen->debug & flags) ? true : false;
 }
 
 static inline void SCREEN_DBG(struct r300_screen * screen, unsigned flags,

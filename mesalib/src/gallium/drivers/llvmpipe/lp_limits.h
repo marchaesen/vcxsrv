@@ -66,7 +66,7 @@
 
 #define LP_MAX_SAMPLES 4
 
-#define LP_MAX_THREADS 16
+#define LP_MAX_THREADS 32
 
 
 /**

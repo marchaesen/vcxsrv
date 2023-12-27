@@ -37,9 +37,11 @@
 #include "fd2_query.h"
 
 struct PACKED fd2_query_sample {
+   struct fd_acc_query_sample base;
    uint32_t start;
    uint32_t stop;
 };
+DEFINE_CAST(fd_acc_query_sample, fd2_query_sample);
 
 /* offset of a single field of an array of fd2_query_sample: */
 #define query_sample_idx(aq, idx, field)                                       \
@@ -138,11 +140,12 @@ perfcntr_pause(struct fd_acc_query *aq, struct fd_batch *batch) assert_dt
 }
 
 static void
-perfcntr_accumulate_result(struct fd_acc_query *aq, void *buf,
+perfcntr_accumulate_result(struct fd_acc_query *aq,
+                           struct fd_acc_query_sample *s,
                            union pipe_query_result *result)
 {
    struct fd_batch_query_data *data = aq->query_data;
-   struct fd2_query_sample *sp = buf;
+   struct fd2_query_sample *sp = fd2_query_sample(s);
 
    for (unsigned i = 0; i < data->num_query_entries; i++)
       result->batch[i].u64 = sp[i].stop - sp[i].start;

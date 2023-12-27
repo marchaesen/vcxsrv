@@ -1,26 +1,7 @@
 /*
  * Copyright © 2020 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * SPDX-License-Identifier: MIT
  */
 
 /* These tables define the set of ranges of registers we shadow when
@@ -514,123 +495,6 @@ static const struct ac_reg_range Gfx10CsShShadowRange[] = {
    },
 };
 
-static const struct ac_reg_range Navi10NonShadowedRanges[] = {
-   /* These are not defined in Mesa. */
-   /*{
-      VGT_DMA_PRIMITIVE_TYPE,
-      VGT_DMA_LS_HS_CONFIG - VGT_DMA_PRIMITIVE_TYPE + 4,
-   },*/
-   /* VGT_INDEX_TYPE and VGT_DMA_INDEX_TYPE are a special case and neither of these should be
-      shadowed. */
-   {
-      R_028A7C_VGT_DMA_INDEX_TYPE,
-      4,
-   },
-   {
-      R_03090C_VGT_INDEX_TYPE,
-      R_03091C_VGT_STRMOUT_BUFFER_FILLED_SIZE_3 - R_03090C_VGT_INDEX_TYPE + 4,
-   },
-   {
-      R_028A88_VGT_DMA_NUM_INSTANCES,
-      4,
-   },
-   /* RSRC{3,4}_{VS,PS,HS,GS} are not shadowed because they are set by SET_SH_REG_INDEX. */
-   {
-      R_00B118_SPI_SHADER_PGM_RSRC3_VS,
-      4,
-   },
-   {
-      R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
-      4,
-   },
-   {
-      R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
-      4,
-   },
-   {
-      R_00B21C_SPI_SHADER_PGM_RSRC3_GS,
-      4,
-   },
-   {
-      R_00B004_SPI_SHADER_PGM_RSRC4_PS,
-      4,
-   },
-   {
-      R_00B104_SPI_SHADER_PGM_RSRC4_VS,
-      4,
-   },
-   {
-      R_00B404_SPI_SHADER_PGM_RSRC4_HS,
-      4,
-   },
-   {
-      R_00B204_SPI_SHADER_PGM_RSRC4_GS,
-      4,
-   },
-   {
-      R_00B858_COMPUTE_DESTINATION_EN_SE0,
-      R_00B85C_COMPUTE_DESTINATION_EN_SE1 - R_00B858_COMPUTE_DESTINATION_EN_SE0 + 4,
-   },
-   {
-      R_00B864_COMPUTE_DESTINATION_EN_SE2,
-      R_00B868_COMPUTE_DESTINATION_EN_SE3 - R_00B864_COMPUTE_DESTINATION_EN_SE2 + 4,
-   },
-   {
-      R_030800_GRBM_GFX_INDEX,
-      4,
-   },
-   {
-      R_030A00_PA_SU_LINE_STIPPLE_VALUE,
-      R_030A04_PA_SC_LINE_STIPPLE_STATE - R_030A00_PA_SU_LINE_STIPPLE_VALUE + 4,
-   },
-   {
-      R_031100_SPI_CONFIG_CNTL_REMAP,
-      4,
-   },
-   /* SQ thread trace registers are always not shadowed. */
-   {
-      R_008D00_SQ_THREAD_TRACE_BUF0_BASE,
-      R_008D38_SQ_THREAD_TRACE_HP3D_MARKER_CNTR - R_008D00_SQ_THREAD_TRACE_BUF0_BASE + 4,
-   },
-   {
-      R_030D00_SQ_THREAD_TRACE_USERDATA_0,
-      R_030D1C_SQ_THREAD_TRACE_USERDATA_7 - R_030D00_SQ_THREAD_TRACE_USERDATA_0 + 4,
-   },
-   /* Perf counter registers are always not shadowed. Most of them are in the perf
-    * register space but some legacy registers are still outside of it. The SPM
-    * registers are in the perf range as well.
-    */
-   {
-      SI_UCONFIG_PERF_REG_OFFSET,
-      SI_UCONFIG_PERF_REG_SPACE_SIZE,
-   },
-   /* These are not defined in Mesa. */
-   /*{
-      ATC_PERFCOUNTER0_CFG,
-      ATC_PERFCOUNTER_HI - ATC_PERFCOUNTER0_CFG + 4,
-   },
-   {
-      RPB_PERFCOUNTER_LO,
-      RPB_PERFCOUNTER_RSLT_CNTL - RPB_PERFCOUNTER_LO + 4,
-   },
-   {
-      SDMA0_PERFCOUNTER0_SELECT,
-      SDMA0_PERFCOUNTER1_HI - SDMA0_PERFCOUNTER0_SELECT + 4,
-   },
-   {
-      SDMA1_PERFCOUNTER0_SELECT,
-      SDMA1_PERFCOUNTER1_HI - SDMA1_PERFCOUNTER0_SELECT + 4,
-   },
-   {
-      GCEA_PERFCOUNTER_LO,
-      GCEA_PERFCOUNTER_RSLT_CNTL - GCEA_PERFCOUNTER_LO + 4,
-   },
-   {
-      GUS_PERFCOUNTER_LO,
-      GUS_PERFCOUNTER_RSLT_CNTL - GUS_PERFCOUNTER_LO + 4,
-   },*/
-};
-
 static const struct ac_reg_range Gfx103ContextShadowRange[] = {
    {
       R_028000_DB_RENDER_CONTROL,
@@ -737,205 +601,35 @@ static const struct ac_reg_range Gfx103UserConfigShadowRange[] = {
    },
 };
 
-static const struct ac_reg_range Gfx103NonShadowedRanges[] = {
-   /* These are not defined in Mesa. */
-   /*{
-      VGT_DMA_PRIMITIVE_TYPE,
-      VGT_DMA_LS_HS_CONFIG - VGT_DMA_PRIMITIVE_TYPE + 4,
-   },*/
-   /* VGT_INDEX_TYPE and VGT_DMA_INDEX_TYPE are a special case and neither of these should be
-      shadowed. */
-   {
-      R_028A7C_VGT_DMA_INDEX_TYPE,
-      4,
-   },
-   {
-      R_03090C_VGT_INDEX_TYPE,
-      R_03091C_VGT_STRMOUT_BUFFER_FILLED_SIZE_3 - R_03090C_VGT_INDEX_TYPE + 4,
-   },
-   {
-      R_028A88_VGT_DMA_NUM_INSTANCES,
-      4,
-   },
-   /* RSRC{3,4}_{VS,PS,HS,GS} are not shadowed because they are set by SET_SH_REG_INDEX. */
-   {
-      R_00B118_SPI_SHADER_PGM_RSRC3_VS,
-      4,
-   },
-   {
-      R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
-      4,
-   },
-   {
-      R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
-      4,
-   },
-   {
-      R_00B21C_SPI_SHADER_PGM_RSRC3_GS,
-      4,
-   },
-   {
-      R_00B004_SPI_SHADER_PGM_RSRC4_PS,
-      4,
-   },
-   {
-      R_00B104_SPI_SHADER_PGM_RSRC4_VS,
-      4,
-   },
-   {
-      R_00B404_SPI_SHADER_PGM_RSRC4_HS,
-      4,
-   },
-   {
-      R_00B204_SPI_SHADER_PGM_RSRC4_GS,
-      4,
-   },
-   {
-      R_00B858_COMPUTE_DESTINATION_EN_SE0,
-      R_00B85C_COMPUTE_DESTINATION_EN_SE1 - R_00B858_COMPUTE_DESTINATION_EN_SE0 + 4,
-   },
-   {
-      R_00B864_COMPUTE_DESTINATION_EN_SE2,
-      R_00B868_COMPUTE_DESTINATION_EN_SE3 - R_00B864_COMPUTE_DESTINATION_EN_SE2 + 4,
-   },
-   {
-      R_030800_GRBM_GFX_INDEX,
-      4,
-   },
-   {
-      R_030A00_PA_SU_LINE_STIPPLE_VALUE,
-      R_030A04_PA_SC_LINE_STIPPLE_STATE - R_030A00_PA_SU_LINE_STIPPLE_VALUE + 4,
-   },
-   {
-      R_031100_SPI_CONFIG_CNTL_REMAP,
-      4,
-   },
-   /* SQ thread trace registers are always not shadowed. */
-   {
-      R_008D00_SQ_THREAD_TRACE_BUF0_BASE,
-      R_008D3C_SQ_THREAD_TRACE_STATUS2 - R_008D00_SQ_THREAD_TRACE_BUF0_BASE + 4,
-   },
-   {
-      R_030D00_SQ_THREAD_TRACE_USERDATA_0,
-      R_030D1C_SQ_THREAD_TRACE_USERDATA_7 - R_030D00_SQ_THREAD_TRACE_USERDATA_0 + 4,
-   },
-   /* Perf counter registers are always not shadowed. Most of them are in the perf
-    * register space but some legacy registers are still outside of it. The SPM
-    * registers are in the perf range as well.
-    */
-   {
-      SI_UCONFIG_PERF_REG_OFFSET,
-      SI_UCONFIG_PERF_REG_SPACE_SIZE,
-   },
-   /* These are not defined in Mesa. */
-   /*{
-      ATC_PERFCOUNTER0_CFG,
-      ATC_PERFCOUNTER_HI - ATC_PERFCOUNTER0_CFG + 4
-   },
-   {
-      RPB_PERFCOUNTER_LO,
-      RPB_PERFCOUNTER_RSLT_CNTL - RPB_PERFCOUNTER_LO + 4
-   },*/
-};
-
 static const struct ac_reg_range Gfx11ShShadowRange[] =
 {
-   {
-      R_00B018_SPI_SHADER_PGM_CHKSUM_PS,
-      4,
-   },
-   {
-      R_00B020_SPI_SHADER_PGM_LO_PS,
-      R_00B0AC_SPI_SHADER_USER_DATA_PS_31 - R_00B020_SPI_SHADER_PGM_LO_PS + 4,
-   },
-   {
-      R_00B0C8_SPI_SHADER_USER_ACCUM_PS_0,
-      R_00B0D4_SPI_SHADER_USER_ACCUM_PS_3 - R_00B0C8_SPI_SHADER_USER_ACCUM_PS_0 + 4,
-   },
-   {
-      R_00B320_SPI_SHADER_PGM_LO_ES,
-      R_00B324_SPI_SHADER_PGM_HI_ES - R_00B320_SPI_SHADER_PGM_LO_ES + 4,
-   },
-   {
-      R_00B520_SPI_SHADER_PGM_LO_LS,
-      R_00B524_SPI_SHADER_PGM_HI_LS - R_00B520_SPI_SHADER_PGM_LO_LS + 4,
-   },
-   {
-      R_00B200_SPI_SHADER_PGM_CHKSUM_GS,
-      4,
-   },
-   {
-      R_00B220_SPI_SHADER_PGM_LO_GS,
-      R_00B2AC_SPI_SHADER_USER_DATA_GS_31 - R_00B220_SPI_SHADER_PGM_LO_GS + 4,
-   },
-   {
-      R_00B2C8_SPI_SHADER_USER_ACCUM_ESGS_0,
-      R_00B2D4_SPI_SHADER_USER_ACCUM_ESGS_3 - R_00B2C8_SPI_SHADER_USER_ACCUM_ESGS_0 + 4,
-   },
-   {
-      R_00B400_SPI_SHADER_PGM_CHKSUM_HS,
-      4,
-   },
-   {
-      R_00B420_SPI_SHADER_PGM_LO_HS,
-      R_00B4AC_SPI_SHADER_USER_DATA_HS_31 - R_00B420_SPI_SHADER_PGM_LO_HS + 4,
-   },
-   {
-      R_00B4C8_SPI_SHADER_USER_ACCUM_LSHS_0,
-      R_00B4D4_SPI_SHADER_USER_ACCUM_LSHS_3 - R_00B4C8_SPI_SHADER_USER_ACCUM_LSHS_0 + 4,
-   },
-   {
-      R_00B0C0_SPI_SHADER_REQ_CTRL_PS,
-      4,
-   },
+   /* First register                            Count * 4      Last register */
+   { R_00B004_SPI_SHADER_PGM_RSRC4_PS,             1  * 4}, // SPI_SHADER_PGM_RSRC4_PS
+   { R_00B018_SPI_SHADER_PGM_CHKSUM_PS,            38 * 4}, // SPI_SHADER_USER_DATA_PS_31
+   { R_00B0C0_SPI_SHADER_REQ_CTRL_PS,              1  * 4}, // SPI_SHADER_REQ_CTRL_PS
+   { R_00B0C8_SPI_SHADER_USER_ACCUM_PS_0,          4  * 4}, // SPI_SHADER_USER_ACCUM_PS_3
+   { R_00B200_SPI_SHADER_PGM_CHKSUM_GS,            2  * 4}, // SPI_SHADER_PGM_RSRC4_GS
+   { R_00B21C_SPI_SHADER_PGM_RSRC3_GS,             39 * 4}, // SPI_SHADER_GS_MESHLET_EXP_ALLOC
+   { R_00B2C8_SPI_SHADER_USER_ACCUM_ESGS_0,        4  * 4}, // SPI_SHADER_USER_ACCUM_ESGS_3
+   { R_00B320_SPI_SHADER_PGM_LO_ES,                2  * 4}, // SPI_SHADER_PGM_HI_ES
+   { R_00B400_SPI_SHADER_PGM_CHKSUM_HS,            2  * 4}, // SPI_SHADER_PGM_RSRC4_HS
+   { R_00B41C_SPI_SHADER_PGM_RSRC3_HS,             37 * 4}, // SPI_SHADER_USER_DATA_HS_31
+   { R_00B4C8_SPI_SHADER_USER_ACCUM_LSHS_0,        4  * 4}, // SPI_SHADER_USER_ACCUM_LSHS_3
+   { R_00B520_SPI_SHADER_PGM_LO_LS,                2  * 4}  // SPI_SHADER_PGM_HI_LS
 };
 
 static const struct ac_reg_range Gfx11CsShShadowRange[] =
 {
-   {
-      R_00B810_COMPUTE_START_X,
-      R_00B824_COMPUTE_NUM_THREAD_Z - R_00B810_COMPUTE_START_X + 4,
-   },
-   {
-      R_00B82C_COMPUTE_PERFCOUNT_ENABLE,
-      R_00B834_COMPUTE_PGM_HI - R_00B82C_COMPUTE_PERFCOUNT_ENABLE + 4,
-   },
-   {
-      R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
-      R_00B84C_COMPUTE_PGM_RSRC2 - R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO + 4,
-   },
-   {
-      R_00B854_COMPUTE_RESOURCE_LIMITS,
-      4,
-   },
-   {
-      R_00B860_COMPUTE_TMPRING_SIZE,
-      4,
-   },
-   {
-      R_00B878_COMPUTE_THREAD_TRACE_ENABLE,
-      4,
-   },
-   {
-      R_00B890_COMPUTE_USER_ACCUM_0,
-      R_00B8A0_COMPUTE_PGM_RSRC3 - R_00B890_COMPUTE_USER_ACCUM_0 + 4,
-   },
-   {
-      R_00B8A8_COMPUTE_SHADER_CHKSUM,
-      4,
-   },
-   {
-      R_00B8BC_COMPUTE_DISPATCH_INTERLEAVE,
-      4,
-   },
-   {
-      R_00B900_COMPUTE_USER_DATA_0,
-      R_00B93C_COMPUTE_USER_DATA_15 - R_00B900_COMPUTE_USER_DATA_0 + 4,
-   },
-   {
-      R_00B9F4_COMPUTE_DISPATCH_TUNNEL,
-      4,
-   },
+   /* First register                            Count * 4      Last register */
+   { R_00B810_COMPUTE_START_X,                     6  * 4}, // COMPUTE_NUM_THREAD_Z
+   { R_00B82C_COMPUTE_PERFCOUNT_ENABLE,            5  * 4}, // COMPUTE_DISPATCH_PKT_ADDR_HI
+   { R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO,    4  * 4}, // COMPUTE_PGM_RSRC2
+   { R_00B854_COMPUTE_RESOURCE_LIMITS,             6  * 4}, // COMPUTE_STATIC_THREAD_MGMT_SE3
+   { R_00B878_COMPUTE_THREAD_TRACE_ENABLE,         1  * 4}, // COMPUTE_THREAD_TRACE_ENABLE
+   { R_00B890_COMPUTE_USER_ACCUM_0,                5  * 4}, // COMPUTE_PGM_RSRC3
+   { R_00B8A8_COMPUTE_SHADER_CHKSUM,               6  * 4}, // COMPUTE_DISPATCH_INTERLEAVE
+   { R_00B900_COMPUTE_USER_DATA_0,                 16 * 4}, // COMPUTE_USER_DATA_15
+   { R_00B9F4_COMPUTE_DISPATCH_TUNNEL,             1  * 4}  // COMPUTE_DISPATCH_TUNNEL
 };
 
 /* Defines the set of ranges of context registers we shadow when mid command buffer preemption
@@ -943,301 +637,84 @@ static const struct ac_reg_range Gfx11CsShShadowRange[] =
  */
 static const struct ac_reg_range Gfx11ContextShadowRange[] =
 {
-   {
-      R_028000_DB_RENDER_CONTROL,
-      R_028084_TA_BC_BASE_ADDR_HI - R_028000_DB_RENDER_CONTROL + 4,
-   },
-   {
-      R_0281E8_COHER_DEST_BASE_HI_0,
-      R_02835C_PA_SC_TILE_STEERING_OVERRIDE - R_0281E8_COHER_DEST_BASE_HI_0 + 4,
-   },
-   {
-      R_0283D0_PA_SC_VRS_OVERRIDE_CNTL,
-      R_0283E4_PA_SC_VRS_RATE_CACHE_CNTL - R_0283D0_PA_SC_VRS_OVERRIDE_CNTL + 4,
-   },
-   {
-      R_0283F0_PA_SC_VRS_RATE_BASE,
-      R_0283F8_PA_SC_VRS_RATE_SIZE_XY - R_0283F0_PA_SC_VRS_RATE_BASE + 4,
-   },
-   {
-      R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX,
-      R_028618_PA_CL_UCP_5_W - R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX + 4,
-   },
-   {
-      R_028644_SPI_PS_INPUT_CNTL_0,
-      R_0286F0_SPI_GFX_SCRATCH_BASE_HI - R_028644_SPI_PS_INPUT_CNTL_0 + 4,
-   },
-   {
-      R_028708_SPI_SHADER_IDX_FORMAT,
-      R_028714_SPI_SHADER_COL_FORMAT - R_028708_SPI_SHADER_IDX_FORMAT + 4,
-   },
-   {
-      R_028750_SX_PS_DOWNCONVERT_CONTROL,
-      R_02879C_CB_BLEND7_CONTROL - R_028750_SX_PS_DOWNCONVERT_CONTROL + 4,
-   },
-   {
-      R_0287D4_PA_CL_POINT_X_RAD,
-      R_0287E0_PA_CL_POINT_CULL_RAD - R_0287D4_PA_CL_POINT_X_RAD + 4,
-   },
-   {
-      R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,
-      R_028848_PA_CL_VRS_CNTL - R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP + 4,
-   },
-   {
-      R_028A00_PA_SU_POINT_SIZE,
-      R_028A0C_PA_SC_LINE_STIPPLE - R_028A00_PA_SU_POINT_SIZE + 4,
-   },
-   {
-      R_028A18_VGT_HOS_MAX_TESS_LEVEL,
-      R_028A1C_VGT_HOS_MIN_TESS_LEVEL - R_028A18_VGT_HOS_MAX_TESS_LEVEL + 4,
-   },
-   {
-      R_028A48_PA_SC_MODE_CNTL_0,
-      R_028A50_VGT_ENHANCE - R_028A48_PA_SC_MODE_CNTL_0 + 4,
-   },
-   {
-      R_028A84_VGT_PRIMITIVEID_EN,
-      4,
-   },
-   {
-      R_028A8C_VGT_PRIMITIVEID_RESET,
-      4,
-   },
-   {
-      R_028A98_VGT_DRAW_PAYLOAD_CNTL,
-      4,
-   },
-   {
-      R_028AAC_VGT_ESGS_RING_ITEMSIZE,
-      R_028AC4_DB_SRESULTS_COMPARE_STATE1 - R_028AAC_VGT_ESGS_RING_ITEMSIZE + 4,
-   },
-   {
-      R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET,
-      R_028B38_VGT_GS_MAX_VERT_OUT - R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET + 4,
-   },
-   {
-      R_028B4C_GE_NGG_SUBGRP_CNTL,
-      R_028B58_VGT_LS_HS_CONFIG - R_028B4C_GE_NGG_SUBGRP_CNTL + 4,
-   },
-   {
-      R_028B6C_VGT_TF_PARAM,
-      R_028B90_VGT_GS_INSTANCE_CNT - R_028B6C_VGT_TF_PARAM + 4,
-   },
-   {
-      R_028BD4_PA_SC_CENTROID_PRIORITY_0,
-      R_028C54_PA_SC_BINNER_CNTL_2 - R_028BD4_PA_SC_CENTROID_PRIORITY_0 + 4,
-   },
-   {
-      R_028C60_CB_COLOR0_BASE,
-      4,
-   },
-   {
-      R_028C6C_CB_COLOR0_VIEW,
-      R_028C78_CB_COLOR0_FDCC_CONTROL - R_028C6C_CB_COLOR0_VIEW + 4,
-   },
-   {
-      R_028C94_CB_COLOR0_DCC_BASE,
-      R_028C9C_CB_COLOR1_BASE - R_028C94_CB_COLOR0_DCC_BASE + 4,
-   },
-   {
-      R_028CA8_CB_COLOR1_VIEW,
-      R_028CB4_CB_COLOR1_FDCC_CONTROL - R_028CA8_CB_COLOR1_VIEW + 4,
-   },
-   {
-      R_028CD0_CB_COLOR1_DCC_BASE,
-      R_028CD8_CB_COLOR2_BASE - R_028CD0_CB_COLOR1_DCC_BASE + 4,
-   },
-   {
-      R_028CE4_CB_COLOR2_VIEW,
-      R_028CF0_CB_COLOR2_FDCC_CONTROL - R_028CE4_CB_COLOR2_VIEW + 4,
-   },
-   {
-      R_028D0C_CB_COLOR2_DCC_BASE,
-      R_028D14_CB_COLOR3_BASE - R_028D0C_CB_COLOR2_DCC_BASE + 4,
-   },
-   {
-      R_028D20_CB_COLOR3_VIEW,
-      R_028D2C_CB_COLOR3_FDCC_CONTROL - R_028D20_CB_COLOR3_VIEW + 4,
-   },
-   {
-      R_028D48_CB_COLOR3_DCC_BASE,
-      R_028D50_CB_COLOR4_BASE - R_028D48_CB_COLOR3_DCC_BASE + 4,
-   },
-   {
-      R_028D5C_CB_COLOR4_VIEW,
-      R_028D68_CB_COLOR4_FDCC_CONTROL - R_028D5C_CB_COLOR4_VIEW + 4,
-   },
-   {
-      R_028D84_CB_COLOR4_DCC_BASE,
-      R_028D8C_CB_COLOR5_BASE - R_028D84_CB_COLOR4_DCC_BASE + 4,
-   },
-   {
-      R_028D98_CB_COLOR5_VIEW,
-      R_028DA4_CB_COLOR5_FDCC_CONTROL - R_028D98_CB_COLOR5_VIEW + 4,
-   },
-   {
-      R_028DC0_CB_COLOR5_DCC_BASE,
-      R_028DC8_CB_COLOR6_BASE - R_028DC0_CB_COLOR5_DCC_BASE + 4,
-   },
-   {
-      R_028DD4_CB_COLOR6_VIEW,
-      R_028DE0_CB_COLOR6_FDCC_CONTROL - R_028DD4_CB_COLOR6_VIEW + 4,
-   },
-   {
-      R_028DFC_CB_COLOR6_DCC_BASE,
-      R_028E04_CB_COLOR7_BASE - R_028DFC_CB_COLOR6_DCC_BASE + 4,
-   },
-   {
-      R_028E10_CB_COLOR7_VIEW,
-      R_028E1C_CB_COLOR7_FDCC_CONTROL - R_028E10_CB_COLOR7_VIEW + 4,
-   },
-   {
-      R_028E38_CB_COLOR7_DCC_BASE,
-      R_028E5C_CB_COLOR7_BASE_EXT - R_028E38_CB_COLOR7_DCC_BASE + 4,
-   },
-   {
-      R_028EA0_CB_COLOR0_DCC_BASE_EXT,
-      R_028EFC_CB_COLOR7_ATTRIB3 - R_028EA0_CB_COLOR0_DCC_BASE_EXT + 4,
-   },
+   /* First register                            Count * 4      Last register */
+   { R_028000_DB_RENDER_CONTROL,                  6   * 4}, // DB_HTILE_DATA_BASE
+   { R_02801C_DB_DEPTH_SIZE_XY,                   7   * 4}, // PA_SC_SCREEN_SCISSOR_BR
+   { R_02803C_DB_RESERVED_REG_2,                  10  * 4}, // DB_SPI_VRS_CENTER_LOCATION
+   { R_028068_DB_Z_READ_BASE_HI,                  8   * 4}, // TA_BC_BASE_ADDR_HI
+   { R_0281E8_COHER_DEST_BASE_HI_0,               94  * 4}, // PA_SC_TILE_STEERING_OVERRIDE
+   { R_0283D0_PA_SC_VRS_OVERRIDE_CNTL,            4   * 4}, // PA_SC_VRS_RATE_FEEDBACK_SIZE_XY
+   { R_0283E4_PA_SC_VRS_RATE_CACHE_CNTL,          1   * 4}, // PA_SC_VRS_RATE_CACHE_CNTL
+   { R_0283F0_PA_SC_VRS_RATE_BASE,                3   * 4}, // PA_SC_VRS_RATE_SIZE_XY
+   { R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX,       11  * 4}, // DB_STENCILREFMASK_BF
+   { R_02843C_PA_CL_VPORT_XSCALE,                 120 * 4}, // PA_CL_UCP_5_W
+   { R_02861C_PA_CL_PROG_NEAR_CLIP_Z,             2   * 4}, // PA_RATE_CNTL - not shadowed by RS64 !!!
+   { R_028644_SPI_PS_INPUT_CNTL_0,                33  * 4}, // SPI_VS_OUT_CONFIG
+   { R_0286CC_SPI_PS_INPUT_ENA,                   6   * 4}, // SPI_BARYC_CNTL
+   { R_0286E8_SPI_TMPRING_SIZE,                   3   * 4}, // SPI_GFX_SCRATCH_BASE_HI
+   { R_028708_SPI_SHADER_IDX_FORMAT,              4   * 4}, // SPI_SHADER_COL_FORMAT
+   { R_028750_SX_PS_DOWNCONVERT_CONTROL,          20  * 4}, // CB_BLEND7_CONTROL
+   { R_0287D4_PA_CL_POINT_X_RAD,                  4   * 4}, // PA_CL_POINT_CULL_RAD
+   { R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP,         14  * 4}, // PA_SU_SMALL_PRIM_FILTER_CNTL
+   { R_028838_PA_CL_NGG_CNTL,                     5   * 4}, // PA_CL_VRS_CNTL
+   { R_028A00_PA_SU_POINT_SIZE,                   4   * 4}, // PA_SC_LINE_STIPPLE
+   { R_028A18_VGT_HOS_MAX_TESS_LEVEL,             2   * 4}, // VGT_HOS_MIN_TESS_LEVEL
+   { R_028A48_PA_SC_MODE_CNTL_0,                  3   * 4}, // VGT_ENHANCE
+   { R_028A84_VGT_PRIMITIVEID_EN,                 1   * 4}, // VGT_PRIMITIVEID_EN
+   { R_028A8C_VGT_PRIMITIVEID_RESET,              1   * 4}, // VGT_PRIMITIVEID_RESET
+   { R_028A98_VGT_DRAW_PAYLOAD_CNTL,              1   * 4}, // VGT_DRAW_PAYLOAD_CNTL
+   { R_028AAC_VGT_ESGS_RING_ITEMSIZE,             1   * 4}, // VGT_ESGS_RING_ITEMSIZE
+   { R_028AB4_VGT_REUSE_OFF,                      1   * 4}, // VGT_REUSE_OFF
+   { R_028ABC_DB_HTILE_SURFACE,                   4   * 4}, // DB_PRELOAD_CONTROL
+   { R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET,     3   * 4}, // VGT_STRMOUT_DRAW_OPAQUE_VERTEX_STRIDE
+   { R_028B38_VGT_GS_MAX_VERT_OUT,                1   * 4}, // VGT_GS_MAX_VERT_OUT
+   { R_028B4C_GE_NGG_SUBGRP_CNTL,                 4   * 4}, // VGT_LS_HS_CONFIG
+   { R_028B6C_VGT_TF_PARAM,                       2   * 4}, // DB_ALPHA_TO_MASK
+   { R_028B78_PA_SU_POLY_OFFSET_DB_FMT_CNTL,      7   * 4}, // VGT_GS_INSTANCE_CNT
+   { R_028BD4_PA_SC_CENTROID_PRIORITY_0,          33  * 4}, // PA_SC_BINNER_CNTL_2
+   { R_028C60_CB_COLOR0_BASE,                     1   * 4}, // CB_COLOR0_BASE
+   { R_028C6C_CB_COLOR0_VIEW,                     4   * 4}, // CB_COLOR0_FDCC_CONTROL
+   { R_028C94_CB_COLOR0_DCC_BASE,                 1   * 4}, // CB_COLOR0_DCC_BASE
+   { R_028C9C_CB_COLOR1_BASE,                     1   * 4}, // CB_COLOR1_BASE
+   { R_028CA8_CB_COLOR1_VIEW,                     4   * 4}, // CB_COLOR1_FDCC_CONTROL
+   { R_028CD0_CB_COLOR1_DCC_BASE,                 1   * 4}, // CB_COLOR1_DCC_BASE
+   { R_028CD8_CB_COLOR2_BASE,                     1   * 4}, // CB_COLOR2_BASE
+   { R_028CE4_CB_COLOR2_VIEW,                     4   * 4}, // CB_COLOR2_FDCC_CONTROL
+   { R_028D0C_CB_COLOR2_DCC_BASE,                 1   * 4}, // CB_COLOR2_DCC_BASE
+   { R_028D14_CB_COLOR3_BASE,                     1   * 4}, // CB_COLOR3_BASE
+   { R_028D20_CB_COLOR3_VIEW,                     4   * 4}, // CB_COLOR3_FDCC_CONTROL
+   { R_028D48_CB_COLOR3_DCC_BASE,                 1   * 4}, // CB_COLOR3_DCC_BASE
+   { R_028D50_CB_COLOR4_BASE,                     1   * 4}, // CB_COLOR4_BASE
+   { R_028D5C_CB_COLOR4_VIEW,                     4   * 4}, // CB_COLOR4_FDCC_CONTROL
+   { R_028D84_CB_COLOR4_DCC_BASE,                 1   * 4}, // CB_COLOR4_DCC_BASE
+   { R_028D8C_CB_COLOR5_BASE,                     1   * 4}, // CB_COLOR5_BASE
+   { R_028D98_CB_COLOR5_VIEW,                     4   * 4}, // CB_COLOR5_FDCC_CONTROL
+   { R_028DC0_CB_COLOR5_DCC_BASE,                 1   * 4}, // CB_COLOR5_DCC_BASE
+   { R_028DC8_CB_COLOR6_BASE,                     1   * 4}, // CB_COLOR6_BASE
+   { R_028DD4_CB_COLOR6_VIEW,                     4   * 4}, // CB_COLOR6_FDCC_CONTROL
+   { R_028DFC_CB_COLOR6_DCC_BASE,                 1   * 4}, // CB_COLOR6_DCC_BASE
+   { R_028E04_CB_COLOR7_BASE,                     1   * 4}, // CB_COLOR7_BASE
+   { R_028E10_CB_COLOR7_VIEW,                     4   * 4}, // CB_COLOR7_FDCC_CONTROL
+   { R_028E38_CB_COLOR7_DCC_BASE,                 1   * 4}, // CB_COLOR7_DCC_BASE
+   { R_028E40_CB_COLOR0_BASE_EXT,                 8   * 4}, // CB_COLOR7_BASE_EXT
+   { R_028EA0_CB_COLOR0_DCC_BASE_EXT,             24  * 4}  // CB_COLOR7_ATTRIB3
 };
 
 static const struct ac_reg_range Gfx11UserConfigShadowRange[] =
 {
-   {
-      R_030908_VGT_PRIMITIVE_TYPE,
-      4,
-   },
-   {
-      R_030998_VGT_GS_OUT_PRIM_TYPE,
-      4,
-   },
-   {
-      R_030964_GE_MAX_VTX_INDX,
-      4,
-   },
-   {
-      R_030924_GE_MIN_VTX_INDX,
-      R_03092C_GE_MULTI_PRIM_IB_RESET_EN - R_030924_GE_MIN_VTX_INDX + 4,
-   },
-   {
-      R_008974_VGT_NUM_INSTANCES,
-      R_030940_VGT_TF_MEMORY_BASE - R_008974_VGT_NUM_INSTANCES + 4,
-   },
-   {
-      R_03097C_GE_STEREO_CNTL,
-      R_030984_VGT_TF_MEMORY_BASE_HI - R_03097C_GE_STEREO_CNTL + 4,
-   },
-   {
-      R_03096C_GE_CNTL,
-      4,
-   },
-   {
-      R_030968_VGT_INSTANCE_BASE_ID,
-      4,
-   },
-   {
-      R_030E00_TA_CS_BC_BASE_ADDR,
-      R_030E04_TA_CS_BC_BASE_ADDR_HI - R_030E00_TA_CS_BC_BASE_ADDR + 4,
-   },
-   {
-      R_030988_GE_USER_VGPR_EN,
-      R_03098C_GE_VRS_RATE - R_030988_GE_USER_VGPR_EN + 4,
-   },
-   {
-      R_031110_SPI_GS_THROTTLE_CNTL1,
-      R_03111C_SPI_ATTRIBUTE_RING_SIZE - R_031110_SPI_GS_THROTTLE_CNTL1 + 4,
-   },
-};
-
-/* Defines the set of ranges of registers which cannot be shadowed for various reasons. */
-static const struct ac_reg_range Gfx11NonShadowedRanges[] =
-{
-
-   /* VGT_INDEX_TYPE and VGT_DMA_INDEX_TYPE are a special case and neither of these should
-    * be shadowed.
-    */
-   {
-      R_028A7C_VGT_DMA_INDEX_TYPE,
-      4,
-   },
-   {
-      R_03090C_VGT_INDEX_TYPE,
-      4,
-   },
-   {
-      R_028A88_VGT_DMA_NUM_INSTANCES,
-      4,
-   },
-   {
-      R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
-      4,
-   },
-   {
-      R_00B004_SPI_SHADER_PGM_RSRC4_PS,
-      4,
-   },
-   {
-      R_00B404_SPI_SHADER_PGM_RSRC4_HS,
-      4,
-   },
-   {
-      R_00B204_SPI_SHADER_PGM_RSRC4_GS,
-      4,
-   },
-   {
-      R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0,
-      R_00B85C_COMPUTE_STATIC_THREAD_MGMT_SE1 - R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0 + 4,
-   },
-   {
-      R_00B864_COMPUTE_STATIC_THREAD_MGMT_SE2,
-      R_00B868_COMPUTE_STATIC_THREAD_MGMT_SE3 - R_00B864_COMPUTE_STATIC_THREAD_MGMT_SE2 + 4,
-   },
-   {
-      R_030800_GRBM_GFX_INDEX,
-      4,
-   },
-   {
-      R_030A00_PA_SU_LINE_STIPPLE_VALUE,
-      R_030A04_PA_SC_LINE_STIPPLE_STATE - R_030A00_PA_SU_LINE_STIPPLE_VALUE + 4,
-   },
-   /* SQ thread trace registers are always not shadowed. */
-   {
-      R_0367A0_SQ_THREAD_TRACE_BUF0_BASE,
-      R_0367D4_SQ_THREAD_TRACE_STATUS2 - R_0367A0_SQ_THREAD_TRACE_BUF0_BASE + 4,
-   },
-   {
-      R_030D00_SQ_THREAD_TRACE_USERDATA_0,
-      R_030D1C_SQ_THREAD_TRACE_USERDATA_7 - R_030D00_SQ_THREAD_TRACE_USERDATA_0 + 4,
-   },
-   /* Perf counter registers are always not shadowed. Most of them are in the perf register
-    * space, but some legacy registers are still outside of it. The SPM registers are
-    * in the perf range as well.
-    */
-   {
-      SI_UCONFIG_PERF_REG_OFFSET,
-      SI_UCONFIG_PERF_REG_SPACE_SIZE,
-   },
-   /* These aren't defined in Mesa. */
-   /*{
-      RPB_PERFCOUNTER_LO,
-      RPB_PERFCOUNTER_RSLT_CNTL - RPB_PERFCOUNTER_LO + 4,
-   },*/
-   {
-      R_037890_SDMA0_PERFCOUNTER0_SELECT,
-      R_03789C_SDMA0_PERFCOUNTER1_SELECT1 - R_037890_SDMA0_PERFCOUNTER0_SELECT + 4,
-   },
-   {
-      R_0378C0_SDMA1_PERFCOUNTER0_SELECT,
-      R_0378CC_SDMA1_PERFCOUNTER1_SELECT1 - R_0378C0_SDMA1_PERFCOUNTER0_SELECT + 4,
-   },
-   {
-      R_0359B0_SDMA1_PERFCNT_PERFCOUNTER_LO,
-      R_0359C4_SDMA1_PERFCOUNTER1_HI - R_0359B0_SDMA1_PERFCNT_PERFCOUNTER_LO + 4,
-   },
-   {
-      R_035980_SDMA0_PERFCNT_PERFCOUNTER_LO,
-      R_035994_SDMA0_PERFCOUNTER1_HI - R_035980_SDMA0_PERFCNT_PERFCOUNTER_LO + 4,
-   },
+   /* First register                            Count * 4      Last register */
+   { R_030908_VGT_PRIMITIVE_TYPE,                   1 * 4}, // VGT_PRIMITIVE_TYPE
+   { R_030924_GE_MIN_VTX_INDX,                      3 * 4}, // GE_MULTI_PRIM_IB_RESET_EN
+   { R_030934_VGT_NUM_INSTANCES,                    4 * 4}, // VGT_TF_MEMORY_BASE
+   { R_030964_GE_MAX_VTX_INDX,                      3 * 4}, // GE_CNTL
+   { R_03097C_GE_STEREO_CNTL,                       5 * 4}, // GE_VRS_RATE
+   { R_030998_VGT_GS_OUT_PRIM_TYPE,                 1 * 4}, // VGT_GS_OUT_PRIM_TYPE
+   { R_030A00_PA_SU_LINE_STIPPLE_VALUE,             2 * 4}, // PA_SC_LINE_STIPPLE_STATE - not shadowed by RS64
+   { R_030E00_TA_CS_BC_BASE_ADDR,                   2 * 4}, // TA_CS_BC_BASE_ADDR_HI
+   { R_031110_SPI_GS_THROTTLE_CNTL1,                4 * 4}, // SPI_ATTRIBUTE_RING_SIZE
+   /* GDS_STRMOUT_* registers are not listed because they are modified outside of the command buffer,
+    * so they have to be shadowed differently by firmware.
+  . */
 };
 
 void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
@@ -1293,16 +770,6 @@ void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
          RETURN(Gfx9CsShShadowRangeRaven2);
       else if (gfx_level == GFX9)
          RETURN(Gfx9CsShShadowRange);
-      break;
-   case SI_REG_RANGE_NON_SHADOWED:
-      if (gfx_level == GFX11)
-         RETURN(Gfx11NonShadowedRanges);
-      else if (gfx_level == GFX10_3)
-         RETURN(Gfx103NonShadowedRanges);
-      else if (gfx_level == GFX10)
-         RETURN(Navi10NonShadowedRanges);
-      else
-         assert(0);
       break;
    default:
       break;
@@ -4044,87 +3511,208 @@ void ac_emulate_clear_state(const struct radeon_info *info, struct radeon_cmdbuf
    }
 }
 
-/* Debug helper to find if any registers are missing in the tables above.
- * Call this in the driver whenever you set a register.
- */
-void ac_check_shadowed_regs(enum amd_gfx_level gfx_level, enum radeon_family family,
-                            unsigned reg_offset, unsigned count)
+static void ac_print_nonshadowed_reg(enum amd_gfx_level gfx_level, enum radeon_family family,
+                                     unsigned reg_offset)
 {
    bool found = false;
-   bool shadowed = false;
 
-   for (unsigned type = 0; type < SI_NUM_ALL_REG_RANGES && !found; type++) {
+   for (unsigned type = 0; type < SI_NUM_REG_RANGES && !found; type++) {
       const struct ac_reg_range *ranges;
       unsigned num_ranges;
 
       ac_get_reg_ranges(gfx_level, family, type, &num_ranges, &ranges);
 
       for (unsigned i = 0; i < num_ranges; i++) {
-         unsigned end_reg_offset = reg_offset + count * 4;
-         unsigned end_range_offset = ranges[i].offset + ranges[i].size;
-
-         /* Test if the ranges interect. */
-         if (MAX2(ranges[i].offset, reg_offset) < MIN2(end_range_offset, end_reg_offset)) {
-            /* Assertion: A register can be listed only once. */
-            assert(!found);
+         if (reg_offset >= ranges[i].offset && reg_offset < ranges[i].offset + ranges[i].size) {
+            /* Assertion: A register can be listed only once in the shadowed tables. */
+            if (found) {
+               printf("warning: register R_%06X_%s found multiple times in tables\n",
+                      reg_offset, ac_get_register_name(gfx_level, family, reg_offset));
+            }
             found = true;
-            shadowed = type != SI_REG_RANGE_NON_SHADOWED;
          }
       }
    }
 
-   if (reg_offset == R_00B858_COMPUTE_DESTINATION_EN_SE0 ||
-       reg_offset == R_00B864_COMPUTE_DESTINATION_EN_SE2)
-      return;
-
-   if (!found || !shadowed) {
-      printf("register %s: ", !found ? "not found" : "not shadowed");
-      if (count > 1) {
-         printf("%s .. %s\n", ac_get_register_name(gfx_level, reg_offset),
-                ac_get_register_name(gfx_level, reg_offset + (count - 1) * 4));
-      } else {
-         printf("%s\n", ac_get_register_name(gfx_level, reg_offset));
-      }
+   if (!found) {
+      printf("register R_%06X_%s not found in any tables\n", reg_offset,
+             ac_get_register_name(gfx_level, family, reg_offset));
    }
 }
 
-/* Debug helper to print all shadowed registers and their current values read
- * by umr. This can be used to verify whether register shadowing doesn't affect
- * apps that don't enable it, because the shadowed register tables might contain
- * registers that the driver doesn't set.
- */
-void ac_print_shadowed_regs(const struct radeon_info *info)
+void ac_print_nonshadowed_regs(enum amd_gfx_level gfx_level, enum radeon_family family)
 {
    if (!debug_get_bool_option("AMD_PRINT_SHADOW_REGS", false))
       return;
 
-   for (unsigned type = 0; type < SI_NUM_SHADOWED_REG_RANGES; type++) {
-      const struct ac_reg_range *ranges;
-      unsigned num_ranges;
+   for (unsigned i = 0xB000; i < 0xBFFF; i += 4) {
+      if (ac_register_exists(gfx_level, family, i))
+         ac_print_nonshadowed_reg(gfx_level, family, i);
+   }
 
-      ac_get_reg_ranges(info->gfx_level, info->family, type, &num_ranges, &ranges);
+   for (unsigned i = 0x28000; i < 0x28FFF; i += 4) {
+      if (ac_register_exists(gfx_level, family, i))
+         ac_print_nonshadowed_reg(gfx_level, family, i);
+   }
 
-      for (unsigned i = 0; i < num_ranges; i++) {
-         for (unsigned j = 0; j < ranges[i].size / 4; j++) {
-            unsigned offset = ranges[i].offset + j * 4;
+   for (unsigned i = 0x30000; i < 0x31FFF; i += 4) {
+      if (ac_register_exists(gfx_level, family, i))
+         ac_print_nonshadowed_reg(gfx_level, family, i);
+   }
+}
 
-            const char *name = ac_get_register_name(info->gfx_level, offset);
-            unsigned value = -1;
+static void ac_build_load_reg(const struct radeon_info *info,
+                              pm4_cmd_add_fn pm4_cmd_add, void *pm4_cmdbuf,
+                              enum ac_reg_range_type type,
+                              uint64_t gpu_address)
+{
+   unsigned packet, num_ranges, offset;
+   const struct ac_reg_range *ranges;
 
-#ifndef _WIN32
-            char cmd[1024];
-            snprintf(cmd, sizeof(cmd), "umr -r 0x%x", offset);
-            FILE *p = popen(cmd, "r");
-            if (p) {
-               ASSERTED int r = fscanf(p, "%x", &value);
-               assert(r == 1);
-               pclose(p);
-            }
-#endif
+   ac_get_reg_ranges(info->gfx_level, info->family,
+                     type, &num_ranges, &ranges);
 
-            printf("0x%X %s = 0x%X\n", offset, name, value);
-         }
-         printf("--------------------------------------------\n");
-      }
+   switch (type) {
+   case SI_REG_RANGE_UCONFIG:
+      gpu_address += SI_SHADOWED_UCONFIG_REG_OFFSET;
+      offset = CIK_UCONFIG_REG_OFFSET;
+      packet = PKT3_LOAD_UCONFIG_REG;
+      break;
+   case SI_REG_RANGE_CONTEXT:
+      gpu_address += SI_SHADOWED_CONTEXT_REG_OFFSET;
+      offset = SI_CONTEXT_REG_OFFSET;
+      packet = PKT3_LOAD_CONTEXT_REG;
+      break;
+   default:
+      gpu_address += SI_SHADOWED_SH_REG_OFFSET;
+      offset = SI_SH_REG_OFFSET;
+      packet = PKT3_LOAD_SH_REG;
+      break;
+   }
+
+   pm4_cmd_add(pm4_cmdbuf, PKT3(packet, 1 + num_ranges * 2, 0));
+   pm4_cmd_add(pm4_cmdbuf, gpu_address);
+   pm4_cmd_add(pm4_cmdbuf, gpu_address >> 32);
+   for (unsigned i = 0; i < num_ranges; i++) {
+      pm4_cmd_add(pm4_cmdbuf, (ranges[i].offset - offset) / 4);
+      pm4_cmd_add(pm4_cmdbuf, ranges[i].size / 4);
+   }
+}
+
+void ac_create_shadowing_ib_preamble(const struct radeon_info *info,
+                                     pm4_cmd_add_fn pm4_cmd_add, void *pm4_cmdbuf,
+                                     uint64_t gpu_address,
+                                     bool dpbb_allowed)
+{
+   if (dpbb_allowed) {
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_EVENT_WRITE, 0, 0));
+      pm4_cmd_add(pm4_cmdbuf, EVENT_TYPE(V_028A90_BREAK_BATCH) | EVENT_INDEX(0));
+   }
+
+   /* Wait for idle, because we'll update VGT ring pointers. */
+   pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_EVENT_WRITE, 0, 0));
+   pm4_cmd_add(pm4_cmdbuf, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+
+   /* VGT_FLUSH is required even if VGT is idle. It resets VGT pointers. */
+   pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_EVENT_WRITE, 0, 0));
+   pm4_cmd_add(pm4_cmdbuf, EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
+
+   if (info->gfx_level >= GFX11) {
+      uint64_t rb_mask = BITFIELD64_MASK(info->max_render_backends);
+
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_EVENT_WRITE, 2, 0));
+      pm4_cmd_add(pm4_cmdbuf, EVENT_TYPE(V_028A90_PIXEL_PIPE_STAT_CONTROL) | EVENT_INDEX(1));
+      pm4_cmd_add(pm4_cmdbuf, PIXEL_PIPE_STATE_CNTL_COUNTER_ID(0) |
+                              PIXEL_PIPE_STATE_CNTL_STRIDE(2) |
+                              PIXEL_PIPE_STATE_CNTL_INSTANCE_EN_LO(rb_mask));
+      pm4_cmd_add(pm4_cmdbuf, PIXEL_PIPE_STATE_CNTL_INSTANCE_EN_HI(rb_mask));
+
+      /* We must wait for idle using an EOP event before changing the attribute ring registers.
+       * Use the bottom-of-pipe EOP event, but increment the PWS counter instead of writing memory.
+       */
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_RELEASE_MEM, 6, 0));
+      pm4_cmd_add(pm4_cmdbuf, S_490_EVENT_TYPE(V_028A90_BOTTOM_OF_PIPE_TS) |
+                              S_490_EVENT_INDEX(5) |
+                              S_490_PWS_ENABLE(1));
+      pm4_cmd_add(pm4_cmdbuf, 0); /* DST_SEL, INT_SEL, DATA_SEL */
+      pm4_cmd_add(pm4_cmdbuf, 0); /* ADDRESS_LO */
+      pm4_cmd_add(pm4_cmdbuf, 0); /* ADDRESS_HI */
+      pm4_cmd_add(pm4_cmdbuf, 0); /* DATA_LO */
+      pm4_cmd_add(pm4_cmdbuf, 0); /* DATA_HI */
+      pm4_cmd_add(pm4_cmdbuf, 0); /* INT_CTXID */
+
+      unsigned gcr_cntl = S_586_GL2_INV(1) | S_586_GL2_WB(1) |
+                          S_586_GLM_INV(1) | S_586_GLM_WB(1) |
+                          S_586_GL1_INV(1) | S_586_GLV_INV(1) |
+                          S_586_GLK_INV(1) | S_586_GLI_INV(V_586_GLI_ALL);
+
+      /* Wait for the PWS counter. */
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_ACQUIRE_MEM, 6, 0));
+      pm4_cmd_add(pm4_cmdbuf, S_580_PWS_STAGE_SEL(V_580_CP_PFP) |
+                              S_580_PWS_COUNTER_SEL(V_580_TS_SELECT) |
+                              S_580_PWS_ENA2(1) |
+                              S_580_PWS_COUNT(0));
+      pm4_cmd_add(pm4_cmdbuf, 0xffffffff); /* GCR_SIZE */
+      pm4_cmd_add(pm4_cmdbuf, 0x01ffffff); /* GCR_SIZE_HI */
+      pm4_cmd_add(pm4_cmdbuf, 0); /* GCR_BASE_LO */
+      pm4_cmd_add(pm4_cmdbuf, 0); /* GCR_BASE_HI */
+      pm4_cmd_add(pm4_cmdbuf, S_585_PWS_ENA(1));
+      pm4_cmd_add(pm4_cmdbuf, gcr_cntl); /* GCR_CNTL */
+   } else if (info->gfx_level >= GFX10) {
+      unsigned gcr_cntl = S_586_GL2_INV(1) | S_586_GL2_WB(1) |
+                          S_586_GLM_INV(1) | S_586_GLM_WB(1) |
+                          S_586_GL1_INV(1) | S_586_GLV_INV(1) |
+                          S_586_GLK_INV(1) | S_586_GLI_INV(V_586_GLI_ALL);
+
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_ACQUIRE_MEM, 6, 0));
+      pm4_cmd_add(pm4_cmdbuf, 0);           /* CP_COHER_CNTL */
+      pm4_cmd_add(pm4_cmdbuf, 0xffffffff);  /* CP_COHER_SIZE */
+      pm4_cmd_add(pm4_cmdbuf, 0xffffff);    /* CP_COHER_SIZE_HI */
+      pm4_cmd_add(pm4_cmdbuf, 0);           /* CP_COHER_BASE */
+      pm4_cmd_add(pm4_cmdbuf, 0);           /* CP_COHER_BASE_HI */
+      pm4_cmd_add(pm4_cmdbuf, 0x0000000A);  /* POLL_INTERVAL */
+      pm4_cmd_add(pm4_cmdbuf, gcr_cntl);    /* GCR_CNTL */
+
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
+      pm4_cmd_add(pm4_cmdbuf, 0);
+   } else if (info->gfx_level == GFX9) {
+      unsigned cp_coher_cntl = S_0301F0_SH_ICACHE_ACTION_ENA(1) |
+                               S_0301F0_SH_KCACHE_ACTION_ENA(1) |
+                               S_0301F0_TC_ACTION_ENA(1) |
+                               S_0301F0_TCL1_ACTION_ENA(1) |
+                               S_0301F0_TC_WB_ACTION_ENA(1);
+
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_ACQUIRE_MEM, 5, 0));
+      pm4_cmd_add(pm4_cmdbuf, cp_coher_cntl); /* CP_COHER_CNTL */
+      pm4_cmd_add(pm4_cmdbuf, 0xffffffff);    /* CP_COHER_SIZE */
+      pm4_cmd_add(pm4_cmdbuf, 0xffffff);      /* CP_COHER_SIZE_HI */
+      pm4_cmd_add(pm4_cmdbuf, 0);             /* CP_COHER_BASE */
+      pm4_cmd_add(pm4_cmdbuf, 0);             /* CP_COHER_BASE_HI */
+      pm4_cmd_add(pm4_cmdbuf, 0x0000000A);    /* POLL_INTERVAL */
+
+      pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
+      pm4_cmd_add(pm4_cmdbuf, 0);
+   } else {
+      unreachable("invalid chip");
+   }
+
+   pm4_cmd_add(pm4_cmdbuf, PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
+   pm4_cmd_add(pm4_cmdbuf,
+               CC0_UPDATE_LOAD_ENABLES(1) |
+               CC0_LOAD_PER_CONTEXT_STATE(1) |
+               CC0_LOAD_CS_SH_REGS(1) |
+               CC0_LOAD_GFX_SH_REGS(1) |
+               CC0_LOAD_GLOBAL_UCONFIG(1));
+   pm4_cmd_add(pm4_cmdbuf,
+               CC1_UPDATE_SHADOW_ENABLES(1) |
+               CC1_SHADOW_PER_CONTEXT_STATE(1) |
+               CC1_SHADOW_CS_SH_REGS(1) |
+               CC1_SHADOW_GFX_SH_REGS(1) |
+               CC1_SHADOW_GLOBAL_UCONFIG(1) |
+               CC1_SHADOW_GLOBAL_CONFIG(1));
+
+   if (!info->has_fw_based_shadowing) {
+      for (unsigned i = 0; i < SI_NUM_REG_RANGES; i++)
+         ac_build_load_reg(info, pm4_cmd_add, pm4_cmdbuf, i, gpu_address);
    }
 }

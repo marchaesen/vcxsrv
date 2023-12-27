@@ -56,7 +56,8 @@ FcRangeCreateInteger (FcChar32 begin, FcChar32 end)
 void
 FcRangeDestroy (FcRange *range)
 {
-    free (range);
+    if (range)
+	free (range);
 }
 
 FcRange *

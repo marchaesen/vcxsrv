@@ -21,39 +21,39 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-@RET@		FcBlanks *
-@FUNC@		FcBlanksCreate
-@TYPE1@		void
-@PURPOSE@	Create an FcBlanks
+@RET@           FcBlanks *
+@FUNC@          FcBlanksCreate
+@TYPE1@         void
+@PURPOSE@       Create an FcBlanks
 @DESC@
 FcBlanks is deprecated.
 This function always returns NULL.
 @@
 
-@RET@		void
-@FUNC@		FcBlanksDestroy
-@TYPE1@		FcBlanks *			@ARG1@		b
-@PURPOSE@	Destroy and FcBlanks
+@RET@           void
+@FUNC@          FcBlanksDestroy
+@TYPE1@         FcBlanks *                      @ARG1@          b
+@PURPOSE@       Destroy and FcBlanks
 @DESC@
 FcBlanks is deprecated.
 This function does nothing.
 @@
 
-@RET@		FcBool
-@FUNC@		FcBlanksAdd
-@TYPE1@		FcBlanks *			@ARG1@		b
-@TYPE2@		FcChar32% 			@ARG2@		ucs4
-@PURPOSE@	Add a character to an FcBlanks
+@RET@           FcBool
+@FUNC@          FcBlanksAdd
+@TYPE1@         FcBlanks *                      @ARG1@          b
+@TYPE2@         FcChar32%                       @ARG2@          ucs4
+@PURPOSE@       Add a character to an FcBlanks
 @DESC@
 FcBlanks is deprecated.
 This function always returns FALSE.
 @@
 
-@RET@		FcBool
-@FUNC@		FcBlanksIsMember
-@TYPE1@		FcBlanks *			@ARG1@		b
-@TYPE2@		FcChar32% 			@ARG2@		ucs4
-@PURPOSE@	Query membership in an FcBlanks
+@RET@           FcBool
+@FUNC@          FcBlanksIsMember
+@TYPE1@         FcBlanks *                      @ARG1@          b
+@TYPE2@         FcChar32%                       @ARG2@          ucs4
+@PURPOSE@       Query membership in an FcBlanks
 @DESC@
 FcBlanks is deprecated.
 This function always returns FALSE.

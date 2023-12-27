@@ -328,12 +328,19 @@ xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
             pBox++;
         }
     } else {
+#ifdef XWL_HAS_GLAMOR
+        /* Try the xwayland/glamor direct hook first */
         xwl_window_buffer->pixmap =
-            (*xwl_screen->screen->CreatePixmap) (window_pixmap->drawable.pScreen,
-                                                 window_pixmap->drawable.width,
-                                                 window_pixmap->drawable.height,
-                                                 window_pixmap->drawable.depth,
-                                                 CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
+            xwl_glamor_create_pixmap_for_window(xwl_window);
+#endif /* XWL_HAS_GLAMOR */
+        if (!xwl_window_buffer->pixmap) {
+            xwl_window_buffer->pixmap =
+                (*xwl_screen->screen->CreatePixmap) (window_pixmap->drawable.pScreen,
+                                                     window_pixmap->drawable.width,
+                                                     window_pixmap->drawable.height,
+                                                     window_pixmap->drawable.depth,
+                                                     CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
+        }
 
         if (!xwl_window_buffer->pixmap)
             return window_pixmap;

@@ -3,18 +3,13 @@ dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_center,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner,Fail
-dEQP-GLES3.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.8,Fail
-dEQP-GLES3.functional.draw_buffers_indexed.random.max_required_draw_buffers.9,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_equal,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_larger,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.fbo_bbox_equal,Fail
-dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.fbo_bbox_larger,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.tessellation_set_per_draw.vertex_tessellation_fragment.default_framebuffer_bbox_equal,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.tessellation_set_per_draw.vertex_tessellation_fragment.default_framebuffer_bbox_larger,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.tessellation_set_per_draw.vertex_tessellation_fragment.fbo_bbox_equal,Fail
-dEQP-GLES31.functional.primitive_bounding_box.wide_points.tessellation_set_per_draw.vertex_tessellation_fragment.fbo_bbox_larger,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.tessellation_set_per_primitive.vertex_tessellation_fragment.default_framebuffer,Fail
-dEQP-GLES31.functional.primitive_bounding_box.wide_points.tessellation_set_per_primitive.vertex_tessellation_fragment.fbo,Fail
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_pixel.multisample_rbo_1,Fail
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_pixel.multisample_rbo_2,Fail
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_pixel.multisample_texture_1,Fail
@@ -29,35 +24,22 @@ dEQP-GLES3.functional.clipping.point.wide_point_clip,Fail
 dEQP-GLES3.functional.clipping.point.wide_point_clip_viewport_center,Fail
 dEQP-GLES3.functional.clipping.point.wide_point_clip_viewport_corner,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_x,Fail
 
-
-KHR-GL43.compute_shader.fp64-case1,Fail
 KHR-GL43.compute_shader.resource-subroutine,Fail
 KHR-GL43.cull_distance.functional,Fail
-KHR-GL43.gpu_shader_fp64.fp64.named_uniform_blocks,Fail
-KHR-GL43.gpu_shader_fp64.fp64.varyings,Fail
 KHR-GL43.map_buffer_alignment.functional,Crash
 KHR-GL43.shader_image_load_store.basic-allFormats-loadGeometryStages,Fail
 KHR-GL43.shader_image_load_store.basic-allFormats-storeGeometryStages,Fail
 KHR-GL43.shader_image_load_store.basic-allTargets-store,Fail
 KHR-GL43.shader_image_load_store.incomplete_textures,Fail
-KHR-GL43.shader_storage_buffer_object.advanced-indirectAddressing-case2,Fail
-KHR-GL43.shader_storage_buffer_object.advanced-usage-case1,Fail
-KHR-GL43.shader_storage_buffer_object.advanced-usage-sync,Fail
-KHR-GL43.shader_storage_buffer_object.basic-atomic-case1,Fail
-KHR-GL43.shader_storage_buffer_object.basic-atomic-case2,Fail
 KHR-GL43.shader_subroutine.ssbo_atomic_image_load_store,Fail
 
-KHR-Single-GL43.arrays_of_arrays_gl.AtomicUsage,Fail
 KHR-Single-GL43.arrays_of_arrays_gl.InteractionArgumentAliasing1,Fail
 KHR-Single-GL43.arrays_of_arrays_gl.InteractionArgumentAliasing2,Fail
 KHR-Single-GL43.arrays_of_arrays_gl.InteractionArgumentAliasing3,Fail
@@ -73,23 +55,10 @@ KHR-Single-GL43.arrays_of_arrays_gl.SubroutineArgumentAliasing4,Fail
 KHR-Single-GL43.arrays_of_arrays_gl.SubroutineFunctionCalls1,Fail
 KHR-Single-GL43.arrays_of_arrays_gl.SubroutineFunctionCalls2,Fail
 
-# virglrenderer translates TGSI IMAGE declaration "WR" ("image is not readonly")
-# into the writeonly qualifier, which works for gles (where each image is either
-# RO or WO) but not for desktop GL.
-KHR-GL43.shading_language_420pack.binding_image_array,Fail
-
-KHR-GL43.shading_language_420pack.binding_images,Fail
-KHR-GL43.texture_view.view_sampling,Fail
-KHR-GL43.transform_feedback_overflow_query_ARB.advanced-single-stream-interleaved-attribs,Fail
-KHR-GL43.transform_feedback_overflow_query_ARB.advanced-single-stream-separate-attribs,Fail
-KHR-GL43.transform_feedback_overflow_query_ARB.basic-single-stream-interleaved-attribs,Fail
-KHR-GL43.transform_feedback_overflow_query_ARB.basic-single-stream-separate-attribs,Fail
-KHR-GL43.transform_feedback_overflow_query_ARB.multiple-streams-multiple-buffers-per-stream,Fail
-KHR-GL43.transform_feedback_overflow_query_ARB.multiple-streams-one-buffer-per-stream,Fail
-
+glx@glx-make-current,Fail
+glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-clearbuffer,Crash
 glx@glx-multithread-texture,Crash
-glx@glx-swap-copy,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-tfp,Crash
 glx@glx-visuals-depth,Crash
@@ -152,12 +121,6 @@ spec@!opengl 1.1@polygon-mode-offset@config 0: Expected blue pixel in center,Fai
 spec@!opengl 1.1@polygon-mode-offset@config 1: Expected blue pixel in center,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 2: Expected blue pixel in center,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected blue pixel in center,Fail
-spec@!opengl 1.1@read-front,Fail
-spec@!opengl 1.1@read-front clear-front-first,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=2,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=4,Fail
-spec@!opengl 1.1@read-front samples=2,Fail
-spec@!opengl 1.1@read-front samples=4,Fail
 spec@!opengl 1.1@texwrap 1d bordercolor,Fail
 spec@!opengl 1.1@texwrap 1d bordercolor@GL_RGBA8- border color only,Fail
 spec@!opengl 1.1@texwrap 1d proj bordercolor,Fail
@@ -238,103 +201,13 @@ spec@!opengl 1.2@texwrap 3d bordercolor@GL_RGBA8- border color only,Fail
 spec@!opengl 1.2@texwrap 3d proj bordercolor,Fail
 spec@!opengl 1.2@texwrap 3d proj bordercolor@GL_RGBA8- projected- border color only,Fail
 spec@!opengl 1.5@depth-tex-compare,Fail
-spec@!opengl 1.5@draw-elements-user,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
 spec@!opengl 3.2@layered-rendering@clear-color-mismatched-layer-count,Fail
-spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail
 spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern_gles2,Fail
 spec@arb_clear_texture@arb_clear_texture-depth,Fail
 spec@arb_copy_image@arb_copy_image-formats,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RED_RGTC1/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RGBA_BPTC_UNORM/Destination: GL_COMPRESSED_RGBA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT/Destination: GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT/Destination: GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_RG_RGTC2/Destination: GL_COMPRESSED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RED_RGTC1/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RG_RGTC2/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM/Destination: GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
 spec@arb_copy_image@arb_copy_image-formats@Source: GL_DEPTH_COMPONENT24/Destination: GL_DEPTH_COMPONENT24,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32F/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32F/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32F/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32F/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32F/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32F/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32I/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32I/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32I/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32I/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32I/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32I/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32UI/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32UI/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32UI/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32UI/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32UI/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RG32UI/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16I/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16I/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16I/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16I/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16I/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16I/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16UI/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16UI/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16UI/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16UI/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16UI/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16UI/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16_SNORM/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16_SNORM/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16_SNORM/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16_SNORM/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16_SNORM/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA16_SNORM/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_RGBA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32F/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_RGBA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32I/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_RGBA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,Fail
-spec@arb_copy_image@arb_copy_image-formats@Source: GL_RGBA32UI/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
 spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-copypixels,Fail
 spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-24_8,Fail
 spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-32f_24_8_rev,Fail
@@ -358,10 +231,6 @@ spec@arb_es2_compatibility@texwrap formats bordercolor,Fail
 spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled,Fail
 spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled@GL_RGB565- swizzled- border color only,Fail
 spec@arb_es2_compatibility@texwrap formats bordercolor@GL_RGB565- border color only,Fail
-spec@arb_get_texture_sub_image@arb_get_texture_sub_image-get,Fail
-
-# segfault
-spec@arb_get_texture_sub_image@arb_get_texture_sub_image-getcompressed,Crash
 
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail
@@ -403,24 +272,6 @@ spec@arb_gpu_shader_fp64@execution@conversion@vert-conversion-explicit-dvec2-vec
 spec@arb_gpu_shader_fp64@execution@conversion@vert-conversion-explicit-dvec3-vec3,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@vert-conversion-explicit-dvec4-vec4,Fail
 
-spec@arb_gpu_shader_fp64@uniform_buffers@fs-dmat4,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@fs-dmat4-row-major,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@fs-double-array-const-index,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@fs-doubles,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@fs-doubles-float-mixed,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@fs-nested-struct,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@fs-ubo-direct-1,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@gs-dmat4,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@gs-dmat4-row-major,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@gs-double-array-const-index,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@gs-doubles-float-mixed,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@gs-nested-struct,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@vs-dmat4,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@vs-dmat4-row-major,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@vs-double-array-const-index,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@vs-doubles,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@vs-doubles-float-mixed,Fail
-spec@arb_gpu_shader_fp64@uniform_buffers@vs-nested-struct,Fail
 spec@arb_occlusion_query@occlusion_query_conform,Fail
 spec@arb_occlusion_query@occlusion_query_conform@GetObjivAval_multi1,Fail
 spec@arb_occlusion_query@occlusion_query_meta_no_fragments,Fail
@@ -430,16 +281,12 @@ spec@arb_program_interface_query@arb_program_interface_query-getprogramresourcei
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
 
 spec@arb_sample_shading@builtin-gl-sample-position 2,Fail
-spec@arb_shader_image_load_store@early-z,Fail
-spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
 
 spec@arb_shader_image_load_store@layer,Fail
 spec@arb_shader_image_load_store@layer@image2DMS/layered binding test,Fail
 spec@arb_shader_image_load_store@layer@image2DMS/non-layered binding test,Fail
 spec@arb_shader_image_load_store@layer@image2DMSArray/layered binding test,Fail
 spec@arb_shader_image_load_store@layer@image2DMSArray/non-layered binding test,Fail
-spec@arb_shader_image_load_store@max-images,Fail
-spec@arb_shader_image_load_store@max-images@Combined max image uniforms test,Fail
 spec@arb_shader_image_load_store@max-size,Fail
 spec@arb_shader_image_load_store@max-size@image2DMS max size test/4x16384x8x1,Fail
 spec@arb_shader_image_load_store@max-size@image2DMS max size test/4x8x16384x1,Fail
@@ -448,7 +295,6 @@ spec@arb_shader_image_load_store@semantics,Fail
 spec@arb_shader_image_load_store@semantics@imageLoad/Vertex shader/rgba32f/image2DMS test,Fail
 spec@arb_shader_image_load_store@semantics@imageLoad/Vertex shader/rgba32f/image2DMSArray test,Fail
 spec@arb_shader_storage_buffer_object@execution@ssbo-atomiccompswap-int,Fail
-spec@arb_shader_storage_buffer_object@maxblocks,Fail
 spec@arb_shader_texture_image_samples@builtin-image,Fail
 spec@arb_shader_texture_image_samples@builtin-image@r8/Compute/image2DMS samples test/2x8x96x1,Fail
 spec@arb_shader_texture_image_samples@builtin-image@r8/Compute/image2DMSArray samples test/2x8x16x6,Fail
@@ -509,16 +355,7 @@ spec@arb_shader_texture_image_samples@texturesamples@vs-sampler2dmsarray-2,Fail
 spec@arb_shader_texture_image_samples@texturesamples@vs-usampler2dms-2,Fail
 spec@arb_shader_texture_image_samples@texturesamples@vs-usampler2dmsarray-2,Fail
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgrad,Fail
-spec@arb_tessellation_shader@execution@double-array-vs-tcs-tes,Fail
-spec@arb_tessellation_shader@execution@double-vs-tcs-tes,Fail
-spec@arb_tessellation_shader@execution@dvec2-vs-tcs-tes,Fail
-spec@arb_tessellation_shader@execution@dvec3-vs-tcs-tes,Fail
 spec@arb_tessellation_shader@execution@gs-primitiveid-instanced,Fail
-
-# "	intrinsic copy_deref (ssa_2, ssa_3) (dst_access=0, src_access=0)
-#  error: glsl_get_bare_type(dst->type) == glsl_get_bare_type(src->type) (../src/compiler/nir/nir_validate.c:643)"
-# since ntt copy-deref optimization, probably.
-spec@arb_tessellation_shader@execution@tcs-tes-levels-out-of-bounds-write,Crash
 
 spec@arb_texture_compression@texwrap formats bordercolor,Fail
 spec@arb_texture_compression@texwrap formats bordercolor-swizzled,Fail
@@ -534,34 +371,19 @@ spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_LUMINANCE
 spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_LUMINANCE_ALPHA- border color only,Fail
 spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_RGB- border color only,Fail
 spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_RGBA- border color only,Fail
-spec@arb_texture_compression_bptc@compressedteximage gl_compressed_rgb_bptc_signed_float,Fail
-spec@arb_texture_compression_bptc@compressedteximage gl_compressed_rgb_bptc_unsigned_float,Fail
-spec@arb_texture_compression_bptc@compressedteximage gl_compressed_srgb_alpha_bptc_unorm,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor,Fail
+spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_RGBA_BPTC_UNORM- border color only,Fail
+spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT- border color only,Fail
+spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT- border color only,Fail
+spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM- border color only,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_BPTC_UNORM- swizzled- border color only,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT- swizzled- border color only,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT- swizzled- border color only,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM- swizzled- border color only,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_RGBA_BPTC_UNORM- border color only,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT- border color only,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT- border color only,Fail
-spec@arb_texture_compression_bptc@texwrap formats bordercolor@GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM- border color only,Fail
 spec@arb_texture_cube_map_array@fbo-generatemipmap-cubemap array s3tc_dxt1,Fail
 spec@arb_texture_float@fbo-blending-formats,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_ALPHA32F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_RGB32F,Fail
-spec@arb_texture_float@fbo-clear-formats,Fail
-spec@arb_texture_float@fbo-clear-formats@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_float@fbo-clear-formats@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-colormask-formats,Fail
-spec@arb_texture_float@fbo-colormask-formats@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_float@fbo-colormask-formats@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-fast-clear,Fail
-spec@arb_texture_float@multisample-fast-clear gl_arb_texture_float,Fail
-spec@arb_texture_float@multisample-formats 2 gl_arb_texture_float,Fail
-spec@arb_texture_float@multisample-formats 4 gl_arb_texture_float,Fail
 spec@arb_texture_float@texwrap formats bordercolor,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_ALPHA16F_ARB- swizzled- border color only,Fail
@@ -615,10 +437,6 @@ spec@arb_texture_rg@texwrap formats-float bordercolor@GL_R16F- border color only
 spec@arb_texture_rg@texwrap formats-float bordercolor@GL_R32F- border color only,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor@GL_RG16F- border color only,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor@GL_RG32F- border color only,Fail
-spec@arb_texture_view@rendering-layers-image,Fail
-spec@arb_texture_view@rendering-layers-image@layers rendering of image1DArray,Fail
-spec@arb_texture_view@rendering-layers-image@layers rendering of image2DArray,Fail
-spec@arb_texture_view@rendering-layers-image@layers rendering of imageCubeArray,Fail
 spec@arb_transform_feedback_overflow_query@arb_transform_feedback_overflow_query-basic,Fail
 spec@arb_transform_feedback_overflow_query@arb_transform_feedback_overflow_query-basic@arb_transform_feedback_overflow_query-buffer_object_0,Fail
 spec@arb_transform_feedback_overflow_query@arb_transform_feedback_overflow_query-basic@arb_transform_feedback_overflow_query-buffer_object_2,Fail
@@ -633,32 +451,6 @@ spec@egl_ext_protected_content@conformance,Fail
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage2DEXT,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage2DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage2DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage3DEXT,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage3DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage3DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage2DEXT,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage2DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage2DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage3DEXT,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage3DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedmultiteximage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage3DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage2DEXT,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage2DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage2DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage3DEXT,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage3DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureImage3DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage2DEXT,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage2DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage2DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage3DEXT,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage3DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@compressedtextureimage gl_compressed_rgb_bptc_signed_float@CompressedTextureSubImage3DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 spec@ext_framebuffer_multisample@alpha-blending-after-rendering 2,Fail
 spec@ext_framebuffer_multisample@blit-mismatched-formats,Fail
@@ -684,8 +476,6 @@ spec@ext_framebuffer_object@fbo-blending-formats@GL_INTENSITY8,Fail
 spec@ext_framebuffer_object@fbo-readpixels-depth-formats,Fail
 spec@ext_framebuffer_object@fbo-readpixels-depth-formats@GL_DEPTH_COMPONENT/GL_FLOAT,Fail
 spec@ext_framebuffer_object@fbo-readpixels-depth-formats@GL_DEPTH_COMPONENT24/GL_FLOAT,Fail
-spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
-spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
 spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-copypixels,Fail
 spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-drawpixels-24_8,Fail
 spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-drawpixels-32f_24_8_rev,Fail
@@ -869,22 +659,6 @@ spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x223344ff,Fail
 spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x76356278,Fail
 
 spec@nv_copy_image@nv_copy_image-formats,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RED_RGTC1/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_BPTC_UNORM/Destination: GL_COMPRESSED_RGBA_BPTC_UNORM,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT/Destination: GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT/Destination: GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RG_RGTC2/Destination: GL_COMPRESSED_RG_RGTC2,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RED_RGTC1/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RG_RGTC2/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM/Destination: GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_DEPTH_COMPONENT24/Destination: GL_DEPTH_COMPONENT24,Fail
 spec@nv_primitive_restart@primitive-restart-draw-mode-polygon,Crash
 spec@nv_primitive_restart@primitive-restart-draw-mode-quad_strip,Crash
@@ -893,10 +667,11 @@ spec@oes_shader_io_blocks@compiler@layout-location-aliasing.vert,Fail
 spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
 
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7152
-spec@ext_transform_feedback@builtin-varyings gl_culldistance,Fail
+spec@!opengl 1.1@line-smooth-stipple,Fail
 
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7154
-spec@arb_enhanced_layouts@matching_fp64_types_1,Crash
-spec@arb_enhanced_layouts@matching_fp64_types_2,Crash
-spec@arb_enhanced_layouts@matching_fp64_types_3,Crash
+# fails since CI uprev to Debian 12
+spec@arb_viewport_array@display-list,Fail
+
+spec@arb_gl_spirv@execution@ssbo@unsized-array,Fail
+spec@arb_pipeline_statistics_query@arb_pipeline_statistics_query-frag,Fail
+spec@!opengl 1.1@line-flat-clip-color,Fail

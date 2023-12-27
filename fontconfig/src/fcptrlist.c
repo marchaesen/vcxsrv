@@ -57,15 +57,18 @@ FcPtrListDestroy (FcPtrList *list)
 {
     FcPtrListIter iter;
 
-    FcPtrListIterInit (list, &iter);
-    do
+    if (list)
     {
-	if (FcPtrListIterGetValue (list, &iter))
-	    list->destroy_func (FcPtrListIterGetValue (list, &iter));
-	FcPtrListIterRemove (list, &iter);
-    } while (FcPtrListIterIsValid (list, &iter));
+	FcPtrListIterInit (list, &iter);
+	do
+	{
+	    if (FcPtrListIterGetValue (list, &iter))
+		list->destroy_func (FcPtrListIterGetValue (list, &iter));
+	    FcPtrListIterRemove (list, &iter);
+	} while (FcPtrListIterIsValid (list, &iter));
 
-    free (list);
+	free (list);
+    }
 }
 
 void

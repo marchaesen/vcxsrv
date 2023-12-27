@@ -127,6 +127,10 @@
         install PuTTY locally in a user account, I hope they'll send a
         well explained patch!
 
+        (Leaving InstallScope unset produces an installer that
+        superficially appears to work in some cases, but often fails
+        to do some of its work.)
+
         $(var.Puttytextver) is again defined on the candle command
         line, and describes the version of PuTTY in human-readable
         form, e.g. "PuTTY 0.67" or "PuTTY development snapshot [foo]".

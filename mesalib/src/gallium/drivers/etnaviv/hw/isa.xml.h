@@ -8,10 +8,10 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- isa.xml       (  38205 bytes, from 2020-01-10 14:36:29)
+- isa.xml       (  39261 bytes, from 2023-11-13 11:29:31)
 - copyright.xml (   1597 bytes, from 2018-02-10 13:09:26)
 
-Copyright (C) 2012-2020 by the following authors:
+Copyright (C) 2012-2023 by the following authors:
 - Wladimir J. van der Laan <laanwj@gmail.com>
 - Christian Gmeiner <christian.gmeiner@gmail.com>
 - Lucas Stach <l.stach@pengutronix.de>
@@ -90,8 +90,8 @@ DEALINGS IN THE SOFTWARE.
 #define INST_OPCODE_CMP						0x00000031
 #define INST_OPCODE_LOAD					0x00000032
 #define INST_OPCODE_STORE					0x00000033
-#define INST_OPCODE_COPYSIGN					0x00000034
-#define INST_OPCODE_GETEXP					0x00000035
+#define INST_OPCODE_IMG_LOAD_3D					0x00000034
+#define INST_OPCODE_IMG_STORE_3D				0x00000035
 #define INST_OPCODE_GETMANT					0x00000036
 #define INST_OPCODE_NAN						0x00000037
 #define INST_OPCODE_NEXTAFTER					0x00000038
@@ -159,8 +159,8 @@ DEALINGS IN THE SOFTWARE.
 #define INST_OPCODE_NORM_DP4					0x00000076
 #define INST_OPCODE_NORM_MUL					0x00000077
 #define INST_OPCODE_STORE_ATTR					0x00000078
-#define INST_OPCODE_LOAD_ATTR					0x00000079
-#define INST_OPCODE_EMIT					0x0000007a
+#define INST_OPCODE_IMG_LOAD					0x00000079
+#define INST_OPCODE_IMG_STORE					0x0000007a
 #define INST_OPCODE_RESTART					0x0000007b
 #define INST_OPCODE_NOP7C					0x0000007c
 #define INST_OPCODE_NOP7D					0x0000007d

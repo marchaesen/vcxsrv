@@ -35,6 +35,8 @@
 
 #include "xdg-output-unstable-v1-client-protocol.h"
 
+#define MAX_OUTPUT_NAME 256
+
 static void xwl_output_get_xdg_output(struct xwl_output *xwl_output);
 
 static Rotation
@@ -224,8 +226,8 @@ xwl_output_get_emulated_mode_for_client(struct xwl_output *xwl_output,
     if (!xwl_output)
         return NULL;
 
-    /* We don't do XRandr emulation when rootful */
-    if (!xwl_output->xwl_screen->rootless)
+    /* We don't do XRandr emulation when rootful or a fake lease display */
+    if (!xwl_output->xwl_screen->rootless || !xwl_output->output)
         return NULL;
 
     for (i = 0; i < XWL_CLIENT_MAX_EMULATED_MODES; i++) {
@@ -271,6 +273,7 @@ xwl_output_add_emulated_mode_for_client(struct xwl_output *xwl_output,
     emulated_mode->server_output_id = xwl_output->server_output_id;
     emulated_mode->width  = mode->mode.width;
     emulated_mode->height = mode->mode.height;
+    emulated_mode->id = mode->mode.id;
     emulated_mode->from_vidmode = from_vidmode;
 }
 
@@ -598,6 +601,7 @@ static void
 apply_output_change(struct xwl_output *xwl_output)
 {
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
+    struct xwl_window *xwl_window;
     struct xwl_output *it;
     int mode_width, mode_height, count;
     int width = 0, height = 0, has_this_output = 0;
@@ -653,6 +657,33 @@ apply_output_change(struct xwl_output *xwl_output)
 
     if (xwl_screen->fixed_output == NULL)
         update_screen_size(xwl_screen, width, height);
+    else
+        RRTellChanged(xwl_screen->screen);
+
+    /* If running rootful and fullscreen, make sure to match the new setup */
+    if (xwl_screen->fullscreen) {
+        /* The root window may not yet be created */
+        if (xwl_screen->screen->root) {
+            xwl_window = xwl_window_get(xwl_screen->screen->root);
+            xwl_window_rootful_update_fullscreen(xwl_window, xwl_output);
+        }
+    }
+}
+
+static void
+xwl_output_set_name(struct xwl_output *xwl_output, const char *name)
+{
+    if (xwl_output->randr_output == NULL)
+        return; /* rootful */
+
+    /* Check whether the compositor is sending us something useful */
+    if (!name || !strlen(name)) {
+        ErrorF("Not using the provided output name, invalid");
+        return;
+    }
+
+    snprintf(xwl_output->randr_output->name, MAX_OUTPUT_NAME, "%s", name);
+    xwl_output->randr_output->nameLength = strlen(xwl_output->randr_output->name);
 }
 
 static void
@@ -674,11 +705,28 @@ output_handle_scale(void *data, struct wl_output *wl_output, int32_t factor)
 {
 }
 
+static void
+output_handle_name(void *data, struct wl_output *wl_output,
+                   const char *name)
+{
+    struct xwl_output *xwl_output = data;
+
+    xwl_output_set_name(xwl_output, name);
+}
+
+static void
+output_handle_description(void *data, struct wl_output *wl_output,
+                          const char *description)
+{
+}
+
 static const struct wl_output_listener output_listener = {
     output_handle_geometry,
     output_handle_mode,
     output_handle_done,
-    output_handle_scale
+    output_handle_scale,
+    output_handle_name,
+    output_handle_description,
 };
 
 static void
@@ -716,6 +764,12 @@ static void
 xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
                        const char *name)
 {
+    struct xwl_output *xwl_output = data;
+
+    if (wl_output_get_version(xwl_output->output) >= 4)
+        return; /* wl_output.name is preferred */
+
+    xwl_output_set_name(xwl_output, name);
 }
 
 static void
@@ -768,10 +822,11 @@ xwl_output_from_wl_output(struct xwl_screen *xwl_screen,
 }
 
 struct xwl_output *
-xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id, Bool with_xrandr)
+xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id,
+                  Bool with_xrandr, uint32_t version)
 {
     struct xwl_output *xwl_output;
-    char name[256];
+    char name[MAX_OUTPUT_NAME] = { '\0', };
 
     xwl_output = calloc(1, sizeof *xwl_output);
     if (xwl_output == NULL) {
@@ -780,7 +835,7 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id, Bool with_xrandr)
     }
 
     xwl_output->output = wl_registry_bind(xwl_screen->registry, id,
-                                          &wl_output_interface, 2);
+                                          &wl_output_interface, min(version, 4));
     if (!xwl_output->output) {
         ErrorF("Failed binding wl_output\n");
         goto err;
@@ -792,9 +847,6 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id, Bool with_xrandr)
     xwl_output->xwl_screen = xwl_screen;
 
     if (with_xrandr) {
-        snprintf(name, sizeof name, "XWAYLAND%d",
-                 xwl_screen_get_next_output_serial(xwl_screen));
-
         xwl_output->randr_crtc = RRCrtcCreate(xwl_screen->screen, xwl_output);
         if (!xwl_output->randr_crtc) {
             ErrorF("Failed creating RandR CRTC\n");
@@ -802,18 +854,22 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id, Bool with_xrandr)
         }
         RRCrtcSetRotations (xwl_output->randr_crtc, ALL_ROTATIONS);
 
+        /* Allocate MAX_OUTPUT_NAME data for the output name, all filled with zeros */
         xwl_output->randr_output = RROutputCreate(xwl_screen->screen, name,
-                                                  strlen(name), xwl_output);
+                                                  MAX_OUTPUT_NAME, xwl_output);
         if (!xwl_output->randr_output) {
             ErrorF("Failed creating RandR Output\n");
             goto err;
         }
+        /* Set the default output name to a sensible value */
+        snprintf(name, MAX_OUTPUT_NAME, "XWAYLAND%d",
+                 xwl_screen_get_next_output_serial(xwl_screen));
+        xwl_output_set_name(xwl_output, name);
         xwl_output_set_emulated(xwl_output);
 
         RRCrtcGammaSetSize(xwl_output->randr_crtc, 256);
         RROutputSetCrtcs(xwl_output->randr_output, &xwl_output->randr_crtc, 1);
         RROutputSetConnection(xwl_output->randr_output, RR_Connected);
-        RRTellChanged(xwl_screen->screen);
     }
     /* We want the output to be in the list as soon as created so we can
      * use it when binding to the xdg-output protocol...
@@ -936,6 +992,20 @@ xwl_randr_crtc_set(ScreenPtr pScreen,
     return TRUE;
 }
 
+static void
+xwl_randr_crtc_get(ScreenPtr pScreen,
+                   RRCrtcPtr crtc,
+                   xRRGetCrtcInfoReply *rep)
+{
+    struct xwl_output *xwl_output = crtc->devPrivate;
+
+    struct xwl_emulated_mode *mode = xwl_output_get_emulated_mode_for_client(
+        xwl_output, GetCurrentClient());
+
+    if (mode)
+        rep->mode = mode->id;
+}
+
 static Bool
 xwl_randr_crtc_set_gamma(ScreenPtr pScreen, RRCrtcPtr crtc)
 {
@@ -996,6 +1066,7 @@ xwl_screen_init_output(struct xwl_screen *xwl_screen)
 #if RANDR_12_INTERFACE
     rp->rrScreenSetSize = xwl_randr_screen_set_size;
     rp->rrCrtcSet = xwl_randr_crtc_set;
+    rp->rrCrtcGet = xwl_randr_crtc_get;
     rp->rrCrtcSetGamma = xwl_randr_crtc_set_gamma;
     rp->rrCrtcGetGamma = xwl_randr_crtc_get_gamma;
     rp->rrOutputSetProperty = xwl_randr_output_set_property;
@@ -1022,16 +1093,13 @@ mode_sort(const void *left, const void *right)
     return (*mode_b)->mode.width - (*mode_a)->mode.width;
 }
 
-static Bool
+Bool
 xwl_randr_add_modes_fixed(struct xwl_output *xwl_output,
                           int current_width, int current_height)
 {
     RRModePtr *modes = NULL;
     RRModePtr mode;
-    xRRModeInfo mode_info = { 0, };
-    char mode_name[128];
     int i, nmodes, current;
-
 
     modes = xallocarray(ARRAY_SIZE(xwl_output_fake_modes) + 1, sizeof(RRModePtr));
     if (!modes) {
@@ -1057,21 +1125,11 @@ xwl_randr_add_modes_fixed(struct xwl_output *xwl_output,
     }
 
     if (!current) {
-        /* Add the current mode as it's not part of the fake modes.
-         * Not using libcvt as the size is set from the command line and
-         * may not be a valid CVT mode.
-         */
-        mode_info.width = current_width;
-        mode_info.height = current_height;
-        mode_info.hTotal = current_width;
-        mode_info.vTotal = current_height;
-        mode_info.dotClock = 60 * 1000 * 1000;
+        /* Add the current mode as it's not part of the fake modes. */
+        mode = xwayland_cvt(current_width, current_height, 60, 0, 0);
 
-        snprintf(mode_name, sizeof(mode_name), "%dx%d",
-                 current_width, current_height);
-        mode_info.nameLength = strlen(mode_name);
-
-        modes[nmodes++] = RRModeGet(&mode_info, mode_name);
+        if (mode)
+            modes[nmodes++] = mode;
     }
 
     qsort(modes, nmodes, sizeof(RRModePtr), mode_sort);

@@ -31,9 +31,8 @@
 #include "vk_device.h"
 #include "vk_physical_device.h"
 
-#include "ralloc.h"
-
-#include "log.h"
+#include "util/ralloc.h"
+#include "util/log.h"
 
 static struct vk_device *
 vk_object_to_device(struct vk_object_base *obj)

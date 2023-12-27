@@ -55,7 +55,7 @@ uint32_t xcb_generate_id(xcb_connection_t *c)
             /* check for extension */
             const xcb_query_extension_reply_t *xc_misc_reply =
               xcb_get_extension_data(c, &xcb_xc_misc_id);
-            if (!xc_misc_reply) {
+            if (!xc_misc_reply || !xc_misc_reply->present) {
                 pthread_mutex_unlock(&c->xid.lock);
                 return -1;
             }

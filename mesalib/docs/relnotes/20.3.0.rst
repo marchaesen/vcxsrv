@@ -2591,7 +2591,7 @@ Jan Ziak (1):
 
 - Add driver override to envvars.rst
 
-Jason Ekstrand (296):
+Faith Ekstrand (296):
 
 - iris: no-op implement set_compute_resources
 - iris: Implement set_global_binding
@@ -3396,7 +3396,7 @@ Marek Olšák (278):
 - radeonsi: stop using TGSI_PROPERTY_FS_DEPTH_LAYOUT
 - radeonsi: stop using TGSI_PROPERTY_CS_LOCAL_SIZE
 - radeonsi: stop using TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS
-- radeonsi: remove info::samplers_declared, image_buffers, msaa_images_declared
+- radeonsi: remove \info::samplers_declared, image_buffers, msaa_images_declared
 - radeonsi: remove redundant si_shader_info::shader_buffers_declared
 - radeonsi: remove redundant si_shader_info::images_declared
 - radeonsi: remove redundant si_shader_info::const_buffers_declared

@@ -137,26 +137,22 @@ fail:
    return NULL;
 }
 
-bool
-zink_use_dummy_attachments(const struct zink_context *ctx)
-{
-   return ctx->disable_color_writes && zink_screen(ctx->base.screen)->driver_workarounds.color_write_missing;
-}
-
 struct zink_framebuffer *
 zink_get_framebuffer(struct zink_context *ctx)
 {
    assert(zink_screen(ctx->base.screen)->info.have_KHR_imageless_framebuffer);
+   bool have_zsbuf = ctx->fb_state.zsbuf && zink_is_zsbuf_used(ctx);
 
    struct zink_framebuffer_state state;
    state.num_attachments = ctx->fb_state.nr_cbufs;
 
-   const unsigned cresolve_offset = ctx->fb_state.nr_cbufs + !!ctx->fb_state.zsbuf;
+   const unsigned cresolve_offset = ctx->fb_state.nr_cbufs + !!have_zsbuf;
    unsigned num_resolves = 0;
    for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
       struct pipe_surface *psurf = ctx->fb_state.cbufs[i];
-      if (!psurf || zink_use_dummy_attachments(ctx))
-         psurf = ctx->dummy_surface[util_logbase2_ceil(ctx->gfx_pipeline_state.rast_samples+1)];
+      if (!psurf) {
+         psurf = zink_get_dummy_pipe_surface(ctx, util_logbase2_ceil(ctx->gfx_pipeline_state.rast_samples+1));
+      }
       struct zink_surface *surface = zink_csurface(psurf);
       struct zink_surface *transient = zink_transient_surface(psurf);
       if (transient) {
@@ -169,7 +165,7 @@ zink_get_framebuffer(struct zink_context *ctx)
    }
 
    const unsigned zsresolve_offset = cresolve_offset + num_resolves;
-   if (ctx->fb_state.zsbuf) {
+   if (have_zsbuf) {
       struct pipe_surface *psurf = ctx->fb_state.zsbuf;
       struct zink_surface *surface = zink_csurface(psurf);
       struct zink_surface *transient = zink_transient_surface(psurf);

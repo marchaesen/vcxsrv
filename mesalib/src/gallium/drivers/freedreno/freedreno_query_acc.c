@@ -64,7 +64,6 @@ realloc_query_bo(struct fd_context *ctx, struct fd_acc_query *aq)
 
    map = fd_bo_map(rsc->bo);
    memset(map, 0, aq->size);
-   fd_bo_cpu_fini(rsc->bo);
 }
 
 static void
@@ -85,13 +84,13 @@ fd_acc_query_resume(struct fd_acc_query *aq, struct fd_batch *batch) assert_dt
 {
    const struct fd_acc_sample_provider *p = aq->provider;
 
-   aq->batch = batch;
-   fd_batch_needs_flush(aq->batch);
-   p->resume(aq, aq->batch);
-
    fd_screen_lock(batch->ctx->screen);
    fd_batch_resource_write(batch, fd_resource(aq->prsc));
    fd_screen_unlock(batch->ctx->screen);
+
+   aq->batch = batch;
+   fd_batch_needs_flush(aq->batch);
+   p->resume(aq, aq->batch);
 }
 
 static void
@@ -105,7 +104,7 @@ fd_acc_begin_query(struct fd_context *ctx, struct fd_query *q) assert_dt
    realloc_query_bo(ctx, aq);
 
    /* Signal that we need to update the active queries on the next draw */
-   ctx->update_active_queries = true;
+   fd_context_dirty(ctx, FD_DIRTY_QUERY);
 
    /* add to active list: */
    assert(list_is_empty(&aq->node));
@@ -115,9 +114,8 @@ fd_acc_begin_query(struct fd_context *ctx, struct fd_query *q) assert_dt
     * need to just emit the capture at this moment.
     */
    if (skip_begin_query(q->type)) {
-      struct fd_batch *batch = fd_context_batch_locked(ctx);
+      struct fd_batch *batch = fd_context_batch(ctx);
       fd_acc_query_resume(aq, batch);
-      fd_batch_unlock_submit(batch);
       fd_batch_reference(&batch, NULL);
    }
 }
@@ -133,6 +131,25 @@ fd_acc_end_query(struct fd_context *ctx, struct fd_query *q) assert_dt
 
    /* remove from active list: */
    list_delinit(&aq->node);
+
+   /* mark the result available: */
+   struct fd_batch *batch = fd_context_batch(ctx);
+   struct fd_ringbuffer *ring = batch->draw;
+   struct fd_resource *rsc = fd_resource(aq->prsc);
+
+   if (ctx->screen->gen < 5) {
+      OUT_PKT3(ring, CP_MEM_WRITE, 3);
+      OUT_RELOC(ring, rsc->bo, 0, 0, 0);
+      OUT_RING(ring, 1);     /* low 32b */
+      OUT_RING(ring, 0);     /* high 32b */
+   } else {
+      OUT_PKT7(ring, CP_MEM_WRITE, 4);
+      OUT_RELOC(ring, rsc->bo, 0, 0, 0);
+      OUT_RING(ring, 1);     /* low 32b */
+      OUT_RING(ring, 0);     /* high 32b */
+   }
+
+   fd_batch_reference(&batch, NULL);
 }
 
 static bool
@@ -171,11 +188,68 @@ fd_acc_get_query_result(struct fd_context *ctx, struct fd_query *q, bool wait,
       fd_resource_wait(ctx, rsc, FD_BO_PREP_READ);
    }
 
-   void *ptr = fd_bo_map(rsc->bo);
-   p->result(aq, ptr, result);
-   fd_bo_cpu_fini(rsc->bo);
+   struct fd_acc_query_sample *s = fd_bo_map(rsc->bo);
+   p->result(aq, s, result);
 
    return true;
+}
+
+static void
+fd_acc_get_query_result_resource(struct fd_context *ctx, struct fd_query *q,
+                                 enum pipe_query_flags flags,
+                                 enum pipe_query_value_type result_type,
+                                 int index, struct fd_resource *dst,
+                                 unsigned offset)
+   assert_dt
+{
+   struct fd_acc_query *aq = fd_acc_query(q);
+   const struct fd_acc_sample_provider *p = aq->provider;
+   struct fd_batch *batch = fd_context_batch(ctx);
+
+   assert(ctx->screen->gen >= 5);
+
+   fd_screen_lock(batch->ctx->screen);
+   fd_batch_resource_write(batch, dst);
+   fd_screen_unlock(batch->ctx->screen);
+
+   /* query_buffer_object isn't really the greatest thing for a tiler,
+    * if the app tries to use the result of the query in the same batch.
+    * In general the query result isn't truly ready until the last gmem
+    * bin/tile.
+    *
+    * So, we mark the query result as not being available in the draw
+    * ring (which technically is true), and then in epilogue ring we
+    * update the query dst buffer with the *actual* results and status.
+    */
+   if (index == -1) {
+      /* Mark the query as not-ready in the draw ring: */
+      struct fd_ringbuffer *ring = batch->draw;
+      bool is_64b = result_type >= PIPE_QUERY_TYPE_I64;
+
+      OUT_PKT7(ring, CP_MEM_WRITE, is_64b ? 4 : 3);
+      OUT_RELOC(ring, dst->bo, offset, 0, 0);
+      OUT_RING(ring, 0);     /* low 32b */
+      if (is_64b)
+         OUT_RING(ring, 0);  /* high 32b */
+   }
+
+   struct fd_ringbuffer *ring = fd_batch_get_epilogue(batch);
+
+   if (index == -1) {
+      copy_result(ring, result_type, dst, offset, fd_resource(aq->prsc), 0);
+   } else {
+      p->result_resource(aq, ring, result_type, index, dst, offset);
+   }
+
+   /* If we are told to wait for results, then we need to flush.  For an IMR
+    * this would just be a wait on the GPU, but the expectation is that draws
+    * following this one see the results of the query, which means we need to
+    * use the big flush-hammer :-(
+    */
+   if (flags & PIPE_QUERY_WAIT)
+      fd_batch_flush(batch);
+
+   fd_batch_reference(&batch, NULL);
 }
 
 static const struct fd_query_funcs acc_query_funcs = {
@@ -183,6 +257,7 @@ static const struct fd_query_funcs acc_query_funcs = {
    .begin_query = fd_acc_begin_query,
    .end_query = fd_acc_end_query,
    .get_query_result = fd_acc_get_query_result,
+   .get_query_result_resource = fd_acc_get_query_result_resource,
 };
 
 struct fd_query *
@@ -233,7 +308,7 @@ fd_acc_query_update_batch(struct fd_batch *batch, bool disable_all)
 {
    struct fd_context *ctx = batch->ctx;
 
-   if (disable_all || ctx->update_active_queries) {
+   if (disable_all || (ctx->dirty & FD_DIRTY_QUERY)) {
       struct fd_acc_query *aq;
       LIST_FOR_EACH_ENTRY (aq, &ctx->acc_active_queries, node) {
          bool batch_change = aq->batch != batch;
@@ -247,8 +322,6 @@ fd_acc_query_update_batch(struct fd_batch *batch, bool disable_all)
             fd_acc_query_resume(aq, batch);
       }
    }
-
-   ctx->update_active_queries = false;
 }
 
 void

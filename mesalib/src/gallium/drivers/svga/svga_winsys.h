@@ -40,7 +40,7 @@
 #include "svga_reg.h"
 #include "svga3d_reg.h"
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_defines.h"
 
 #include "svga_mksstats.h"
@@ -410,8 +410,8 @@ struct svga_winsys_context
     ** BEGIN new functions for guest-backed surfaces.
     **/
 
-   boolean have_gb_objects;
-   boolean force_coherent;
+   bool have_gb_objects;
+   bool force_coherent;
 
    /**
     * Map a guest-backed surface.
@@ -430,8 +430,8 @@ struct svga_winsys_context
    void *
    (*surface_map)(struct svga_winsys_context *swc,
                   struct svga_winsys_surface *surface,
-                  unsigned flags, boolean *retry,
-                  boolean *rebind);
+                  unsigned flags, bool *retry,
+                  bool *rebind);
 
    /**
     * Unmap a guest-backed surface.
@@ -441,7 +441,7 @@ struct svga_winsys_context
    void
    (*surface_unmap)(struct svga_winsys_context *swc,
                     struct svga_winsys_surface *surface,
-                    boolean *rebind);
+                    bool *rebind);
 
    /**
     * Create and define a DX GB shader that resides in the device COTable.
@@ -505,7 +505,10 @@ struct svga_winsys_screen
    SVGA3dHardwareVersion
    (*get_hw_version)(struct svga_winsys_screen *sws);
 
-   boolean
+   int
+   (*get_fd)(struct svga_winsys_screen *sws);
+
+   bool
    (*get_cap)(struct svga_winsys_screen *sws,
               SVGA3dDevCapIndex index,
               SVGA3dDevCapResult *result);
@@ -584,7 +587,7 @@ struct svga_winsys_screen
     * Get a winsys_handle from a surface.
     * Used to implement pipe_screen::resource_get_handle.
     */
-   boolean
+   bool
    (*surface_get_handle)(struct svga_winsys_screen *sws,
                          struct svga_winsys_surface *surface,
                          unsigned stride,
@@ -593,7 +596,7 @@ struct svga_winsys_screen
    /**
     * Whether this surface is sitting in a validate list
     */
-   boolean
+   bool
    (*surface_is_flushed)(struct svga_winsys_screen *sws,
                          struct svga_winsys_surface *surface);
 
@@ -611,7 +614,7 @@ struct svga_winsys_screen
     * and format can be created.
     * \Return TRUE if OK, FALSE if too large.
     */
-   boolean
+   bool
    (*surface_can_create)(struct svga_winsys_screen *sws,
                          SVGA3dSurfaceFormat format,
                          SVGA3dSize size,
@@ -675,7 +678,7 @@ struct svga_winsys_screen
 
    /**
     * Wait for the fence to finish.
-    * \param timeout in nanoseconds (may be PIPE_TIMEOUT_INFINITE).
+    * \param timeout in nanoseconds (may be OS_TIMEOUT_INFINITE).
     *                0 to return immediately, if the API suports it.
     * \param flags  driver-specific meaning
     * \return zero on success.
@@ -692,7 +695,7 @@ struct svga_winsys_screen
     */
    int (*fence_get_fd)( struct svga_winsys_screen *sws,
                         struct pipe_fence_handle *fence,
-                        boolean duplicate );
+                        bool duplicate );
 
    /**
     * Create a fence using the given file descriptor
@@ -800,30 +803,30 @@ struct svga_winsys_screen
    (*host_log)(struct svga_winsys_screen *sws, const char *message);
 
    /** Have VGPU v10 hardware? */
-   boolean have_vgpu10;
+   bool have_vgpu10;
 
    /** Have SM4_1 hardware? */
-   boolean have_sm4_1;
+   bool have_sm4_1;
 
    /** Have SM5 hardware? */
-   boolean have_sm5;
+   bool have_sm5;
 
    /** To rebind resources at the beginning of a new command buffer */
-   boolean need_to_rebind_resources;
+   bool need_to_rebind_resources;
 
-   boolean have_generate_mipmap_cmd;
-   boolean have_set_predication_cmd;
-   boolean have_transfer_from_buffer_cmd;
-   boolean have_fence_fd;
-   boolean have_intra_surface_copy;
-   boolean have_constant_buffer_offset_cmd;
-   boolean have_index_vertex_buffer_offset_cmd;
+   bool have_generate_mipmap_cmd;
+   bool have_set_predication_cmd;
+   bool have_transfer_from_buffer_cmd;
+   bool have_fence_fd;
+   bool have_intra_surface_copy;
+   bool have_constant_buffer_offset_cmd;
+   bool have_index_vertex_buffer_offset_cmd;
 
    /* Have rasterizer state v2 command support */
-   boolean have_rasterizer_state_v2_cmd;
+   bool have_rasterizer_state_v2_cmd;
 
    /** Have GL43 capable device */
-   boolean have_gl43;
+   bool have_gl43;
 
    /** SVGA device_id version we're running on */
    uint16_t device_id;

@@ -26,7 +26,7 @@
  *
  **************************************************************************/
 
-
+#include "util/u_atomic.h"
 #include "util/u_debug.h"
 #include "util/u_string.h"
 #include "util/u_math.h"
@@ -46,7 +46,7 @@ void
 _debug_vprintf(const char *format, va_list ap)
 {
    static char buf[4096] = {'\0'};
-#if DETECT_OS_WINDOWS || defined(EMBEDDED_DEVICE)
+#if DETECT_OS_WINDOWS
    /* We buffer until we find a newline. */
    size_t len = strlen(buf);
    int ret = vsnprintf(buf + len, sizeof(buf) - len, format, ap);
@@ -67,10 +67,11 @@ _util_debug_message(struct util_debug_callback *cb,
                     enum util_debug_type type,
                     const char *fmt, ...)
 {
+   if (!cb || !cb->debug_message)
+      return;
    va_list args;
    va_start(args, fmt);
-   if (cb && cb->debug_message)
-      cb->debug_message(cb->data, id, type, fmt, args);
+   cb->debug_message(cb->data, id, type, fmt, args);
    va_end(args);
 }
 
@@ -85,6 +86,7 @@ debug_disable_win32_error_dialogs(void)
     */
    UINT uMode = SetErrorMode(0);
    SetErrorMode(uMode);
+#ifndef _GAMING_XBOX
    if (uMode & SEM_FAILCRITICALERRORS) {
       /* Disable assertion failure message box.
        * http://msdn.microsoft.com/en-us/library/sas1dkb2.aspx
@@ -97,26 +99,41 @@ debug_disable_win32_error_dialogs(void)
       _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
    }
+#endif /* _GAMING_XBOX */
 }
 #endif /* _WIN32 */
 
-
-#ifdef DEBUG
-void
-debug_print_blob(const char *name, const void *blob, unsigned size)
+bool
+debug_parse_bool_option(const char *str, bool dfault)
 {
-   const unsigned *ublob = (const unsigned *)blob;
-   unsigned i;
+   bool result;
 
-   debug_printf("%s (%d dwords%s)\n", name, size/4,
-                size%4 ? "... plus a few bytes" : "");
-
-   for (i = 0; i < size/4; i++) {
-      debug_printf("%d:\t%08x\n", i, ublob[i]);
-   }
+   if (str == NULL)
+      result = dfault;
+   else if (!strcmp(str, "0"))
+      result = false;
+   else if (!strcasecmp(str, "n"))
+      result = false;
+   else if (!strcasecmp(str, "no"))
+      result = false;
+   else if (!strcasecmp(str, "f"))
+      result = false;
+   else if (!strcasecmp(str, "false"))
+      result = false;
+   else if (!strcmp(str, "1"))
+      result = true;
+   else if (!strcasecmp(str, "y"))
+      result = true;
+   else if (!strcasecmp(str, "yes"))
+      result = true;
+   else if (!strcasecmp(str, "t"))
+      result = true;
+   else if (!strcasecmp(str, "true"))
+      result = true;
+   else
+      result = dfault;
+   return result;
 }
-#endif
-
 
 static bool
 debug_get_option_should_print(void)
@@ -124,15 +141,13 @@ debug_get_option_should_print(void)
    static bool initialized = false;
    static bool value = false;
 
-   if (initialized)
-      return value;
+   if (unlikely(!p_atomic_read_relaxed(&initialized))) {
+      bool parsed_value = debug_parse_bool_option(os_get_option("GALLIUM_PRINT_OPTIONS"), false);
+      p_atomic_set(&value, parsed_value);
+      p_atomic_set(&initialized, true);
+   }
 
-   /* Oh hey this will call into this function,
-    * but its cool since we set first to false
-    */
-   initialized = true;
-   value = debug_get_bool_option("GALLIUM_PRINT_OPTIONS", false);
-   /* XXX should we print this option? Currently it wont */
+   /* We do not print value of GALLIUM_PRINT_OPTIONS intentionally. */
    return value;
 }
 
@@ -147,6 +162,23 @@ debug_get_option(const char *name, const char *dfault)
       result = dfault;
 
    if (debug_get_option_should_print())
+      debug_printf("%s: %s = %s\n", __func__, name,
+                   result ? result : "(null)");
+
+   return result;
+}
+
+
+const char *
+debug_get_option_cached(const char *name, const char *dfault)
+{
+   const char *result;
+
+   result = os_get_option_cached(name);
+   if (!result)
+      result = dfault;
+
+   if (debug_get_option_should_print())
       debug_printf("%s: %s = %s\n", __FUNCTION__, name,
                    result ? result : "(null)");
 
@@ -154,60 +186,49 @@ debug_get_option(const char *name, const char *dfault)
 }
 
 
+/**
+ * Reads an environment variable and interprets its value as a boolean.
+ * Recognizes 0/n/no/f/false case insensitive as false.
+ * Recognizes 1/y/yes/t/true case insensitive as true.
+ * Other values result in the default value.
+ */
 bool
 debug_get_bool_option(const char *name, bool dfault)
 {
-   const char *str = os_get_option(name);
-   bool result;
-
-   if (str == NULL)
-      result = dfault;
-   else if (!strcmp(str, "n"))
-      result = false;
-   else if (!strcmp(str, "no"))
-      result = false;
-   else if (!strcmp(str, "0"))
-      result = false;
-   else if (!strcmp(str, "f"))
-      result = false;
-   else if (!strcmp(str, "F"))
-      result = false;
-   else if (!strcmp(str, "false"))
-      result = false;
-   else if (!strcmp(str, "FALSE"))
-      result = false;
-   else
-      result = true;
-
+   bool result = debug_parse_bool_option(os_get_option(name), dfault);
    if (debug_get_option_should_print())
-      debug_printf("%s: %s = %s\n", __FUNCTION__, name,
+      debug_printf("%s: %s = %s\n", __func__, name,
                    result ? "TRUE" : "FALSE");
 
    return result;
 }
 
 
-long
-debug_get_num_option(const char *name, long dfault)
+int64_t
+debug_parse_num_option(const char *str, int64_t dfault)
 {
-   long result;
-   const char *str;
-
-   str = os_get_option(name);
+   int64_t result;
    if (!str) {
       result = dfault;
    } else {
       char *endptr;
 
-      result = strtol(str, &endptr, 0);
+      result = strtoll(str, &endptr, 0);
       if (str == endptr) {
          /* Restore the default value when no digits were found. */
          result = dfault;
       }
    }
+   return result;
+}
+
+int64_t
+debug_get_num_option(const char *name, int64_t dfault)
+{
+   int64_t result = debug_parse_num_option(os_get_option(name), dfault);
 
    if (debug_get_option_should_print())
-      debug_printf("%s: %s = %li\n", __FUNCTION__, name, result);
+      debug_printf("%s: %s = %"PRId64"\n", __func__, name, result);
 
    return result;
 }
@@ -232,7 +253,7 @@ debug_get_version_option(const char *name, unsigned *major, unsigned *minor)
    }
 
    if (debug_get_option_should_print())
-      debug_printf("%s: %s = %u.%u\n", __FUNCTION__, name, *major, *minor);
+      debug_printf("%s: %s = %u.%u\n", __func__, name, *major, *minor);
 
    return;
 }
@@ -283,21 +304,20 @@ str_has_option(const char *str, const char *name)
 
 
 uint64_t
-debug_get_flags_option(const char *name,
-                       const struct debug_named_value *flags,
-                       uint64_t dfault)
+debug_parse_flags_option(const char *name,
+                         const char *str,
+                         const struct debug_named_value *flags,
+                         uint64_t dfault)
 {
    uint64_t result;
-   const char *str;
    const struct debug_named_value *orig = flags;
    unsigned namealign = 0;
 
-   str = os_get_option(name);
    if (!str)
       result = dfault;
    else if (!strcmp(str, "help")) {
       result = dfault;
-      _debug_printf("%s: help for %s:\n", __FUNCTION__, name);
+      _debug_printf("%s: help for %s:\n", __func__, name);
       for (; flags->name; ++flags)
          namealign = MAX2(namealign, strlen(flags->name));
       for (flags = orig; flags->name; ++flags)
@@ -308,18 +328,29 @@ debug_get_flags_option(const char *name,
    else {
       result = 0;
       while (flags->name) {
-	 if (str_has_option(str, flags->name))
-	    result |= flags->value;
-	 ++flags;
+         if (str_has_option(str, flags->name))
+            result |= flags->value;
+         ++flags;
       }
    }
+
+   return result;
+}
+
+uint64_t
+debug_get_flags_option(const char *name,
+                       const struct debug_named_value *flags,
+                       uint64_t dfault)
+{
+   const char *str = os_get_option(name);
+   uint64_t result = debug_parse_flags_option(name, str, flags, dfault);
 
    if (debug_get_option_should_print()) {
       if (str) {
          debug_printf("%s: %s = 0x%"PRIx64" (%s)\n",
-                      __FUNCTION__, name, result, str);
+                      __func__, name, result, str);
       } else {
-         debug_printf("%s: %s = 0x%"PRIx64"\n", __FUNCTION__, name, result);
+         debug_printf("%s: %s = 0x%"PRIx64"\n", __func__, name, result);
       }
    }
 
@@ -329,47 +360,23 @@ debug_get_flags_option(const char *name,
 
 const char *
 debug_dump_enum(const struct debug_named_value *names,
-                unsigned long value)
+                uint64_t value)
 {
    static char rest[64];
 
    while (names->name) {
       if (names->value == value)
-	 return names->name;
+         return names->name;
       ++names;
    }
 
-   snprintf(rest, sizeof(rest), "0x%08lx", value);
+   snprintf(rest, sizeof(rest), "0x%08"PRIx64, value);
    return rest;
 }
 
 
 const char *
-debug_dump_enum_noprefix(const struct debug_named_value *names,
-                         const char *prefix,
-                         unsigned long value)
-{
-   static char rest[64];
-
-   while (names->name) {
-      if (names->value == value) {
-         const char *name = names->name;
-         while (*name == *prefix) {
-            name++;
-            prefix++;
-         }
-         return name;
-      }
-      ++names;
-   }
-
-   snprintf(rest, sizeof(rest), "0x%08lx", value);
-   return rest;
-}
-
-
-const char *
-debug_dump_flags(const struct debug_named_value *names, unsigned long value)
+debug_dump_flags(const struct debug_named_value *names, uint64_t value)
 {
    static char output[4096];
    static char rest[256];
@@ -379,24 +386,24 @@ debug_dump_flags(const struct debug_named_value *names, unsigned long value)
 
    while (names->name) {
       if ((names->value & value) == names->value) {
-	 if (!first)
-	    strncat(output, "|", sizeof(output) - strlen(output) - 1);
-	 else
-	    first = 0;
-	 strncat(output, names->name, sizeof(output) - strlen(output) - 1);
-	 output[sizeof(output) - 1] = '\0';
-	 value &= ~names->value;
+         if (!first)
+            strncat(output, "|", sizeof(output) - strlen(output) - 1);
+         else
+            first = 0;
+         strncat(output, names->name, sizeof(output) - strlen(output) - 1);
+         output[sizeof(output) - 1] = '\0';
+         value &= ~names->value;
       }
       ++names;
    }
 
    if (value) {
       if (!first)
-	 strncat(output, "|", sizeof(output) - strlen(output) - 1);
+         strncat(output, "|", sizeof(output) - strlen(output) - 1);
       else
-	 first = 0;
+         first = 0;
 
-      snprintf(rest, sizeof(rest), "0x%08lx", value);
+      snprintf(rest, sizeof(rest), "0x%08"PRIx64, value);
       strncat(output, rest, sizeof(output) - strlen(output) - 1);
       output[sizeof(output) - 1] = '\0';
    }
@@ -408,43 +415,87 @@ debug_dump_flags(const struct debug_named_value *names, unsigned long value)
 }
 
 
-
-#ifdef DEBUG
-int fl_indent = 0;
-const char* fl_function[1024];
-
-int
-debug_funclog_enter(const char* f, UNUSED const int line,
-                    UNUSED const char* file)
+uint64_t
+parse_debug_string(const char *debug,
+                   const struct debug_control *control)
 {
-   int i;
+   uint64_t flag = 0;
 
-   for (i = 0; i < fl_indent; i++)
-      debug_printf("  ");
-   debug_printf("%s\n", f);
+   if (debug != NULL) {
+      for (; control->string != NULL; control++) {
+         if (!strcmp(debug, "all")) {
+            flag |= control->flag;
 
-   assert(fl_indent < 1023);
-   fl_function[fl_indent++] = f;
+         } else {
+            const char *s = debug;
+            unsigned n;
 
-   return 0;
+            for (; n = strcspn(s, ", "), *s; s += MAX2(1, n)) {
+               if (strlen(control->string) == n &&
+                   !strncmp(control->string, s, n))
+                  flag |= control->flag;
+            }
+         }
+      }
+   }
+
+   return flag;
 }
 
-void
-debug_funclog_exit(const char* f, UNUSED const int line,
-                   UNUSED const char* file)
+
+uint64_t
+parse_enable_string(const char *debug,
+                    uint64_t default_value,
+                    const struct debug_control *control)
 {
-   --fl_indent;
-   assert(fl_indent >= 0);
-   assert(fl_function[fl_indent] == f);
+   uint64_t flag = default_value;
+
+   if (debug != NULL) {
+      for (; control->string != NULL; control++) {
+         if (!strcmp(debug, "all")) {
+            flag |= control->flag;
+
+         } else {
+            const char *s = debug;
+            unsigned n;
+
+            for (; n = strcspn(s, ", "), *s; s += MAX2(1, n)) {
+               bool enable;
+               if (s[0] == '+') {
+                  enable = true;
+                  s++; n--;
+               } else if (s[0] == '-') {
+                  enable = false;
+                  s++; n--;
+               } else {
+                  enable = true;
+               }
+               if (strlen(control->string) == n &&
+                   !strncmp(control->string, s, n)) {
+                  if (enable)
+                     flag |= control->flag;
+                  else
+                     flag &= ~control->flag;
+               }
+            }
+         }
+      }
+   }
+
+   return flag;
 }
 
-void
-debug_funclog_enter_exit(const char* f, UNUSED const int line,
-                         UNUSED const char* file)
+
+bool
+comma_separated_list_contains(const char *list, const char *s)
 {
-   int i;
-   for (i = 0; i < fl_indent; i++)
-      debug_printf("  ");
-   debug_printf("%s\n", f);
+   assert(list);
+   const size_t len = strlen(s);
+
+   for (unsigned n; n = strcspn(list, ","), *list; list += MAX2(1, n)) {
+      if (n == len && !strncmp(list, s, n))
+         return true;
+   }
+
+   return false;
 }
-#endif

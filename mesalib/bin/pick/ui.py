@@ -47,6 +47,13 @@ class RootWidget(urwid.Frame):
         super().__init__(*args, **kwargs)
         self.ui = ui
 
+
+class CommitList(urwid.ListBox):
+
+    def __init__(self, *args, ui: 'UI', **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ui = ui
+
     def keypress(self, size: int, key: str) -> typing.Optional[str]:
         if key == 'q':
             raise urwid.ExitMainLoop()
@@ -101,6 +108,23 @@ class CommitWidget(urwid.Text):
         return None
 
 
+class FocusAwareEdit(urwid.Edit):
+
+    """An Edit type that signals when it comes into and leaves focus."""
+
+    signals = urwid.Edit.signals + ['focus_changed']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__is_focus = False
+
+    def render(self, size: typing.Tuple[int], focus: bool = False) -> urwid.Canvas:
+        if focus != self.__is_focus:
+            self._emit("focus_changed", focus)
+            self.__is_focus = focus
+        return super().render(size, focus)
+
+
 @attr.s(slots=True)
 class UI:
 
@@ -112,6 +136,7 @@ class UI:
 
     commit_list: typing.List['urwid.Button'] = attr.ib(factory=lambda: urwid.SimpleFocusListWalker([]), init=False)
     feedback_box: typing.List['urwid.Text'] = attr.ib(factory=lambda: urwid.SimpleFocusListWalker([]), init=False)
+    notes: 'FocusAwareEdit' = attr.ib(factory=lambda: FocusAwareEdit('', multiline=True), init=False)
     header: 'urwid.Text' = attr.ib(factory=lambda: urwid.Text('Mesa Stable Picker', align='center'), init=False)
     body: 'urwid.Columns' = attr.ib(attr.Factory(lambda s: s._make_body(), True), init=False)
     footer: 'urwid.Columns' = attr.ib(attr.Factory(lambda s: s._make_footer(), True), init=False)
@@ -122,10 +147,36 @@ class UI:
     new_commits: typing.List['core.Commit'] = attr.ib(factory=list, init=False)
     git_lock: asyncio.Lock = attr.ib(factory=asyncio.Lock, init=False)
 
+    def _get_current_commit(self) -> typing.Optional['core.Commit']:
+        entry = self.commit_list.get_focus()[0]
+        return entry.original_widget.commit if entry is not None else None
+
+    def _change_notes_cb(self) -> None:
+        commit = self._get_current_commit()
+        if commit and commit.notes:
+            self.notes.set_edit_text(commit.notes)
+        else:
+            self.notes.set_edit_text('')
+
+    def _change_notes_focus_cb(self, notes: 'FocusAwareEdit', focus: 'bool') -> 'None':
+        # in the case of coming into focus we don't want to do anything
+        if focus:
+            return
+        commit = self._get_current_commit()
+        if commit is None:
+            return
+        text: str = notes.get_edit_text()
+        if text != commit.notes:
+            asyncio.ensure_future(commit.update_notes(self, text))
+
     def _make_body(self) -> 'urwid.Columns':
-        commits = urwid.ListBox(self.commit_list)
+        commits = CommitList(self.commit_list, ui=self)
         feedback = urwid.ListBox(self.feedback_box)
-        return urwid.Columns([commits, feedback])
+        urwid.connect_signal(self.commit_list, 'modified', self._change_notes_cb)
+        notes = urwid.Filler(self.notes)
+        urwid.connect_signal(self.notes, 'focus_changed', self._change_notes_focus_cb)
+
+        return urwid.Columns([urwid.LineBox(commits), urwid.Pile([urwid.LineBox(notes), urwid.LineBox(feedback)])])
 
     def _make_footer(self) -> 'urwid.Columns':
         body = [
@@ -134,12 +185,12 @@ class UI:
             urwid.Text('[C]herry Pick'),
             urwid.Text('[D]enominate'),
             urwid.Text('[B]ackport'),
-            urwid.Text('[A]pply additional patch')
+            urwid.Text('[A]pply additional patch'),
         ]
         return urwid.Columns(body)
 
     def _make_root(self) -> 'RootWidget':
-        return RootWidget(self.body, self.header, self.footer, 'body', ui=self)
+        return RootWidget(self.body, urwid.LineBox(self.header), urwid.LineBox(self.footer), 'body', ui=self)
 
     def render(self) -> 'WidgetType':
         asyncio.ensure_future(self.update())

@@ -125,6 +125,7 @@ namespace {
       const pipe_binary_program_header header { uint32_t(code.size()) };
       binary::section text { 0, section_type, header.num_bytes, {} };
 
+      text.data.reserve(sizeof(header) + header.num_bytes);
       text.data.insert(text.data.end(), reinterpret_cast<const char *>(&header),
                        reinterpret_cast<const char *>(&header) + sizeof(header));
       text.data.insert(text.data.end(), code.begin(), code.end());
@@ -158,6 +159,7 @@ namespace {
       std::unordered_map<SpvId, std::string> names;
       std::unordered_map<SpvId, cl_kernel_arg_type_qualifier> qualifiers;
       std::unordered_map<std::string, std::vector<std::string> > param_type_names;
+      std::unordered_map<std::string, std::vector<std::string> > param_qual_names;
 
       while (i < length) {
          const auto inst = &source[i * sizeof(uint32_t)];
@@ -175,17 +177,25 @@ namespace {
          case SpvOpString: {
             // SPIRV-LLVM-Translator stores param type names as OpStrings
             std::string str(source.data() + (i + 2u) * sizeof(uint32_t));
-            if (str.find("kernel_arg_type.") != 0)
-               break;
+            if (str.find("kernel_arg_type.") == 0) {
+               std::string line;
+               std::istringstream istream(str.substr(16));
 
-            std::string line;
-            std::istringstream istream(str.substr(16));
+               std::getline(istream, line, '.');
 
-            std::getline(istream, line, '.');
+               std::string k = line;
+               while (std::getline(istream, line, ','))
+                  param_type_names[k].push_back(line);
+            } else if (str.find("kernel_arg_type_qual.") == 0) {
+               std::string line;
+               std::istringstream istream(str.substr(21));
 
-            std::string k = line;
-            while (std::getline(istream, line, ','))
-               param_type_names[k].push_back(line);
+               std::getline(istream, line, '.');
+               std::string k = line;
+               while (std::getline(istream, line, ','))
+                  param_qual_names[k].push_back(line);
+            } else
+               continue;
             break;
          }
 
@@ -491,13 +501,16 @@ namespace {
             break;
          }
 
-         case SpvOpFunctionEnd:
+         case SpvOpFunctionEnd: {
             if (kernel_name.empty())
                break;
 
             for (size_t i = 0; i < param_type_names[kernel_name].size(); i++)
                args[i].info.type_name = param_type_names[kernel_name][i];
 
+            for (size_t i = 0; i < param_qual_names[kernel_name].size(); i++)
+               if (param_qual_names[kernel_name][i].find("const") != std::string::npos)
+                  args[i].info.type_qualifier |= CL_KERNEL_ARG_TYPE_CONST;
             b.syms.emplace_back(kernel_name, detokenize(attributes, " "),
                                 req_local_size, 0, kernel_nb, args);
             ++kernel_nb;
@@ -505,7 +518,7 @@ namespace {
             args.clear();
             attributes.clear();
             break;
-
+         }
          default:
             break;
          }

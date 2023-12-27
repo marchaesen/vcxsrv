@@ -14,7 +14,7 @@
  * 10/9/1991 eay - first release.
  * The des routines this file has been made from can be found in
  * ftp.psy.uq.oz.au /pub/DES
- * This particular version derived from OpenBSD Revsion 1.3.
+ * This particular version derived from OpenBSD Revision 1.3.
  */
 
 /*

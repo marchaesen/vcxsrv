@@ -168,6 +168,9 @@ SOFTWARE.
     <field name="swmask" start="0" end="7" type="uint"/>
   </struct>
 
+  <!-- `REGION_CLIP{0,1}` `left`,`right`,`top`,`bottom`, are all 9 bits. -->
+  <define name="REGION_CLIP_MAX" value="0x1FF"/>
+
   <struct name="REGION_CLIP0" length="1">
     <field name="mode" start="31" end="31" type="REGION_CLIP_MODE"/>
     <field name="left" start="16" end="24" type="uint"/>
@@ -215,9 +218,6 @@ SOFTWARE.
   </struct>
 
   <struct name="STATE_VARYING0" length="1">
-    <condition type="if" check="TEXTURE_WRAP_VARYING"/>
-      <field name="f32_linear_wrap" start="24" end="31" type="uint"/>
-    <condition type="endif" check="TEXTURE_WRAP_VARYING"/>
     <field name="f32_npc" start="16" end="23" type="uint"/>
     <field name="f32_flat" start="8" end="15" type="uint"/>
     <field name="f32_linear" start="0" end="7" type="uint"/>
@@ -227,17 +227,10 @@ SOFTWARE.
     <field name="f16_npc" start="24" end="31" type="uint"/>
     <field name="f16_flat" start="16" end="23" type="uint"/>
     <field name="f16_linear" start="8" end="15" type="uint"/>
-    <condition type="if" check="TEXTURE_WRAP_VARYING"/>
-      <field name="f32_npc_wrap" start="0" end=" 7" type="uint"/>
-    <condition type="endif" check="TEXTURE_WRAP_VARYING"/>
   </struct>
 
   <struct name="STATE_VARYING2" length="1">
     <field name="output_clip_planes" start="16" end="19" type="uint"/>
-    <condition type="if" check="TEXTURE_WRAP_VARYING"/>
-      <field name="f16_npc_wrap" start="8" end="15" type="uint"/>
-      <field name="f16_linear_wrap" start="0" end="7" type="uint"/>
-    <condition type="endif" check="TEXTURE_WRAP_VARYING"/>
   </struct>
 
   <struct name="STATE_TERMINATE0" length="1">
@@ -333,7 +326,6 @@ SOFTWARE.
   </struct>
 
   <struct name="STATE_PPP_CTRL" length="1">
-    <field name="trp" start="16" end="16" type="bool"/>
     <field name="prim_msaa" start="15" end="15" type="bool"/>
     <field name="gs_output_topology" start="13" end="14" type="GS_OUTPUT_TOPOLOGY"/>
     <field name="pres_prim_id" start="12" end="12" type="bool"/>

@@ -24,7 +24,7 @@
 #define _NINE_DEBUG_H_
 
 #include "util/u_debug.h"
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 void
 _nine_debug_printf( unsigned long flag,
@@ -32,16 +32,16 @@ _nine_debug_printf( unsigned long flag,
                     const char *fmt,
                     ... ) _util_printf_format(3,4);
 
-#define ERR(fmt, ...) _nine_debug_printf(DBG_ERROR, __FUNCTION__, fmt, ## __VA_ARGS__)
+#define ERR(fmt, ...) _nine_debug_printf(DBG_ERROR, __func__, fmt, ## __VA_ARGS__)
 
 #if defined(DEBUG) || !defined(NDEBUG)
-#define WARN(fmt, ...) _nine_debug_printf(DBG_WARN, __FUNCTION__, fmt, ## __VA_ARGS__)
+#define WARN(fmt, ...) _nine_debug_printf(DBG_WARN, __func__, fmt, ## __VA_ARGS__)
 #define WARN_ONCE(fmt, ...) \
     do { \
-        static boolean once = TRUE; \
+        static bool once = true; \
         if (once) { \
-            once = FALSE; \
-            _nine_debug_printf(DBG_WARN, __FUNCTION__, fmt, ## __VA_ARGS__); \
+            once = false; \
+            _nine_debug_printf(DBG_WARN, __func__, fmt, ## __VA_ARGS__); \
         } \
     } while(0)
 #else
@@ -51,7 +51,7 @@ _nine_debug_printf( unsigned long flag,
 
 #if defined(DEBUG) || !defined(NDEBUG)
 #define DBG_FLAG(flag, fmt, ...) \
-    _nine_debug_printf(flag, __FUNCTION__, fmt, ## __VA_ARGS__)
+    _nine_debug_printf(flag, __func__, fmt, ## __VA_ARGS__)
 #else
 #define DBG_FLAG(flag, fmt, ...) do {} while(0)
 #endif
@@ -94,7 +94,7 @@ _nine_stub( const char *file,
 #if defined(DEBUG) || !defined(NDEBUG)
 #define STUB(ret) \
     do { \
-        _nine_stub(__FILE__, __FUNCTION__, __LINE__); \
+        _nine_stub(__FILE__, __func__, __LINE__); \
         return ret; \
     } while (0)
 #else
@@ -107,8 +107,8 @@ _nine_stub( const char *file,
  * It also prints debug message if the assertion fails. */
 #if defined(DEBUG) || !defined(NDEBUG)
 #define user_error(x) \
-    (!(x) ? (DBG_FLAG(DBG_USER, "User assertion failed: `%s'\n", #x), TRUE) \
-          : FALSE)
+    (!(x) ? (DBG_FLAG(DBG_USER, "User assertion failed: `%s'\n", #x), true) \
+          : false)
 #else
 #define user_error(x) (!(x) ? TRUE : FALSE)
 #endif

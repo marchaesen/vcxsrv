@@ -48,7 +48,7 @@ default xkb_geometry "us" {
         top = 33;
         color = "black";
     };
-    
+
     solid "Button1" {
         shape = "BTNS";
         left = 10;
@@ -164,23 +164,23 @@ default xkb_geometry "us" {
 	row {
 	    top = 20;
 	    keys { <TAB>,
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, <AD13>
 	    };
 	};
 	row {
 	    top = 39;
 	    keys { { <CAPS>, shape="CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, shape="WIDEST" }
 	    };
 	};
 	row {
 	    top = 58;
 	    keys { { <LFSH>, shape="WIDEST" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, shape="RTSH" }
 	    };

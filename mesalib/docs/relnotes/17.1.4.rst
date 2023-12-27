@@ -112,7 +112,7 @@ Ilia Mirkin (2):
 -  nv50/ir: fetch indirect sources BEFORE the op that uses them
 -  nv50/ir: fix combineLd/St to update existing records as necessary
 
-Jason Ekstrand (10):
+Faith Ekstrand (10):
 
 -  i965: Flush around state base address
 -  i965: Take a uint64_t immediate in emit_pipe_control_write

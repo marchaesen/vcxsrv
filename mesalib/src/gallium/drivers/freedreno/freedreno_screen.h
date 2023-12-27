@@ -34,7 +34,7 @@
 
 #include "pipe/p_screen.h"
 #include "renderonly/renderonly.h"
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "util/simple_mtx.h"
 #include "util/slab.h"
 #include "util/u_idalloc.h"
@@ -66,16 +66,6 @@ struct fd_screen {
 
    simple_mtx_t lock;
 
-   /* it would be tempting to use pipe_reference here, but that
-    * really doesn't work well if it isn't the first member of
-    * the struct, so not quite so awesome to be adding refcnting
-    * further down the inheritance hierarchy:
-    */
-   int refcnt;
-
-   /* place for winsys to stash it's own stuff: */
-   void *winsys_priv;
-
    struct slab_parent_pool transfer_pool;
 
    uint64_t gmem_base;
@@ -94,6 +84,21 @@ struct fd_screen {
    bool has_robustness;
    bool has_syncobj;
 
+   struct {
+      /* Conservative LRZ (default true) invalidates LRZ on draws with
+       * blend and depth-write enabled, because this can lead to incorrect
+       * rendering.  Driconf can be used to disable conservative LRZ for
+       * games which do not have the problematic sequence of draws *and*
+       * suffer a performance loss with conservative LRZ.
+       */
+      bool conservative_lrz;
+
+      /* Enable EGL throttling (default true).
+       */
+      bool enable_throttling;
+   } driconf;
+
+   struct fd_dev_info dev_info;
    const struct fd_dev_info *info;
    uint32_t ccu_offset_gmem;
    uint32_t ccu_offset_bypass;
@@ -125,6 +130,8 @@ struct fd_screen {
    unsigned (*tile_mode)(const struct pipe_resource *prsc);
    int (*layout_resource_for_modifier)(struct fd_resource *rsc,
                                        uint64_t modifier);
+   bool (*is_format_supported)(struct pipe_screen *pscreen,
+                               enum pipe_format fmt, uint64_t modifier);
 
    /* indirect-branch emit: */
    void (*emit_ib)(struct fd_ringbuffer *ring, struct fd_ringbuffer *target);
@@ -141,8 +148,8 @@ struct fd_screen {
 
    bool reorder;
 
-   uint16_t rsc_seqno;
-   uint16_t ctx_seqno;
+   seqno_t rsc_seqno;
+   seqno_t ctx_seqno;
    struct util_idalloc_mt buffer_ids;
 
    unsigned num_supported_modifiers;
@@ -156,7 +163,7 @@ struct fd_screen {
 #define FD6_TESS_BO_SIZE (FD6_TESS_FACTOR_SIZE + FD6_TESS_PARAM_SIZE)
    struct fd_bo *tess_bo;
 
-   /* table with PIPE_PRIM_MAX+1 entries mapping PIPE_PRIM_x to
+   /* table with MESA_PRIM_COUNT+1 entries mapping MESA_PRIM_x to
     * DI_PT_x value to use for draw initiator.  There are some
     * slight differences between generation.
     *
@@ -166,6 +173,9 @@ struct fd_screen {
     */
    const enum pc_di_primtype *primtypes;
    uint32_t primtypes_mask;
+
+   simple_mtx_t aux_ctx_lock;
+   struct pipe_context *aux_ctx;
 };
 
 static inline struct fd_screen *
@@ -173,6 +183,10 @@ fd_screen(struct pipe_screen *pscreen)
 {
    return (struct fd_screen *)pscreen;
 }
+
+struct fd_context;
+struct fd_context * fd_screen_aux_context_get(struct pipe_screen *pscreen);
+void fd_screen_aux_context_put(struct pipe_screen *pscreen);
 
 static inline void
 fd_screen_lock(struct fd_screen *screen)
@@ -198,17 +212,17 @@ bool fd_screen_bo_get_handle(struct pipe_screen *pscreen, struct fd_bo *bo,
 struct fd_bo *fd_screen_bo_from_handle(struct pipe_screen *pscreen,
                                        struct winsys_handle *whandle);
 
-struct pipe_screen *fd_screen_create(struct fd_device *dev,
-                                     struct renderonly *ro,
-                                     const struct pipe_screen_config *config);
+struct pipe_screen *fd_screen_create(int fd,
+                                     const struct pipe_screen_config *config,
+                                     struct renderonly *ro);
 
-static inline boolean
+static inline bool
 is_a20x(struct fd_screen *screen)
 {
    return (screen->gpu_id >= 200) && (screen->gpu_id < 210);
 }
 
-static inline boolean
+static inline bool
 is_a2xx(struct fd_screen *screen)
 {
    return screen->gen == 2;
@@ -216,38 +230,38 @@ is_a2xx(struct fd_screen *screen)
 
 /* is a3xx patch revision 0? */
 /* TODO a306.0 probably doesn't need this.. be more clever?? */
-static inline boolean
+static inline bool
 is_a3xx_p0(struct fd_screen *screen)
 {
    return (screen->chip_id & 0xff0000ff) == 0x03000000;
 }
 
-static inline boolean
+static inline bool
 is_a3xx(struct fd_screen *screen)
 {
    return screen->gen == 3;
 }
 
-static inline boolean
+static inline bool
 is_a4xx(struct fd_screen *screen)
 {
    return screen->gen == 4;
 }
 
-static inline boolean
+static inline bool
 is_a5xx(struct fd_screen *screen)
 {
    return screen->gen == 5;
 }
 
-static inline boolean
+static inline bool
 is_a6xx(struct fd_screen *screen)
 {
    return screen->gen == 6;
 }
 
 /* is it using the ir3 compiler (shader isa introduced with a3xx)? */
-static inline boolean
+static inline bool
 is_ir3(struct fd_screen *screen)
 {
    return is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) ||

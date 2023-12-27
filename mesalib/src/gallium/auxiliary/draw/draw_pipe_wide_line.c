@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /* Authors:  Keith Whitwell <keithw@vmware.com>
@@ -45,8 +45,9 @@ struct wideline_stage {
 /**
  * Draw a wide line by drawing a quad (two triangles).
  */
-static void wideline_line( struct draw_stage *stage,
-                           struct prim_header *header )
+static void
+wideline_line(struct draw_stage *stage,
+              struct prim_header *header)
 {
    const unsigned pos = draw_current_shader_position_output(stage->draw);
    const float half_width = 0.5f * stage->draw->rasterizer->line_width;
@@ -66,7 +67,7 @@ static void wideline_line( struct draw_stage *stage,
    const float dx = fabsf(pos0[0] - pos2[0]);
    const float dy = fabsf(pos0[1] - pos2[1]);
 
-   const boolean half_pixel_center =
+   const bool half_pixel_center =
       stage->draw->rasterizer->half_pixel_center;
 
    /* small tweak to meet GL specification */
@@ -91,8 +92,7 @@ static void wideline_line( struct draw_stage *stage,
             pos1[0] -= 0.5f;
             pos2[0] -= 0.5f;
             pos3[0] -= 0.5f;
-         }
-         else {
+         } else {
             /* right to left line */
             pos0[0] += 0.5f;
             pos1[0] += 0.5f;
@@ -100,8 +100,7 @@ static void wideline_line( struct draw_stage *stage,
             pos3[0] += 0.5f;
          }
       }
-   }
-   else {
+   } else {
       /* y-major line */
       pos0[0] = pos0[0] - half_width + bias;
       pos1[0] = pos1[0] + half_width + bias;
@@ -114,8 +113,7 @@ static void wideline_line( struct draw_stage *stage,
             pos1[1] -= 0.5f;
             pos2[1] -= 0.5f;
             pos3[1] -= 0.5f;
-         }
-         else {
+         } else {
             /* bottom to top line */
             pos0[1] += 0.5f;
             pos1[1] += 0.5f;
@@ -129,17 +127,18 @@ static void wideline_line( struct draw_stage *stage,
    tri.v[0] = v0;
    tri.v[1] = v2;
    tri.v[2] = v3;
-   stage->next->tri( stage->next, &tri );
+   stage->next->tri(stage->next, &tri);
 
    tri.v[0] = v0;
    tri.v[1] = v3;
    tri.v[2] = v1;
-   stage->next->tri( stage->next, &tri );
+   stage->next->tri(stage->next, &tri);
 }
 
 
-static void wideline_first_line( struct draw_stage *stage, 
-                                 struct prim_header *header )
+static void
+wideline_first_line(struct draw_stage *stage,
+                    struct prim_header *header)
 {
    struct draw_context *draw = stage->draw;
    struct pipe_context *pipe = draw->pipe;
@@ -148,9 +147,9 @@ static void wideline_first_line( struct draw_stage *stage,
 
    /* Disable triangle culling, stippling, unfilled mode etc. */
    r = draw_get_rasterizer_no_cull(draw, rast);
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
    pipe->bind_rasterizer_state(pipe, r);
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
    stage->line = wideline_line;
 
@@ -158,37 +157,41 @@ static void wideline_first_line( struct draw_stage *stage,
 }
 
 
-static void wideline_flush( struct draw_stage *stage, unsigned flags )
+static void
+wideline_flush(struct draw_stage *stage, unsigned flags)
 {
    struct draw_context *draw = stage->draw;
    struct pipe_context *pipe = draw->pipe;
 
    stage->line = wideline_first_line;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 
    /* restore original rasterizer state */
    if (draw->rast_handle) {
-      draw->suspend_flushing = TRUE;
+      draw->suspend_flushing = true;
       pipe->bind_rasterizer_state(pipe, draw->rast_handle);
-      draw->suspend_flushing = FALSE;
+      draw->suspend_flushing = false;
    }
 }
 
 
-static void wideline_reset_stipple_counter( struct draw_stage *stage )
+static void
+wideline_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void wideline_destroy( struct draw_stage *stage )
+static void
+wideline_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
 
 
-struct draw_stage *draw_wide_line_stage( struct draw_context *draw )
+struct draw_stage *
+draw_wide_line_stage(struct draw_context *draw)
 {
    struct wideline_stage *wide = CALLOC_STRUCT(wideline_stage);
    if (!wide)
@@ -204,14 +207,14 @@ struct draw_stage *draw_wide_line_stage( struct draw_context *draw )
    wide->stage.reset_stipple_counter = wideline_reset_stipple_counter;
    wide->stage.destroy = wideline_destroy;
 
-   if (!draw_alloc_temp_verts( &wide->stage, 4 ))
+   if (!draw_alloc_temp_verts(&wide->stage, 4))
       goto fail;
 
    return &wide->stage;
 
 fail:
    if (wide)
-      wide->stage.destroy( &wide->stage );
+      wide->stage.destroy(&wide->stage);
 
    return NULL;
 }

@@ -146,6 +146,14 @@ use_hw_binning(struct fd_batch *batch)
 {
    const struct fd_gmem_stateobj *gmem = batch->gmem_state;
 
+   /* workaround: Like on a3xx, hw binning and scissor optimization
+    * don't play nice together.
+    *
+    * Disable binning if scissor optimization is used.
+    */
+   if (gmem->minx || gmem->miny)
+      return false;
+
    if ((gmem->maxpw * gmem->maxph) > 32)
       return false;
 

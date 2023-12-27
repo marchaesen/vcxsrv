@@ -1,4 +1,0 @@
-gl_blur2rectsnonninepatch
-gl_bug339297_as_clip
-gl_bug6083
-gl_dashtextcaps

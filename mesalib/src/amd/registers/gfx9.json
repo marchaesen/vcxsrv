@@ -68,6 +68,15 @@
     {"name": "ADDR_SURF_BANK_WIDTH_8", "value": 3}
    ]
   },
+  "BinSizeExtend": {
+   "entries": [
+    {"name": "BIN_SIZE_32_PIXELS", "value": 0},
+    {"name": "BIN_SIZE_64_PIXELS", "value": 1},
+    {"name": "BIN_SIZE_128_PIXELS", "value": 2},
+    {"name": "BIN_SIZE_256_PIXELS", "value": 3},
+    {"name": "BIN_SIZE_512_PIXELS", "value": 4}
+   ]
+  },
   "BinningMode": {
    "entries": [
     {"name": "BINNING_ALLOWED", "value": 0},
@@ -779,12 +788,16 @@
   "SX_BLEND_OPT_EPSILON__MRT0_EPSILON": {
    "entries": [
     {"name": "EXACT", "value": 0},
-    {"name": "11BIT_FORMAT", "value": 1},
-    {"name": "10BIT_FORMAT", "value": 3},
-    {"name": "8BIT_FORMAT", "value": 6},
-    {"name": "6BIT_FORMAT", "value": 11},
-    {"name": "5BIT_FORMAT", "value": 13},
-    {"name": "4BIT_FORMAT", "value": 15}
+    {"name": "10BIT_FORMAT_0_5", "value": 2},
+    {"name": "10BIT_FORMAT_0_75", "value": 3},
+    {"name": "8BIT_FORMAT_0_5", "value": 6},
+    {"name": "8BIT_FORMAT_0_75", "value": 7},
+    {"name": "6BIT_FORMAT_0_5", "value": 10},
+    {"name": "6BIT_FORMAT_0_75", "value": 11},
+    {"name": "5BIT_FORMAT_0_5", "value": 12},
+    {"name": "5BIT_FORMAT_0_75", "value": 13},
+    {"name": "4BIT_FORMAT_0_5", "value": 14},
+    {"name": "4BIT_FORMAT_0_75", "value": 15}
    ]
   },
   "SX_DOWNCONVERT_FORMAT": {
@@ -820,6 +833,13 @@
     {"name": "RASTER_CONFIG_SC_MAP_1", "value": 1},
     {"name": "RASTER_CONFIG_SC_MAP_2", "value": 2},
     {"name": "RASTER_CONFIG_SC_MAP_3", "value": 3}
+   ]
+  },
+  "ScUncertaintyRegionMode": {
+   "entries": [
+    {"name": "SC_HALF_LSB", "value": 0},
+    {"name": "SC_LSB_ONE_SIDED", "value": 1},
+    {"name": "SC_LSB_TWO_SIDED", "value": 2}
    ]
   },
   "ScXsel": {
@@ -11972,8 +11992,8 @@
     {"bits": [0, 1], "enum_ref": "BinningMode", "name": "BINNING_MODE"},
     {"bits": [2, 2], "name": "BIN_SIZE_X"},
     {"bits": [3, 3], "name": "BIN_SIZE_Y"},
-    {"bits": [4, 6], "name": "BIN_SIZE_X_EXTEND"},
-    {"bits": [7, 9], "name": "BIN_SIZE_Y_EXTEND"},
+    {"bits": [4, 6], "enum_ref": "BinSizeExtend", "name": "BIN_SIZE_X_EXTEND"},
+    {"bits": [7, 9], "enum_ref": "BinSizeExtend", "name": "BIN_SIZE_Y_EXTEND"},
     {"bits": [10, 12], "name": "CONTEXT_STATES_PER_BIN"},
     {"bits": [13, 17], "name": "PERSISTENT_STATES_PER_BIN"},
     {"bits": [18, 18], "name": "DISABLE_START_OF_PRIM"},
@@ -12035,7 +12055,7 @@
     {"bits": [13, 13], "name": "OVERRIDE_OVER_RAST_INNER_TO_NORMAL"},
     {"bits": [14, 14], "name": "OVERRIDE_UNDER_RAST_INNER_TO_NORMAL"},
     {"bits": [15, 15], "name": "DEGENERATE_OVERRIDE_INNER_TO_NORMAL_DISABLE"},
-    {"bits": [16, 17], "name": "UNCERTAINTY_REGION_MODE"},
+    {"bits": [16, 17], "enum_ref": "ScUncertaintyRegionMode", "name": "UNCERTAINTY_REGION_MODE"},
     {"bits": [18, 18], "name": "OUTER_UNCERTAINTY_EDGERULE_OVERRIDE"},
     {"bits": [19, 19], "name": "INNER_UNCERTAINTY_EDGERULE_OVERRIDE"},
     {"bits": [20, 20], "name": "NULL_SQUAD_AA_MASK_ENABLE"},

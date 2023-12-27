@@ -75,7 +75,7 @@ write_tsv_row(FILE *fp,
               const struct pipe_blend_state *blend,
               struct lp_type type,
               double cycles,
-              boolean success)
+              bool success)
 {
    fprintf(fp, "%s\t", success ? "pass" : "fail");
 
@@ -95,12 +95,12 @@ write_tsv_row(FILE *fp,
 
    fprintf(fp,
            "%s\t%s\t%s\t%s\t%s\t%s\n",
-           util_str_blend_func(blend->rt[0].rgb_func, TRUE),
-           util_str_blend_factor(blend->rt[0].rgb_src_factor, TRUE),
-           util_str_blend_factor(blend->rt[0].rgb_dst_factor, TRUE),
-           util_str_blend_func(blend->rt[0].alpha_func, TRUE),
-           util_str_blend_factor(blend->rt[0].alpha_src_factor, TRUE),
-           util_str_blend_factor(blend->rt[0].alpha_dst_factor, TRUE));
+           util_str_blend_func(blend->rt[0].rgb_func, true),
+           util_str_blend_factor(blend->rt[0].rgb_src_factor, true),
+           util_str_blend_factor(blend->rt[0].rgb_dst_factor, true),
+           util_str_blend_func(blend->rt[0].alpha_func, true),
+           util_str_blend_factor(blend->rt[0].alpha_src_factor, true),
+           util_str_blend_factor(blend->rt[0].alpha_dst_factor, true));
 
    fflush(fp);
 }
@@ -119,12 +119,12 @@ dump_blend_type(FILE *fp,
 
    fprintf(fp,
            " %s=%s %s=%s %s=%s %s=%s %s=%s %s=%s",
-           "rgb_func",         util_str_blend_func(blend->rt[0].rgb_func, TRUE),
-           "rgb_src_factor",   util_str_blend_factor(blend->rt[0].rgb_src_factor, TRUE),
-           "rgb_dst_factor",   util_str_blend_factor(blend->rt[0].rgb_dst_factor, TRUE),
-           "alpha_func",       util_str_blend_func(blend->rt[0].alpha_func, TRUE),
-           "alpha_src_factor", util_str_blend_factor(blend->rt[0].alpha_src_factor, TRUE),
-           "alpha_dst_factor", util_str_blend_factor(blend->rt[0].alpha_dst_factor, TRUE));
+           "rgb_func",         util_str_blend_func(blend->rt[0].rgb_func, true),
+           "rgb_src_factor",   util_str_blend_factor(blend->rt[0].rgb_src_factor, true),
+           "rgb_dst_factor",   util_str_blend_factor(blend->rt[0].rgb_dst_factor, true),
+           "alpha_func",       util_str_blend_func(blend->rt[0].alpha_func, true),
+           "alpha_src_factor", util_str_blend_factor(blend->rt[0].alpha_src_factor, true),
+           "alpha_dst_factor", util_str_blend_factor(blend->rt[0].alpha_dst_factor, true));
 
    fprintf(fp, " ...\n");
    fflush(fp);
@@ -172,10 +172,10 @@ add_blend_test(struct gallivm_state *gallivm,
    builder = gallivm->builder;
    LLVMPositionBuilderAtEnd(builder, block);
 
-   src = LLVMBuildLoad(builder, src_ptr, "src");
-   src1 = LLVMBuildLoad(builder, src1_ptr, "src1");
-   dst = LLVMBuildLoad(builder, dst_ptr, "dst");
-   con = LLVMBuildLoad(builder, const_ptr, "const");
+   src = LLVMBuildLoad2(builder, vec_type, src_ptr, "src");
+   src1 = LLVMBuildLoad2(builder, vec_type, src1_ptr, "src1");
+   dst = LLVMBuildLoad2(builder, vec_type, dst_ptr, "dst");
+   con = LLVMBuildLoad2(builder, vec_type, const_ptr, "const");
 
    res = lp_build_blend_aos(gallivm, blend, format, type, rt, src, NULL,
                             src1, NULL, dst, NULL, con, NULL, swizzle, 4);
@@ -430,8 +430,8 @@ compute_blend_ref(const struct pipe_blend_state *blend,
 }
 
 
-PIPE_ALIGN_STACK
-static boolean
+UTIL_ALIGN_STACK
+static bool
 test_one(unsigned verbose,
          FILE *fp,
          const struct pipe_blend_state *blend,
@@ -441,18 +441,18 @@ test_one(unsigned verbose,
    struct gallivm_state *gallivm;
    LLVMValueRef func = NULL;
    blend_test_ptr_t blend_test_ptr;
-   boolean success;
+   bool success;
    const unsigned n = LP_TEST_NUM_SAMPLES;
    int64_t cycles[LP_TEST_NUM_SAMPLES];
    double cycles_avg = 0.0;
    unsigned i, j;
    const unsigned stride = lp_type_width(type)/8;
 
-   if(verbose >= 1)
+   if (verbose >= 1)
       dump_blend_type(stdout, blend, type);
 
    context = LLVMContextCreate();
-#if LLVM_VERSION_MAJOR >= 15
+#if LLVM_VERSION_MAJOR == 15
    LLVMContextSetOpaquePointers(context, false);
 #endif
    gallivm = gallivm_create("test_module", context, NULL);
@@ -465,7 +465,7 @@ test_one(unsigned verbose,
 
    gallivm_free_ir(gallivm);
 
-   success = TRUE;
+   success = true;
 
    {
       uint8_t *src, *src1, *dst, *con, *res, *ref;
@@ -476,7 +476,7 @@ test_one(unsigned verbose,
       res = align_malloc(stride, stride);
       ref = align_malloc(stride, stride);
 
-      for(i = 0; i < n && success; ++i) {
+      for (i = 0; i < n && success; ++i) {
          int64_t start_counter = 0;
          int64_t end_counter = 0;
 
@@ -497,7 +497,7 @@ test_one(unsigned verbose,
             read_vec(type, dst, fdst);
             read_vec(type, con, fcon);
 
-            for(j = 0; j < type.length; j += 4)
+            for (j = 0; j < type.length; j += 4)
                compute_blend_ref(blend, fsrc + j, fsrc1 + j, fdst + j, fcon + j, fref + j);
 
             write_vec(type, ref, fref);
@@ -509,10 +509,10 @@ test_one(unsigned verbose,
 
          cycles[i] = end_counter - start_counter;
 
-         if(!compare_vec(type, res, ref)) {
-            success = FALSE;
+         if (!compare_vec(type, res, ref)) {
+            success = false;
 
-            if(verbose < 1)
+            if (verbose < 1)
                dump_blend_type(stderr, blend, type);
             fprintf(stderr, "MISMATCH\n");
 
@@ -559,7 +559,7 @@ test_one(unsigned verbose,
       double avg, std;
       unsigned m;
 
-      for(i = 0; i < n; ++i) {
+      for (i = 0; i < n; ++i) {
          sum += cycles[i];
          sum2 += cycles[i]*cycles[i];
       }
@@ -569,8 +569,8 @@ test_one(unsigned verbose,
 
       m = 0;
       sum = 0.0;
-      for(i = 0; i < n; ++i) {
-         if(fabs(cycles[i] - avg) <= 4.0*std) {
+      for (i = 0; i < n; ++i) {
+         if (fabs(cycles[i] - avg) <= 4.0*std) {
             sum += cycles[i];
             ++m;
          }
@@ -580,7 +580,7 @@ test_one(unsigned verbose,
 
    }
 
-   if(fp)
+   if (fp)
       write_tsv_row(fp, blend, type, cycles_avg, success);
 
    gallivm_destroy(gallivm);
@@ -626,8 +626,8 @@ blend_funcs[] = {
 
 const struct lp_type blend_types[] = {
    /* float, fixed,  sign,  norm, width, len */
-   {   TRUE, FALSE,  TRUE, FALSE,    32,   4 }, /* f32 x 4 */
-   {  FALSE, FALSE, FALSE,  TRUE,     8,  16 }, /* u8n x 16 */
+   {   true, false,  true, false,    32,   4 }, /* f32 x 4 */
+   {  false, false, false,  true,     8,  16 }, /* u8n x 16 */
 };
 
 
@@ -636,7 +636,7 @@ const unsigned num_factors = ARRAY_SIZE(blend_factors);
 const unsigned num_types = ARRAY_SIZE(blend_types);
 
 
-boolean
+bool
 test_all(unsigned verbose, FILE *fp)
 {
    const unsigned *rgb_func;
@@ -647,17 +647,17 @@ test_all(unsigned verbose, FILE *fp)
    const unsigned *alpha_dst_factor;
    struct pipe_blend_state blend;
    const struct lp_type *type;
-   boolean success = TRUE;
+   bool success = true;
 
-   for(rgb_func = blend_funcs; rgb_func < &blend_funcs[num_funcs]; ++rgb_func) {
-      for(alpha_func = blend_funcs; alpha_func < &blend_funcs[num_funcs]; ++alpha_func) {
-         for(rgb_src_factor = blend_factors; rgb_src_factor < &blend_factors[num_factors]; ++rgb_src_factor) {
-            for(rgb_dst_factor = blend_factors; rgb_dst_factor <= rgb_src_factor; ++rgb_dst_factor) {
-               for(alpha_src_factor = blend_factors; alpha_src_factor < &blend_factors[num_factors]; ++alpha_src_factor) {
-                  for(alpha_dst_factor = blend_factors; alpha_dst_factor <= alpha_src_factor; ++alpha_dst_factor) {
-                     for(type = blend_types; type < &blend_types[num_types]; ++type) {
+   for (rgb_func = blend_funcs; rgb_func < &blend_funcs[num_funcs]; ++rgb_func) {
+      for (alpha_func = blend_funcs; alpha_func < &blend_funcs[num_funcs]; ++alpha_func) {
+         for (rgb_src_factor = blend_factors; rgb_src_factor < &blend_factors[num_factors]; ++rgb_src_factor) {
+            for (rgb_dst_factor = blend_factors; rgb_dst_factor <= rgb_src_factor; ++rgb_dst_factor) {
+               for (alpha_src_factor = blend_factors; alpha_src_factor < &blend_factors[num_factors]; ++alpha_src_factor) {
+                  for (alpha_dst_factor = blend_factors; alpha_dst_factor <= alpha_src_factor; ++alpha_dst_factor) {
+                     for (type = blend_types; type < &blend_types[num_types]; ++type) {
 
-                        if(*rgb_dst_factor == PIPE_BLENDFACTOR_SRC_ALPHA_SATURATE ||
+                        if (*rgb_dst_factor == PIPE_BLENDFACTOR_SRC_ALPHA_SATURATE ||
                            *alpha_dst_factor == PIPE_BLENDFACTOR_SRC_ALPHA_SATURATE)
                            continue;
 
@@ -671,8 +671,8 @@ test_all(unsigned verbose, FILE *fp)
                         blend.rt[0].alpha_dst_factor  = *alpha_dst_factor;
                         blend.rt[0].colormask         = PIPE_MASK_RGBA;
 
-                        if(!test_one(verbose, fp, &blend, *type))
-                          success = FALSE;
+                        if (!test_one(verbose, fp, &blend, *type))
+                          success = false;
 
                      }
                   }
@@ -686,7 +686,7 @@ test_all(unsigned verbose, FILE *fp)
 }
 
 
-boolean
+bool
 test_some(unsigned verbose, FILE *fp,
           unsigned long n)
 {
@@ -698,15 +698,14 @@ test_some(unsigned verbose, FILE *fp,
    const unsigned *alpha_dst_factor;
    struct pipe_blend_state blend;
    const struct lp_type *type;
-   unsigned long i;
-   boolean success = TRUE;
+   bool success = true;
 
-   for(i = 0; i < n; ++i) {
+   for (unsigned long i = 0; i < n; ++i) {
       rgb_func = &blend_funcs[rand() % num_funcs];
       alpha_func = &blend_funcs[rand() % num_funcs];
       rgb_src_factor = &blend_factors[rand() % num_factors];
       alpha_src_factor = &blend_factors[rand() % num_factors];
-      
+
       do {
          rgb_dst_factor = &blend_factors[rand() % num_factors];
       } while(*rgb_dst_factor == PIPE_BLENDFACTOR_SRC_ALPHA_SATURATE);
@@ -727,17 +726,17 @@ test_some(unsigned verbose, FILE *fp,
       blend.rt[0].alpha_dst_factor  = *alpha_dst_factor;
       blend.rt[0].colormask         = PIPE_MASK_RGBA;
 
-      if(!test_one(verbose, fp, &blend, *type))
-        success = FALSE;
+      if (!test_one(verbose, fp, &blend, *type))
+         success = false;
    }
 
    return success;
 }
 
 
-boolean
+bool
 test_single(unsigned verbose, FILE *fp)
 {
    printf("no test_single()");
-   return TRUE;
+   return true;
 }

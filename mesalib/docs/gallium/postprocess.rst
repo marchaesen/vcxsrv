@@ -23,7 +23,7 @@ Current filters
    corresponding color channel. These are basic filters for easy testing
    of the PP queue.
 -  pp_jimenezmlaa, pp_jimenezmlaa_color - `Jimenez's
-   MLAA <https://www.iryokufx.com/mlaa/>`__ is a morphological
+   MLAA <https://www.iryoku.com/mlaa/>`__ is a morphological
    antialiasing filter. The two versions use depth and color data,
    respectively. Which works better depends on the app - depth will not
    blur text, but it will miss transparent textures for example. Set to

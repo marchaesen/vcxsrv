@@ -156,8 +156,7 @@ _mesa_primitive_restart_index(const struct gl_context *ctx,
 void
 _mesa_InternalBindVertexBuffers(struct gl_context *ctx,
                                 const struct glthread_attrib_binding *buffers,
-                                GLbitfield buffer_mask,
-                                GLboolean restore_pointers);
+                                GLbitfield buffer_mask);
 
 extern void
 _mesa_print_arrays(struct gl_context *ctx);
@@ -167,5 +166,46 @@ _mesa_init_varray(struct gl_context *ctx);
 
 extern void
 _mesa_free_varray_data(struct gl_context *ctx);
+
+void
+_mesa_update_edgeflag_state_explicit(struct gl_context *ctx,
+                                     bool per_vertex_enable);
+
+void
+_mesa_update_edgeflag_state_vao(struct gl_context *ctx);
+
+
+/**
+ * Get the number of bytes for a vertex attrib with the given number of
+ * components and type.
+ *
+ * Note that this function will return some number between 0 and
+ * "8 * comps" if the type is invalid. It's assumed that error checking
+ * was done before this, or was skipped intentionally by mesa_no_error.
+ *
+ * \param comps number of components.
+ * \param type data type.
+ */
+static inline int
+_mesa_bytes_per_vertex_attrib(int comps, GLenum type)
+{
+   /* This has comps = 3, but should return 4, so it's difficult to
+    * incorporate it into the "bytes * comps" formula below.
+    */
+   if (type == GL_UNSIGNED_INT_10F_11F_11F_REV)
+      return 4;
+
+   /* This is a perfect hash for the specific set of GLenums that is valid
+    * here. It injectively maps a small set of GLenums into smaller numbers
+    * that can be used for indexing into small translation tables. It has
+    * hash collisions with enums that are invalid here.
+    */
+   #define PERF_HASH_GL_VERTEX_TYPE(x) ((((x) * 17175) >> 14) & 0xf)
+
+   extern const uint8_t _mesa_vertex_type_bytes[16];
+
+   assert(PERF_HASH_GL_VERTEX_TYPE(type) < ARRAY_SIZE(_mesa_vertex_type_bytes));
+   return _mesa_vertex_type_bytes[PERF_HASH_GL_VERTEX_TYPE(type)] * comps;
+}
 
 #endif

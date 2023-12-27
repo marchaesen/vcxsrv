@@ -567,6 +567,7 @@ ephyrRandRSetConfig(ScreenPtr pScreen,
     if (wasEnabled)
         KdEnableScreen(pScreen);
 
+    RRGetInfo(pScreen, TRUE);
     RRScreenSizeNotify(pScreen);
 
     return TRUE;

@@ -92,7 +92,7 @@ Fredrik Höglund (1):
 
 -  radv: add support for anisotropic filtering on VI+
 
-Jason Ekstrand (21):
+Faith Ekstrand (21):
 
 -  anv/device: Return DEVICE_LOST if execbuf2 fails
 -  vulkan/wsi/x11: Better handle wsi_x11_connection_create failure

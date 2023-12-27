@@ -33,7 +33,7 @@
 #include "util/u_memory.h"
 
 struct fps_info {
-   boolean frametime;
+   bool frametime;
    int frames;
    uint64_t last_time;
 };

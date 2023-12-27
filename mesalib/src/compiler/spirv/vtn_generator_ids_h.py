@@ -59,5 +59,5 @@ if __name__ == "__main__":
     tree = ET.parse(pargs.xml)
     root = tree.getroot()
 
-    with open(pargs.out, 'w') as f:
+    with open(pargs.out, 'w', encoding='utf-8') as f:
         f.write(TEMPLATE.render(root=root))

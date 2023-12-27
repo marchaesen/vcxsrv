@@ -4,12 +4,12 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 
 <enum name="chip" bare="yes">
-	<value name="A2XX"/>
-	<value name="A3XX"/>
-	<value name="A4XX"/>
-	<value name="A5XX"/>
-	<value name="A6XX"/>
-	<value name="A7XX"/>
+	<value name="A2XX" value="2"/>
+	<value name="A3XX" value="3"/>
+	<value name="A4XX" value="4"/>
+	<value name="A5XX" value="5"/>
+	<value name="A6XX" value="6"/>
+	<value name="A7XX" value="7"/>
 </enum>
 
 <enum name="adreno_pa_su_sc_draw">
@@ -376,5 +376,24 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="0x1"  name="RECTANGULAR"/>
 </enum>
 
-</database>
+<doc>
+	Blob (v615) seem to only use SAM and I wasn't able to coerce
+	it to produce any other command.
+	Probably valid for a4xx+ but not enabled or tested on anything
+	but a6xx.
+</doc>
+<enum name="a6xx_tex_prefetch_cmd">
+	<doc> Produces garbage </doc>
+	<value value="0x0" name="TEX_PREFETCH_UNK0"/>
+	<value value="0x1" name="TEX_PREFETCH_SAM"/>
+	<value value="0x2" name="TEX_PREFETCH_GATHER4R"/>
+	<value value="0x3" name="TEX_PREFETCH_GATHER4G"/>
+	<value value="0x4" name="TEX_PREFETCH_GATHER4B"/>
+	<value value="0x5" name="TEX_PREFETCH_GATHER4A"/>
+	<doc> Causes reads from an invalid address </doc>
+	<value value="0x6" name="TEX_PREFETCH_UNK6"/>
+	<doc> Results in color being zero </doc>
+	<value value="0x7" name="TEX_PREFETCH_UNK7"/>
+</enum>
 
+</database>

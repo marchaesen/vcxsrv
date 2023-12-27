@@ -78,7 +78,7 @@ if __name__ == '__main__':
     }
 
     if args.out:
-        with open(args.out, 'w') as f:
+        with open(args.out, 'w', encoding='utf-8') as f:
             json.dump(json_data, f, **json_params)
     else:
         print(json.dumps(json_data, **json_params))

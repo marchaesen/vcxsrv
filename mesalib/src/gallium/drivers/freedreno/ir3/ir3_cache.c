@@ -97,6 +97,8 @@ ir3_cache_lookup(struct ir3_cache *cache, const struct ir3_cache_key *key,
       return entry->data;
    }
 
+   MESA_TRACE_FUNC();
+
    if (key->hs)
       assert(key->ds);
 
@@ -108,7 +110,14 @@ ir3_cache_lookup(struct ir3_cache *cache, const struct ir3_cache_key *key,
       [MESA_SHADER_FRAGMENT] = ir3_get_shader(key->fs),
    };
 
-   struct ir3_shader_variant *variants[MESA_SHADER_STAGES];
+   if (shaders[MESA_SHADER_TESS_EVAL] && !shaders[MESA_SHADER_TESS_CTRL]) {
+      struct ir3_shader *vs = shaders[MESA_SHADER_VERTEX];
+      struct ir3_shader *hs =
+            ir3_shader_passthrough_tcs(vs, key->patch_vertices);
+      shaders[MESA_SHADER_TESS_CTRL] = hs;
+   }
+
+   const struct ir3_shader_variant *variants[MESA_SHADER_STAGES];
    struct ir3_shader_key shader_key = key->key;
 
    for (gl_shader_stage stage = MESA_SHADER_VERTEX; stage < MESA_SHADER_STAGES;
@@ -137,7 +146,7 @@ ir3_cache_lookup(struct ir3_cache *cache, const struct ir3_cache_key *key,
       }
    }
 
-   struct ir3_shader_variant *bs;
+   const struct ir3_shader_variant *bs;
 
    if (ir3_has_binning_vs(&key->key)) {
       /* starting with a6xx, the same const state is used for binning and draw

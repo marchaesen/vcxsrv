@@ -62,7 +62,17 @@ retry:
 	if (!langs || !langs[0])
 	    langs = getenv ("LC_ALL");
 	if (!langs || !langs[0])
-	    langs = getenv ("LC_CTYPE");
+        {
+            langs = getenv ("LC_CTYPE");
+            // On some macOS systems, LC_CTYPE is set to "UTF-8", which doesn't
+            // give any languge information. In this case, ignore LC_CTYPE and
+            // continue the search with LANG.
+            if (langs && (FcStrCmpIgnoreCase((const FcChar8 *) langs,
+                                             (const FcChar8 *)"UTF-8") == 0))
+            {
+                langs = NULL;
+            }
+        }
 	if (!langs || !langs[0])
 	    langs = getenv ("LANG");
 	if (langs && langs[0])
@@ -211,27 +221,72 @@ retry:
     return prgname;
 }
 
+static FcChar8 *default_desktop_name;
+
+FcChar8 *
+FcGetDesktopName (void)
+{
+    FcChar8 *desktop_name;
+retry:
+    desktop_name = fc_atomic_ptr_get (&default_desktop_name);
+    if (!desktop_name)
+    {
+	char *s = getenv ("XDG_CURRENT_DESKTOP");
+
+	if (!s)
+	    desktop_name = FcStrdup ("");
+	else
+	    desktop_name = FcStrdup (s);
+	if (!desktop_name)
+	{
+	    fprintf (stderr, "Fontconfig error: out of memory in %s\n",
+		     __FUNCTION__);
+	    return NULL;
+	}
+
+	if (!fc_atomic_ptr_cmpexch(&default_desktop_name, NULL, desktop_name))
+	{
+	    free (desktop_name);
+	    goto retry;
+	}
+    }
+    if (desktop_name && !desktop_name[0])
+	return NULL;
+
+    return desktop_name;
+}
+
 void
 FcDefaultFini (void)
 {
     FcChar8  *lang;
     FcStrSet *langs;
     FcChar8  *prgname;
+    FcChar8  *desktop;
 
     lang = fc_atomic_ptr_get (&default_lang);
-    if (lang && fc_atomic_ptr_cmpexch (&default_lang, lang, NULL)) {
+    if (lang && fc_atomic_ptr_cmpexch (&default_lang, lang, NULL))
+    {
 	free (lang);
     }
 
     langs = fc_atomic_ptr_get (&default_langs);
-    if (langs && fc_atomic_ptr_cmpexch (&default_langs, langs, NULL)) {
+    if (langs && fc_atomic_ptr_cmpexch (&default_langs, langs, NULL))
+    {
 	FcRefInit (&langs->ref, 1);
 	FcStrSetDestroy (langs);
     }
 
     prgname = fc_atomic_ptr_get (&default_prgname);
-    if (prgname && fc_atomic_ptr_cmpexch (&default_prgname, prgname, NULL)) {
+    if (prgname && fc_atomic_ptr_cmpexch (&default_prgname, prgname, NULL))
+    {
 	free (prgname);
+    }
+
+    desktop = fc_atomic_ptr_get (&default_desktop_name);
+    if (desktop && fc_atomic_ptr_cmpexch(&default_desktop_name, desktop, NULL))
+    {
+	free (desktop);
     }
 }
 
@@ -334,6 +389,13 @@ FcDefaultSubstitute (FcPattern *pattern)
 	FcChar8 *prgname = FcGetPrgname ();
 	if (prgname)
 	    FcPatternObjectAddString (pattern, FC_PRGNAME_OBJECT, prgname);
+    }
+
+    if (FcPatternObjectGet (pattern, FC_DESKTOP_NAME_OBJECT, 0, &v) == FcResultNoMatch)
+    {
+	FcChar8 *desktop = FcGetDesktopName ();
+	if (desktop)
+	    FcPatternObjectAddString (pattern, FC_DESKTOP_NAME_OBJECT, desktop);
     }
 
     if (!FcPatternFindObjectIter (pattern, &iter, FC_ORDER_OBJECT))

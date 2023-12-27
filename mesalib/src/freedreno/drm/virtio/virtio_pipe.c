@@ -21,6 +21,7 @@
  * SOFTWARE.
  */
 
+#include "util/libsync.h"
 #include "util/slab.h"
 
 #include "freedreno_ringbuffer_sp.h"
@@ -46,29 +47,26 @@ query_param(struct fd_pipe *pipe, uint32_t param, uint64_t *value)
 }
 
 static int
-query_queue_param(struct fd_pipe *pipe, uint32_t param, uint64_t *value)
+query_faults(struct fd_pipe *pipe, uint64_t *value)
 {
-   struct msm_ccmd_submitqueue_query_req req = {
-         .hdr = MSM_CCMD(SUBMITQUEUE_QUERY, sizeof(req)),
-         .queue_id = to_virtio_pipe(pipe)->queue_id,
-         .param = param,
-         .len = sizeof(*value),
-   };
-   struct msm_ccmd_submitqueue_query_rsp *rsp;
-   unsigned rsp_len = sizeof(*rsp) + req.len;
+   struct virtio_device *virtio_dev = to_virtio_device(pipe->dev);
+   uint32_t async_error = 0;
+   uint64_t global_faults;
 
-   rsp = virtio_alloc_rsp(pipe->dev, &req.hdr, rsp_len);
+   if (vdrm_shmem_has_field(virtio_dev->shmem, async_error))
+      async_error = virtio_dev->shmem->async_error;
 
-   int ret = virtio_execbuf(pipe->dev, &req.hdr, true);
-   if (ret)
-      goto out;
+   if (vdrm_shmem_has_field(virtio_dev->shmem, global_faults)) {
+      global_faults = virtio_dev->shmem->global_faults;
+   } else {
+      int ret = query_param(pipe, MSM_PARAM_FAULTS, &global_faults);
+      if (ret)
+         return ret;
+   }
 
-   memcpy(value, rsp->payload, req.len);
+   *value = global_faults + async_error;
 
-   ret = rsp->ret;
-
-out:
-   return ret;
+   return 0;
 }
 
 static int
@@ -93,21 +91,20 @@ virtio_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param,
       *value = virtio_pipe->chip_id;
       return 0;
    case FD_MAX_FREQ:
-      *value = virtio_dev->caps.u.msm.max_freq;
+      *value = virtio_dev->vdrm->caps.u.msm.max_freq;
       return 0;
    case FD_TIMESTAMP:
       return query_param(pipe, MSM_PARAM_TIMESTAMP, value);
    case FD_NR_PRIORITIES:
-      *value = virtio_dev->caps.u.msm.priorities;
+      *value = virtio_dev->vdrm->caps.u.msm.priorities;
       return 0;
    case FD_CTX_FAULTS:
-      return query_queue_param(pipe, MSM_SUBMITQUEUE_PARAM_FAULTS, value);
    case FD_GLOBAL_FAULTS:
-      return query_param(pipe, MSM_PARAM_FAULTS, value);
+      return query_faults(pipe, value);
    case FD_SUSPEND_COUNT:
       return query_param(pipe, MSM_PARAM_SUSPENDS, value);
    case FD_VA_SIZE:
-      *value = virtio_dev->caps.u.msm.va_size;
+      *value = virtio_dev->vdrm->caps.u.msm.va_size;
       return 0;
    default:
       ERROR_MSG("invalid param id: %d", param);
@@ -118,6 +115,8 @@ virtio_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param,
 static int
 virtio_pipe_wait(struct fd_pipe *pipe, const struct fd_fence *fence, uint64_t timeout)
 {
+   MESA_TRACE_FUNC();
+   struct vdrm_device *vdrm = to_virtio_device(pipe->dev)->vdrm;
    struct msm_ccmd_wait_fence_req req = {
          .hdr = MSM_CCMD(WAIT_FENCE, sizeof(req)),
          .queue_id = to_virtio_pipe(pipe)->queue_id,
@@ -127,14 +126,27 @@ virtio_pipe_wait(struct fd_pipe *pipe, const struct fd_fence *fence, uint64_t ti
    int64_t end_time = os_time_get_nano() + timeout;
    int ret;
 
-   do {
-      rsp = virtio_alloc_rsp(pipe->dev, &req.hdr, sizeof(*rsp));
+   /* Do a non-blocking wait to trigger host-side wait-boost,
+    * if the host kernel is new enough
+    */
+   rsp = vdrm_alloc_rsp(vdrm, &req.hdr, sizeof(*rsp));
+   ret = vdrm_send_req(vdrm, &req.hdr, false);
+   if (ret)
+      goto out;
 
-      ret = virtio_execbuf(pipe->dev, &req.hdr, true);
+   vdrm_flush(vdrm);
+
+   if (fence->use_fence_fd)
+      return sync_wait(fence->fence_fd, timeout / 1000000);
+
+   do {
+      rsp = vdrm_alloc_rsp(vdrm, &req.hdr, sizeof(*rsp));
+
+      ret = vdrm_send_req(vdrm, &req.hdr, true);
       if (ret)
          goto out;
 
-      if ((timeout != PIPE_TIMEOUT_INFINITE) &&
+      if ((timeout != OS_TIMEOUT_INFINITE) &&
           (os_time_get_nano() >= end_time))
          break;
 
@@ -201,30 +213,6 @@ static const struct fd_pipe_funcs funcs = {
    .destroy = virtio_pipe_destroy,
 };
 
-static void
-init_shmem(struct fd_device *dev)
-{
-   struct virtio_device *virtio_dev = to_virtio_device(dev);
-
-   simple_mtx_lock(&virtio_dev->rsp_lock);
-
-   /* One would like to do this in virtio_device_new(), but we'd
-    * have to bypass/reinvent fd_bo_new()..
-    */
-   if (unlikely(!virtio_dev->shmem)) {
-      virtio_dev->shmem_bo = fd_bo_new(dev, 0x4000,
-                                       _FD_BO_VIRTIO_SHM, "shmem");
-      virtio_dev->shmem = fd_bo_map(virtio_dev->shmem_bo);
-      virtio_dev->shmem_bo->bo_reuse = NO_CACHE;
-
-      uint32_t offset = virtio_dev->shmem->rsp_mem_offset;
-      virtio_dev->rsp_mem_len = fd_bo_size(virtio_dev->shmem_bo) - offset;
-      virtio_dev->rsp_mem = &((uint8_t *)virtio_dev->shmem)[offset];
-   }
-
-   simple_mtx_unlock(&virtio_dev->rsp_lock);
-}
-
 struct fd_pipe *
 virtio_pipe_new(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
 {
@@ -233,10 +221,9 @@ virtio_pipe_new(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
       [FD_PIPE_2D] = MSM_PIPE_2D0,
    };
    struct virtio_device *virtio_dev = to_virtio_device(dev);
+   struct vdrm_device *vdrm = virtio_dev->vdrm;
    struct virtio_pipe *virtio_pipe = NULL;
    struct fd_pipe *pipe = NULL;
-
-   init_shmem(dev);
 
    virtio_pipe = calloc(1, sizeof(*virtio_pipe));
    if (!virtio_pipe) {
@@ -252,10 +239,10 @@ virtio_pipe_new(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
    pipe->dev = dev;
    virtio_pipe->pipe = pipe_id[id];
 
-   virtio_pipe->gpu_id = virtio_dev->caps.u.msm.gpu_id;
-   virtio_pipe->gmem = virtio_dev->caps.u.msm.gmem_size;
-   virtio_pipe->gmem_base = virtio_dev->caps.u.msm.gmem_base;
-   virtio_pipe->chip_id = virtio_dev->caps.u.msm.chip_id;
+   virtio_pipe->gpu_id = vdrm->caps.u.msm.gpu_id;
+   virtio_pipe->gmem = vdrm->caps.u.msm.gmem_size;
+   virtio_pipe->gmem_base = vdrm->caps.u.msm.gmem_base;
+   virtio_pipe->chip_id = vdrm->caps.u.msm.chip_id;
 
 
    if (!(virtio_pipe->gpu_id || virtio_pipe->chip_id))

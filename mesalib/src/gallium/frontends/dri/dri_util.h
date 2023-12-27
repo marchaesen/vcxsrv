@@ -27,27 +27,8 @@
  * \file dri_util.h
  * DRI utility functions definitions.
  *
- * This module acts as glue between GLX and the actual hardware driver.  A DRI
- * driver doesn't really \e have to use any of this - it's optional.  But, some
- * useful stuff is done here that otherwise would have to be duplicated in most
- * drivers.
- *
- * Basically, these utility functions take care of some of the dirty details of
- * screen initialization, context creation, context binding, DRM setup, etc.
- *
- * These functions are compiled into each DRI driver so libGL.so knows nothing
- * about them.
- *
- * \sa dri_util.c.
- *
  * \author Kevin E. Martin <kevin@precisioninsight.com>
  * \author Brian Paul <brian@precisioninsight.com>
- */
-
-/**
- * The following structs are shared between DRISW and DRI2, the DRISW structs
- * are essentially base classes of the DRI2 structs. DRISW needs to compile on
- * platforms without DRM, so keep the structs opaque to DRM.
  */
 
 #ifndef _DRI_UTIL_H_
@@ -61,6 +42,10 @@
 #include "main/menums.h"
 #include "util/xmlconfig.h"
 #include <stdbool.h>
+
+struct dri_screen;
+
+#define __DRI_BACKEND_VTABLE "DRI_DriverVtable"
 
 struct __DRIconfigRec {
     struct gl_config modes;
@@ -107,201 +92,30 @@ struct __DriverContextConfig {
 
     /* Only valid if __DRIVER_CONTEXT_ATTRIB_NO_ERROR is set */
     int no_error;
+
+    /* Only valid if __DRIVER_CONTEXT_ATTRIB_PROTECTED is set */
+    int protected_context;
 };
 
 #define __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY   (1 << 0)
 #define __DRIVER_CONTEXT_ATTRIB_PRIORITY         (1 << 1)
 #define __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR (1 << 2)
 #define __DRIVER_CONTEXT_ATTRIB_NO_ERROR         (1 << 3)
+#define __DRIVER_CONTEXT_ATTRIB_PROTECTED        (1 << 4)
 
-/**
- * Driver callback functions.
- *
- * Each DRI driver must have one of these structures with all the pointers set
- * to appropriate functions within the driver.
- */
-struct __DriverAPIRec {
-    const __DRIconfig **(*InitScreen) (__DRIscreen * priv);
-
-    void (*DestroyScreen)(__DRIscreen *driScrnPriv);
-
-    GLboolean (*CreateBuffer)(__DRIscreen *driScrnPriv,
-                              __DRIdrawable *driDrawPriv,
-                              const struct gl_config *glVis,
-                              GLboolean pixmapBuffer);
-
-    void (*DestroyBuffer)(__DRIdrawable *driDrawPriv);
-
-    void (*SwapBuffers)(__DRIdrawable *driDrawPriv);
-
-    __DRIbuffer *(*AllocateBuffer) (__DRIscreen *screenPrivate,
-                                    unsigned int attachment,
-                                    unsigned int format,
-                                    int width, int height);
-
-    void (*ReleaseBuffer) (__DRIscreen *screenPrivate, __DRIbuffer *buffer);
-
-    void (*CopySubBuffer)(__DRIdrawable *driDrawPriv, int x, int y,
-                          int w, int h);
-};
-
-/**
- * Per-screen private driver information.
- */
-struct __DRIscreenRec {
-    /**
-     * Driver-specific entrypoints provided by the driver's
-     * __DRIDriverVtableExtensionRec.
-     */
-    const struct __DriverAPIRec *driver;
-
-    /**
-     * Current screen's number
-     */
-    int myNum;
-
-    /**
-     * File descriptor returned when the kernel device driver is opened.
-     *
-     * Used to:
-     *   - authenticate client to kernel
-     *   - map the frame buffer, SAREA, etc.
-     *   - close the kernel device driver
-     */
-    int fd;
-
-    /**
-     * Device-dependent private information (not stored in the SAREA).
-     *
-     * This pointer is never touched by the DRI layer.
-     */
-    void *driverPrivate;
-
-    void *loaderPrivate;
-
-    int max_gl_core_version;
-    int max_gl_compat_version;
-    int max_gl_es1_version;
-    int max_gl_es2_version;
-
-    const __DRIextension **extensions;
-
-    const __DRIswrastLoaderExtension *swrast_loader;
-    const __DRIkopperLoaderExtension *kopper_loader;
-
-    struct {
-	/* Flag to indicate that this is a DRI2 screen.  Many of the above
-	 * fields will not be valid or initializaed in that case. */
-	const __DRIdri2LoaderExtension *loader;
-	const __DRIimageLookupExtension *image;
-	const __DRIuseInvalidateExtension *useInvalidate;
-        const __DRIbackgroundCallableExtension *backgroundCallable;
-    } dri2;
-
-    struct {
-        const __DRIimageLoaderExtension *loader;
-    } image;
-
-    struct {
-       const __DRImutableRenderBufferLoaderExtension *loader;
-    } mutableRenderBuffer;
-
-    driOptionCache optionInfo;
-    driOptionCache optionCache;
-
-    unsigned int api_mask;
-};
-
-/**
- * Per-context private driver information.
- */
-struct __DRIcontextRec {
-    /**
-     * Device driver's private context data.  This structure is opaque.
-     */
-    void *driverPrivate;
-
-    /**
-     * The loaders's private context data.  This structure is opaque.
-     */
-    void *loaderPrivate;
-
-    /**
-     * Pointer to drawable currently bound to this context for drawing.
-     */
-    __DRIdrawable *driDrawablePriv;
-
-    /**
-     * Pointer to drawable currently bound to this context for reading.
-     */
-    __DRIdrawable *driReadablePriv;
-
-    /**
-     * Pointer to screen on which this context was created.
-     */
-    __DRIscreen *driScreenPriv;
-
-    struct {
-	int draw_stamp;
-	int read_stamp;
-    } dri2;
-};
-
-/**
- * Per-drawable private DRI driver information.
- */
-struct __DRIdrawableRec {
-    /**
-     * Driver's private drawable information.
-     *
-     * This structure is opaque.
-     */
-    void *driverPrivate;
-
-    /**
-     * Private data from the loader.  We just hold on to it and pass
-     * it back when calling into loader provided functions.
-     */
-    void *loaderPrivate;
-
-    /**
-     * Pointer to context to which this drawable is currently bound.
-     */
-    __DRIcontext *driContextPriv;
-
-    /**
-     * Pointer to screen on which this drawable was created.
-     */
-    __DRIscreen *driScreenPriv;
-
-    /**
-     * Reference count for number of context's currently bound to this
-     * drawable.
-     *
-     * Once it reaches zero, the drawable can be destroyed.
-     *
-     * \note This behavior will change with GLX 1.3.
-     */
-    int refcount;
-
-    /**
-     * Last value of the stamp.
-     *
-     * If this differs from the value stored at __DRIdrawable::dri2.stamp,
-     * then the drawable information has been modified by the X server, and the
-     * drawable information (below) should be retrieved from the X server.
-     */
-    unsigned int lastStamp;
-
-    int w, h;
-
-    /**
-     * Drawable timestamp.  Increased when the loader calls invalidate.
-     */
-    struct {
-	unsigned int stamp;
-    } dri2;
-};
+__DRIscreen *
+driCreateNewScreen2(int scrn, int fd,
+                    const __DRIextension **loader_extensions,
+                    const __DRIextension **driver_extensions,
+                    const __DRIconfig ***driver_configs, void *data);
+__DRIcontext *
+driCreateContextAttribs(__DRIscreen *psp, int api,
+                        const __DRIconfig *config,
+                        __DRIcontext *shared,
+                        unsigned num_attribs,
+                        const uint32_t *attribs,
+                        unsigned *error,
+                        void *data);
 
 extern uint32_t
 driGLFormatToImageFormat(mesa_format format);

@@ -23,6 +23,8 @@
  */
 
 #define DEBUG_PARSING 0
+#define DEBUG_VP 0
+#define DEBUG_FP 0
 
 /**
  * \file arbprogparse.c
@@ -50,14 +52,14 @@ having three separate program parameter arrays.
 */
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 #include "main/context.h"
 #include "arbprogparse.h"
-#include "programopt.h"
 #include "prog_parameter.h"
 #include "prog_statevars.h"
 #include "prog_instruction.h"
+#include "prog_print.h"
 #include "program_parser.h"
 
 
@@ -118,6 +120,7 @@ _mesa_parse_arb_fragment_program(struct gl_context* ctx, GLenum target,
    program->info.fs.pixel_center_integer = state.option.PixelCenterInteger;
 
    program->info.fs.uses_discard = state.fragment.UsesKill;
+   program->arb.Fog = state.option.Fog;
 
    ralloc_free(program->arb.Instructions);
    program->arb.Instructions = prog.arb.Instructions;
@@ -126,25 +129,9 @@ _mesa_parse_arb_fragment_program(struct gl_context* ctx, GLenum target,
       _mesa_free_parameter_list(program->Parameters);
    program->Parameters    = prog.Parameters;
 
-   /* Append fog instructions now if the program has "OPTION ARB_fog_exp"
-    * or similar.  We used to leave this up to drivers, but it appears
-    * there's no hardware that wants to do fog in a discrete stage separate
-    * from the fragment shader.
-    */
-   if (state.option.Fog != OPTION_NONE) {
-      static const GLenum fog_modes[4] = {
-	 GL_NONE, GL_EXP, GL_EXP2, GL_LINEAR
-      };
-
-      /* XXX: we should somehow recompile this to remove clamping if disabled
-       * On the ATI driver, this is unclampled if fragment clamping is disabled
-       */
-      _mesa_append_fog_code(ctx, program, fog_modes[state.option.Fog], GL_TRUE);
-   }
-
 #if DEBUG_FP
    printf("____________Fragment program %u ________\n", program->Id);
-   _mesa_print_program(&program->Base);
+   _mesa_print_program(program);
 #endif
 }
 

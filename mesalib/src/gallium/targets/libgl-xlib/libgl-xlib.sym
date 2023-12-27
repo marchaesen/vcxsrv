@@ -1,7 +1,6 @@
 {
 	global:
 		gl*;
-		mgl*;
 	local:
 		*;
 };

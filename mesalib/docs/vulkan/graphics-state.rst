@@ -11,38 +11,34 @@ Pipeline state
 --------------
 
 All (possibly dynamic) Vulkan graphics pipeline state is encapsulated into
-a single :cpp:struct:`vk_graphics_pipeline_state` structure which contains
+a single :c:struct:`vk_graphics_pipeline_state` structure which contains
 pointers to sub-structures for each of the different state categories.
-Unlike :cpp:type:`VkGraphicsPipelineCreateInfo`, the pointers in
-:cpp:struct:`vk_graphics_pipeline_state` are guaranteed to be either be
+Unlike :c:type:`VkGraphicsPipelineCreateInfo`, the pointers in
+:c:struct:`vk_graphics_pipeline_state` are guaranteed to be either be
 NULL or point to valid and properly populated memory.
 
 When creating a pipeline, the
-:cpp:func:`vk_graphics_pipeline_state_fill()` function can be used to
-gather all of the state from the core structures as well as various `pNext`
+:c:func:`vk_graphics_pipeline_state_fill()` function can be used to
+gather all of the state from the core structures as well as various ``pNext``
 chains into a single state structure.  Whenever an extension struct is
 missing, a reasonable default value is provided whenever possible.
 
 
-:cpp:func:`vk_graphics_pipeline_state_fill()` automatically handles both
+:c:func:`vk_graphics_pipeline_state_fill()` automatically handles both
 the render pass and dynamic rendering.  For drivers which use
-:cpp:struct:`vk_render_pass`, the :cpp:struct:`vk_render_pass_state`
+:c:struct:`vk_render_pass`, the :c:struct:`vk_render_pass_state`
 structure will be populated as if for dynamic rendering, regardless of
 which path is used.  Drivers which use their own render pass structure
 should parse the render pass, if available, and pass a
-:cpp:struct:`vk_subpass_info` into
-:cpp:func:`vk_graphics_pipeline_state_fill()` with the relevant information
+:c:struct:`vk_render_pass_state` to the `driver_rp` argument of
+:c:func:`vk_graphics_pipeline_state_fill()` with the relevant information
 from the specified subpass.  If a render pass is available,
-:cpp:struct:`vk_render_pass_state` will be populated with the
-:cpp:type:`VkRenderPass` handle and subpass index as well as the
-information from the :cpp:struct:`vk_render_pass_state`.  If dynamic
-rendering is used or the driver does not provide a
-:cpp:struct:`vk_subpass_info` structure, :cpp:struct:`vk_render_pass_state`
+:c:struct:`vk_render_pass_state` will be populated with the
+the information from the :c:struct:`driver_rp`.  If dynamic
+rendering is used or the driver provides a `NULL`
+:c:struct:`driver_rp`, the :c:struct:`vk_render_pass_state`
 structure will be populated for dynamic rendering, including color, depth,
 and stencil attachment formats.
-
-.. doxygenstruct:: vk_subpass_info
-   :members:
 
 The usual flow for creating a full graphics pipeline (not library) looks
 like this:
@@ -56,7 +52,7 @@ like this:
 
    /* Emit stuff using the state in `state` */
 
-The :cpp:struct:`vk_graphics_pipeline_all_state` structure exists to allow
+The :c:struct:`vk_graphics_pipeline_all_state` structure exists to allow
 the state to sit on the stack instead of requiring a heap allocation.  This
 is useful if you intend to use the state right away and don't need to store
 it.  For pipeline libraries, it's likely more useful to use the dynamically
@@ -82,8 +78,8 @@ library pipeline.
       return result;
 
 State from dependent libraries can be merged together using
-:cpp:func:`vk_graphics_pipeline_state_merge`.
-:cpp:func:`vk_graphics_pipeline_state_fill` will then only attempt to
+:c:func:`vk_graphics_pipeline_state_merge`.
+:c:func:`vk_graphics_pipeline_state_fill` will then only attempt to
 populate missing fields.  You can also merge dependent pipeline libraries
 together but store the final state on the stack for immediate consumption:
 
@@ -100,9 +96,11 @@ together but store the final state on the stack for immediate consumption:
    vk_graphics_pipeline_state_fill(&device->vk, &state, pCreateInfo,
                                    NULL, &all, NULL, 0, NULL);
 
-.. doxygenfunction:: vk_graphics_pipeline_state_fill
+.. c:autofunction:: vk_graphics_pipeline_state_fill
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
-.. doxygenfunction:: vk_graphics_pipeline_state_merge
+.. c:autofunction:: vk_graphics_pipeline_state_merge
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
 
 Dynamic state
@@ -110,32 +108,39 @@ Dynamic state
 
 All dynamic states in Vulkan, regardless of which API version or extension
 introduced them, are represented by the
-:cpp:enum:`mesa_vk_dynamic_graphics_state` enum.  This corresponds to the
-:cpp:type:`VkDynamicState` enum in the Vulkan API only it's compact (has no
+:c:enum:`mesa_vk_dynamic_graphics_state` enum.  This corresponds to the
+:c:type:`VkDynamicState` enum in the Vulkan API only it's compact (has no
 holes due to extension namespacing) and a bit better organized.  Each
 enumerant is named with the name of the state group to which the dynamic
 state belongs as well as the name of the dynamic state itself.  The fact
 that it's compact allows us to use to index bitsets.
 
-.. doxygenfunction:: vk_get_dynamic_graphics_states
+.. c:autofunction:: vk_get_dynamic_graphics_states
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
-We also provide a :cpp:struct:`vk_dynamic_graphics_state` structure which
+We also provide a :c:struct:`vk_dynamic_graphics_state` structure which
 contains all the dynamic graphics states, regardless of which API version
 or extension introduced them.  This structure can be populated from a
-:cpp:struct:`vk_graphics_pipeline_state` via
-:cpp:func:`vk_dynamic_graphics_state_init`.
+:c:struct:`vk_graphics_pipeline_state` via
+:c:func:`vk_dynamic_graphics_state_init`.
 
-.. doxygenfunction:: vk_dynamic_graphics_state_init
-.. doxygenfunction:: vk_dynamic_graphics_state_copy
+.. c:autofunction:: vk_dynamic_graphics_state_init
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
-There is also a :cpp:struct:`vk_dynamic_graphics_state` embedded in
-:cpp:struct:`vk_command_buffer`.  Should you choose to use them, we provide
+.. c:autofunction:: vk_dynamic_graphics_state_copy
+   :file: src/vulkan/runtime/vk_graphics_state.h
+
+There is also a :c:struct:`vk_dynamic_graphics_state` embedded in
+:c:struct:`vk_command_buffer`.  Should you choose to use them, we provide
 common implementations for all ``vkCmdSet*()`` functions.  Two additional
 functions are provided for the driver to call in ``CmdBindPipeline()`` and
 ``CmdBindVertexBuffers2()``:
 
-.. doxygenfunction:: vk_cmd_set_dynamic_graphics_state
-.. doxygenfunction:: vk_cmd_set_vertex_binding_strides
+.. c:autofunction:: vk_cmd_set_dynamic_graphics_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
+
+.. c:autofunction:: vk_cmd_set_vertex_binding_strides
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
 To use the dynamic state framework, you will need the following in your
 pipeline structure:
@@ -197,69 +202,93 @@ Any states used by the currently bound pipeline and attachments are always
 valid in ``vk_command_buffer::dynamic_graphics_state`` so you can always
 use a state even if it isn't dirty on this particular draw.
 
-.. doxygenfunction:: vk_dynamic_graphics_state_dirty_all
-.. doxygenfunction:: vk_dynamic_graphics_state_clear_dirty
-.. doxygenfunction:: vk_dynamic_graphics_state_any_dirty
+.. c:autofunction:: vk_dynamic_graphics_state_dirty_all
+   :file: src/vulkan/runtime/vk_graphics_state.h
+
+.. c:autofunction:: vk_dynamic_graphics_state_clear_dirty
+   :file: src/vulkan/runtime/vk_graphics_state.h
+
+.. c:autofunction:: vk_dynamic_graphics_state_any_dirty
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
 
 Depth stencil state optimization
 --------------------------------
 
-.. doxygenfunction:: vk_optimize_depth_stencil_state
+.. c:autofunction:: vk_optimize_depth_stencil_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
 
 Reference
 ---------
 
-.. doxygenstruct:: vk_graphics_pipeline_state
+.. c:autostruct:: vk_graphics_pipeline_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_vertex_binding_state
+.. c:autostruct:: vk_vertex_binding_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_vertex_attribute_state
+.. c:autostruct:: vk_vertex_attribute_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_vertex_input_state
+.. c:autostruct:: vk_vertex_input_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_input_assembly_state
+.. c:autostruct:: vk_input_assembly_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_tessellation_state
+.. c:autostruct:: vk_tessellation_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_viewport_state
+.. c:autostruct:: vk_viewport_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_discard_rectangles_state
+.. c:autostruct:: vk_discard_rectangles_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_rasterization_state
+.. c:autostruct:: vk_rasterization_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_fragment_shading_rate_state
+.. c:autostruct:: vk_fragment_shading_rate_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_sample_locations_state
+.. c:autostruct:: vk_sample_locations_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_multisample_state
+.. c:autostruct:: vk_multisample_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_stencil_test_face_state
+.. c:autostruct:: vk_stencil_test_face_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_depth_stencil_state
+.. c:autostruct:: vk_depth_stencil_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_color_blend_state
+.. c:autostruct:: vk_color_blend_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenstruct:: vk_render_pass_state
+.. c:autostruct:: vk_render_pass_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:
 
-.. doxygenenum:: mesa_vk_dynamic_graphics_state
+.. c:autoenum:: mesa_vk_dynamic_graphics_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
 
-.. doxygenstruct:: vk_dynamic_graphics_state
+.. c:autostruct:: vk_dynamic_graphics_state
+   :file: src/vulkan/runtime/vk_graphics_state.h
    :members:

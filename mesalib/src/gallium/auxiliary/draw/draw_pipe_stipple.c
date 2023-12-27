@@ -48,8 +48,8 @@
 struct stipple_stage {
    struct draw_stage stage;
    unsigned counter;
-   ushort pattern;
-   ushort factor;
+   uint16_t pattern;
+   uint16_t factor;
    bool rectangular;
 };
 
@@ -73,13 +73,13 @@ screen_interp(struct draw_context *draw,
               const struct vertex_header *v0,
               const struct vertex_header *v1)
 {
-   uint attr;
-   uint num_outputs = draw_current_shader_outputs(draw);
+   unsigned attr;
+   unsigned num_outputs = draw_current_shader_outputs(draw);
    for (attr = 0; attr < num_outputs; attr++) {
       const float *val0 = v0->data[attr];
       const float *val1 = v1->data[attr];
       float *newv = dst->data[attr];
-      uint i;
+      unsigned i;
       for (i = 0; i < 4; i++) {
          newv[i] = val0[i] + t * (val1[i] - val0[i]);
       }
@@ -110,7 +110,7 @@ emit_segment(struct draw_stage *stage, struct prim_header *header,
 
 
 static inline bool
-stipple_test(unsigned counter, ushort pattern, ushort factor)
+stipple_test(unsigned counter, uint16_t pattern, uint16_t factor)
 {
    unsigned b = (counter / factor) & 0xf;
    return !!((1 << b) & pattern);

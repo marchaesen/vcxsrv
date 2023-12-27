@@ -35,6 +35,8 @@
 #include "os_time.h"
 #include "detect_os.h"
 
+#include "c11/time.h"
+
 #include "util/u_atomic.h"
 
 #if DETECT_OS_UNIX
@@ -53,38 +55,9 @@
 int64_t
 os_time_get_nano(void)
 {
-#if DETECT_OS_LINUX || DETECT_OS_BSD
-
-   struct timespec tv;
-   clock_gettime(CLOCK_MONOTONIC, &tv);
-   return tv.tv_nsec + tv.tv_sec*INT64_C(1000000000);
-
-#elif DETECT_OS_UNIX
-
-   struct timeval tv;
-   gettimeofday(&tv, NULL);
-   return tv.tv_usec*INT64_C(1000) + tv.tv_sec*INT64_C(1000000000);
-
-#elif DETECT_OS_WINDOWS
-
-   LARGE_INTEGER frequency;
-   LARGE_INTEGER counter;
-   int64_t secs, nanosecs;
-   QueryPerformanceFrequency(&frequency);
-   QueryPerformanceCounter(&counter);
-   /* Compute seconds and nanoseconds parts separately to
-    * reduce severity of precision loss.
-    */
-   secs = counter.QuadPart / frequency.QuadPart;
-   nanosecs = (counter.QuadPart % frequency.QuadPart) * INT64_C(1000000000)
-      / frequency.QuadPart;
-   return secs*INT64_C(1000000000) + nanosecs;
-
-#else
-
-#error Unsupported OS
-
-#endif
+   struct timespec ts;
+   timespec_get(&ts, TIME_MONOTONIC);
+   return ts.tv_nsec + ts.tv_sec*INT64_C(1000000000);
 }
 
 
@@ -92,7 +65,7 @@ os_time_get_nano(void)
 void
 os_time_sleep(int64_t usecs)
 {
-#if DETECT_OS_LINUX
+#if DETECT_OS_LINUX || DETECT_OS_MANAGARM
    struct timespec time;
    time.tv_sec = usecs / 1000000;
    time.tv_nsec = (usecs % 1000000) * 1000;

@@ -206,7 +206,7 @@ NineQuery9_GetData( struct NineQuery9 *This,
                     DWORD dwGetDataFlags )
 {
     struct NineDevice9 *device = This->base.device;
-    boolean ok, wait_query_result = FALSE;
+    bool ok, wait_query_result = false;
     union pipe_query_result presult;
     union nine_query_result nresult;
 
@@ -226,7 +226,7 @@ NineQuery9_GetData( struct NineQuery9 *This,
          * However Wine states that return value should
          * be S_OK, so wait for the result to return S_OK. */
         NineQuery9_Issue(This, D3DISSUE_END);
-        wait_query_result = TRUE;
+        wait_query_result = true;
     }
 
     /* The documention mentions no special case for D3DQUERYTYPE_TIMESTAMP.
@@ -234,7 +234,7 @@ NineQuery9_GetData( struct NineQuery9 *This,
      * D3DGETDATA_FLUSH is specified. */
     if (This->type == D3DQUERYTYPE_TIMESTAMP &&
         (dwGetDataFlags & D3DGETDATA_FLUSH))
-        wait_query_result = TRUE;
+        wait_query_result = true;
 
 
     /* Note: We ignore dwGetDataFlags, because get_query_result will

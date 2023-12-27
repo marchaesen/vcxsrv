@@ -73,6 +73,12 @@ xkb_symbols "102-altgr" {
     key <LSGT> { type[Group1]="FOUR_LEVEL", [ less, greater, Multi_key, Multi_key ] };
 };
 
+// Make plain Insert do Compose, while Shift+Insert remains Insert.
+partial modifier_keys
+xkb_symbols "ins" {
+    key  <INS> { type[Group1]="TWO_LEVEL", [ Multi_key, Insert ] };
+};
+
 partial modifier_keys
 xkb_symbols "paus" {
     key <PAUS> { type[Group1]="TWO_LEVEL", [ Multi_key, Multi_key ] };

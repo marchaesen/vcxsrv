@@ -269,7 +269,7 @@ static void noop_texture_subdata(struct pipe_context *pipe,
                                  const struct pipe_box *box,
                                  const void *data,
                                  unsigned stride,
-                                 unsigned layer_stride)
+                                 uintptr_t layer_stride)
 {
 }
 

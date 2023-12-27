@@ -58,8 +58,8 @@ vk_common_CreateDebugReportCallbackEXT(VkInstance _instance,
    if (!cb)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-   vk_object_base_init(NULL, &cb->base,
-                       VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT);
+   vk_object_base_instance_init(instance, &cb->base,
+                                VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT);
 
    cb->flags = pCreateInfo->flags;
    cb->callback = pCreateInfo->pfnCallback;

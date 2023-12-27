@@ -43,7 +43,7 @@ Emil Velikov (2):
 -  docs: add sha256 checksums for 17.3.5
 -  Update version to 17.3.6
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  i965/draw: Do resolves properly for textures used by TXF
 -  i965: Replace draw_aux_buffer_disabled with draw_aux_usage

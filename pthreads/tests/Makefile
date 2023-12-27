@@ -18,6 +18,8 @@ QAPC	= # ..\QueueUserAPCEx\User\quserex.dll
 
 CPHDR	= _ptw32.h pthread.h semaphore.h sched.h
 
+PTHSRC	= ..\pthread.c
+
 OPTIM	= /O2 /Ob0
 
 XXLIBS	= ws2_32.lib
@@ -64,6 +66,7 @@ EHFLAGS_DLL				= /MD
 EHFLAGS_DLL_DEBUG		= /MDd
 EHFLAGS_STATIC			= /MT
 EHFLAGS_STATIC_DEBUG	= /MTd
+EHFLAGS_SOURCE			= /D__PTW32_DLLPORT= /D__PTW32_CONFIG_H /D__PTW32_STATIC_LIB
 
 # If a test case returns a non-zero exit code to the shell, make will
 # stop.
@@ -89,10 +92,13 @@ help:
 	@ $(ECHO) nmake clean VC
 	@ $(ECHO) nmake clean VC-bench
 	@ $(ECHO) nmake clean VC-static
+	@ $(ECHO) nmake clean VC-static-nolib
 	@ $(ECHO) nmake clean VC-static-bench
+	@ $(ECHO) nmake clean VC-static-bench-nolib
 	@ $(ECHO) nmake clean VC-debug
 	@ $(ECHO) nmake clean VC-static-debug
 	@ $(ECHO) nmake clean VC-small-static-debug
+	@ $(ECHO) nmake clean VC-static-debug-nolib
 	@ $(ECHO) nmake clean VCX
 	@ $(ECHO) nmake clean VCX-bench
 	@ $(ECHO) nmake clean VCX-static
@@ -163,11 +169,20 @@ VSE-static-bench:
 VCX-static-bench:
 	@ $(MAKE) /E /nologo TEST="$@" CPLIB="$(VCLIBD)" CPDLL="" EHFLAGS="$(VCXFLAGS) $(EHFLAGS_STATIC)" $(BENCHTESTS)
 
+VC-static-nolib:
+	@ $(MAKE) /E /nologo TEST="$@" CPLIB="" CPDLL="" EHFLAGS="$(VCFLAGS) $(EHFLAGS_STATIC) $(EHFLAGS_SOURCE) $(PTHSRC)" allpassed
+
+VC-static-bench-nolib:
+	@ $(MAKE) /E /nologo TEST="$@" CPLIB="" CPDLL="" EHFLAGS="$(VCFLAGS) $(EHFLAGS_STATIC) $(EHFLAGS_SOURCE) $(PTHSRC)" $(BENCHTESTS)
+
 VC-debug:
 	@ $(MAKE) /E /nologo TEST="$@" CPLIB="$(VCIMPD)" CPDLL="$(VCDLLD)" EHFLAGS="$(VCFLAGS) $(EHFLAGS_DLL_DEBUG)" allpassed
 
 VC-static-debug VC-small-static-debug:
 	@ $(MAKE) /E /nologo TEST="$@" CPLIB="$(VCLIBD)" CPDLL="" EHFLAGS="$(VCFLAGS) $(EHFLAGS_STATIC_DEBUG)" allpassed
+
+VC-static-debug-nolib:
+	@ $(MAKE) /E /nologo TEST="$@" CPLIB="" CPDLL="" EHFLAGS="$(VCFLAGS) $(EHFLAGS_STATIC_DEBUG) $(EHFLAGS_SOURCE) $(PTHSRC)" allpassed
 
 VCE-debug:
 	@ $(MAKE) /E /nologo TEST="$@" CPLIB="$(VCEIMPD)" CPDLL="$(VCEDLLD)" EHFLAGS="$(VCEFLAGS) $(EHFLAGS_DLL_DEBUG)" allpassed

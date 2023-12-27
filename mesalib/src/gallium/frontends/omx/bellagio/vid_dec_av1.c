@@ -1638,6 +1638,7 @@ static void frame_header_obu(vid_dec_PrivateType *priv, struct vl_vlc *vlc)
 
    film_grain_params(priv, vlc);
 
+   priv->picture.av1.film_grain_target = NULL;
    priv->picture.av1.picture_parameter.pic_info_fields.frame_type = hdr->frame_type;
    priv->picture.av1.picture_parameter.pic_info_fields.show_frame = hdr->show_frame;
    priv->picture.av1.picture_parameter.pic_info_fields.error_resilient_mode =

@@ -94,7 +94,7 @@ Ilia Mirkin (2):
 -  nouveau/video: properly detect the decoder class for availability
    checks
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965/fs: Properly report regs_written from SAMPLEINFO
 

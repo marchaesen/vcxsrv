@@ -54,13 +54,18 @@ SOFTWARE.
 
 <bitset name="#instruction-cat6-ldg" extends="#instruction-cat6-a3xx">
 	<pattern pos="0"           >1</pattern>
-	<field   low="14" high="21" name="SRC1" type="#reg-gpr"/>
+	<field   low="14" high="21" name="SRC1" type="#cat6-src-const-or-gpr">
+		<param name="SRC1_CONST" as="SRC_CONST"/>
+	</field>
 	<pattern pos="23"          >1</pattern>
-	<field   low="24" high="31" name="SIZE" type="uint"/>
+	<field   low="24" high="26" name="SIZE" type="uint"/>
+	<pattern low="27" high="31">00xxx</pattern>
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
-	<pattern low="40" high="48">xxxxxxxxx</pattern>
+	<pattern pos="40">x</pattern>
 	<pattern low="52" high="53">00</pattern>
 	<pattern low="54" high="58">00000</pattern>  <!-- OPC -->
+
+	<derived name="SRC1_CONST" expr="#false" type="bool"/>
 </bitset>
 
 <bitset name="ldg" extends="#instruction-cat6-ldg">
@@ -74,6 +79,7 @@ SOFTWARE.
 
 	<field low="1" high="13" name="OFF" type="offset"/>
 	<pattern pos="22"          >0</pattern> <!-- Imm offset ldg form -->
+	<pattern low="41" high="48">xxxxxxxx</pattern>
 
 	<encode>
 		<map name="OFF">extract_reg_iim(src->srcs[1])</map>
@@ -86,7 +92,7 @@ SOFTWARE.
 		LoaD Global
 	</doc>
 
-	<gen min="600"/>
+	<gen min="600" max="699"/>
 
 	<display>
 		{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+({SRC2}{OFF})&lt;&lt;{SRC2_BYTE_SHIFT}], {SIZE}
@@ -104,6 +110,7 @@ SOFTWARE.
 	<assert  pos="11"          >0</assert>
 	<field   low="12" high="13" name="SRC2_ADD_DWORD_SHIFT" type="uint"/>
 	<pattern pos="22"          >1</pattern> <!-- Reg offset ldg form -->
+	<pattern low="41" high="48">xxxxxxxx</pattern>
 
 	<derived name="SRC2_BYTE_SHIFT" width="3" type="uint">
 		<expr>{SRC2_ADD_DWORD_SHIFT} + 2</expr>
@@ -117,16 +124,44 @@ SOFTWARE.
 	</encode>
 </bitset>
 
+<bitset name="ldg.a" extends="#instruction-cat6-ldg">
+	<doc>
+		LoaD Global
+	</doc>
+
+	<gen min="700"/>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+{SRC2}+{OFF}], {SIZE}
+	</display>
+
+	<field   low="1"  high="8"  name="SRC2"  type="#reg-gpr"/>
+	<pattern low="9" high="12">xxxx</pattern>
+	<field   pos="13" name="SRC1_CONST" type="bool"/>
+	<pattern pos="22"          >1</pattern> <!-- Reg offset ldg form -->
+	<field   low="41"  high="48" name="OFF" type="uint"/>
+
+	<encode>
+		<map name="SRC2">src->srcs[1]</map>
+		<map name="OFF">extract_reg_uim(src->srcs[2])</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[4])</map>
+		<map name="SRC1_CONST">!!(src->srcs[0]->flags &amp; IR3_REG_CONST)</map>
+	</encode>
+</bitset>
+
 <bitset name="#instruction-cat6-stg" extends="#instruction-cat6-a3xx">
 	<pattern pos="0"           >x</pattern>
 	<field   low="1"  high="8"  name="SRC3" type="#reg-gpr"/>
-	<pattern low="14" high="21">xxxxxxxx</pattern>
-	<pattern low="22" high="23">1x</pattern>
-	<field   low="24" high="31" name="SIZE" type="uint"/>
+	<field   low="24" high="26" name="SIZE" type="uint"/>
+	<pattern low="27" high="31">00xxx</pattern>
 	<field   pos="40"           name="DST_OFF" type="bool"/>
-	<field   low="41" high="48" name="SRC1" type="#reg-gpr"/>
+	<field   low="41" high="48" name="SRC1" type="#cat6-src-const-or-gpr">
+		<param name="SRC1_CONST" as="SRC_CONST"/>
+	</field>
 	<pattern pos="53"          >x</pattern>
 	<pattern low="54" high="58">00011</pattern>  <!-- OPC -->
+
+	<derived name="SRC1_CONST" expr="#false" type="bool"/>
 
 	<encode>
 		<map name="DST_OFF" force="true">1</map>
@@ -147,6 +182,8 @@ SOFTWARE.
 	</derived>
 
 	<field   low="9"  high="13" name="OFF_HI" type="int"/>
+	<pattern low="14" high="21">xxxxxxxx</pattern>
+	<pattern low="22" high="23">1x</pattern>
 	<field   low="32" high="39" name="OFF_LO" type="uint"/>
 	<pattern pos="52" >0</pattern> <!-- Imm offset stg form -->
 
@@ -163,7 +200,7 @@ SOFTWARE.
 		STore Global
 	</doc>
 
-	<gen min="600"/>
+	<gen min="600" max="699"/>
 
 	<display>
 		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+({SRC2}{OFF})&lt;&lt;{DST_BYTE_SHIFT}], {TYPE_HALF}{SRC3}, {SIZE}
@@ -183,6 +220,8 @@ SOFTWARE.
 	<field   low="9"  high="10" name="OFF" type="uoffset"/>
 	<assert  pos="11"          >0</assert>
 	<field   low="12" high="13" name="SRC2_ADD_DWORD_SHIFT" type="uint"/>
+	<pattern low="14" high="21">xxxxxxxx</pattern>
+	<pattern low="22" high="23">1x</pattern>
 	<field   low="32" high="39" name="SRC2" type="#reg-gpr"/>
 	<pattern pos="52" >1</pattern> <!-- Reg offset stg form -->
 
@@ -192,6 +231,34 @@ SOFTWARE.
 		<map name="OFF">extract_reg_uim(src->srcs[3])</map>
 		<map name="SRC3">src->srcs[4]</map>
 		<map name="SIZE">extract_reg_uim(src->srcs[5])</map>
+	</encode>
+</bitset>
+
+<bitset name="stg.a" extends="#instruction-cat6-stg">
+	<doc>
+		STore Global
+	</doc>
+
+	<gen min="700"/>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+{SRC2}+{OFF}], {TYPE_HALF}{SRC3}, {SIZE}
+	</display>
+
+	<pattern low="9" high="12">xxxx</pattern>
+	<field   pos="13"           name="SRC1_CONST" type="bool"/>
+	<field   low="14" high="21" name="OFF" type="uint"/>
+	<pattern pos="22" >0</pattern> <!-- Presumably SRC3_IMM -->
+	<pattern pos="23" >1</pattern> <!-- Presumably SIZE_IMM -->
+	<field   low="32" high="39" name="SRC2" type="#reg-gpr"/>
+	<pattern pos="52" >1</pattern>
+
+	<encode>
+		<map name="SRC2">src->srcs[1]</map>
+		<map name="OFF">extract_reg_uim(src->srcs[2])</map>
+		<map name="SRC3">src->srcs[4]</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[5])</map>
+		<map name="SRC1_CONST">!!(src->srcs[0]->flags &amp; IR3_REG_CONST)</map>
 	</encode>
 </bitset>
 
@@ -378,7 +445,8 @@ SOFTWARE.
 	<gen min="600"/>
 	<pattern pos="0"           >x</pattern>
 	<field   low="1"  high="8" name="SRC" type="#reg-gpr"/>
-	<pattern low="9"  high="22">xxxxxxxxxxxxxx</pattern>
+	<pattern low="9"  high="13">xxxxx</pattern> <!-- DST_HI -->
+	<pattern low="14" high="22">xxxxxxxxx</pattern>
 	<pattern pos="23"          >1</pattern>
 	<field   low="24" high="26" name="SIZE" type="uint"/>
 	<pattern low="27" high="31">xxxxx</pattern>
@@ -388,6 +456,42 @@ SOFTWARE.
 	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
 	<encode>
 		<map name="DST">src</map>
+		<map name="SRC">src->srcs[1]</map>
+		<map name="SIZE">src->cat6.iim_val</map>
+	</encode>
+</bitset>
+
+<bitset name="stsc" extends="#instruction-cat6-a3xx">
+	<doc>
+		STore Shared Const - loads SIZE dwords from HLSQ_SHARED_CONSTS_IMM
+		starting from HLSQ_SHARED_CONSTS_IMM[SRC] and writing them to c[DST]
+	</doc>
+	<display>
+		{SY}{JP}{NAME}.{TYPE} c[{DST}], {SRC}, {SIZE}
+	</display>
+	<gen min="700"/>
+	<pattern pos="0"           >x</pattern>
+	<field   low="1"  high="8" name="SRC" type="#cat6-src">
+		<param name="SRC_IM"/>
+	</field>
+	<derived name="SRC_IM" expr="#true" type="bool"/>
+	<field low="9"  high="13" name="DST_HI" type="uint"/>
+	<pattern low="14"  high="21">xxxxxxxx</pattern>
+	<pattern low="22" high="23">11</pattern>
+	<field   low="24" high="31" name="SIZE" type="uint"/>
+	<field   low="32" high="39" name="DST_LO" type="uint"/>
+	<assert pos="40">0</assert>
+	<pattern low="41" high="48">xxxxxxxx</pattern>
+	<pattern low="52" high="53">xx</pattern>
+	<pattern low="54" high="58">11101</pattern>  <!-- OPC -->
+
+	<derived name="DST" width="13" type="uint">
+		<expr>({DST_HI} &lt;&lt; 8) | {DST_LO}</expr>
+	</derived>
+
+	<encode>
+		<map name="DST_LO">extract_reg_uim(src->srcs[0]) &amp; 0xff</map>
+		<map name="DST_HI">extract_reg_uim(src->srcs[0]) >> 8</map>
 		<map name="SRC">src->srcs[1]</map>
 		<map name="SIZE">src->cat6.iim_val</map>
 	</encode>
@@ -1213,6 +1317,27 @@ SOFTWARE.
 		<map name="GPR">src->num >> 2</map>
 		<map name="SWIZ">src->num &amp; 0x3</map>
 		<map name="IMMED">extract_reg_iim(src)</map>
+	</encode>
+</bitset>
+
+<bitset name="#cat6-src-const-or-gpr" size="8">
+	<doc>
+		Source value that can be either const reg or gpr
+	</doc>
+	<override>
+		<expr>{SRC_CONST}</expr>
+		<display>
+			c{GPR}.{SWIZ}
+		</display>
+	</override>
+	<display>
+		r{GPR}.{SWIZ}
+	</display>
+	<field name="SWIZ" low="0" high="1" type="#swiz"/>
+	<field name="GPR" low="2"  high="7" type="uint"/>
+	<encode type="struct ir3_register *">
+		<map name="GPR">src->num >> 2</map>
+		<map name="SWIZ">src->num &amp; 0x3</map>
 	</encode>
 </bitset>
 

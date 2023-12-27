@@ -20,7 +20,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#include "macros.h"
+#include "util/macros.h"
 #include <wayland-client.h>
 #include "wayland-drm-client-protocol.h"
 #include "device_select.h"

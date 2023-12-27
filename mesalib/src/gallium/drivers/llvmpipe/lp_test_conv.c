@@ -64,7 +64,7 @@ write_tsv_row(FILE *fp,
               struct lp_type src_type,
               struct lp_type dst_type,
               double cycles,
-              boolean success)
+              bool success)
 {
    fprintf(fp, "%s\t", success ? "pass" : "fail");
 
@@ -112,9 +112,11 @@ add_conv_test(struct gallivm_state *gallivm,
    LLVMValueRef src[LP_MAX_VECTOR_LENGTH];
    LLVMValueRef dst[LP_MAX_VECTOR_LENGTH];
    unsigned i;
+   LLVMTypeRef src_vec_type = lp_build_vec_type(gallivm, src_type);
+   LLVMTypeRef dst_vec_type = lp_build_vec_type(gallivm, dst_type);
 
-   args[0] = LLVMPointerType(lp_build_vec_type(gallivm, src_type), 0);
-   args[1] = LLVMPointerType(lp_build_vec_type(gallivm, dst_type), 0);
+   args[0] = LLVMPointerType(src_vec_type, 0);
+   args[1] = LLVMPointerType(dst_vec_type, 0);
 
    func = LLVMAddFunction(module, "test",
                           LLVMFunctionType(LLVMVoidTypeInContext(context),
@@ -126,17 +128,17 @@ add_conv_test(struct gallivm_state *gallivm,
    block = LLVMAppendBasicBlockInContext(context, func, "entry");
    LLVMPositionBuilderAtEnd(builder, block);
 
-   for(i = 0; i < num_srcs; ++i) {
+   for (i = 0; i < num_srcs; ++i) {
       LLVMValueRef index = LLVMConstInt(LLVMInt32TypeInContext(context), i, 0);
-      LLVMValueRef ptr = LLVMBuildGEP(builder, src_ptr, &index, 1, "");
-      src[i] = LLVMBuildLoad(builder, ptr, "");
+      LLVMValueRef ptr = LLVMBuildGEP2(builder, src_vec_type, src_ptr, &index, 1, "");
+      src[i] = LLVMBuildLoad2(builder, src_vec_type, ptr, "");
    }
 
    lp_build_conv(gallivm, src_type, dst_type, src, num_srcs, dst, num_dsts);
 
-   for(i = 0; i < num_dsts; ++i) {
+   for (i = 0; i < num_dsts; ++i) {
       LLVMValueRef index = LLVMConstInt(LLVMInt32TypeInContext(context), i, 0);
-      LLVMValueRef ptr = LLVMBuildGEP(builder, dst_ptr, &index, 1, "");
+      LLVMValueRef ptr = LLVMBuildGEP2(builder, dst_vec_type, dst_ptr, &index, 1, "");
       LLVMBuildStore(builder, dst[i], ptr);
    }
 
@@ -148,8 +150,8 @@ add_conv_test(struct gallivm_state *gallivm,
 }
 
 
-PIPE_ALIGN_STACK
-static boolean
+UTIL_ALIGN_STACK
+static bool
 test_one(unsigned verbose,
          FILE *fp,
          struct lp_type src_type,
@@ -159,7 +161,7 @@ test_one(unsigned verbose,
    struct gallivm_state *gallivm;
    LLVMValueRef func = NULL;
    conv_test_ptr_t conv_test_ptr;
-   boolean success;
+   bool success;
    const unsigned n = LP_TEST_NUM_SAMPLES;
    int64_t cycles[LP_TEST_NUM_SAMPLES];
    double cycles_avg = 0.0;
@@ -170,7 +172,7 @@ test_one(unsigned verbose,
 
    if ((src_type.width >= dst_type.width && src_type.length > dst_type.length) ||
        (src_type.width <= dst_type.width && src_type.length < dst_type.length)) {
-      return TRUE;
+      return true;
    }
 
    /* Known failures
@@ -179,7 +181,7 @@ test_one(unsigned verbose,
     */
    if ((src_type.floating && !dst_type.floating && dst_type.sign && dst_type.norm && src_type.width == dst_type.width) ||
        (!src_type.floating && dst_type.floating && src_type.fixed && src_type.width == dst_type.width)) {
-      return TRUE;
+      return true;
    }
 
    /* Known failures
@@ -188,10 +190,10 @@ test_one(unsigned verbose,
     */
    if ((src_type.floating && !dst_type.floating && dst_type.sign && dst_type.norm && src_type.width == dst_type.width) ||
        (!src_type.floating && dst_type.floating && src_type.fixed && src_type.width == dst_type.width)) {
-      return TRUE;
+      return true;
    }
 
-   if(verbose >= 1)
+   if (verbose >= 1)
       dump_conv_types(stderr, src_type, dst_type);
 
    if (src_type.length > dst_type.length) {
@@ -221,7 +223,7 @@ test_one(unsigned verbose,
    }
 
    context = LLVMContextCreate();
-#if LLVM_VERSION_MAJOR >= 15
+#if LLVM_VERSION_MAJOR == 15
    LLVMContextSetOpaquePointers(context, false);
 #endif
    gallivm = gallivm_create("test_module", context, NULL);
@@ -234,8 +236,8 @@ test_one(unsigned verbose,
 
    gallivm_free_ir(gallivm);
 
-   success = TRUE;
-   for(i = 0; i < n && success; ++i) {
+   success = true;
+   for (i = 0; i < n && success; ++i) {
       unsigned src_stride = src_type.length*src_type.width/8;
       unsigned dst_stride = dst_type.length*dst_type.width/8;
       alignas(LP_MIN_VECTOR_ALIGN) uint8_t src[LP_MAX_VECTOR_LENGTH*LP_MAX_VECTOR_LENGTH];
@@ -245,12 +247,12 @@ test_one(unsigned verbose,
       int64_t start_counter = 0;
       int64_t end_counter = 0;
 
-      for(j = 0; j < num_srcs; ++j) {
+      for (j = 0; j < num_srcs; ++j) {
          random_vec(src_type, src + j*src_stride);
          read_vec(src_type, src + j*src_stride, fref + j*src_type.length);
       }
 
-      for(j = 0; j < num_dsts; ++j) {
+      for (j = 0; j < num_dsts; ++j) {
          write_vec(dst_type, ref + j*dst_stride, fref + j*dst_type.length);
       }
 
@@ -260,13 +262,13 @@ test_one(unsigned verbose,
 
       cycles[i] = end_counter - start_counter;
 
-      for(j = 0; j < num_dsts; ++j) {
-         if(!compare_vec_with_eps(dst_type, dst + j*dst_stride, ref + j*dst_stride, eps))
-            success = FALSE;
+      for (j = 0; j < num_dsts; ++j) {
+         if (!compare_vec_with_eps(dst_type, dst + j*dst_stride, ref + j*dst_stride, eps))
+            success = false;
       }
 
       if (!success || verbose >= 3) {
-         if(verbose < 1)
+         if (verbose < 1)
             dump_conv_types(stderr, src_type, dst_type);
          if (success) {
             fprintf(stderr, "PASS\n");
@@ -275,7 +277,7 @@ test_one(unsigned verbose,
             fprintf(stderr, "MISMATCH\n");
          }
 
-         for(j = 0; j < num_srcs; ++j) {
+         for (j = 0; j < num_srcs; ++j) {
             fprintf(stderr, "  Src%u: ", j);
             dump_vec(stderr, src_type, src + j*src_stride);
             fprintf(stderr, "\n");
@@ -283,12 +285,12 @@ test_one(unsigned verbose,
 
 #if 1
          fprintf(stderr, "  Ref: ");
-         for(j = 0; j < src_type.length*num_srcs; ++j)
+         for (j = 0; j < src_type.length*num_srcs; ++j)
             fprintf(stderr, " %f", fref[j]);
          fprintf(stderr, "\n");
 #endif
 
-         for(j = 0; j < num_dsts; ++j) {
+         for (j = 0; j < num_dsts; ++j) {
             fprintf(stderr, "  Dst%u: ", j);
             dump_vec(stderr, dst_type, dst + j*dst_stride);
             fprintf(stderr, "\n");
@@ -310,7 +312,7 @@ test_one(unsigned verbose,
       double avg, std;
       unsigned m;
 
-      for(i = 0; i < n; ++i) {
+      for (i = 0; i < n; ++i) {
          sum += cycles[i];
          sum2 += cycles[i]*cycles[i];
       }
@@ -320,8 +322,8 @@ test_one(unsigned verbose,
 
       m = 0;
       sum = 0.0;
-      for(i = 0; i < n; ++i) {
-         if(fabs(cycles[i] - avg) <= 4.0*std) {
+      for (i = 0; i < n; ++i) {
+         if (fabs(cycles[i] - avg) <= 4.0*std) {
             sum += cycles[i];
             ++m;
          }
@@ -331,7 +333,7 @@ test_one(unsigned verbose,
 
    }
 
-   if(fp)
+   if (fp)
       write_tsv_row(fp, src_type, dst_type, cycles_avg, success);
 
    gallivm_destroy(gallivm);
@@ -345,76 +347,76 @@ const struct lp_type conv_types[] = {
    /* float, fixed,  sign,  norm, width, len */
 
    /* Float */
-   {   TRUE, FALSE,  TRUE,  TRUE,    32,   4 },
-   {   TRUE, FALSE,  TRUE, FALSE,    32,   4 },
-   {   TRUE, FALSE, FALSE,  TRUE,    32,   4 },
-   {   TRUE, FALSE, FALSE, FALSE,    32,   4 },
+   {   true, false,  true,  true,    32,   4 },
+   {   true, false,  true, false,    32,   4 },
+   {   true, false, false,  true,    32,   4 },
+   {   true, false, false, false,    32,   4 },
 
-   {   TRUE, FALSE,  TRUE,  TRUE,    32,   8 },
-   {   TRUE, FALSE,  TRUE, FALSE,    32,   8 },
-   {   TRUE, FALSE, FALSE,  TRUE,    32,   8 },
-   {   TRUE, FALSE, FALSE, FALSE,    32,   8 },
+   {   true, false,  true,  true,    32,   8 },
+   {   true, false,  true, false,    32,   8 },
+   {   true, false, false,  true,    32,   8 },
+   {   true, false, false, false,    32,   8 },
 
    /* Fixed */
-   {  FALSE,  TRUE,  TRUE,  TRUE,    32,   4 },
-   {  FALSE,  TRUE,  TRUE, FALSE,    32,   4 },
-   {  FALSE,  TRUE, FALSE,  TRUE,    32,   4 },
-   {  FALSE,  TRUE, FALSE, FALSE,    32,   4 },
+   {  false,  true,  true,  true,    32,   4 },
+   {  false,  true,  true, false,    32,   4 },
+   {  false,  true, false,  true,    32,   4 },
+   {  false,  true, false, false,    32,   4 },
 
-   {  FALSE,  TRUE,  TRUE,  TRUE,    32,   8 },
-   {  FALSE,  TRUE,  TRUE, FALSE,    32,   8 },
-   {  FALSE,  TRUE, FALSE,  TRUE,    32,   8 },
-   {  FALSE,  TRUE, FALSE, FALSE,    32,   8 },
+   {  false,  true,  true,  true,    32,   8 },
+   {  false,  true,  true, false,    32,   8 },
+   {  false,  true, false,  true,    32,   8 },
+   {  false,  true, false, false,    32,   8 },
 
    /* Integer */
-   {  FALSE, FALSE,  TRUE,  TRUE,    32,   4 },
-   {  FALSE, FALSE,  TRUE, FALSE,    32,   4 },
-   {  FALSE, FALSE, FALSE,  TRUE,    32,   4 },
-   {  FALSE, FALSE, FALSE, FALSE,    32,   4 },
+   {  false, false,  true,  true,    32,   4 },
+   {  false, false,  true, false,    32,   4 },
+   {  false, false, false,  true,    32,   4 },
+   {  false, false, false, false,    32,   4 },
 
-   {  FALSE, FALSE,  TRUE,  TRUE,    32,   8 },
-   {  FALSE, FALSE,  TRUE, FALSE,    32,   8 },
-   {  FALSE, FALSE, FALSE,  TRUE,    32,   8 },
-   {  FALSE, FALSE, FALSE, FALSE,    32,   8 },
+   {  false, false,  true,  true,    32,   8 },
+   {  false, false,  true, false,    32,   8 },
+   {  false, false, false,  true,    32,   8 },
+   {  false, false, false, false,    32,   8 },
 
-   {  FALSE, FALSE,  TRUE,  TRUE,    16,   8 },
-   {  FALSE, FALSE,  TRUE, FALSE,    16,   8 },
-   {  FALSE, FALSE, FALSE,  TRUE,    16,   8 },
-   {  FALSE, FALSE, FALSE, FALSE,    16,   8 },
+   {  false, false,  true,  true,    16,   8 },
+   {  false, false,  true, false,    16,   8 },
+   {  false, false, false,  true,    16,   8 },
+   {  false, false, false, false,    16,   8 },
 
-   {  FALSE, FALSE,  TRUE,  TRUE,     8,  16 },
-   {  FALSE, FALSE,  TRUE, FALSE,     8,  16 },
-   {  FALSE, FALSE, FALSE,  TRUE,     8,  16 },
-   {  FALSE, FALSE, FALSE, FALSE,     8,  16 },
+   {  false, false,  true,  true,     8,  16 },
+   {  false, false,  true, false,     8,  16 },
+   {  false, false, false,  true,     8,  16 },
+   {  false, false, false, false,     8,  16 },
 
-   {  FALSE, FALSE,  TRUE,  TRUE,     8,   4 },
-   {  FALSE, FALSE,  TRUE, FALSE,     8,   4 },
-   {  FALSE, FALSE, FALSE,  TRUE,     8,   4 },
-   {  FALSE, FALSE, FALSE, FALSE,     8,   4 },
+   {  false, false,  true,  true,     8,   4 },
+   {  false, false,  true, false,     8,   4 },
+   {  false, false, false,  true,     8,   4 },
+   {  false, false, false, false,     8,   4 },
 
-   {  FALSE, FALSE,  FALSE,  TRUE,    8,   8 },
+   {  false, false,  false,  true,    8,   8 },
 };
 
 
 const unsigned num_types = ARRAY_SIZE(conv_types);
 
 
-boolean
+bool
 test_all(unsigned verbose, FILE *fp)
 {
    const struct lp_type *src_type;
    const struct lp_type *dst_type;
-   boolean success = TRUE;
+   bool success = true;
    int error_count = 0;
 
-   for(src_type = conv_types; src_type < &conv_types[num_types]; ++src_type) {
-      for(dst_type = conv_types; dst_type < &conv_types[num_types]; ++dst_type) {
+   for (src_type = conv_types; src_type < &conv_types[num_types]; ++src_type) {
+      for (dst_type = conv_types; dst_type < &conv_types[num_types]; ++dst_type) {
 
-         if(src_type == dst_type)
+         if (src_type == dst_type)
             continue;
 
-         if(!test_one(verbose, fp, *src_type, *dst_type)){
-            success = FALSE;
+         if (!test_one(verbose, fp, *src_type, *dst_type)){
+            success = false;
             ++error_count;
          }
       }
@@ -426,40 +428,40 @@ test_all(unsigned verbose, FILE *fp)
 }
 
 
-boolean
+bool
 test_some(unsigned verbose, FILE *fp,
           unsigned long n)
 {
    const struct lp_type *src_type;
    const struct lp_type *dst_type;
    unsigned long i;
-   boolean success = TRUE;
+   bool success = true;
 
-   for(i = 0; i < n; ++i) {
+   for (i = 0; i < n; ++i) {
       src_type = &conv_types[rand() % num_types];
-      
+
       do {
          dst_type = &conv_types[rand() % num_types];
       } while (src_type == dst_type || src_type->norm != dst_type->norm);
 
-      if(!test_one(verbose, fp, *src_type, *dst_type))
-        success = FALSE;
+      if (!test_one(verbose, fp, *src_type, *dst_type))
+        success = false;
    }
 
    return success;
 }
 
 
-boolean
+bool
 test_single(unsigned verbose, FILE *fp)
 {
    /*    float, fixed,  sign,  norm, width, len */
    struct lp_type f32x4_type =
-      {   TRUE, FALSE,  TRUE,  TRUE,    32,   4 };
+      {   true, false,  true,  true,    32,   4 };
    struct lp_type ub8x4_type =
-      {  FALSE, FALSE, FALSE,  TRUE,     8,  16 };
+      {  false, false, false,  true,     8,  16 };
 
-   boolean success;
+   bool success;
 
    success = test_one(verbose, fp, f32x4_type, ub8x4_type);
 

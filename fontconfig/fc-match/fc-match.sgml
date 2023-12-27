@@ -28,13 +28,13 @@ PERFORMANCE OF THIS SOFTWARE.
      less'.  A typical entry in a Makefile or Makefile.am is:
 
 manpage.1: manpage.sgml
-	docbook-to-man $< > $@
+        docbook-to-man $< > $@
 
-    
-	The docbook-to-man binary is found in the docbook-to-man package.
-	Please remember that if you create the nroff version in one of the
-	debian/rules file targets (such as build), you will need to include
-	docbook-to-man in your Build-Depends control field.
+
+        The docbook-to-man binary is found in the docbook-to-man package.
+        Please remember that if you create the nroff version in one of the
+        debian/rules file targets (such as build), you will need to include
+        docbook-to-man in your Build-Depends control field.
 
   -->
 
@@ -97,7 +97,7 @@ manpage.1: manpage.sgml
       <arg><option>--help</option></arg>
       <sbr>
       <arg><option><replaceable>pattern</replaceable></option> <arg rep="repeat"><option><replaceable>element</replaceable></option></arg> </arg>
-      
+
      </cmdsynopsis>
   </refsynopsisdiv>
   <refsect1>
@@ -128,7 +128,7 @@ output is requested.</para>
         </term>
         <listitem>
           <para>Displays sorted list of best matching fonts, but do not do any
-		pruning on the list.</para>
+                pruning on the list.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -145,18 +145,18 @@ output is requested.</para>
         </term>
         <listitem>
           <para>Print verbose output of the whole font pattern for each match,
-	        or <replaceable>element</replaceable>s if any is
-		provided.</para>
+                or <replaceable>element</replaceable>s if any is
+                provided.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>-f</option>
           <option>--format</option>
-	  <option><replaceable>format</replaceable></option>
+          <option><replaceable>format</replaceable></option>
         </term>
         <listitem>
           <para>Format output according to the format specifier
-	  <replaceable>format</replaceable>.</para>
+          <replaceable>format</replaceable>.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -199,27 +199,27 @@ output is requested.</para>
 
     <variablelist>
       <varlistentry>
-	<term>fc-match sans</term>
-	<listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by current locale</para></listitem>
+        <term>fc-match sans</term>
+        <listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by current locale</para></listitem>
       </varlistentry>
     </variablelist>
 
     <variablelist>
       <varlistentry>
-	<term>fc-match sans:lang=en</term>
-	<listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by English language</para></listitem>
+        <term>fc-match sans:lang=en</term>
+        <listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by English language</para></listitem>
       </varlistentry>
     </variablelist>
 
     <variablelist>
       <varlistentry>
-	<term>fc-match sans:lang=en:weight=bold</term>
-	<listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by English language and weight is bold.</para></listitem>
+        <term>fc-match sans:lang=en:weight=bold</term>
+        <listitem><para>Display the best matching font categorized into sans-serif generic family, filtered by English language and weight is bold.</para></listitem>
       </varlistentry>
     </variablelist>
 
   </refsect1>
-  
+
   <refsect1>
     <title>SEE ALSO</title>
 

@@ -32,35 +32,35 @@
  * that needs to happen at the same early stage (before wpos_ytransform)
  */
 
-static nir_ssa_def *
-load_sample_pos(nir_builder *b, nir_ssa_def *samp_id)
+static nir_def *
+load_sample_pos(nir_builder *b, nir_def *samp_id)
 {
    return nir_load_sample_pos_from_id(b, 32, samp_id);
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_load_barycentric_at_sample(nir_builder *b, nir_intrinsic_instr *intr)
 {
-   nir_ssa_def *pos = load_sample_pos(b, intr->src[0].ssa);
+   nir_def *pos = load_sample_pos(b, intr->src[0].ssa);
 
    return nir_load_barycentric_at_offset(b, 32, pos, .interp_mode = nir_intrinsic_interp_mode(intr));
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_load_sample_pos(nir_builder *b, nir_intrinsic_instr *intr)
 {
-   nir_ssa_def *pos = load_sample_pos(b, nir_load_sample_id(b));
+   nir_def *pos = load_sample_pos(b, nir_load_sample_id(b));
 
    /* Note that gl_SamplePosition is offset by +vec2(0.5, 0.5) vs the
     * offset passed to interpolateAtOffset().   See
     * dEQP-GLES31.functional.shaders.multisample_interpolation.interpolate_at_offset.at_sample_position.default_framebuffer
     * for example.
     */
-   nir_ssa_def *half = nir_imm_float(b, 0.5);
+   nir_def *half = nir_imm_float(b, 0.5);
    return nir_fadd(b, pos, nir_vec2(b, half, half));
 }
 
-static nir_ssa_def *
+static nir_def *
 ir3_nir_lower_load_barycentric_at_sample_instr(nir_builder *b, nir_instr *instr,
                                                void *data)
 {

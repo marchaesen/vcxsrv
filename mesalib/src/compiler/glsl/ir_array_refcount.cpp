@@ -56,14 +56,14 @@ ir_array_refcount_visitor::~ir_array_refcount_visitor()
 ir_array_refcount_entry::ir_array_refcount_entry(ir_variable *var)
    : var(var), is_referenced(false)
 {
-   num_bits = MAX2(1, var->type->arrays_of_arrays_size());
+   num_bits = MAX2(1, glsl_get_aoa_size(var->type));
    bits = new BITSET_WORD[BITSET_WORDS(num_bits)];
    memset(bits, 0, BITSET_WORDS(num_bits) * sizeof(bits[0]));
 
    /* Count the "depth" of the arrays-of-arrays. */
    array_depth = 0;
    for (const glsl_type *type = var->type;
-        type->is_array();
+        glsl_type_is_array(type);
         type = type->fields.array) {
       array_depth++;
    }
@@ -116,7 +116,7 @@ ir_array_refcount_visitor::visit_enter(ir_dereference_array *ir)
    /* It could also be a vector or a matrix.  Individual elements of vectors
     * are natrices are not tracked, so bail.
     */
-   if (!ir->array->type->is_array())
+   if (!glsl_type_is_array(ir->array->type))
       return visit_continue;
 
    /* If this array dereference is a child of an array dereference that was
@@ -139,13 +139,13 @@ ir_array_refcount_visitor::visit_enter(ir_dereference_array *ir)
       ir_dereference_array *const deref = rv->as_dereference_array();
 
       assert(deref != NULL);
-      assert(deref->array->type->is_array());
+      assert(glsl_type_is_array(deref->array->type));
 
       ir_rvalue *const array = deref->array;
       const ir_constant *const idx = deref->array_index->as_constant();
       array_deref_range *const dr = get_array_deref();
 
-      dr->size = array->type->array_size();
+      dr->size = glsl_array_size(array->type);
 
       if (idx != NULL) {
          dr->index = idx->get_int_component(0);
@@ -153,7 +153,7 @@ ir_array_refcount_visitor::visit_enter(ir_dereference_array *ir)
          /* An unsized array can occur at the end of an SSBO.  We can't track
           * accesses to such an array, so bail.
           */
-         if (array->type->array_size() == 0)
+         if (glsl_array_size(array->type) == 0)
             return visit_continue;
 
          dr->index = dr->size;

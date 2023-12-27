@@ -27,7 +27,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <pixman-config.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -1270,7 +1270,7 @@ create_bits (pixman_format_code_t format,
 	*rowstride_bytes = stride;
 
     if (clear)
-	return calloc (buf_size, 1);
+	return calloc (1, buf_size);
     else
 	return malloc (buf_size);
 }

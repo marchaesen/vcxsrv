@@ -101,14 +101,28 @@ default partial xkb_compatibility "misc" {
     include "ledscroll"
 
     include "misc(assign_shift_left_action)"
+    include "misc(assign_shift_right_action)"
 };
 
 partial xkb_compatibility "assign_shift_left_action" {
-    // Because of the irrevertable modifier mapping in symbols/pc,
-    // <LFSH> is getting bound to the Lock modifier when using
-    // symbols/shift(both_capslock), creating unwanted behaviour.
-    // This is a quirk, to circumvent the problem.
+    // Because of the irreversible mapping of the Lock modifier to the
+    // keysym Caps_Lock in symbols/pc, some combinations of options
+    // involving e.g symbols/shift(lshift_both_capslock) may make
+    // <LFSH> bound to the Lock modifier, creating unwanted behaviour.
+    // The following statement ensures Shift_L always sets the Shift
+    // modifier.
     interpret Shift_L {
+	action = SetMods(modifiers = Shift);
+    };
+};
+
+partial xkb_compatibility "assign_shift_right_action" {
+    // A similar issue as assign_shift_left_action hereinabove may
+    // happen to <RTSH> with some combinations of options,
+    // involving e.g symbols/shift(shift_both_capslock) and
+    // symbols/group(lalt_lshift_toggle). The following statement
+    // ensures Shift_R always sets the Shift modifier.
+    interpret Shift_R {
 	action = SetMods(modifiers = Shift);
     };
 };

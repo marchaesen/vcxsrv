@@ -2,21 +2,23 @@ Android
 =======
 
 Mesa hardware drivers can be built for Android one of two ways: built
-into the Android OS using the Android.mk build system on older versions
+into the Android OS using the ndk-build build system on older versions
 of Android, or out-of-tree using the Meson build system and the
 Android NDK.
 
-The Android.mk build system has proven to be hard to maintain, as one
+The ndk-build build system has proven to be hard to maintain, as one
 needs a built Android tree to build against, and it has never been
-tested in CI.  The meson build system flow is frequently used by
+tested in CI.  The Meson build system flow is frequently used by
 Chrome OS developers for building and testing Android drivers.
 
 Building using the Android NDK
 ------------------------------
 
 Download and install the NDK using whatever method you normally would.
-Then, create your meson cross file to use it, something like this
-``~/.local/share/meson/cross/android-aarch64`` file::
+Then, create your Meson cross file to use it, something like this
+``~/.local/share/meson/cross/android-aarch64`` file:
+
+.. code-block:: ini
 
     [binaries]
     ar = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar'
@@ -25,7 +27,7 @@ Then, create your meson cross file to use it, something like this
     c_ld = 'lld'
     cpp_ld = 'lld'
     strip = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-strip'
-    # Android doesn't come with a pkg-config, but we need one for meson to be happy not
+    # Android doesn't come with a pkg-config, but we need one for Meson to be happy not
     # finding all the optional deps it looks for.  Use system pkg-config pointing at a
     # directory we get to populate with any .pc files we want to add for Android
     pkgconfig = ['env', 'PKG_CONFIG_LIBDIR=NDKDIR/pkgconfig', '/usr/bin/pkg-config']
@@ -41,15 +43,15 @@ one cross-compiling the turnip driver for a stock Pixel phone)
 
 .. code-block:: console
 
-    meson build-android-aarch64 \
+    meson setup build-android-aarch64 \
         --cross-file android-aarch64 \
 	-Dplatforms=android \
 	-Dplatform-sdk-version=26 \
 	-Dandroid-stub=true \
 	-Dgallium-drivers= \
 	-Dvulkan-drivers=freedreno \
-	-Dfreedreno-kgsl=true
-    ninja -C build-android-aarch64
+	-Dfreedreno-kmds=kgsl
+    meson compile -C build-android-aarch64
 
 Replacing Android drivers on stock Android
 ------------------------------------------
@@ -144,7 +146,7 @@ ARC++, but it should also be possible to build using the NDK as
 described above.  There are currently rough edges with this, for
 example the build will require that you have your arc-libdrm build
 available to the NDK, assuming you're building anything but the
-freedreno Vulkan driver for KGSL.  You can mostly put things in place
+Freedreno Vulkan driver for KGSL.  You can mostly put things in place
 with:
 
 .. code-block:: console

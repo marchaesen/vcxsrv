@@ -36,6 +36,18 @@
 #include "xwayland-output.h"
 
 static void
+xwl_randr_lease_cleanup_outputs(RRLeasePtr rrLease)
+{
+    struct xwl_output *output;
+    int i;
+
+    for (i = 0; i < rrLease->numOutputs; ++i) {
+        output = rrLease->outputs[i]->devPrivate;
+        output->lease = NULL;
+    }
+}
+
+static void
 drm_lease_handle_lease_fd(void *data,
                           struct wp_drm_lease_v1 *wp_drm_lease_v1,
                           int32_t lease_fd)
@@ -51,17 +63,12 @@ drm_lease_handle_finished(void *data,
                           struct wp_drm_lease_v1 *wp_drm_lease_v1)
 {
     struct xwl_drm_lease *lease = (struct xwl_drm_lease *)data;
-    struct xwl_output *output;
-    int i;
 
     if (lease->fd >= 0) {
         RRTerminateLease(lease->rrLease);
     } else {
         AttendClient(lease->client);
-        for (i = 0; i < lease->rrLease->numOutputs; ++i) {
-            output = lease->rrLease->outputs[i]->devPrivate;
-            output->lease = NULL;
-        }
+        xwl_randr_lease_cleanup_outputs(lease->rrLease);
     }
 }
 
@@ -164,6 +171,7 @@ xwl_randr_terminate_lease(ScreenPtr screen, RRLeasePtr lease)
     struct xwl_drm_lease *lease_private = lease->devPrivate;
 
     if (lease_private) {
+        xwl_randr_lease_cleanup_outputs(lease);
         xorg_list_del(&lease_private->link);
         if (lease_private->fd >= 0)
             close(lease_private->fd);

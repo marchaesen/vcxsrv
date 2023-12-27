@@ -25,7 +25,7 @@
 #define TEXCOMPRESS_BPTC_H
 
 #include <inttypes.h>
-#include "glheader.h"
+#include "util/glheader.h"
 #include "texcompress.h"
 #include "texstore.h"
 

@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "blend.h"
 #include "bufferobj.h"
@@ -106,10 +106,19 @@ _mesa_get_readpixels_transfer_ops(const struct gl_context *ctx,
       return 0;
    }
 
+   /* If on OpenGL ES with GL_EXT_render_snorm, negative values should
+    * not be clamped.
+    */
+   bool gles_snorm =
+      _mesa_has_EXT_render_snorm(ctx) &&
+      _mesa_get_format_datatype(texFormat) == GL_SIGNED_NORMALIZED;
+
    if (uses_blit) {
       /* For blit-based ReadPixels packing, the clamping is done automatically
-       * unless the type is float. */
+       * unless the type is float. Disable clamping when on ES using snorm.
+       */
       if (_mesa_get_clamp_read_color(ctx, ctx->ReadBuffer) &&
+          !gles_snorm &&
           (type == GL_FLOAT || type == GL_HALF_FLOAT ||
            type == GL_UNSIGNED_INT_10F_11F_11F_REV)) {
          transferOps |= IMAGE_CLAMP_BIT;
@@ -117,15 +126,19 @@ _mesa_get_readpixels_transfer_ops(const struct gl_context *ctx,
    }
    else {
       /* For CPU-based ReadPixels packing, the clamping must always be done
-       * for non-float types, */
-      if (_mesa_get_clamp_read_color(ctx, ctx->ReadBuffer) ||
-          (type != GL_FLOAT && type != GL_HALF_FLOAT &&
-           type != GL_UNSIGNED_INT_10F_11F_11F_REV)) {
+       * for non-float types, except on ES when using snorm types.
+       */
+      if ((_mesa_get_clamp_read_color(ctx, ctx->ReadBuffer) ||
+           (type != GL_FLOAT && type != GL_HALF_FLOAT &&
+            type != GL_UNSIGNED_INT_10F_11F_11F_REV)) && !gles_snorm) {
          transferOps |= IMAGE_CLAMP_BIT;
       }
 
-      /* For SNORM formats we only clamp if `type` is signed and clamp is `true` */
+      /* For SNORM formats we only clamp if `type` is signed and clamp is `true`
+       * and when not on ES using snorm types.
+       */
       if (!_mesa_get_clamp_read_color(ctx, ctx->ReadBuffer) &&
+          !gles_snorm &&
           _mesa_get_format_datatype(texFormat) == GL_SIGNED_NORMALIZED &&
           (type == GL_BYTE || type == GL_SHORT || type == GL_INT)) {
          transferOps &= ~IMAGE_CLAMP_BIT;
@@ -968,15 +981,6 @@ read_pixels_es3_error_check(struct gl_context *ctx, GLenum format, GLenum type,
                return GL_NO_ERROR;
          }
       }
-      if (type == GL_UNSIGNED_BYTE) {
-         switch (internalFormat) {
-         case GL_R8_SNORM:
-         case GL_RG8_SNORM:
-         case GL_RGBA8_SNORM:
-            if (_mesa_has_EXT_render_snorm(ctx))
-               return GL_NO_ERROR;
-         }
-      }
       break;
    case GL_BGRA:
       /* GL_EXT_read_format_bgra */
@@ -1087,7 +1091,7 @@ read_pixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
        * combination is, and Mesa can handle anything valid.  Just work instead.
        */
       if (_mesa_is_gles(ctx)) {
-         if (ctx->API == API_OPENGLES2 &&
+         if (_mesa_is_gles2(ctx) &&
              _mesa_is_color_format(format) &&
              _mesa_get_color_read_format(ctx, NULL, "glReadPixels") == format &&
              _mesa_get_color_read_type(ctx, NULL, "glReadPixels") == type) {
@@ -1119,8 +1123,25 @@ read_pixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
          return;
       }
 
+      /**
+       * From the GL_EXT_multisampled_render_to_texture spec:
+       *
+       * Similarly, for ReadPixels:
+       * "An INVALID_OPERATION error is generated if the value of READ_-
+       *  FRAMEBUFFER_BINDING (see section 9) is non-zero, the read framebuffer
+       *  is framebuffer complete, and the value of SAMPLE_BUFFERS for the read
+       *  framebuffer is one."
+       *
+       * These errors do not apply to textures and renderbuffers that have
+       * associated multisample data specified by the mechanisms described in
+       * this extension, i.e., the above operations are allowed even when
+       * SAMPLE_BUFFERS is non-zero for renderbuffers created via Renderbuffer-
+       * StorageMultisampleEXT or textures attached via FramebufferTexture2D-
+       * MultisampleEXT.
+       */
       if (_mesa_is_user_fbo(ctx->ReadBuffer) &&
-          ctx->ReadBuffer->Visual.samples > 0) {
+          ctx->ReadBuffer->Visual.samples > 0 &&
+          !_mesa_has_rtt_samples(ctx->ReadBuffer)) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(multisample FBO)");
          return;
       }

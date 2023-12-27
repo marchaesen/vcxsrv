@@ -45,7 +45,7 @@ void
 renderer_set_constants(struct xa_context *r,
 		       int shader_type, const float *params, int param_bytes);
 
-static inline boolean
+static inline bool
 is_affine(const float *matrix)
 {
     return floatIsZero(matrix[2]) && floatIsZero(matrix[5])
@@ -91,9 +91,11 @@ renderer_draw(struct xa_context *r)
     struct cso_velems_state velems;
     velems.count = r->attrs_per_vertex;
     memcpy(velems.velems, r->velems, sizeof(r->velems[0]) * velems.count);
+    for (unsigned i = 0; i < velems.count; i++)
+        velems.velems[i].src_stride = velems.count * 4 * sizeof(float);
 
     cso_set_vertex_elements(r->cso, &velems);
-    util_draw_user_vertex_buffer(r->cso, r->buffer, PIPE_PRIM_QUADS,
+    util_draw_user_vertex_buffer(r->cso, r->buffer, MESA_PRIM_QUADS,
                                  num_verts,	/* verts */
                                  r->attrs_per_vertex);	/* attribs/vert */
     r->buffer_size = 0;
@@ -433,7 +435,6 @@ renderer_copy_prepare(struct xa_context *r,
 	sampler.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
 	sampler.min_img_filter = PIPE_TEX_FILTER_NEAREST;
 	sampler.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
-	sampler.normalized_coords = 1;
         cso_set_samplers(r->cso, PIPE_SHADER_FRAGMENT, 1, &p_sampler);
         r->num_bound_samplers = 1;
     }
@@ -530,7 +531,7 @@ renderer_draw_yuv(struct xa_context *r,
    memcpy(velems.velems, r->velems, sizeof(r->velems[0]) * velems.count);
 
    cso_set_vertex_elements(r->cso, &velems);
-   util_draw_user_vertex_buffer(r->cso, r->buffer, PIPE_PRIM_QUADS,
+   util_draw_user_vertex_buffer(r->cso, r->buffer, MESA_PRIM_QUADS,
                                 4,	/* verts */
                                 num_attribs);	/* attribs/vert */
    r->buffer_size = 0;

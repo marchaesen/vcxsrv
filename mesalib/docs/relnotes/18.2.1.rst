@@ -114,7 +114,7 @@ Ian Romanick (1):
 -  i965/fs: Don't propagate conditional modifiers from integer compares
    to adds
 
-Jason Ekstrand (11):
+Faith Ekstrand (11):
 
 -  anv/pipeline: Only consider double elements which actually exist
 -  i965: Workaround the gen9 hw astc5x5 sampler bug

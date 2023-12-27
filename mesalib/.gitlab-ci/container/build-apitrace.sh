@@ -1,9 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
+
+# When changing this file, you need to bump the following
+# .gitlab-ci/image-tags.yml tags:
+# DEBIAN_X86_64_TEST_GL_TAG
+# DEBIAN_X86_64_TEST_VK_TAG
+# KERNEL_ROOTFS_TAG
 
 set -ex
 
-APITRACE_VERSION="790380e05854d5c9d315555444ffcc7acb8f4037"
+APITRACE_VERSION="0a6506433e1f9f7b69757b4e5730326970c4321a"
 
 git clone https://github.com/apitrace/apitrace.git --single-branch --no-checkout /apitrace
 pushd /apitrace

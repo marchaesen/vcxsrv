@@ -41,7 +41,6 @@
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 #include "util/u_framebuffer.h"
-#include "tgsi/tgsi_parse.h"
 #include "pipebuffer/pb_buffer.h"
 #include "evergreend.h"
 #include "r600_shader.h"
@@ -50,14 +49,13 @@
 #include "evergreen_compute.h"
 #include "evergreen_compute_internal.h"
 #include "compute_memory_pool.h"
-#include "sb/sb_public.h"
 #include <inttypes.h>
 
 /**
 RAT0 is for global binding write
 VTX1 is for global binding read
 
-for wrting images RAT1...
+for writing images RAT1...
 for reading images TEX2...
   TEX2-RAT1 is paired
 
@@ -168,7 +166,6 @@ static void evergreen_cs_set_vertex_buffer(struct r600_context *rctx,
 {
 	struct r600_vertexbuf_state *state = &rctx->cs_vertex_buffer_state;
 	struct pipe_vertex_buffer *vb = &state->vb[vb_index];
-	vb->stride = 1;
 	vb->buffer_offset = offset;
 	vb->buffer.resource = buffer;
 	vb->is_user_buffer = false;
@@ -370,7 +367,7 @@ static const unsigned char *r600_shader_binary_config_start(
 static void r600_shader_binary_read_config(const struct r600_shader_binary *binary,
 					   struct r600_bytecode *bc,
 					   uint64_t symbol_offset,
-					   boolean *use_kill)
+					   bool *use_kill)
 {
        unsigned i;
        const unsigned char *config =
@@ -404,7 +401,7 @@ static void r600_shader_binary_read_config(const struct r600_shader_binary *bina
 
 static unsigned r600_create_shader(struct r600_bytecode *bc,
 				   const struct r600_shader_binary *binary,
-				   boolean *use_kill)
+				   bool *use_kill)
 
 {
 	assert(binary->code_size % 4 == 0);
@@ -431,12 +428,11 @@ static void *evergreen_create_compute_state(struct pipe_context *ctx,
 #ifdef HAVE_OPENCL
 	const struct pipe_binary_program_header *header;
 	void *p;
-	boolean use_kill;
+	bool use_kill;
 #endif
 
 	shader->ctx = rctx;
-	shader->local_size = cso->req_local_mem;
-	shader->private_size = cso->req_private_mem;
+	shader->local_size = cso->static_shared_mem;
 	shader->input_size = cso->req_input_mem;
 
 	shader->ir_type = cso->ir_type;
@@ -611,7 +607,7 @@ static void evergreen_emit_dispatch(struct r600_context *rctx,
 	unsigned num_pipes = rctx->screen->b.info.r600_max_quad_pipes;
 	unsigned wave_divisor = (16 * num_pipes);
 	int group_size = 1;
-	unsigned lds_size = shader->local_size / 4;
+	unsigned lds_size = (shader->local_size + info->variable_shared_mem) / 4;
 
 	if (shader->ir_type != PIPE_SHADER_IR_TGSI &&
 	    shader->ir_type != PIPE_SHADER_IR_NIR)
@@ -929,7 +925,7 @@ static void evergreen_launch_grid(struct pipe_context *ctx,
 	struct r600_context *rctx = (struct r600_context *)ctx;
 #ifdef HAVE_OPENCL
 	struct r600_pipe_compute *shader = rctx->cs_shader_state.shader;
-	boolean use_kill;
+	bool use_kill;
 
 	if (shader->ir_type != PIPE_SHADER_IR_TGSI &&
 	    shader->ir_type != PIPE_SHADER_IR_NIR) {
@@ -1156,7 +1152,7 @@ void evergreen_init_atom_start_compute_cs(struct r600_context *rctx)
 		r600_store_value(cb, 0);
 
 		/* R_008C28_SQ_STACK_RESOURCE_MGMT_3
-		 * Set the Contol Flow stack entries to 0 for the HS stage, and
+		 * Set the Control Flow stack entries to 0 for the HS stage, and
 		 * set it to the maximum value for the CS (aka LS) stage. */
 		r600_store_value(cb,
 			S_008C28_NUM_LS_STACK_ENTRIES(num_stack_entries));
@@ -1219,6 +1215,22 @@ void evergreen_init_atom_start_compute_cs(struct r600_context *rctx)
 	eg_store_loop_const(cb, R_03A200_SQ_LOOP_CONST_0 + (160 * 4), 0x1000FFF);
 }
 
+
+static void evergreen_get_compute_state_info(struct pipe_context *ctx, void *state,
+                                             struct pipe_compute_state_object_info *info)
+{
+	struct r600_context *rctx = (struct r600_context*)ctx;
+	struct r600_pipe_compute *shader = state;
+	
+	/* This is somehow copied from RadeonSI, but in thruth this not more
+	 * than an educated guess. */
+	uint8_t wave_size = r600_wavefront_size(rctx->b.screen->family);
+	info->private_memory = shader->sel->current->scratch_space_needed;
+	info->preferred_simd_size = wave_size;
+	info->simd_sizes = wave_size;
+	info->max_threads = 128;
+}
+
 void evergreen_init_compute_state_functions(struct r600_context *rctx)
 {
 	rctx->b.b.create_compute_state = evergreen_create_compute_state;
@@ -1228,7 +1240,7 @@ void evergreen_init_compute_state_functions(struct r600_context *rctx)
 	rctx->b.b.set_compute_resources = evergreen_set_compute_resources;
 	rctx->b.b.set_global_binding = evergreen_set_global_binding;
 	rctx->b.b.launch_grid = evergreen_launch_grid;
-
+	rctx->b.b.get_compute_state_info = evergreen_get_compute_state_info;
 }
 
 void *r600_compute_global_transfer_map(struct pipe_context *ctx,

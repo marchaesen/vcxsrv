@@ -33,7 +33,7 @@
 #include <vdpau/vdpau.h>
 #include <vdpau/vdpau_x11.h>
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_video_codec.h"
 
 #include "frontend/vdpau_interop.h"
@@ -42,7 +42,7 @@
 
 #include "util/u_debug.h"
 #include "util/u_rect.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 #include "vl/vl_video_buffer.h"
 #include "vl/vl_bicubic_filter.h"
@@ -473,13 +473,13 @@ typedef struct
 
 typedef uint32_t vlHandle;
 
-boolean vlCreateHTAB(void);
+bool vlCreateHTAB(void);
 void vlDestroyHTAB(void);
 vlHandle vlAddDataHTAB(void *data);
 void* vlGetDataHTAB(vlHandle handle);
 void vlRemoveDataHTAB(vlHandle handle);
 
-boolean vlGetFuncFTAB(VdpFuncId function_id, void **func);
+bool vlGetFuncFTAB(VdpFuncId function_id, void **func);
 
 /* Public functions */
 VdpDeviceCreateX11 vdp_imp_device_create_x11;

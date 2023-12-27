@@ -80,7 +80,7 @@ xkb_symbols "hil" {
     key  <KP7> { [ KP_7	]	};
     key  <KP8> { [ KP_8	]	};
     key  <KP9> { [ KP_9	]	};
-    key <KPEN> { [ KP_Enter	]}; 
+    key <KPEN> { [ KP_Enter	]};
 
     key  <KP4> { [ KP_4	]	};
     key  <KP5> { [ KP_5	]	};
@@ -90,7 +90,7 @@ xkb_symbols "hil" {
     key  <KP1> { [ KP_1	]	};
     key  <KP2> { [ KP_2	]	};
     key  <KP3> { [ KP_3	]	};
-    key <KPTB> { [ KP_Tab	]}; 
+    key <KPTB> { [ KP_Tab	]};
 
     key  <KP0> { [ KP_0	]	};
     key <KPDL> { [ KP_Decimal ]	};

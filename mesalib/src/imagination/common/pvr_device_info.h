@@ -255,8 +255,11 @@ struct pvr_device_features {
    bool has_compute_morton_capable : 1;
    bool has_compute_overlap : 1;
    bool has_eight_output_registers : 1;
+   bool has_fb_cdc_v4 : 1;
+   bool has_fbcdc_algorithm;
    bool has_gpu_multicore_support : 1;
    bool has_gs_rta_support : 1;
+   bool has_ipf_creq_pf : 1;
    bool has_isp_max_tiles_in_flight : 1;
    bool has_isp_samples_per_pixel : 1;
    bool has_max_instances_per_pds_task : 1;
@@ -268,11 +271,13 @@ struct pvr_device_features {
    bool has_num_user_clip_planes : 1;
    bool has_paired_tiles : 1;
    bool has_pbe2_in_xe : 1;
+   bool has_pbe_filterable_f16 : 1;
+   bool has_pbe_yuv : 1;
    bool has_pds_ddmadt : 1;
-   bool has_robust_buffer_access : 1;
    bool has_roguexe : 1;
    bool has_screen_size8K : 1;
    bool has_simple_internal_parameter_format : 1;
+   bool has_simple_internal_parameter_format_v1 : 1;
    bool has_simple_internal_parameter_format_v2 : 1;
    bool has_simple_parameter_format_version : 1;
    bool has_slc_cache_line_size_bits : 1;
@@ -283,6 +288,7 @@ struct pvr_device_features {
    bool has_tile_size_x : 1;
    bool has_tile_size_y : 1;
    bool has_tpu_array_textures : 1;
+   bool has_tpu_border_colour_enhanced : 1;
    bool has_tpu_extended_integer_lookup : 1;
    bool has_tpu_image_state_v2 : 1;
    bool has_usc_f16sop_u8 : 1;
@@ -299,6 +305,7 @@ struct pvr_device_features {
    bool has_zls_subtile : 1;
 
    uint32_t common_store_size_in_dwords;
+   uint32_t fbcdc_algorithm;
    uint32_t isp_max_tiles_in_flight;
    uint32_t isp_samples_per_pixel;
    uint32_t max_instances_per_pds_task;
@@ -321,6 +328,7 @@ struct pvr_device_features {
    uint32_t xpu_max_slaves;
 
    /* Derived features. */
+   bool has_requires_fb_cdc_zls_setup : 1;
    bool has_s8xe : 1;
 };
 
@@ -328,6 +336,7 @@ struct pvr_device_enhancements {
    bool has_ern35421 : 1;
    bool has_ern38020 : 1;
    bool has_ern38748 : 1;
+   bool has_ern42064 : 1;
    bool has_ern42307 : 1;
    bool has_ern45493 : 1;
 };
@@ -344,7 +353,6 @@ struct pvr_device_quirks {
    bool has_brn51764 : 1;
    bool has_brn52354 : 1;
    bool has_brn52942 : 1;
-   bool has_brn56279 : 1;
    bool has_brn58839 : 1;
    bool has_brn62269 : 1;
    bool has_brn66011 : 1;
@@ -360,6 +368,7 @@ struct pvr_device_info {
 
 struct pvr_device_runtime_info {
    uint64_t min_free_list_size;
+   uint64_t max_free_list_size;
    uint64_t reserved_shared_size;
    uint64_t total_reserved_partition_size;
    uint64_t num_phantoms;

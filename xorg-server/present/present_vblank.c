@@ -115,7 +115,7 @@ present_vblank_init(present_vblank_ptr vblank,
         {
             vblank->flip = TRUE;
             vblank->sync_flip = TRUE;
-        } else if ((capabilities & PresentCapabilityAsync) &&
+        } else if ((capabilities & PresentAllAsyncCapabilities) &&
             screen_priv->check_flip (target_crtc, window, pixmap, FALSE, valid, x_off, y_off, &reason))
         {
             vblank->flip = TRUE;

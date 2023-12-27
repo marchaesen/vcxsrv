@@ -30,7 +30,7 @@
  */
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/context.h"
 #include "main/blend.h"
 #include "main/enums.h"
@@ -121,7 +121,7 @@ set_combiner_mode(struct gl_context *ctx,
       break;
    case GL_DOT3_RGB_EXT:
    case GL_DOT3_RGBA_EXT:
-      legal = (ctx->API == API_OPENGL_COMPAT &&
+      legal = (_mesa_is_desktop_gl_compat(ctx) &&
                ctx->Extensions.EXT_texture_env_dot3 &&
                pname == GL_COMBINE_RGB);
       break;
@@ -132,7 +132,7 @@ set_combiner_mode(struct gl_context *ctx,
    case GL_MODULATE_ADD_ATI:
    case GL_MODULATE_SIGNED_ADD_ATI:
    case GL_MODULATE_SUBTRACT_ATI:
-      legal = (ctx->API == API_OPENGL_COMPAT &&
+      legal = (_mesa_is_desktop_gl_compat(ctx) &&
                ctx->Extensions.ATI_texture_env_combine3);
       break;
    default:
@@ -231,12 +231,12 @@ set_combiner_source(struct gl_context *ctx,
       legal = (param - GL_TEXTURE0 < ctx->Const.MaxTextureUnits);
       break;
    case GL_ZERO:
-      legal = (ctx->API == API_OPENGL_COMPAT &&
+      legal = (_mesa_is_desktop_gl_compat(ctx) &&
                (ctx->Extensions.ATI_texture_env_combine3 ||
                 ctx->Extensions.NV_texture_env_combine4));
       break;
    case GL_ONE:
-      legal = (ctx->API == API_OPENGL_COMPAT &&
+      legal = (_mesa_is_desktop_gl_compat(ctx) &&
                ctx->Extensions.ATI_texture_env_combine3);
       break;
    default:
@@ -462,11 +462,6 @@ _mesa_texenvfv_indexed( struct gl_context* ctx, GLuint texunit, GLenum target,
       }
    }
    else if (target == GL_POINT_SPRITE) {
-      /* GL_ARB_point_sprite */
-      if (!ctx->Extensions.ARB_point_sprite) {
-	 _mesa_error( ctx, GL_INVALID_ENUM, "glTexEnv(target=0x%x)", target );
-	 return;
-      }
       if (pname == GL_COORD_REPLACE) {
          /* It's kind of weird to set point state via glTexEnv,
           * but that's what the spec calls for.
@@ -632,7 +627,7 @@ get_texenvi(struct gl_context *ctx,
       return texUnit->Combine.SourceRGB[rgb_idx];
    }
    case GL_SOURCE3_RGB_NV:
-      if (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.NV_texture_env_combine4) {
+      if (_mesa_is_desktop_gl_compat(ctx) && ctx->Extensions.NV_texture_env_combine4) {
          return texUnit->Combine.SourceRGB[3];
       }
       else {
@@ -646,7 +641,7 @@ get_texenvi(struct gl_context *ctx,
       return texUnit->Combine.SourceA[alpha_idx];
    }
    case GL_SOURCE3_ALPHA_NV:
-      if (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.NV_texture_env_combine4) {
+      if (_mesa_is_desktop_gl_compat(ctx) && ctx->Extensions.NV_texture_env_combine4) {
          return texUnit->Combine.SourceA[3];
       }
       else {
@@ -660,7 +655,7 @@ get_texenvi(struct gl_context *ctx,
       return texUnit->Combine.OperandRGB[op_rgb];
    }
    case GL_OPERAND3_RGB_NV:
-      if (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.NV_texture_env_combine4) {
+      if (_mesa_is_desktop_gl_compat(ctx) && ctx->Extensions.NV_texture_env_combine4) {
          return texUnit->Combine.OperandRGB[3];
       }
       else {
@@ -674,7 +669,7 @@ get_texenvi(struct gl_context *ctx,
       return texUnit->Combine.OperandA[op_alpha];
    }
    case GL_OPERAND3_ALPHA_NV:
-      if (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.NV_texture_env_combine4) {
+      if (_mesa_is_desktop_gl_compat(ctx) && ctx->Extensions.NV_texture_env_combine4) {
          return texUnit->Combine.OperandA[3];
       }
       else {
@@ -745,11 +740,6 @@ _mesa_gettexenvfv_indexed( GLuint texunit, GLenum target, GLenum pname, GLfloat 
       }
    }
    else if (target == GL_POINT_SPRITE) {
-      /* GL_ARB_point_sprite */
-      if (!ctx->Extensions.ARB_point_sprite) {
-         _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexEnvfv(target)" );
-         return;
-      }
       if (pname == GL_COORD_REPLACE) {
          if (ctx->Point.CoordReplace & (1u << texunit))
             *params = 1.0f;
@@ -821,11 +811,6 @@ _mesa_gettexenviv_indexed( GLuint texunit, GLenum target,
       }
    }
    else if (target == GL_POINT_SPRITE) {
-      /* GL_ARB_point_sprite */
-      if (!ctx->Extensions.ARB_point_sprite) {
-         _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexEnviv(target)" );
-         return;
-      }
       if (pname == GL_COORD_REPLACE) {
          if (ctx->Point.CoordReplace & (1u << texunit))
             *params = GL_TRUE;

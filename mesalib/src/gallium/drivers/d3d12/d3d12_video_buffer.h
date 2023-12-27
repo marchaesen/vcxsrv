@@ -54,6 +54,14 @@ void
 d3d12_video_buffer_destroy(struct pipe_video_buffer *buffer);
 
 /**
+ * get an individual resource for each plane,
+ * only returns existing resources by reference
+ */
+void
+d3d12_video_buffer_resources(struct pipe_video_buffer *buffer,
+                             struct pipe_resource **resources);
+
+/**
  * get an individual sampler view for each plane
  */
 struct pipe_sampler_view **

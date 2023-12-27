@@ -14,6 +14,7 @@
 #include <condition_variable>
 #include <thread>
 #include <variant>
+#include <inttypes.h>
 
 // Minimum supported sampling period in nanoseconds
 #define MIN_SAMPLING_PERIOD_NS 50000
@@ -100,6 +101,7 @@ void GpuDataSource::OnStart(const StartArgs &args)
    driver->enable_perfcnt(time_to_sleep.count());
 
    state = State::Start;
+   got_first_counters = false;
 
    {
       std::lock_guard<std::mutex> lock(started_m);
@@ -243,8 +245,14 @@ void add_timestamp(perfetto::protos::pbzero::ClockSnapshot *event, const Driver 
       return;
 
    // Send a correlation event between GPU & CPU timestamps
-   uint64_t cpu_ts = perfetto::base::GetBootTimeNs().count();
-   uint64_t gpu_ts = driver->gpu_timestamp();
+   uint64_t cpu_ts, gpu_ts;
+
+   // Try to use the optimized driver correlation if available, otherwise do a
+   // separate CPU & GPU sample
+   if (!driver->cpu_gpu_timestamp(cpu_ts, gpu_ts)) {
+      cpu_ts = perfetto::base::GetBootTimeNs().count();
+      gpu_ts = driver->gpu_timestamp();
+   }
 
    {
       auto clock = event->add_clocks();
@@ -306,24 +314,17 @@ void GpuDataSource::trace(TraceContext &ctx)
       state->was_cleared = false;
    }
 
-   // Save current scheduler for restoring later
-   int prev_sched_policy = sched_getscheduler(0);
-   sched_param prev_priority_param;
-   sched_getparam(0, &prev_priority_param);
-
-   // Use FIFO policy to avoid preemption while collecting counters
-   int sched_policy = SCHED_FIFO;
-   // Do not use max priority to avoid starving migration and watchdog threads
-   int priority_value = sched_get_priority_max(sched_policy) - 1;
-   sched_param priority_param { priority_value };
-   sched_setscheduler(0, sched_policy, &priority_param);
-
    if (driver->dump_perfcnt()) {
       while (auto gpu_timestamp = driver->next()) {
          if (gpu_timestamp <= descriptor_gpu_timestamp) {
             // Do not send counter values before counter descriptors
             PPS_LOG_ERROR("Skipping counter values coming before descriptors");
             continue;
+         }
+
+         if (!got_first_counters) {
+            PPS_LOG("Got first counters at gpu_ts=0x%016" PRIx64, gpu_timestamp);
+            got_first_counters = true;
          }
 
          auto packet = ctx.NewTracePacket();
@@ -346,9 +347,6 @@ void GpuDataSource::trace(TraceContext &ctx)
       add_timestamp(event, driver);
       last_correlation_timestamp = cpu_ts;
    }
-
-   // Reset normal scheduler
-   sched_setscheduler(0, prev_sched_policy, &prev_priority_param);
 }
 
 void GpuDataSource::trace_callback(TraceContext ctx)

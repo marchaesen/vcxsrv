@@ -83,7 +83,7 @@ Gert Wollny (2):
 -  travis: force llvm-3.3 for "make Gallium ST Other"
 -  travis: Add libunwind-dev to gallium/make builds
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965/blorp: Set r8stencil_needs_update when writing stencil
 

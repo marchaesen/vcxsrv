@@ -46,76 +46,48 @@
  * hidden texture to read from the fb.
  */
 
-static void
-lower_fb_read(nir_builder *b, nir_intrinsic_instr *intr)
+static bool
+nir_lower_fb_read_instr(nir_builder *b, nir_intrinsic_instr *intr,
+                        UNUSED void *cb_data)
 {
+   if (intr->intrinsic != nir_intrinsic_load_output)
+      return false;
+
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_ssa_def *fragcoord = nir_load_frag_coord(b);
-   nir_ssa_def *sampid = nir_load_sample_id(b);
-
+   nir_def *fragcoord = nir_load_frag_coord(b);
+   nir_def *sampid = nir_load_sample_id(b);
+   nir_def *layer = nir_load_layer_id(b);
    fragcoord = nir_f2i32(b, fragcoord);
 
-   nir_tex_instr *tex = nir_tex_instr_create(b->shader, 2);
+   nir_tex_instr *tex = nir_tex_instr_create(b->shader, 3);
    tex->op = nir_texop_txf_ms_fb;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
-   tex->coord_components = 2;
+   tex->coord_components = 3;
    tex->dest_type = nir_type_float32;
-   tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src = nir_src_for_ssa(nir_channels(b, fragcoord, 0x3));
-   tex->src[1].src_type = nir_tex_src_ms_index;
-   tex->src[1].src = nir_src_for_ssa(sampid);
+   tex->is_array = true;
+   tex->src[0] = nir_tex_src_for_ssa(nir_tex_src_coord,
+                                     nir_vec3(b, nir_channel(b, fragcoord, 0), nir_channel(b, fragcoord, 1), layer));
+   tex->src[1] = nir_tex_src_for_ssa(nir_tex_src_ms_index, sampid);
+   struct nir_io_semantics io = nir_intrinsic_io_semantics(intr);
+   tex->src[2] = nir_tex_src_for_ssa(nir_tex_src_texture_handle,
+                                     nir_imm_intN_t(b, io.location - FRAG_RESULT_DATA0, 32));
 
-   nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
+   nir_def_init(&tex->instr, &tex->def, 4, 32);
    nir_builder_instr_insert(b, &tex->instr);
 
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, &tex->dest.ssa);
+   nir_def_rewrite_uses(&intr->def, &tex->def);
+
+   return true;
 }
 
 bool
 nir_lower_fb_read(nir_shader *shader)
 {
-   bool progress = false;
-
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
-   nir_foreach_function(function, shader) {
-      nir_function_impl *impl = function->impl;
-
-      if (!impl)
-         continue;
-
-      nir_foreach_block(block, impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-            if (intr->intrinsic != nir_intrinsic_load_output)
-               continue;
-
-            /* TODO KHR_blend_equation_advanced is limited to non-MRT
-             * scenarios.. but possible there are other extensions
-             * where this pass would be useful that do support MRT?
-             *
-             * I guess for now I'll leave that as an exercise for the
-             * reader.
-             */
-            if (nir_intrinsic_base(intr) != 0 ||
-                nir_src_as_uint(intr->src[0]) != 0)
-               continue;
-
-            nir_builder b;
-            nir_builder_init(&b, impl);
-            lower_fb_read(&b, intr);
-            progress = true;
-         }
-      }
-
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
-
-   }
-
-   return progress;
+   return nir_shader_intrinsics_pass(shader, nir_lower_fb_read_instr,
+                                       nir_metadata_block_index |
+                                          nir_metadata_dominance,
+                                       NULL);
 }

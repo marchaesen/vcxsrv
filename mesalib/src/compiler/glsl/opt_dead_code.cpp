@@ -74,20 +74,6 @@ do_dead_code(exec_list *instructions)
 	  || !entry->declaration)
 	 continue;
 
-      /* Section 7.4.1 (Shader Interface Matching) of the OpenGL 4.5
-       * (Core Profile) spec says:
-       *
-       *    "With separable program objects, interfaces between shader
-       *    stages may involve the outputs from one program object and the
-       *    inputs from a second program object.  For such interfaces, it is
-       *    not possible to detect mismatches at link time, because the
-       *    programs are linked separately. When each such program is
-       *    linked, all inputs or outputs interfacing with another program
-       *    stage are treated as active."
-       */
-      if (entry->var->data.always_active_io)
-         continue;
-
       if (!entry->assign_list.is_empty()) {
 	 /* Remove all the dead assignments to the variable we found.
 	  * Don't do so if it's a shader or function output, though.
@@ -154,7 +140,7 @@ do_dead_code(exec_list *instructions)
                }
             }
 
-            if (entry->var->type->is_subroutine())
+            if (glsl_type_is_subroutine(entry->var->type))
                continue;
          }
 

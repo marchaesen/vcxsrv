@@ -107,7 +107,7 @@ Ilia Mirkin (17):
 -  glsl: assign varying locations to tess shaders when doing SSO
 -  ttn: add TEX2 support
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 -  i965/vec4: Use byte offsets for UBO pulls on Sandy Bridge
 -  i965/fs: Use a stride of 1 and byte offsets for UBOs

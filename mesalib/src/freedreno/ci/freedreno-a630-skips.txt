@@ -27,15 +27,12 @@ dEQP-VK.api.command_buffers.record_many_draws_secondary_2
 spill-dEQP-VK.graphicsfuzz.cov-function-two-loops-limit-using-arguments-array-element-copies
 spill-dEQP-VK.graphicsfuzz.cov-nested-loop-large-array-index-using-vector-components
 
-# timeout, spending all its time in nir_compare_deref_paths()
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/5152
-dEQP-VK.ubo.random.all_shared_buffer.48
-
 # Still running after 3 hours, time is spent in batch_draw_tracking().
 KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
 
 # 60s timeout
 KHR-GLES31.core.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_MaxPatchVertices_Position_PointSize
+KHR-GL46.copy_image.functional
 
 # These take most of a minute to run
 spec@!opengl 3.0@clearbuffer-depth-cs-probe
@@ -47,6 +44,9 @@ spec@ext_texture_array@fbo-depth-array stencil-clear
 spec@ext_texture_array@fbo-depth-array stencil-draw
 spec@ext_transform_feedback@max-varyings
 spec@!opengl 1.0@gl-1.0-blend-func
+
+spec@ext_framebuffer_blit@fbo-blit-check-limits
+spec@egl 1.4@egl-copy-buffers
 
 # Skip over a bunch of extensions since we don't have extension fast skipping yet.
 spec@glsl-4.*
@@ -70,3 +70,6 @@ spec@arb_buffer_storage@bufferstorage-persistent_gles3 read coherent client-stor
 # These are redundant with arb_copy_image, so skip them to cut down
 # on CI runtime:
 spec@nv_copy_image@nv_copy_image.*
+
+# Exclude this test which might fail when a new extension is implemented.
+dEQP-VK.info.device_extensions

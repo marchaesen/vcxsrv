@@ -10,7 +10,8 @@ glx@glx_ext_import_context@imported context has same context id,Fail
 glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
-glx@glx-multithread-clearbuffer,Crash
+glx@glx-make-current,Fail
+glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
@@ -23,12 +24,6 @@ shaders@point-vertex-id gl_vertexid,Fail
 shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Fail
 shaders@point-vertex-id gl_vertexid gl_instanceid,Fail
 spec@arb_base_instance@arb_base_instance-drawarrays,Fail
-spec@arb_color_buffer_float@gl_rgba16f-render,Fail
-spec@arb_color_buffer_float@gl_rgba16f-render-fog,Fail
-spec@arb_color_buffer_float@gl_rgba16f-render-sanity,Fail
-spec@arb_color_buffer_float@gl_rgba32f-render,Fail
-spec@arb_color_buffer_float@gl_rgba32f-render-fog,Fail
-spec@arb_color_buffer_float@gl_rgba32f-render-sanity,Fail
 spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 d=s=z32f_s8,Fail
 spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 ds=z32f_s8,Fail
 spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 s=d=z32f_s8,Fail
@@ -59,15 +54,11 @@ spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-readpixels,Fail
 spec@arb_depth_clamp@depth-clamp-range,Fail
 spec@arb_direct_state_access@gettextureimage-formats,Fail
 spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
-spec@arb_draw_buffers@fbo-mrt-new-bind,Crash
-spec@arb_es2_compatibility@fbo-blending-formats,Fail
-spec@arb_es2_compatibility@fbo-blending-formats@GL_RGB565,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth gl_depth32f_stencil8,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth_stencil gl_depth32f_stencil8,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_depth32f_stencil8,Fail
 spec@arb_framebuffer_object@fbo-luminance-alpha,Fail
 spec@arb_framebuffer_srgb@fbo-fast-clear,Fail
-spec@arb_get_program_binary@restore-sso-program,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_DEPTH_STENCIL,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_STENCIL_INDEX,Fail
@@ -96,6 +87,9 @@ spec@arb_sample_shading@samplemask 4 all@sample mask_in_one,Fail
 spec@arb_sample_shading@samplemask 4,Fail
 spec@arb_sample_shading@samplemask 4@noms mask_in_one,Fail
 spec@arb_sample_shading@samplemask 4@sample mask_in_one,Fail
+spec@arb_separate_shader_objects@atomic counter,Fail
+spec@arb_shader_atomic_counters@semantics,Fail
+spec@arb_shader_atomic_counters@semantics@Fragment shader atomic built-in semantics,Fail
 spec@arb_shader_draw_parameters@drawid-indirect-baseinstance,Fail
 spec@arb_shader_draw_parameters@drawid-indirect-basevertex,Fail
 spec@arb_shader_draw_parameters@drawid-indirect,Fail
@@ -106,10 +100,9 @@ spec@arb_shader_texture_lod@execution@tex-miplevel-selection *gradarb 2drectshad
 spec@arb_shader_texture_lod@execution@tex-miplevel-selection *projgradarb 2drect,Crash
 spec@arb_shader_texture_lod@execution@tex-miplevel-selection *projgradarb 2drect_projvec4,Crash
 spec@arb_shader_texture_lod@execution@tex-miplevel-selection *projgradarb 2drectshadow,Crash
-spec@arb_shading_language_420pack@active sampler conflict,Crash
 spec@arb_texture_buffer_object@formats (fs- arb),Crash
 spec@arb_texture_buffer_object@formats (vs- arb),Crash
-spec@arb_texture_buffer_object@render-no-bo,Crash
+spec@arb_texture_buffer_object@texture-buffer-size-clamp,Crash
 spec@arb_texture_float@arb_texture_float-texture-float-formats,Fail
 spec@arb_texture_float@fbo-alphatest-formats,Crash
 spec@arb_texture_float@fbo-blending-formats,Crash
@@ -185,8 +178,6 @@ spec@ext_framebuffer_multisample@fast-clear,Fail
 spec@ext_framebuffer_multisample@formats 2,Fail
 spec@ext_framebuffer_multisample@formats 4,Fail
 spec@ext_framebuffer_multisample@formats all_samples,Fail
-spec@ext_framebuffer_multisample@sample-alpha-to-coverage 2 depth,Fail
-spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 2,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 4,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats,Fail
@@ -194,7 +185,6 @@ spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY4,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY8,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY,Fail
 spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@3,Fail
 spec@ext_framebuffer_object@fbo-blending-formats,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_ALPHA4,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_ALPHA8,Fail
@@ -208,10 +198,7 @@ spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE8_ALPHA8,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE8,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE_ALPHA,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_R3_G3_B2,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB10,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB8,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB,Fail
+spec@ext_framebuffer_object@fbo-blending-snorm,Fail
 spec@ext_framebuffer_object@fbo-clear-formats,Fail
 spec@ext_framebuffer_object@fbo-clear-formats@GL_INTENSITY4,Fail
 spec@ext_framebuffer_object@fbo-clear-formats@GL_INTENSITY8,Fail
@@ -235,42 +222,10 @@ spec@ext_framebuffer_object@fbo-colormask-formats@GL_LUMINANCE,Fail
 spec@ext_framebuffer_object@fbo-fast-clear,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-invalid_attributes,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-invalid_hints,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-missing_attributes,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-ownership_transfer,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_argb8888,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_ayuv,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_nv12,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xrgb8888,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xyuv,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y210,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y212,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y216,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y410,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y412,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y416,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Crash
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-unsupported_format,Crash
-spec@ext_texture_compression_rgtc@rgtc-teximage-01,Fail
-spec@ext_texture_compression_rgtc@rgtc-teximage-02,Fail
+spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_texture_srgb@fbo-fast-clear,Fail
 spec@ext_transform_feedback2@draw-auto,Fail
-spec@ext_transform_feedback@builtin-varyings gl_clipdistance[1]-no-subscript,Fail
-spec@ext_transform_feedback@builtin-varyings gl_clipdistance[2]-no-subscript,Fail
-spec@ext_transform_feedback@builtin-varyings gl_clipdistance[3]-no-subscript,Fail
-spec@ext_transform_feedback@builtin-varyings gl_clipdistance[5]-no-subscript,Fail
-spec@ext_transform_feedback@builtin-varyings gl_clipdistance[6]-no-subscript,Fail
-spec@ext_transform_feedback@builtin-varyings gl_clipdistance[7]-no-subscript,Fail
-spec@ext_transform_feedback@builtin-varyings gl_clipdistance,Crash
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance,Fail
 spec@ext_transform_feedback@change-size base-shrink,Fail
 spec@ext_transform_feedback@change-size offset-shrink,Fail
 spec@ext_transform_feedback@change-size range-grow,Fail
@@ -285,7 +240,6 @@ spec@ext_transform_feedback@order elements lines,Fail
 spec@ext_transform_feedback@order elements points,Fail
 spec@ext_transform_feedback@order elements triangles,Fail
 spec@ext_transform_feedback@overflow-edge-cases,Fail
-spec@ext_transform_feedback@pipeline-basic-primgen,Fail
 spec@ext_transform_feedback@position-readback-bufferbase-discard,Fail
 spec@ext_transform_feedback@position-readback-bufferbase,Fail
 spec@ext_transform_feedback@position-readback-bufferoffset-discard,Fail
@@ -309,11 +263,8 @@ spec@ext_transform_feedback@tessellation line_strip flat_first,Fail
 spec@ext_transform_feedback@tessellation line_strip flat_last,Fail
 spec@ext_transform_feedback@tessellation line_strip monochrome,Fail
 spec@ext_transform_feedback@tessellation line_strip smooth,Fail
-spec@ext_transform_feedback@tessellation polygon flat_first,Fail
-spec@ext_transform_feedback@tessellation polygon flat_last,Fail
 spec@ext_transform_feedback@tessellation polygon monochrome,Fail
 spec@ext_transform_feedback@tessellation polygon smooth,Fail
-spec@ext_transform_feedback@tessellation polygon wireframe,Fail
 spec@ext_transform_feedback@tessellation quads flat_first,Fail
 spec@ext_transform_feedback@tessellation quads flat_last,Fail
 spec@ext_transform_feedback@tessellation quads monochrome,Fail
@@ -426,109 +377,94 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
-spec@nv_copy_image@nv_copy_image-formats,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA/Destination: GL_ALPHA,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_INTENSITY8/Destination: GL_INTENSITY8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA12/Destination: GL_ALPHA12,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA16/Destination: GL_ALPHA16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_INTENSITY/Destination: GL_INTENSITY,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE8_ALPHA8/Destination: GL_LUMINANCE8_ALPHA8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE8/Destination: GL_LUMINANCE8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE_ALPHA/Destination: GL_LUMINANCE_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_INTENSITY8/Destination: GL_INTENSITY8,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE/Destination: GL_LUMINANCE,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R16I/Destination: GL_R16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R16UI/Destination: GL_R16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE12_ALPHA12/Destination: GL_LUMINANCE12_ALPHA12,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE16_ALPHA16/Destination: GL_LUMINANCE16_ALPHA16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE8/Destination: GL_LUMINANCE8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE8_ALPHA8/Destination: GL_LUMINANCE8_ALPHA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE_ALPHA/Destination: GL_LUMINANCE_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R16/Destination: GL_R16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R16_SNORM/Destination: GL_R16_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R32F/Destination: GL_R32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R8/Destination: GL_R8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R8I/Destination: GL_R8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R8UI/Destination: GL_R8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R8_SNORM/Destination: GL_R8_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RED/Destination: GL_RED,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG16I/Destination: GL_RG16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG16UI/Destination: GL_RG16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG/Destination: GL_RG,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG16/Destination: GL_RG16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG16_SNORM/Destination: GL_RG16_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG32F/Destination: GL_RG32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG32I/Destination: GL_RG32I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG32UI/Destination: GL_RG32UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG8/Destination: GL_RG8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG8I/Destination: GL_RG8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG8UI/Destination: GL_RG8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG8_SNORM/Destination: GL_RG8_SNORM,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB/Destination: GL_RGB,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB16/Destination: GL_RGB16,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB16I/Destination: GL_RGB16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB16UI/Destination: GL_RGB16UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB32F/Destination: GL_RGB32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB32I/Destination: GL_RGB32I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB32UI/Destination: GL_RGB32UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB8/Destination: GL_RGB8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB8I/Destination: GL_RGB8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB8UI/Destination: GL_RGB8UI,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA16I/Destination: GL_RGBA16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA16UI/Destination: GL_RGBA16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA/Destination: GL_RGBA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA16/Destination: GL_RGBA16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA16_SNORM/Destination: GL_RGBA16_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA32F/Destination: GL_RGBA32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA32I/Destination: GL_RGBA32I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA32UI/Destination: GL_RGBA32UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA8/Destination: GL_RGBA8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA8I/Destination: GL_RGBA8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA8UI/Destination: GL_RGBA8UI,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA/Destination: GL_RGBA,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB/Destination: GL_RGB,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG/Destination: GL_RG,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA8_SNORM/Destination: GL_RGBA8_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_ALPHA/Destination: GL_ALPHA,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_INTENSITY8/Destination: GL_INTENSITY8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_ALPHA12/Destination: GL_ALPHA12,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_ALPHA16/Destination: GL_ALPHA16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_INTENSITY/Destination: GL_INTENSITY,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE8_ALPHA8/Destination: GL_LUMINANCE8_ALPHA8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE8/Destination: GL_LUMINANCE8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE_ALPHA/Destination: GL_LUMINANCE_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_INTENSITY8/Destination: GL_INTENSITY8,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE/Destination: GL_LUMINANCE,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R16I/Destination: GL_R16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R16UI/Destination: GL_R16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE12_ALPHA12/Destination: GL_LUMINANCE12_ALPHA12,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE16_ALPHA16/Destination: GL_LUMINANCE16_ALPHA16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE8/Destination: GL_LUMINANCE8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE8_ALPHA8/Destination: GL_LUMINANCE8_ALPHA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE_ALPHA/Destination: GL_LUMINANCE_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R16/Destination: GL_R16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R16_SNORM/Destination: GL_R16_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R32F/Destination: GL_R32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R8/Destination: GL_R8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R8I/Destination: GL_R8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R8UI/Destination: GL_R8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R8_SNORM/Destination: GL_R8_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RED/Destination: GL_RED,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG16I/Destination: GL_RG16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG16UI/Destination: GL_RG16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG/Destination: GL_RG,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG16/Destination: GL_RG16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG16_SNORM/Destination: GL_RG16_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG32F/Destination: GL_RG32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG32I/Destination: GL_RG32I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG32UI/Destination: GL_RG32UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG8/Destination: GL_RG8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG8I/Destination: GL_RG8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG8UI/Destination: GL_RG8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG8_SNORM/Destination: GL_RG8_SNORM,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB/Destination: GL_RGB,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB16/Destination: GL_RGB16,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB16I/Destination: GL_RGB16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB16UI/Destination: GL_RGB16UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB32F/Destination: GL_RGB32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB32I/Destination: GL_RGB32I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB32UI/Destination: GL_RGB32UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB8/Destination: GL_RGB8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB8I/Destination: GL_RGB8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB8UI/Destination: GL_RGB8UI,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA16I/Destination: GL_RGBA16I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA16UI/Destination: GL_RGBA16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA/Destination: GL_RGBA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA16/Destination: GL_RGBA16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA16_SNORM/Destination: GL_RGBA16_SNORM,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA32F/Destination: GL_RGBA32F,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA32I/Destination: GL_RGBA32I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA32UI/Destination: GL_RGBA32UI,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA8/Destination: GL_RGBA8,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA8I/Destination: GL_RGBA8I,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA8UI/Destination: GL_RGBA8UI,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA/Destination: GL_RGBA,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB/Destination: GL_RGB,Fail
-spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG/Destination: GL_RG,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RED_RGTC1/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RG_RGTC2/Destination: GL_COMPRESSED_RG_RGTC2,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RED_RGTC1/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RG_RGTC2/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
-spec@oes_point_sprite@arb_point_sprite-checkerboard_gles1,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA8_SNORM/Destination: GL_RGBA8_SNORM,Fail
 spec@oes_texture_view@sampling-2d-array-as-cubemap,Crash
 spec@!opengl 1.0@gl-1.0-edgeflag-const,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag-quads,Fail
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
-spec@!opengl 1.0@gl-1.0-spot-light,Fail
 spec@!opengl 1.0@rasterpos,Crash
-spec@!opengl 1.1@dlist-fdo3129-01,Crash
 spec@!opengl 1.1@getteximage-formats,Fail
 spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
@@ -536,6 +472,8 @@ spec@!opengl 1.1@linestipple,Fail
 spec@!opengl 1.1@linestipple@Line loop,Fail
 spec@!opengl 1.1@linestipple@Line strip,Fail
 spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
+spec@!opengl 1.1@line-smooth-stipple,Fail
+spec@!opengl 1.1@longprim,Crash
 spec@!opengl 1.1@polygon-mode-facing,Fail
 spec@!opengl 1.1@polygon-mode,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on bottom edge,Fail
@@ -564,37 +502,98 @@ spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on right edg
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on top edge,Fail
 spec@!opengl 1.1@polygon-mode-offset,Fail
 spec@!opengl 1.1@streaming-texture-leak,Crash
-spec@!opengl 1.1@user-clip,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
-spec@!opengl 2.0@max-samplers border,Fail
-spec@!opengl 2.0@max-samplers,Fail
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
-spec@!opengl 3.0@gl-3.0-vertexattribipointer,Fail
-spec@!opengl 3.0@required-texture-attachment-formats,Fail
+spec@!opengl 3.0@gl_vertexid used with glmultidrawarrays,Fail
 spec@!opengl 3.1@primitive-restart-xfb flush,Fail
 spec@!opengl 3.1@primitive-restart-xfb generated,Fail
 spec@!opengl 3.1@primitive-restart-xfb written,Fail
-spec@!opengl 3.1@required-texture-attachment-formats,Fail
 spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail
-
-# VK-GL-CTS 1.3.1.0 uprev, aka when we dropped the custom caselist file.
-dEQP-VK.api.copy_and_blit.core.resolve_image.copy_with_regions_before_resolving.4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.dst_256_256_11_4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.dst_256_512_1_4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.dst_266_256_1_4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.src_256_256_11_4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.src_256_512_1_4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.src_266_256_1_4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.partial.4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.whole.4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.whole_copy_before_resolving_no_cab.4_bit,Crash
-dEQP-VK.api.copy_and_blit.core.resolve_image.with_regions.4_bit,Crash
 
 # The following tests started to fail after CI fix, see
 # https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/16325
 dEQP-VK.rasterization.interpolation_multisample_4_bit.lines_wide,Fail
 dEQP-VK.rasterization.interpolation_multisample_4_bit.non_strict_lines_wide,Fail
 dEQP-VK.rasterization.interpolation_multisample_4_bit.triangles,Fail
+
+# internal alignment assertion
+dEQP-VK.spirv_assembly.instruction.compute.pointer_parameter.workgroup_memory_variable_pointers,Crash
+dEQP-VK.spirv_assembly.instruction.compute.variable_pointers.compute.workgroup_two_buffers,Crash
+dEQP-VK.spirv_assembly.instruction.compute.workgroup_memory.float32,Crash
+dEQP-VK.spirv_assembly.instruction.compute.workgroup_memory.int32,Crash
+dEQP-VK.spirv_assembly.instruction.compute.workgroup_memory.uint32,Crash
+
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.a2b10g10r10_uint_pack32,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.a2b10g10r10_unorm_pack32,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.a8b8g8r8_sint_pack32,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.a8b8g8r8_uint_pack32,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.a8b8g8r8_unorm_pack32,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.r16g16b16a16_sfloat,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.r16g16b16a16_sint,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.r16g16b16a16_uint,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.r8g8b8a8_sint,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.r8g8b8a8_uint,Fail
+dEQP-VK.api.buffer_view.access.storage_texel_buffer.r8g8b8a8_unorm,Fail
+dEQP-VK.api.command_buffers.record_many_draws_secondary_2,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.mix_1,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.mix_array0,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_0,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_1,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_2,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_4,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_5,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_array0,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_array1,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_image_array2,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_0,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_1,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_2,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_4,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_5,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_array0,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_array1,Fail
+dEQP-VK.binding_model.descriptor_copy.compute.storage_texel_buffer_array2,Fail
+dEQP-VK.glsl.operator.sequence.no_side_effects.highp_bool_vec2_fragment,Fail
+dEQP-VK.glsl.operator.sequence.no_side_effects.highp_float_uint_fragment,Fail
+dEQP-VK.glsl.operator.sequence.no_side_effects.highp_vec4_ivec4_bvec4_fragment,Fail
+dEQP-VK.glsl.operator.sequence.no_side_effects.mediump_bool_vec2_fragment,Fail
+dEQP-VK.glsl.operator.sequence.no_side_effects.mediump_float_uint_fragment,Fail
+dEQP-VK.glsl.operator.sequence.no_side_effects.mediump_vec4_ivec4_bvec4_fragment,Fail
+dEQP-VK.glsl.operator.sequence.side_effects.highp_bool_vec2_fragment,Fail
+dEQP-VK.glsl.operator.sequence.side_effects.highp_float_uint_fragment,Fail
+dEQP-VK.glsl.operator.sequence.side_effects.highp_vec4_fragment,Fail
+dEQP-VK.glsl.operator.sequence.side_effects.mediump_bool_vec2_fragment,Fail
+dEQP-VK.glsl.operator.sequence.side_effects.mediump_float_uint_fragment,Fail
+dEQP-VK.glsl.operator.sequence.side_effects.mediump_vec4_fragment,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.a2b10g10r10_unorm_pack32.oob_storage_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.a2b10g10r10_unorm_pack32.oob_storage_read.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.a2b10g10r10_unorm_pack32.oob_uniform_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.a2b10g10r10_unorm_pack32.oob_uniform_read.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.out_of_alloc.oob_storage_read,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.out_of_alloc.oob_uniform_read,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sfloat.oob_storage_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sfloat.oob_storage_read.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sfloat.oob_storage_write.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sfloat.oob_uniform_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sfloat.oob_uniform_read.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sint.oob_storage_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sint.oob_storage_read.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sint.oob_storage_write.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sint.oob_uniform_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_sint.oob_uniform_read.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_uint.oob_storage_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_uint.oob_storage_read.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_uint.oob_storage_write.range_3_texels,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_uint.oob_uniform_read.range_1_texel,Fail
+dEQP-VK.robustness.buffer_access.compute.texel_copy.r32g32b32a32_uint.oob_uniform_read.range_3_texels,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.linear_linear_mipmap_linear,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.linear_linear_mipmap_nearest,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.linear_nearest_mipmap_linear,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.linear_nearest_mipmap_nearest,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.nearest_linear_mipmap_linear,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.nearest_linear_mipmap_nearest,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.nearest_nearest_mipmap_linear,Fail
+dEQP-VK.texture.explicit_lod.2d.derivatives.nearest_nearest_mipmap_nearest,Fail

@@ -190,11 +190,11 @@ valid_args(XVisualInfo *vinfo, unsigned long red_max, unsigned long green_max,
 	    return 0;
     } else if (property == XA_RGB_GRAY_MAP) {
 	ncolors = red_max + green_max + blue_max + 1;
-	if (ncolors > vinfo->colormap_size)
+	if (ncolors > (unsigned long) vinfo->colormap_size)
 	    return 0;
     } else {
 	ncolors = (red_max + 1) * (green_max + 1) * (blue_max + 1);
-	if (ncolors > vinfo->colormap_size)
+	if (ncolors > (unsigned long) vinfo->colormap_size)
 	    return 0;
     }
 

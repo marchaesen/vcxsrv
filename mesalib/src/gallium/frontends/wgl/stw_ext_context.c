@@ -30,6 +30,7 @@
 #include <GL/gl.h>
 #include <GL/wglext.h>
 
+#include "stw_gdishim.h"
 #include "gldrv.h"
 #include "stw_context.h"
 #include "stw_device.h"
@@ -38,8 +39,8 @@
 #include "util/u_debug.h"
 
 
-static wglCreateContext_t wglCreateContext_func = 0;
-static wglDeleteContext_t wglDeleteContext_func = 0;
+static wglCreateContext_t g_pfnwglCreateContext = NULL;
+static wglDeleteContext_t g_pfnwglDeleteContext = NULL;
 
 /* When this library is used as a opengl32.dll drop-in replacement, ensure we
  * use the wglCreate/Destroy entrypoints above, and not the true opengl32.dll,
@@ -51,8 +52,8 @@ static wglDeleteContext_t wglDeleteContext_func = 0;
 void
 stw_override_opengl32_entry_points(wglCreateContext_t create, wglDeleteContext_t delete)
 {
-   wglCreateContext_func = create;
-   wglDeleteContext_func = delete;
+   g_pfnwglCreateContext = create;
+   g_pfnwglDeleteContext = delete;
 }
 
 
@@ -78,7 +79,7 @@ wglCreateContextAttribsARB(HDC hDC, HGLRC hShareContext, const int *attribList)
    int profileMask = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
    int resetStrategy = WGL_NO_RESET_NOTIFICATION_ARB;
    int i;
-   BOOL done = FALSE;
+   BOOL done = false;
    const int contextFlagsAll = (WGL_CONTEXT_DEBUG_BIT_ARB |
                                 WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB |
                                 WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB);
@@ -110,7 +111,7 @@ wglCreateContextAttribsARB(HDC hDC, HGLRC hShareContext, const int *attribList)
             break;
          case 0:
             /* end of list */
-            done = TRUE;
+            done = true;
             break;
          default:
             /* bad attribute */
@@ -164,34 +165,43 @@ wglCreateContextAttribsARB(HDC hDC, HGLRC hShareContext, const int *attribList)
       return NULL;
    }
 
-   /* Get pointer to OPENGL32.DLL's wglCreate/DeleteContext() functions */
-   if (!wglCreateContext_func || !wglDeleteContext_func) {
-      /* Get the OPENGL32.DLL library */
+   wglCreateContext_t pfnwglCreateContext;
+   wglDeleteContext_t pfnwglDeleteContext;
+
+   if (stw_dev->callbacks.pfnGetDhglrc) {
+      /* Used as an ICD.
+       *
+       * Get pointers to OPENGL32.DLL's wglCreate/DeleteContext() functions
+       */
       HMODULE opengl_lib = GetModuleHandleA("opengl32.dll");
       if (!opengl_lib) {
          _debug_printf("wgl: GetModuleHandleA(\"opengl32.dll\") failed\n");
-         return 0;
+         return NULL;
       }
 
-      /* Get pointer to wglCreateContext() function */
-      wglCreateContext_func = (wglCreateContext_t)
+      pfnwglCreateContext = (wglCreateContext_t)
          GetProcAddress(opengl_lib, "wglCreateContext");
-      if (!wglCreateContext_func) {
+      if (!pfnwglCreateContext) {
          _debug_printf("wgl: failed to get wglCreateContext()\n");
-         return 0;
+         return NULL;
       }
 
-      /* Get pointer to wglDeleteContext() function */
-      wglDeleteContext_func = (wglDeleteContext_t)
+      pfnwglDeleteContext = (wglDeleteContext_t)
          GetProcAddress(opengl_lib, "wglDeleteContext");
-      if (!wglDeleteContext_func) {
+      if (!pfnwglDeleteContext) {
          _debug_printf("wgl: failed to get wglDeleteContext()\n");
-         return 0;
+         return NULL;
       }
+   } else {
+      /* Used as opengl32.dll drop-in alternative. */
+      assert(g_pfnwglCreateContext != NULL);
+      assert(g_pfnwglDeleteContext != NULL);
+      pfnwglCreateContext = g_pfnwglCreateContext;
+      pfnwglDeleteContext = g_pfnwglDeleteContext;
    }
 
    /* Call wglCreateContext to get a valid context ID */
-   context = wglCreateContext_func(hDC);
+   context = pfnwglCreateContext(hDC);
 
    if (context) {
       /* Now replace the context we just created with a new one that reflects
@@ -218,21 +228,21 @@ wglCreateContextAttribsARB(HDC hDC, HGLRC hShareContext, const int *attribList)
          return 0;
 
       struct stw_context *stw_ctx = stw_create_context_attribs(hDC, layerPlane, share_stw,
-                                                               stw_dev->smapi,
+                                                               stw_dev->fscreen,
                                                                majorVersion, minorVersion,
                                                                contextFlags, profileMask, pfi,
                                                                resetStrategy);
 
       if (!stw_ctx) {
-         wglDeleteContext_func(context);
-         return 0;
+         pfnwglDeleteContext(context);
+         return NULL;
       }
 
       c = stw_create_context_handle(stw_ctx, dhglrc);
       if (!c) {
          stw_destroy_context(stw_ctx);
-         wglDeleteContext_func(context);
-         context = 0;
+         pfnwglDeleteContext(context);
+         context = NULL;
       }
    }
 
@@ -249,6 +259,9 @@ wglMakeContextCurrentARB(HDC hDrawDC, HDC hReadDC, HGLRC hglrc)
    if (stw_dev && stw_dev->callbacks.pfnGetDhglrc) {
       /* Convert HGLRC to DHGLRC */
       dhglrc = stw_dev->callbacks.pfnGetDhglrc(hglrc);
+   } else {
+      /* not using ICD */
+      dhglrc = (DHGLRC)(INT_PTR)hglrc;
    }
 
    return stw_make_current_by_handles(hDrawDC, hReadDC, dhglrc);

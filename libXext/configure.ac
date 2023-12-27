@@ -1,17 +1,22 @@
 
 # Initialize Autoconf
-AC_PREREQ([2.60])
-AC_INIT([libXext], [1.3.3],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXext])
+AC_PREREQ([2.70])
+AC_INIT([libXext], [1.3.5],
+        [https://gitlab.freedesktop.org/xorg/lib/libxext/-/issues], [libXext])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
+# Set common system defines for POSIX extensions, such as _GNU_SOURCE
+# Must be called before any macros that run the compiler (like LT_INIT)
+# to avoid autoconf errors.
+AC_USE_SYSTEM_EXTENSIONS
+
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Initialize libtool
-AC_PROG_LIBTOOL
+LT_INIT
 
 # Require xorg-macros minimum of 1.12 for DocBook external references
 m4_ifndef([XORG_MACROS_VERSION],
@@ -36,10 +41,11 @@ if test "x$XEXT_SOREV" = "x" ; then
 fi
 AC_SUBST(XEXT_SOREV)
 
-# Obtain compiler/linker options for depedencies
+# Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES(XEXT, [xproto >= 7.0.13] [x11 >= 1.6] [xextproto >= 7.1.99])
 
 AX_GCC_BUILTIN([__builtin_popcountl])
+AC_REPLACE_FUNCS([reallocarray])
 
 # Allow checking code with lint, sparse, etc.
 XORG_WITH_LINT

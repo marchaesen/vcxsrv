@@ -43,6 +43,7 @@ struct v3d_query_pipe
         struct v3d_bo *bo;
 
         uint32_t start, end;
+        uint32_t result;
 };
 
 static void
@@ -140,7 +141,6 @@ v3d_get_query_result_pipe(struct v3d_context *v3d, struct v3d_query *query,
                           bool wait, union pipe_query_result *vresult)
 {
         struct v3d_query_pipe *pquery = (struct v3d_query_pipe *)query;
-        uint32_t result = 0;
 
         if (pquery->bo) {
                 v3d_flush_jobs_using_bo(v3d, pquery->bo);
@@ -155,18 +155,18 @@ v3d_get_query_result_pipe(struct v3d_context *v3d, struct v3d_query *query,
 
                 /* XXX: Sum up per-core values. */
                 uint32_t *map = v3d_bo_map(pquery->bo);
-                result = *map;
+                pquery->result = *map;
 
                 v3d_bo_unreference(&pquery->bo);
         }
 
         switch (pquery->type) {
         case PIPE_QUERY_OCCLUSION_COUNTER:
-                vresult->u64 = result;
+                vresult->u64 = pquery->result;
                 break;
         case PIPE_QUERY_OCCLUSION_PREDICATE:
         case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-                vresult->b = result != 0;
+                vresult->b = pquery->result != 0;
                 break;
         case PIPE_QUERY_PRIMITIVES_GENERATED:
         case PIPE_QUERY_PRIMITIVES_EMITTED:

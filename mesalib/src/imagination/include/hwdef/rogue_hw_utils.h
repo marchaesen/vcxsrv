@@ -102,14 +102,84 @@ rogue_get_isp_samples_per_tile_xy(const struct pvr_device_info *dev_info,
    }
 }
 
-static inline uint32_t
-rogue_get_max_num_vdm_pds_tasks(const struct pvr_device_info *dev_info)
+static void rogue_get_isp_scale_xy_from_samples(const uint32_t samples,
+                                                uint32_t *const x_scale_out,
+                                                uint32_t *const y_scale_out)
 {
-   /* Default value based on the minimum value found in all existing cores. */
-   uint32_t max_usc_tasks = PVR_GET_FEATURE_VALUE(dev_info, max_usc_tasks, 24U);
+   switch (samples) {
+   case 1:
+      *x_scale_out = 1;
+      *y_scale_out = 1;
+      break;
+   case 2:
+      *x_scale_out = 1;
+      *y_scale_out = 2;
+      break;
+   case 4:
+      *x_scale_out = 2;
+      *y_scale_out = 2;
+      break;
+   case 8:
+      *x_scale_out = 2;
+      *y_scale_out = 4;
+      break;
+   default:
+      unreachable("Unsupported number of samples");
+   }
+}
 
-   /* FIXME: Where does the 9 come from? */
-   return max_usc_tasks - 9;
+static inline void
+rogue_get_isp_num_tiles_xy(const struct pvr_device_info *dev_info,
+                           uint32_t samples,
+                           uint32_t width,
+                           uint32_t height,
+                           uint32_t *const x_out,
+                           uint32_t *const y_out)
+{
+   uint32_t tile_samples_x;
+   uint32_t tile_samples_y;
+   uint32_t scale_x;
+   uint32_t scale_y;
+
+   rogue_get_isp_samples_per_tile_xy(dev_info,
+                                     samples,
+                                     &tile_samples_x,
+                                     &tile_samples_y);
+
+   rogue_get_isp_scale_xy_from_samples(samples, &scale_x, &scale_y);
+
+   *x_out = DIV_ROUND_UP(width * scale_x, tile_samples_x);
+   *y_out = DIV_ROUND_UP(height * scale_y, tile_samples_y);
+
+   if (PVR_HAS_FEATURE(dev_info, simple_internal_parameter_format)) {
+      assert(PVR_GET_FEATURE_VALUE(dev_info,
+                                   simple_parameter_format_version,
+                                   0U) == 2U);
+      /* Align to a 2x2 tile block. */
+      *x_out = ALIGN_POT(*x_out, 2);
+      *y_out = ALIGN_POT(*y_out, 2);
+   }
+}
+
+static inline void
+rogue_get_zls_tile_size_xy(const struct pvr_device_info *dev_info,
+                           uint32_t *const x_out,
+                           uint32_t *const y_out)
+{
+   uint32_t version = 0;
+   bool has_version;
+
+   has_version =
+      !PVR_FEATURE_VALUE(dev_info, simple_parameter_format_version, &version);
+
+   *x_out = PVR_GET_FEATURE_VALUE(dev_info, tile_size_x, 0U);
+   *y_out = PVR_GET_FEATURE_VALUE(dev_info, tile_size_y, 0U);
+
+   if (PVR_HAS_FEATURE(dev_info, simple_internal_parameter_format) &&
+       has_version && version == 2) {
+      *x_out *= 2;
+      *y_out *= 2;
+   }
 }
 
 static inline uint32_t

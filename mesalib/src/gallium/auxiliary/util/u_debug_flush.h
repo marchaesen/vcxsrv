@@ -52,7 +52,7 @@ struct debug_flush_ctx;
  * representation.
  */
 struct debug_flush_buf *
-debug_flush_buf_create(boolean supports_persistent, unsigned bt_depth);
+debug_flush_buf_create(bool supports_persistent, unsigned bt_depth);
 
 /**
  * Reference a buffer representation.
@@ -75,7 +75,7 @@ debug_flush_buf_reference(struct debug_flush_buf **dst,
  * representation.
  */
 struct debug_flush_ctx *
-debug_flush_ctx_create(boolean catch_map_of_referenced, unsigned bt_depth);
+debug_flush_ctx_create(bool catch_map_of_referenced, unsigned bt_depth);
 
 /**
  * Destroy a context representation.

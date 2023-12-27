@@ -23,7 +23,7 @@
 #ifndef _NINE_QUEUE_H_
 #define _NINE_QUEUE_H_
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 struct nine_queue_pool;
 

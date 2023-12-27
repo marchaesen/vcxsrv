@@ -71,10 +71,10 @@ core
 *.tar.bz2
 *.tar.gz
 #
-#		Add & Override patterns for xkbcomp 
+#		Add & Override patterns for xkbcomp
 #
 #		Edit the following section as needed
 # For example, !report.pc overrides *.pc. See 'man gitignore'
-# 
+#
 xkbcomp
 xkbparse.c

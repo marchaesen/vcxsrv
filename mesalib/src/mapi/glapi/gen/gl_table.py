@@ -49,21 +49,14 @@ class PrintGlTable(gl_XML.gl_print_base):
                 f.return_type, f.name, arg_string, f.offset))
 
     def printRealHeader(self):
-        print('#ifndef GLAPIENTRYP')
-        print('# ifndef GLAPIENTRY')
-        print('#  define GLAPIENTRY')
-        print('# endif')
-        print('')
-        print('# define GLAPIENTRYP GLAPIENTRY *')
-        print('#endif')
-        print('')
+        print('#include "util/glheader.h"')
         print('')
         print('#ifdef __cplusplus')
         print('extern "C" {')
         print('#endif')
         print('')
-        print('#ifdef MemoryBarrier')
-        print('#undef MemoryBarrier')
+        print('#if defined(_WIN32) && defined(_WINDOWS_)')
+        print('#error "Should not include <windows.h> here"')
         print('#endif')
         print('')
         print('struct _glapi_table')
@@ -103,9 +96,8 @@ class PrintRemapTable(gl_XML.gl_print_base):
  * named function in the specified dispatch table.
  */
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 """)
-        print('#include "main/glheader.h"')
         return
 
 

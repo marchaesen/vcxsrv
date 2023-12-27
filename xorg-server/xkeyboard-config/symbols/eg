@@ -1,8 +1,19 @@
-// Coptic language layout based on coptic-dictionary.org
-// with added diacritics.
+// Keyboard layouts for Egypt.
 
-default  partial alphanumeric_keys modifier_keys
+default
 xkb_symbols "basic" {
+
+    include "ara(basic)"
+
+    name[Group1]= "Arabic (Egypt)";
+};
+
+
+// EXTRAS:
+
+// Coptic-language layout, based on https://coptic-dictionary.org,
+// with added diacritics.
+xkb_symbols "cop" {
 
    name[Group1]= "Coptic";
 
@@ -44,6 +55,7 @@ xkb_symbols "basic" {
     key <AC09> { [ U2C97, U2C96 ] };
     key <AC10> { [ U03E7, U03E6 ] };
     key <AC11> { [ U2CC9, U2CC8 ] };
+    key <BKSL> { [ U0304, U0323 ] };
 
     key <AB01> { [ U2C8D, U2C8C ] };
     key <AB02> { [ U2C9D, U2C9C ] };
@@ -55,6 +67,4 @@ xkb_symbols "basic" {
     key <AB08> { [ U03ED, U03EC ] };
     key <AB09> { [ U03EF, U03EE ] };
     key <AB10> { [ U2C8F, U2C8E ] };
-
-    key <BKSL> { [ U0304, U0323 ] };
 };

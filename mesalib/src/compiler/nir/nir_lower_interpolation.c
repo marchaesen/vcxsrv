@@ -35,126 +35,97 @@
 #include "nir_builder.h"
 
 static bool
-nir_lower_interpolation_block(nir_block *block, nir_builder *b,
-                              nir_lower_interpolation_options options)
+nir_lower_interpolation_instr(nir_builder *b, nir_instr *instr, void *cb_data)
 {
-   bool progress = false;
+   nir_lower_interpolation_options options =
+      *(nir_lower_interpolation_options *)cb_data;
 
-   nir_foreach_instr_safe(instr, block) {
-      if (instr->type != nir_instr_type_intrinsic)
-         continue;
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
 
-      nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
-      if (intr->intrinsic != nir_intrinsic_load_interpolated_input)
-         continue;
+   if (intr->intrinsic != nir_intrinsic_load_interpolated_input)
+      return false;
 
-      assert(intr->dest.is_ssa);
-      assert(intr->src[0].is_ssa);
-      assert(intr->src[1].is_ssa);
+   nir_intrinsic_instr *bary_intrinsic =
+      nir_instr_as_intrinsic(intr->src[0].ssa->parent_instr);
 
-      nir_intrinsic_instr *bary_intrinsic =
-         nir_instr_as_intrinsic(intr->src[0].ssa->parent_instr);
+   /* Leave VARYING_SLOT_POS alone */
+   if (nir_intrinsic_base(intr) == VARYING_SLOT_POS)
+      return false;
 
-      /* Leave VARYING_SLOT_POS alone */
-      if (nir_intrinsic_base(intr) == VARYING_SLOT_POS)
-         continue;
+   const enum glsl_interp_mode interp_mode =
+      nir_intrinsic_interp_mode(bary_intrinsic);
 
-      const enum glsl_interp_mode interp_mode =
-         nir_intrinsic_interp_mode(bary_intrinsic);
+   /* We need actual interpolation modes by the time we get here */
+   assert(interp_mode != INTERP_MODE_NONE);
 
-      /* We need actual interpolation modes by the time we get here */
-      assert(interp_mode != INTERP_MODE_NONE);
+   /* Only lower for inputs that need interpolation */
+   if (interp_mode != INTERP_MODE_SMOOTH &&
+       interp_mode != INTERP_MODE_NOPERSPECTIVE)
+      return false;
 
-      /* Only lower for inputs that need interpolation */
-      if (interp_mode != INTERP_MODE_SMOOTH &&
-          interp_mode != INTERP_MODE_NOPERSPECTIVE)
-         continue;
+   nir_intrinsic_op op = bary_intrinsic->intrinsic;
 
-      nir_intrinsic_op op = bary_intrinsic->intrinsic;
-
-      switch (op) {
-      case nir_intrinsic_load_barycentric_at_sample:
-         if (options & nir_lower_interpolation_at_sample)
-            break;
-         continue;
-      case nir_intrinsic_load_barycentric_at_offset:
-         if (options & nir_lower_interpolation_at_offset)
-            break;
-         continue;
-      case nir_intrinsic_load_barycentric_centroid:
-         if (options & nir_lower_interpolation_centroid)
-            break;
-         continue;
-      case nir_intrinsic_load_barycentric_pixel:
-         if (options & nir_lower_interpolation_pixel)
-            break;
-         continue;
-      case nir_intrinsic_load_barycentric_sample:
-         if (options & nir_lower_interpolation_sample)
-            break;
-         continue;
-      default:
-         continue;
-      }
-
-      b->cursor = nir_before_instr(instr);
-
-      nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS];
-      for (int i = 0; i < intr->num_components; i++) {
-         nir_ssa_def *iid =
-            nir_load_fs_input_interp_deltas(b, 32, intr->src[1].ssa,
-                                            .base = nir_intrinsic_base(intr),
-                                            .component = (nir_intrinsic_component(intr) + i),
-                                            .io_semantics = nir_intrinsic_io_semantics(intr));
-
-         nir_ssa_def *bary = intr->src[0].ssa;
-         nir_ssa_def *val;
-
-         val = nir_ffma(b, nir_channel(b, bary, 1),
-                           nir_channel(b, iid, 1),
-                           nir_channel(b, iid, 0));
-         val = nir_ffma(b, nir_channel(b, bary, 0),
-                           nir_channel(b, iid, 2),
-                           val);
-
-         comps[i] = val;
-      }
-      nir_ssa_def *vec = nir_vec(b, comps, intr->num_components);
-      nir_ssa_def_rewrite_uses(&intr->dest.ssa, vec);
-
-      progress = true;
+   switch (op) {
+   case nir_intrinsic_load_barycentric_at_sample:
+      if (options & nir_lower_interpolation_at_sample)
+         break;
+      return false;
+   case nir_intrinsic_load_barycentric_at_offset:
+      if (options & nir_lower_interpolation_at_offset)
+         break;
+      return false;
+   case nir_intrinsic_load_barycentric_centroid:
+      if (options & nir_lower_interpolation_centroid)
+         break;
+      return false;
+   case nir_intrinsic_load_barycentric_pixel:
+      if (options & nir_lower_interpolation_pixel)
+         break;
+      return false;
+   case nir_intrinsic_load_barycentric_sample:
+      if (options & nir_lower_interpolation_sample)
+         break;
+      return false;
+   default:
+      return false;
    }
 
-   return progress;
-}
+   b->cursor = nir_before_instr(instr);
 
-static bool
-nir_lower_interpolation_impl(nir_function_impl *impl,
-                             nir_lower_interpolation_options options)
-{
-   bool progress = false;
-   nir_builder builder;
-   nir_builder_init(&builder, impl);
+   nir_def *comps[NIR_MAX_VEC_COMPONENTS];
+   for (int i = 0; i < intr->num_components; i++) {
+      nir_def *iid =
+         nir_load_fs_input_interp_deltas(b, 32, intr->src[1].ssa,
+                                         .base = nir_intrinsic_base(intr),
+                                         .component = (nir_intrinsic_component(intr) + i),
+                                         .io_semantics = nir_intrinsic_io_semantics(intr));
 
-   nir_foreach_block(block, impl) {
-      progress |= nir_lower_interpolation_block(block, &builder, options);
+      nir_def *bary = intr->src[0].ssa;
+      nir_def *val;
+
+      val = nir_ffma(b, nir_channel(b, bary, 1),
+                     nir_channel(b, iid, 1),
+                     nir_channel(b, iid, 0));
+      val = nir_ffma(b, nir_channel(b, bary, 0),
+                     nir_channel(b, iid, 2),
+                     val);
+
+      comps[i] = val;
    }
+   nir_def *vec = nir_vec(b, comps, intr->num_components);
+   nir_def_rewrite_uses(&intr->def, vec);
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
-   return progress;
+   return true;
 }
 
 bool
 nir_lower_interpolation(nir_shader *shader, nir_lower_interpolation_options options)
 {
-   bool progress = false;
-
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= nir_lower_interpolation_impl(function->impl, options);
-   }
-
-   return progress;
+   return nir_shader_instructions_pass(shader, nir_lower_interpolation_instr,
+                                       nir_metadata_block_index |
+                                          nir_metadata_dominance,
+                                       &options);
 }

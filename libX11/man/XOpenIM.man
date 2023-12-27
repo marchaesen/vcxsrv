@@ -139,7 +139,8 @@ returns NULL if no input method could be opened.
 .LP
 The
 .B XCloseIM
-function closes the specified input method.
+function closes the specified input method and frees the memory pointed
+to by the im argument.
 .LP
 The
 .B XSetIMValues

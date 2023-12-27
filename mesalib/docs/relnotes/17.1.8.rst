@@ -60,7 +60,7 @@ Ilia Mirkin (2):
 -  glsl: add a few missing int64 constant propagation cases
 -  nv50/ir: properly set sType for TXF ops to U32
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965: Stop looking at NewDriverState when emitting 3DSTATE_URB
 

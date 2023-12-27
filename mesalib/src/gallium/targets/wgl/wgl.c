@@ -37,7 +37,6 @@
 #include <windows.h>
 
 #include "util/u_debug.h"
-#include "util/debug.h"
 #include "stw_winsys.h"
 #include "stw_device.h"
 #include "gdi/gdi_sw_winsys.h"
@@ -65,13 +64,13 @@
 #endif
 
 #ifdef GALLIUM_LLVMPIPE
-static boolean use_llvmpipe = FALSE;
+static bool use_llvmpipe = false;
 #endif
 #ifdef GALLIUM_D3D12
-static boolean use_d3d12 = FALSE;
+static bool use_d3d12 = false;
 #endif
 #ifdef GALLIUM_ZINK
-static boolean use_zink = FALSE;
+static bool use_zink = false;
 #endif
 
 static const char *created_driver_name = NULL;
@@ -85,21 +84,21 @@ wgl_screen_create_by_name(HDC hDC, const char* driver, struct sw_winsys *winsys)
    if (strcmp(driver, "llvmpipe") == 0) {
       screen = llvmpipe_create_screen(winsys);
       if (screen)
-         use_llvmpipe = TRUE;
+         use_llvmpipe = true;
    }
 #endif
 #ifdef GALLIUM_D3D12
    if (strcmp(driver, "d3d12") == 0) {
       screen = d3d12_wgl_create_screen(winsys, hDC);
       if (screen)
-         use_d3d12 = TRUE;
+         use_d3d12 = true;
    }
 #endif
 #ifdef GALLIUM_ZINK
    if (strcmp(driver, "zink") == 0) {
       screen = zink_create_screen(winsys, NULL);
       if (screen)
-         use_zink = TRUE;
+         use_zink = true;
    }
 #endif
 #ifdef GALLIUM_SOFTPIPE
@@ -115,7 +114,7 @@ static struct pipe_screen *
 wgl_screen_create(HDC hDC)
 {
    struct sw_winsys *winsys;
-   UNUSED bool sw_only = env_var_as_boolean("LIBGL_ALWAYS_SOFTWARE", false);
+   UNUSED bool sw_only = debug_get_bool_option("LIBGL_ALWAYS_SOFTWARE", false);
 
    winsys = gdi_create_sw_winsys();
    if (!winsys)
@@ -171,8 +170,10 @@ wgl_present(struct pipe_screen *screen,
     * other structs such as this stw_winsys as well...
     */
 
+#if defined(GALLIUM_LLVMPIPE) || defined(GALLIUM_SOFTPIPE)
    struct sw_winsys *winsys = NULL;
    struct sw_displaytarget *dt = NULL;
+#endif
 
 #ifdef GALLIUM_LLVMPIPE
    if (use_llvmpipe) {
@@ -206,7 +207,7 @@ wgl_present(struct pipe_screen *screen,
 
 
 #if WINVER >= 0xA00
-static boolean
+static bool
 wgl_get_adapter_luid(struct pipe_screen* screen,
    HDC hDC,
    LUID* adapter_luid)
@@ -308,5 +309,5 @@ DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
       }
       break;
    }
-   return TRUE;
+   return true;
 }

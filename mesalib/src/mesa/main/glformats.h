@@ -30,8 +30,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <GL/gl.h>
 
+#include "util/glheader.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,9 +56,6 @@ _mesa_components_in_format( GLenum format );
 
 extern GLint
 _mesa_bytes_per_pixel( GLenum format, GLenum type );
-
-extern GLint
-_mesa_bytes_per_vertex_attrib(GLint comps, GLenum type);
 
 extern GLboolean
 _mesa_is_astc_format(GLenum internalFormat);

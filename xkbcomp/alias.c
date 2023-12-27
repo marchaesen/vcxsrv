@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -39,7 +39,7 @@ HandleCollision(AliasInfo * old, AliasInfo * new)
         if (((new->def.fileID == old->def.fileID) && (warningLevel > 0)) ||
             (warningLevel > 9))
         {
-            WARN2("Alias of %s for %s declared more than once\n",
+            WARN("Alias of %s for %s declared more than once\n",
                   XkbKeyNameText(new->alias, XkbMessage),
                   XkbKeyNameText(new->real, XkbMessage));
             ACTION("First definition ignored\n");
@@ -61,9 +61,9 @@ HandleCollision(AliasInfo * old, AliasInfo * new)
         if (((old->def.fileID == new->def.fileID) && (warningLevel > 0)) ||
             (warningLevel > 9))
         {
-            WARN1("Multiple definitions for alias %s\n",
+            WARN("Multiple definitions for alias %s\n",
                   XkbKeyNameText(old->alias, XkbMessage));
-            ACTION2("Using %s, ignoring %s\n",
+            ACTION("Using %s, ignoring %s\n",
                     XkbKeyNameText(use, XkbMessage),
                     XkbKeyNameText(ignore, XkbMessage));
         }
@@ -76,8 +76,8 @@ HandleCollision(AliasInfo * old, AliasInfo * new)
 }
 
 static void
-InitAliasInfo(AliasInfo * info,
-              unsigned merge, unsigned file_id, char *alias, char *real)
+InitAliasInfo(AliasInfo *info, unsigned merge, unsigned file_id,
+              const char *alias, const char *real)
 {
     bzero(info, sizeof(AliasInfo));
     info->def.merge = merge;
@@ -88,8 +88,8 @@ InitAliasInfo(AliasInfo * info,
 }
 
 int
-HandleAliasDef(KeyAliasDef * def,
-               unsigned merge, unsigned file_id, AliasInfo ** info_in)
+HandleAliasDef(const KeyAliasDef *def,
+               unsigned merge, unsigned file_id, AliasInfo **info_in)
 {
     AliasInfo *info;
 
@@ -103,7 +103,7 @@ HandleAliasDef(KeyAliasDef * def,
             return True;
         }
     }
-    info = uTypedCalloc(1, AliasInfo);
+    info = calloc(1, sizeof(AliasInfo));
     if (info == NULL)
     {
         WSGO("Allocation failure in HandleAliasDef\n");
@@ -140,7 +140,7 @@ MergeAliases(AliasInfo ** into, AliasInfo ** merge, unsigned how_merge)
         *merge = NULL;
         return True;
     }
-    bzero((char *) &def, sizeof(KeyAliasDef));
+    bzero(&def, sizeof(KeyAliasDef));
     for (tmp = *merge; tmp != NULL; tmp = (AliasInfo *) tmp->def.next)
     {
         if (how_merge == MergeDefault)
@@ -158,7 +158,7 @@ MergeAliases(AliasInfo ** into, AliasInfo ** merge, unsigned how_merge)
 int
 ApplyAliases(XkbDescPtr xkb, Bool toGeom, AliasInfo ** info_in)
 {
-    register int i;
+    int i;
     XkbKeyAliasPtr old, a;
     AliasInfo *info;
     int nNew, nOld;
@@ -187,7 +187,7 @@ ApplyAliases(XkbDescPtr xkb, Bool toGeom, AliasInfo ** info_in)
         {
             if (warningLevel > 4)
             {
-                WARN2("Attempt to alias %s to non-existent key %s\n",
+                WARN("Attempt to alias %s to non-existent key %s\n",
                       XkbKeyNameText(info->alias, XkbMessage),
                       XkbKeyNameText(info->real, XkbMessage));
                 ACTION("Ignored\n");
@@ -201,7 +201,7 @@ ApplyAliases(XkbDescPtr xkb, Bool toGeom, AliasInfo ** info_in)
             if (warningLevel > 4)
             {
                 WARN("Attempt to create alias with the name of a real key\n");
-                ACTION2("Alias \"%s = %s\" ignored\n",
+                ACTION("Alias \"%s = %s\" ignored\n",
                         XkbKeyNameText(info->alias, XkbMessage),
                         XkbKeyNameText(info->real, XkbMessage));
             }
@@ -237,10 +237,10 @@ ApplyAliases(XkbDescPtr xkb, Bool toGeom, AliasInfo ** info_in)
     {
         if (!xkb->geom)
         {
-            XkbGeometrySizesRec sizes;
-            bzero((char *) &sizes, sizeof(XkbGeometrySizesRec));
-            sizes.which = XkbGeomKeyAliasesMask;
-            sizes.num_key_aliases = nOld + nNew;
+            XkbGeometrySizesRec sizes = {
+                .which = XkbGeomKeyAliasesMask,
+                .num_key_aliases = nOld + nNew
+            };
             status = XkbAllocGeometry(xkb, &sizes);
         }
         else
@@ -277,7 +277,7 @@ ApplyAliases(XkbDescPtr xkb, Bool toGeom, AliasInfo ** info_in)
 #ifdef DEBUG
     if ((a - old) != (nOld + nNew))
     {
-        WSGO2("Expected %d aliases total but created %d\n", nOld + nNew,
+        WSGO("Expected %d aliases total but created %d\n", nOld + nNew,
               (int)(a - old));
     }
 #endif

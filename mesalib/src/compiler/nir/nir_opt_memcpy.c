@@ -46,8 +46,7 @@ opt_memcpy_deref_cast(nir_intrinsic_instr *cpy, nir_src *deref_src)
    /* Casts to uint8 or int8 never do us any good; get rid of them */
    if (cast->type == glsl_int8_t_type() ||
        cast->type == glsl_uint8_t_type()) {
-      nir_instr_rewrite_src(&cpy->instr, deref_src,
-                            nir_src_for_ssa(&parent->dest.ssa));
+      nir_src_rewrite(deref_src, &parent->def);
       return true;
    }
 
@@ -64,8 +63,7 @@ opt_memcpy_deref_cast(nir_intrinsic_instr *cpy, nir_src *deref_src)
    if (nir_src_as_uint(cpy->src[2]) < (uint64_t)parent_type_size)
       return false;
 
-   nir_instr_rewrite_src(&cpy->instr, deref_src,
-                         nir_src_for_ssa(&parent->dest.ssa));
+   nir_src_rewrite(deref_src, &parent->def);
    return true;
 }
 
@@ -149,7 +147,7 @@ try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy,
        glsl_get_explicit_size(dst->type, false) == size &&
        glsl_get_explicit_size(src->type, false) == size) {
       b->cursor = nir_instr_remove(&cpy->instr);
-      nir_ssa_def *data =
+      nir_def *data =
          nir_load_deref_with_access(b, src, nir_intrinsic_src_access(cpy));
       data = nir_bitcast_vector(b, data, glsl_get_bit_size(dst->type));
       assert(data->num_components == glsl_get_vector_elements(dst->type));
@@ -185,7 +183,7 @@ try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy,
        type_is_tightly_packed(dst->type, &type_size) &&
        type_size == size) {
       b->cursor = nir_instr_remove(&cpy->instr);
-      src = nir_build_deref_cast(b, &src->dest.ssa,
+      src = nir_build_deref_cast(b, &src->def,
                                  src->modes, dst->type, 0);
       nir_copy_deref_with_access(b, dst, src,
                                  nir_intrinsic_dst_access(cpy),
@@ -205,7 +203,7 @@ try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy,
        _mesa_set_search(complex_vars, dst->var) == NULL &&
        glsl_get_explicit_size(dst->type, false) <= size) {
       b->cursor = nir_instr_remove(&cpy->instr);
-      src = nir_build_deref_cast(b, &src->dest.ssa,
+      src = nir_build_deref_cast(b, &src->def,
                                  src->modes, dst->type, 0);
       nir_copy_deref_with_access(b, dst, src,
                                  nir_intrinsic_dst_access(cpy),
@@ -217,7 +215,7 @@ try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy,
        type_is_tightly_packed(src->type, &type_size) &&
        type_size == size) {
       b->cursor = nir_instr_remove(&cpy->instr);
-      dst = nir_build_deref_cast(b, &dst->dest.ssa,
+      dst = nir_build_deref_cast(b, &dst->def,
                                  dst->modes, src->type, 0);
       nir_copy_deref_with_access(b, dst, src,
                                  nir_intrinsic_dst_access(cpy),
@@ -233,8 +231,7 @@ opt_memcpy_impl(nir_function_impl *impl)
 {
    bool progress = false;
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    struct set *complex_vars = _mesa_pointer_set_create(NULL);
 
@@ -279,7 +276,7 @@ opt_memcpy_impl(nir_function_impl *impl)
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+                                     nir_metadata_dominance);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }
@@ -292,8 +289,8 @@ nir_opt_memcpy(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl && opt_memcpy_impl(function->impl))
+   nir_foreach_function_impl(impl, shader) {
+      if (opt_memcpy_impl(impl))
          progress = true;
    }
 

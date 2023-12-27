@@ -25,6 +25,7 @@
  */
 
 #include "sfn_nir_lower_alu.h"
+
 #include "sfn_nir.h"
 
 namespace r600 {
@@ -32,11 +33,11 @@ namespace r600 {
 class Lower2x16 : public NirLowerInstruction {
 private:
    bool filter(const nir_instr *instr) const override;
-   nir_ssa_def *lower(nir_instr *instr) override;
+   nir_def *lower(nir_instr *instr) override;
 };
 
-
-bool Lower2x16::filter(const nir_instr *instr) const
+bool
+Lower2x16::filter(const nir_instr *instr) const
 {
    if (instr->type != nir_instr_type_alu)
       return false;
@@ -50,20 +51,22 @@ bool Lower2x16::filter(const nir_instr *instr) const
    }
 }
 
-nir_ssa_def *Lower2x16::lower(nir_instr *instr)
+nir_def *
+Lower2x16::lower(nir_instr *instr)
 {
    nir_alu_instr *alu = nir_instr_as_alu(instr);
 
    switch (alu->op) {
    case nir_op_unpack_half_2x16: {
-      nir_ssa_def *packed = nir_ssa_for_alu_src(b, alu, 0);
-      return  nir_vec2(b, nir_unpack_half_2x16_split_x(b, packed),
-                       nir_unpack_half_2x16_split_y(b, packed));
-
+      nir_def *packed = nir_ssa_for_alu_src(b, alu, 0);
+      return nir_vec2(b,
+                      nir_unpack_half_2x16_split_x(b, packed),
+                      nir_unpack_half_2x16_split_y(b, packed));
    }
    case nir_op_pack_half_2x16: {
-      nir_ssa_def *src_vec2 = nir_ssa_for_alu_src(b, alu, 0);
-      return nir_pack_half_2x16_split(b, nir_channel(b, src_vec2, 0),
+      nir_def *src_vec2 = nir_ssa_for_alu_src(b, alu, 0);
+      return nir_pack_half_2x16_split(b,
+                                      nir_channel(b, src_vec2, 0),
                                       nir_channel(b, src_vec2, 1));
    }
    default:
@@ -73,14 +76,19 @@ nir_ssa_def *Lower2x16::lower(nir_instr *instr)
 
 class LowerSinCos : public NirLowerInstruction {
 public:
-   LowerSinCos(amd_gfx_level gxf_level): m_gxf_level(gxf_level){}
+   LowerSinCos(amd_gfx_level gxf_level):
+       m_gxf_level(gxf_level)
+   {
+   }
+
 private:
    bool filter(const nir_instr *instr) const override;
-   nir_ssa_def *lower(nir_instr *instr) override;
+   nir_def *lower(nir_instr *instr) override;
    amd_gfx_level m_gxf_level;
 };
 
-bool LowerSinCos::filter(const nir_instr *instr) const
+bool
+LowerSinCos::filter(const nir_instr *instr) const
 {
    if (instr->type != nir_instr_type_alu)
       return false;
@@ -95,24 +103,23 @@ bool LowerSinCos::filter(const nir_instr *instr) const
    }
 }
 
-nir_ssa_def *LowerSinCos::lower(nir_instr *instr)
+nir_def *
+LowerSinCos::lower(nir_instr *instr)
 {
    auto alu = nir_instr_as_alu(instr);
 
-   assert(alu->op == nir_op_fsin ||
-          alu->op == nir_op_fcos);
+   assert(alu->op == nir_op_fsin || alu->op == nir_op_fcos);
 
    auto fract = nir_ffract(b,
-                           nir_ffma(b,
-                                    nir_ssa_for_alu_src(b, alu, 0),
-                                    nir_imm_float(b, 0.15915494),
-                                    nir_imm_float(b, 0.5)));
+                           nir_ffma_imm12(b,
+                                          nir_ssa_for_alu_src(b, alu, 0),
+                                          0.15915494,
+                                          0.5));
 
    auto normalized =
-         m_gxf_level != R600 ?
-                           nir_fadd(b, fract, nir_imm_float(b, -0.5)) :
-                           nir_ffma(b, fract, nir_imm_float(b, 2.0f * M_PI),
-                                    nir_imm_float(b, -M_PI));
+      m_gxf_level != R600
+         ? nir_fadd_imm(b, fract, -0.5)
+         : nir_ffma_imm12(b, fract, 2.0f * M_PI, -M_PI);
 
    if (alu->op == nir_op_fsin)
       return nir_fsin_amd(b, normalized);
@@ -120,16 +127,16 @@ nir_ssa_def *LowerSinCos::lower(nir_instr *instr)
       return nir_fcos_amd(b, normalized);
 }
 
-
 } // namespace r600
 
-
-bool r600_nir_lower_pack_unpack_2x16(nir_shader *shader)
+bool
+r600_nir_lower_pack_unpack_2x16(nir_shader *shader)
 {
    return r600::Lower2x16().run(shader);
 }
 
-bool r600_nir_lower_trigen(nir_shader *shader, amd_gfx_level gfx_level)
+bool
+r600_nir_lower_trigen(nir_shader *shader, amd_gfx_level gfx_level)
 {
    return r600::LowerSinCos(gfx_level).run(shader);
 }

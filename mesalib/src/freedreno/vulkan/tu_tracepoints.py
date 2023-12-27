@@ -45,19 +45,22 @@ tu_default_tps = []
 #
 
 def begin_end_tp(name, args=[], tp_struct=None, tp_print=None,
-                 tp_default_enabled=True):
+                 tp_default_enabled=True, marker_tp=True,
+                 queue_tp=True):
     global tu_default_tps
     if tp_default_enabled:
         tu_default_tps.append(name)
     Tracepoint('start_{0}'.format(name),
                toggle_name=name,
-               tp_perfetto='tu_start_{0}'.format(name))
-    Tracepoint('end_{0}'.format(name),
-               toggle_name=name,
                args=args,
                tp_struct=tp_struct,
-               tp_perfetto='tu_end_{0}'.format(name),
-               tp_print=tp_print)
+               tp_perfetto='tu_perfetto_start_{0}'.format(name) if queue_tp else None,
+               tp_print=tp_print if queue_tp else None,
+               tp_markers='tu_cs_trace_start' if marker_tp else None)
+    Tracepoint('end_{0}'.format(name),
+               toggle_name=name,
+               tp_perfetto='tu_perfetto_end_{0}'.format(name),
+               tp_markers='tu_cs_trace_end' if marker_tp else None)
 
 begin_end_tp('cmd_buffer',
     args=[ArgStruct(type='const struct tu_cmd_buffer *', var='cmd')],
@@ -69,7 +72,7 @@ begin_end_tp('render_pass',
           ArgStruct(type='const struct tu_tiling_config *', var='tiling')],
     tp_struct=[Arg(type='uint16_t', name='width',        var='fb->width',                                    c_format='%u'),
                Arg(type='uint16_t', name='height',       var='fb->height',                                   c_format='%u'),
-               Arg(type='uint8_t',  name='MRTs',         var='fb->attachment_count',                         c_format='%u'),
+               Arg(type='uint8_t',  name='attachment_count', var='fb->attachment_count',                     c_format='%u'),
             #    Arg(type='uint8_t',  name='samples',      var='fb->samples',                                  c_format='%u'),
                Arg(type='uint16_t', name='numberOfBins', var='tiling->tile_count.width * tiling->tile_count.height', c_format='%u'),
                Arg(type='uint16_t', name='binWidth',     var='tiling->tile0.width',                                  c_format='%u'),
@@ -119,6 +122,15 @@ begin_end_tp('compute',
           Arg(type='uint16_t', var='num_groups_x',   c_format='%u'),
           Arg(type='uint16_t', var='num_groups_y',   c_format='%u'),
           Arg(type='uint16_t', var='num_groups_z',   c_format='%u')])
+
+
+# Annotations for Cmd(Begin|End)DebugUtilsLabelEXT
+for suffix in ["", "_rp"]:
+    begin_end_tp('cmd_buffer_annotation' + suffix,
+                    args=[ArgStruct(type='unsigned', var='len'),
+                          ArgStruct(type='const char *', var='str'),],
+                    tp_struct=[Arg(type='uint8_t', name='dummy', var='0', c_format='%hhu'),
+                               Arg(type='char', name='str', var='str', c_format='%s', length_arg='len + 1', copy_func='strncpy'),])
 
 utrace_generate(cpath=args.utrace_src,
                 hpath=args.utrace_hdr,

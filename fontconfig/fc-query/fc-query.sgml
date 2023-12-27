@@ -6,13 +6,13 @@
      less'.  A typical entry in a Makefile or Makefile.am is:
 
 manpage.1: manpage.sgml
-	docbook-to-man $< > $@
+        docbook-to-man $< > $@
 
 
-	The docbook-to-man binary is found in the docbook-to-man package.
-	Please remember that if you create the nroff version in one of the
-	debian/rules file targets (such as build), you will need to include
-	docbook-to-man in your Build-Depends control field.
+        The docbook-to-man binary is found in the docbook-to-man package.
+        Please remember that if you create the nroff version in one of the
+        debian/rules file targets (such as build), you will need to include
+        docbook-to-man in your Build-Depends control field.
 
   -->
 
@@ -65,8 +65,8 @@ manpage.1: manpage.sgml
       <arg><option>-Vh</option></arg>
       <sbr>
       <group>
-	<arg><option>-b</option></arg>
-	<arg><option>--ignore-blanks</option></arg>
+        <arg><option>-b</option></arg>
+        <arg><option>--ignore-blanks</option></arg>
       </group>
       <group>
         <arg><option>-i</option> <option><replaceable>index</replaceable></option></arg>
@@ -101,31 +101,31 @@ manpage.1: manpage.sgml
 
     <variablelist>
       <varlistentry>
-	<term><option>-b</option>
-	  <option>--ignore-blanks</option>
-	</term>
-	<listitem>
-	  <para>Ignore blanks to compute languages</para>
-	</listitem>
+        <term><option>-b</option>
+          <option>--ignore-blanks</option>
+        </term>
+        <listitem>
+          <para>Ignore blanks to compute languages</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>-i</option>
           <option>--index</option>
-	  <option><replaceable>index</replaceable></option>
+          <option><replaceable>index</replaceable></option>
         </term>
         <listitem>
           <para>Only query face indexed <replaceable>index</replaceable> of
-	  each file.</para>
+          each file.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>-f</option>
           <option>--format</option>
-	  <option><replaceable>format</replaceable></option>
+          <option><replaceable>format</replaceable></option>
         </term>
         <listitem>
           <para>Format output according to the format specifier
-	  <replaceable>format</replaceable>.</para>
+          <replaceable>format</replaceable>.</para>
         </listitem>
       </varlistentry>
       <varlistentry>

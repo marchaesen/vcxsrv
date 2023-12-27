@@ -38,8 +38,8 @@ struct vk_buffer {
    /** VkBufferCreateInfo::size */
    VkDeviceSize size;
 
-   /** VkBufferCreateInfo::usage */
-   VkBufferUsageFlags usage;
+   /** VkBufferCreateInfo::usage or VkBufferUsageFlags2CreateInfoKHR::usage */
+   VkBufferUsageFlags2KHR usage;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vk_buffer, base, VkBuffer,
                                VK_OBJECT_TYPE_BUFFER);

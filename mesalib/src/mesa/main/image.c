@@ -30,7 +30,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "colormac.h"
 #include "glformats.h"
 #include "image.h"
@@ -338,12 +338,13 @@ _mesa_image_row_stride( const struct gl_pixelstore_attrib *packing,
  * Compute the stride between images in a 3D texture (in bytes) for the given
  * pixel packing parameters and image width, format and type.
  */
-GLint
+intptr_t
 _mesa_image_image_stride( const struct gl_pixelstore_attrib *packing,
                           GLint width, GLint height,
                           GLenum format, GLenum type )
 {
-   GLint bytesPerRow, bytesPerImage, remainder;
+   GLint bytesPerRow, remainder;
+   intptr_t bytesPerImage;
 
    assert(packing);
 
@@ -373,9 +374,9 @@ _mesa_image_image_stride( const struct gl_pixelstore_attrib *packing,
       bytesPerRow += (packing->Alignment - remainder);
 
    if (packing->ImageHeight == 0)
-      bytesPerImage = bytesPerRow * height;
+      bytesPerImage = (intptr_t)bytesPerRow * height;
    else
-      bytesPerImage = bytesPerRow * packing->ImageHeight;
+      bytesPerImage = (intptr_t)bytesPerRow * packing->ImageHeight;
 
    return bytesPerImage;
 }

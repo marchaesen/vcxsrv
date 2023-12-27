@@ -27,7 +27,7 @@
 #ifndef VIEWPORT_H
 #define VIEWPORT_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 

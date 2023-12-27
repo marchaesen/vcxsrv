@@ -79,7 +79,7 @@ Grazvydas Ignotas (1):
 
 -  radv: report timestampPeriod correctly
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 -  anv/blorp: Flush the texture cache in UpdateBuffer
 -  anv/cmd_buffer: Flush the VF cache at the top of all primaries

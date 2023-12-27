@@ -30,7 +30,7 @@
  */
 
 #include <stdio.h>
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "blend.h"
 #include "buffers.h"
@@ -202,6 +202,8 @@ _mesa_free_framebuffer_data(struct gl_framebuffer *fb)
 {
    assert(fb);
    assert(fb->RefCount == 0);
+
+   pipe_resource_reference(&fb->resolve, NULL);
 
    simple_mtx_destroy(&fb->Mutex);
 
@@ -421,15 +423,36 @@ _mesa_update_framebuffer_visual(struct gl_context *ctx,
    /* find first RGB renderbuffer */
    for (unsigned i = 0; i < BUFFER_COUNT; i++) {
       if (fb->Attachment[i].Renderbuffer) {
-         const struct gl_renderbuffer *rb = fb->Attachment[i].Renderbuffer;
+         const struct gl_renderbuffer_attachment *att = &fb->Attachment[i];
+         const struct gl_renderbuffer *rb = att->Renderbuffer;
          const GLenum baseFormat = _mesa_get_format_base_format(rb->Format);
          const mesa_format fmt = rb->Format;
 
          /* Grab samples and sampleBuffers from any attachment point (assuming
           * the framebuffer is complete, we'll get the same answer from all
-          * attachments).
+          * attachments). If using EXT_multisampled_render_to_texture, the
+          * number of samples will be on fb->Attachment[i].NumSamples instead
+          * of the usual rb->NumSamples, but it's still guarantted to be the
+          * same for every attachment.
+          *
+          * From EXT_multisampled_render_to_texture:
+          *
+          *    Also, FBOs cannot combine attachments that have associated
+          *    multisample data specified by the mechanisms described in this
+          *    extension with attachments allocated using the core OpenGL ES
+          *    3.1 mechanisms, such as TexStorage2DMultisample. Add to section
+          *    9.4.2 "Whole Framebuffer Completeness":
+          *
+          *    "* If the value of RENDERBUFFER_SAMPLES is non-zero, all or
+          *       none of the attached renderbuffers have been allocated
+          *       using RenderbufferStorage- MultisampleEXT; if the value of
+          *       TEXTURES_SAMPLES is non-zero, all or none of the attached
+          *       textures have been attached using Framebuffer-
+          *       Texture2DMultisampleEXT.
+          *       { GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE_EXT }"
           */
-         fb->Visual.samples = rb->NumSamples;
+         fb->Visual.samples =
+            att->NumSamples ? att->NumSamples : rb->NumSamples;
 
          if (_mesa_is_legal_color_format(ctx, baseFormat)) {
             fb->Visual.redBits = _mesa_get_format_bits(fmt, GL_RED_BITS);
@@ -805,6 +828,22 @@ _mesa_dest_buffer_exists(struct gl_context *ctx, GLenum format)
    return renderbuffer_exists(ctx, ctx->DrawBuffer, format, GL_FALSE);
 }
 
+extern bool
+_mesa_has_rtt_samples(const struct gl_framebuffer *fb)
+{
+   /* If there are multiple attachments, all of them are guaranteed
+    * to have the same sample count. */
+   if (fb->_ColorReadBufferIndex) {
+      assert(fb->Attachment[fb->_ColorReadBufferIndex].Type != GL_NONE);
+      return fb->Attachment[fb->_ColorReadBufferIndex].NumSamples > 0;
+   } else if (fb->Attachment[BUFFER_DEPTH].Type != GL_NONE) {
+      return fb->Attachment[BUFFER_DEPTH].NumSamples > 0;
+   } else if (fb->Attachment[BUFFER_STENCIL].Type != GL_NONE) {
+      return fb->Attachment[BUFFER_STENCIL].NumSamples > 0;
+   }
+
+   return true;
+}
 
 /**
  * Used to answer the GL_IMPLEMENTATION_COLOR_READ_FORMAT_OES queries (using

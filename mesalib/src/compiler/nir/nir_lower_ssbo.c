@@ -46,35 +46,10 @@ lower_ssbo_op(nir_intrinsic_op op)
    case nir_intrinsic_store_ssbo:
       return nir_intrinsic_store_global;
 
-   case nir_intrinsic_ssbo_atomic_add:
-      return nir_intrinsic_global_atomic_add;
-   case nir_intrinsic_ssbo_atomic_imin:
-      return nir_intrinsic_global_atomic_imin;
-   case nir_intrinsic_ssbo_atomic_umin:
-      return nir_intrinsic_global_atomic_umin;
-   case nir_intrinsic_ssbo_atomic_imax:
-      return nir_intrinsic_global_atomic_imax;
-   case nir_intrinsic_ssbo_atomic_umax:
-      return nir_intrinsic_global_atomic_umax;
-   case nir_intrinsic_ssbo_atomic_and:
-      return nir_intrinsic_global_atomic_and;
-   case nir_intrinsic_ssbo_atomic_or:
-      return nir_intrinsic_global_atomic_or;
-   case nir_intrinsic_ssbo_atomic_xor:
-      return nir_intrinsic_global_atomic_xor;
-   case nir_intrinsic_ssbo_atomic_exchange:
-      return nir_intrinsic_global_atomic_exchange;
-   case nir_intrinsic_ssbo_atomic_comp_swap:
-      return nir_intrinsic_global_atomic_comp_swap;
-
-   case nir_intrinsic_ssbo_atomic_fadd:
-      return nir_intrinsic_global_atomic_fadd;
-   case nir_intrinsic_ssbo_atomic_fmin:
-      return nir_intrinsic_global_atomic_fmin;
-   case nir_intrinsic_ssbo_atomic_fmax:
-      return nir_intrinsic_global_atomic_fmax;
-   case nir_intrinsic_ssbo_atomic_fcomp_swap:
-      return nir_intrinsic_global_atomic_fcomp_swap;
+   case nir_intrinsic_ssbo_atomic:
+      return nir_intrinsic_global_atomic;
+   case nir_intrinsic_ssbo_atomic_swap:
+      return nir_intrinsic_global_atomic_swap;
 
    default:
       unreachable("Invalid SSBO op");
@@ -84,22 +59,22 @@ lower_ssbo_op(nir_intrinsic_op op)
 /* Like SSBO property sysvals, though SSBO index may be indirect. C.f.
  * nir_load_system_value */
 
-static inline nir_ssa_def *
+static inline nir_def *
 nir_load_ssbo_prop(nir_builder *b, nir_intrinsic_op op,
-      nir_src *idx, unsigned bitsize)
+                   nir_src *idx, unsigned bitsize)
 {
    nir_intrinsic_instr *load = nir_intrinsic_instr_create(b->shader, op);
    load->num_components = 1;
-   nir_src_copy(&load->src[0], idx, &load->instr);
-   nir_ssa_dest_init(&load->instr, &load->dest, 1, bitsize, NULL);
+   load->src[0] = nir_src_for_ssa(idx->ssa);
+   nir_def_init(&load->instr, &load->def, 1, bitsize);
    nir_builder_instr_insert(b, &load->instr);
-   return &load->dest.ssa;
+   return &load->def;
 }
 
 #define nir_ssbo_prop(b, prop, index, bitsize) \
    nir_load_ssbo_prop(b, nir_intrinsic_##prop, index, bitsize)
 
-static nir_ssa_def *
+static nir_def *
 lower_ssbo_instr(nir_builder *b, nir_intrinsic_instr *intr)
 {
    nir_intrinsic_op op = lower_ssbo_op(intr->intrinsic);
@@ -113,12 +88,12 @@ lower_ssbo_instr(nir_builder *b, nir_intrinsic_instr *intr)
 
    nir_src index = intr->src[is_store ? 1 : 0];
    nir_src *offset_src = nir_get_io_offset_src(intr);
-   nir_ssa_def *offset = nir_ssa_for_src(b, *offset_src, 1);
+   nir_def *offset = offset_src->ssa;
 
-   nir_ssa_def *address =
+   nir_def *address =
       nir_iadd(b,
-            nir_ssbo_prop(b, load_ssbo_address, &index, 64),
-            nir_u2u64(b, offset));
+               nir_ssbo_prop(b, load_ssbo_address, &index, 64),
+               nir_u2u64(b, offset));
 
    /* Create the replacement intrinsic */
 
@@ -128,28 +103,30 @@ lower_ssbo_instr(nir_builder *b, nir_intrinsic_instr *intr)
    global->num_components = intr->num_components;
    global->src[is_store ? 1 : 0] = nir_src_for_ssa(address);
 
+   if (nir_intrinsic_has_atomic_op(intr))
+      nir_intrinsic_set_atomic_op(global, nir_intrinsic_atomic_op(intr));
+
    if (!is_atomic) {
       nir_intrinsic_set_align_mul(global, nir_intrinsic_align_mul(intr));
       nir_intrinsic_set_align_offset(global, nir_intrinsic_align_offset(intr));
    }
 
    if (is_store) {
-      nir_src_copy(&global->src[0], &intr->src[0], &global->instr);
+      global->src[0] = nir_src_for_ssa(intr->src[0].ssa);
       nir_intrinsic_set_write_mask(global, nir_intrinsic_write_mask(intr));
    } else {
-      nir_ssa_dest_init(&global->instr, &global->dest,
-                        intr->dest.ssa.num_components,
-                        intr->dest.ssa.bit_size, NULL);
+      nir_def_init(&global->instr, &global->def,
+                   intr->def.num_components, intr->def.bit_size);
 
       if (is_atomic) {
-         nir_src_copy(&global->src[1], &intr->src[2], &global->instr);
+         global->src[1] = nir_src_for_ssa(intr->src[2].ssa);
          if (nir_intrinsic_infos[op].num_srcs > 2)
-            nir_src_copy(&global->src[2], &intr->src[3], &global->instr);
+            global->src[2] = nir_src_for_ssa(intr->src[3].ssa);
       }
    }
 
    nir_builder_instr_insert(b, &global->instr);
-   return is_store ? NULL : &global->dest.ssa;
+   return is_store ? NULL : &global->def;
 }
 
 static bool
@@ -163,20 +140,8 @@ should_lower_ssbo_instr(const nir_instr *instr)
    switch (intr->intrinsic) {
    case nir_intrinsic_load_ssbo:
    case nir_intrinsic_store_ssbo:
-   case nir_intrinsic_ssbo_atomic_add:
-   case nir_intrinsic_ssbo_atomic_imin:
-   case nir_intrinsic_ssbo_atomic_umin:
-   case nir_intrinsic_ssbo_atomic_imax:
-   case nir_intrinsic_ssbo_atomic_umax:
-   case nir_intrinsic_ssbo_atomic_and:
-   case nir_intrinsic_ssbo_atomic_or:
-   case nir_intrinsic_ssbo_atomic_xor:
-   case nir_intrinsic_ssbo_atomic_exchange:
-   case nir_intrinsic_ssbo_atomic_comp_swap:
-   case nir_intrinsic_ssbo_atomic_fadd:
-   case nir_intrinsic_ssbo_atomic_fmin:
-   case nir_intrinsic_ssbo_atomic_fmax:
-   case nir_intrinsic_ssbo_atomic_fcomp_swap:
+   case nir_intrinsic_ssbo_atomic:
+   case nir_intrinsic_ssbo_atomic_swap:
       return true;
    default:
       return false;
@@ -190,23 +155,22 @@ nir_lower_ssbo(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      nir_function_impl *impl = function->impl;
-      nir_builder b;
-      nir_builder_init(&b, impl);
+   nir_foreach_function_impl(impl, shader) {
+      nir_builder b = nir_builder_create(impl);
 
       nir_foreach_block(block, impl) {
          nir_foreach_instr_safe(instr, block) {
-            if (!should_lower_ssbo_instr(instr)) continue;
+            if (!should_lower_ssbo_instr(instr))
+               continue;
             progress = true;
             b.cursor = nir_before_instr(instr);
 
             nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-            nir_ssa_def *replace = lower_ssbo_instr(&b, intr);
+            nir_def *replace = lower_ssbo_instr(&b, intr);
 
-            if (replace)  {
-               nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                                     replace);
+            if (replace) {
+               nir_def_rewrite_uses(&intr->def,
+                                    replace);
             }
 
             nir_instr_remove(instr);

@@ -91,7 +91,7 @@ static void raw_closing(Plug *plug, PlugCloseType type, const char *error_msg)
             if (!raw->sent_socket_eof) {
                 if (raw->s)
                     sk_write_eof(raw->s);
-                raw->sent_socket_eof= true;
+                raw->sent_socket_eof = true;
             }
         }
         raw->sent_console_eof = true;
@@ -285,8 +285,9 @@ static void raw_special(Backend *be, SessionSpecialCode code, int arg)
 {
     Raw *raw = container_of(be, Raw, backend);
     if (code == SS_EOF && raw->s) {
-        sk_write_eof(raw->s);
-        raw->sent_socket_eof= true;
+        if (!raw->sent_socket_eof)
+            sk_write_eof(raw->s);
+        raw->sent_socket_eof = true;
         raw_check_close(raw);
     }
 

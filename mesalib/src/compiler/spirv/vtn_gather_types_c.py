@@ -115,7 +115,7 @@ if __name__ == "__main__":
     opcodes = list(find_result_types(spirv_info))
 
     try:
-        with open(args.out, 'w') as f:
+        with open(args.out, 'w', encoding='utf-8') as f:
             f.write(TEMPLATE.render(opcodes=opcodes))
     except Exception:
         # In the even there's an error this imports some helpers from mako

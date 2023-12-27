@@ -50,13 +50,13 @@
 struct two_side_transform_context
 {
    struct tgsi_transform_context base;
-   uint num_temps;
-   uint num_inputs;
-   uint face_input;           /**< index of the FACE input */
-   uint front_color_input[2]; /**< INPUT regs */
-   uint front_color_interp[2];/**< TGSI_INTERPOLATE_x */
-   uint back_color_input[2];  /**< INPUT regs */
-   uint new_colors[2];        /**< TEMP regs */
+   unsigned num_temps;
+   unsigned num_inputs;
+   unsigned face_input;           /**< index of the FACE input */
+   unsigned front_color_input[2]; /**< INPUT regs */
+   enum tgsi_interpolate_mode front_color_interp[2];/**< TGSI_INTERPOLATE_x */
+   unsigned back_color_input[2];  /**< INPUT regs */
+   unsigned new_colors[2];        /**< TEMP regs */
 };
 
 
@@ -100,8 +100,8 @@ emit_prolog(struct tgsi_transform_context *ctx)
    struct two_side_transform_context *ts = two_side_transform_context(ctx);
    struct tgsi_full_declaration decl;
    struct tgsi_full_instruction inst;
-   uint num_colors = 0;
-   uint i;
+   unsigned num_colors = 0;
+   unsigned i;
 
    /* Declare 0, 1 or 2 new BCOLOR inputs */
    for (i = 0; i < 2; i++) {
@@ -174,7 +174,7 @@ xform_inst(struct tgsi_transform_context *ctx,
    struct two_side_transform_context *ts = two_side_transform_context(ctx);
    const struct tgsi_opcode_info *info =
       tgsi_get_opcode_info(inst->Instruction.Opcode);
-   uint i, j;
+   unsigned i, j;
 
    /* Look for src regs which reference the input color and replace
     * them with the temp color.
@@ -200,8 +200,8 @@ struct tgsi_token *
 tgsi_add_two_side(const struct tgsi_token *tokens_in)
 {
    struct two_side_transform_context transform;
-   const uint num_new_tokens = 100; /* should be enough */
-   const uint new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
+   const unsigned num_new_tokens = 100; /* should be enough */
+   const unsigned new_len = tgsi_num_tokens(tokens_in) + num_new_tokens;
 
    /* setup transformation context */
    memset(&transform, 0, sizeof(transform));

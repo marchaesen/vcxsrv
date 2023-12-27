@@ -55,8 +55,8 @@ default xkb_geometry "usa1" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN", -15 }
 	    };
 	};
@@ -71,8 +71,8 @@ default xkb_geometry "usa1" {
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH" }
 	    };
 	};
@@ -186,8 +186,8 @@ xkb_geometry "de" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN" }
 	    };
 	};
@@ -203,7 +203,7 @@ xkb_geometry "de" {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH" },
 		    <LSGT>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH" }
 	    };
 	};

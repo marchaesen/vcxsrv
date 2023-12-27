@@ -1,27 +1,39 @@
+# Keep the tags below under 25-30 chars each, as they end up combined into
+# docker image tags, and docker has a length limit of 128 chars total in tags.
+#
+# If you update a tag and you get an error like this:
+#     cannot parse input: "$image:$tag": invalid reference format
+# check the length of $tag; if it's > 128 chars you need to shorten your tag.
+
 variables:
-   DEBIAN_X86_BUILD_BASE_IMAGE: "debian/x86_build-base"
-   DEBIAN_BASE_TAG: "2022-09-19-kernel"
+   DEBIAN_X86_64_BUILD_BASE_IMAGE: "debian/x86_64_build-base"
+   DEBIAN_BASE_TAG: "2023-11-18-deqp-runner"
 
-   DEBIAN_X86_BUILD_IMAGE_PATH: "debian/x86_build"
-   DEBIAN_BUILD_TAG: "2022-09-14-add-jq"
+   DEBIAN_X86_64_BUILD_IMAGE_PATH: "debian/x86_64_build"
+   DEBIAN_BUILD_TAG: "2023-12-05-directx-headers-dep-611"
 
-   DEBIAN_X86_BUILD_MINGW_IMAGE_PATH: "debian/x86_build-mingw"
-   DEBIAN_BUILD_MINGW_TAG: "2022-08-25-shellcheck"
+   DEBIAN_X86_64_TEST_BASE_IMAGE: "debian/x86_64_test-base"
 
-   DEBIAN_X86_TEST_BASE_IMAGE: "debian/x86_test-base"
+   DEBIAN_X86_64_TEST_IMAGE_GL_PATH: "debian/x86_64_test-gl"
+   DEBIAN_X86_64_TEST_IMAGE_VK_PATH: "debian/x86_64_test-vk"
+   DEBIAN_X86_64_TEST_ANDROID_IMAGE_PATH: "debian/x86_64_test-android"
 
-   DEBIAN_X86_TEST_IMAGE_PATH: "debian/x86_test-gl"
-   DEBIAN_X86_TEST_GL_TAG: "2022-09-14-add-jq"
-   DEBIAN_X86_TEST_VK_TAG: "2022-09-14-add-jq"
+   DEBIAN_X86_64_TEST_ANDROID_TAG: "2023-12-22-vkcts"
+   DEBIAN_X86_64_TEST_GL_TAG: "2023-12-22-vkcts"
+   DEBIAN_X86_64_TEST_VK_TAG: "2023-12-22-vkcts"
 
-   FEDORA_X86_BUILD_TAG: "2022-08-25-shellcheck"
-   KERNEL_ROOTFS_TAG: "2022-09-19-kernel"
+   ALPINE_X86_64_BUILD_TAG: "2023-10-30-ci-improv"
+   ALPINE_X86_64_LAVA_SSH_TAG: "2023-06-26-first-version"
+   FEDORA_X86_64_BUILD_TAG: "2023-12-11-meson-bump"
+   KERNEL_ROOTFS_TAG: "2023-12-22-vkcts"
+   KERNEL_TAG: "v6.6.4-for-mesa-ci-e4f4c500f7fb"
+   KERNEL_REPO: "gfx-ci/linux"
 
-   WINDOWS_X64_VS_PATH: "windows/x64_vs"
-   WINDOWS_X64_VS_TAG: "2022-08-17-bump"
+   WINDOWS_X64_MSVC_PATH: "windows/x86_64_msvc"
+   WINDOWS_X64_MSVC_TAG: "2023-12-22-msvc"
 
-   WINDOWS_X64_BUILD_PATH: "windows/x64_build"
-   WINDOWS_X64_BUILD_TAG: "2022-08-17-bump"
+   WINDOWS_X64_BUILD_PATH: "windows/x86_64_build"
+   WINDOWS_X64_BUILD_TAG: "2023-12-22-msvc"
 
-   WINDOWS_X64_TEST_PATH: "windows/x64_test"
-   WINDOWS_X64_TEST_TAG: "2022-08-17-bump"
+   WINDOWS_X64_TEST_PATH: "windows/x86_64_test"
+   WINDOWS_X64_TEST_TAG: "2023-12-22-msvc"

@@ -111,6 +111,8 @@ print_physReg(PhysReg reg, unsigned bytes, FILE* output, unsigned flags)
       fprintf(output, "scc");
    } else if (reg == 126) {
       fprintf(output, "exec");
+   } else if (reg == 125) {
+      fprintf(output, "null");
    } else {
       bool is_vgpr = reg / 256;
       unsigned r = reg % 256;
@@ -213,8 +215,8 @@ print_storage(storage_class storage, FILE* output)
    int printed = 0;
    if (storage & storage_buffer)
       printed += fprintf(output, "%sbuffer", printed ? "," : "");
-   if (storage & storage_atomic_counter)
-      printed += fprintf(output, "%satomic_counter", printed ? "," : "");
+   if (storage & storage_gds)
+      printed += fprintf(output, "%sgds", printed ? "," : "");
    if (storage & storage_image)
       printed += fprintf(output, "%simage", printed ? "," : "");
    if (storage & storage_shared)
@@ -266,13 +268,16 @@ print_scope(sync_scope scope, FILE* output, const char* prefix = "scope")
 static void
 print_sync(memory_sync_info sync, FILE* output)
 {
-   print_storage(sync.storage, output);
-   print_semantics(sync.semantics, output);
-   print_scope(sync.scope, output);
+   if (sync.storage)
+      print_storage(sync.storage, output);
+   if (sync.semantics)
+      print_semantics(sync.semantics, output);
+   if (sync.scope != scope_invocation)
+      print_scope(sync.scope, output);
 }
 
 static void
-print_instr_format_specific(const Instruction* instr, FILE* output)
+print_instr_format_specific(enum amd_gfx_level gfx_level, const Instruction* instr, FILE* output)
 {
    switch (instr->format) {
    case Format::SOPK: {
@@ -284,15 +289,62 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
       uint16_t imm = instr->sopp().imm;
       switch (instr->opcode) {
       case aco_opcode::s_waitcnt: {
-         /* we usually should check the gfx level for vmcnt/lgkm, but
-          * insert_waitcnt() should fill it in regardless. */
-         unsigned vmcnt = (imm & 0xF) | ((imm & (0x3 << 14)) >> 10);
-         if (vmcnt != 63)
-            fprintf(output, " vmcnt(%d)", vmcnt);
-         if (((imm >> 4) & 0x7) < 0x7)
-            fprintf(output, " expcnt(%d)", (imm >> 4) & 0x7);
-         if (((imm >> 8) & 0x3F) < 0x3F)
-            fprintf(output, " lgkmcnt(%d)", (imm >> 8) & 0x3F);
+         wait_imm unpacked(gfx_level, imm);
+         if (unpacked.vm != wait_imm::unset_counter)
+            fprintf(output, " vmcnt(%d)", unpacked.vm);
+         if (unpacked.exp != wait_imm::unset_counter)
+            fprintf(output, " expcnt(%d)", unpacked.exp);
+         if (unpacked.lgkm != wait_imm::unset_counter)
+            fprintf(output, " lgkmcnt(%d)", unpacked.lgkm);
+         break;
+      }
+      case aco_opcode::s_waitcnt_depctr: {
+         unsigned va_vdst = (imm >> 12) & 0xf;
+         unsigned va_sdst = (imm >> 9) & 0x7;
+         unsigned va_ssrc = (imm >> 8) & 0x1;
+         unsigned hold_cnt = (imm >> 7) & 0x1;
+         unsigned vm_vsrc = (imm >> 2) & 0x7;
+         unsigned va_vcc = (imm >> 1) & 0x1;
+         unsigned sa_sdst = imm & 0x1;
+         if (va_vdst != 0xf)
+            fprintf(output, " va_vdst(%d)", va_vdst);
+         if (va_sdst != 0x7)
+            fprintf(output, " va_sdst(%d)", va_sdst);
+         if (va_ssrc != 0x1)
+            fprintf(output, " va_ssrc(%d)", va_ssrc);
+         if (hold_cnt != 0x1)
+            fprintf(output, " holt_cnt(%d)", hold_cnt);
+         if (vm_vsrc != 0x7)
+            fprintf(output, " vm_vsrc(%d)", vm_vsrc);
+         if (va_vcc != 0x1)
+            fprintf(output, " va_vcc(%d)", va_vcc);
+         if (sa_sdst != 0x1)
+            fprintf(output, " sa_sdst(%d)", sa_sdst);
+         break;
+      }
+      case aco_opcode::s_delay_alu: {
+         unsigned delay[2] = {imm & 0xfu, (imm >> 7) & 0xfu};
+         unsigned skip = (imm >> 4) & 0x3;
+         for (unsigned i = 0; i < 2; i++) {
+            if (i == 1 && skip) {
+               if (skip == 1)
+                  fprintf(output, " next");
+               else
+                  fprintf(output, " skip_%u", skip - 1);
+            }
+
+            alu_delay_wait wait = (alu_delay_wait)delay[i];
+            if (wait >= alu_delay_wait::VALU_DEP_1 && wait <= alu_delay_wait::VALU_DEP_4)
+               fprintf(output, " valu_dep_%u", delay[i]);
+            else if (wait >= alu_delay_wait::TRANS32_DEP_1 && wait <= alu_delay_wait::TRANS32_DEP_3)
+               fprintf(output, " trans32_dep_%u",
+                       delay[i] - (unsigned)alu_delay_wait::TRANS32_DEP_1 + 1);
+            else if (wait == alu_delay_wait::FMA_ACCUM_CYCLE_1)
+               fprintf(output, " fma_accum_cycle_1");
+            else if (wait >= alu_delay_wait::SALU_CYCLE_1 && wait <= alu_delay_wait::SALU_CYCLE_3)
+               fprintf(output, " salu_cycle_%u",
+                       delay[i] - (unsigned)alu_delay_wait::SALU_CYCLE_1 + 1);
+         }
          break;
       }
       case aco_opcode::s_endpgm:
@@ -307,15 +359,23 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
       }
       case aco_opcode::s_sendmsg: {
          unsigned id = imm & sendmsg_id_mask;
+         static_assert(sendmsg_gs == sendmsg_hs_tessfactor);
+         static_assert(sendmsg_gs_done == sendmsg_dealloc_vgprs);
          switch (id) {
          case sendmsg_none: fprintf(output, " sendmsg(MSG_NONE)"); break;
-         case _sendmsg_gs:
-            fprintf(output, " sendmsg(gs%s%s, %u)", imm & 0x10 ? ", cut" : "",
-                    imm & 0x20 ? ", emit" : "", imm >> 8);
+         case sendmsg_gs:
+            if (gfx_level >= GFX11)
+               fprintf(output, " sendmsg(hs_tessfactor)");
+            else
+               fprintf(output, " sendmsg(gs%s%s, %u)", imm & 0x10 ? ", cut" : "",
+                       imm & 0x20 ? ", emit" : "", imm >> 8);
             break;
-         case _sendmsg_gs_done:
-            fprintf(output, " sendmsg(gs_done%s%s, %u)", imm & 0x10 ? ", cut" : "",
-                    imm & 0x20 ? ", emit" : "", imm >> 8);
+         case sendmsg_gs_done:
+            if (gfx_level >= GFX11)
+               fprintf(output, " sendmsg(dealloc_vgprs)");
+            else
+               fprintf(output, " sendmsg(gs_done%s%s, %u)", imm & 0x10 ? ", cut" : "",
+                       imm & 0x20 ? ", emit" : "", imm >> 8);
             break;
          case sendmsg_save_wave: fprintf(output, " sendmsg(save_wave)"); break;
          case sendmsg_stall_wave_gen: fprintf(output, " sendmsg(stall_wave_gen)"); break;
@@ -323,7 +383,15 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
          case sendmsg_ordered_ps_done: fprintf(output, " sendmsg(ordered_ps_done)"); break;
          case sendmsg_early_prim_dealloc: fprintf(output, " sendmsg(early_prim_dealloc)"); break;
          case sendmsg_gs_alloc_req: fprintf(output, " sendmsg(gs_alloc_req)"); break;
+         case sendmsg_get_doorbell: fprintf(output, " sendmsg(get_doorbell)"); break;
+         case sendmsg_get_ddid: fprintf(output, " sendmsg(get_ddid)"); break;
+         default: fprintf(output, " imm:%u", imm);
          }
+         break;
+      }
+      case aco_opcode::s_wait_event: {
+         if (!(imm & wait_event_imm_dont_wait_export_ready))
+            fprintf(output, " export_ready");
          break;
       }
       default: {
@@ -334,6 +402,23 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
       }
       if (instr->sopp().block != -1)
          fprintf(output, " block:BB%d", instr->sopp().block);
+      break;
+   }
+   case Format::SOP1: {
+      if (instr->opcode == aco_opcode::s_sendmsg_rtn_b32 ||
+          instr->opcode == aco_opcode::s_sendmsg_rtn_b64) {
+         unsigned id = instr->operands[0].constantValue();
+         switch (id) {
+         case sendmsg_rtn_get_doorbell: fprintf(output, " sendmsg(rtn_get_doorbell)"); break;
+         case sendmsg_rtn_get_ddid: fprintf(output, " sendmsg(rtn_get_ddid)"); break;
+         case sendmsg_rtn_get_tma: fprintf(output, " sendmsg(rtn_get_tma)"); break;
+         case sendmsg_rtn_get_realtime: fprintf(output, " sendmsg(rtn_get_realtime)"); break;
+         case sendmsg_rtn_save_wave: fprintf(output, " sendmsg(rtn_save_wave)"); break;
+         case sendmsg_rtn_get_tba: fprintf(output, " sendmsg(rtn_get_tba)"); break;
+         default: break;
+         }
+         break;
+      }
       break;
    }
    case Format::SMEM: {
@@ -347,8 +432,14 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
       print_sync(smem.sync, output);
       break;
    }
+   case Format::VINTERP_INREG: {
+      const VINTERP_inreg_instruction& vinterp = instr->vinterp_inreg();
+      if (vinterp.wait_exp != 7)
+         fprintf(output, " wait_exp:%u", vinterp.wait_exp);
+      break;
+   }
    case Format::VINTRP: {
-      const Interp_instruction& vintrp = instr->vintrp();
+      const VINTRP_instruction& vintrp = instr->vintrp();
       fprintf(output, " attr%d.%c", vintrp.attribute, "xyzw"[vintrp.component]);
       break;
    }
@@ -361,6 +452,15 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
       if (ds.gds)
          fprintf(output, " gds");
       print_sync(ds.sync, output);
+      break;
+   }
+   case Format::LDSDIR: {
+      const LDSDIR_instruction& ldsdir = instr->ldsdir();
+      if (instr->opcode == aco_opcode::lds_param_load)
+         fprintf(output, " attr%u.%c", ldsdir.attr, "xyzw"[ldsdir.attr_chan]);
+      if (ldsdir.wait_vdst != 15)
+         fprintf(output, " wait_vdst:%u", ldsdir.wait_vdst);
+      print_sync(ldsdir.sync, output);
       break;
    }
    case Format::MUBUF: {
@@ -421,7 +521,7 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
       if (mimg.lwe)
          fprintf(output, " lwe");
       if (mimg.r128)
-        fprintf(output, " r128");
+         fprintf(output, " r128");
       if (mimg.a16)
          fprintf(output, " a16");
       if (mimg.d16)
@@ -550,27 +650,24 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
       print_sync(mtbuf.sync, output);
       break;
    }
-   case Format::VOP3P: {
-      if (instr->vop3p().clamp)
-         fprintf(output, " clamp");
-      break;
-   }
    default: {
       break;
    }
    }
-   if (instr->isVOP3()) {
-      const VOP3_instruction& vop3 = instr->vop3();
-      switch (vop3.omod) {
+   if (instr->isVALU()) {
+      const VALU_instruction& valu = instr->valu();
+      switch (valu.omod) {
       case 1: fprintf(output, " *2"); break;
       case 2: fprintf(output, " *4"); break;
       case 3: fprintf(output, " *0.5"); break;
       }
-      if (vop3.clamp)
+      if (valu.clamp)
          fprintf(output, " clamp");
-      if (vop3.opsel & (1 << 3))
+      if (valu.opsel & (1 << 3))
          fprintf(output, " opsel_hi");
-   } else if (instr->isDPP16()) {
+   }
+
+   if (instr->isDPP16()) {
       const DPP16_instruction& dpp = instr->dpp16();
       if (dpp.dpp_ctrl <= 0xff) {
          fprintf(output, " quad_perm:[%d,%d,%d,%d]", dpp.dpp_ctrl & 0x3, (dpp.dpp_ctrl >> 2) & 0x3,
@@ -597,6 +694,10 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
          fprintf(output, " row_bcast:15");
       } else if (dpp.dpp_ctrl == dpp_row_bcast31) {
          fprintf(output, " row_bcast:31");
+      } else if (dpp.dpp_ctrl >= dpp_row_share(0) && dpp.dpp_ctrl <= dpp_row_share(15)) {
+         fprintf(output, " row_share:%d", dpp.dpp_ctrl & 0xf);
+      } else if (dpp.dpp_ctrl >= dpp_row_xmask(0) && dpp.dpp_ctrl <= dpp_row_xmask(15)) {
+         fprintf(output, " row_xmask:%d", dpp.dpp_ctrl & 0xf);
       } else {
          fprintf(output, " dpp_ctrl:0x%.3x", dpp.dpp_ctrl);
       }
@@ -606,20 +707,18 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
          fprintf(output, " bank_mask:0x%.1x", dpp.bank_mask);
       if (dpp.bound_ctrl)
          fprintf(output, " bound_ctrl:1");
+      if (dpp.fetch_inactive)
+         fprintf(output, " fi");
    } else if (instr->isDPP8()) {
       const DPP8_instruction& dpp = instr->dpp8();
-      fprintf(output, " dpp8:[%d,%d,%d,%d,%d,%d,%d,%d]", dpp.lane_sel[0], dpp.lane_sel[1],
-              dpp.lane_sel[2], dpp.lane_sel[3], dpp.lane_sel[4], dpp.lane_sel[5], dpp.lane_sel[6],
-              dpp.lane_sel[7]);
+      fprintf(output, " dpp8:[");
+      for (unsigned i = 0; i < 8; i++)
+         fprintf(output, "%s%u", i ? "," : "", (dpp.lane_sel >> (i * 3)) & 0x8);
+      fprintf(output, "]");
+      if (dpp.fetch_inactive)
+         fprintf(output, " fi");
    } else if (instr->isSDWA()) {
       const SDWA_instruction& sdwa = instr->sdwa();
-      switch (sdwa.omod) {
-      case 1: fprintf(output, " *2"); break;
-      case 2: fprintf(output, " *4"); break;
-      case 3: fprintf(output, " *0.5"); break;
-      }
-      if (sdwa.clamp)
-         fprintf(output, " clamp");
       if (!instr->isVOPC()) {
          char sext = sdwa.dst_sel.sign_extend() ? 's' : 'u';
          unsigned offset = sdwa.dst_sel.offset();
@@ -650,7 +749,8 @@ print_instr_format_specific(const Instruction* instr, FILE* output)
 }
 
 void
-aco_print_instr(const Instruction* instr, FILE* output, unsigned flags)
+aco_print_instr(enum amd_gfx_level gfx_level, const Instruction* instr, FILE* output,
+                unsigned flags)
 {
    if (!instr->definitions.empty()) {
       for (unsigned i = 0; i < instr->definitions.size(); ++i) {
@@ -676,34 +776,20 @@ aco_print_instr(const Instruction* instr, FILE* output, unsigned flags)
       bool is_mad_mix = instr->opcode == aco_opcode::v_fma_mix_f32 ||
                         instr->opcode == aco_opcode::v_fma_mixlo_f16 ||
                         instr->opcode == aco_opcode::v_fma_mixhi_f16;
-      if (instr->isVOP3()) {
-         const VOP3_instruction& vop3 = instr->vop3();
+      if (instr->isVALU() && !instr->isVOP3P()) {
+         const VALU_instruction& valu = instr->valu();
          for (unsigned i = 0; i < MIN2(num_operands, 3); ++i) {
-            abs[i] = vop3.abs[i];
-            neg[i] = vop3.neg[i];
-            opsel[i] = vop3.opsel & (1 << i);
-         }
-      } else if (instr->isDPP16()) {
-         const DPP16_instruction& dpp = instr->dpp16();
-         for (unsigned i = 0; i < MIN2(num_operands, 2); ++i) {
-            abs[i] = dpp.abs[i];
-            neg[i] = dpp.neg[i];
-            opsel[i] = false;
-         }
-      } else if (instr->isSDWA()) {
-         const SDWA_instruction& sdwa = instr->sdwa();
-         for (unsigned i = 0; i < MIN2(num_operands, 2); ++i) {
-            abs[i] = sdwa.abs[i];
-            neg[i] = sdwa.neg[i];
-            opsel[i] = false;
+            abs[i] = valu.abs[i];
+            neg[i] = valu.neg[i];
+            opsel[i] = valu.opsel[i];
          }
       } else if (instr->isVOP3P() && is_mad_mix) {
-         const VOP3P_instruction& vop3p = instr->vop3p();
+         const VALU_instruction& vop3p = instr->valu();
          for (unsigned i = 0; i < MIN2(num_operands, 3); ++i) {
             abs[i] = vop3p.neg_hi[i];
             neg[i] = vop3p.neg_lo[i];
-            f2f32[i] = vop3p.opsel_hi & (1 << i);
-            opsel[i] = f2f32[i] && (vop3p.opsel_lo & (1 << i));
+            f2f32[i] = vop3p.opsel_hi[i];
+            opsel[i] = f2f32[i] && vop3p.opsel_lo[i];
          }
       }
       for (unsigned i = 0; i < num_operands; ++i) {
@@ -727,10 +813,9 @@ aco_print_instr(const Instruction* instr, FILE* output, unsigned flags)
             fprintf(output, "|");
 
          if (instr->isVOP3P() && !is_mad_mix) {
-            const VOP3P_instruction& vop3 = instr->vop3p();
-            if ((vop3.opsel_lo & (1 << i)) || !(vop3.opsel_hi & (1 << i))) {
-               fprintf(output, ".%c%c", vop3.opsel_lo & (1 << i) ? 'y' : 'x',
-                       vop3.opsel_hi & (1 << i) ? 'y' : 'x');
+            const VALU_instruction& vop3 = instr->valu();
+            if (vop3.opsel_lo[i] || !vop3.opsel_hi[i]) {
+               fprintf(output, ".%c%c", vop3.opsel_lo[i] ? 'y' : 'x', vop3.opsel_hi[i] ? 'y' : 'x');
             }
             if (vop3.neg_lo[i] && vop3.neg_hi[i])
                fprintf(output, "*[-1,-1]");
@@ -741,7 +826,7 @@ aco_print_instr(const Instruction* instr, FILE* output, unsigned flags)
          }
       }
    }
-   print_instr_format_specific(instr, output);
+   print_instr_format_specific(gfx_level, instr, output);
 }
 
 static void
@@ -771,63 +856,56 @@ print_block_kind(uint16_t kind, FILE* output)
       fprintf(output, "invert, ");
    if (kind & block_kind_uses_discard)
       fprintf(output, "discard, ");
-   if (kind & block_kind_needs_lowering)
-      fprintf(output, "needs_lowering, ");
+   if (kind & block_kind_resume)
+      fprintf(output, "resume, ");
    if (kind & block_kind_export_end)
       fprintf(output, "export_end, ");
+   if (kind & block_kind_end_with_regs)
+      fprintf(output, "end_with_regs, ");
 }
 
 static void
 print_stage(Stage stage, FILE* output)
 {
-   fprintf(output, "ACO shader stage: ");
+   fprintf(output, "ACO shader stage: SW (");
 
-   if (stage == compute_cs)
-      fprintf(output, "compute_cs");
-   else if (stage == fragment_fs)
-      fprintf(output, "fragment_fs");
-   else if (stage == gs_copy_vs)
-      fprintf(output, "gs_copy_vs");
-   else if (stage == vertex_ls)
-      fprintf(output, "vertex_ls");
-   else if (stage == vertex_es)
-      fprintf(output, "vertex_es");
-   else if (stage == vertex_vs)
-      fprintf(output, "vertex_vs");
-   else if (stage == tess_control_hs)
-      fprintf(output, "tess_control_hs");
-   else if (stage == vertex_tess_control_hs)
-      fprintf(output, "vertex_tess_control_hs");
-   else if (stage == tess_eval_es)
-      fprintf(output, "tess_eval_es");
-   else if (stage == tess_eval_vs)
-      fprintf(output, "tess_eval_vs");
-   else if (stage == geometry_gs)
-      fprintf(output, "geometry_gs");
-   else if (stage == vertex_geometry_gs)
-      fprintf(output, "vertex_geometry_gs");
-   else if (stage == tess_eval_geometry_gs)
-      fprintf(output, "tess_eval_geometry_gs");
-   else if (stage == vertex_ngg)
-      fprintf(output, "vertex_ngg");
-   else if (stage == tess_eval_ngg)
-      fprintf(output, "tess_eval_ngg");
-   else if (stage == vertex_geometry_ngg)
-      fprintf(output, "vertex_geometry_ngg");
-   else if (stage == tess_eval_geometry_ngg)
-      fprintf(output, "tess_eval_geometry_ngg");
-   else if (stage == mesh_ngg)
-      fprintf(output, "mesh_ngg");
-   else if (stage == task_cs)
-      fprintf(output, "task_cs");
-   else
-      fprintf(output, "unknown");
+   u_foreach_bit (s, (uint32_t)stage.sw) {
+      switch ((SWStage)(1 << s)) {
+      case SWStage::VS: fprintf(output, "VS"); break;
+      case SWStage::GS: fprintf(output, "GS"); break;
+      case SWStage::TCS: fprintf(output, "TCS"); break;
+      case SWStage::TES: fprintf(output, "TES"); break;
+      case SWStage::FS: fprintf(output, "FS"); break;
+      case SWStage::CS: fprintf(output, "CS"); break;
+      case SWStage::TS: fprintf(output, "TS"); break;
+      case SWStage::MS: fprintf(output, "MS"); break;
+      case SWStage::RT: fprintf(output, "RT"); break;
+      default: unreachable("invalid SW stage");
+      }
+      if (stage.num_sw_stages() > 1)
+         fprintf(output, "+");
+   }
 
-   fprintf(output, "\n");
+   fprintf(output, "), HW (");
+
+   switch (stage.hw) {
+   case AC_HW_LOCAL_SHADER: fprintf(output, "LOCAL_SHADER"); break;
+   case AC_HW_HULL_SHADER: fprintf(output, "HULL_SHADER"); break;
+   case AC_HW_EXPORT_SHADER: fprintf(output, "EXPORT_SHADER"); break;
+   case AC_HW_LEGACY_GEOMETRY_SHADER: fprintf(output, "LEGACY_GEOMETRY_SHADER"); break;
+   case AC_HW_VERTEX_SHADER: fprintf(output, "VERTEX_SHADER"); break;
+   case AC_HW_NEXT_GEN_GEOMETRY_SHADER: fprintf(output, "NEXT_GEN_GEOMETRY_SHADER"); break;
+   case AC_HW_PIXEL_SHADER: fprintf(output, "PIXEL_SHADER"); break;
+   case AC_HW_COMPUTE_SHADER: fprintf(output, "COMPUTE_SHADER"); break;
+   default: unreachable("invalid HW stage");
+   }
+
+   fprintf(output, ")\n");
 }
 
 void
-aco_print_block(const Block* block, FILE* output, unsigned flags, const live& live_vars)
+aco_print_block(enum amd_gfx_level gfx_level, const Block* block, FILE* output, unsigned flags,
+                const live& live_vars)
 {
    fprintf(output, "BB%d\n", block->index);
    fprintf(output, "/* logical preds: ");
@@ -860,7 +938,7 @@ aco_print_block(const Block* block, FILE* output, unsigned flags, const live& li
       if (flags & print_perf_info)
          fprintf(output, "(%3u clk)   ", instr->pass_flags);
 
-      aco_print_instr(instr.get(), output, flags);
+      aco_print_instr(gfx_level, instr.get(), output, flags);
       fprintf(output, "\n");
       index++;
    }
@@ -881,7 +959,7 @@ aco_print_program(const Program* program, FILE* output, const live& live_vars, u
    print_stage(program->stage, output);
 
    for (Block const& block : program->blocks)
-      aco_print_block(&block, output, flags, live_vars);
+      aco_print_block(program->gfx_level, &block, output, flags, live_vars);
 
    if (program->constant_data.size()) {
       fprintf(output, "\n/* constant data */\n");

@@ -35,6 +35,7 @@ vk_descriptor_set_layout_init(struct vk_device *device,
                        VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT);
 
    layout->ref_cnt = 1;
+   layout->destroy = vk_descriptor_set_layout_destroy;
 }
 
 void *
@@ -71,6 +72,13 @@ vk_descriptor_set_layout_multizalloc(struct vk_device *device,
    vk_descriptor_set_layout_init(device, layout);
 
    return layout;
+}
+
+void
+vk_descriptor_set_layout_destroy(struct vk_device *device,
+                                 struct vk_descriptor_set_layout *layout)
+{
+   vk_object_free(device, NULL, layout);
 }
 
 VKAPI_ATTR void VKAPI_CALL

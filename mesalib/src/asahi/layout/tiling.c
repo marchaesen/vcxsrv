@@ -1,32 +1,14 @@
 /*
- * Copyright (C) 2021 Alyssa Rosenzweig <alyssa@rosenzweig.io>
- * Copyright (c) 2019 Collabora, Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright 2021 Alyssa Rosenzweig
+ * Copyright 2019 Collabora, Ltd.
+ * SPDX-License-Identifier: MIT
  */
 
-#include <stdio.h>
 #include <assert.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "util/macros.h"
 #include "layout.h"
 
@@ -55,11 +37,11 @@
  * applying the two's complement identity, we are left with (X - mask) & mask
  */
 
-#define MOD_POT(x, y) (x) & ((y) - 1)
+#define MOD_POT(x, y) (x) & ((y)-1)
 
 typedef struct {
-  uint64_t lo;
-  uint64_t hi;
+   uint64_t lo;
+   uint64_t hi;
 } __attribute__((packed)) ail_uint128_t;
 
 static uint32_t
@@ -67,9 +49,8 @@ ail_space_bits(unsigned x)
 {
    assert(x < 128 && "offset must be inside the tile");
 
-   return ((x & 1) << 0) | ((x & 2) << 1) | ((x & 4) << 2) |
-          ((x & 8) << 3) | ((x & 16) << 4) | ((x & 32) << 5) |
-          ((x & 64) << 6);
+   return ((x & 1) << 0) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) |
+          ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6);
 }
 
 /*
@@ -85,79 +66,84 @@ ail_space_mask(unsigned x)
    return MOD_POT(0x55555555, x * x);
 }
 
-#define TILED_UNALIGNED_TYPE(element_t, is_store) { \
-   enum pipe_format format = tiled_layout->format; \
-   unsigned linear_pitch_el = linear_pitch_B / blocksize_B; \
-   unsigned width_el = util_format_get_nblocksx(format, width_px); \
-   unsigned sx_el = util_format_get_nblocksx(format, sx_px); \
-   unsigned sy_el = util_format_get_nblocksy(format, sy_px); \
-   unsigned swidth_el = util_format_get_nblocksx(format, swidth_px); \
-   unsigned sheight_el = util_format_get_nblocksy(format, sheight_px); \
-   unsigned sx_end_el = sx_el + swidth_el; \
-   unsigned sy_end_el = sy_el + sheight_el; \
-   \
-   struct ail_tile tile_size = tiled_layout->tilesize_el[level]; \
-   unsigned tile_area_el = tile_size.width_el * tile_size.height_el; \
-	unsigned tiles_per_row = DIV_ROUND_UP(width_el, tile_size.width_el); \
-	unsigned y_offs_el = ail_space_bits(MOD_POT(sy_el, tile_size.height_el)) << 1; \
-	unsigned x_offs_start_el = ail_space_bits(MOD_POT(sx_el, tile_size.width_el)); \
-   unsigned space_mask_x = ail_space_mask(tile_size.width_el); \
-   unsigned space_mask_y = ail_space_mask(tile_size.height_el) << 1; \
-   unsigned log2_tile_width_el = util_logbase2(tile_size.width_el); \
-   unsigned log2_tile_height_el = util_logbase2(tile_size.height_el); \
-\
-   element_t *linear = _linear; \
-   element_t *tiled = _tiled; \
-\
-	for (unsigned y_el = sy_el; y_el < sy_end_el; ++y_el) {\
-		unsigned y_rowtile = y_el >> log2_tile_height_el; \
-		unsigned y_tile = y_rowtile * tiles_per_row;\
-		unsigned x_offs_el = x_offs_start_el;\
-\
-		element_t *linear_row = linear;\
-		\
-		for (unsigned x_el = sx_el; x_el < sx_end_el; ++x_el) {\
-			unsigned tile_idx = (y_tile + (x_el >> log2_tile_width_el));\
-			unsigned tile_offset_el = tile_idx * tile_area_el;\
-\
-			element_t *ptiled = &tiled[tile_offset_el + y_offs_el + x_offs_el];\
-			element_t *plinear = (linear_row++);\
-			element_t *outp = (element_t *) (is_store ? ptiled : plinear); \
-			element_t *inp = (element_t *) (is_store ? plinear : ptiled); \
-			*outp = *inp;\
-			x_offs_el = (x_offs_el - space_mask_x) & space_mask_x;\
-		}\
-\
-		y_offs_el = (y_offs_el - space_mask_y) & space_mask_y;\
-		linear += linear_pitch_el;\
-	}\
-}
+#define TILED_UNALIGNED_TYPE(element_t, is_store)                              \
+   {                                                                           \
+      enum pipe_format format = tiled_layout->format;                          \
+      unsigned linear_pitch_el = linear_pitch_B / blocksize_B;                 \
+      unsigned stride_el = tiled_layout->stride_el[level];                     \
+      unsigned sx_el = util_format_get_nblocksx(format, sx_px);                \
+      unsigned sy_el = util_format_get_nblocksy(format, sy_px);                \
+      unsigned swidth_el = util_format_get_nblocksx(format, swidth_px);        \
+      unsigned sheight_el = util_format_get_nblocksy(format, sheight_px);      \
+      unsigned sx_end_el = sx_el + swidth_el;                                  \
+      unsigned sy_end_el = sy_el + sheight_el;                                 \
+                                                                               \
+      struct ail_tile tile_size = tiled_layout->tilesize_el[level];            \
+      unsigned tile_area_el = tile_size.width_el * tile_size.height_el;        \
+      unsigned tiles_per_row = DIV_ROUND_UP(stride_el, tile_size.width_el);    \
+      unsigned y_offs_el = ail_space_bits(MOD_POT(sy_el, tile_size.height_el)) \
+                           << 1;                                               \
+      unsigned x_offs_start_el =                                               \
+         ail_space_bits(MOD_POT(sx_el, tile_size.width_el));                   \
+      unsigned space_mask_x = ail_space_mask(tile_size.width_el);              \
+      unsigned space_mask_y = ail_space_mask(tile_size.height_el) << 1;        \
+      unsigned log2_tile_width_el = util_logbase2(tile_size.width_el);         \
+      unsigned log2_tile_height_el = util_logbase2(tile_size.height_el);       \
+                                                                               \
+      element_t *linear = _linear;                                             \
+      element_t *tiled = _tiled;                                               \
+                                                                               \
+      for (unsigned y_el = sy_el; y_el < sy_end_el; ++y_el) {                  \
+         unsigned y_rowtile = y_el >> log2_tile_height_el;                     \
+         unsigned y_tile = y_rowtile * tiles_per_row;                          \
+         unsigned x_offs_el = x_offs_start_el;                                 \
+                                                                               \
+         element_t *linear_row = linear;                                       \
+                                                                               \
+         for (unsigned x_el = sx_el; x_el < sx_end_el; ++x_el) {               \
+            unsigned tile_idx = (y_tile + (x_el >> log2_tile_width_el));       \
+            unsigned tile_offset_el = tile_idx * tile_area_el;                 \
+                                                                               \
+            element_t *ptiled =                                                \
+               &tiled[tile_offset_el + y_offs_el + x_offs_el];                 \
+            element_t *plinear = (linear_row++);                               \
+            element_t *outp = (element_t *)(is_store ? ptiled : plinear);      \
+            element_t *inp = (element_t *)(is_store ? plinear : ptiled);       \
+            *outp = *inp;                                                      \
+            x_offs_el = (x_offs_el - space_mask_x) & space_mask_x;             \
+         }                                                                     \
+                                                                               \
+         y_offs_el = (y_offs_el - space_mask_y) & space_mask_y;                \
+         linear += linear_pitch_el;                                            \
+      }                                                                        \
+   }
 
-#define TILED_UNALIGNED_TYPES(blocksize_B, store) { \
-   if (blocksize_B == 1) \
-      TILED_UNALIGNED_TYPE(uint8_t, store) \
-   else if (blocksize_B == 2) \
-      TILED_UNALIGNED_TYPE(uint16_t, store) \
-   else if (blocksize_B == 4) \
-      TILED_UNALIGNED_TYPE(uint32_t, store) \
-   else if (blocksize_B == 8) \
-      TILED_UNALIGNED_TYPE(uint64_t, store) \
-   else if (blocksize_B == 16) \
-      TILED_UNALIGNED_TYPE(ail_uint128_t, store) \
-   else \
-      unreachable("Invalid block size"); \
-}
+#define TILED_UNALIGNED_TYPES(blocksize_B, store)                              \
+   {                                                                           \
+      if (blocksize_B == 1)                                                    \
+         TILED_UNALIGNED_TYPE(uint8_t, store)                                  \
+      else if (blocksize_B == 2)                                               \
+         TILED_UNALIGNED_TYPE(uint16_t, store)                                 \
+      else if (blocksize_B == 4)                                               \
+         TILED_UNALIGNED_TYPE(uint32_t, store)                                 \
+      else if (blocksize_B == 8)                                               \
+         TILED_UNALIGNED_TYPE(uint64_t, store)                                 \
+      else if (blocksize_B == 16)                                              \
+         TILED_UNALIGNED_TYPE(ail_uint128_t, store)                            \
+      else                                                                     \
+         unreachable("Invalid block size");                                    \
+   }
 
 void
-ail_detile(void *_tiled, void *_linear,
-           struct ail_layout *tiled_layout, unsigned level,
-           unsigned linear_pitch_B, unsigned sx_px, unsigned sy_px,
-           unsigned swidth_px, unsigned sheight_px)
+ail_detile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
+           unsigned level, unsigned linear_pitch_B, unsigned sx_px,
+           unsigned sy_px, unsigned swidth_px, unsigned sheight_px)
 {
    unsigned width_px = u_minify(tiled_layout->width_px, level);
    unsigned height_px = u_minify(tiled_layout->height_px, level);
    unsigned blocksize_B = util_format_get_blocksize(tiled_layout->format);
 
+   assert(level < tiled_layout->levels && "Mip level out of bounds");
    assert(tiled_layout->tiling == AIL_TILING_TWIDDLED && "Invalid usage");
    assert((sx_px + swidth_px) <= width_px && "Invalid usage");
    assert((sy_px + sheight_px) <= height_px && "Invalid usage");
@@ -166,15 +152,15 @@ ail_detile(void *_tiled, void *_linear,
 }
 
 void
-ail_tile(void *_tiled, void *_linear,
-         struct ail_layout *tiled_layout, unsigned level,
-         unsigned linear_pitch_B, unsigned sx_px, unsigned sy_px,
-         unsigned swidth_px, unsigned sheight_px)
+ail_tile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
+         unsigned level, unsigned linear_pitch_B, unsigned sx_px,
+         unsigned sy_px, unsigned swidth_px, unsigned sheight_px)
 {
    unsigned width_px = u_minify(tiled_layout->width_px, level);
    unsigned height_px = u_minify(tiled_layout->height_px, level);
    unsigned blocksize_B = util_format_get_blocksize(tiled_layout->format);
 
+   assert(level < tiled_layout->levels && "Mip level out of bounds");
    assert(tiled_layout->tiling == AIL_TILING_TWIDDLED && "Invalid usage");
    assert((sx_px + swidth_px) <= width_px && "Invalid usage");
    assert((sy_px + sheight_px) <= height_px && "Invalid usage");

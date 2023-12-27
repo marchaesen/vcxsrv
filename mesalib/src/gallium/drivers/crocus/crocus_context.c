@@ -61,7 +61,7 @@ crocus_init_identifier_bo(struct crocus_context *ice)
 
    ice->workaround_bo->kflags |= EXEC_OBJECT_CAPTURE;
    ice->workaround_offset = ALIGN(
-      intel_debug_write_identifiers(bo_map, 4096, "Crocus") + 8, 8);
+      intel_debug_write_identifiers(bo_map, 4096, "Crocus"), 32);
 
    crocus_bo_unmap(ice->workaround_bo);
 
@@ -194,6 +194,12 @@ crocus_destroy_context(struct pipe_context *ctx)
    if (ice->blitter)
       util_blitter_destroy(ice->blitter);
    screen->vtbl.destroy_state(ice);
+
+   for (unsigned i = 0; i < ARRAY_SIZE(ice->shaders.scratch_bos); i++) {
+      for (unsigned j = 0; j < ARRAY_SIZE(ice->shaders.scratch_bos[i]); j++)
+         crocus_bo_unreference(ice->shaders.scratch_bos[i][j]);
+   }
+
    crocus_destroy_program_cache(ice);
    u_upload_destroy(ice->query_buffer_uploader);
 
@@ -258,7 +264,7 @@ crocus_create_context(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
    ctx->stream_uploader = u_upload_create_default(ctx);
    if (!ctx->stream_uploader) {
-      free(ctx);
+      ralloc_free(ice);
       return NULL;
    }
    ctx->const_uploader = ctx->stream_uploader;

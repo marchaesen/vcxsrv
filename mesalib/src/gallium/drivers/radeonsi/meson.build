@@ -18,16 +18,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+si_tracepoints = custom_target(
+  'si_tracepoints.[ch]',
+  input: 'si_tracepoints.py',
+  output: ['si_tracepoints.c', 'si_tracepoints_perfetto.h', 'si_tracepoints.h'],
+  command: [
+    prog_python, '@INPUT@',
+    '-p', join_paths(dir_source_root, 'src/util/perf/'),
+    '-C', '@OUTPUT0@',
+    '--perfetto-hdr', '@OUTPUT1@',
+    '-H', '@OUTPUT2@'
+  ],
+  depend_files: u_trace_py,
+)
+
+idep_si_tracepoints = declare_dependency(
+  sources: si_tracepoints,
+)
+
 files_libradeonsi = files(
   'driinfo_radeonsi.h',
-  'gfx10_query.c',
   'gfx10_shader_ngg.c',
+  'gfx11_query.c',
   'si_blit.c',
   'si_buffer.c',
   'si_build_pm4.h',
   'si_clear.c',
   'si_compute.c',
-  'si_compute.h',
   'si_compute_blit.c',
   'si_cp_dma.c',
   'si_cp_reg_shadowing.c',
@@ -45,18 +62,16 @@ files_libradeonsi = files(
   'si_public.h',
   'si_query.c',
   'si_query.h',
+  'si_nir_lower_abi.c',
+  'si_nir_lower_resource.c',
+  'si_nir_lower_vs_inputs.c',
   'si_nir_optim.c',
   'si_sdma_copy_image.c',
   'si_shader.c',
   'si_shader.h',
+  'si_shader_aco.c',
   'si_shader_info.c',
   'si_shader_internal.h',
-  'si_shader_llvm.c',
-  'si_shader_llvm_gs.c',
-  'si_shader_llvm_ps.c',
-  'si_shader_llvm_resources.c',
-  'si_shader_llvm_tess.c',
-  'si_shader_llvm_vs.c',
   'si_shader_nir.c',
   'si_shaderlib_nir.c',
   'si_shaderlib_tgsi.c',
@@ -71,7 +86,11 @@ files_libradeonsi = files(
   'si_test_image_copy_region.c',
   'si_test_dma_perf.c',
   'si_texture.c',
+  'si_utrace.c',
+  'si_utrace.h',
   'si_uvd.c',
+  'si_vpe.c',
+  'si_vpe.h',
   'pspdecryptionparam.h',
   'radeon_temporal.h',
   'radeon_uvd.c',
@@ -86,7 +105,6 @@ files_libradeonsi = files(
   'radeon_vce_52.c',
   'radeon_vcn.h',
   'radeon_vcn.c',
-  'radeon_vcn_av1_default.h',
   'radeon_vcn_dec.c',
   'radeon_vcn_dec.h',
   'radeon_vcn_dec_jpeg.c',
@@ -101,11 +119,34 @@ files_libradeonsi = files(
 )
 
 radeonsi_include_dirs = [inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_amd_common,
-                         inc_amd_common_llvm, inc_gallium_drivers]
-radeonsi_deps = [dep_llvm, dep_clock, dep_libdrm_radeon, idep_nir_headers, idep_amdgfxregs_h, idep_mesautil]
+                         inc_amd_common_llvm, inc_gallium_drivers, inc_compiler, inc_amd, inc_amd_vpe]
+radeonsi_deps = [dep_llvm, dep_clock, dep_libdrm_radeon, idep_nir_headers, idep_amdgfxregs_h, idep_mesautil, idep_aco, idep_u_tracepoints, idep_si_tracepoints]
+
+if with_perfetto
+  radeonsi_deps += dep_perfetto
+endif
+
+files_libradeonsi += ['si_perfetto.cpp', 'si_perfetto.h']
+
+amd_common_libs = [libamd_common]
+
+if with_llvm
+  files_libradeonsi += files(
+    'si_shader_llvm.c',
+    'si_shader_llvm.h',
+    'si_shader_llvm_gs.c',
+    'si_shader_llvm_ps.c',
+    'si_shader_llvm_tess.c',
+    'si_shader_llvm_vs.c',
+  )
+
+  radeonsi_include_dirs += [inc_amd_common_llvm]
+  radeonsi_deps += [dep_llvm]
+  amd_common_libs += [libamd_common_llvm]
+endif
 
 radeonsi_gfx_libs = []
-foreach ver : ['6', '7', '8', '9', '10', '103', '11']
+foreach ver : ['6', '7', '8', '9', '10', '103', '11', '115']
   radeonsi_gfx_libs += static_library(
     'radeonsi_gfx@0@'.format(ver),
     ['si_state_draw.cpp'],
@@ -127,7 +168,7 @@ libradeonsi = static_library(
 driver_radeonsi = declare_dependency(
   compile_args : '-DGALLIUM_RADEONSI',
   link_with : radeonsi_gfx_libs + [
-    libradeonsi, libradeonwinsys, libamdgpuwinsys, libamd_common, libamd_common_llvm, libgalliumvl
+    libradeonsi, libradeonwinsys, libamdgpuwinsys, libamd_common, libamd_common_llvm, libgalliumvl, libvpe
   ],
   dependencies : idep_nir,
 )

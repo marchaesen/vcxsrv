@@ -195,10 +195,16 @@ update_sampler_gl_clamp(struct gl_context *ctx, struct gl_sampler_object *samp, 
    if (cur_state == new_state)
       return;
    ctx->NewDriverState |= ctx->DriverFlags.NewSamplersWithClamp;
+   uint8_t old_mask = samp->glclamp_mask;
    if (new_state)
       samp->glclamp_mask |= wrap;
    else
       samp->glclamp_mask &= ~wrap;
+
+   if (old_mask && !samp->glclamp_mask)
+      ctx->Texture.NumSamplersWithClamp--;
+   else if (samp->glclamp_mask && !old_mask)
+      ctx->Texture.NumSamplersWithClamp++;
 }
 #ifdef __cplusplus
 }

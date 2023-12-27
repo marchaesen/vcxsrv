@@ -51,7 +51,7 @@ v3dX(descriptor_bo_size)(VkDescriptorType type)
 }
 
 /* To compute the max_bo_size we want to iterate through the descriptor
- * types. Unfourtunately we can't just use the descriptor type enum values, as
+ * types. Unfortunately we can't just use the descriptor type enum values, as
  * the values are not defined consecutively (so extensions could add new
  * descriptor types), and VK_DESCRIPTOR_TYPE_MAX_ENUM is also a really big
  * number.
@@ -86,13 +86,15 @@ v3dX(max_descriptor_bo_size)(void)
 
 
 uint32_t
-v3dX(combined_image_sampler_texture_state_offset)(void)
+v3dX(combined_image_sampler_texture_state_offset)(uint8_t plane)
 {
-   return 0;
+   return v3dX(descriptor_bo_size)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) *
+      plane;
 }
 
 uint32_t
-v3dX(combined_image_sampler_sampler_state_offset)(void)
+v3dX(combined_image_sampler_sampler_state_offset)(uint8_t plane)
 {
-   return cl_aligned_packet_length(TEXTURE_SHADER_STATE, 32);
+   return v3dX(combined_image_sampler_texture_state_offset)(plane) +
+      cl_aligned_packet_length(TEXTURE_SHADER_STATE, 32);
 }

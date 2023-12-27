@@ -106,7 +106,7 @@ _XmuCCLookupDisplay(Display *dpy)
      */
     e = XmuDQLookupDisplay (dq, dpy);	/* see if it's there */
     if (!e) {				/* else create it */
-	XmuCvtCache *c = (XmuCvtCache *) malloc (sizeof (XmuCvtCache));
+	XmuCvtCache *c = malloc (sizeof (XmuCvtCache));
 	if (!c) return NULL;
 
 	/*
@@ -114,7 +114,7 @@ _XmuCCLookupDisplay(Display *dpy)
 	 */
 	e = XmuDQAddDisplay (dq, dpy, (XPointer) c);
 	if (!e) {
-	    free ((char *) c);
+	    free (c);
 	    return NULL;
 	}
 

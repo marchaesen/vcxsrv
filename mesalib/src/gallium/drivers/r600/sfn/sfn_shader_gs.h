@@ -1,17 +1,14 @@
 #ifndef SFN_GEOMETRYSHADER_H
 #define SFN_GEOMETRYSHADER_H
 
-
-#include "sfn_shader.h"
 #include "sfn_instr_export.h"
+#include "sfn_shader.h"
 
 namespace r600 {
 
 class GeometryShader : public Shader {
 public:
    GeometryShader(const r600_shader_key& key);
-
-
 
 private:
    bool do_scan_instruction(nir_instr *instr) override;
@@ -31,13 +28,14 @@ private:
 
    void emit_adj_fix();
 
-   bool emit_load_per_vertex_input(nir_intrinsic_instr* instr);
+   bool emit_load_per_vertex_input(nir_intrinsic_instr *instr);
 
-   bool load_input(UNUSED nir_intrinsic_instr *intr) override {
+   bool load_input(UNUSED nir_intrinsic_instr *intr) override
+   {
       unreachable("load_input must be lowered in GS");
    };
-   bool store_output(nir_intrinsic_instr* instr) override;
-   bool emit_vertex(nir_intrinsic_instr* instr, bool cut);
+   bool store_output(nir_intrinsic_instr *instr) override;
+   bool emit_vertex(nir_intrinsic_instr *instr, bool cut);
 
    std::array<PRegister, 6> m_per_vertex_offsets{nullptr};
    PRegister m_primitive_id{nullptr};
@@ -62,6 +60,6 @@ private:
    std::map<int, MemRingOutInstr *> m_streamout_data;
 };
 
-}
+} // namespace r600
 
 #endif // GEOMETRYSHADER_H

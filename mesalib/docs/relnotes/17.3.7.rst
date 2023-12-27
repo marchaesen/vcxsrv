@@ -168,7 +168,7 @@ James Legg (1):
 
 -  radv: Really use correct HTILE expanded words.
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  intel/isl: Add an isl_color_value_is_zero helper
 -  vulkan/wsi/x11: Set OUT_OF_DATE if wait_for_special_event fails

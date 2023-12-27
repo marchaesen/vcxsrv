@@ -8,91 +8,84 @@ Attributes include polygon culling state, line width, line stipple,
 multisample state, scissoring and flat/smooth shading.
 
 Linkage
+-------
 
 clamp_vertex_color
-^^^^^^^^^^^^^^^^^^
+   If set, TGSI_SEMANTIC_COLOR registers are clamped to the [0, 1] range after
+   the execution of the vertex shader, before being passed to the geometry
+   shader or fragment shader.
 
-If set, TGSI_SEMANTIC_COLOR registers are clamped to the [0, 1] range after
-the execution of the vertex shader, before being passed to the geometry
-shader or fragment shader.
+   OpenGL: glClampColor(GL_CLAMP_VERTEX_COLOR) in GL 3.0 or
+   :ext:`GL_ARB_color_buffer_float`
 
-OpenGL: glClampColor(GL_CLAMP_VERTEX_COLOR) in GL 3.0 or GL_ARB_color_buffer_float
+   D3D11: seems always disabled
 
-D3D11: seems always disabled
-
-Note the PIPE_CAP_VERTEX_COLOR_CLAMPED query indicates whether or not the
-driver supports this control.  If it's not supported, gallium frontends may
-have to insert extra clamping code.
+   Note the PIPE_CAP_VERTEX_COLOR_CLAMPED query indicates whether or not the
+   driver supports this control.  If it's not supported, gallium frontends may
+   have to insert extra clamping code.
 
 
 clamp_fragment_color
-^^^^^^^^^^^^^^^^^^^^
+   Controls whether TGSI_SEMANTIC_COLOR outputs of the fragment shader
+   are clamped to [0, 1].
 
-Controls whether TGSI_SEMANTIC_COLOR outputs of the fragment shader
-are clamped to [0, 1].
+   OpenGL: glClampColor(GL_CLAMP_FRAGMENT_COLOR) in GL 3.0 or
+   :ext:`GL_ARB_color_buffer_float`
 
-OpenGL: glClampColor(GL_CLAMP_FRAGMENT_COLOR) in GL 3.0 or ARB_color_buffer_float
+   D3D11: seems always disabled
 
-D3D11: seems always disabled
-
-Note the PIPE_CAP_FRAGMENT_COLOR_CLAMPED query indicates whether or not the
-driver supports this control.  If it's not supported, gallium frontends may
-have to insert extra clamping code.
+   Note the PIPE_CAP_FRAGMENT_COLOR_CLAMPED query indicates whether or not the
+   driver supports this control.  If it's not supported, gallium frontends may
+   have to insert extra clamping code.
 
 
 Shading
 -------
 
 flatshade
-^^^^^^^^^
+   If set, the provoking vertex of each polygon is used to determine the color
+   of the entire polygon.  If not set, fragment colors will be interpolated
+   between the vertex colors.
 
-If set, the provoking vertex of each polygon is used to determine the color
-of the entire polygon.  If not set, fragment colors will be interpolated
-between the vertex colors.
+   The actual interpolated shading algorithm is obviously
+   implementation-dependent, but will usually be Gouraud for most hardware.
 
-The actual interpolated shading algorithm is obviously
-implementation-dependent, but will usually be Gourard for most hardware.
+   .. note::
 
-.. note::
+      This is separate from the fragment shader input attributes
+      CONSTANT, LINEAR and PERSPECTIVE. The flatshade state is needed at
+      clipping time to determine how to set the color of new vertices.
 
-    This is separate from the fragment shader input attributes
-    CONSTANT, LINEAR and PERSPECTIVE. The flatshade state is needed at
-    clipping time to determine how to set the color of new vertices.
-
-    :ref:`Draw` can implement flat shading by copying the provoking vertex
-    color to all the other vertices in the primitive.
+      :ref:`Draw` can implement flat shading by copying the provoking vertex
+      color to all the other vertices in the primitive.
 
 flatshade_first
-^^^^^^^^^^^^^^^
+   Whether the first vertex should be the provoking vertex, for most primitives.
+   If not set, the last vertex is the provoking vertex.
 
-Whether the first vertex should be the provoking vertex, for most primitives.
-If not set, the last vertex is the provoking vertex.
+   There are a few important exceptions to the specification of this rule.
 
-There are a few important exceptions to the specification of this rule.
-
-* ``PIPE_PRIMITIVE_POLYGON``: The provoking vertex is always the first
-  vertex. If the caller wishes to change the provoking vertex, they merely
-  need to rotate the vertices themselves.
-* ``PIPE_PRIMITIVE_QUAD``, ``PIPE_PRIMITIVE_QUAD_STRIP``: The option only has
-  an effect if ``PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION`` is true.
-  If it is not, the provoking vertex is always the last vertex.
-* ``PIPE_PRIMITIVE_TRIANGLE_FAN``: When set, the provoking vertex is the
-  second vertex, not the first. This permits each segment of the fan to have
-  a different color.
+   * ``PIPE_PRIMITIVE_POLYGON``: The provoking vertex is always the first
+     vertex. If the caller wishes to change the provoking vertex, they merely
+     need to rotate the vertices themselves.
+   * ``PIPE_PRIMITIVE_QUAD``, ``PIPE_PRIMITIVE_QUAD_STRIP``: The option only has
+     an effect if ``PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION`` is true.
+     If it is not, the provoking vertex is always the last vertex.
+   * ``PIPE_PRIMITIVE_TRIANGLE_FAN``: When set, the provoking vertex is the
+     second vertex, not the first. This permits each segment of the fan to have
+     a different color.
 
 Polygons
 --------
 
 light_twoside
-^^^^^^^^^^^^^
+   If set, there are per-vertex back-facing colors.  The hardware
+   (perhaps assisted by :ref:`Draw`) should be set up to use this state
+   along with the front/back information to set the final vertex colors
+   prior to rasterization.
 
-If set, there are per-vertex back-facing colors.  The hardware
-(perhaps assisted by :ref:`Draw`) should be set up to use this state
-along with the front/back information to set the final vertex colors
-prior to rasterization.
-
-The frontface vertex shader color output is marked with TGSI semantic
-COLOR[0], and backface COLOR[1].
+   The frontface vertex shader color output is marked with TGSI semantic
+   COLOR[0], and backface COLOR[1].
 
 front_ccw
     Indicates whether the window order of front-facing polygons is
@@ -164,65 +157,60 @@ Points
 ------
 
 sprite_coord_enable
-^^^^^^^^^^^^^^^^^^^
-The effect of this state depends on PIPE_CAP_TGSI_TEXCOORD !
+   The effect of this state depends on PIPE_CAP_TGSI_TEXCOORD !
 
-Controls automatic texture coordinate generation for rendering sprite points.
+   Controls automatic texture coordinate generation for rendering sprite points.
 
-If PIPE_CAP_TGSI_TEXCOORD is false:
-When bit k in the sprite_coord_enable bitfield is set, then generic
-input k to the fragment shader will get an automatically computed
-texture coordinate.
+   If PIPE_CAP_TGSI_TEXCOORD is false:
+   When bit k in the sprite_coord_enable bitfield is set, then generic
+   input k to the fragment shader will get an automatically computed
+   texture coordinate.
 
-If PIPE_CAP_TGSI_TEXCOORD is true:
-The bitfield refers to inputs with TEXCOORD semantic instead of generic inputs.
+   If PIPE_CAP_TGSI_TEXCOORD is true:
+   The bitfield refers to inputs with TEXCOORD semantic instead of generic inputs.
 
-The texture coordinate will be of the form (s, t, 0, 1) where s varies
-from 0 to 1 from left to right while t varies from 0 to 1 according to
-the state of 'sprite_coord_mode' (see below).
+   The texture coordinate will be of the form (s, t, 0, 1) where s varies
+   from 0 to 1 from left to right while t varies from 0 to 1 according to
+   the state of 'sprite_coord_mode' (see below).
 
-If any bit is set, then point_smooth MUST be disabled (there are no
-round sprites) and point_quad_rasterization MUST be true (sprites are
-always rasterized as quads).  Any mismatch between these states should
-be considered a bug in the gallium frontend.
+   If any bit is set, then point_smooth MUST be disabled (there are no
+   round sprites) and point_quad_rasterization MUST be true (sprites are
+   always rasterized as quads).  Any mismatch between these states should
+   be considered a bug in the gallium frontend.
 
-This feature is implemented in the :ref:`Draw` module but may also be
-implemented natively by GPUs or implemented with a geometry shader.
+   This feature is implemented in the :ref:`Draw` module but may also be
+   implemented natively by GPUs or implemented with a geometry shader.
 
 
 sprite_coord_mode
-^^^^^^^^^^^^^^^^^
-
-Specifies how the value for each shader output should be computed when drawing
-point sprites. For PIPE_SPRITE_COORD_LOWER_LEFT, the lower-left vertex will
-have coordinates (0,0,0,1). For PIPE_SPRITE_COORD_UPPER_LEFT, the upper-left
-vertex will have coordinates (0,0,0,1).
-This state is used by :ref:`Draw` to generate texcoords.
+   Specifies how the value for each shader output should be computed when drawing
+   point sprites. For PIPE_SPRITE_COORD_LOWER_LEFT, the lower-left vertex will
+   have coordinates (0,0,0,1). For PIPE_SPRITE_COORD_UPPER_LEFT, the upper-left
+   vertex will have coordinates (0,0,0,1).
+   This state is used by :ref:`Draw` to generate texcoords.
 
 
 point_quad_rasterization
-^^^^^^^^^^^^^^^^^^^^^^^^
+   Determines if points should be rasterized according to quad or point
+   rasterization rules.
 
-Determines if points should be rasterized according to quad or point
-rasterization rules.
+   (Legacy-only) OpenGL actually has quite different rasterization rules
+   for points and point sprites - hence this indicates if points should be
+   rasterized as points or according to point sprite (which decomposes them
+   into quads, basically) rules. Newer GL versions no longer support the old
+   point rules at all.
 
-(Legacy-only) OpenGL actually has quite different rasterization rules
-for points and point sprites - hence this indicates if points should be
-rasterized as points or according to point sprite (which decomposes them
-into quads, basically) rules. Newer GL versions no longer support the old
-point rules at all.
+   Additionally Direct3D will always use quad rasterization rules for
+   points, regardless of whether point sprites are enabled or not.
 
-Additionally Direct3D will always use quad rasterization rules for
-points, regardless of whether point sprites are enabled or not.
+   If this state is enabled, point smoothing and antialiasing are
+   disabled. If it is disabled, point sprite coordinates are not
+   generated.
 
-If this state is enabled, point smoothing and antialiasing are
-disabled. If it is disabled, point sprite coordinates are not
-generated.
+   .. note::
 
-.. note::
-
-   Some renderers always internally translate points into quads; this state
-   still affects those renderers by overriding other rasterization state.
+      Some renderers always internally translate points into quads; this state
+      still affects those renderers by overriding other rasterization state.
 
 point_tri_clip
     Determines if clipping of points should happen after they are converted
@@ -263,7 +251,7 @@ half_pixel_center
         1  +-----+
 
     When false, the rasterizer should use (0, 0) pixel centers for determining
-    pixel ownership (e.g., D3D9 or ealier)::
+    pixel ownership (e.g., D3D9 or earlier)::
 
          -0.5 0 0.5
       -0.5 +-----+
@@ -319,8 +307,8 @@ bottom_edge_rule
         assumes that top is always at y=0.
 
     See also:
-     - http://msdn.microsoft.com/en-us/library/windows/desktop/cc627092.aspx
-     - http://msdn.microsoft.com/en-us/library/windows/desktop/bb147314.aspx
+     - https://learn.microsoft.com/en-us/windows/win32/direct3d11/d3d10-graphics-programming-guide-rasterizer-stage-rules
+     - https://learn.microsoft.com/en-us/windows/win32/direct3d9/rasterization-rules
 
 clip_halfz
     When true clip space in the z axis goes from [0..1] (D3D).  When false
@@ -348,7 +336,7 @@ clip_plane_enable
 
 conservative_raster_mode
     The conservative rasterization mode.  For PIPE_CONSERVATIVE_RASTER_OFF,
-    conservative rasterization is disabled.  For IPE_CONSERVATIVE_RASTER_POST_SNAP
+    conservative rasterization is disabled.  For PIPE_CONSERVATIVE_RASTER_POST_SNAP
     or PIPE_CONSERVATIVE_RASTER_PRE_SNAP, conservative rasterization is nabled.
     When conservative rasterization is enabled, the polygon smooth, line mooth,
     point smooth and line stipple settings are ignored.

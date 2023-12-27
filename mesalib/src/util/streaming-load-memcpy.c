@@ -26,9 +26,9 @@
  *
  */
 
-#include "main/macros.h"
 #include "util/streaming-load-memcpy.h"
-#include "x86/common_x86_asm.h"
+#include "util/u_cpu_detect.h"
+#include "util/u_math.h"
 #ifdef USE_SSE41
 #include <smmintrin.h>
 #endif
@@ -44,7 +44,7 @@ util_streaming_load_memcpy(void *restrict dst, void *restrict src, size_t len)
 
 #ifdef USE_SSE41
    /* If dst and src are not co-aligned, or if SSE4.1 is not present, fallback to memcpy(). */
-   if (((uintptr_t)d & 15) != ((uintptr_t)s & 15) || !cpu_has_sse4_1) {
+   if (((uintptr_t)d & 15) != ((uintptr_t)s & 15) || !util_get_cpu_caps()->has_sse4_1) {
       memcpy(d, s, len);
       return;
    }

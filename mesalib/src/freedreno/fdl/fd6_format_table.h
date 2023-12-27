@@ -31,9 +31,13 @@
 #include "util/format/u_format.h"
 #include "util/u_math.h"
 
+#include "common/freedreno_common.h"
+
 #include "adreno_pm4.xml.h"
 #include "adreno_common.xml.h"
 #include "a6xx.xml.h"
+
+BEGINC;
 
 static inline enum a6xx_tex_swiz
 fdl6_swiz(unsigned char swiz)
@@ -59,5 +63,7 @@ enum a6xx_format fd6_color_format(enum pipe_format format,
                                   enum a6xx_tile_mode tile_mode) ATTRIBUTE_CONST;
 enum a3xx_color_swap fd6_color_swap(enum pipe_format format,
                                     enum a6xx_tile_mode tile_mode) ATTRIBUTE_CONST;
+
+ENDC;
 
 #endif /* FD6_FORMAT_TABLE_H */

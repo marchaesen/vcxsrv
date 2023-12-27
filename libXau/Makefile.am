@@ -61,3 +61,7 @@ ChangeLog:
 	$(CHANGELOG_CMD)
 
 dist-hook: ChangeLog INSTALL
+
+ACLOCAL_AMFLAGS = -I m4
+
+EXTRA_DIST = meson.build meson_options.txt

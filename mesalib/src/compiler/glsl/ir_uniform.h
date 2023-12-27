@@ -41,7 +41,7 @@
 extern "C" {
 #endif
 
-enum PACKED gl_uniform_driver_format {
+enum ENUM_PACKED gl_uniform_driver_format {
    uniform_native = 0,          /**< Store data in the native format. */
    uniform_int_float,           /**< Store integer data as floats. */
 };

@@ -3,6 +3,10 @@
 ARG base_image
 FROM ${base_image}
 
+COPY mesa_deps_vulkan_sdk.ps1 C:\
+RUN C:\mesa_deps_vulkan_sdk.ps1
+
+COPY mesa_init_msvc.ps1 C:\
 COPY mesa_deps_build.ps1 C:\
 RUN C:\mesa_deps_build.ps1
 

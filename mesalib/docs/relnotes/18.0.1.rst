@@ -121,7 +121,7 @@ Ian Romanick (1):
 
 -  i965/vec4: Fix null destination register in 3-source instructions
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  nir/vars_to_ssa: Remove copies from the correct set
 -  nir/lower_indirect_derefs: Support interp_var_at intrinsics

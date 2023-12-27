@@ -53,6 +53,7 @@
 #include "util/u_memory.h"
 #include "util/u_mm.h"
 #include "util/ralloc.h"
+#include "util/simple_mtx.h"
 
 #include "vc4_screen.h"
 #include "vc4_cl_dump.h"
@@ -66,7 +67,7 @@
 
 /** Global (across GEM fds) state for the simulator */
 static struct vc4_simulator_state {
-        mtx_t mutex;
+        simple_mtx_t mutex;
 
         void *mem;
         ssize_t mem_size;
@@ -78,7 +79,7 @@ static struct vc4_simulator_state {
 
         int refcount;
 } sim_state = {
-        .mutex = _MTX_INITIALIZER_NP,
+        .mutex = SIMPLE_MTX_INITIALIZER,
 };
 
 enum gem_type {
@@ -240,9 +241,9 @@ vc4_create_simulator_bo(int fd, int handle, unsigned size)
         sim_bo->handle = handle;
 
         /* Allocate space for the buffer in simulator memory. */
-        mtx_lock(&sim_state.mutex);
+        simple_mtx_lock(&sim_state.mutex);
         sim_bo->block = u_mmAllocMem(sim_state.heap, size + 4, PAGE_ALIGN2, 0);
-        mtx_unlock(&sim_state.mutex);
+        simple_mtx_unlock(&sim_state.mutex);
         assert(sim_bo->block);
 
         obj->base.size = size;
@@ -256,9 +257,9 @@ vc4_create_simulator_bo(int fd, int handle, unsigned size)
          * don't need to go in the lookup table.
          */
         if (handle != 0) {
-                mtx_lock(&sim_state.mutex);
+                simple_mtx_lock(&sim_state.mutex);
                 _mesa_hash_table_insert(file->bo_map, int_to_key(handle), bo);
-                mtx_unlock(&sim_state.mutex);
+                simple_mtx_unlock(&sim_state.mutex);
 
                 /* Map the GEM buffer for copy in/out to the simulator. */
                 uint64_t mmap_offset;
@@ -297,23 +298,23 @@ vc4_free_simulator_bo(struct vc4_simulator_bo *sim_bo)
         if (sim_bo->gem_vaddr)
                 munmap(sim_bo->gem_vaddr, obj->base.size);
 
-        mtx_lock(&sim_state.mutex);
+        simple_mtx_lock(&sim_state.mutex);
         u_mmFreeMem(sim_bo->block);
         if (sim_bo->handle) {
                 _mesa_hash_table_remove_key(sim_file->bo_map,
                                             int_to_key(sim_bo->handle));
         }
-        mtx_unlock(&sim_state.mutex);
+        simple_mtx_unlock(&sim_state.mutex);
         ralloc_free(sim_bo);
 }
 
 static struct vc4_simulator_bo *
 vc4_get_simulator_bo(struct vc4_simulator_file *file, int gem_handle)
 {
-        mtx_lock(&sim_state.mutex);
+        simple_mtx_lock(&sim_state.mutex);
         struct hash_entry *entry =
                 _mesa_hash_table_search(file->bo_map, int_to_key(gem_handle));
-        mtx_unlock(&sim_state.mutex);
+        simple_mtx_unlock(&sim_state.mutex);
 
         return entry ? entry->data : NULL;
 }
@@ -697,9 +698,9 @@ vc4_simulator_ioctl(int fd, unsigned long request, void *args)
 static void
 vc4_simulator_init_global(void)
 {
-        mtx_lock(&sim_state.mutex);
+        simple_mtx_lock(&sim_state.mutex);
         if (sim_state.refcount++) {
-                mtx_unlock(&sim_state.mutex);
+                simple_mtx_unlock(&sim_state.mutex);
                 return;
         }
 
@@ -726,7 +727,7 @@ vc4_simulator_init_global(void)
         simpenrose_supply_overflow_mem(sim_state.overflow->ofs,
                                        sim_state.overflow->size);
 
-        mtx_unlock(&sim_state.mutex);
+        simple_mtx_unlock(&sim_state.mutex);
 
         sim_state.fd_map =
                 _mesa_hash_table_create(NULL,
@@ -754,10 +755,10 @@ vc4_simulator_init(struct vc4_screen *screen)
         else
                 screen->sim_file->gem_type = GEM_DUMB;
         drmFreeVersion(version);
-        mtx_lock(&sim_state.mutex);
+        simple_mtx_lock(&sim_state.mutex);
         _mesa_hash_table_insert(sim_state.fd_map, int_to_key(screen->fd + 1),
                                 screen->sim_file);
-        mtx_unlock(&sim_state.mutex);
+        simple_mtx_unlock(&sim_state.mutex);
 
         screen->sim_file->dev.screen = screen;
 }
@@ -765,14 +766,14 @@ vc4_simulator_init(struct vc4_screen *screen)
 void
 vc4_simulator_destroy(struct vc4_screen *screen)
 {
-        mtx_lock(&sim_state.mutex);
+        simple_mtx_lock(&sim_state.mutex);
         if (!--sim_state.refcount) {
                 _mesa_hash_table_destroy(sim_state.fd_map, NULL);
                 u_mmDestroy(sim_state.heap);
                 free(sim_state.mem);
                 /* No memsetting it, because it contains the mutex. */
         }
-        mtx_unlock(&sim_state.mutex);
+        simple_mtx_unlock(&sim_state.mutex);
 }
 
 #endif /* USE_VC4_SIMULATOR */

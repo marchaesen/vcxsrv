@@ -27,19 +27,21 @@
  **************************************************************************/
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_memory.h"
 #include "tgsi_strings.h"
 
 
-const char *tgsi_processor_type_names[6] =
+const char *tgsi_processor_type_names[8] =
 {
    "VERT",
    "TESS_CTRL",
    "TESS_EVAL",
    "GEOM",
    "FRAG",
-   "COMP"
+   "COMP",
+   "TASK",
+   "MESH"
 };
 
 static const char *tgsi_file_names[] =
@@ -194,7 +196,7 @@ const char *tgsi_interpolate_locations[TGSI_INTERPOLATE_LOC_COUNT] =
 
 const char *tgsi_invariant_name = "INVARIANT";
 
-const char *tgsi_primitive_names[PIPE_PRIM_MAX] =
+const char *tgsi_primitive_names[MESA_PRIM_COUNT] =
 {
    "POINTS",
    "LINES",
@@ -250,7 +252,7 @@ tgsi_strings_check(void)
    STATIC_ASSERT(ARRAY_SIZE(tgsi_semantic_names) == TGSI_SEMANTIC_COUNT);
    STATIC_ASSERT(ARRAY_SIZE(tgsi_texture_names) == TGSI_TEXTURE_COUNT);
    STATIC_ASSERT(ARRAY_SIZE(tgsi_property_names) == TGSI_PROPERTY_COUNT);
-   STATIC_ASSERT(ARRAY_SIZE(tgsi_primitive_names) == PIPE_PRIM_MAX);
+   STATIC_ASSERT(ARRAY_SIZE(tgsi_primitive_names) == MESA_PRIM_COUNT);
    STATIC_ASSERT(ARRAY_SIZE(tgsi_interpolate_names) == TGSI_INTERPOLATE_COUNT);
    STATIC_ASSERT(ARRAY_SIZE(tgsi_return_type_names) == TGSI_RETURN_TYPE_COUNT);
    (void) tgsi_processor_type_names;

@@ -46,7 +46,8 @@ struct cull_stage {
 };
 
 
-static inline struct cull_stage *cull_stage( struct draw_stage *stage )
+static inline struct cull_stage *
+cull_stage(struct draw_stage *stage)
 {
    return (struct cull_stage *)stage;
 }
@@ -54,56 +55,55 @@ static inline struct cull_stage *cull_stage( struct draw_stage *stage )
 /*
  * Triangles can be culled using regular face cull.
  */
-static void cull_tri( struct draw_stage *stage,
-		      struct prim_header *header )
+static void
+cull_tri(struct draw_stage *stage,
+         struct prim_header *header)
 {
-   /* Do the regular face culling */
-   {
-      const unsigned pos = draw_current_shader_position_output(stage->draw);
-      /* Window coords: */
-      const float *v0 = header->v[0]->data[pos];
-      const float *v1 = header->v[1]->data[pos];
-      const float *v2 = header->v[2]->data[pos];
+   const unsigned pos = draw_current_shader_position_output(stage->draw);
+   /* Window coords: */
+   const float *v0 = header->v[0]->data[pos];
+   const float *v1 = header->v[1]->data[pos];
+   const float *v2 = header->v[2]->data[pos];
 
-      /* edge vectors: e = v0 - v2, f = v1 - v2 */
-      const float ex = v0[0] - v2[0];
-      const float ey = v0[1] - v2[1];
-      const float fx = v1[0] - v2[0];
-      const float fy = v1[1] - v2[1];
+   /* edge vectors: e = v0 - v2, f = v1 - v2 */
+   const float ex = v0[0] - v2[0];
+   const float ey = v0[1] - v2[1];
+   const float fx = v1[0] - v2[0];
+   const float fy = v1[1] - v2[1];
 
+   /* det = cross(e,f).z */
+   header->det = ex * fy - ey * fx;
 
-      /* det = cross(e,f).z */
-      header->det = ex * fy - ey * fx;
+   if (header->det != 0) {
+      /* if det < 0 then Z points toward the camera and the triangle is
+       * counter-clockwise winding.
+       */
+      unsigned ccw = (header->det < 0);
+      unsigned face = ((ccw == cull_stage(stage)->front_ccw) ?
+                       PIPE_FACE_FRONT :
+                       PIPE_FACE_BACK);
 
-      if (header->det != 0) {
-         /* if det < 0 then Z points toward the camera and the triangle is
-          * counter-clockwise winding.
-          */
-         unsigned ccw = (header->det < 0);
-         unsigned face = ((ccw == cull_stage(stage)->front_ccw) ?
-                          PIPE_FACE_FRONT :
-                          PIPE_FACE_BACK);
-
-         if ((face & cull_stage(stage)->cull_face) == 0) {
-            /* triangle is not culled, pass to next stage */
-            stage->next->tri( stage->next, header );
-         }
-      } else {
-         /*
-          * With zero area, this is back facing (because the spec says
-          * it's front facing if sign is positive?).
-          * Some apis apparently do not allow us to cull zero area tris
-          * here, in case of fill mode line (which is rather lame).
-          */
-         if ((PIPE_FACE_BACK & cull_stage(stage)->cull_face) == 0) {
-            stage->next->tri( stage->next, header );
-         }
+      if ((face & cull_stage(stage)->cull_face) == 0) {
+         /* triangle is not culled, pass to next stage */
+         stage->next->tri(stage->next, header);
+      }
+   } else {
+      /*
+       * With zero area, this is back facing (because the spec says
+       * it's front facing if sign is positive?).
+       * Some apis apparently do not allow us to cull zero area tris
+       * here, in case of fill mode line (which is rather lame).
+       */
+      if ((PIPE_FACE_BACK & cull_stage(stage)->cull_face) == 0) {
+         stage->next->tri(stage->next, header);
       }
    }
 }
 
-static void cull_first_tri( struct draw_stage *stage,
-			    struct prim_header *header )
+
+static void
+cull_first_tri(struct draw_stage *stage,
+               struct prim_header *header)
 {
    struct cull_stage *cull = cull_stage(stage);
 
@@ -111,34 +111,38 @@ static void cull_first_tri( struct draw_stage *stage,
    cull->front_ccw = stage->draw->rasterizer->front_ccw;
 
    stage->tri = cull_tri;
-   stage->tri( stage, header );
+   stage->tri(stage, header);
 }
 
 
-static void cull_flush( struct draw_stage *stage, unsigned flags )
+static void
+cull_flush(struct draw_stage *stage, unsigned flags)
 {
    stage->tri = cull_first_tri;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 }
 
 
-static void cull_reset_stipple_counter( struct draw_stage *stage )
+static void
+cull_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void cull_destroy( struct draw_stage *stage )
+static void
+cull_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
 
 
 /**
  * Create a new polygon culling stage.
  */
-struct draw_stage *draw_cull_stage( struct draw_context *draw )
+struct draw_stage *
+draw_cull_stage(struct draw_context *draw)
 {
    struct cull_stage *cull = CALLOC_STRUCT(cull_stage);
    if (!cull)
@@ -154,14 +158,14 @@ struct draw_stage *draw_cull_stage( struct draw_context *draw )
    cull->stage.reset_stipple_counter = cull_reset_stipple_counter;
    cull->stage.destroy = cull_destroy;
 
-   if (!draw_alloc_temp_verts( &cull->stage, 0 ))
+   if (!draw_alloc_temp_verts(&cull->stage, 0))
       goto fail;
 
    return &cull->stage;
 
 fail:
    if (cull)
-      cull->stage.destroy( &cull->stage );
+      cull->stage.destroy(&cull->stage);
 
    return NULL;
 }

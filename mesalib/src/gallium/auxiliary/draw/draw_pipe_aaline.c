@@ -77,9 +77,9 @@ struct aaline_stage
    float half_line_width;
 
    /** For AA lines, this is the vertex attrib slot for new generic */
-   uint coord_slot;
+   unsigned coord_slot;
    /** position, not necessarily output zero */
-   uint pos_slot;
+   unsigned pos_slot;
 
 
    /*
@@ -107,6 +107,7 @@ struct aa_transform_context {
    uint64_t tempsUsed;  /**< bitmask */
    int colorOutput; /**< which output is the primary color */
    int maxInput, maxGeneric;  /**< max input index found */
+   int numImm; /**< number of immediate regsters */
    int colorTemp, aaTemp;  /**< temp registers */
 };
 
@@ -134,7 +135,7 @@ aa_transform_decl(struct tgsi_transform_context *ctx,
       }
    }
    else if (decl->Declaration.File == TGSI_FILE_TEMPORARY) {
-      uint i;
+      unsigned i;
       for (i = decl->Range.First;
            i <= decl->Range.Last; i++) {
          /*
@@ -147,6 +148,18 @@ aa_transform_decl(struct tgsi_transform_context *ctx,
    ctx->emit_declaration(ctx, decl);
 }
 
+/**
+ * TGSI immediate declaration transform callback.
+ */
+static void
+aa_immediate(struct tgsi_transform_context *ctx,
+                  struct tgsi_full_immediate *imm)
+{
+   struct aa_transform_context *aactx = (struct aa_transform_context *)ctx;
+
+   ctx->emit_immediate(ctx, imm);
+   aactx->numImm++;
+}
 
 /**
  * Find the lowest zero bit, or -1 if bitfield is all ones.
@@ -182,6 +195,9 @@ aa_transform_prolog(struct tgsi_transform_context *ctx)
    /* declare new temp regs */
    tgsi_transform_temp_decl(ctx, aactx->aaTemp);
    tgsi_transform_temp_decl(ctx, aactx->colorTemp);
+
+   /* declare new immediate reg */
+   tgsi_transform_immediate_decl(ctx, 2.0, -1.0, 0.0, 0.25);
 }
 
 
@@ -214,6 +230,26 @@ aa_transform_epilog(struct tgsi_transform_context *ctx)
       inst.Src[1].Register.Absolute = true;
       inst.Src[1].Register.Negate = true;
       ctx->emit_instruction(ctx, &inst);
+
+      /* linelength * 2 - 1 */
+      tgsi_transform_op3_swz_inst(ctx, TGSI_OPCODE_MAD,
+                                  TGSI_FILE_TEMPORARY, aactx->aaTemp,
+                                  TGSI_WRITEMASK_Y,
+                                  TGSI_FILE_INPUT, aactx->maxInput + 1,
+                                  TGSI_SWIZZLE_W, false,
+                                  TGSI_FILE_IMMEDIATE, aactx->numImm,
+                                  TGSI_SWIZZLE_X,
+                                  TGSI_FILE_IMMEDIATE, aactx->numImm,
+                                  TGSI_SWIZZLE_Y);
+
+      /* MIN height alpha */
+      tgsi_transform_op2_swz_inst(ctx, TGSI_OPCODE_MIN,
+                                  TGSI_FILE_TEMPORARY, aactx->aaTemp,
+                                  TGSI_WRITEMASK_Z,
+                                  TGSI_FILE_TEMPORARY, aactx->aaTemp,
+                                  TGSI_SWIZZLE_Z,
+                                  TGSI_FILE_TEMPORARY, aactx->aaTemp,
+                                  TGSI_SWIZZLE_Y, false);
 
       /* MUL width / height alpha */
       tgsi_transform_op2_swz_inst(ctx, TGSI_OPCODE_MUL,
@@ -249,7 +285,7 @@ aa_transform_inst(struct tgsi_transform_context *ctx,
                   struct tgsi_full_instruction *inst)
 {
    struct aa_transform_context *aactx = (struct aa_transform_context *) ctx;
-   uint i;
+   unsigned i;
 
    /*
     * Look for writes to result.color and replace with colorTemp reg.
@@ -271,14 +307,14 @@ aa_transform_inst(struct tgsi_transform_context *ctx,
  * Generate the frag shader we'll use for drawing AA lines.
  * This will be the user's shader plus some arithmetic instructions.
  */
-static boolean
+static bool
 generate_aaline_fs(struct aaline_stage *aaline)
 {
    struct pipe_context *pipe = aaline->stage.draw->pipe;
    const struct pipe_shader_state *orig_fs = &aaline->fs->state;
    struct pipe_shader_state aaline_fs;
    struct aa_transform_context transform;
-   const uint newLen = tgsi_num_tokens(orig_fs->tokens) + NUM_NEW_TOKENS;
+   const unsigned newLen = tgsi_num_tokens(orig_fs->tokens) + NUM_NEW_TOKENS;
 
    aaline_fs = *orig_fs; /* copy to init */
 
@@ -292,6 +328,7 @@ generate_aaline_fs(struct aaline_stage *aaline)
    transform.base.epilog = aa_transform_epilog;
    transform.base.transform_instruction = aa_transform_inst;
    transform.base.transform_declaration = aa_transform_decl;
+   transform.base.transform_immediate = aa_immediate;
 
    aaline_fs.tokens = tgsi_transform_shader(orig_fs->tokens, newLen, &transform.base);
    if (!aaline_fs.tokens)
@@ -312,7 +349,7 @@ generate_aaline_fs(struct aaline_stage *aaline)
    return aaline->fs->aaline_fs != NULL;
 }
 
-static boolean
+static bool
 generate_aaline_fs_nir(struct aaline_stage *aaline)
 {
    struct pipe_context *pipe = aaline->stage.draw->pipe;
@@ -322,21 +359,21 @@ generate_aaline_fs_nir(struct aaline_stage *aaline)
    aaline_fs = *orig_fs; /* copy to init */
    aaline_fs.ir.nir = nir_shader_clone(NULL, orig_fs->ir.nir);
    if (!aaline_fs.ir.nir)
-      return FALSE;
+      return false;
 
-   nir_lower_aaline_fs(aaline_fs.ir.nir, &aaline->fs->generic_attrib);
+   nir_lower_aaline_fs(aaline_fs.ir.nir, &aaline->fs->generic_attrib, NULL, NULL);
    aaline->fs->aaline_fs = aaline->driver_create_fs_state(pipe, &aaline_fs);
    if (aaline->fs->aaline_fs == NULL)
-      return FALSE;
+      return false;
 
-   return TRUE;
+   return true;
 }
 
 /**
  * When we're about to draw our first AA line in a batch, this function is
  * called to tell the driver to bind our modified fragment shader.
  */
-static boolean
+static bool
 bind_aaline_fragment_shader(struct aaline_stage *aaline)
 {
    struct draw_context *draw = aaline->stage.draw;
@@ -345,17 +382,17 @@ bind_aaline_fragment_shader(struct aaline_stage *aaline)
    if (!aaline->fs->aaline_fs) {
       if (aaline->fs->state.type == PIPE_SHADER_IR_NIR) {
          if (!generate_aaline_fs_nir(aaline))
-            return FALSE;
+            return false;
       } else
          if (!generate_aaline_fs(aaline))
-            return FALSE;
+            return false;
    }
 
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
    aaline->driver_bind_fs_state(pipe, aaline->fs->aaline_fs);
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
-   return TRUE;
+   return true;
 }
 
 
@@ -378,41 +415,18 @@ aaline_line(struct draw_stage *stage, struct prim_header *header)
    const float half_width = aaline->half_line_width;
    struct prim_header tri;
    struct vertex_header *v[8];
-   uint coordPos = aaline->coord_slot;
-   uint posPos = aaline->pos_slot;
+   unsigned coordPos = aaline->coord_slot;
+   unsigned posPos = aaline->pos_slot;
    float *pos, *tex;
    float dx = header->v[1]->data[posPos][0] - header->v[0]->data[posPos][0];
    float dy = header->v[1]->data[posPos][1] - header->v[0]->data[posPos][1];
-   float a = atan2f(dy, dx);
-   float c_a = cosf(a), s_a = sinf(a);
-   float half_length;
+   float length = sqrtf(dx * dx + dy * dy);
+   float c_a = dx / length, s_a = dy / length;
+   float half_length = 0.5 * length;
    float t_l, t_w;
-   uint i;
+   unsigned i;
 
-   half_length = 0.5f * sqrtf(dx * dx + dy * dy);
-
-   if (half_length < 0.5f) {
-      /*
-       * The logic we use for "normal" sized segments is incorrect
-       * for very short segments (basically because we only have
-       * one value to interpolate, not a distance to each endpoint).
-       * Therefore, we calculate half_length differently, so that for
-       * original line length (near) 0, we get alpha 0 - otherwise
-       * max alpha would still be 0.5. This also prevents us from
-       * artifacts due to degenerated lines (the endpoints being
-       * identical, which would still receive anywhere from alpha
-       * 0-0.5 otherwise) (at least the pstipple stage may generate
-       * such lines due to float inaccuracies if line length is very
-       * close to a integer).
-       * Might not be fully accurate neither (because the "strength" of
-       * the line is going to be determined by how close to the pixel
-       * center those 1 or 2 fragments are) but it's probably the best
-       * we can do.
-       */
-      half_length = 2.0f * half_length;
-   } else {
-      half_length = half_length + 0.5f;
-   }
+   half_length = half_length + 0.5f;
 
    t_w = half_width;
    t_l = 0.5f;
@@ -513,13 +527,13 @@ aaline_first_line(struct draw_stage *stage, struct prim_header *header)
 
    draw_aaline_prepare_outputs(draw, draw->pipeline.aaline);
 
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
 
    /* Disable triangle culling, stippling, unfilled mode etc. */
    r = draw_get_rasterizer_no_cull(draw, rast);
    pipe->bind_rasterizer_state(pipe, r);
 
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
    /* now really draw first line */
    stage->line = aaline_line;
@@ -538,7 +552,7 @@ aaline_flush(struct draw_stage *stage, unsigned flags)
    stage->next->flush(stage->next, flags);
 
    /* restore original frag shader */
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
    aaline->driver_bind_fs_state(pipe, aaline->fs ? aaline->fs->driver_fs : NULL);
 
    /* restore original rasterizer state */
@@ -546,7 +560,7 @@ aaline_flush(struct draw_stage *stage, unsigned flags)
       pipe->bind_rasterizer_state(pipe, draw->rast_handle);
    }
 
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
    draw_remove_extra_vertex_attribs(draw);
 }
@@ -717,7 +731,7 @@ draw_aaline_prepare_outputs(struct draw_context *draw,
  * into the draw module's pipeline.  This will not be used if the
  * hardware has native support for AA lines.
  */
-boolean
+bool
 draw_install_aaline_stage(struct draw_context *draw, struct pipe_context *pipe)
 {
    struct aaline_stage *aaline;
@@ -729,7 +743,7 @@ draw_install_aaline_stage(struct draw_context *draw, struct pipe_context *pipe)
     */
    aaline = draw_aaline_stage(draw);
    if (!aaline)
-      return FALSE;
+      return false;
 
    /* save original driver functions */
    aaline->driver_create_fs_state = pipe->create_fs_state;
@@ -745,5 +759,5 @@ draw_install_aaline_stage(struct draw_context *draw, struct pipe_context *pipe)
     */
    draw->pipeline.aaline = &aaline->stage;
 
-   return TRUE;
+   return true;
 }

@@ -40,8 +40,8 @@ namespace r600 {
 
 #ifndef HAVE_MEMORY_RESOURCE
 /* Fallback memory resource if the C++17 memory resource is not
- * avaliable
-*/
+ * available
+ */
 struct MemoryBacking {
    ~MemoryBacking();
    void *allocate(size_t size);
@@ -60,73 +60,79 @@ public:
    MemoryBacking *pool;
 };
 
-MemoryPool::MemoryPool() noexcept : impl(nullptr)
+MemoryPool::MemoryPool() noexcept:
+    impl(nullptr)
 {
 }
 
-MemoryPool& MemoryPool::instance()
+MemoryPool&
+MemoryPool::instance()
 {
-    static thread_local MemoryPool me;
-    me.initialize();
-    return me;
+   static thread_local MemoryPool me;
+   return me;
 }
 
-void MemoryPool::free()
+void
+MemoryPool::free()
 {
    delete impl;
    impl = nullptr;
 }
 
-void MemoryPool::initialize()
+void
+MemoryPool::initialize()
 {
    if (!impl)
       impl = new MemoryPoolImpl();
 }
 
-void *MemoryPool::allocate(size_t size)
+void *
+MemoryPool::allocate(size_t size)
 {
+   assert(impl);
    return impl->pool->allocate(size);
 }
 
-void *MemoryPool::allocate(size_t size, size_t align)
+void *
+MemoryPool::allocate(size_t size, size_t align)
 {
+   assert(impl);
    return impl->pool->allocate(size, align);
 }
 
-void MemoryPool::release_all()
+void
+MemoryPool::release_all()
 {
    instance().free();
 }
 
-void init_pool()
+void
+init_pool()
 {
-    MemoryPool::instance();
+   MemoryPool::instance().initialize();
 }
 
-void release_pool()
+void
+release_pool()
 {
-    MemoryPool::release_all();
+   MemoryPool::release_all();
 }
 
-void *Allocate::operator new(size_t size)
+void *
+Allocate::operator new(size_t size)
 {
-    return MemoryPool::instance().allocate(size);
+   return MemoryPool::instance().allocate(size);
 }
 
-void Allocate::operator delete (void *p, size_t size)
+void
+Allocate::operator delete(void *p, size_t size)
 {
-    // MemoryPool::instance().deallocate(p, size);
+   // MemoryPool::instance().deallocate(p, size);
 }
 
-MemoryPoolImpl::MemoryPoolImpl()
-{
-   pool = new MemoryBacking();
-}
+MemoryPoolImpl::MemoryPoolImpl() { pool = new MemoryBacking(); }
 
-MemoryPoolImpl::~MemoryPoolImpl()
-{   
-   delete pool;
-}
+MemoryPoolImpl::~MemoryPoolImpl() { delete pool; }
 
 #ifndef HAVE_MEMORY_RESOURCE
 MemoryBacking::~MemoryBacking()
@@ -135,14 +141,16 @@ MemoryBacking::~MemoryBacking()
       free(p);
 }
 
-void *MemoryBacking::allocate(size_t size)
+void *
+MemoryBacking::allocate(size_t size)
 {
    void *retval = malloc(size);
    m_data.push_back(retval);
    return retval;
 }
 
-void *MemoryBacking::allocate(size_t size, size_t align)
+void *
+MemoryBacking::allocate(size_t size, size_t align)
 {
    void *retval = aligned_alloc(align, size);
    m_data.push_back(retval);
@@ -151,4 +159,4 @@ void *MemoryBacking::allocate(size_t size, size_t align)
 
 #endif
 
-}
+} // namespace r600

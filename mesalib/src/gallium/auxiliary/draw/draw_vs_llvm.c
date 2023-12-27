@@ -40,6 +40,7 @@
 #include "nir/nir_to_tgsi_info.h"
 #include "nir.h"
 
+
 static void
 vs_llvm_prepare(struct draw_vertex_shader *shader,
                 struct draw_context *draw)
@@ -47,16 +48,16 @@ vs_llvm_prepare(struct draw_vertex_shader *shader,
    /*struct llvm_vertex_shader *evs = llvm_vertex_shader(shader);*/
 }
 
+
 static void
-vs_llvm_run_linear( struct draw_vertex_shader *shader,
-		    const float (*input)[4],
-		    float (*output)[4],
-                    const void *constants[PIPE_MAX_CONSTANT_BUFFERS],
-                    const unsigned constants_size[PIPE_MAX_CONSTANT_BUFFERS],
-		    unsigned count,
-		    unsigned input_stride,
-		    unsigned output_stride,
-		    const unsigned *elts)
+vs_llvm_run_linear(struct draw_vertex_shader *shader,
+                   const float (*input)[4],
+                   float (*output)[4],
+                   const struct draw_buffer_info *constants,
+                   unsigned count,
+                   unsigned input_stride,
+                   unsigned output_stride,
+                   const unsigned *elts)
 {
    /* we should never get here since the entire pipeline is
     * generated in draw_pt_fetch_shade_pipeline_llvm.c */
@@ -65,7 +66,7 @@ vs_llvm_run_linear( struct draw_vertex_shader *shader,
 
 
 static void
-vs_llvm_delete( struct draw_vertex_shader *dvs )
+vs_llvm_delete(struct draw_vertex_shader *dvs)
 {
    struct llvm_vertex_shader *shader = llvm_vertex_shader(dvs);
    struct draw_llvm_variant_list_item *li, *next;
@@ -78,15 +79,15 @@ vs_llvm_delete( struct draw_vertex_shader *dvs )
    if (dvs->state.ir.nir)
       ralloc_free(dvs->state.ir.nir);
    FREE((void*) dvs->state.tokens);
-   FREE( dvs );
+   FREE(dvs);
 }
 
 
 struct draw_vertex_shader *
 draw_create_vs_llvm(struct draw_context *draw,
-		    const struct pipe_shader_state *state)
+                    const struct pipe_shader_state *state)
 {
-   struct llvm_vertex_shader *vs = CALLOC_STRUCT( llvm_vertex_shader );
+   struct llvm_vertex_shader *vs = CALLOC_STRUCT(llvm_vertex_shader);
 
    if (!vs)
       return NULL;

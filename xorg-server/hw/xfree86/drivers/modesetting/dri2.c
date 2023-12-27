@@ -483,7 +483,6 @@ ms_dri2_schedule_flip(ms_dri2_frame_event_ptr info)
     modesettingPtr ms = modesettingPTR(scrn);
     ms_dri2_buffer_private_ptr back_priv = info->back->driverPrivate;
     struct ms_dri2_vblank_event *event;
-    drmmode_crtc_private_ptr drmmode_crtc = info->crtc->driver_private;
 
     event = calloc(1, sizeof(struct ms_dri2_vblank_event));
     if (!event)
@@ -495,7 +494,7 @@ ms_dri2_schedule_flip(ms_dri2_frame_event_ptr info)
     event->event_data = info->event_data;
 
     if (ms_do_pageflip(screen, back_priv->pixmap, event,
-                       drmmode_crtc->vblank_pipe, FALSE,
+                       info->crtc, FALSE,
                        ms_dri2_flip_handler,
                        ms_dri2_flip_abort,
                        "DRI2-flip")) {

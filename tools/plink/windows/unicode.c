@@ -682,11 +682,16 @@ void init_ucs(Conf *conf, struct unicode_data *ucsdata)
             if (!DIRECT_FONT(ucsdata->unitab_xterm[i]))
                 ucsdata->unitab_xterm[i] =
                     (WCHAR) (CSET_ACP + poorman_vt100[i - 96]);
-        for(i=128;i<256;i++)
+        for (i = 128; i < 256; i++)
             if (!DIRECT_FONT(ucsdata->unitab_scoacs[i]))
                 ucsdata->unitab_scoacs[i] =
                     (WCHAR) (CSET_ACP + poorman_scoacs[i - 128]);
     }
+}
+
+void init_ucs_generic(Conf *conf, struct unicode_data *ucsdata)
+{
+    init_ucs(conf, ucsdata);
 }
 
 static void link_font(WCHAR *line_tbl, WCHAR *font_tbl, WCHAR attr)
@@ -695,7 +700,7 @@ static void link_font(WCHAR *line_tbl, WCHAR *font_tbl, WCHAR attr)
     for (line_index = 0; line_index < 256; line_index++) {
         if (DIRECT_FONT(line_tbl[line_index]))
             continue;
-        for(i = 0; i < 256; i++) {
+        for (i = 0; i < 256; i++) {
             font_index = ((32 + i) & 0xFF);
             if (line_tbl[line_index] == font_tbl[font_index]) {
                 line_tbl[line_index] = (WCHAR) (attr + font_index);
@@ -1071,9 +1076,11 @@ static int check_compose_internal(int first, int second, int recurse)
     if (recurse == 0) {
         nc = check_compose_internal(second, first, 1);
         if (nc == -1)
-            nc = check_compose_internal(toupper(first), toupper(second), 1);
+            nc = check_compose_internal(toupper((unsigned char)first),
+                                        toupper((unsigned char)second), 1);
         if (nc == -1)
-            nc = check_compose_internal(toupper(second), toupper(first), 1);
+            nc = check_compose_internal(toupper((unsigned char)second),
+                                        toupper((unsigned char)first), 1);
     }
     return nc;
 }
@@ -1097,9 +1104,9 @@ int decode_codepage(const char *cp_name)
         s = cp_name;
         d = cpi->name;
         for (;;) {
-            while (*s && !isalnum(*s) && *s != ':')
+            while (*s && !isalnum((unsigned char)*s) && *s != ':')
                 s++;
-            while (*d && !isalnum(*d) && *d != ':')
+            while (*d && !isalnum((unsigned char)*d) && *d != ':')
                 d++;
             if (*s == 0) {
                 codepage = cpi->codepage;
@@ -1290,8 +1297,8 @@ int wc_to_mb(int codepage, int flags, const wchar_t *wcstr, int wclen,
          * the codepage is UTF-8, we can do the translation ourselves.
          */
         if (codepage == CP_UTF8 && mblen > 0 && wclen > 0) {
-            size_t remaining = mblen;
-            char *p = mbstr;
+            buffer_sink bs[1];
+            buffer_sink_init(bs, mbstr, mblen);
 
             while (wclen > 0) {
                 unsigned long wc = (wclen--, *wcstr++);
@@ -1300,18 +1307,13 @@ int wc_to_mb(int codepage, int flags, const wchar_t *wcstr, int wclen,
                     wclen--, wcstr++;
                 }
 
-                char utfbuf[6];
-                size_t utflen = encode_utf8(utfbuf, wc);
-                if (utflen <= remaining) {
-                    memcpy(p, utfbuf, utflen);
-                    p += utflen;
-                    remaining -= utflen;
-                } else {
-                    return p - mbstr;
-                }
+                const char *prev_ptr = bs->out;
+                put_utf8_char(bs, wc);
+                if (bs->overflowed)
+                    return prev_ptr - mbstr;
             }
 
-            return p - mbstr;
+            return bs->out - mbstr;
         }
 #endif
 
@@ -1362,18 +1364,15 @@ int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
      * codepage is UTF-8, we can do the translation ourselves.
      */
     if (codepage == CP_UTF8 && mblen > 0 && wclen > 0) {
+        BinarySource src[1];
+        BinarySource_BARE_INIT(src, mbstr, mblen);
+
         size_t remaining = wclen;
         wchar_t *p = wcstr;
 
-        while (mblen > 0) {
-            char utfbuf[7];
-            int thissize = mblen < 6 ? mblen : 6;
-            memcpy(utfbuf, mbstr, thissize);
-            utfbuf[thissize] = '\0';
-
-            const char *utfptr = utfbuf;
+        while (get_avail(src)) {
             wchar_t wcbuf[2];
-            size_t nwc = decode_utf8_to_wchar(&utfptr, wcbuf);
+            size_t nwc = decode_utf8_to_wchar(src, wcbuf, NULL);
 
             for (size_t i = 0; i < nwc; i++) {
                 if (remaining > 0) {
@@ -1383,9 +1382,6 @@ int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
                     return p - wcstr;
                 }
             }
-
-            mbstr += (utfptr - utfbuf);
-            mblen -= (utfptr - utfbuf);
         }
 
         return p - wcstr;

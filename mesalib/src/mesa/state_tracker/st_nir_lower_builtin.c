@@ -64,6 +64,18 @@
 #include "uniforms.h"
 #include "program/prog_instruction.h"
 
+/** Wrapper around nir_state_variable_create to pick the name automatically. */
+nir_variable *
+st_nir_state_variable_create(nir_shader *shader,
+                             const struct glsl_type *type,
+                             const gl_state_index16 tokens[STATE_LENGTH])
+{
+   char *name = _mesa_program_state_string(tokens);
+   nir_variable *var = nir_state_variable_create(shader, type, name, tokens);
+   free(name);
+   return var;
+}
+
 static const struct gl_builtin_uniform_element *
 get_element(const struct gl_builtin_uniform_desc *desc, nir_deref_path *path)
 {
@@ -133,36 +145,18 @@ get_variable(nir_builder *b, nir_deref_path *path,
       }
    }
 
-   char *name = _mesa_program_state_string(tokens);
-
-   nir_foreach_uniform_variable(var, shader) {
-      if (strcmp(var->name, name) == 0) {
-         free(name);
-         return var;
-      }
-   }
+   nir_variable *var = nir_find_state_variable(shader, tokens);
+   if (var)
+      return var;
 
    /* variable doesn't exist yet, so create it: */
-   nir_variable *var =
-      nir_variable_create(shader, nir_var_uniform, glsl_vec4_type(), name);
-
-   var->num_state_slots = 1;
-   var->state_slots = rzalloc_array(var, nir_state_slot, 1);
-   memcpy(var->state_slots[0].tokens, tokens,
-          sizeof(var->state_slots[0].tokens));
-
-   free(name);
-
-   return var;
+   return st_nir_state_variable_create(shader, glsl_vec4_type(), tokens);
 }
 
 static bool
-lower_builtin_instr(nir_builder *b, nir_instr *instr, UNUSED void *_data)
+lower_builtin_instr(nir_builder *b, nir_intrinsic_instr *intrin,
+                    UNUSED void *_data)
 {
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
    if (intrin->intrinsic != nir_intrinsic_load_deref)
       return false;
 
@@ -203,9 +197,9 @@ lower_builtin_instr(nir_builder *b, nir_instr *instr, UNUSED void *_data)
    nir_variable *new_var = get_variable(b, &path, element);
    nir_deref_path_finish(&path);
 
-   b->cursor = nir_before_instr(instr);
+   b->cursor = nir_before_instr(&intrin->instr);
 
-   nir_ssa_def *def = nir_load_var(b, new_var);
+   nir_def *def = nir_load_var(b, new_var);
 
    /* swizzle the result: */
    unsigned swiz[NIR_MAX_VEC_COMPONENTS] = {0};
@@ -216,8 +210,7 @@ lower_builtin_instr(nir_builder *b, nir_instr *instr, UNUSED void *_data)
    def = nir_swizzle(b, def, swiz, intrin->num_components);
 
    /* and rewrite uses of original instruction: */
-   assert(intrin->dest.is_ssa);
-   nir_ssa_def_rewrite_uses(&intrin->dest.ssa, def);
+   nir_def_rewrite_uses(&intrin->def, def);
 
    /* at this point intrin should be unused.  We need to remove it
     * (rather than waiting for DCE pass) to avoid dangling reference
@@ -249,7 +242,7 @@ st_nir_lower_builtin(nir_shader *shader)
        */
       nir_lower_indirect_var_derefs(shader, vars);
 
-      if (nir_shader_instructions_pass(shader, lower_builtin_instr,
+      if (nir_shader_intrinsics_pass(shader, lower_builtin_instr,
                                        nir_metadata_block_index |
                                        nir_metadata_dominance, NULL))
          nir_remove_dead_derefs(shader);

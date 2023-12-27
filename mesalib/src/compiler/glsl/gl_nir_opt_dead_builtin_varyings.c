@@ -45,8 +45,8 @@
 
 #include "gl_nir_link_varyings.h"
 #include "gl_nir_linker.h"
+#include "linker_util.h"
 #include "nir_builder.h"
-#include "nir_gl_types.h"
 #include "nir_types.h"
 
 #include "compiler/glsl_types.h"
@@ -90,15 +90,6 @@ initialise_varying_info(struct varying_info *info, nir_variable_mode mode,
 
    memset(info->color, 0, sizeof(info->color));
    memset(info->backcolor, 0, sizeof(info->backcolor));
-}
-
-/**
- * Built-in / reserved GL variables names start with "gl_"
- */
-static bool
-is_gl_identifier(const char *s)
-{
-   return s && s[0] == 'g' && s[1] == 'l' && s[2] == '_';
 }
 
 static void
@@ -298,7 +289,7 @@ rewrite_varying_deref(nir_builder *b, struct replace_varyings_data *rv_data,
       unsigned i = nir_src_as_uint(deref->arr.index);
       nir_deref_instr *new_deref =
          nir_build_deref_var(b, rv_data->new_texcoord[i]);
-      nir_ssa_def_rewrite_uses(&deref->dest.ssa, &new_deref->dest.ssa);
+      nir_def_rewrite_uses(&deref->def, &new_deref->def);
       return;
    }
 }
@@ -412,8 +403,7 @@ replace_varyings(const struct gl_constants *consts,
    }
 
    nir_function_impl *impl = nir_shader_get_entrypoint(shader->Program->nir);
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    /* assert that functions have been inlined before packing is called */
    nir_foreach_function(f, shader->Program->nir) {

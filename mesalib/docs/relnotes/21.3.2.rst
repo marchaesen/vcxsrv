@@ -79,7 +79,7 @@ James Jones (1):
 
 - gbm: Don't pass default usage flags on ABIs < 1
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 - crocus: wm_prog_key::key_alpha_test uses GL enums
 - anv: Stop doing too much per-sample shading

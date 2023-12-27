@@ -108,7 +108,7 @@ Iván Briano (1):
 
 - vulkan/wsi/wayland: Fix double free on error condition
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 - util/set: Respect found in search_or_add_pre_hashed
 - nir: Lower all bit sizes of usub_borrow

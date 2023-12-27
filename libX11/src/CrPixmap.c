@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
 
 #ifdef USE_DYNAMIC_XCURSOR
 void
@@ -46,6 +47,16 @@ Pixmap XCreatePixmap (
 {
     Pixmap pid;
     register xCreatePixmapReq *req;
+
+    /*
+     * Force a BadValue X Error if the requested dimensions are larger
+     * than the X11 protocol has room for, since that's how callers expect
+     * to get notified of errors.
+     */
+    if (width > USHRT_MAX)
+        width = 0;
+    if (height > USHRT_MAX)
+        height = 0;
 
     LockDisplay(dpy);
     GetReq(CreatePixmap, req);

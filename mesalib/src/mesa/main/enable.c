@@ -28,7 +28,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "arrayobj.h"
 #include "blend.h"
 #include "clip.h"
@@ -128,7 +128,9 @@ client_state(struct gl_context *ctx, struct gl_vertex_array_object* vao,
 
       case GL_POINT_SIZE_ARRAY_OES:
          if (ctx->VertexProgram.PointSizeEnabled != state) {
-            FLUSH_VERTICES(ctx, _NEW_PROGRAM, 0);
+            FLUSH_VERTICES(ctx, ctx->st->lower_point_size ? _NEW_PROGRAM : 0,
+                           0);
+            ctx->NewDriverState |= ST_NEW_RASTERIZER;
             ctx->VertexProgram.PointSizeEnabled = state;
          }
          vao_state(ctx, vao, VERT_ATTRIB_POINT_SIZE, state);
@@ -351,7 +353,7 @@ _mesa_set_multisample(struct gl_context *ctx, GLboolean state)
    /* GL compatibility needs Multisample.Enable to determine program state
     * constants.
     */
-   if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
+   if (_mesa_is_desktop_gl_compat(ctx) || _mesa_is_gles1(ctx)) {
       FLUSH_VERTICES(ctx, _NEW_MULTISAMPLE, GL_MULTISAMPLE_BIT | GL_ENABLE_BIT);
    } else {
       FLUSH_VERTICES(ctx, 0, GL_MULTISAMPLE_BIT | GL_ENABLE_BIT);
@@ -455,7 +457,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             /* The compatibility profile needs _NEW_TRANSFORM to transform
              * clip planes according to the projection matrix.
              */
-            if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
+            if (_mesa_is_desktop_gl_compat(ctx) || _mesa_is_gles1(ctx)) {
                FLUSH_VERTICES(ctx, _NEW_TRANSFORM,
                               GL_TRANSFORM_BIT | GL_ENABLE_BIT);
             } else {
@@ -468,7 +470,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
                /* The projection matrix transforms the clip plane. */
                /* TODO: glEnable might not be the best place to do it. */
-               if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
+               if (_mesa_is_desktop_gl_compat(ctx) || _mesa_is_gles1(ctx)) {
                   _mesa_update_clip_plane(ctx, p);
                   ctx->NewDriverState |= ST_NEW_CLIP_STATE;
                }
@@ -866,8 +868,6 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             GLbitfield newEnabled =
                state * ((1 << ctx->Const.MaxViewports) - 1);
             if (newEnabled != ctx->Scissor.EnableFlags) {
-               st_flush_bitmap_cache(st_context(ctx));
-
                FLUSH_VERTICES(ctx, 0,
                               GL_SCISSOR_BIT | GL_ENABLE_BIT);
                ctx->NewDriverState |= ST_NEW_SCISSOR | ST_NEW_RASTERIZER;
@@ -1061,7 +1061,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* GL_ARB_point_sprite */
       case GL_POINT_SPRITE:
-         if (!(ctx->API == API_OPENGL_COMPAT &&
+         if (!(_mesa_is_desktop_gl_compat(ctx) &&
                _mesa_has_ARB_point_sprite(ctx)) &&
              !_mesa_has_OES_point_sprite(ctx))
             goto invalid_enum_error;
@@ -1091,7 +1091,9 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->VertexProgram.PointSizeEnabled == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_PROGRAM, GL_ENABLE_BIT);
+         FLUSH_VERTICES(ctx, ctx->st->lower_point_size ? _NEW_PROGRAM : 0,
+                        GL_ENABLE_BIT);
+         ctx->NewDriverState |= ST_NEW_RASTERIZER;
          ctx->VertexProgram.PointSizeEnabled = state;
          break;
       case GL_VERTEX_PROGRAM_TWO_SIDE_ARB:
@@ -1099,7 +1101,14 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->VertexProgram.TwoSideEnabled == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_PROGRAM, GL_ENABLE_BIT);
+         FLUSH_VERTICES(ctx, 0, GL_ENABLE_BIT);
+         if (ctx->st->lower_two_sided_color) {
+            /* TODO: this could be smaller, but most drivers don't get here */
+            ctx->NewDriverState |= ST_NEW_VS_STATE |
+                                   ST_NEW_TES_STATE |
+                                   ST_NEW_GS_STATE;
+         }
+         ctx->NewDriverState |= ST_NEW_RASTERIZER;
          ctx->VertexProgram.TwoSideEnabled = state;
          break;
 
@@ -1393,8 +1402,6 @@ _mesa_set_enablei(struct gl_context *ctx, GLenum cap,
          return;
       }
       if (((ctx->Scissor.EnableFlags >> index) & 1) != state) {
-         st_flush_bitmap_cache(st_context(ctx));
-
          FLUSH_VERTICES(ctx, 0,
                         GL_SCISSOR_BIT | GL_ENABLE_BIT);
          ctx->NewDriverState |= ST_NEW_SCISSOR | ST_NEW_RASTERIZER;
@@ -1839,7 +1846,7 @@ _mesa_IsEnabled( GLenum cap )
 
       /* GL_ARB_point_sprite */
       case GL_POINT_SPRITE:
-         if (!(ctx->API == API_OPENGL_COMPAT &&
+         if (!(_mesa_is_desktop_gl_compat(ctx) &&
                _mesa_has_ARB_point_sprite(ctx)) &&
              !_mesa_has_OES_point_sprite(ctx))
             goto invalid_enum_error;

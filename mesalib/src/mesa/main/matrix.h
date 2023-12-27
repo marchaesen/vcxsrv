@@ -28,7 +28,7 @@
 #define MATRIX_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 struct gl_matrix_stack;
@@ -52,5 +52,20 @@ _mesa_free_matrix_data( struct gl_context *ctx );
 extern void 
 _mesa_update_modelview_project( struct gl_context *ctx, GLuint newstate );
 
+/* "m" must be a 4x4 matrix. Return true if it's the identity matrix. */
+static inline bool
+_mesa_matrix_is_identity(const float *m)
+{
+   const uint32_t *u = (const uint32_t *)m;
+   const uint32_t one = IEEE_ONE;
+
+   /* This is faster than memcmp with static identity matrix. Instead of
+    * comparing every non-diagonal element against zero, OR them and compare
+    * the result. Verified with Viewperf13/Sw/teslaTower_shaded.
+    */
+   return u[0] == one && u[5] == one && u[10] == one && u[15] == one &&
+          !(u[1] | u[2] | u[3] | u[4] | u[6] | u[7] | u[8] | u[9] | u[11] |
+            u[12] | u[13] | u[14]);
+}
 
 #endif

@@ -112,7 +112,7 @@ d3d12_video_nalu_writer_hevc::generic_write_bytes( std::vector<BYTE> &headerBits
         assert(false);
     }
 
-    rbsp.set_start_code_prevention(TRUE);
+    rbsp.set_start_code_prevention(true);
     if (write_bytes_from_struct(&rbsp, pStructure, nal_header->nal_unit_type) <= 0u) {
         debug_printf("write_bytes_from_struct(&rbsp, pStructure, nal_header->nal_unit_type) didn't write any bytes.\n");
         assert(false);
@@ -282,7 +282,76 @@ d3d12_video_nalu_writer_hevc::write_sps_bytes(d3d12_video_encoder_bitstream *pBi
     pBitstream->put_bits(1, pSPS->sps_temporal_mvp_enabled_flag);
     pBitstream->put_bits(1, pSPS->strong_intra_smoothing_enabled_flag);
     pBitstream->put_bits(1, pSPS->vui_parameters_present_flag);
-    assert (pSPS->vui_parameters_present_flag == 0);
+
+    pBitstream->put_bits(1, pSPS->vui.aspect_ratio_info_present_flag);
+    if (pSPS->vui.aspect_ratio_info_present_flag) {
+        pBitstream->put_bits(8, pSPS->vui.aspect_ratio_idc);
+        if (pSPS->vui.aspect_ratio_idc == 255) {
+            pBitstream->put_bits(16, pSPS->vui.sar_width);
+            pBitstream->put_bits(16, pSPS->vui.sar_height);
+        }
+    }
+
+    pBitstream->put_bits(1, pSPS->vui.overscan_info_present_flag);
+    if (pSPS->vui.overscan_info_present_flag) {
+        pBitstream->put_bits(1, pSPS->vui.overscan_appropriate_flag);
+    }
+
+    pBitstream->put_bits(1, pSPS->vui.video_signal_type_present_flag);
+    if (pSPS->vui.video_signal_type_present_flag) {
+        pBitstream->put_bits(3, pSPS->vui.video_format);
+        pBitstream->put_bits(1, pSPS->vui.video_full_range_flag);
+        pBitstream->put_bits(1, pSPS->vui.colour_description_present_flag);
+        if (pSPS->vui.colour_description_present_flag) {
+            pBitstream->put_bits(8, pSPS->vui.colour_primaries);
+            pBitstream->put_bits(8, pSPS->vui.transfer_characteristics);
+            pBitstream->put_bits(8, pSPS->vui.matrix_coeffs);
+        }
+    }
+
+    pBitstream->put_bits(1, pSPS->vui.chroma_loc_info_present_flag);
+    if (pSPS->vui.chroma_loc_info_present_flag) {
+        pBitstream->exp_Golomb_ue(pSPS->vui.chroma_sample_loc_type_top_field);
+        pBitstream->exp_Golomb_ue(pSPS->vui.chroma_sample_loc_type_bottom_field);
+    }
+
+    pBitstream->put_bits(1, pSPS->vui.neutral_chroma_indication_flag);
+    pBitstream->put_bits(1, pSPS->vui.field_seq_flag);
+    pBitstream->put_bits(1, pSPS->vui.frame_field_info_present_flag);
+    pBitstream->put_bits(1, pSPS->vui.default_display_window_flag);
+    if (pSPS->vui.default_display_window_flag) {
+        pBitstream->exp_Golomb_ue(pSPS->vui.def_disp_win_left_offset);
+        pBitstream->exp_Golomb_ue(pSPS->vui.def_disp_win_right_offset);
+        pBitstream->exp_Golomb_ue(pSPS->vui.def_disp_win_top_offset);
+        pBitstream->exp_Golomb_ue(pSPS->vui.def_disp_win_bottom_offset);
+    }
+
+    pBitstream->put_bits(1, pSPS->vui.timing_info_present_flag);
+    if (pSPS->vui.timing_info_present_flag) {
+        pBitstream->put_bits(16, pSPS->vui.num_units_in_tick >> 16);
+        pBitstream->put_bits(16, pSPS->vui.num_units_in_tick & 0xffff);
+        pBitstream->put_bits(16, pSPS->vui.time_scale >> 16);
+        pBitstream->put_bits(16, pSPS->vui.time_scale & 0xffff);
+        pBitstream->put_bits(1, pSPS->vui.poc_proportional_to_timing_flag);
+        if (pSPS->vui.poc_proportional_to_timing_flag) {
+            pBitstream->exp_Golomb_ue(pSPS->vui.num_ticks_poc_diff_one_minus1);
+        }
+
+        assert(pSPS->vui.hrd_parameters_present_flag == 0);
+        pBitstream->put_bits(1, 0); // hrd_parameters_present_flag = 0 until implementing HRD params
+    }
+
+    pBitstream->put_bits(1, pSPS->vui.bitstream_restriction_flag);
+    if (pSPS->vui.bitstream_restriction_flag) {
+        pBitstream->put_bits(1, pSPS->vui.tiles_fixed_structure_flag);
+        pBitstream->put_bits(1, pSPS->vui.motion_vectors_over_pic_boundaries_flag);
+        pBitstream->put_bits(1, pSPS->vui.restricted_ref_pic_lists_flag);
+        pBitstream->exp_Golomb_ue(pSPS->vui.min_spatial_segmentation_idc);
+        pBitstream->exp_Golomb_ue(pSPS->vui.max_bytes_per_pic_denom);
+        pBitstream->exp_Golomb_ue(pSPS->vui.max_bits_per_min_cu_denom);
+        pBitstream->exp_Golomb_ue(pSPS->vui.log2_max_mv_length_horizontal);
+        pBitstream->exp_Golomb_ue(pSPS->vui.log2_max_mv_length_vertical);
+    }
 
     //  pSps_extension_flag
     pBitstream->put_bits(1, 0);
@@ -386,12 +455,12 @@ d3d12_video_nalu_writer_hevc::wrap_rbsp_into_nalu(d3d12_video_encoder_bitstream 
                     d3d12_video_encoder_bitstream *pRBSP,
                     HEVCNaluHeader *pHeader)
 {
-    bool isAligned = pRBSP->is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
+    ASSERTED bool isAligned = pRBSP->is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
     assert(isAligned);
 
     int32_t iBytesWritten = pNALU->get_byte_count();
 
-    pNALU->set_start_code_prevention(FALSE);
+    pNALU->set_start_code_prevention(false);
 
     // NAL start code
     pNALU->put_bits(24, 0);
@@ -412,7 +481,7 @@ d3d12_video_nalu_writer_hevc::wrap_rbsp_into_nalu(d3d12_video_encoder_bitstream 
         pNALU->append_byte_stream(pRBSP);
     } else {
         // Copy with start code prevention.
-        pNALU->set_start_code_prevention(TRUE);
+        pNALU->set_start_code_prevention(true);
         int32_t  iLength = pRBSP->get_byte_count();
         uint8_t *pBuffer = pRBSP->get_bitstream_buffer();
 
@@ -435,10 +504,10 @@ void
 d3d12_video_nalu_writer_hevc::write_nalu_end(d3d12_video_encoder_bitstream *pNALU)
 {
     pNALU->flush();
-    pNALU->set_start_code_prevention(FALSE);
+    pNALU->set_start_code_prevention(false);
     int32_t iNALUnitLen = pNALU->get_byte_count();
 
-    if (FALSE == pNALU->m_bBufferOverflow && 0x00 == pNALU->get_bitstream_buffer()[iNALUnitLen - 1]) {
+    if (false == pNALU->m_bBufferOverflow && 0x00 == pNALU->get_bitstream_buffer()[iNALUnitLen - 1]) {
         pNALU->put_bits(8, 0x03);
         pNALU->flush();
     }
@@ -454,7 +523,7 @@ d3d12_video_nalu_writer_hevc::rbsp_trailing(d3d12_video_encoder_bitstream *pBits
         pBitstream->put_bits(iLeft, 0);
     }
 
-    bool isAligned = pBitstream->is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
+    ASSERTED bool isAligned = pBitstream->is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
     assert(isAligned);
 }
 

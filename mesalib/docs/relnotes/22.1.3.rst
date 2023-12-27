@@ -119,7 +119,7 @@ Iván Briano (1):
 
 - anv: do not get rid of empty/useless fragment shaders
 
-Jason Ekstrand (9):
+Faith Ekstrand (9):
 
 - nir/deref: Break out a helper for compare_deref_paths
 - nir/deref: Use an index in compare_deref_paths

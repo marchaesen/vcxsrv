@@ -1,9 +1,9 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * Copyright 2010 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -11,11 +11,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -23,7 +23,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /* Authors:
@@ -43,22 +43,21 @@
 #include "lp_rast.h"
 
 
-static struct llvmpipe_query *llvmpipe_query( struct pipe_query *p )
+static struct llvmpipe_query *
+llvmpipe_query(struct pipe_query *p)
 {
-   return (struct llvmpipe_query *)p;
+   return (struct llvmpipe_query *) p;
 }
 
+
 static struct pipe_query *
-llvmpipe_create_query(struct pipe_context *pipe, 
+llvmpipe_create_query(struct pipe_context *pipe,
                       unsigned type,
                       unsigned index)
 {
-   struct llvmpipe_query *pq;
-
    assert(type < PIPE_QUERY_TYPES);
 
-   pq = CALLOC_STRUCT( llvmpipe_query );
-
+   struct llvmpipe_query *pq = CALLOC_STRUCT(llvmpipe_query);
    if (pq) {
       pq->type = type;
       pq->index = index;
@@ -78,7 +77,7 @@ llvmpipe_destroy_query(struct pipe_context *pipe, struct pipe_query *q)
     */
    if (pq->fence) {
       if (!lp_fence_issued(pq->fence))
-         llvmpipe_flush(pipe, NULL, __FUNCTION__);
+         llvmpipe_flush(pipe, NULL, __func__);
 
       if (!lp_fence_signalled(pq->fence))
          lp_fence_wait(pq->fence);
@@ -91,22 +90,20 @@ llvmpipe_destroy_query(struct pipe_context *pipe, struct pipe_query *q)
 
 
 static bool
-llvmpipe_get_query_result(struct pipe_context *pipe, 
+llvmpipe_get_query_result(struct pipe_context *pipe,
                           struct pipe_query *q,
                           bool wait,
-                          union pipe_query_result *vresult)
+                          union pipe_query_result *result)
 {
-   struct llvmpipe_screen *screen = llvmpipe_screen(pipe->screen);
-   unsigned num_threads = MAX2(1, screen->num_threads);
+   const struct llvmpipe_screen *screen = llvmpipe_screen(pipe->screen);
+   const unsigned num_threads = MAX2(1, screen->num_threads);
    struct llvmpipe_query *pq = llvmpipe_query(q);
-   uint64_t *result = (uint64_t *)vresult;
-   int i;
 
    if (pq->fence) {
       /* only have a fence if there was a scene */
       if (!lp_fence_signalled(pq->fence)) {
          if (!lp_fence_issued(pq->fence))
-            llvmpipe_flush(pipe, NULL, __FUNCTION__);
+            llvmpipe_flush(pipe, NULL, __func__);
 
          if (!wait)
             return false;
@@ -115,83 +112,102 @@ llvmpipe_get_query_result(struct pipe_context *pipe,
       }
    }
 
-   /* Sum the results from each of the threads:
+   /* Always initialize the first 64-bit result word to zero since some
+    * callers don't consider whether the result is actually a 1-byte or 4-byte
+    * quantity.
     */
-   *result = 0;
+   result->u64 = 0;
 
+   /* Combine the per-thread results */
    switch (pq->type) {
    case PIPE_QUERY_OCCLUSION_COUNTER:
-      for (i = 0; i < num_threads; i++) {
-         *result += pq->end[i];
+      {
+         uint64_t sum = 0;
+         for (unsigned i = 0; i < num_threads; i++) {
+            sum += pq->end[i];
+         }
+         result->u64 = sum;
       }
       break;
    case PIPE_QUERY_OCCLUSION_PREDICATE:
    case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-      for (i = 0; i < num_threads; i++) {
+      result->b = false;
+      for (unsigned i = 0; i < num_threads; i++) {
          /* safer (still not guaranteed) when there's an overflow */
-         vresult->b = vresult->b || pq->end[i];
-      }
-      break;
-   case PIPE_QUERY_TIMESTAMP:
-      for (i = 0; i < num_threads; i++) {
-         if (pq->end[i] > *result) {
-            *result = pq->end[i];
+         if (pq->end[i] > 0) {
+            result->b = true;
+            break;
          }
       }
       break;
-   case PIPE_QUERY_TIME_ELAPSED: {
-      uint64_t start = (uint64_t)-1, end = 0;
-      for (i = 0; i < num_threads; i++) {
-         if (pq->start[i] && pq->start[i] < start)
-            start = pq->start[i];
-         if (pq->end[i] && pq->end[i] > end)
-            end = pq->end[i];
+   case PIPE_QUERY_TIMESTAMP:
+      {
+         uint64_t max_time = 0;
+         for (unsigned i = 0; i < num_threads; i++) {
+            max_time = MAX2(max_time, pq->end[i]);
+         }
+         result->u64 = max_time;
       }
-      *result = end - start;
       break;
-   }
-   case PIPE_QUERY_TIMESTAMP_DISJOINT: {
-      struct pipe_query_data_timestamp_disjoint *td =
-         (struct pipe_query_data_timestamp_disjoint *)vresult;
+   case PIPE_QUERY_TIME_ELAPSED:
+      {
+         uint64_t start = UINT64_MAX, end = 0;
+         for (unsigned i = 0; i < num_threads; i++) {
+            if (pq->start[i]) {
+               start = MIN2(start, pq->start[i]);
+            }
+            if (pq->end[i]) {
+               end = MAX2(end, pq->end[i]);
+            }
+         }
+         result->u64 = end - start;
+      }
+      break;
+   case PIPE_QUERY_TIMESTAMP_DISJOINT:
       /* os_get_time_nano return nanoseconds */
-      td->frequency = UINT64_C(1000000000);
-      td->disjoint = false;
-   }
+      result->timestamp_disjoint.frequency = UINT64_C(1000000000);
+      result->timestamp_disjoint.disjoint = false;
       break;
    case PIPE_QUERY_GPU_FINISHED:
-      vresult->b = true;
+      result->b = true;
       break;
    case PIPE_QUERY_PRIMITIVES_GENERATED:
-      *result = pq->num_primitives_generated[0];
+      result->u64 = pq->num_primitives_generated[0];
       break;
    case PIPE_QUERY_PRIMITIVES_EMITTED:
-      *result = pq->num_primitives_written[0];
+      result->u64 = pq->num_primitives_written[0];
       break;
    case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
-      vresult->b = false;
-      for (unsigned s = 0; s < PIPE_MAX_VERTEX_STREAMS; s++)
-         vresult->b |= pq->num_primitives_generated[s] > pq->num_primitives_written[s];
+      result->b = false;
+      for (unsigned s = 0; s < PIPE_MAX_VERTEX_STREAMS; s++) {
+         if (pq->num_primitives_generated[s] > pq->num_primitives_written[s]) {
+            result->b = true;
+            break;
+         }
+      }
       break;
    case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
-      vresult->b = pq->num_primitives_generated[0] > pq->num_primitives_written[0];
+      result->b = pq->num_primitives_generated[0] > pq->num_primitives_written[0];
       break;
-   case PIPE_QUERY_SO_STATISTICS: {
-      struct pipe_query_data_so_statistics *stats =
-         (struct pipe_query_data_so_statistics *)vresult;
-      stats->num_primitives_written = pq->num_primitives_written[0];
-      stats->primitives_storage_needed = pq->num_primitives_generated[0];
-   }
+   case PIPE_QUERY_SO_STATISTICS:
+      result->so_statistics.num_primitives_written = pq->num_primitives_written[0];
+      result->so_statistics.primitives_storage_needed = pq->num_primitives_generated[0];
       break;
-   case PIPE_QUERY_PIPELINE_STATISTICS: {
-      struct pipe_query_data_pipeline_statistics *stats =
-         (struct pipe_query_data_pipeline_statistics *)vresult;
-      /* only ps_invocations come from binned query */
-      for (i = 0; i < num_threads; i++) {
-         pq->stats.ps_invocations += pq->end[i];
+   case PIPE_QUERY_PIPELINE_STATISTICS:
+      {
+         /* only ps_invocations are per-bin/thread */
+         uint64_t sum = 0;
+         for (unsigned i = 0; i < num_threads; i++) {
+            sum += pq->end[i];
+         }
+         /* The FS/PS operates on a block of pixels at a time.  The counter is
+          * incremented per block so we multiply by pixels per block here.
+          * This will not be a pixel-exact result.
+          */
+         pq->stats.ps_invocations =
+            sum * LP_RASTER_BLOCK_SIZE * LP_RASTER_BLOCK_SIZE;
+         result->pipeline_statistics = pq->stats;
       }
-      pq->stats.ps_invocations *= LP_RASTER_BLOCK_SIZE * LP_RASTER_BLOCK_SIZE;
-      *stats = pq->stats;
-   }
       break;
    default:
       assert(0);
@@ -200,6 +216,7 @@ llvmpipe_get_query_result(struct pipe_context *pipe,
 
    return true;
 }
+
 
 static void
 llvmpipe_get_query_result_resource(struct pipe_context *pipe,
@@ -210,47 +227,44 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
                                    struct pipe_resource *resource,
                                    unsigned offset)
 {
-   struct llvmpipe_screen *screen = llvmpipe_screen(pipe->screen);
-   unsigned num_threads = MAX2(1, screen->num_threads);
-   struct llvmpipe_query *pq = llvmpipe_query(q);
-   struct llvmpipe_resource *lpr = llvmpipe_resource(resource);
-   bool unsignalled = false;
+   const struct llvmpipe_screen *screen = llvmpipe_screen(pipe->screen);
+   const unsigned num_threads = MAX2(1, screen->num_threads);
+   const struct llvmpipe_query *pq = llvmpipe_query(q);
+   const struct llvmpipe_resource *lpr = llvmpipe_resource(resource);
+   uint64_t ready;
+
    if (pq->fence) {
       /* only have a fence if there was a scene */
       if (!lp_fence_signalled(pq->fence)) {
          if (!lp_fence_issued(pq->fence))
-            llvmpipe_flush(pipe, NULL, __FUNCTION__);
+            llvmpipe_flush(pipe, NULL, __func__);
 
          if (flags & PIPE_QUERY_WAIT)
             lp_fence_wait(pq->fence);
       }
-      unsignalled = !lp_fence_signalled(pq->fence);
+      ready = lp_fence_signalled(pq->fence);
+   } else {
+      ready = 1;
    }
-
 
    uint64_t value = 0, value2 = 0;
    unsigned num_values = 1;
-   if (index == -1)
-      if (unsignalled)
-         value = 0;
-      else
-         value = 1;
-   else {
-      unsigned i;
-
-      /* don't write a value if fence hasn't signalled,
-         and partial isn't set . */
-      if (unsignalled && !(flags & PIPE_QUERY_PARTIAL))
+   if (index == -1) {
+      value = ready;
+   } else {
+      /* don't write a value if fence hasn't signalled and partial isn't set */
+      if (!ready && !(flags & PIPE_QUERY_PARTIAL))
          return;
+
       switch (pq->type) {
       case PIPE_QUERY_OCCLUSION_COUNTER:
-         for (i = 0; i < num_threads; i++) {
+         for (unsigned i = 0; i < num_threads; i++) {
             value += pq->end[i];
          }
          break;
       case PIPE_QUERY_OCCLUSION_PREDICATE:
       case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-         for (i = 0; i < num_threads; i++) {
+         for (unsigned i = 0; i < num_threads; i++) {
             /* safer (still not guaranteed) when there's an overflow */
             value = value || pq->end[i];
          }
@@ -262,7 +276,7 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
          value = pq->num_primitives_written[0];
          break;
       case PIPE_QUERY_TIMESTAMP:
-         for (i = 0; i < num_threads; i++) {
+         for (unsigned i = 0; i < num_threads; i++) {
             if (pq->end[i] > value) {
                value = pq->end[i];
             }
@@ -270,7 +284,7 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
          break;
       case PIPE_QUERY_TIME_ELAPSED: {
          uint64_t start = (uint64_t)-1, end = 0;
-         for (i = 0; i < num_threads; i++) {
+         for (unsigned i = 0; i < num_threads; i++) {
             if (pq->start[i] && pq->start[i] < start)
                start = pq->start[i];
             if (pq->end[i] && pq->end[i] > end)
@@ -287,10 +301,10 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
       case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
          value = 0;
          for (unsigned s = 0; s < PIPE_MAX_VERTEX_STREAMS; s++)
-            value |= !!(pq->num_primitives_generated[s] > pq->num_primitives_written[s]);
+            value |= (pq->num_primitives_generated[s] > pq->num_primitives_written[s]);
          break;
       case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
-         value = !!(pq->num_primitives_generated[0] > pq->num_primitives_written[0]);
+         value = (pq->num_primitives_generated[0] > pq->num_primitives_written[0]);
          break;
       case PIPE_QUERY_PIPELINE_STATISTICS:
          switch ((enum pipe_statistics_query_index)index) {
@@ -317,7 +331,7 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
             break;
          case PIPE_STAT_QUERY_PS_INVOCATIONS:
             value = 0;
-            for (i = 0; i < num_threads; i++) {
+            for (unsigned i = 0; i < num_threads; i++) {
                value += pq->end[i];
             }
             value *= LP_RASTER_BLOCK_SIZE * LP_RASTER_BLOCK_SIZE;
@@ -331,6 +345,12 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
          case PIPE_STAT_QUERY_CS_INVOCATIONS:
             value = pq->stats.cs_invocations;
             break;
+         case PIPE_STAT_QUERY_TS_INVOCATIONS:
+            value = pq->stats.ts_invocations;
+            break;
+         case PIPE_STAT_QUERY_MS_INVOCATIONS:
+            value = pq->stats.ms_invocations;
+            break;
          }
          break;
       default:
@@ -339,30 +359,25 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
       }
    }
 
-   void *dst = (uint8_t *)lpr->data + offset;
+   uint8_t *dst = (uint8_t *) lpr->data + offset;
 
+   /* Write 1 or 2 result values */
    for (unsigned i = 0; i < num_values; i++) {
-
       if (i == 1) {
          value = value2;
-         dst = (char *)dst + ((result_type == PIPE_QUERY_TYPE_I64 ||
-                               result_type == PIPE_QUERY_TYPE_U64) ? 8 : 4);
+         // advance dst pointer by 4 or 8 bytes
+         dst += (result_type == PIPE_QUERY_TYPE_I64 ||
+                 result_type == PIPE_QUERY_TYPE_U64) ? 8 : 4;
       }
       switch (result_type) {
       case PIPE_QUERY_TYPE_I32: {
          int32_t *iptr = (int32_t *)dst;
-         if (value > 0x7fffffff)
-            *iptr = 0x7fffffff;
-         else
-            *iptr = (int32_t)value;
+         *iptr = (int32_t) MIN2(value, INT32_MAX);
          break;
       }
       case PIPE_QUERY_TYPE_U32: {
          uint32_t *uptr = (uint32_t *)dst;
-         if (value > 0xffffffff)
-            *uptr = 0xffffffff;
-         else
-            *uptr = (uint32_t)value;
+         *uptr = (uint32_t) MIN2(value, UINT32_MAX);
          break;
       }
       case PIPE_QUERY_TYPE_I64: {
@@ -379,10 +394,11 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
    }
 }
 
+
 static bool
 llvmpipe_begin_query(struct pipe_context *pipe, struct pipe_query *q)
 {
-   struct llvmpipe_context *llvmpipe = llvmpipe_context( pipe );
+   struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    struct llvmpipe_query *pq = llvmpipe_query(q);
 
    /* Check if the query is already in the scene.  If so, we need to
@@ -390,9 +406,8 @@ llvmpipe_begin_query(struct pipe_context *pipe, struct pipe_query *q)
     * frame of rendering.
     */
    if (pq->fence && !lp_fence_issued(pq->fence)) {
-      llvmpipe_finish(pipe, __FUNCTION__);
+      llvmpipe_finish(pipe, __func__);
    }
-
 
    memset(pq->start, 0, sizeof(pq->start));
    memset(pq->end, 0, sizeof(pq->end));
@@ -445,7 +460,7 @@ llvmpipe_begin_query(struct pipe_context *pipe, struct pipe_query *q)
 static bool
 llvmpipe_end_query(struct pipe_context *pipe, struct pipe_query *q)
 {
-   struct llvmpipe_context *llvmpipe = llvmpipe_context( pipe );
+   struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    struct llvmpipe_query *pq = llvmpipe_query(q);
 
    lp_setup_end_query(llvmpipe->setup, pq);
@@ -505,6 +520,10 @@ llvmpipe_end_query(struct pipe_context *pipe, struct pipe_query *q)
          llvmpipe->pipeline_statistics.hs_invocations - pq->stats.hs_invocations;
       pq->stats.ds_invocations =
          llvmpipe->pipeline_statistics.ds_invocations - pq->stats.ds_invocations;
+      pq->stats.ts_invocations =
+         llvmpipe->pipeline_statistics.ts_invocations - pq->stats.ts_invocations;
+      pq->stats.ms_invocations =
+         llvmpipe->pipeline_statistics.ms_invocations - pq->stats.ms_invocations;
       llvmpipe->active_statistics_queries--;
       break;
    case PIPE_QUERY_OCCLUSION_COUNTER:
@@ -521,29 +540,32 @@ llvmpipe_end_query(struct pipe_context *pipe, struct pipe_query *q)
    return true;
 }
 
-boolean
+
+bool
 llvmpipe_check_render_cond(struct llvmpipe_context *lp)
 {
    struct pipe_context *pipe = &lp->pipe;
-   boolean b, wait;
-   uint64_t result;
 
    if (lp->render_cond_buffer) {
-      uint32_t data = *(uint32_t *)((char *)lp->render_cond_buffer->data + lp->render_cond_offset);
+      uint32_t data = *(uint32_t *)((char *)lp->render_cond_buffer->data
+                                    + lp->render_cond_offset);
       return (!data) == lp->render_cond_cond;
    }
    if (!lp->render_cond_query)
-      return TRUE; /* no query predicate, draw normally */
+      return true; /* no query predicate, draw normally */
 
-   wait = (lp->render_cond_mode == PIPE_RENDER_COND_WAIT ||
-           lp->render_cond_mode == PIPE_RENDER_COND_BY_REGION_WAIT);
+   bool wait = (lp->render_cond_mode == PIPE_RENDER_COND_WAIT ||
+                lp->render_cond_mode == PIPE_RENDER_COND_BY_REGION_WAIT);
 
-   b = pipe->get_query_result(pipe, lp->render_cond_query, wait, (void*)&result);
+   uint64_t result;
+   bool b = pipe->get_query_result(pipe, lp->render_cond_query, wait,
+                              (void*)&result);
    if (b)
       return ((!result) == lp->render_cond_cond);
    else
-      return TRUE;
+      return true;
 }
+
 
 static void
 llvmpipe_set_active_query_state(struct pipe_context *pipe, bool enable)
@@ -555,7 +577,9 @@ llvmpipe_set_active_query_state(struct pipe_context *pipe, bool enable)
    llvmpipe->dirty |= LP_NEW_OCCLUSION_QUERY;
 }
 
-void llvmpipe_init_query_funcs(struct llvmpipe_context *llvmpipe )
+
+void
+llvmpipe_init_query_funcs(struct llvmpipe_context *llvmpipe)
 {
    llvmpipe->pipe.create_query = llvmpipe_create_query;
    llvmpipe->pipe.destroy_query = llvmpipe_destroy_query;

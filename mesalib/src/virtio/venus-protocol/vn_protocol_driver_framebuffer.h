@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_FRAMEBUFFER_H
 #define VN_PROTOCOL_DRIVER_FRAMEBUFFER_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkFramebufferAttachmentImageInfo chain */
@@ -387,7 +387,7 @@ static inline void vn_decode_vkDestroyFramebuffer_reply(struct vn_cs_decoder *de
     /* skip pAllocator */
 }
 
-static inline void vn_submit_vkCreateFramebuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkFramebufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFramebuffer* pFramebuffer, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateFramebuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkFramebufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFramebuffer* pFramebuffer, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -399,16 +399,16 @@ static inline void vn_submit_vkCreateFramebuffer(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateFramebuffer_reply(device, pCreateInfo, pAllocator, pFramebuffer) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateFramebuffer(enc, cmd_flags, device, pCreateInfo, pAllocator, pFramebuffer);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyFramebuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFramebuffer framebuffer, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyFramebuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFramebuffer framebuffer, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -420,54 +420,54 @@ static inline void vn_submit_vkDestroyFramebuffer(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyFramebuffer_reply(device, framebuffer, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyFramebuffer(enc, cmd_flags, device, framebuffer, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreateFramebuffer(struct vn_instance *vn_instance, VkDevice device, const VkFramebufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFramebuffer* pFramebuffer)
+static inline VkResult vn_call_vkCreateFramebuffer(struct vn_ring *vn_ring, VkDevice device, const VkFramebufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFramebuffer* pFramebuffer)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateFramebuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pFramebuffer, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateFramebuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pFramebuffer, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateFramebuffer_reply(dec, device, pCreateInfo, pAllocator, pFramebuffer);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateFramebuffer(struct vn_instance *vn_instance, VkDevice device, const VkFramebufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFramebuffer* pFramebuffer)
+static inline void vn_async_vkCreateFramebuffer(struct vn_ring *vn_ring, VkDevice device, const VkFramebufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFramebuffer* pFramebuffer)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateFramebuffer(vn_instance, 0, device, pCreateInfo, pAllocator, pFramebuffer, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateFramebuffer(vn_ring, 0, device, pCreateInfo, pAllocator, pFramebuffer, &submit);
 }
 
-static inline void vn_call_vkDestroyFramebuffer(struct vn_instance *vn_instance, VkDevice device, VkFramebuffer framebuffer, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyFramebuffer(struct vn_ring *vn_ring, VkDevice device, VkFramebuffer framebuffer, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyFramebuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, framebuffer, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyFramebuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, framebuffer, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyFramebuffer_reply(dec, device, framebuffer, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyFramebuffer(struct vn_instance *vn_instance, VkDevice device, VkFramebuffer framebuffer, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyFramebuffer(struct vn_ring *vn_ring, VkDevice device, VkFramebuffer framebuffer, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyFramebuffer(vn_instance, 0, device, framebuffer, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyFramebuffer(vn_ring, 0, device, framebuffer, pAllocator, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_FRAMEBUFFER_H */
