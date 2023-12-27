@@ -40,7 +40,7 @@ function check-error {
     fi
 }
 
-which nasm > /dev/null 2>&1
+which nasm.exe > /dev/null 2>&1
 check-error 'Please install nasm'
 
 which MSBuild.exe > /dev/null 2>&1
@@ -49,9 +49,9 @@ which python.exe > /dev/null 2>&1
 check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2.7.exe /usr/bin/python.exe)'
 
 # c:\perl should have a copy of strawberry perl portable edition
-which /cygdrive/c/perl/perl/bin/perl.exe > /dev/null 2>&1
+which /mnt/c/perl/perl/bin/perl.exe > /dev/null 2>&1
 check-error 'Please install strawberry perl portable edition into c:\perl'
-export PATH=/cygdrive/c/perl/perl/bin:$PATH
+export PATH=/mnt/c/perl/perl/bin:$PATH
 
 # echo script lines from now one
 #set -v
@@ -103,7 +103,7 @@ if [[ "$BUILDRELEASE" == "1" ]] ; then
 	fi
 	check-error 'Error executing perl'
 
-	nmake.exe
+	jom.exe /J$2
 	check-error 'Error compiling openssl for release'
 
 	cd ../..
@@ -126,7 +126,7 @@ if [[ "$BUILDDEBUG" == "1" ]] ; then
 	fi
 	check-error 'Error executing perl'
 
-	nmake
+	nmake.exe
 	check-error 'Error compiling openssl for debug'
 
 	cd ../..
@@ -162,7 +162,6 @@ if [[ "$IS64" == "1" ]]; then
   		check-error 'Error compiling mhmake for debug'
   	fi
   fi
-	export MHMAKECONF=`cygpath -da .`
 
 	if [[ "$BUILDRELEASE" == "1" ]]; then
 		tools/mhmake/Release64/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
@@ -170,12 +169,12 @@ if [[ "$IS64" == "1" ]]; then
 	fi
 
 	if [[ "$BUILDDEBUG" == "1" ]]; then
-		tools/mhmake/Release64/mhmake -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
+		tools/mhmake/Release64/mhmake.exe -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
 		check-error 'Error compiling vcxsrv for debug'
 	fi
 
 	cd xorg-server/installer
-	./packageall.bat nox86
+	cmd.exe /c packageall.bat nox86
 
 else
 
@@ -192,8 +191,6 @@ else
   		check-error 'Error compiling mhmake for debug'
   	fi
 
-  	export MHMAKECONF=`cygpath -da .`
-
   	if [[ "$BUILDRELEASE" == "1" ]]; then
   		tools/mhmake/Release/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
   		check-error 'Error compiling vcxsrv for release'
@@ -204,7 +201,7 @@ else
   	fi
 
   	cd xorg-server/installer
-  	./packageall.bat nox64
+  	cmd.exe /c packageall.bat nox64
   fi
 
 fi

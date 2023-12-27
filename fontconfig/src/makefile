@@ -1,14 +1,14 @@
 $(OBJDIR)\fcobjshash.gperf: fcobjshash.gperf.h fcobjs.h
 	cp $< $<.c
 	$(CPP) -EP -I.. $<.c | \
-	python3.8 cleangperf.py | \
-	gawk '/CUT_OUT_BEGIN/ { no_write=1; next; }; /CUT_OUT_END/ { no_write=0; next; }; { if (!no_write) print; next; };' - > $@.tmp
+	$(PYTHON3) cleangperf.py | \
+	gawk "/CUT_OUT_BEGIN/ { no_write=1; next; }; /CUT_OUT_END/ { no_write=0; next; }; { if (!no_write) print; next; };" - > $@.tmp
 	mv -f $@.tmp $@
 	rm $<.c
 
 $(OBJDIR)\fcobjshash.h: $(OBJDIR)\fcobjshash.gperf
 	gperf -m 100 $< > $@
-	python3.8 converttype.py $@
+	$(PYTHON3) converttype.py $@
 
 DEFINES+=FC_TEMPLATEDIR=\"./conf.avail\"
 

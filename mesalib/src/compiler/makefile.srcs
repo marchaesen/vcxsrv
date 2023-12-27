@@ -12,8 +12,8 @@ builddir=.
 BISON_PKGDATADIR=../../../tools/mhmake/src/bisondata
 export BISON_PKGDATADIR
 
-YACC_GEN = bison.exe -d -v
-LEX_GEN = flex.exe --nounistd
+YACC_GEN = c:/winflexbison/win_bison.exe -d -v
+LEX_GEN = c:/winflexbison/win_flex.exe --nounistd
 PYTHON_GEN = $(PYTHON3)
 
 glsl/glsl_parser.cpp glsl/glsl_parser.hpp: glsl/glsl_parser.yy

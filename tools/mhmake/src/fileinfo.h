@@ -403,7 +403,7 @@ public:
   }
 };
 
-struct less_fileinfo : public binary_function <const fileinfo*, const fileinfo*, bool>
+struct less_fileinfo
 {
   bool operator()(const fileinfo *_Left, const fileinfo *_Right) const
   {

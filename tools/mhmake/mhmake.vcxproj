@@ -462,10 +462,10 @@
     <CustomBuild Include="src\mhmakeParser.y">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cmd.exe /c makebison.bat Debug
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename).cpp;$(IntDir)%(Filename).hpp;$(IntDir)location.hh</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename).cpp</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cmd.exe /c makebison.bat Debug64
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)%(Filename).cpp;$(OutDir)%(Filename).h;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)%(Filename).cpp;%(Outputs)</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">cmd.exe /c makebison.bat Profile
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">$(IntDir)%(Filename).cpp;$(IntDir)%(Filename).hpp;$(IntDir)location.hh</Outputs>
@@ -473,9 +473,9 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">$(OutDir)%(Filename).cpp;$(OutDir)%(Filename).h;%(Outputs)</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd.exe /c makebison.bat Release
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename).cpp;$(IntDir)%(Filename).hpp;$(IntDir)location.hh</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename).cpp</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cmd.exe /c makebison.bat Release64</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)%(Filename).cpp;$(OutDir)%(Filename).h;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)%(Filename).cpp;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
